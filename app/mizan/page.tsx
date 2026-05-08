@@ -2,8 +2,16 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
-// ── ABJAD NUMEROLOGY (Islamic letter-number system) ──
-const ABJAD = [1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,300,400,500,600,700,800,900,1000];
+// ── DETERMINISTIC HASH — same input always = same output ──
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash);
+}
 
 function getLifeNumber(day: number, month: number, year: number): number {
   const sum = `${day}${month}${year}`.split('').reduce((a, b) => a + parseInt(b), 0);
@@ -27,39 +35,26 @@ function getDestinyNumber(month: number, year: number): number {
 
 // ── THE 9 ISLAMIC ARCHETYPES ──
 const ARCHETYPES: Record<number, {
-  name: string;
-  arabic: string;
-  title: string;
-  divineName: string;
-  divineArabic: string;
-  verse: string;
-  verseRef: string;
-  color: string;
-  glow: string;
-  lightColor: string;
-  symbol: string;
-  personality: string;
-  strength: string[];
-  challenge: string;
-  rizq: string;
-  relationship: string;
-  purpose: string;
-  dhikr: string;
-  dhikrArabic: string;
-  dhikrCount: number;
+  name: string; arabic: string; title: string;
+  divineName: string; divineArabic: string;
+  verse: string; verseRef: string;
+  color: string; glow: string; symbol: string;
+  personality: string; strength: string[];
+  challenge: string; rizq: string;
+  relationship: string; purpose: string;
+  dhikr: string; dhikrArabic: string; dhikrCount: number;
 }> = {
   1: {
     name: 'Al-Awwal', arabic: 'الأَوَّل', title: 'The Pioneer',
     divineName: 'Al-Wahid', divineArabic: 'الْوَاحِدُ',
     verse: 'He is the First and the Last, the Evident and the Hidden.',
     verseRef: 'Quran 57:3',
-    color: '#c8a96e', glow: 'rgba(200,169,110,0.3)', lightColor: '#fef3e2',
-    symbol: '☀️',
+    color: '#c8a96e', glow: 'rgba(200,169,110,0.3)', symbol: '☀️',
     personality: 'You are a natural leader with a pioneering spirit. Born to walk paths others have not yet discovered, you carry the light of originality. Like Sayyiduna Ibrahim ﷺ who stood alone against his people, you have the courage to stand for truth even in solitude.',
     strength: ['Natural leadership', 'Original thinking', 'Unwavering conviction', 'Divine courage'],
     challenge: 'Your challenge is patience with those who move slower. Practice the Sunnah of Shura — consulting others even when you know the way.',
     rizq: 'Your wealth flows through leadership roles, entrepreneurship, and independent ventures. Allah has written rizq in paths you create yourself.',
-    relationship: 'You love deeply and protect fiercely. You seek a partner who respects your independence and matches your spiritual ambition. Give your loved ones space to grow.',
+    relationship: 'You love deeply and protect fiercely. You seek a partner who respects your independence and matches your spiritual ambition.',
     purpose: 'To illuminate new paths for the Ummah. You are here to start things, to be the first, to show others what is possible when you trust Allah completely.',
     dhikr: 'Ya Wahid', dhikrArabic: 'يَا وَاحِدُ', dhikrCount: 1000,
   },
@@ -68,13 +63,12 @@ const ARCHETYPES: Record<number, {
     divineName: 'Al-Lateef', divineArabic: 'اللَّطِيفُ',
     verse: 'And He is the Subtle, the All-Aware.',
     verseRef: 'Quran 67:14',
-    color: '#7eb8d4', glow: 'rgba(126,184,212,0.3)', lightColor: '#e8f4f9',
-    symbol: '🌊',
+    color: '#7eb8d4', glow: 'rgba(126,184,212,0.3)', symbol: '🌊',
     personality: 'You are the bridge between worlds — gifted with deep empathy and a rare ability to bring harmony to chaos. Like water that finds its level, you naturally restore balance. The Prophet ﷺ said "Gentleness adorns everything" — this is your nature.',
     strength: ['Deep empathy', 'Peacemaking', 'Intuitive wisdom', 'Gentle strength'],
     challenge: 'Your challenge is over-giving. Learn that your own spiritual cup must be full before you pour into others. Setting limits is not selfishness — it is wisdom.',
-    rizq: 'Your wealth flows through partnerships, counselling, healing, and serving others. Collaborative ventures and supporting roles bring your greatest blessings.',
-    relationship: 'You are the most devoted partner. You feel deeply and love completely. Seek someone who appreciates your sensitivity and does not mistake your gentleness for weakness.',
+    rizq: 'Your wealth flows through partnerships, counselling, healing, and serving others. Collaborative ventures bring your greatest blessings.',
+    relationship: 'You are the most devoted partner. You feel deeply and love completely. Seek someone who appreciates your sensitivity.',
     purpose: 'To heal divisions in the Ummah. You are here to reconcile, to listen, to carry the pain of others with grace and return it as hope.',
     dhikr: 'Ya Lateef', dhikrArabic: 'يَا لَطِيفُ', dhikrCount: 129,
   },
@@ -83,8 +77,7 @@ const ARCHETYPES: Record<number, {
     divineName: 'Al-Nur', divineArabic: 'النُّورُ',
     verse: 'Allah is the Light of the heavens and the earth.',
     verseRef: 'Quran 24:35',
-    color: '#f0c040', glow: 'rgba(240,192,64,0.3)', lightColor: '#fefce8',
-    symbol: '✨',
+    color: '#f0c040', glow: 'rgba(240,192,64,0.3)', symbol: '✨',
     personality: 'You are a bearer of light — eloquent, expressive, and touched with divine creativity. Your words carry weight and your presence lifts rooms. Like the companions who memorised and spread the Quran, you are built to carry sacred knowledge forward.',
     strength: ['Eloquence and expression', 'Creative vision', 'Inspiring others', 'Joy and optimism'],
     challenge: 'Your challenge is focus. Your gifts are many and the world pulls you in many directions. Choose your calling with intention and go deep rather than wide.',
@@ -98,13 +91,12 @@ const ARCHETYPES: Record<number, {
     divineName: 'Al-Matin', divineArabic: 'الْمَتِينُ',
     verse: 'Indeed, Allah loves those who act with excellence.',
     verseRef: 'Quran 2:195',
-    color: '#6b8f71', glow: 'rgba(107,143,113,0.3)', lightColor: '#f0f7f1',
-    symbol: '🏔️',
+    color: '#6b8f71', glow: 'rgba(107,143,113,0.3)', symbol: '🏔️',
     personality: 'You are the foundation upon which communities are built. Reliable, disciplined, and tireless, you embody the Islamic concept of Itqan — doing everything with excellence. The Prophet ﷺ said "Allah loves when one of you does a job, to do it with Itqan." That is you.',
     strength: ['Unshakeable discipline', 'Trustworthiness', 'Practical wisdom', 'Long-term vision'],
     challenge: 'Your challenge is rigidity. The Sunnah teaches us flexibility — even in worship, Allah made concessions for travellers. Learn to bend without breaking.',
     rizq: 'Your wealth flows through steady, long-term work. You build things that last. Real estate, structured businesses, and skilled crafts are your domain.',
-    relationship: 'You are the most loyal partner — your word is your bond. Seek someone who values consistency over excitement and matches your devotion.',
+    relationship: 'You are the most loyal partner — your word is your bond. Seek someone who values consistency over excitement.',
     purpose: 'To build lasting structures for the Ummah — institutions, families, businesses, and communities that outlive you.',
     dhikr: 'Ya Matin', dhikrArabic: 'يَا مَتِينُ', dhikrCount: 500,
   },
@@ -113,8 +105,7 @@ const ARCHETYPES: Record<number, {
     divineName: 'Al-Fattah', divineArabic: 'الْفَتَّاحُ',
     verse: 'Say: Travel through the land and observe how He began creation.',
     verseRef: 'Quran 29:20',
-    color: '#9b6b9b', glow: 'rgba(155,107,155,0.3)', lightColor: '#f5eef8',
-    symbol: '🌍',
+    color: '#9b6b9b', glow: 'rgba(155,107,155,0.3)', symbol: '🌍',
     personality: 'You are the free spirit of the Ummah — adaptable, curious, and drawn to the horizons of this world. Like the great Muslim travellers Ibn Battuta and Ibn Khaldun who mapped the world for the sake of knowledge, you learn by experiencing.',
     strength: ['Adaptability', 'Courage to explore', 'Cross-cultural wisdom', 'Infectious enthusiasm'],
     challenge: 'Your challenge is rootedness. Freedom without anchor becomes drift. Establish your daily Salah as the five pillars that hold your life steady while you roam.',
@@ -128,8 +119,7 @@ const ARCHETYPES: Record<number, {
     divineName: 'Al-Wadud', divineArabic: 'الْوَدُودُ',
     verse: 'And We have not sent you except as a mercy to the worlds.',
     verseRef: 'Quran 21:107',
-    color: '#d4748c', glow: 'rgba(212,116,140,0.3)', lightColor: '#fdf0f3',
-    symbol: '🌹',
+    color: '#d4748c', glow: 'rgba(212,116,140,0.3)', symbol: '🌹',
     personality: 'You carry the divine quality of Rahma — mercy — as your defining trait. Like a mother\'s love that knows no conditions, you give without keeping score. The Prophet ﷺ was described as "rahmatun lil-alameen" — this quality lives strongly in you.',
     strength: ['Unconditional compassion', 'Healing presence', 'Community building', 'Generous heart'],
     challenge: 'Your challenge is learning that mercy also means sometimes saying no. Enabling is not mercy. The most merciful act is sometimes the difficult one.',
@@ -143,14 +133,13 @@ const ARCHETYPES: Record<number, {
     divineName: 'Al-Alim', divineArabic: 'اَلْعَلِيمُ',
     verse: 'And He taught you what you did not know. And the favour of Allah upon you has been great.',
     verseRef: 'Quran 4:113',
-    color: '#5b8dd4', glow: 'rgba(91,141,212,0.3)', lightColor: '#eef4fc',
-    symbol: '🔭',
+    color: '#5b8dd4', glow: 'rgba(91,141,212,0.3)', symbol: '🔭',
     personality: 'You are the scholar, the contemplative, the seeker of divine wisdom. You were born to go deep — into books, into prayer, into the mysteries of existence. Like Imam Ghazali who retreated to find truth, you find God in silence and study.',
     strength: ['Profound intellect', 'Spiritual depth', 'Pattern recognition', 'Quiet wisdom'],
     challenge: 'Your challenge is connection. Wisdom that stays in your mind helps no one. The Prophet ﷺ said "convey from me even one verse." Share what you know.',
     rizq: 'Your wealth flows through knowledge-based work — research, scholarship, medicine, law, and any field requiring deep expertise.',
     relationship: 'You need depth, not surface. Seek a partner who can sit in comfortable silence and engage in meaningful conversation.',
-    purpose: 'To be a bridge between divine knowledge and the Ummah — to make the complex simple and bring people closer to Allah through understanding.',
+    purpose: 'To be a bridge between divine knowledge and the Ummah — to make the complex simple and bring people closer to Allah.',
     dhikr: 'Ya Alim', dhikrArabic: 'يَا عَلِيمُ', dhikrCount: 150,
   },
   8: {
@@ -158,23 +147,21 @@ const ARCHETYPES: Record<number, {
     divineName: 'Al-Qawi', divineArabic: 'الْقَوِيُّ',
     verse: 'Indeed, the strong believer is more beloved to Allah than the weak believer.',
     verseRef: 'Sahih Muslim',
-    color: '#c0392b', glow: 'rgba(192,57,43,0.3)', lightColor: '#fdf0ee',
-    symbol: '⚔️',
+    color: '#c0392b', glow: 'rgba(192,57,43,0.3)', symbol: '⚔️',
     personality: 'You carry the strength of mountains and the ambition of eagles. You were built for authority, for impact, for changing the world at scale. Like Umar ibn al-Khattab RA whose conversion shifted the entire power of early Islam, your strength is a divine gift.',
     strength: ['Commanding presence', 'Strategic mind', 'Extraordinary drive', 'Transformative vision'],
-    challenge: 'Your challenge is the ego. Power is a test. The greatest leaders in Islam — Umar, Salahuddin — were known for their humility in private. Strength must always serve others.',
+    challenge: 'Your challenge is the ego. Power is a test. The greatest leaders in Islam were known for their humility in private. Strength must always serve others.',
     rizq: 'Your wealth flows through business empires, leadership positions, and ventures that operate at scale. You are built for significant financial responsibility.',
-    relationship: 'You need a partner who is your equal in strength — who challenges and supports you. Never mistake softness for weakness in those around you.',
+    relationship: 'You need a partner who is your equal in strength — who challenges and supports you. Never mistake softness for weakness.',
     purpose: 'To be a force for justice in the world — to use your power to lift the Ummah and establish what is right.',
     dhikr: 'Ya Qawi', dhikrArabic: 'يَا قَوِيُّ', dhikrCount: 116,
   },
   9: {
     name: 'Al-Kamal', arabic: 'الكَمَال', title: 'The Completer',
-    divineName: 'Al-Kamil', divineArabic: 'الكَامِل',
+    divineName: 'Al-Jami', divineArabic: 'الْجَامِعُ',
     verse: 'This day I have perfected for you your religion and completed My favour upon you.',
     verseRef: 'Quran 5:3',
-    color: '#8e44ad', glow: 'rgba(142,68,173,0.3)', lightColor: '#f5eef8',
-    symbol: '🌌',
+    color: '#8e44ad', glow: 'rgba(142,68,173,0.3)', symbol: '🌌',
     personality: 'You are the completion — the one who brings things full circle. Nine is the number of perfection in Islamic numerology, the final digit before return. You carry an old soul, a humanitarian heart, and a vision that transcends borders. You feel the pain of the entire Ummah.',
     strength: ['Universal compassion', 'Visionary thinking', 'Spiritual completion', 'Timeless wisdom'],
     challenge: 'Your challenge is endings — you must learn to let go. Not every circle you close needs to be reopened. Trust Allah with what has passed.',
@@ -187,6 +174,11 @@ const ARCHETYPES: Record<number, {
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
+// ── CACHE KEY — same inputs always produce same key ──
+function getCacheKey(name: string, day: string, month: string, year: string) {
+  return `mizan_${name.trim().toLowerCase()}_${day}_${month}_${year}`;
+}
+
 export default function Mizan() {
   const [step, setStep] = useState<'intro'|'input'|'calculating'|'result'>('intro');
   const [day, setDay] = useState('');
@@ -196,17 +188,57 @@ export default function Mizan() {
   const [result, setResult] = useState<{life: number; soul: number; destiny: number; archetype: typeof ARCHETYPES[1]} | null>(null);
   const [revealStep, setRevealStep] = useState(0);
   const [dhikrCount, setDhikrCount] = useState(0);
+  const [copied, setCopied] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
+
+  // ── Check localStorage for saved result on mount ──
+  useEffect(() => {
+    const saved = localStorage.getItem('mizan_last');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // restore form fields
+        setName(parsed.name || '');
+        setDay(parsed.day || '');
+        setMonth(parsed.month || '');
+        setYear(parsed.year || '');
+      } catch {}
+    }
+  }, []);
 
   const calculate = () => {
     if (!day || !month || !year || year.length < 4) return;
+
+    // ── Check cache first — same inputs = same result instantly ──
+    const cacheKey = getCacheKey(name, day, month, year);
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setResult(parsed);
+        setStep('result');
+        setRevealStep(0);
+        setTimeout(() => setRevealStep(1), 300);
+        setTimeout(() => setRevealStep(2), 800);
+        setTimeout(() => setRevealStep(3), 1400);
+        setTimeout(() => setRevealStep(4), 2000);
+        return;
+      } catch {}
+    }
+
     setStep('calculating');
     setTimeout(() => {
       const d = parseInt(day), m = parseInt(month), y = parseInt(year);
       const life = getLifeNumber(d, m, y);
       const soul = getSoulNumber(d);
       const destiny = getDestinyNumber(m, y);
-      setResult({ life, soul, destiny, archetype: ARCHETYPES[life] });
+      const newResult = { life, soul, destiny, archetype: ARCHETYPES[life] };
+
+      // ── Save to cache and last session ──
+      localStorage.setItem(cacheKey, JSON.stringify(newResult));
+      localStorage.setItem('mizan_last', JSON.stringify({ name, day, month, year }));
+
+      setResult(newResult);
       setStep('result');
       setRevealStep(0);
       setTimeout(() => setRevealStep(1), 300);
@@ -222,6 +254,35 @@ export default function Mizan() {
     }
   }, [step]);
 
+  const handleShare = () => {
+    if (!result) return;
+    const arch = result.archetype;
+    const text = `✦ My Islamic Blueprint ✦\n\nI am "${arch.title}" — ${arch.name}\n${arch.arabic}\n\nMy Divine Name: ${arch.divineName} ${arch.divineArabic}\nLife Number: ${result.life} | Soul: ${result.soul} | Destiny: ${result.destiny}\n\n"${arch.verse}"\n— ${arch.verseRef}\n\n🌿 Discover your Islamic Blueprint free at iloveislam.life/mizan`;
+
+    if (navigator.share && /Mobi|Android/i.test(navigator.userAgent)) {
+      navigator.share({
+        title: 'My Islamic Blueprint — Mizan',
+        text,
+        url: 'https://iloveislam.life/mizan',
+      });
+    } else {
+      navigator.clipboard.writeText(text).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      }).catch(() => {
+        // Fallback if clipboard fails
+        const el = document.createElement('textarea');
+        el.value = text;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      });
+    }
+  };
+
   const arch = result?.archetype;
 
   return (
@@ -236,39 +297,32 @@ export default function Mizan() {
         </div>
       </header>
 
-      {/* ── INTRO SCREEN ── */}
+      {/* ── INTRO ── */}
       {step === 'intro' && (
         <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-          <div className="mb-8">
-            <div className="text-6xl mb-6 animate-pulse">✦</div>
-            <p className="text-xs tracking-[0.4em] uppercase mb-4" style={{ color: '#c8a96e' }}>
-              Islamic Numerology & Self-Discovery
-            </p>
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
-              Discover Your<br />
-              <span style={{ color: '#c8a96e' }}>Islamic Blueprint</span>
-            </h1>
-            <p className="text-white/50 text-base leading-relaxed max-w-lg mx-auto mb-8">
-              Based on the ancient Abjad numerology system used by Islamic scholars for centuries — combined with the 99 Names of Allah and Quranic guidance — your birth date reveals your divine archetype, life purpose, and spiritual path.
-            </p>
-
-            {/* Feature pills */}
-            <div className="flex flex-wrap justify-center gap-2 mb-10">
-              {['Your Divine Name', 'Life Purpose', 'Soul Number', 'Rizq Path', 'Your Dhikr', 'Quranic Verse'].map(f => (
-                <span key={f} className="text-xs px-3 py-1.5 rounded-full border border-white/10 text-white/50">{f}</span>
-              ))}
-            </div>
-
-            <button onClick={() => setStep('input')}
-              className="px-10 py-4 rounded-2xl font-semibold text-base transition-all hover:scale-105 active:scale-95"
-              style={{ background: 'linear-gradient(135deg, #c8a96e, #a07840)', color: '#080c10' }}>
-              Begin Your Journey ✦
-            </button>
-
-            <p className="text-white/20 text-xs mt-4">Based on Islamic Abjad numerology · Free forever · Private</p>
+          <div className="text-6xl mb-6 animate-pulse">✦</div>
+          <p className="text-xs tracking-[0.4em] uppercase mb-4" style={{ color: '#c8a96e' }}>
+            Islamic Numerology & Self-Discovery
+          </p>
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
+            Discover Your<br />
+            <span style={{ color: '#c8a96e' }}>Islamic Blueprint</span>
+          </h1>
+          <p className="text-white/50 text-base leading-relaxed max-w-lg mx-auto mb-8">
+            Based on the ancient Abjad numerology system used by Islamic scholars for centuries — combined with the 99 Names of Allah and Quranic guidance — your birth date reveals your divine archetype, life purpose, and spiritual path.
+          </p>
+          <div className="flex flex-wrap justify-center gap-2 mb-10">
+            {['Your Divine Name', 'Life Purpose', 'Soul Number', 'Rizq Path', 'Your Dhikr', 'Quranic Verse'].map(f => (
+              <span key={f} className="text-xs px-3 py-1.5 rounded-full border border-white/10 text-white/50">{f}</span>
+            ))}
           </div>
+          <button onClick={() => setStep('input')}
+            className="px-10 py-4 rounded-2xl font-semibold text-base transition-all hover:scale-105 active:scale-95"
+            style={{ background: 'linear-gradient(135deg, #c8a96e, #a07840)', color: '#080c10' }}>
+            Begin Your Journey ✦
+          </button>
+          <p className="text-white/20 text-xs mt-4">Free forever · Private · No data stored on servers</p>
 
-          {/* The 9 archetypes preview */}
           <div className="mt-12 grid grid-cols-3 gap-3">
             {Object.values(ARCHETYPES).map(a => (
               <div key={a.name} className="rounded-xl border border-white/5 p-3 text-center"
@@ -282,18 +336,17 @@ export default function Mizan() {
         </div>
       )}
 
-      {/* ── INPUT SCREEN ── */}
+      {/* ── INPUT ── */}
       {step === 'input' && (
         <div className="max-w-lg mx-auto px-4 py-12">
           <div className="text-center mb-10">
             <div className="text-4xl mb-4">✦</div>
             <h2 className="text-2xl font-bold text-white mb-2">Enter Your Birth Date</h2>
             <p className="text-white/40 text-sm">Your birth date is the key to your Islamic blueprint</p>
+            <p className="text-white/25 text-xs mt-1">Same date will always give the same result ✓</p>
           </div>
 
           <div className="rounded-2xl border border-white/10 p-6" style={{ background: 'rgba(255,255,255,0.03)' }}>
-
-            {/* Name */}
             <div className="mb-5">
               <label className="text-xs text-white/40 uppercase tracking-wider mb-2 block">Your Name (optional)</label>
               <input type="text" value={name} onChange={e => setName(e.target.value)}
@@ -302,14 +355,12 @@ export default function Mizan() {
                 style={{ background: 'rgba(255,255,255,0.05)' }} />
             </div>
 
-            {/* Date inputs */}
             <label className="text-xs text-white/40 uppercase tracking-wider mb-3 block">Date of Birth</label>
             <div className="grid grid-cols-3 gap-3 mb-6">
               <div>
                 <label className="text-xs text-white/30 mb-1 block">Day</label>
                 <input type="number" min="1" max="31" value={day}
-                  onChange={e => setDay(e.target.value)}
-                  placeholder="DD"
+                  onChange={e => setDay(e.target.value)} placeholder="DD"
                   className="w-full rounded-xl px-3 py-3 text-white text-center text-lg font-bold outline-none border border-white/10 focus:border-white/30 transition-all"
                   style={{ background: 'rgba(255,255,255,0.05)' }} />
               </div>
@@ -325,8 +376,7 @@ export default function Mizan() {
               <div>
                 <label className="text-xs text-white/30 mb-1 block">Year</label>
                 <input type="number" min="1900" max="2025" value={year}
-                  onChange={e => setYear(e.target.value)}
-                  placeholder="YYYY"
+                  onChange={e => setYear(e.target.value)} placeholder="YYYY"
                   className="w-full rounded-xl px-3 py-3 text-white text-center text-lg font-bold outline-none border border-white/10 focus:border-white/30 transition-all"
                   style={{ background: 'rgba(255,255,255,0.05)' }} />
               </div>
@@ -339,49 +389,45 @@ export default function Mizan() {
               Reveal My Blueprint ✦
             </button>
           </div>
-
           <p className="text-center text-white/20 text-xs mt-4">
-            We do not store your data. Everything is calculated privately in your browser.
+            Your data never leaves your device. Everything is calculated in your browser.
           </p>
         </div>
       )}
 
-      {/* ── CALCULATING SCREEN ── */}
+      {/* ── CALCULATING ── */}
       {step === 'calculating' && (
         <div className="min-h-screen flex flex-col items-center justify-center px-4 text-center">
-          <div className="text-6xl mb-8 animate-spin" style={{ animationDuration: '3s' }}>✦</div>
+          <div className="text-6xl mb-8" style={{ animation: 'spin 3s linear infinite' }}>✦</div>
+          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
           <p className="text-white/60 text-lg mb-2">Calculating your blueprint...</p>
           <p className="text-white/30 text-sm mb-8">Applying the Abjad numerology system</p>
           <div className="space-y-2 text-sm text-white/40">
-            {['Reading your birth numbers...', 'Finding your Divine Name...', 'Selecting your Quranic verse...', 'Preparing your blueprint...'].map((t, i) => (
-              <p key={t} className="animate-pulse" style={{ animationDelay: `${i * 0.5}s` }}>{t}</p>
+            {['Reading your birth numbers...','Finding your Divine Name...','Selecting your Quranic verse...','Preparing your blueprint...'].map((t, i) => (
+              <p key={t} style={{ animationDelay: `${i * 0.5}s`, animation: 'pulse 2s infinite' }}>{t}</p>
             ))}
           </div>
         </div>
       )}
 
-      {/* ── RESULT SCREEN ── */}
+      {/* ── RESULT ── */}
       {step === 'result' && result && arch && (
         <div ref={resultRef} className="max-w-2xl mx-auto px-4 py-8">
 
-          {/* Hero card */}
+          {/* Hero */}
           <div className={`rounded-3xl p-8 mb-5 text-center relative overflow-hidden transition-all duration-700 ${revealStep >= 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
             style={{ background: `linear-gradient(135deg, #0d1117 0%, ${arch.color}22 100%)`, border: `1px solid ${arch.color}40` }}>
-
             <div className="absolute inset-0 pointer-events-none">
               <div className="absolute top-4 right-6 text-6xl opacity-10">{arch.symbol}</div>
               <div className="absolute bottom-4 left-6 opacity-5 font-arabic text-7xl">{arch.arabic}</div>
             </div>
-
             {name && <p className="text-white/40 text-sm mb-2">Blueprint for <span className="text-white/70 font-medium">{name}</span></p>}
-
             <div className="text-5xl mb-4">{arch.symbol}</div>
             <p className="text-xs tracking-[0.3em] uppercase mb-2" style={{ color: arch.color }}>Your Islamic Archetype</p>
             <h2 className="text-3xl font-bold text-white mb-1">{arch.title}</h2>
-            <p className="font-arabic text-3xl mb-4" style={{ color: arch.color }}>{arch.arabic}</p>
-
-            {/* 3 numbers */}
-            <div className="grid grid-cols-3 gap-3 mt-6">
+            <p className="font-arabic text-3xl mb-1" style={{ color: arch.color }}>{arch.arabic}</p>
+            <p className="text-white/40 text-sm mb-4">{arch.name}</p>
+            <div className="grid grid-cols-3 gap-3 mt-4">
               {[
                 { label: 'Life Number', value: result.life, sub: 'Core path' },
                 { label: 'Soul Number', value: result.soul, sub: 'Inner self' },
@@ -397,7 +443,7 @@ export default function Mizan() {
           </div>
 
           {/* Divine Name */}
-          <div className={`rounded-2xl p-6 mb-4 text-center transition-all duration-700 delay-200 ${revealStep >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          <div className={`rounded-2xl p-6 mb-4 text-center transition-all duration-700 ${revealStep >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
             style={{ background: `${arch.color}10`, border: `1px solid ${arch.color}25` }}>
             <p className="text-xs tracking-widest uppercase text-white/40 mb-2">Your Divine Name from the 99</p>
             <p className="font-arabic text-4xl mb-1" style={{ color: arch.color }}>{arch.divineArabic}</p>
@@ -409,7 +455,7 @@ export default function Mizan() {
           </div>
 
           {/* Personality */}
-          <div className={`rounded-2xl p-6 mb-4 transition-all duration-700 delay-300 ${revealStep >= 3 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          <div className={`rounded-2xl p-6 mb-4 transition-all duration-700 ${revealStep >= 3 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
             style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
             <p className="text-xs tracking-widest uppercase text-white/30 mb-3">Your Personality</p>
             <p className="text-white/80 text-sm leading-relaxed">{arch.personality}</p>
@@ -424,8 +470,7 @@ export default function Mizan() {
           </div>
 
           {/* 4 detail cards */}
-          <div className={`grid grid-cols-1 gap-4 mb-4 transition-all duration-700 delay-500 ${revealStep >= 4 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-
+          <div className={`grid grid-cols-1 gap-4 mb-4 transition-all duration-700 ${revealStep >= 4 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
             {[
               { icon: '⚠️', label: 'Your Challenge', text: arch.challenge, color: '#e07050' },
               { icon: '💎', label: 'Your Rizq & Wealth Path', text: arch.rizq, color: '#50c878' },
@@ -443,15 +488,13 @@ export default function Mizan() {
             ))}
           </div>
 
-          {/* Dhikr recommendation */}
-          <div className={`rounded-2xl p-6 mb-6 text-center transition-all duration-700 delay-700 ${revealStep >= 4 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-            style={{ background: `linear-gradient(135deg, #0a3d2e, #0d5238)`, border: `1px solid ${arch.color}40` }}>
+          {/* Dhikr */}
+          <div className={`rounded-2xl p-6 mb-6 text-center transition-all duration-700 ${revealStep >= 4 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+            style={{ background: 'linear-gradient(135deg, #0a3d2e, #0d5238)', border: `1px solid ${arch.color}40` }}>
             <p className="text-xs tracking-widest uppercase text-white/40 mb-3">Your Recommended Dhikr</p>
             <p className="font-arabic text-3xl mb-2" style={{ color: arch.color }}>{arch.dhikrArabic}</p>
             <p className="text-white text-lg font-semibold mb-1">{arch.dhikr}</p>
             <p className="text-white/40 text-xs mb-5">Recite {arch.dhikrCount} times daily for your soul's alignment</p>
-
-            {/* Mini dhikr counter */}
             <div className="bg-black/20 rounded-xl p-4">
               <div className="relative w-24 h-24 mx-auto mb-3">
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
@@ -483,23 +526,25 @@ export default function Mizan() {
           </div>
 
           {/* Action buttons */}
-          <div className="flex gap-3">
-            <button onClick={() => { setStep('input'); setResult(null); setDhikrCount(0); }}
+          <div className="flex gap-3 mb-3">
+            <button onClick={() => { setStep('input'); setResult(null); setDhikrCount(0); setCopied(false); }}
               className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 text-sm hover:border-white/20 hover:text-white/80 transition-all">
               ← Try Another Date
             </button>
-            <button onClick={() => {
-              if (navigator.share) {
-                navigator.share({ title: 'My Islamic Blueprint', text: `I am ${arch.title} (${arch.name}) — Discover yours at iloveislam.life/mizan`, url: 'https://iloveislam.life/mizan' });
-              }
-            }}
-              className="flex-1 py-3 rounded-xl font-semibold text-sm transition-all hover:opacity-90"
-              style={{ background: arch.color, color: '#080c10' }}>
-              Share My Blueprint ✦
+            <button onClick={handleShare}
+              className="flex-1 py-3 rounded-xl font-semibold text-sm transition-all hover:opacity-90 active:scale-95"
+              style={{ background: copied ? '#50c878' : arch.color, color: '#080c10' }}>
+              {copied ? '✅ Copied to clipboard!' : 'Share My Blueprint ✦'}
             </button>
           </div>
 
-          <p className="text-center text-white/15 text-xs mt-4 pb-8">
+          {copied && (
+            <p className="text-center text-white/40 text-xs mb-3">
+              Paste it in WhatsApp, Instagram, Twitter or anywhere you like!
+            </p>
+          )}
+
+          <p className="text-center text-white/15 text-xs pb-8">
             Mizan is for self-reflection and inspiration only. All guidance should be sought from Allah ﷻ and qualified Islamic scholars.
           </p>
         </div>
