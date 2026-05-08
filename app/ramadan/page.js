@@ -1,8 +1,3 @@
-export const metadata = {
-  title: 'Ramadan Planner — Suhoor Iftar & Ibadah Tracker | I Love Islam',
-  description: 'Plan your Ramadan with our free planner. Track suhoor, iftar, fasting, Quran reading and ibadah goals. No sign-up needed.',
-}
-
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';

@@ -1,8 +1,3 @@
-export const metadata = {
-  title: 'Halal Travel Guide — Plan Your Muslim Journey | I Love Islam',
-  description: 'Plan your halal travel with ease. Find halal food, prayer spaces and Muslim friendly destinations worldwide. Free travel guide.',
-}
-
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';

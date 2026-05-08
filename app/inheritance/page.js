@@ -1,8 +1,3 @@
-export const metadata = {
-  title: 'Islamic Inheritance Calculator — Free Faraid Tool | I Love Islam',
-  description: 'Calculate Islamic inheritance shares for free. Based on Faraid law from Quran and Sunnah. Enter heirs and estate to get exact distribution.',
-}
-
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';

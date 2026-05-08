@@ -1,8 +1,3 @@
-export const metadata = {
-  title: 'Hajj Checklist — Complete Step by Step Pilgrimage Guide | I Love Islam',
-  description: 'Complete free Hajj checklist and guide. Step by step pilgrimage instructions, what to pack and duas for Hajj. No sign-up needed.',
-}
-
 'use client';
 
 import React, { useState, useEffect } from 'react';

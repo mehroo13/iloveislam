@@ -1,8 +1,3 @@
-export const metadata = {
-  title: '99 Names of Allah — Asma ul Husna with Meanings | I Love Islam',
-  description: 'Learn all 99 Names of Allah (Asma ul Husna) with Arabic, transliteration and meaning. Free and beautiful. No sign-up needed.',
-}
-
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';

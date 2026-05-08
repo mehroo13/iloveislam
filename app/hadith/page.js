@@ -1,8 +1,3 @@
-export const metadata = {
-  title: 'Hadith Search — Search Bukhari Muslim & More | I Love Islam',
-  description: 'Search thousands of hadiths from Sahih Bukhari, Sahih Muslim, Abu Dawud, Tirmidhi and more. Free hadith search engine.',
-}
-
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';

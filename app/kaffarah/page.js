@@ -1,8 +1,3 @@
-export const metadata = {
-  title: 'Kaffarah Calculator — Expiation for Broken Oaths | I Love Islam',
-  description: 'Calculate kaffarah for broken oaths, fasts and zihar. Based on Quran and Sunnah. Free Islamic expiation calculator.',
-}
-
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';

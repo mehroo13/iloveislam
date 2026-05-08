@@ -1,8 +1,3 @@
-export const metadata = {
-  title: 'Dhikr Counter — Digital Tasbih Counter | I Love Islam',
-  description: 'Free digital tasbih and dhikr counter. Count SubhanAllah, Alhamdulillah, Allahu Akbar and more. Works on any phone.',
-}
-
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
