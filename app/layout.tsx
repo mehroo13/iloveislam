@@ -75,10 +75,9 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    other: {
-    "msvalidate.01": "37ABD8510E95706876F290B997D5791A",
+    google: "S6Q7IIFvzrp0iRkQqkMmJm7EV4IPTZlrAAMmd66qN1I",
   },
-},
+};
 
 export default function RootLayout({
   children,
