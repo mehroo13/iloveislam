@@ -13,7 +13,7 @@ interface LangContextType {
 const translations: Record<Language, any> = {
   en: {
     siteName: "I Love Islam",
-    tagline: "Free Islamic Tools for Every Muslim",
+    tagline: "The complete toolkit for every Muslim — 20 free tools in one place",
     badge: "FREE FOREVER",
     search: "Search tools...",
     found: "Found",
@@ -22,12 +22,22 @@ const translations: Record<Language, any> = {
     noResults: "No results for",
     trySearching: "Try different keywords",
     clearSearch: "Clear Search",
+
     cats: {
       mostUsed: "Most Used",
       dailyPractice: "Daily Practice",
-      finance: "Finance & Charity",
-      travel: "Travel & Community",
+      finance: "Finance & Giving",
+      travel: "Travel & Knowledge",
     },
+
+    mizan: {
+      badge: "NEW",
+      title: "Mizan — Your Islamic Life Blueprint",
+      desc: "Discover your personality, life purpose & spiritual path",
+      sub: "Based on Abjad numerology • 99 Names of Allah • Quranic guidance",
+      cta: "Discover Yours →",
+    },
+
     footer: {
       bismillah: "بِسْمِ اللهِ الرَّحْمنِ الرَّحِيم",
       bismillahTranslation: "In the name of Allah, the Most Gracious, the Most Merciful",
@@ -36,19 +46,19 @@ const translations: Record<Language, any> = {
       privacy: "Privacy Policy",
       copyright: "© 2026 I Love Islam. All rights reserved.",
     },
-    mizan: {
-      badge: "NEW",
-      title: "Discover Your Islamic Life Blueprint",
-      desc: "Take the Mizan Assessment",
-      sub: "Know your strengths & spiritual goals",
-      cta: "Start Free Assessment",
-    },
   },
+
   ar: {
     siteName: "أحب الإسلام",
-    tagline: "أدوات إسلامية مجانية لكل مسلم",
+    tagline: "مجموعة كاملة من الأدوات الإسلامية — 20 أداة مجانية في مكان واحد",
     badge: "مجاني إلى الأبد",
     search: "ابحث عن الأدوات...",
+    mizan: {
+      badge: "جديد",
+      title: "ميزان — مخطط حياتك الإسلامية",
+      desc: "اكتشف شخصيتك وهدف حياتك والطريق الروحي",
+      cta: "اكتشف الآن →",
+    },
     footer: {
       bismillah: "بِسْمِ اللهِ الرَّحْمنِ الرَّحِيم",
       bismillahTranslation: "بسم الله الرحمن الرحيم",
@@ -57,11 +67,18 @@ const translations: Record<Language, any> = {
       privacy: "سياسة الخصوصية",
     },
   },
+
   ur: {
     siteName: "I Love Islam",
-    tagline: "ہر مسلمان کے لیے مفت اسلامی ٹولز",
+    tagline: "ہر مسلمان کے لیے مکمل ٹول کٹ — ایک جگہ پر 20 مفت ٹولز",
     badge: "ہمیشہ مفت",
     search: "ٹولز تلاش کریں...",
+    mizan: {
+      badge: "نیا",
+      title: "میزان — آپ کا اسلامی لائف بلیو پرنٹ",
+      desc: "اپنی شخصیت، زندگی کے مقصد اور روحانی راستہ دریافت کریں",
+      cta: "ابھی دریافت کریں →",
+    },
     footer: {
       bismillah: "بِسْمِ اللهِ الرَّحْمنِ الرَّحِيم",
       bismillahTranslation: "اللہ کے نام سے جو بہت مہربان نہایت رحم والا ہے",
@@ -77,7 +94,7 @@ const LangContext = createContext<LangContextType | undefined>(undefined);
 export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<Language>('en');
 
-  const t = translations[lang];
+  const t = translations[lang] || translations.en;
 
   return (
     <LangContext.Provider value={{ lang, setLang, t }}>
@@ -96,6 +113,6 @@ export const useLang = () => {
 
 export const LANGUAGES = [
   { code: 'en', label: 'English', nativeLabel: 'English', flag: '🇬🇧' },
-  { code: 'ar', label: 'Arabic', nativeLabel: 'العربية', flag: '🇸🇦' },
-  { code: 'ur', label: 'Urdu', nativeLabel: 'اردو', flag: '🇵🇰' },
+  { code: 'ar', label: 'Arabic',  nativeLabel: 'العربية', flag: '🇸🇦' },
+  { code: 'ur', label: 'Urdu',    nativeLabel: 'اردو', flag: '🇵🇰' },
 ] as const;
