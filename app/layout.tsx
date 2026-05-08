@@ -15,22 +15,13 @@ export const metadata: Metadata = {
   description:
     "Free Islamic tools for every Muslim. Calculate Zakat, find Prayer Times, locate Qibla, read the Quran, convert Hijri dates, use Dhikr counter and 15+ more free tools. No sign-up needed.",
   keywords: [
-    "zakat calculator",
-    "prayer times",
-    "qibla finder",
-    "quran reader online",
-    "hijri calendar converter",
-    "dhikr counter",
-    "99 names of allah",
-    "islamic tools",
-    "free muslim tools",
-    "salah times",
-    "islamic date today",
-    "halal food finder",
-    "mosque finder",
-    "ramadan planner",
-    "islamic inheritance calculator",
-    "mizan islamic destiny",
+    "zakat calculator", "prayer times", "qibla finder", "quran reader online",
+    "hijri calendar converter", "dhikr counter", "99 names of allah",
+    "islamic tools", "free muslim tools", "salah times", "islamic date today",
+    "halal food finder", "mosque finder", "ramadan planner",
+    "islamic inheritance calculator", "mizan islamic destiny",
+    "اسلامی ٹولز", "زکوٰۃ کیلکولیٹر", "نماز کے اوقات",
+    "أدوات إسلامية", "حاسبة الزكاة", "أوقات الصلاة",
   ],
   authors: [{ name: "I Love Islam", url: "https://www.iloveislam.life" }],
   creator: "I Love Islam",
@@ -38,6 +29,11 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://www.iloveislam.life"),
   alternates: {
     canonical: "/",
+    languages: {
+      "en": "/",
+      "ar": "/ar",
+      "ur": "/ur",
+    },
   },
   openGraph: {
     type: "website",
@@ -93,6 +89,14 @@ export default function RootLayout({
         <link rel="canonical" href="https://www.iloveislam.life" />
         <meta name="theme-color" content="#0a3d2e" />
         <link rel="icon" href="/favicon.ico" />
+        {/* Preconnect for performance */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://api.aladhan.com" />
+        {/* hreflang for multilingual SEO */}
+        <link rel="alternate" hrefLang="en" href="https://www.iloveislam.life/" />
+        <link rel="alternate" hrefLang="ar" href="https://www.iloveislam.life/ar" />
+        <link rel="alternate" hrefLang="ur" href="https://www.iloveislam.life/ur" />
+        <link rel="alternate" hrefLang="x-default" href="https://www.iloveislam.life/" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -103,10 +107,10 @@ export default function RootLayout({
               url: "https://www.iloveislam.life",
               description:
                 "Free Islamic tools for every Muslim — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader and more.",
+              inLanguage: ["en", "ar", "ur"],
               potentialAction: {
                 "@type": "SearchAction",
-                target:
-                  "https://www.iloveislam.life/?search={search_term_string}",
+                target: "https://www.iloveislam.life/?search={search_term_string}",
                 "query-input": "required name=search_term_string",
               },
             }),
