@@ -1,3 +1,8 @@
+export const metadata = {
+  title: 'Sadaqah Tracker — Log Your Voluntary Charity | I Love Islam',
+  description: 'Track your sadaqah and voluntary charity donations for free. Log amounts, categories and notes. Your personal charity record.',
+}
+
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';

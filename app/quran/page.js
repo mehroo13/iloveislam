@@ -1,3 +1,8 @@
+export const metadata = {
+  title: 'Quran Reader — Read Online with Translation | I Love Islam',
+  description: 'Read the Holy Quran online for free in beautiful mushaf style with English translation. All 114 surahs. No sign-up needed.',
+}
+
 'use client';
 import { useState, useRef } from 'react';
 import Link from 'next/link';

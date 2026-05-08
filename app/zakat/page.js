@@ -1,3 +1,8 @@
+export const metadata = {
+  title: 'Zakat Calculator — Free Islamic Zakat Tool | I Love Islam',
+  description: 'Calculate your annual Zakat for free. Enter your assets and get the exact amount due according to Islamic law. No sign-up needed.',
+}
+
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';

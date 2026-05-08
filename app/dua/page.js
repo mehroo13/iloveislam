@@ -1,3 +1,8 @@
+export const metadata = {
+  title: 'Dua Generator — Islamic Prayers for Every Moment | I Love Islam',
+  description: 'Find the right dua for every situation. Morning, evening, travel, eating, sleeping and more. Free Islamic dua collection.',
+}
+
 'use client';
 
 import React, { useEffect, useState } from 'react';

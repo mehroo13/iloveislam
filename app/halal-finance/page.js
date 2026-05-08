@@ -1,3 +1,8 @@
+export const metadata = {
+  title: 'Halal Finance Checker — Is This Deal Riba Free | I Love Islam',
+  description: 'Check if any financial deal is halal and riba-free. Covers loans, mortgages, investments, crypto and more. Free Islamic finance tool.',
+}
+
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';

@@ -1,3 +1,8 @@
+export const metadata = {
+  title: 'Mosque Finder — Find Nearest Masjid by GPS | I Love Islam',
+  description: 'Find the nearest mosque to your location using GPS. Get directions, prayer times and contact info. Free mosque finder worldwide.',
+}
+
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';

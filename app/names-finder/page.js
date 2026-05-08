@@ -1,3 +1,8 @@
+export const metadata = {
+  title: 'Islamic Name Finder — Arabic Baby Name Meanings | I Love Islam',
+  description: 'Find the meaning of Islamic and Arabic names. Search hundreds of Muslim baby names with meanings and origins. Free name finder.',
+}
+
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';

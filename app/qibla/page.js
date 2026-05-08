@@ -1,3 +1,8 @@
+export const metadata = {
+  title: 'Qibla Finder — Find Direction of Mecca | I Love Islam',
+  description: 'Find the exact Qibla direction from anywhere in the world using your GPS. Free online Qibla compass. No sign-up needed.',
+}
+
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';

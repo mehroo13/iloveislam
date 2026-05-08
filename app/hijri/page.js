@@ -1,3 +1,8 @@
+export const metadata = {
+  title: 'Hijri Calendar — Islamic Date Converter | I Love Islam',
+  description: 'Convert Hijri to Gregorian dates and vice versa for free. Find any Islamic date instantly. No sign-up needed.',
+}
+
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';

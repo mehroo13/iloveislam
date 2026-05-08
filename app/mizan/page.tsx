@@ -1,3 +1,8 @@
+export const metadata = {
+  title: 'Mizan — Islamic Life Blueprint & Personality Tool | I Love Islam',
+  description: 'Discover your Islamic personality, life purpose and spiritual path through Abjad numerology and the 99 Names of Allah. Free tool.',
+}
+
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
