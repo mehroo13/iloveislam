@@ -124,34 +124,58 @@ function toArabicNum(n) {
 }
 
 const FONT_SIZES = [
-  { label: 'S', value: '24px', line: 2.6 },
-  { label: 'M', value: '30px', line: 2.8 },
-  { label: 'L', value: '36px', line: 3.0 },
-  { label: 'XL', value: '44px', line: 3.2 },
+  { label: 'S', size: '22px' },
+  { label: 'M', size: '28px' },
+  { label: 'L', size: '34px' },
+  { label: 'XL', size: '40px' },
 ];
 
-// Authentic mushaf green palette
-const MUSHAF_GREEN   = '#1b6b3a';   // deep rich green like printed Quran
-const MUSHAF_BORDER  = '#c8a020';   // gold border
-const MUSHAF_BG      = '#1d7040';   // page background green
-const MUSHAF_STRIPE  = '#1a6438';   // slightly darker for alternate rows
-const HEADER_BG      = '#0f4a26';   // dark header
+// The ۝ verse end marker styled like a real mushaf
+function VerseEnd({ num, onGreen }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      width: '1.9em', height: '1.9em', borderRadius: '50%',
+      fontSize: '0.52em', margin: '0 0.3em', verticalAlign: 'middle',
+      fontFamily: "'Scheherazade New', serif",
+      background: onGreen ? 'rgba(255,255,255,0.15)' : 'rgba(10,61,46,0.1)',
+      border: onGreen ? '1px solid rgba(255,255,255,0.4)' : '1px solid rgba(10,61,46,0.3)',
+      color: onGreen ? '#fff' : '#0a3d2e',
+      flexShrink: 0,
+    }}>
+      {toArabicNum(num)}
+    </span>
+  );
+}
+
+const GOLD = '#c8a96e';
+const GREEN_DARK = '#0a3d2e';
+const GREEN_MID = '#0d5c36';
+const GREEN_LIGHT = '#1a7a4a';
 
 export default function QuranReader() {
   const [selectedSurah, setSelectedSurah] = useState(null);
-  const [verses, setVerses]               = useState([]);
-  const [loading, setLoading]             = useState(false);
-  const [error, setError]                 = useState('');
-  const [search, setSearch]               = useState('');
-  const [fontSize, setFontSize]           = useState(1);   // index into FONT_SIZES
-  const [showTrans, setShowTrans]         = useState(false);
-  const [bookmarks, setBookmarks]         = useState(() => {
+  const [verses, setVerses] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [mode, setMode] = useState('mushaf');
+  const [fontSize, setFontSize] = useState(1);
+  const [showTranslation, setShowTranslation] = useState(true);
+  const [dark, setDark] = useState(false);
+  const [bookmarks, setBookmarks] = useState(() => {
     if (typeof window !== 'undefined') {
-      try { return JSON.parse(localStorage.getItem('quran_bm') || '[]'); } catch { return []; }
+      try { return JSON.parse(localStorage.getItem('quran_bookmarks') || '[]'); } catch { return []; }
     }
     return [];
   });
-  const pageRef = useRef(null);
+  const topRef = useRef(null);
+
+  const bg = dark ? '#0a1208' : '#f0efe0';
+  const cardBg = dark ? '#111d14' : '#fffef5';
+  const borderCol = dark ? '#2a3d2a' : '#d4c9a0';
+  const textCol = dark ? '#e0d5b0' : '#1a0800';
+  const subCol = dark ? '#6b7c6b' : '#7a6a40';
 
   const filtered = SURAHS.filter(s =>
     s.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -165,7 +189,6 @@ export default function QuranReader() {
     setVerses([]);
     setLoading(true);
     setError('');
-    if (pageRef.current) pageRef.current.scrollTo({ top: 0 });
     window.scrollTo({ top: 0, behavior: 'smooth' });
     try {
       const [r1, r2] = await Promise.all([
@@ -189,96 +212,75 @@ export default function QuranReader() {
     const has = bookmarks.find(b => b.number === s.number);
     const updated = has ? bookmarks.filter(b => b.number !== s.number) : [...bookmarks, s];
     setBookmarks(updated);
-    try { localStorage.setItem('quran_bm', JSON.stringify(updated)); } catch {}
+    localStorage.setItem('quran_bookmarks', JSON.stringify(updated));
   }
-  const isBookmarked = n => bookmarks.some(b => b.number === n);
+  const isBookmarked = (n) => bookmarks.some(b => b.number === n);
 
-  // The API for surah 1 returns verse 1 as bismillah text — we skip it since we show bismillah in header
-  // For all other surahs, API does NOT include bismillah as a verse
-  const displayVerses = selectedSurah?.number === 1
-    ? verses.filter(v => v.number !== 1)
-    : verses;
+  // For Al-Fatihah: verse 1 IS the bismillah — filter it since we show bismillah separately
+  // For all other surahs: the API text does NOT include bismillah as a verse, so no filtering needed
+  const displayVerses = verses.filter(v => !(selectedSurah?.number === 1 && v.number === 1));
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f2d1a', fontFamily: 'Georgia, serif' }}>
+    <div ref={topRef} style={{ minHeight: '100vh', background: bg, color: textCol, transition: 'background 0.3s, color 0.3s' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&display=swap');
-        .qf { font-family: 'Scheherazade New', 'Traditional Arabic', 'KFGQPC Uthmanic Script HAFS', serif !important; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: #0f2d1a; }
-        ::-webkit-scrollbar-thumb { background: ${MUSHAF_BORDER}66; border-radius: 3px; }
+        .qf { font-family: 'Scheherazade New', 'Traditional Arabic', 'Arabic Typesetting', serif !important; }
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #c8a96e44; border-radius: 2px; }
+        button { font-family: inherit; }
+        .sr:hover { opacity: 0.82; }
       `}</style>
 
-      {/* ══ TOP NAV BAR ══ */}
-      <div style={{ background: HEADER_BG, borderBottom: `2px solid ${MUSHAF_BORDER}`, position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 2px 20px #00000060' }}>
-        <div style={{ maxWidth: 820, margin: '0 auto', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+      {/* ── HEADER ── */}
+      <div style={{ background: GREEN_DARK, position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 2px 16px #00000050' }}>
+        <div style={{ maxWidth: 760, margin: '0 auto', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
           {selectedSurah
-            ? <button onClick={() => { setSelectedSurah(null); setVerses([]); }}
-                style={{ color: '#c8c8b0', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 10px', borderRadius: 6 }}>
-                ← Surahs
-              </button>
-            : <Link href="/" style={{ color: '#c8c8b0', fontSize: 13, padding: '6px 10px', textDecoration: 'none' }}>← Back</Link>
+            ? <button onClick={() => { setSelectedSurah(null); setVerses([]); }} style={{ color: '#fff9', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 10px' }}>← Surahs</button>
+            : <Link href="/" style={{ color: '#fff9', fontSize: 13, padding: '6px 10px', textDecoration: 'none' }}>← Back</Link>
           }
-
           <div style={{ flex: 1, textAlign: 'center' }}>
             {selectedSurah ? (
               <div>
-                <div style={{ color: '#fff', fontWeight: 700, fontSize: 13, letterSpacing: 0.5 }}>{selectedSurah.name} · {selectedSurah.meaning}</div>
-                <div className="qf" style={{ color: MUSHAF_BORDER, fontSize: 22, lineHeight: 1.3 }}>{selectedSurah.arabic}</div>
+                <div style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>{selectedSurah.name}</div>
+                <div className="qf" style={{ color: GOLD, fontSize: 20, lineHeight: 1.2 }}>{selectedSurah.arabic}</div>
               </div>
             ) : (
-              <div>
-                <div className="qf" style={{ color: MUSHAF_BORDER, fontSize: 26, lineHeight: 1.4 }}>القرآن الكريم</div>
-                <div style={{ color: '#c8c8b066', fontSize: 11, letterSpacing: 2 }}>THE NOBLE QURAN</div>
-              </div>
+              <span className="qf" style={{ color: GOLD, fontSize: 22 }}>القرآن الكريم</span>
             )}
           </div>
-
-          {selectedSurah ? (
-            <button onClick={() => toggleBookmark(selectedSurah)}
-              style={{ fontSize: 18, background: 'none', border: 'none', cursor: 'pointer', color: isBookmarked(selectedSurah.number) ? MUSHAF_BORDER : '#555', padding: 6 }}>
-              🔖
-            </button>
-          ) : (
-            <div style={{ width: 40 }} />
-          )}
+          <button onClick={() => setDark(d => !d)} style={{ fontSize: 20, background: 'none', border: 'none', cursor: 'pointer', padding: 6 }}>
+            {dark ? '☀️' : '🌙'}
+          </button>
         </div>
       </div>
 
       {/* ══ SURAH LIST ══ */}
       {!selectedSurah && (
-        <div style={{ maxWidth: 720, margin: '0 auto', padding: '20px 14px 50px' }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', padding: '20px 14px 40px' }}>
 
-          {/* Hero */}
-          <div style={{ background: `linear-gradient(160deg, #0f4a26, #1b6b3a, #0f4a26)`, borderRadius: 16, padding: '28px 20px 22px', textAlign: 'center', marginBottom: 18, border: `2px solid ${MUSHAF_BORDER}55`, position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', inset: 0, opacity: 0.05, backgroundImage: 'repeating-linear-gradient(45deg,#c8a020 0,#c8a020 1px,transparent 0,transparent 8px)', backgroundSize: '8px 8px' }} />
-            {/* Decorative top line */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', marginBottom: 14 }}>
-              <div style={{ flex: 1, height: 1, background: `linear-gradient(to right, transparent, ${MUSHAF_BORDER})` }} />
-              <span style={{ color: MUSHAF_BORDER, fontSize: 16 }}>✦</span>
-              <div style={{ flex: 1, height: 1, background: `linear-gradient(to left, transparent, ${MUSHAF_BORDER})` }} />
-            </div>
-            <p className="qf" style={{ fontSize: 36, color: '#fff', margin: '0 0 6px', lineHeight: 1.9, textShadow: '0 2px 8px #00000040' }}>
+          {/* Hero banner */}
+          <div style={{
+            background: `linear-gradient(150deg, ${GREEN_LIGHT}, ${GREEN_MID}, ${GREEN_DARK})`,
+            borderRadius: 18, padding: '28px 20px', textAlign: 'center', marginBottom: 20,
+            border: `2px solid ${GOLD}55`, position: 'relative', overflow: 'hidden',
+          }}>
+            <div style={{ position: 'absolute', inset: 0, opacity: 0.07, backgroundImage: 'repeating-linear-gradient(45deg,#c8a96e 0,#c8a96e 1px,transparent 0,transparent 50%)', backgroundSize: '10px 10px' }} />
+            <p className="qf" style={{ fontSize: 38, color: GOLD, margin: '0 0 8px', lineHeight: 1.8 }}>
               بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', margin: '14px 0 8px' }}>
-              <div style={{ flex: 1, height: 1, background: `linear-gradient(to right, transparent, ${MUSHAF_BORDER})` }} />
-              <span style={{ color: MUSHAF_BORDER, fontSize: 16 }}>✦</span>
-              <div style={{ flex: 1, height: 1, background: `linear-gradient(to left, transparent, ${MUSHAF_BORDER})` }} />
-            </div>
-            <p style={{ color: '#c8c8b099', fontSize: 12, letterSpacing: 2 }}>114 SURAHS · 6,236 VERSES · 30 JUZ</p>
+            <p style={{ color: '#fff8', fontSize: 13, margin: 0 }}>The Noble Quran · 114 Surahs · 6,236 Verses</p>
           </div>
 
           {/* Bookmarks */}
           {bookmarks.length > 0 && (
-            <div style={{ background: '#122a1a', border: `1px solid ${MUSHAF_BORDER}44`, borderRadius: 12, padding: '12px 14px', marginBottom: 12 }}>
-              <p style={{ fontSize: 11, color: MUSHAF_BORDER, fontWeight: 700, marginBottom: 8, letterSpacing: 1 }}>🔖 BOOKMARKED</p>
+            <div style={{ background: cardBg, border: `1px solid ${borderCol}`, borderRadius: 14, padding: 14, marginBottom: 14 }}>
+              <p style={{ fontSize: 12, color: GOLD, margin: '0 0 8px', fontWeight: 700 }}>🔖 Bookmarked</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {bookmarks.map(s => (
-                  <button key={s.number} onClick={() => loadSurah(s)}
-                    style={{ padding: '5px 12px', borderRadius: 20, border: `1px solid ${MUSHAF_BORDER}55`, background: '#1a3a24', color: '#d4c8a0', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span className="qf" style={{ fontSize: 17 }}>{s.arabic}</span> {s.name}
+                  <button key={s.number} onClick={() => loadSurah(s)} className="sr"
+                    style={{ padding: '5px 12px', borderRadius: 20, border: `1px solid ${GOLD}66`, background: dark ? '#1a3020' : '#e8f5ed', color: textCol, cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span className="qf" style={{ fontSize: 16 }}>{s.arabic}</span> {s.name}
                   </button>
                 ))}
               </div>
@@ -286,36 +288,27 @@ export default function QuranReader() {
           )}
 
           {/* Search */}
-          <div style={{ position: 'relative', marginBottom: 10 }}>
-            <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', fontSize: 15 }}>🔍</span>
+          <div style={{ position: 'relative', marginBottom: 12 }}>
+            <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }}>🔍</span>
             <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search surah by name, meaning, or number..."
-              style={{ width: '100%', padding: '12px 14px 12px 40px', borderRadius: 10, border: `1px solid #2a4a30`, background: '#122a1a', color: '#d4c8a0', fontSize: 14, outline: 'none' }} />
+              placeholder="Search by name, meaning, or number..."
+              style={{ width: '100%', padding: '12px 14px 12px 42px', borderRadius: 12, border: `1px solid ${borderCol}`, background: cardBg, color: textCol, fontSize: 14, outline: 'none' }} />
           </div>
-          <p style={{ fontSize: 11, color: '#4a6a50', marginBottom: 10, paddingLeft: 2 }}>{filtered.length} surahs</p>
 
-          {/* Surah list */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <p style={{ fontSize: 11, color: subCol, marginBottom: 10 }}>{filtered.length} surahs</p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {filtered.map(s => (
-              <div key={s.number} style={{ background: '#122a1a', border: `1px solid #2a4a30`, borderRadius: 10, display: 'flex', alignItems: 'center', overflow: 'hidden', transition: 'border-color .15s' }}>
-                <button onClick={() => loadSurah(s)}
-                  style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                  {/* Number badge */}
-                  <div style={{ width: 36, height: 36, borderRadius: 8, background: HEADER_BG, border: `1px solid ${MUSHAF_BORDER}55`, color: MUSHAF_BORDER, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, flexShrink: 0 }}>
-                    {s.number}
-                  </div>
-                  {/* Name */}
+              <div key={s.number} className="sr" style={{ background: cardBg, border: `1px solid ${borderCol}`, borderRadius: 12, display: 'flex', alignItems: 'center', transition: 'opacity 0.15s' }}>
+                <button onClick={() => loadSurah(s)} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 9, background: GREEN_DARK, color: GOLD, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{s.number}</div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: '#d4c8a0' }}>{s.name}</div>
-                    <div style={{ fontSize: 11, color: '#5a7a60' }}>{s.meaning} · {s.verses} verses · Juz {s.juz}</div>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: textCol }}>{s.name}</div>
+                    <div style={{ fontSize: 11, color: subCol }}>{s.meaning} · {s.verses}v · Juz {s.juz}</div>
                   </div>
-                  {/* Arabic */}
-                  <span className="qf" style={{ fontSize: 22, color: '#c8e0cc', flexShrink: 0 }}>{s.arabic}</span>
+                  <span className="qf" style={{ fontSize: 22, color: textCol, flexShrink: 0 }}>{s.arabic}</span>
                 </button>
-                <button onClick={() => toggleBookmark(s)}
-                  style={{ padding: '11px 12px', background: 'none', border: 'none', borderLeft: '1px solid #2a4a30', cursor: 'pointer', fontSize: 16, color: isBookmarked(s.number) ? MUSHAF_BORDER : '#2a4a30' }}>
-                  🔖
-                </button>
+                <button onClick={() => toggleBookmark(s)} style={{ padding: '11px 12px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 17, color: isBookmarked(s.number) ? GOLD : '#ccc' }}>🔖</button>
               </div>
             ))}
           </div>
@@ -324,168 +317,166 @@ export default function QuranReader() {
 
       {/* ══ READING VIEW ══ */}
       {selectedSurah && (
-        <div style={{ maxWidth: 820, margin: '0 auto', padding: '16px 12px 60px' }}>
+        <div style={{ maxWidth: 780, margin: '0 auto', padding: '14px 10px 50px' }}>
 
-          {/* Controls bar */}
-          <div style={{ background: '#0f2d1a', border: `1px solid #2a4a30`, borderRadius: 10, padding: '9px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, position: 'sticky', top: 70, zIndex: 40 }}>
-            {/* Font size */}
-            <div style={{ display: 'flex', gap: 3 }}>
+          {/* Controls */}
+          <div style={{ background: cardBg, border: `1px solid ${borderCol}`, borderRadius: 12, padding: '10px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, position: 'sticky', top: 70, zIndex: 40, boxShadow: '0 2px 8px #00000015' }}>
+            <div style={{ display: 'flex', background: dark ? '#0a1208' : '#e4ede4', borderRadius: 9, padding: 3, gap: 2 }}>
+              {[{ id: 'mushaf', l: '📜 Mushaf' }, { id: 'verse', l: '📋 Verse' }].map(m => (
+                <button key={m.id} onClick={() => setMode(m.id)}
+                  style={{ padding: '6px 12px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: mode === m.id ? GREEN_DARK : 'transparent', color: mode === m.id ? '#fff' : subCol }}>
+                  {m.l}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
               {FONT_SIZES.map((f, i) => (
                 <button key={i} onClick={() => setFontSize(i)}
-                  style={{ width: 30, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, background: fontSize === i ? MUSHAF_BORDER : '#1a3a24', color: fontSize === i ? '#0f2d1a' : '#5a7a60', transition: 'all .15s' }}>
+                  style={{ width: 28, height: 28, borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, background: fontSize === i ? GOLD : dark ? '#1a2e1a' : '#e4dfc8', color: fontSize === i ? '#fff' : subCol }}>
                   {f.label}
                 </button>
               ))}
             </div>
-            <div style={{ height: 20, width: 1, background: '#2a4a30' }} />
-            {/* Translation toggle */}
-            <button onClick={() => setShowTrans(v => !v)}
-              style={{ padding: '5px 12px', borderRadius: 7, border: `1px solid ${showTrans ? MUSHAF_BORDER : '#2a4a30'}`, background: showTrans ? '#1a3a24' : 'transparent', color: showTrans ? MUSHAF_BORDER : '#5a7a60', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
-              🌐 Translation {showTrans ? 'ON' : 'OFF'}
-            </button>
-            <div style={{ marginLeft: 'auto', color: '#5a7a60', fontSize: 11 }}>
-              {selectedSurah.verses} verses · Juz {selectedSurah.juz}
-            </div>
+            {mode === 'verse' && (
+              <button onClick={() => setShowTranslation(v => !v)}
+                style={{ padding: '5px 11px', borderRadius: 8, border: `1px solid ${showTranslation ? GOLD : borderCol}`, background: showTranslation ? (dark ? '#1a3020' : '#e8f5ed') : 'transparent', color: showTranslation ? GOLD : subCol, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                EN {showTranslation ? 'ON' : 'OFF'}
+              </button>
+            )}
+            <button onClick={() => toggleBookmark(selectedSurah)}
+              style={{ fontSize: 18, background: 'none', border: 'none', cursor: 'pointer', color: isBookmarked(selectedSurah.number) ? GOLD : '#ccc' }}>🔖</button>
           </div>
 
           {/* Loading */}
           {loading && (
             <div style={{ textAlign: 'center', padding: '80px 0' }}>
-              <p className="qf" style={{ fontSize: 56, color: MUSHAF_BORDER }}>﷽</p>
-              <p style={{ color: '#5a7a60', fontSize: 14, marginTop: 16 }}>Loading {selectedSurah.name}…</p>
+              <div className="qf" style={{ fontSize: 60, color: GOLD }}>﷽</div>
+              <p style={{ color: subCol, fontSize: 14, marginTop: 12 }}>Loading {selectedSurah.name}...</p>
             </div>
           )}
 
-          {/* Error */}
-          {error && (
-            <div style={{ background: '#2d0f0f', border: '1px solid #7a2020', borderRadius: 10, padding: 16, color: '#e07070', fontSize: 14, textAlign: 'center' }}>{error}</div>
-          )}
+          {error && <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 12, padding: 16, color: '#b91c1c', fontSize: 14, textAlign: 'center' }}>{error}</div>}
 
-          {/* ── THE MUSHAF PAGE ── */}
-          {verses.length > 0 && !loading && (
+          {verses.length > 0 && (
             <>
-              {/* Outer frame — mimics the green printed Quran */}
+              {/* ━━━━ THE GREEN MUSHAF PAGE ━━━━ */}
               <div style={{
-                background: MUSHAF_BG,
-                border: `4px solid ${MUSHAF_BORDER}`,
-                borderRadius: 4,
-                boxShadow: `0 0 0 8px #0f2d1a, 0 0 0 10px ${MUSHAF_BORDER}44, 0 8px 40px #00000080`,
+                background: `linear-gradient(160deg, ${GREEN_LIGHT} 0%, ${GREEN_MID} 50%, ${GREEN_DARK} 100%)`,
+                border: `3px double ${GOLD}`,
+                borderRadius: 6,
                 position: 'relative',
                 overflow: 'hidden',
               }}>
+                {/* Inner decorative border */}
+                <div style={{ position: 'absolute', inset: 6, border: `1px solid ${GOLD}44`, borderRadius: 2, pointerEvents: 'none' }} />
 
-                {/* Inner border line */}
-                <div style={{ position: 'absolute', inset: 10, border: `1px solid ${MUSHAF_BORDER}55`, borderRadius: 2, pointerEvents: 'none', zIndex: 1 }} />
+                {/* Corner ornaments */}
+                {['top-2 left-2', 'top-2 right-2', 'bottom-2 left-2', 'bottom-2 right-2'].map((pos, i) => (
+                  <div key={i} style={{ position: 'absolute', [pos.includes('top') ? 'top' : 'bottom']: 8, [pos.includes('left') ? 'left' : 'right']: 8, color: GOLD, fontSize: 14, opacity: 0.6 }}>✦</div>
+                ))}
 
-                <div style={{ padding: '28px 24px 28px', position: 'relative', zIndex: 2 }}>
+                <div style={{ padding: '24px 20px 20px', position: 'relative' }}>
 
-                  {/* ── SURAH HEADER BOX (like printed Quran) ── */}
-                  <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                    {/* Decorative rule above */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                      <div style={{ flex: 1, height: 2, background: MUSHAF_BORDER }} />
-                      <span style={{ color: MUSHAF_BORDER, fontSize: 14 }}>❧</span>
-                      <div style={{ flex: 1, height: 2, background: MUSHAF_BORDER }} />
-                    </div>
+                  {/* ── Decorative top rule ── */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, justifyContent: 'center' }}>
+                    <div style={{ flex: 1, height: 1, background: `linear-gradient(to right, transparent, ${GOLD}88)` }} />
+                    <span style={{ color: GOLD, fontSize: 18 }}>❧</span>
+                    <div style={{ flex: 1, height: 1, background: `linear-gradient(to left, transparent, ${GOLD}88)` }} />
+                  </div>
 
-                    {/* Surah name oval — authentic style */}
-                    <div style={{ display: 'inline-block', border: `2px solid ${MUSHAF_BORDER}`, borderRadius: 100, padding: '12px 48px', background: 'rgba(0,0,0,0.18)', position: 'relative' }}>
-                      {/* Surah number badge */}
-                      <div style={{ position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)', background: MUSHAF_BG, padding: '0 10px' }}>
-                        <span style={{ color: MUSHAF_BORDER, fontSize: 11, fontWeight: 700, letterSpacing: 1 }}>سورة {toArabicNum(selectedSurah.number)}</span>
+                  {/* ── Surah name box ── */}
+                  <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                    <div style={{ display: 'inline-block', border: `2px solid ${GOLD}`, borderRadius: 8, padding: '10px 36px', background: 'rgba(0,0,0,0.25)', position: 'relative' }}>
+                      <div style={{ position: 'absolute', top: -9, left: '50%', transform: 'translateX(-50%)', background: GREEN_DARK, padding: '0 8px', color: GOLD, fontSize: 11, fontWeight: 700, letterSpacing: 1, whiteSpace: 'nowrap' }}>
+                        سورة {selectedSurah.number}
                       </div>
-                      <p className="qf" style={{ fontSize: 36, color: '#fff', margin: 0, lineHeight: 1.6 }}>{selectedSurah.arabic}</p>
-                      <p style={{ color: '#ffffffaa', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', margin: '2px 0 0' }}>{selectedSurah.name} · {selectedSurah.meaning}</p>
-                    </div>
-
-                    {/* Decorative rule below */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
-                      <div style={{ flex: 1, height: 2, background: MUSHAF_BORDER }} />
-                      <span style={{ color: MUSHAF_BORDER, fontSize: 14 }}>❧</span>
-                      <div style={{ flex: 1, height: 2, background: MUSHAF_BORDER }} />
+                      <p className="qf" style={{ fontSize: 34, color: GOLD, margin: 0, lineHeight: 1.5 }}>{selectedSurah.arabic}</p>
+                      <p style={{ color: '#fff9', fontSize: 11, margin: 0, letterSpacing: 2, textTransform: 'uppercase' }}>{selectedSurah.name} · {selectedSurah.meaning}</p>
+                      <p style={{ color: '#fff5', fontSize: 10, margin: '2px 0 0' }}>{selectedSurah.verses} Ayat · Juz {selectedSurah.juz}</p>
                     </div>
                   </div>
 
-                  {/* ── BISMILLAH — shown ONCE, not for At-Tawbah (9) ── */}
+                  {/* ── Decorative bottom rule ── */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, justifyContent: 'center' }}>
+                    <div style={{ flex: 1, height: 1, background: `linear-gradient(to right, transparent, ${GOLD}88)` }} />
+                    <span style={{ color: GOLD, fontSize: 18 }}>❧</span>
+                    <div style={{ flex: 1, height: 1, background: `linear-gradient(to left, transparent, ${GOLD}88)` }} />
+                  </div>
+
+                  {/* ── BISMILLAH — shown ONCE, only if not At-Tawbah (9) ── */}
                   {selectedSurah.number !== 9 && (
-                    <div style={{ textAlign: 'center', marginBottom: 18, paddingBottom: 18, borderBottom: `1px solid ${MUSHAF_BORDER}44` }}>
-                      <p className="qf" style={{ fontSize: 30, color: '#fff', lineHeight: 2.0, margin: 0, textShadow: '0 1px 6px rgba(0,0,0,0.3)' }}>
+                    <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                      <p className="qf" style={{ fontSize: 30, color: '#fff', margin: 0, lineHeight: 2.2, textShadow: '0 1px 4px rgba(0,0,0,0.3)' }}>
                         بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ
                       </p>
                     </div>
                   )}
 
-                  {/* ── VERSE TEXT — continuous mushaf style ── */}
-                  <div dir="rtl" style={{ textAlign: 'justify', textAlignLast: 'right' }}>
-                    <p className="qf" style={{
-                      fontSize: FONT_SIZES[fontSize].value,
-                      lineHeight: FONT_SIZES[fontSize].line,
-                      color: '#000',           // BLACK text like real printed Quran
-                      margin: 0,
-                      wordSpacing: 4,
-                      textShadow: 'none',
-                    }}>
+                  {/* ── MUSHAF MODE: continuous flowing text ── */}
+                  {mode === 'mushaf' && (
+                    <p className="qf"
+                      dir="rtl"
+                      style={{
+                        fontSize: FONT_SIZES[fontSize].size,
+                        color: '#fff',
+                        lineHeight: 3.0,
+                        textAlign: 'justify',
+                        textAlignLast: 'right',
+                        wordSpacing: 5,
+                        margin: 0,
+                        textShadow: '0 1px 3px rgba(0,0,0,0.25)',
+                      }}>
                       {displayVerses.map(v => (
                         <span key={v.number}>
                           {v.arabic}
-                          {/* Verse number circle */}
-                          <span style={{
-                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                            width: '1.8em', height: '1.8em', borderRadius: '50%',
-                            fontSize: '0.48em',
-                            margin: '0 0.2em',
-                            verticalAlign: 'middle',
-                            background: 'rgba(0,0,0,0.15)',
-                            border: '1px solid rgba(0,0,0,0.25)',
-                            color: '#000',
-                            flexShrink: 0,
-                            fontFamily: "'Scheherazade New', serif",
-                          }}>
-                            {toArabicNum(v.number)}
-                          </span>
+                          <VerseEnd num={v.number} onGreen={true} />
                         </span>
                       ))}
                     </p>
-                  </div>
+                  )}
 
-                  {/* ── TRANSLATION (if on) ── */}
-                  {showTrans && displayVerses.some(v => v.translation) && (
-                    <div style={{ marginTop: 24, paddingTop: 20, borderTop: `2px solid ${MUSHAF_BORDER}44` }}>
-                      <p style={{ color: MUSHAF_BORDER, fontSize: 11, fontWeight: 700, letterSpacing: 2, marginBottom: 14, textAlign: 'center' }}>TRANSLATION (Asad)</p>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {displayVerses.filter(v => v.translation).map(v => (
-                          <div key={v.number} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                            <span style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(0,0,0,0.15)', border: `1px solid ${MUSHAF_BORDER}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', flexShrink: 0, marginTop: 2 }}>{v.number}</span>
-                            <p style={{ color: '#ffffffcc', fontSize: 13, lineHeight: 1.75, margin: 0, fontStyle: 'italic' }}>{v.translation}</p>
+                  {/* ── VERSE BY VERSE MODE ── */}
+                  {mode === 'verse' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {displayVerses.map(v => (
+                        <div key={v.number} style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 16px', border: `1px solid ${GOLD}33` }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                            <div style={{ width: 26, height: 26, borderRadius: '50%', background: GOLD, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{v.number}</div>
+                            <span style={{ color: '#ffffff66', fontSize: 11 }}>Ayah {v.number}</span>
                           </div>
-                        ))}
-                      </div>
+                          <p className="qf" dir="rtl"
+                            style={{ fontSize: FONT_SIZES[fontSize].size, color: '#fff', lineHeight: 2.8, textAlign: 'right', margin: 0, wordSpacing: 4, textShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
+                            {v.arabic}<VerseEnd num={v.number} onGreen={true} />
+                          </p>
+                          {showTranslation && v.translation && (
+                            <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${GOLD}33` }}>
+                              <p style={{ color: '#ffffffaa', fontSize: 13, lineHeight: 1.7, margin: 0, fontStyle: 'italic' }}>{v.translation}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
 
-                  {/* ── End of Surah ── */}
-                  <div style={{ textAlign: 'center', marginTop: 28, paddingTop: 18, borderTop: `2px solid ${MUSHAF_BORDER}44` }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                      <div style={{ flex: 1, height: 1, background: MUSHAF_BORDER }} />
-                      <p className="qf" style={{ color: '#fff', fontSize: 22, margin: 0 }}>صَدَقَ اللَّهُ الْعَظِيمُ</p>
-                      <div style={{ flex: 1, height: 1, background: MUSHAF_BORDER }} />
-                    </div>
-                    <p style={{ color: '#ffffff55', fontSize: 11, letterSpacing: 1 }}>END OF SURAH {selectedSurah.name.toUpperCase()}</p>
+                  {/* ── End of surah ── */}
+                  <div style={{ textAlign: 'center', marginTop: 24, paddingTop: 16, borderTop: `1px solid ${GOLD}44` }}>
+                    <p className="qf" style={{ color: GOLD, fontSize: 24, margin: 0 }}>۝ صَدَقَ اللَّهُ الْعَظِيمُ ۝</p>
+                    <p style={{ color: '#ffffff55', fontSize: 11, marginTop: 6 }}>End of Surah {selectedSurah.name} · {selectedSurah.verses} Ayat</p>
                   </div>
                 </div>
               </div>
 
-              {/* ── Navigation ── */}
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 20 }}>
+              {/* Navigation */}
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 18 }}>
                 {selectedSurah.number > 1 && (
                   <button onClick={() => loadSurah(SURAHS.find(s => s.number === selectedSurah.number - 1))}
-                    style={{ padding: '11px 22px', borderRadius: 10, border: `1px solid #2a4a30`, background: '#122a1a', color: '#d4c8a0', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                    style={{ padding: '10px 20px', borderRadius: 12, border: `1px solid ${borderCol}`, background: cardBg, color: textCol, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
                     ← Previous Surah
                   </button>
                 )}
                 {selectedSurah.number < 114 && (
                   <button onClick={() => loadSurah(SURAHS.find(s => s.number === selectedSurah.number + 1))}
-                    style={{ padding: '11px 22px', borderRadius: 10, border: 'none', background: HEADER_BG, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, borderTop: `2px solid ${MUSHAF_BORDER}44` }}>
+                    style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: GREEN_DARK, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
                     Next Surah →
                   </button>
                 )}
