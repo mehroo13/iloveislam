@@ -76,6 +76,9 @@ export const metadata: Metadata = {
   },
   verification: {
     google: "S6Q7IIFvzrp0iRkQqkMmJm7EV4IPTZlrAAMmd66qN1I",
+    other: {
+      "msvalidate.01": "37ABD8510E95706876F290B997D5791A",
+    },
   },
 };
 
@@ -90,7 +93,6 @@ export default function RootLayout({
         <link rel="canonical" href="https://www.iloveislam.life" />
         <meta name="theme-color" content="#0a3d2e" />
         <link rel="icon" href="/favicon.ico" />
-        {/* Structured Data for Google */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
