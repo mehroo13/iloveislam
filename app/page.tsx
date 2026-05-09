@@ -184,7 +184,7 @@ const TOOLS_DATA = (t: typeof TRANSLATIONS['en']) => [
 
 const SCROLL_KEY = 'iloveislam_scroll';
 
-function LiveBar({ t }: { t: typeof TRANSLATIONS['en'] }) {
+function LiveBar() {
   const [time, setTime] = useState('');
   const [hijri, setHijri] = useState('');
   const [gregorian, setGregorian] = useState('');
@@ -234,7 +234,6 @@ export default function Home() {
   const isRTL = RTL_LANGS.includes(lang);
   const tools = TOOLS_DATA(t);
 
-  // Save/restore language
   useEffect(() => {
     const saved = localStorage.getItem('iloveislam_lang');
     if (saved && TRANSLATIONS[saved]) setLang(saved);
@@ -281,30 +280,57 @@ export default function Home() {
       <div className="min-h-screen" style={{ background: '#f7f6f2' }} dir={isRTL ? 'rtl' : 'ltr'}>
 
         {/* ── HEADER ── */}
-        <header style={{ background: 'linear-gradient(135deg, #0a3d2e 0%, #0d5238 50%, #0a3d2e 100%)' }}
-          className="px-6 pt-8 pb-8 text-center relative overflow-hidden">
-
+        <header
+          style={{ background: 'linear-gradient(135deg, #0a3d2e 0%, #0d5238 50%, #0a3d2e 100%)' }}
+          className="px-4 pt-4 pb-8 text-center relative overflow-hidden"
+        >
           {/* Background decorations */}
           <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
-            <div className="absolute top-4 left-8 text-white/5 text-8xl font-arabic">☽</div>
+            <div className="absolute top-4 left-8 text-white/5 text-8xl">☽</div>
             <div className="absolute bottom-4 right-8 text-white/5 text-6xl">✦</div>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/[0.03] text-9xl font-arabic">☽</div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/[0.03] text-9xl">☽</div>
           </div>
 
-          {/* Language switcher — top right */}
-          <div className={`absolute top-4 ${isRTL ? 'left-4' : 'right-4'} z-20`}>
-            <div className="relative">
-              <button onClick={() => setShowLangMenu(!showLangMenu)}
-                className="flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-xl px-3 py-1.5 text-white/70 text-xs hover:bg-white/20 transition-all">
+          {/* ── TOP NAV BAR — always LTR so it never flips ── */}
+          <div
+            className="relative z-20 flex items-center justify-between mb-6"
+            dir="ltr"
+          >
+            {/* Left: About + Blog */}
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <Link href="/about" className="text-white/50 hover:text-white/80 text-xs transition-colors whitespace-nowrap">
+                {t.about}
+              </Link>
+              <Link href="/blog" className="text-white/50 hover:text-white/80 text-xs transition-colors whitespace-nowrap">
+                {t.blog}
+              </Link>
+            </div>
+
+            {/* Center: spacer */}
+            <div className="flex-1" />
+
+            {/* Right: Language switcher — always stays right, never overlaps */}
+            <div className="relative flex-shrink-0">
+              <button
+                onClick={() => setShowLangMenu(!showLangMenu)}
+                className="flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-xl px-3 py-1.5 text-white/70 text-xs hover:bg-white/20 transition-all whitespace-nowrap"
+              >
                 <span>{currentLang?.flag}</span>
                 <span className="hidden sm:inline">{currentLang?.label}</span>
-                <span>▾</span>
+                <span className="text-white/40">▾</span>
               </button>
+
+              {/* Dropdown — always opens left-aligned from button so it never goes off screen */}
               {showLangMenu && (
-                <div className="absolute top-9 right-0 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 w-44">
+                <div className="absolute top-10 right-0 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 w-44">
                   {LANGUAGES.map(l => (
-                    <button key={l.code} onClick={() => switchLang(l.code)}
-                      className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors text-left ${lang === l.code ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-700'}`}>
+                    <button
+                      key={l.code}
+                      onClick={() => switchLang(l.code)}
+                      className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors text-left ${
+                        lang === l.code ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-700'
+                      }`}
+                    >
                       <span>{l.flag}</span>
                       <span>{l.label}</span>
                       {lang === l.code && <span className="ml-auto text-emerald-500">✓</span>}
@@ -315,31 +341,34 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Nav links */}
-          <div className="absolute top-4 left-4 z-20 flex items-center gap-3">
-            <Link href="/about" className="text-white/50 hover:text-white/80 text-xs transition-colors">{t.about}</Link>
-            <Link href="/blog" className="text-white/50 hover:text-white/80 text-xs transition-colors">{t.blog}</Link>
-          </div>
-
+          {/* ── HERO CONTENT ── */}
           <div className="relative z-10">
             <h2 className="font-arabic text-5xl md:text-6xl mb-2" style={{ color: '#c8a96e' }}>
               ♡ I Love Islam
             </h2>
             <p className="text-white/50 text-sm mb-4">{t.tagline}</p>
 
-            <LiveBar t={t} />
+            <LiveBar />
 
             {/* Search */}
             <div className="max-w-lg mx-auto flex items-center gap-3 bg-white/10 border border-white/20 rounded-2xl px-5 py-3 shadow-lg backdrop-blur-sm focus-within:border-white/40 transition-all">
               <span className="text-white/40">🔍</span>
-              <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder={t.search}
                 className="bg-transparent text-white placeholder-white/30 text-sm outline-none flex-1"
-                aria-label="Search Islamic tools" />
+                aria-label="Search Islamic tools"
+                dir={isRTL ? 'rtl' : 'ltr'}
+              />
               {search && (
-                <button onClick={() => setSearch('')} className="text-white/40 hover:text-white transition-colors text-lg leading-none">✕</button>
+                <button onClick={() => setSearch('')} className="text-white/40 hover:text-white transition-colors text-lg leading-none">
+                  ✕
+                </button>
               )}
             </div>
+
             {search && (
               <p className="text-white/40 text-xs mt-3">
                 {t.found} <span className="text-white font-semibold">{totalResults}</span> {t.results}{totalResults !== 1 ? 's' : ''}
@@ -353,15 +382,19 @@ export default function Home() {
           {/* ── MIZAN BANNER ── */}
           {!search && (
             <Link href="/mizan" className="block mb-8 group">
-              <div className="relative rounded-3xl overflow-hidden border border-amber-200/40 hover:shadow-xl hover:shadow-amber-900/10 transition-all duration-300"
-                style={{ background: 'linear-gradient(135deg, #1a0a00 0%, #3d1f00 40%, #1a0a00 100%)' }}>
+              <div
+                className="relative rounded-3xl overflow-hidden border border-amber-200/40 hover:shadow-xl hover:shadow-amber-900/10 transition-all duration-300"
+                style={{ background: 'linear-gradient(135deg, #1a0a00 0%, #3d1f00 40%, #1a0a00 100%)' }}
+              >
                 <div className="absolute inset-0 pointer-events-none">
                   <div className="absolute top-3 right-6 text-amber-400/20 text-7xl">✦</div>
-                  <div className="absolute bottom-3 left-6 text-amber-400/10 text-5xl font-arabic">☽</div>
+                  <div className="absolute bottom-3 left-6 text-amber-400/10 text-5xl">☽</div>
                 </div>
                 <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 p-6 md:p-8">
-                  <div className="flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center text-3xl border border-amber-400/30"
-                    style={{ background: 'rgba(200,169,110,0.15)' }}>✦</div>
+                  <div
+                    className="flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center text-3xl border border-amber-400/30"
+                    style={{ background: 'rgba(200,169,110,0.15)' }}
+                  >✦</div>
                   <div className="flex-1 text-center md:text-left">
                     <span className="text-xs font-bold px-3 py-1 rounded-full border border-amber-400/40 text-amber-400 tracking-widest uppercase mb-2 inline-block">
                       ✨ Featured Tool
@@ -370,8 +403,10 @@ export default function Home() {
                     <p className="text-sm mb-1" style={{ color: '#c8a96e' }}>Discover your personality, life purpose & spiritual path</p>
                     <p className="text-white/30 text-xs">Abjad numerology · 99 Names of Allah · Quranic guidance</p>
                   </div>
-                  <div className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm group-hover:scale-105 transition-all"
-                    style={{ background: '#c8a96e', color: '#1a0a00' }}>
+                  <div
+                    className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm group-hover:scale-105 transition-all"
+                    style={{ background: '#c8a96e', color: '#1a0a00' }}
+                  >
                     Discover Yours <span className="group-hover:translate-x-1 transition-transform">→</span>
                   </div>
                 </div>
@@ -385,7 +420,13 @@ export default function Home() {
               <p className="text-5xl mb-4">🔍</p>
               <p className="text-gray-700 font-bold text-lg mb-2">{t.noTools} "{search}"</p>
               <p className="text-gray-400 text-sm">{t.noToolsSub}</p>
-              <button onClick={() => setSearch('')} className="mt-5 px-5 py-2 rounded-xl text-white text-sm" style={{ background: '#0a3d2e' }}>{t.clear}</button>
+              <button
+                onClick={() => setSearch('')}
+                className="mt-5 px-5 py-2 rounded-xl text-white text-sm"
+                style={{ background: '#0a3d2e' }}
+              >
+                {t.clear}
+              </button>
             </div>
           )}
 
@@ -403,8 +444,12 @@ export default function Home() {
                   : 'grid-cols-2 md:grid-cols-4'
               }`}>
                 {section.items.map((tool) => (
-                  <Link key={tool.name} href={tool.href} aria-label={`${tool.name} — ${tool.desc}`}
-                    className="bg-white rounded-2xl p-4 border border-gray-100 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-900/5 transition-all duration-200 group relative overflow-hidden active:scale-95 flex flex-col items-center text-center">
+                  <Link
+                    key={tool.name}
+                    href={tool.href}
+                    aria-label={`${tool.name} — ${tool.desc}`}
+                    className="bg-white rounded-2xl p-4 border border-gray-100 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-900/5 transition-all duration-200 group relative overflow-hidden active:scale-95 flex flex-col items-center text-center"
+                  >
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3 transition-transform group-hover:scale-110 ${tool.color}`}>
                       {tool.icon}
                     </div>
@@ -419,7 +464,7 @@ export default function Home() {
             </div>
           ))}
 
-          {/* ── STATS & SEO ── */}
+          {/* ── STATS & ABOUT ── */}
           {!search && (
             <>
               <div className="flex flex-wrap justify-center gap-2 mt-4 mb-6">
@@ -458,7 +503,7 @@ export default function Home() {
                 </div>
               ))}
             </div>
-            <div className="border-t border-gray-100 pt-4 flex flex-wrap items-center justify-center gap-4">
+            <div className="border-t border-gray-100 pt-4 flex flex-wrap items-center justify-center gap-4" dir="ltr">
               <p className="text-xs text-gray-300">{t.footerMade} · {t.footerFree}</p>
               <div className="flex gap-3">
                 <Link href="/about" className="text-xs text-gray-400 hover:text-gray-600">{t.about}</Link>
@@ -471,7 +516,9 @@ export default function Home() {
       </div>
 
       {/* Close lang menu on outside click */}
-      {showLangMenu && <div className="fixed inset-0 z-10" onClick={() => setShowLangMenu(false)} />}
+      {showLangMenu && (
+        <div className="fixed inset-0 z-10" onClick={() => setShowLangMenu(false)} />
+      )}
     </>
   );
 }
