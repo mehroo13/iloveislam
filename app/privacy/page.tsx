@@ -59,7 +59,7 @@ export default function Privacy() {
 
       <main className="max-w-2xl mx-auto px-4 py-10">
         <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-4">
-          <p className="text-xs text-gray-400">Last updated: June 2025</p>
+          <p className="text-xs text-gray-400">Last updated: May 2026</p>
           <h2 className="text-lg font-bold text-gray-800 mt-1">Privacy Policy — I Love Islam</h2>
           <p className="text-sm text-gray-500 mt-2">Your privacy matters to us. This site is designed to be used without giving us any personal information.</p>
         </div>
