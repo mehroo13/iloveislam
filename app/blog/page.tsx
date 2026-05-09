@@ -187,7 +187,7 @@ export default function BlogPage() {
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <span style={{ fontSize: 11, color: '#bbb' }}>📖 {article.readTime}</span>
                       <span style={{ fontSize: 11, color: '#ddd' }}>·</span>
-                      <span style={{ fontSize: 11, color: '#bbb' }}>June 2025</span>
+                      <span style={{ fontSize: 11, color: '#bbb' }}>May 2026</span>
                     </div>
                   </div>
                 </div>
