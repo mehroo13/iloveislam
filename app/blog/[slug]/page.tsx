@@ -2,14 +2,14 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 const ARTICLES = [
-  { slug: 'how-to-calculate-zakat', title: 'How to Calculate Zakat: A Complete Step-by-Step Guide', category: 'Finance', emoji: '💰', readTime: '5 min read' },
-  { slug: 'what-is-mizan-islamic-blueprint', title: 'What is the Mizan Islamic Life Blueprint?', category: 'Self-Discovery', emoji: '✦', readTime: '4 min read' },
-  { slug: 'qibla-direction-guide', title: 'How to Find the Qibla Direction Anywhere in the World', category: 'Prayer', emoji: '🧭', readTime: '3 min read' },
-  { slug: 'prayer-times-guide', title: 'Understanding Islamic Prayer Times: Fajr, Dhuhr, Asr, Maghrib & Isha', category: 'Prayer', emoji: '🕐', readTime: '6 min read' },
-  { slug: 'hijri-calendar-explained', title: 'The Islamic Hijri Calendar Explained — And How to Convert Dates', category: 'Knowledge', emoji: '🌙', readTime: '4 min read' },
-  { slug: '99-names-of-allah-guide', title: 'The 99 Names of Allah (Asma ul Husna) — Meanings & Benefits', category: 'Knowledge', emoji: '⭐', readTime: '8 min read' },
-  { slug: 'ramadan-preparation-guide', title: 'How to Prepare for Ramadan: A Complete Muslim Guide', category: 'Ramadan', emoji: '🌙', readTime: '7 min read' },
-  { slug: 'halal-travel-tips', title: "10 Essential Tips for Halal Travel — A Muslim Traveller's Guide", category: 'Travel', emoji: '🌍', readTime: '5 min read' },
+  { slug: 'how-to-calculate-zakat', title: 'How to Calculate Zakat: A Complete Step-by-Step Guide', excerpt: 'Zakat is one of the Five Pillars of Islam. Learn exactly how to calculate your annual Zakat, understand the Nisab threshold, and what assets are included.', category: 'Finance', emoji: '💰', readTime: '5 min read' },
+  { slug: 'what-is-mizan-islamic-blueprint', title: 'What is the Mizan Islamic Life Blueprint?', excerpt: 'Discover how the Mizan tool uses the ancient Abjad numerology system, the 99 Names of Allah, and Quranic guidance to reveal your Islamic archetype and life purpose.', category: 'Self-Discovery', emoji: '✦', readTime: '4 min read' },
+  { slug: 'qibla-direction-guide', title: 'How to Find the Qibla Direction Anywhere in the World', excerpt: 'The Qibla is the direction Muslims face during Salah. Learn how to find it accurately using our free Qibla Finder tool, and understand the calculation behind it.', category: 'Prayer', emoji: '🧭', readTime: '3 min read' },
+  { slug: 'prayer-times-guide', title: 'Understanding Islamic Prayer Times: Fajr, Dhuhr, Asr, Maghrib & Isha', excerpt: 'A complete guide to the five daily prayers — what they are, when they occur, and how to find accurate prayer times for your city anywhere in the world.', category: 'Prayer', emoji: '🕐', readTime: '6 min read' },
+  { slug: 'hijri-calendar-explained', title: 'The Islamic Hijri Calendar Explained — And How to Convert Dates', excerpt: 'The Hijri calendar is the Islamic lunar calendar used to determine dates of Islamic events. Learn how it works and how to convert between Hijri and Gregorian dates.', category: 'Knowledge', emoji: '🌙', readTime: '4 min read' },
+  { slug: '99-names-of-allah-guide', title: 'The 99 Names of Allah (Asma ul Husna) — Meanings & Benefits', excerpt: 'Allah has 99 beautiful names, each reflecting a divine attribute. Learn about all 99 names, their meanings, and the spiritual benefits of reciting them.', category: 'Knowledge', emoji: '⭐', readTime: '8 min read' },
+  { slug: 'ramadan-preparation-guide', title: 'How to Prepare for Ramadan: A Complete Muslim Guide', excerpt: 'Ramadan is the holiest month in Islam. Learn how to prepare spiritually, physically, and practically for the blessed month of fasting and worship.', category: 'Ramadan', emoji: '🌙', readTime: '7 min read' },
+  { slug: 'halal-travel-tips', title: "10 Essential Tips for Halal Travel — A Muslim Traveller's Guide", excerpt: 'Travelling as a Muslim comes with unique considerations. From finding halal food to maintaining prayer schedules — here is everything you need to know.', category: 'Travel', emoji: '🌍', readTime: '5 min read' },
 ];
 
 // ── Full article content keyed by slug ─────────────────────────────────────
