@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 const TRANSLATIONS: Record<string, {
   tagline: string; search: string; found: string; results: string;
   noTools: string; noToolsSub: string; clear: string;
-  about: string; blog: string; privacy: string;
+  about: string; blog: string; privacy: string; contact: string; faq: string; terms: string;
   mostUsed: string; daily: string; finance: string; travel: string;
   footerMade: string; footerFree: string;
   stats: { tools: string; free: string; noSignup: string; mobile: string; world: string; fast: string };
@@ -19,7 +19,7 @@ const TRANSLATIONS: Record<string, {
     found: 'Found', results: 'result',
     noTools: 'No tools found', noToolsSub: 'Try searching: zakat, prayer, quran, qibla...',
     clear: 'Clear Search',
-    about: 'About', blog: 'Blog', privacy: 'Privacy',
+    about: 'About', blog: 'Blog', privacy: 'Privacy', contact: 'Contact', faq: 'FAQ', terms: 'Terms',
     mostUsed: 'Most Used', daily: 'Daily Practice', finance: 'Finance & Giving', travel: 'Travel & Knowledge',
     footerMade: 'Made with ❤️ for the Ummah', footerFree: 'Always Free · No Sign-up',
     stats: { tools: '20 Free Tools', free: '100% Free', noSignup: 'No Sign-up', mobile: 'Works on Mobile', world: 'Works Worldwide', fast: 'Always Fast' },
@@ -33,7 +33,7 @@ const TRANSLATIONS: Record<string, {
     found: 'وجد', results: 'نتيجة',
     noTools: 'لم يتم العثور على أدوات', noToolsSub: 'جرب البحث: زكاة، صلاة، قرآن...',
     clear: 'مسح البحث',
-    about: 'عن الموقع', blog: 'مدونة', privacy: 'الخصوصية',
+    about: 'عن الموقع', blog: 'مدونة', privacy: 'الخصوصية', contact: 'تواصل معنا', faq: 'الأسئلة الشائعة', terms: 'الشروط',
     mostUsed: 'الأكثر استخداماً', daily: 'الممارسة اليومية', finance: 'المال والعطاء', travel: 'السفر والمعرفة',
     footerMade: 'صُنع بمحبة للأمة الإسلامية', footerFree: 'مجاني دائماً · لا تسجيل',
     stats: { tools: '٢٠ أداة مجانية', free: '١٠٠٪ مجاني', noSignup: 'لا تسجيل', mobile: 'يعمل على الجوال', world: 'يعمل في كل مكان', fast: 'سريع دائماً' },
@@ -47,7 +47,7 @@ const TRANSLATIONS: Record<string, {
     found: 'ملا', results: 'نتیجہ',
     noTools: 'کوئی ٹول نہیں ملا', noToolsSub: 'تلاش کریں: زکوٰۃ، نماز، قرآن...',
     clear: 'تلاش صاف کریں',
-    about: 'ہمارے بارے میں', blog: 'بلاگ', privacy: 'رازداری',
+    about: 'ہمارے بارے میں', blog: 'بلاگ', privacy: 'رازداری', contact: 'رابطہ', faq: 'سوالات', terms: 'شرائط',
     mostUsed: 'سب سے زیادہ استعمال', daily: 'روزانہ عبادت', finance: 'مال اور صدقہ', travel: 'سفر اور علم',
     footerMade: 'امت کے لیے محبت سے بنایا گیا', footerFree: 'ہمیشہ مفت · کوئی رجسٹریشن نہیں',
     stats: { tools: '٢٠ مفت ٹولز', free: '١٠٠٪ مفت', noSignup: 'کوئی سائن اپ نہیں', mobile: 'موبائل پر چلتا ہے', world: 'دنیا بھر میں', fast: 'ہمیشہ تیز' },
@@ -61,7 +61,7 @@ const TRANSLATIONS: Record<string, {
     found: 'Trouvé', results: 'résultat',
     noTools: 'Aucun outil trouvé', noToolsSub: 'Essayez: zakat, prière, coran...',
     clear: 'Effacer',
-    about: 'À propos', blog: 'Blog', privacy: 'Confidentialité',
+    about: 'À propos', blog: 'Blog', privacy: 'Confidentialité', contact: 'Contact', faq: 'FAQ', terms: 'Conditions',
     mostUsed: 'Les plus utilisés', daily: 'Pratique quotidienne', finance: 'Finance & Dons', travel: 'Voyage & Savoir',
     footerMade: 'Fait avec ❤️ pour la Oumma', footerFree: 'Toujours gratuit · Sans inscription',
     stats: { tools: '20 Outils gratuits', free: '100% Gratuit', noSignup: 'Sans inscription', mobile: 'Mobile', world: 'Mondial', fast: 'Rapide' },
@@ -75,7 +75,7 @@ const TRANSLATIONS: Record<string, {
     found: 'Bulundu', results: 'sonuç',
     noTools: 'Araç bulunamadı', noToolsSub: 'Deneyin: zekat, namaz, kuran...',
     clear: 'Temizle',
-    about: 'Hakkında', blog: 'Blog', privacy: 'Gizlilik',
+    about: 'Hakkında', blog: 'Blog', privacy: 'Gizlilik', contact: 'İletişim', faq: 'SSS', terms: 'Şartlar',
     mostUsed: 'En Çok Kullanılan', daily: 'Günlük İbadet', finance: 'Finans & Sadaka', travel: 'Seyahat & Bilgi',
     footerMade: 'Ümmet için sevgiyle yapıldı', footerFree: 'Her zaman ücretsiz · Kayıt yok',
     stats: { tools: '20 Ücretsiz Araç', free: '%100 Ücretsiz', noSignup: 'Kayıt yok', mobile: 'Mobil', world: 'Dünya geneli', fast: 'Hızlı' },
@@ -89,7 +89,7 @@ const TRANSLATIONS: Record<string, {
     found: 'Ditemukan', results: 'hasil',
     noTools: 'Tidak ada alat ditemukan', noToolsSub: 'Coba: zakat, shalat, quran...',
     clear: 'Hapus',
-    about: 'Tentang', blog: 'Blog', privacy: 'Privasi',
+    about: 'Tentang', blog: 'Blog', privacy: 'Privasi', contact: 'Kontak', faq: 'FAQ', terms: 'Ketentuan',
     mostUsed: 'Paling Sering Digunakan', daily: 'Ibadah Harian', finance: 'Keuangan & Sedekah', travel: 'Perjalanan & Ilmu',
     footerMade: 'Dibuat dengan ❤️ untuk Umat', footerFree: 'Selalu Gratis · Tanpa Daftar',
     stats: { tools: '20 Alat Gratis', free: '100% Gratis', noSignup: 'Tanpa Daftar', mobile: 'Mobile', world: 'Seluruh Dunia', fast: 'Cepat' },
@@ -103,7 +103,7 @@ const TRANSLATIONS: Record<string, {
     found: 'পাওয়া গেছে', results: 'ফলাফল',
     noTools: 'কোনো টুল পাওয়া যায়নি', noToolsSub: 'চেষ্টা করুন: যাকাত, নামাজ, কোরআন...',
     clear: 'পরিষ্কার করুন',
-    about: 'সম্পর্কে', blog: 'ব্লগ', privacy: 'গোপনীয়তা',
+    about: 'সম্পর্কে', blog: 'ব্লগ', privacy: 'গোপনীয়তা', contact: 'যোগাযোগ', faq: 'প্রশ্নোত্তর', terms: 'শর্তাবলী',
     mostUsed: 'সর্বাধিক ব্যবহৃত', daily: 'দৈনিক ইবাদত', finance: 'অর্থ ও দান', travel: 'ভ্রমণ ও জ্ঞান',
     footerMade: 'উম্মতের জন্য ভালোবাসায় তৈরি', footerFree: 'সর্বদা বিনামূল্যে',
     stats: { tools: '২০টি বিনামূল্যে টুল', free: '১০০% বিনামূল্যে', noSignup: 'নিবন্ধন নেই', mobile: 'মোবাইলে চলে', world: 'বিশ্বজুড়ে', fast: 'দ্রুত' },
@@ -117,7 +117,7 @@ const TRANSLATIONS: Record<string, {
     found: 'Dijumpai', results: 'keputusan',
     noTools: 'Tiada alat dijumpai', noToolsSub: 'Cuba: zakat, solat, quran...',
     clear: 'Padam',
-    about: 'Tentang', blog: 'Blog', privacy: 'Privasi',
+    about: 'Tentang', blog: 'Blog', privacy: 'Privasi', contact: 'Hubungi', faq: 'Soalan Lazim', terms: 'Terma',
     mostUsed: 'Paling Kerap Digunakan', daily: 'Amalan Harian', finance: 'Kewangan & Sedekah', travel: 'Perjalanan & Ilmu',
     footerMade: 'Dibuat dengan ❤️ untuk Umat', footerFree: 'Sentiasa Percuma',
     stats: { tools: '20 Alat Percuma', free: '100% Percuma', noSignup: 'Tanpa Daftar', mobile: 'Mudah alih', world: 'Seluruh Dunia', fast: 'Laju' },
@@ -284,19 +284,15 @@ export default function Home() {
           style={{ background: 'linear-gradient(135deg, #0a3d2e 0%, #0d5238 50%, #0a3d2e 100%)' }}
           className="px-4 pt-4 pb-8 text-center relative overflow-hidden"
         >
-          {/* Background decorations */}
           <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
             <div className="absolute top-4 left-8 text-white/5 text-8xl">☽</div>
             <div className="absolute bottom-4 right-8 text-white/5 text-6xl">✦</div>
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/[0.03] text-9xl">☽</div>
           </div>
 
-          {/* ── TOP NAV BAR — always LTR so it never flips ── */}
-          <div
-            className="relative z-20 flex items-center justify-between mb-6"
-            dir="ltr"
-          >
-            {/* Left: About + Blog */}
+          {/* ── TOP NAV BAR ── */}
+          <div className="relative z-20 flex items-center justify-between mb-6" dir="ltr">
+            {/* Left: About + Blog + Contact + FAQ */}
             <div className="flex items-center gap-3 flex-shrink-0">
               <Link href="/about" className="text-white/50 hover:text-white/80 text-xs transition-colors whitespace-nowrap">
                 {t.about}
@@ -304,12 +300,17 @@ export default function Home() {
               <Link href="/blog" className="text-white/50 hover:text-white/80 text-xs transition-colors whitespace-nowrap">
                 {t.blog}
               </Link>
+              <Link href="/contact" className="text-white/50 hover:text-white/80 text-xs transition-colors whitespace-nowrap hidden sm:inline">
+                {t.contact}
+              </Link>
+              <Link href="/faq" className="text-white/50 hover:text-white/80 text-xs transition-colors whitespace-nowrap hidden sm:inline">
+                {t.faq}
+              </Link>
             </div>
 
-            {/* Center: spacer */}
             <div className="flex-1" />
 
-            {/* Right: Language switcher — always stays right, never overlaps */}
+            {/* Right: Language switcher */}
             <div className="relative flex-shrink-0">
               <button
                 onClick={() => setShowLangMenu(!showLangMenu)}
@@ -320,7 +321,6 @@ export default function Home() {
                 <span className="text-white/40">▾</span>
               </button>
 
-              {/* Dropdown — always opens left-aligned from button so it never goes off screen */}
               {showLangMenu && (
                 <div className="absolute top-10 right-0 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 w-44">
                   {LANGUAGES.map(l => (
@@ -505,17 +505,19 @@ export default function Home() {
             </div>
             <div className="border-t border-gray-100 pt-4 flex flex-wrap items-center justify-center gap-4" dir="ltr">
               <p className="text-xs text-gray-300">{t.footerMade} · {t.footerFree}</p>
-              <div className="flex gap-3">
-                <Link href="/about" className="text-xs text-gray-400 hover:text-gray-600">{t.about}</Link>
-                <Link href="/blog" className="text-xs text-gray-400 hover:text-gray-600">{t.blog}</Link>
-                <Link href="/privacy" className="text-xs text-gray-400 hover:text-gray-600">{t.privacy}</Link>
+              <div className="flex flex-wrap justify-center gap-3">
+                <Link href="/about" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">{t.about}</Link>
+                <Link href="/blog" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">{t.blog}</Link>
+                <Link href="/contact" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">{t.contact}</Link>
+                <Link href="/faq" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">{t.faq}</Link>
+                <Link href="/terms" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">{t.terms}</Link>
+                <Link href="/privacy" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">{t.privacy}</Link>
               </div>
             </div>
           </div>
         </footer>
       </div>
 
-      {/* Close lang menu on outside click */}
       {showLangMenu && (
         <div className="fixed inset-0 z-10" onClick={() => setShowLangMenu(false)} />
       )}
