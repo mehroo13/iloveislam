@@ -340,7 +340,7 @@ export default async function ArticlePage(
               {article.category}
             </span>
             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>📖 {article.readTime}</span>
-            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>June 2025</span>
+            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>May 2026</span>
           </div>
           <h1 style={{ color: '#fff', fontSize: 28, fontWeight: 700, margin: '0 0 12px', lineHeight: 1.35 }}>
             {article.title}
