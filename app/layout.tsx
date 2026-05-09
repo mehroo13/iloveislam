@@ -76,6 +76,17 @@ export const metadata: Metadata = {
   verification: {
     google: "S6Q7IIFvzrp0iRkQqkMmJm7EV4IPTZlrAAMmd66qN1I",
   },
+
+  // ── Icons (favicon + app icons) ──────────────────────────────────────────
+  icons: {
+    icon: [
+      { url: "/favicon.png", type: "image/png" },
+    ],
+    apple: [
+      { url: "/favicon.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
@@ -96,7 +107,10 @@ export default function RootLayout({
 
         <link rel="canonical" href="https://www.iloveislam.life" />
         <meta name="theme-color" content="#0a3d2e" />
-        <link rel="icon" href="/favicon.ico" />
+
+        {/* Favicon — points to favicon.png in your public folder */}
+        <link rel="icon" href="/favicon.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/favicon.png" />
 
         <script
           type="application/ld+json"
