@@ -1,7 +1,16 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ARTICLES } from '../page';
+const ARTICLES = [
+  { slug: 'how-to-calculate-zakat', title: 'How to Calculate Zakat: A Complete Step-by-Step Guide', category: 'Finance', emoji: '💰', readTime: '5 min read' },
+  { slug: 'what-is-mizan-islamic-blueprint', title: 'What is the Mizan Islamic Life Blueprint?', category: 'Self-Discovery', emoji: '✦', readTime: '4 min read' },
+  { slug: 'qibla-direction-guide', title: 'How to Find the Qibla Direction Anywhere in the World', category: 'Prayer', emoji: '🧭', readTime: '3 min read' },
+  { slug: 'prayer-times-guide', title: 'Understanding Islamic Prayer Times: Fajr, Dhuhr, Asr, Maghrib & Isha', category: 'Prayer', emoji: '🕐', readTime: '6 min read' },
+  { slug: 'hijri-calendar-explained', title: 'The Islamic Hijri Calendar Explained — And How to Convert Dates', category: 'Knowledge', emoji: '🌙', readTime: '4 min read' },
+  { slug: '99-names-of-allah-guide', title: 'The 99 Names of Allah (Asma ul Husna) — Meanings & Benefits', category: 'Knowledge', emoji: '⭐', readTime: '8 min read' },
+  { slug: 'ramadan-preparation-guide', title: 'How to Prepare for Ramadan: A Complete Muslim Guide', category: 'Ramadan', emoji: '🌙', readTime: '7 min read' },
+  { slug: 'halal-travel-tips', title: "10 Essential Tips for Halal Travel — A Muslim Traveller's Guide", category: 'Travel', emoji: '🌍', readTime: '5 min read' },
+];
 
 // ── Full article content keyed by slug ─────────────────────────────────────
 const CONTENT: Record<string, React.ReactNode> = {
