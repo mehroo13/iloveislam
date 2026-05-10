@@ -7,36 +7,27 @@ import Link from 'next/link';
 const KAABA_LAT = 21.4225;
 const KAABA_LNG = 39.8262;
 
-// ACCURATE Qibla calculation - Standard formula used by online Qibla tools
+// Accurate Qibla calculation
 function calculateQibla(latitude: number, longitude: number): number {
-  // Convert to radians
   const latUser = latitude * Math.PI / 180;
   const lonUser = longitude * Math.PI / 180;
   const latKaaba = KAABA_LAT * Math.PI / 180;
   const lonKaaba = KAABA_LNG * Math.PI / 180;
   
-  // Difference in longitude
   const deltaLon = lonKaaba - lonUser;
-  
-  // Calculate the Qibla bearing using the standard formula
-  // y = sin(deltaLon)
-  // x = cos(latUser) * tan(latKaaba) - sin(latUser) * cos(deltaLon)
-  // qibla = atan2(y, x)
   
   const y = Math.sin(deltaLon);
   const x = Math.cos(latUser) * Math.tan(latKaaba) - Math.sin(latUser) * Math.cos(deltaLon);
   
   let qibla = Math.atan2(y, x) * 180 / Math.PI;
-  
-  // Normalize to 0-360 degrees
   qibla = (qibla + 360) % 360;
   
   return Math.round(qibla * 10) / 10;
 }
 
-// Calculate distance using Haversine formula
+// Calculate distance
 function calculateDistance(lat: number, lng: number): number {
-  const R = 6371; // Earth's radius in km
+  const R = 6371;
   const lat1 = lat * Math.PI / 180;
   const lat2 = KAABA_LAT * Math.PI / 180;
   const dLat = (KAABA_LAT - lat) * Math.PI / 180;
@@ -50,8 +41,8 @@ function calculateDistance(lat: number, lng: number): number {
   return Math.round(R * c);
 }
 
-// Get cardinal direction
-function getCardinalDirection(degrees: number): string {
+// Get direction text
+function getDirectionText(degrees: number): string {
   const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
   const index = Math.round(degrees / 22.5) % 16;
   return directions[index];
@@ -62,7 +53,6 @@ interface LocationInfo {
   lng: number;
   name: string;
   country: string;
-  flag: string;
 }
 
 export default function QiblaFinder() {
@@ -74,11 +64,16 @@ export default function QiblaFinder() {
   const [searchCity, setSearchCity] = useState('');
   
   // Compass states
-  const [deviceHeading, setDeviceHeading] = useState<number>(0);
+  const [compassHeading, setCompassHeading] = useState<number>(0);
   const [compassPermission, setCompassPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
-  const [compassSupported, setCompassSupported] = useState<boolean>(true);
+  const [compassAvailable, setCompassAvailable] = useState<boolean>(true);
+  
+  // The key difference: This is the angle the arrow should point relative to device orientation
+  const [arrowRotation, setArrowRotation] = useState<number>(0);
+  
+  const compassListenerRef = useRef<((event: DeviceOrientationEvent) => void) | null>(null);
 
-  // Get flag emoji
+  // Get flag emoji from country code
   const getFlagEmoji = (countryCode: string): string => {
     if (!countryCode) return '📍';
     const codePoints = countryCode.toUpperCase().split('').map(char => 127397 + char.charCodeAt(0));
@@ -86,22 +81,36 @@ export default function QiblaFinder() {
   };
 
   // Update location and calculate Qibla
-  const updateLocation = useCallback(async (lat: number, lng: number, name: string, country: string = '', flag: string = '') => {
-    setLocation({ lat, lng, name, country, flag });
+  const updateLocation = useCallback(async (lat: number, lng: number, name: string, country: string = '') => {
+    setLocation({ lat, lng, name, country });
     
     const qibla = calculateQibla(lat, lng);
     const dist = calculateDistance(lat, lng);
     
     console.log(`Location: ${name} (${lat}, ${lng})`);
-    console.log(`Qibla Direction: ${qibla}° (${getCardinalDirection(qibla)})`);
-    console.log(`Distance to Kaaba: ${dist} km`);
+    console.log(`Qibla Direction: ${qibla}° (${getDirectionText(qibla)})`);
+    console.log(`Distance: ${dist} km`);
     
     setQiblaDirection(qibla);
     setDistance(dist);
     setLoading(false);
+    
+    // Update arrow rotation based on current compass heading
+    if (compassHeading !== null) {
+      updateArrowRotation(qibla, compassHeading);
+    }
+  }, [compassHeading]);
+
+  // Update arrow rotation: Arrow points to Qibla relative to device orientation
+  const updateArrowRotation = useCallback((qibla: number, heading: number) => {
+    // The arrow needs to point to Qibla direction
+    // If device points North (0°), arrow shows Qibla direction
+    // If device rotates, arrow compensates
+    const rotation = qibla - heading;
+    setArrowRotation((rotation + 360) % 360);
   }, []);
 
-  // Request compass permission (iOS 13+)
+  // Request compass permission (required for iOS)
   const requestCompassPermission = async () => {
     if (typeof DeviceOrientationEvent !== 'undefined' && 
         typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
@@ -118,7 +127,7 @@ export default function QiblaFinder() {
         setCompassPermission('denied');
       }
     } else {
-      // Android and other devices
+      // Android - no permission needed
       setCompassPermission('granted');
       startCompass();
     }
@@ -126,31 +135,34 @@ export default function QiblaFinder() {
 
   // Start compass listener
   const startCompass = useCallback(() => {
+    if (compassListenerRef.current) {
+      window.removeEventListener('deviceorientation', compassListenerRef.current);
+    }
+
     const handleOrientation = (event: DeviceOrientationEvent) => {
       let heading: number | null = null;
       
-      // iOS provides webkitCompassHeading (absolute heading)
+      // iOS: webkitCompassHeading gives absolute heading
       if ((event as any).webkitCompassHeading !== undefined) {
         heading = (event as any).webkitCompassHeading;
-        setCompassSupported(true);
+        setCompassAvailable(true);
       } 
-      // Android uses alpha (relative to north)
+      // Android: alpha gives heading relative to north
+      // Need to apply orientation compensation for Android
       else if (event.alpha !== undefined && event.alpha !== null) {
         heading = event.alpha;
-        setCompassSupported(true);
+        setCompassAvailable(true);
       }
       
-      if (heading !== null) {
-        setDeviceHeading(heading);
+      if (heading !== null && qiblaDirection !== null) {
+        setCompassHeading(heading);
+        updateArrowRotation(qiblaDirection, heading);
       }
     };
 
-    window.addEventListener('deviceorientation', handleOrientation);
-    
-    return () => {
-      window.removeEventListener('deviceorientation', handleOrientation);
-    };
-  }, []);
+    compassListenerRef.current = handleOrientation;
+    window.addEventListener('deviceorientation', compassListenerRef.current);
+  }, [qiblaDirection, updateArrowRotation]);
 
   // Auto-start compass for Android
   useEffect(() => {
@@ -160,6 +172,15 @@ export default function QiblaFinder() {
       startCompass();
     }
   }, [startCompass]);
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (compassListenerRef.current) {
+        window.removeEventListener('deviceorientation', compassListenerRef.current);
+      }
+    };
+  }, []);
 
   // Get current location
   const getCurrentLocation = () => {
@@ -182,25 +203,20 @@ export default function QiblaFinder() {
           const data = await response.json();
           const city = data.address?.city || data.address?.town || data.address?.village || 'Your Location';
           const country = data.address?.country || '';
-          const countryCode = data.address?.country_code || '';
-          const flag = getFlagEmoji(countryCode);
-          await updateLocation(latitude, longitude, city, country, flag);
-        } catch (err) {
-          await updateLocation(latitude, longitude, 'Your Location', '', '📍');
+          await updateLocation(latitude, longitude, city, country);
+        } catch {
+          await updateLocation(latitude, longitude, 'Your Location', '');
         }
       },
       (err) => {
-        console.error('Geolocation error:', err);
         if (err.code === 1) {
           setError('Location access denied. Please enable location services.');
-        } else if (err.code === 2) {
-          setError('Location unavailable. Please try again.');
         } else {
-          setError('Unable to get your location. Please search for a city.');
+          setError('Unable to get your location. Please try searching for a city.');
         }
         setLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true }
     );
   };
 
@@ -218,7 +234,7 @@ export default function QiblaFinder() {
       const data = await response.json();
       
       if (!data || data.length === 0) {
-        setError('City not found. Please try again.');
+        setError('City not found');
         setLoading(false);
         return;
       }
@@ -232,20 +248,12 @@ export default function QiblaFinder() {
       );
       const countryData = await countryResponse.json();
       const country = countryData.address?.country || '';
-      const countryCode = countryData.address?.country_code || '';
-      const flag = getFlagEmoji(countryCode);
       
-      await updateLocation(lat, lng, cityName, country, flag);
-    } catch (err) {
-      console.error('Search error:', err);
-      setError('Error searching for city. Please try again.');
+      await updateLocation(lat, lng, cityName, country);
+    } catch {
+      setError('Error searching for city');
       setLoading(false);
     }
-  };
-
-  // Test with known cities for verification
-  const testCity = (cityName: string, lat: number, lng: number) => {
-    updateLocation(lat, lng, cityName, 'Test Location', '🧪');
   };
 
   const resetLocation = () => {
@@ -254,52 +262,45 @@ export default function QiblaFinder() {
     setDistance(null);
     setSearchCity('');
     setError('');
+    setArrowRotation(0);
   };
 
-  // Adjusted Qibla for compass (accounts for device orientation)
-  const adjustedQibla = qiblaDirection !== null && compassPermission === 'granted'
-    ? (qiblaDirection - deviceHeading + 360) % 360
-    : qiblaDirection;
-
-  // Test cities with known Qibla directions
+  // Test with known cities
   const testCities = [
-    { name: 'New York', lat: 40.7128, lng: -74.0060, expected: '58° (NE)' },
-    { name: 'London', lat: 51.5074, lng: -0.1278, expected: '118° (ESE)' },
-    { name: 'Istanbul', lat: 41.0082, lng: 28.9784, expected: '153° (SSE)' },
-    { name: 'Delhi', lat: 28.6139, lng: 77.2090, expected: '270° (W)' },
-    { name: 'Jakarta', lat: -6.2088, lng: 106.8456, expected: '295° (WNW)' },
-    { name: 'Tokyo', lat: 35.6895, lng: 139.6917, expected: '293° (WNW)' },
-    { name: 'Cairo', lat: 30.0444, lng: 31.2357, expected: '135° (SE)' },
-    { name: 'Moscow', lat: 55.7558, lng: 37.6173, expected: '193° (SSW)' },
+    { name: 'New York', lat: 40.7128, lng: -74.0060, qibla: 58 },
+    { name: 'London', lat: 51.5074, lng: -0.1278, qibla: 118 },
+    { name: 'Istanbul', lat: 41.0082, lng: 28.9784, qibla: 153 },
+    { name: 'Delhi', lat: 28.6139, lng: 77.2090, qibla: 270 },
+    { name: 'Tokyo', lat: 35.6895, lng: 139.6917, qibla: 293 },
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900">
       {/* Header */}
-      <header className="bg-black/20 backdrop-blur-sm px-4 sm:px-6 py-4 flex items-center gap-4 border-b border-emerald-700/50 sticky top-0 z-10">
-        <Link href="/" className="text-white/70 hover:text-white transition-colors text-sm flex items-center gap-1">
+      <header className="bg-black/20 backdrop-blur-sm px-4 py-4 flex items-center gap-4 border-b border-emerald-700/50 sticky top-0 z-10">
+        <Link href="/" className="text-white/70 hover:text-white text-sm flex items-center gap-1">
           <span>←</span> Back
         </Link>
-        <h1 className="text-white font-semibold text-base sm:text-lg flex-1 text-center">🕋 Qibla Finder</h1>
+        <h1 className="text-white font-semibold text-lg flex-1 text-center">🕋 Qibla Compass</h1>
         <div className="w-12"></div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6">
+      <main className="max-w-md mx-auto px-4 py-6">
         {/* Location Selection */}
         {!qiblaDirection && (
-          <div className="space-y-4 animate-fadeIn">
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 text-center border border-white/20">
-              <div className="text-6xl mb-4">🕋</div>
-              <h2 className="text-white text-xl font-semibold mb-2">Find Qibla Direction</h2>
-              <p className="text-white/60 text-sm">Use your location or search for any city</p>
+          <div className="space-y-4">
+            <div className="bg-white/10 rounded-2xl p-6 text-center border border-white/20">
+              <div className="text-6xl mb-4">🧭</div>
+              <h2 className="text-white text-xl font-semibold mb-2">Qibla Compass</h2>
+              <p className="text-white/60 text-sm">Find the direction of the Holy Kaaba</p>
             </div>
 
             <button
               onClick={getCurrentLocation}
               disabled={loading}
-              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl py-4 font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg"
+              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl py-4 font-semibold flex items-center justify-center gap-2 shadow-lg"
             >
-              <span>📍</span> Use My Current Location
+              📍 Use My Location
             </button>
 
             <div className="relative">
@@ -307,40 +308,39 @@ export default function QiblaFinder() {
                 <div className="w-full border-t border-white/20"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-emerald-900 text-white/60">OR SEARCH</span>
+                <span className="px-4 bg-emerald-900 text-white/60">OR</span>
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="flex gap-2">
               <input
                 type="text"
                 value={searchCity}
                 onChange={(e) => setSearchCity(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && searchCityHandler()}
-                placeholder="Enter city name (e.g., London, New York, Tokyo)"
-                className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3 placeholder-white/40 focus:outline-none focus:border-emerald-500 transition-colors"
+                placeholder="Enter city name"
+                className="flex-1 bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3 placeholder-white/40 focus:outline-none focus:border-emerald-500"
               />
               <button
                 onClick={searchCityHandler}
                 disabled={loading || !searchCity.trim()}
-                className="w-full bg-white/10 hover:bg-white/20 text-white rounded-xl py-3 font-semibold transition-all disabled:opacity-50"
+                className="bg-white/10 hover:bg-white/20 text-white rounded-xl px-4 font-semibold"
               >
-                🔍 Search City
+                Go
               </button>
             </div>
 
-            {/* Test Cities */}
-            <div className="mt-6 pt-4 border-t border-white/10">
-              <p className="text-white/50 text-xs text-center mb-3">Test with known cities:</p>
-              <div className="grid grid-cols-2 gap-2">
+            {/* Test cities */}
+            <div className="pt-4">
+              <p className="text-white/40 text-xs text-center mb-2">Test cities:</p>
+              <div className="flex flex-wrap gap-2 justify-center">
                 {testCities.map((city) => (
                   <button
                     key={city.name}
-                    onClick={() => testCity(city.name, city.lat, city.lng)}
-                    className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg py-2 px-3 text-white/80 text-sm transition-all"
+                    onClick={() => updateLocation(city.lat, city.lng, city.name, 'Test')}
+                    className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-full px-3 py-1 text-white/70 text-xs"
                   >
                     {city.name}
-                    <span className="text-white/40 text-xs block">{city.expected}</span>
                   </button>
                 ))}
               </div>
@@ -349,7 +349,7 @@ export default function QiblaFinder() {
             {loading && (
               <div className="flex items-center justify-center gap-3 py-8">
                 <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-white/60">Finding location...</p>
+                <p className="text-white/60">Loading...</p>
               </div>
             )}
 
@@ -361,44 +361,40 @@ export default function QiblaFinder() {
           </div>
         )}
 
-        {/* Qibla Display */}
+        {/* Qibla Compass Display */}
         {qiblaDirection !== null && location && (
-          <div className="space-y-5 animate-fadeIn">
-            {/* Location Info */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/20">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <span className="text-2xl">{location.flag}</span>
+          <div className="space-y-5">
+            {/* Location */}
+            <div className="bg-white/10 rounded-2xl p-3 text-center border border-white/20">
+              <div className="flex items-center justify-center gap-2">
                 <span className="text-white font-medium">{location.name}</span>
-                {location.country && <span className="text-white/60 text-sm">• {location.country}</span>}
+                {location.country && <span className="text-white/50 text-sm">• {location.country}</span>}
               </div>
-              <p className="text-white/40 text-xs">
+              <p className="text-white/30 text-xs mt-1">
                 {Math.abs(location.lat).toFixed(2)}°{location.lat >= 0 ? 'N' : 'S'}, {Math.abs(location.lng).toFixed(2)}°{location.lng >= 0 ? 'E' : 'W'}
               </p>
             </div>
 
-            {/* Compass Circle */}
-            <div className="relative w-72 h-72 sm:w-80 sm:h-80 mx-auto">
-              {/* Background Circle */}
-              <div className="absolute inset-0 rounded-full bg-emerald-800/30 border-4 border-white/20 shadow-2xl backdrop-blur-sm">
-                {/* North */}
-                <div className="absolute top-1 left-1/2 transform -translate-x-1/2">
+            {/* REAL COMPASS - The arrow rotates based on device orientation */}
+            <div className="relative w-80 h-80 mx-auto">
+              {/* Compass outer ring */}
+              <div className="absolute inset-0 rounded-full bg-emerald-800/40 border-4 border-white/30 shadow-2xl backdrop-blur-sm">
+                {/* Cardinal directions */}
+                <div className="absolute top-2 left-1/2 transform -translate-x-1/2">
                   <div className="text-red-400 font-bold text-sm">N</div>
-                  <div className="w-px h-6 bg-red-400/50 mx-auto"></div>
+                  <div className="w-px h-8 bg-red-400/50 mx-auto"></div>
                 </div>
-                {/* South */}
-                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2">
-                  <div className="w-px h-6 bg-white/30 mx-auto"></div>
+                <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2">
+                  <div className="w-px h-8 bg-white/30 mx-auto"></div>
                   <div className="text-white/40 font-bold text-sm">S</div>
                 </div>
-                {/* East */}
-                <div className="absolute right-1 top-1/2 transform -translate-y-1/2">
+                <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
                   <div className="text-white/40 font-bold text-sm">E</div>
-                  <div className="w-6 h-px bg-white/30 mx-auto"></div>
+                  <div className="w-8 h-px bg-white/30 mx-auto"></div>
                 </div>
-                {/* West */}
-                <div className="absolute left-1 top-1/2 transform -translate-y-1/2">
+                <div className="absolute left-2 top-1/2 transform -translate-y-1/2">
                   <div className="text-white/40 font-bold text-sm">W</div>
-                  <div className="w-6 h-px bg-white/30 mx-auto"></div>
+                  <div className="w-8 h-px bg-white/30 mx-auto"></div>
                 </div>
 
                 {/* Degree marks */}
@@ -411,132 +407,87 @@ export default function QiblaFinder() {
                       className="absolute top-0 left-1/2"
                       style={{
                         width: '1px',
-                        height: isMajor ? '10px' : '5px',
+                        height: isMajor ? '12px' : '6px',
                         background: isMajor ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.3)',
                         transform: `rotate(${rotation}deg) translateX(-50%)`,
-                        transformOrigin: '0 144px',
+                        transformOrigin: '0 160px',
                       }}
                     />
                   );
                 })}
               </div>
 
-              {/* Rotating compass (device orientation) */}
-              {compassPermission === 'granted' && deviceHeading !== 0 && (
-                <div
-                  className="absolute inset-0 transition-transform duration-100 ease-linear"
-                  style={{ transform: `rotate(${-deviceHeading}deg)` }}
-                >
-                  <div className="absolute top-6 left-1/2 transform -translate-x-1/2">
-                    <div className="text-white/50 text-[10px]">N</div>
-                  </div>
-                </div>
-              )}
-
-              {/* Qibla Arrow */}
+              {/* The Magic: This arrow rotates based on device orientation */}
+              {/* When you turn your phone, the arrow stays pointing to Qibla */}
               <div
-                className="absolute inset-0 transition-all duration-500 ease-out"
-                style={{ transform: `rotate(${adjustedQibla}deg)` }}
+                className="absolute inset-0 transition-transform duration-100 ease-linear"
+                style={{ transform: `rotate(${arrowRotation}deg)` }}
               >
-                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2 flex flex-col items-center">
-                  <div className="w-0 h-0 border-l-[16px] border-r-[16px] border-b-[60px] border-l-transparent border-r-transparent border-b-emerald-500 drop-shadow-lg" />
-                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-3xl filter drop-shadow-lg">🕋</div>
+                {/* Qibla Arrow */}
+                <div className="absolute top-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center">
+                  <div className="w-0 h-0 border-l-[18px] border-r-[18px] border-b-[70px] border-l-transparent border-r-transparent border-b-emerald-500 drop-shadow-lg" />
+                  <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 text-3xl filter drop-shadow-lg">🕋</div>
                 </div>
               </div>
 
-              {/* Center */}
+              {/* Center point */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-4 h-4 rounded-full bg-white shadow-lg z-10"></div>
+                <div className="w-5 h-5 rounded-full bg-white shadow-lg z-10"></div>
+                <div className="absolute w-10 h-10 rounded-full border-2 border-emerald-400/50 animate-ping"></div>
               </div>
             </div>
 
-            {/* Qibla Information */}
+            {/* Qibla Info */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20">
-                <p className="text-white/50 text-xs mb-1">Qibla Direction</p>
-                <p className="text-white text-3xl font-bold">{qiblaDirection}°</p>
-                <p className="text-emerald-300 text-sm mt-1 font-semibold">{getCardinalDirection(qiblaDirection)}</p>
-                <p className="text-white/40 text-xs mt-2">Clockwise from North</p>
+              <div className="bg-white/10 rounded-xl p-3 text-center">
+                <p className="text-white/50 text-xs">Qibla</p>
+                <p className="text-white text-2xl font-bold">{qiblaDirection}°</p>
+                <p className="text-emerald-300 text-sm">{getDirectionText(qiblaDirection)}</p>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20">
-                <p className="text-white/50 text-xs mb-1">Distance to Kaaba</p>
-                <p className="text-white text-3xl font-bold">{distance?.toLocaleString()}</p>
-                <p className="text-white/60 text-sm mt-1">kilometers</p>
-                <p className="text-white/40 text-xs mt-2">~{Math.round(distance! * 0.621371).toLocaleString()} miles</p>
+              <div className="bg-white/10 rounded-xl p-3 text-center">
+                <p className="text-white/50 text-xs">Distance</p>
+                <p className="text-white text-2xl font-bold">{distance?.toLocaleString()}</p>
+                <p className="text-white/60 text-sm">km</p>
               </div>
             </div>
 
-            {/* Compass Status */}
+            {/* Compass button */}
             {compassPermission === 'prompt' && (
               <button
                 onClick={requestCompassPermission}
-                className="w-full bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/50 text-blue-300 rounded-xl py-3 font-semibold transition-all flex items-center justify-center gap-2"
+                className="w-full bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/50 text-blue-300 rounded-xl py-3 font-semibold flex items-center justify-center gap-2"
               >
-                <span>🧭</span> Enable Compass for Real-time Direction
+                🧭 Enable Compass
               </button>
             )}
 
-            {compassPermission === 'granted' && deviceHeading !== 0 && (
+            {compassPermission === 'granted' && (
               <div className="flex items-center justify-center gap-2 bg-emerald-500/20 border border-emerald-500/30 rounded-xl py-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                <p className="text-emerald-300 text-sm font-medium">Compass Active • Rotate your device</p>
-              </div>
-            )}
-
-            {compassPermission === 'granted' && deviceHeading === 0 && (
-              <div className="flex items-center justify-center gap-2 bg-yellow-500/20 border border-yellow-500/30 rounded-xl py-2">
-                <p className="text-yellow-300 text-sm">Waiting for compass data...</p>
-              </div>
-            )}
-
-            {compassPermission === 'denied' && (
-              <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-xl p-3">
-                <p className="text-yellow-300 text-sm text-center">
-                  Compass permission denied. Use the fixed direction above with any compass app.
+                <p className="text-emerald-300 text-sm">
+                  {compassAvailable ? 'Compass Active • Turn your device' : 'Move your device to activate compass'}
                 </p>
               </div>
             )}
 
             {/* Instructions */}
-            <div className="bg-white/5 rounded-xl p-3 text-center">
-              <p className="text-white/60 text-xs">
-                <span className="inline-block w-3 h-3 rounded-full bg-red-400 mr-1"></span> North = 0°
-                <span className="mx-2">•</span>
-                <span className="inline-block w-3 h-3 rounded-full bg-emerald-500 mr-1"></span> 🕋 = Qibla ({getCardinalDirection(qiblaDirection)})
+            <div className="bg-white/5 rounded-xl p-3">
+              <p className="text-white/60 text-xs text-center">
+                🧭 <strong>How it works:</strong> The green arrow 🕋 always points to Qibla.
+                Turn your phone and the compass will adjust automatically.
               </p>
-              {compassPermission === 'granted' && (
-                <p className="text-white/40 text-[10px] mt-2">
-                  Turn your device until the green arrow points to 🕋
-                </p>
-              )}
             </div>
 
-            {/* Change Location */}
+            {/* Change location */}
             <button
               onClick={resetLocation}
-              className="w-full bg-white/10 hover:bg-white/20 text-white rounded-xl py-3 font-semibold transition-all"
+              className="w-full bg-white/10 hover:bg-white/20 text-white rounded-xl py-3 font-semibold"
             >
               Change Location
             </button>
           </div>
         )}
       </main>
-
-      <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-      `}</style>
     </div>
   );
 }
