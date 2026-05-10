@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 
-// Kaaba coordinates
+// Kaaba coordinates (Makkah, Saudi Arabia)
 const KAABA_LAT = 21.4225;
 const KAABA_LNG = 39.8262;
 
@@ -26,17 +26,17 @@ function calculateQiblaDirection(lat: number, lng: number): number {
   return Math.round(bearing * 10) / 10;
 }
 
-// Calculate distance to Kaaba
+// Calculate distance to Kaaba using Haversine formula
 function calculateDistance(lat: number, lng: number): number {
   const R = 6371; // Earth's radius in km
   const lat1 = lat * Math.PI / 180;
   const lat2 = KAABA_LAT * Math.PI / 180;
   const dLat = (KAABA_LAT - lat) * Math.PI / 180;
-  const dLon = (KAABA_LNG - lng) * Math.PI / 180;
+  const dLng = (KAABA_LNG - lng) * Math.PI / 180;
   
   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
             Math.cos(lat1) * Math.cos(lat2) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            Math.sin(dLng / 2) * Math.sin(dLng / 2);
   
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   
@@ -52,7 +52,12 @@ function getDirectionName(deg: number): string {
 
 // Get Arabic direction name
 function getArabicDirectionName(deg: number): string {
-  const directions = ['شمال', 'شمال-شمال شرقی', 'شمال شرقی', 'شرق-شمال شرقی', 'شرق', 'شرق-جنوب شرقی', 'جنوب شرقی', 'جنوب-جنوب شرقی', 'جنوب', 'جنوب-جنوب غربی', 'جنوب غربی', 'غرب-جنوب غربی', 'غرب', 'غرب-شمال غربی', 'شمال غربی', 'شمال-شمال غربی'];
+  const directions = [
+    'شمال', 'شمال-شمال شرقی', 'شمال شرقی', 'شرق-شمال شرقی',
+    'شرق', 'شرق-جنوب شرقی', 'جنوب شرقی', 'جنوب-جنوب شرقی',
+    'جنوب', 'جنوب-جنوب غربی', 'جنوب غربی', 'غرب-جنوب غربی',
+    'غرب', 'غرب-شمال غربی', 'شمال غربی', 'شمال-شمال غربی'
+  ];
   const index = Math.round(deg / 22.5) % 16;
   return directions[index];
 }
@@ -65,6 +70,11 @@ interface LocationInfo {
   flag: string;
 }
 
+// Extend DeviceOrientationEvent for iOS
+interface DeviceOrientationEventiOS extends DeviceOrientationEvent {
+  requestPermission?: () => Promise<'granted' | 'denied'>;
+}
+
 export default function QiblaFinder() {
   const [location, setLocation] = useState<LocationInfo | null>(null);
   const [qiblaDirection, setQiblaDirection] = useState<number | null>(null);
@@ -74,71 +84,85 @@ export default function QiblaFinder() {
   const [searchCity, setSearchCity] = useState('');
   
   // Compass related states
-  const [deviceHeading, setDeviceHeading] = useState(0);
-  const [compassSupported, setCompassSupported] = useState(true);
+  const [deviceHeading, setDeviceHeading] = useState<number>(0);
+  const [compassSupported, setCompassSupported] = useState<boolean>(true);
   const [compassPermission, setCompassPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
   const arrowRef = useRef<HTMLDivElement>(null);
-  const compassListenerRef = useRef<((event: DeviceOrientationEvent) => void) | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
   
   // Adjusted Qibla for compass (accounting for device orientation)
-  const adjustedQibla = qiblaDirection !== null && compassPermission === 'granted'
+  const adjustedQibla = qiblaDirection !== null && compassPermission === 'granted' && deviceHeading !== null
     ? (qiblaDirection - deviceHeading + 360) % 360
     : qiblaDirection;
 
-  // Request compass permission (iOS 13+)
+  // Request compass permission (required for iOS 13+)
   const requestCompassPermission = async () => {
-    if (typeof DeviceOrientationEvent !== 'undefined' && DeviceOrientationEvent.requestPermission) {
-      try {
-        const permission = await DeviceOrientationEvent.requestPermission();
-        if (permission === 'granted') {
-          setCompassPermission('granted');
-          startCompass();
-        } else {
+    if (typeof window !== 'undefined') {
+      const DeviceOrientationEventiOS = window.DeviceOrientationEvent as unknown as DeviceOrientationEventiOS;
+      
+      if (DeviceOrientationEventiOS && DeviceOrientationEventiOS.requestPermission) {
+        try {
+          const permission = await DeviceOrientationEventiOS.requestPermission();
+          if (permission === 'granted') {
+            setCompassPermission('granted');
+            startCompass();
+          } else {
+            setCompassPermission('denied');
+          }
+        } catch (err) {
+          console.error('Permission error:', err);
           setCompassPermission('denied');
         }
-      } catch (err) {
-        console.error('Permission error:', err);
-        setCompassPermission('denied');
+      } else {
+        // Android and other devices - no permission needed
+        setCompassPermission('granted');
+        startCompass();
       }
     } else {
-      // Android and other devices - no permission needed
-      setCompassPermission('granted');
-      startCompass();
+      setCompassPermission('denied');
     }
   };
 
-  // Start compass listener
+  // Start compass listener with smooth animation
   const startCompass = useCallback(() => {
-    if (compassListenerRef.current) {
-      window.removeEventListener('deviceorientation', compassListenerRef.current);
-    }
+    if (typeof window === 'undefined') return;
 
     const handleOrientation = (event: DeviceOrientationEvent) => {
-      let heading = 0;
+      let heading: number | null = null;
       
       // iOS provides webkitCompassHeading (absolute heading)
-      if (event.webkitCompassHeading !== undefined) {
-        heading = event.webkitCompassHeading;
+      if ((event as any).webkitCompassHeading !== undefined) {
+        heading = (event as any).webkitCompassHeading;
       } 
       // Android uses alpha (relative to north)
-      else if (event.alpha !== undefined) {
+      else if (event.alpha !== undefined && event.alpha !== null) {
         heading = event.alpha;
       }
       
-      setDeviceHeading(heading);
+      if (heading !== null) {
+        // Smooth the heading using requestAnimationFrame for better performance
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
+        animationFrameRef.current = requestAnimationFrame(() => {
+          setDeviceHeading(heading!);
+        });
+      }
     };
 
-    compassListenerRef.current = handleOrientation;
-    window.addEventListener('deviceorientation', compassListenerRef.current);
+    window.addEventListener('deviceorientation', handleOrientation);
     setCompassSupported(true);
+    
+    return () => {
+      window.removeEventListener('deviceorientation', handleOrientation);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
   }, []);
 
   // Stop compass
   const stopCompass = useCallback(() => {
-    if (compassListenerRef.current) {
-      window.removeEventListener('deviceorientation', compassListenerRef.current);
-      compassListenerRef.current = null;
-    }
     setCompassPermission('prompt');
     setDeviceHeading(0);
   }, []);
@@ -146,16 +170,31 @@ export default function QiblaFinder() {
   // Clean up on unmount
   useEffect(() => {
     return () => {
-      stopCompass();
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
     };
-  }, [stopCompass]);
+  }, []);
 
   // Auto-start compass if already granted
   useEffect(() => {
+    let cleanup: (() => void) | undefined;
     if (compassPermission === 'granted') {
-      startCompass();
+      cleanup = startCompass();
     }
+    return () => {
+      if (cleanup) cleanup();
+    };
   }, [compassPermission, startCompass]);
+
+  // Get flag emoji from country code
+  const getFlagEmoji = (countryCode: string): string => {
+    const codePoints = countryCode
+      .toUpperCase()
+      .split('')
+      .map(char => 127397 + char.charCodeAt(0));
+    return String.fromCodePoint(...codePoints);
+  };
 
   // Update location and calculate Qibla
   const updateLocation = useCallback(async (lat: number, lng: number, name: string, country: string = '', flag: string = '') => {
@@ -256,15 +295,6 @@ export default function QiblaFinder() {
     }
   };
 
-  // Helper to get flag emoji from country code
-  const getFlagEmoji = (countryCode: string): string => {
-    const codePoints = countryCode
-      .toUpperCase()
-      .split('')
-      .map(char => 127397 + char.charCodeAt(0));
-    return String.fromCodePoint(...codePoints);
-  };
-
   // Reset everything
   const resetLocation = () => {
     setLocation(null);
@@ -272,17 +302,24 @@ export default function QiblaFinder() {
     setDistance(null);
     setSearchCity('');
     setError('');
+    setCompassPermission('prompt');
+    setDeviceHeading(0);
     stopCompass();
+  };
+
+  // Format number with comma separators
+  const formatNumber = (num: number): string => {
+    return num.toLocaleString();
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900">
       {/* Header */}
-      <header className="bg-black/20 backdrop-blur-sm px-6 py-4 flex items-center gap-4 border-b border-emerald-700/50 sticky top-0 z-10">
+      <header className="bg-black/20 backdrop-blur-sm px-4 sm:px-6 py-4 flex items-center gap-4 border-b border-emerald-700/50 sticky top-0 z-10">
         <Link href="/" className="text-white/70 hover:text-white transition-colors text-sm flex items-center gap-1">
           <span>←</span> Back
         </Link>
-        <h1 className="text-white font-semibold text-lg flex-1 text-center">🕋 Qibla Finder</h1>
+        <h1 className="text-white font-semibold text-base sm:text-lg flex-1 text-center">🕋 Qibla Finder</h1>
         <div className="w-12"></div>
       </header>
 
@@ -368,7 +405,7 @@ export default function QiblaFinder() {
             </div>
 
             {/* Compass Circle */}
-            <div className="relative w-80 h-80 mx-auto">
+            <div className="relative w-72 h-72 sm:w-80 sm:h-80 mx-auto">
               {/* Compass Background */}
               <div className="absolute inset-0 rounded-full bg-emerald-800/30 border-4 border-white/20 shadow-2xl backdrop-blur-sm">
                 {/* North Indicator */}
@@ -402,12 +439,13 @@ export default function QiblaFinder() {
                   return (
                     <div
                       key={i}
-                      className="absolute top-0 left-1/2 w-px"
+                      className="absolute top-0 left-1/2"
                       style={{
+                        width: '1px',
                         height: isMajor ? '12px' : '6px',
                         background: isMajor ? 'white' : 'rgba(255,255,255,0.3)',
                         transform: `rotate(${rotation}deg) translateX(-50%)`,
-                        transformOrigin: '0 160px',
+                        transformOrigin: '0 144px',
                       }}
                     />
                   );
@@ -415,7 +453,7 @@ export default function QiblaFinder() {
               </div>
 
               {/* Rotating Compass Rose (shows device orientation) */}
-              {compassPermission === 'granted' && (
+              {compassPermission === 'granted' && deviceHeading !== null && (
                 <div
                   className="absolute inset-0 transition-transform duration-100 ease-linear"
                   style={{ transform: `rotate(${-deviceHeading}deg)` }}
@@ -429,7 +467,7 @@ export default function QiblaFinder() {
                 </div>
               )}
 
-              {/* Qibla Arrow (rotates to show Qibla direction) */}
+              {/* Qibla Arrow */}
               <div
                 ref={arrowRef}
                 className="absolute inset-0 transition-all duration-500 ease-out"
@@ -439,7 +477,7 @@ export default function QiblaFinder() {
                   {/* Arrow */}
                   <div className="relative">
                     <div className="w-0 h-0 border-l-[14px] border-r-[14px] border-b-[50px] border-l-transparent border-r-transparent border-b-emerald-500" />
-                    <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 text-2xl filter drop-shadow-lg">
+                    <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-2xl filter drop-shadow-lg">
                       🕋
                     </div>
                   </div>
@@ -462,9 +500,9 @@ export default function QiblaFinder() {
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20">
                 <p className="text-white/50 text-xs mb-1">Distance to Kaaba</p>
-                <p className="text-white text-3xl font-bold">{distance?.toLocaleString()}</p>
+                <p className="text-white text-3xl font-bold">{formatNumber(distance!)}</p>
                 <p className="text-white/60 text-sm mt-1">kilometers</p>
-                <p className="text-white/40 text-xs mt-1">~{(distance! * 0.621371).toLocaleString()} miles</p>
+                <p className="text-white/40 text-xs mt-1">~{formatNumber(Math.round(distance! * 0.621371))} miles</p>
               </div>
             </div>
 
@@ -478,7 +516,7 @@ export default function QiblaFinder() {
               </button>
             )}
 
-            {compassPermission === 'granted' && (
+            {compassPermission === 'granted' && deviceHeading !== null && (
               <div className="flex items-center justify-center gap-2 bg-emerald-500/20 border border-emerald-500/30 rounded-xl py-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
                 <p className="text-emerald-300 text-sm font-medium">Compass Active</p>
@@ -497,7 +535,7 @@ export default function QiblaFinder() {
             {/* Instructions */}
             <div className="bg-white/5 rounded-xl p-4">
               <p className="text-white/60 text-xs text-center leading-relaxed">
-                {compassPermission === 'granted' 
+                {compassPermission === 'granted' && deviceHeading !== null
                   ? '🔄 The arrow updates automatically as you rotate your device. Turn until the arrow points to the green marker (🕋).'
                   : '📍 The arrow shows the fixed Qibla direction from your location. If you have a compass, you can use the degree value.'}
               </p>
