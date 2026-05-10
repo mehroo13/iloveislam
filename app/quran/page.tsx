@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 
-// Complete Surah list with proper South Asian Arabic names
+// Complete Surah list
 const SURAHS = [
   { number: 1, name: 'Al-Fatihah', arabic: 'الفاتحة', urduName: 'الفاتحہ', meaning: 'The Opening', meaningUrdu: 'افتتاحیہ', verses: 7, juz: 1, makki: true },
   { number: 2, name: 'Al-Baqarah', arabic: 'البقرة', urduName: 'البقرہ', meaning: 'The Cow', meaningUrdu: 'گائے', verses: 286, juz: 1, makki: false },
@@ -140,7 +140,14 @@ const toArabicNum = (n: number): string => {
   return n.toString().split('').map(d => String.fromCharCode(0x0660 + parseInt(d))).join('');
 };
 
-// Color scheme
+// Verse marker component
+const VerseMarker = ({ num, onGreen }: { num: number; onGreen?: boolean }) => (
+  <span className={`verse-marker ${onGreen ? 'mushaf-verse-marker' : ''}`}>
+    {toArabicNum(num)}
+  </span>
+);
+
+// Colors
 const COLORS = {
   greenDark: '#0a3d2e',
   greenMid: '#0d5c36',
@@ -150,6 +157,20 @@ const COLORS = {
   white: '#fffef5',
   textDark: '#1a0800',
   textLight: '#e0d5b0',
+};
+
+// Clean verse to remove embedded Bismillah (for Al-Fatihah)
+const cleanVerseText = (verseText: string, surahNumber: number, verseNumber: number): string => {
+  if (surahNumber === 1 && verseNumber === 1) {
+    // For Al-Fatihah verse 1, remove the embedded Bismillah and just return the rest
+    // The Bismillah is already shown separately in the header
+    const bismillahPattern = /بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيمِ۝|بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ|بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ/g;
+    let cleaned = verseText.replace(bismillahPattern, '');
+    // Also remove any stray verse markers
+    cleaned = cleaned.replace(/۝/g, '');
+    return cleaned.trim();
+  }
+  return verseText;
 };
 
 export default function QuranReader() {
@@ -197,7 +218,7 @@ export default function QuranReader() {
     s.number.toString() === search.trim()
   );
 
-  // Load surah verses with proper translations
+  // Load surah verses
   const loadSurah = useCallback(async (surah: any) => {
     setSelectedSurah(surah);
     setVerses([]);
@@ -210,23 +231,24 @@ export default function QuranReader() {
       const arabicRes = await fetch(`https://api.alquran.cloud/v1/surah/${surah.number}/ar.alafasy`);
       const arabicData = await arabicRes.json();
 
-      // Fetch translation based on selected language
-      let translationEndpoint = '';
-      if (translationLang === TRANSLATIONS.ENGLISH) {
-        translationEndpoint = 'en.asad';
-      } else {
-        translationEndpoint = 'ur.jalandhri';
-      }
-      
+      // Fetch translation
+      const translationEndpoint = translationLang === TRANSLATIONS.ENGLISH ? 'en.asad' : 'ur.jalandhri';
       const translationRes = await fetch(`https://api.alquran.cloud/v1/surah/${surah.number}/${translationEndpoint}`);
       const translationData = await translationRes.json();
 
       if (arabicData.code === 200 && translationData.code === 200) {
-        const versesData = arabicData.data.ayahs.map((ayah: any, idx: number) => ({
+        let versesData = arabicData.data.ayahs.map((ayah: any, idx: number) => ({
           number: ayah.numberInSurah,
-          arabic: ayah.text,
+          originalArabic: ayah.text,
+          arabic: cleanVerseText(ayah.text, surah.number, ayah.numberInSurah),
           translation: translationData.data?.ayahs?.[idx]?.text || '',
         }));
+        
+        // For Al-Fatihah, remove verse 1 entirely since we show Bismillah separately
+        if (surah.number === 1) {
+          versesData = versesData.filter(v => v.number !== 1);
+        }
+        
         setVerses(versesData);
       } else {
         setError('Unable to load surah. Please try again.');
@@ -244,10 +266,6 @@ export default function QuranReader() {
       loadSurah(selectedSurah);
     }
   }, [translationLang, loadSurah, selectedSurah]);
-
-  // Filter out Bismillah for Al-Fatihah (verse 1) - but ONLY for Al-Fatihah
-  // For other surahs, the API doesn't include Bismillah as a separate verse
-  const displayVerses = verses.filter(v => !(selectedSurah?.number === 1 && v.number === 1));
 
   const bg = dark ? '#0a1208' : COLORS.cream;
   const cardBg = dark ? '#111d14' : COLORS.white;
@@ -296,10 +314,6 @@ export default function QuranReader() {
         .surah-card:hover {
           transform: translateX(4px);
           transition: transform 0.2s ease;
-        }
-        
-        .no-scrollbar::-webkit-scrollbar {
-          display: none;
         }
         
         @keyframes fadeIn {
@@ -368,9 +382,7 @@ export default function QuranReader() {
           {/* Bookmarks */}
           {bookmarks.length > 0 && (
             <div style={{ background: cardBg, border: `1px solid ${borderCol}`, borderRadius: 16, padding: 16, marginBottom: 20 }}>
-              <p style={{ fontSize: 12, color: COLORS.gold, margin: '0 0 10px', fontWeight: 700 }}>
-                🔖 Bookmarked Surahs
-              </p>
+              <p style={{ fontSize: 12, color: COLORS.gold, margin: '0 0 10px', fontWeight: 700 }}>🔖 Bookmarked Surahs</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {bookmarks.slice(0, 8).map(s => (
                   <button key={s.number} onClick={() => loadSurah(s)}
@@ -552,7 +564,7 @@ export default function QuranReader() {
                     <div style={{ flex: 1, height: 1, background: `linear-gradient(to left, transparent, ${COLORS.gold}88)` }} />
                   </div>
 
-                  {/* Bismillah - Only ONCE per surah (except At-Tawbah), NOT repeated with verses */}
+                  {/* Bismillah - Only once, not repeated */}
                   {selectedSurah.number !== 9 && (
                     <div style={{ textAlign: 'center', marginBottom: 28 }}>
                       <p className="arabic-font" style={{ fontSize: '34px', color: '#fff', margin: 0, lineHeight: 2.2, textShadow: '0 1px 4px rgba(0,0,0,0.3)' }}>
@@ -573,10 +585,10 @@ export default function QuranReader() {
                       margin: 0,
                       textShadow: '0 1px 3px rgba(0,0,0,0.25)',
                     }}>
-                      {displayVerses.map(v => (
+                      {verses.map(v => (
                         <span key={v.number}>
                           {v.arabic}
-                          <span className="verse-marker mushaf-verse-marker">{toArabicNum(v.number)}</span>
+                          <VerseMarker num={v.number} onGreen={true} />
                         </span>
                       ))}
                     </p>
@@ -585,7 +597,7 @@ export default function QuranReader() {
                   {/* Verse by Verse Mode */}
                   {mode === 'verse' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                      {displayVerses.map(v => (
+                      {verses.map(v => (
                         <div key={v.number} style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 14, padding: '18px 20px', border: `1px solid ${COLORS.gold}33` }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                             <div style={{ 
@@ -606,7 +618,7 @@ export default function QuranReader() {
                             wordSpacing: 4,
                           }}>
                             {v.arabic}
-                            <span className="verse-marker mushaf-verse-marker">{toArabicNum(v.number)}</span>
+                            <VerseMarker num={v.number} onGreen={true} />
                           </p>
                           {showTranslation && v.translation && (
                             <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${COLORS.gold}33` }}>
