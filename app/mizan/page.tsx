@@ -1,19 +1,23 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 
-// ── NUMEROLOGY HELPERS ──
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import Link from 'next/link';
+import Head from 'next/head';
+
+// ==================== NUMEROLOGY HELPERS ====================
 function getLifeNumber(day: number, month: number, year: number): number {
   const sum = `${day}${month}${year}`.split('').reduce((a, b) => a + parseInt(b), 0);
   let n = sum;
   while (n > 9) n = n.toString().split('').reduce((a, b) => a + parseInt(b), 0);
   return n === 0 ? 9 : n;
 }
+
 function getSoulNumber(day: number): number {
   let n = day;
   while (n > 9) n = n.toString().split('').reduce((a, b) => a + parseInt(b), 0);
   return n === 0 ? 9 : n;
 }
+
 function getDestinyNumber(month: number, year: number): number {
   const sum = `${month}${year}`.split('').reduce((a, b) => a + parseInt(b), 0);
   let n = sum;
@@ -21,7 +25,17 @@ function getDestinyNumber(month: number, year: number): number {
   return n === 0 ? 9 : n;
 }
 
-// ── ARCHETYPES ──
+// ==================== DATE VALIDATION ====================
+function isValidDate(day: number, month: number, year: number): boolean {
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && 
+         date.getMonth() === month - 1 && 
+         date.getDate() === day &&
+         year >= 1900 && 
+         year <= new Date().getFullYear();
+}
+
+// ==================== ARCHETYPES DATA ====================
 const ARCHETYPES: Record<number, {
   name: string; arabic: string; title: string;
   divineName: string; divineArabic: string;
@@ -301,20 +315,109 @@ function getDayOfWeek(): number {
   return new Date().getDay();
 }
 
+// ==================== COMPONENTS ====================
+
+function ShariaDisclaimer() {
+  return (
+    <div style={{ 
+      background: 'rgba(200,169,110,0.05)', 
+      borderLeft: `3px solid #c8a96e`,
+      borderRadius: 8,
+      padding: '12px 16px',
+      marginTop: 20
+    }}>
+      <p style={{ color: '#c8a96e', fontSize: 11, fontWeight: 600, marginBottom: 4 }}>
+        📜 Important Islamic Note
+      </p>
+      <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, lineHeight: 1.6 }}>
+        Mizan is a tool for self-reflection and inspiration based on patterns in creation. 
+        It is not divination nor a replacement for Islamic guidance. 
+        All knowledge belongs to Allah alone. Consult qualified scholars for religious decisions.
+      </p>
+    </div>
+  );
+}
+
+function AccessibleButton({ onClick, children, ariaLabel, disabled, ...props }: any) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={ariaLabel || (typeof children === 'string' ? children : 'Button')}
+      disabled={disabled}
+      style={{ cursor: disabled ? 'not-allowed' : 'pointer' }}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ExportButton({ result, name, day, month, year }: any) {
+  const exportBlueprint = () => {
+    const data = {
+      name: name || 'Anonymous',
+      birthDate: `${day}/${month}/${year}`,
+      result: {
+        life: result.life,
+        soul: result.soul,
+        destiny: result.destiny,
+        archetype: result.archetype.name,
+        title: result.archetype.title,
+        divineName: result.archetype.divineName
+      },
+      exportDate: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mizan-blueprint-${(name || 'user').toLowerCase().replace(/\s+/g, '-')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <button
+      onClick={exportBlueprint}
+      style={{ 
+        padding: '8px 16px', 
+        borderRadius: 8, 
+        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'transparent',
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: 12,
+        cursor: 'pointer'
+      }}
+      aria-label="Export your blueprint as JSON"
+    >
+      📥 Export Blueprint
+    </button>
+  );
+}
+
 export default function Mizan() {
   const [step, setStep] = useState<'intro'|'input'|'calculating'|'result'>('intro');
   const [day, setDay] = useState('');
   const [month, setMonth] = useState('');
   const [year, setYear] = useState('');
   const [name, setName] = useState('');
+  const [error, setError] = useState('');
   const [result, setResult] = useState<{life: number; soul: number; destiny: number; archetype: typeof ARCHETYPES[1]} | null>(null);
   const [revealStep, setRevealStep] = useState(0);
   const [dhikrCount, setDhikrCount] = useState(0);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'blueprint'|'daily'|'compatibility'|'dhikr'>('blueprint');
   const [previewArchetype, setPreviewArchetype] = useState<number|null>(null);
+  const [searchArchetype, setSearchArchetype] = useState('');
+  const [darkMode] = useState(true);
   const resultRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+
+  // Filtered archetypes for search
+  const filteredArchetypes = Object.values(ARCHETYPES).filter(a =>
+    a.name.toLowerCase().includes(searchArchetype.toLowerCase()) ||
+    a.title.toLowerCase().includes(searchArchetype.toLowerCase())
+  );
 
   useEffect(() => {
     const saved = localStorage.getItem('mizan_last');
@@ -336,23 +439,43 @@ export default function Mizan() {
     }
   }, []);
 
+  // Save dhikr progress
+  const saveDhikr = (count: number) => {
+    localStorage.setItem('mizan_dhikr_today', JSON.stringify({ date: new Date().toDateString(), count }));
+  };
+
+  // Calculate function with validation
   const calculate = () => {
-    if (!day || !month || !year || year.length < 4) return;
+    if (!day || !month || !year || year.length < 4) {
+      setError('Please fill in all fields');
+      return;
+    }
+    
+    const d = parseInt(day);
+    const m = parseInt(month);
+    const y = parseInt(year);
+    
+    if (!isValidDate(d, m, y)) {
+      setError('Please enter a valid date');
+      return;
+    }
+    
+    setError('');
     const cacheKey = getCacheKey(name, day, month, year);
     const cached = localStorage.getItem(cacheKey);
+    
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
         setResult(parsed);
         setStep('result');
         setRevealStep(0);
-        [300, 700, 1100, 1500].forEach((t, i) => setTimeout(() => setRevealStep(i + 1), t));
         return;
       } catch {}
     }
+    
     setStep('calculating');
     setTimeout(() => {
-      const d = parseInt(day), m = parseInt(month), y = parseInt(year);
       const life = getLifeNumber(d, m, y);
       const soul = getSoulNumber(d);
       const destiny = getDestinyNumber(m, y);
@@ -362,20 +485,46 @@ export default function Mizan() {
       setResult(newResult);
       setStep('result');
       setRevealStep(0);
-      [300, 700, 1100, 1500].forEach((t, i) => setTimeout(() => setRevealStep(i + 1), t));
     }, 2500);
   };
 
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (step === 'result' && e.key === 'Escape') {
+        setStep('input');
+        setResult(null);
+        setRevealStep(0);
+      }
+    };
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [step]);
+
+  // Handle reveal animations
+  useEffect(() => {
+    let timeouts: NodeJS.Timeout[] = [];
+    
+    if (step === 'result') {
+      [300, 700, 1100, 1500].forEach((t, i) => {
+        const timeout = setTimeout(() => setRevealStep(i + 1), t);
+        timeouts.push(timeout);
+      });
+    }
+    
+    return () => {
+      timeouts.forEach(clearTimeout);
+    };
+  }, [step]);
+
+  // Scroll to result
   useEffect(() => {
     if (step === 'result' && resultRef.current) {
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     }
   }, [step]);
 
-  const saveDhikr = (count: number) => {
-    localStorage.setItem('mizan_dhikr_today', JSON.stringify({ date: new Date().toDateString(), count }));
-  };
-
+  // Handle dhikr
   const handleDhikr = () => {
     if (!result) return;
     const newCount = dhikrCount < result.archetype.dhikrCount ? dhikrCount + 1 : dhikrCount;
@@ -383,10 +532,12 @@ export default function Mizan() {
     saveDhikr(newCount);
   };
 
+  // Handle share
   const handleShare = () => {
     if (!result) return;
     const arch = result.archetype;
     const text = `✦ My Islamic Blueprint ✦\n\nI am "${arch.title}" — ${arch.name}\n${arch.arabic}\n\nMy Divine Name: ${arch.divineName} ${arch.divineArabic}\nLife Number: ${result.life} | Soul: ${result.soul} | Destiny: ${result.destiny}\n\n"${arch.verse}"\n— ${arch.verseRef}\n\nMy purpose: ${arch.purpose.slice(0, 100)}...\n\n🌿 Discover YOUR Islamic Blueprint free:\niloveislam.life/mizan\n\n#ILoveIslam #IslamicBlueprint #Mizan`;
+    
     if (navigator.share && /Mobi|Android/i.test(navigator.userAgent)) {
       navigator.share({ title: 'My Islamic Blueprint — Mizan', text, url: 'https://iloveislam.life/mizan' });
     } else {
@@ -410,86 +561,119 @@ export default function Mizan() {
   const todayVerse = arch ? arch.dailyVerses[getDayOfWeek() % arch.dailyVerses.length] : null;
 
   return (
-    <div className="min-h-screen" style={{ background: '#060a0f', fontFamily: "'Georgia', 'Times New Roman', serif" }}>
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-        @keyframes shimmer { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulse-glow { 0%,100% { box-shadow: 0 0 20px rgba(200,169,110,0.3); } 50% { box-shadow: 0 0 40px rgba(200,169,110,0.6); } }
-        .float { animation: float 4s ease-in-out infinite; }
-        .shimmer { animation: shimmer 3s ease-in-out infinite; }
-        .fade-up { animation: fadeUp 0.6s ease-out forwards; }
-        .tab-active { border-bottom: 2px solid currentColor; }
-        .archetype-card:hover { transform: translateY(-3px) scale(1.02); transition: all 0.25s; }
-        .number-badge { font-family: 'Georgia', serif; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #c8a96e33; border-radius: 2px; }
-        .qf { font-family: 'Scheherazade New', 'Traditional Arabic', serif; }
-        .dhikr-btn:active { transform: scale(0.92); }
-        .dhikr-btn { transition: transform 0.1s; }
-      `}</style>
+    <>
+      <Head>
+        <title>Mizan - Islamic Life Blueprint | Discover Your Spiritual Archetype</title>
+        <meta name="description" content="Discover your Islamic archetype based on Abjad numerology, the 99 Names of Allah, and Quranic guidance. Free self-discovery tool." />
+        <meta name="keywords" content="islamic blueprint, mizan, abjad numerology, islamic archetype, 99 names of allah, islamic self discovery" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes" />
+        <meta property="og:title" content="Mizan - Islamic Life Blueprint" />
+        <meta property="og:description" content="Discover your spiritual archetype based on the 99 Names of Allah and Quranic guidance." />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+      </Head>
 
-      {/* Header */}
-      <header style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 50, background: 'rgba(6,10,15,0.9)' }} className="px-5 py-3 flex items-center gap-4">
-        <Link href="/" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }} className="hover:text-white/60 transition-colors">← Back</Link>
-        <div className="flex items-center gap-2 flex-1">
-          <span style={{ color: '#c8a96e', fontSize: 14 }}>✦</span>
-          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, letterSpacing: '0.1em' }}>MIZAN · ISLAMIC LIFE BLUEPRINT</span>
-        </div>
-        {step === 'result' && (
-          <button onClick={() => { setStep('input'); setResult(null); setRevealStep(0); }}
-            style={{ color: '#c8a96e', fontSize: 12, border: '1px solid #c8a96e44', padding: '4px 12px', borderRadius: 20 }}>
-            New Reading
-          </button>
-        )}
-      </header>
+      <div className="min-h-screen" style={{ background: darkMode ? '#060a0f' : '#f5f3f0', fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+        <style>{`
+          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+          @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+          @keyframes shimmer { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+          @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+          @keyframes pulse-glow { 0%,100% { box-shadow: 0 0 20px rgba(200,169,110,0.3); } 50% { box-shadow: 0 0 40px rgba(200,169,110,0.6); } }
+          .float { animation: float 4s ease-in-out infinite; }
+          .shimmer { animation: shimmer 3s ease-in-out infinite; }
+          .fade-up { animation: fadeUp 0.6s ease-out forwards; }
+          .tab-active { border-bottom: 2px solid currentColor; }
+          .archetype-card:hover { transform: translateY(-3px) scale(1.02); transition: all 0.25s; }
+          .dhikr-btn:active { transform: scale(0.92); }
+          button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid #c8a96e; outline-offset: 2px; }
+          @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+          }
+          ::-webkit-scrollbar { width: 4px; }
+          ::-webkit-scrollbar-thumb { background: #c8a96e33; border-radius: 2px; }
+          .qf { font-family: 'Scheherazade New', 'Traditional Arabic', serif; }
+        `}</style>
 
-      {/* ── INTRO ── */}
-      {step === 'intro' && (
-        <div style={{ maxWidth: 700, margin: '0 auto', padding: '40px 16px 60px' }}>
-          {/* Hero */}
-          <div className="text-center" style={{ marginBottom: 48 }}>
-            <div className="float" style={{ fontSize: 64, marginBottom: 16 }}>✦</div>
-            <p style={{ color: '#c8a96e', fontSize: 11, letterSpacing: '0.4em', textTransform: 'uppercase', marginBottom: 12 }}>
-              Islamic Numerology & Self-Discovery
-            </p>
-            <h1 style={{ color: '#fff', fontSize: 'clamp(32px, 6vw, 52px)', fontWeight: 700, lineHeight: 1.15, marginBottom: 16 }}>
-              Discover Your<br />
-              <span style={{ color: '#c8a96e' }}>Islamic Blueprint</span>
-            </h1>
-            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 15, lineHeight: 1.8, maxWidth: 520, margin: '0 auto 28px' }}>
-              Based on the ancient Abjad numerology system used by Islamic scholars for centuries — combined with the 99 Names of Allah and Quranic guidance — your birth date reveals your divine archetype, life purpose, and spiritual path.
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginBottom: 32 }}>
-              {['Your Divine Name', 'Life Purpose', 'Daily Verse', 'Rizq Path', 'Compatibility', 'Your Dhikr', 'Prophet Example'].map(f => (
-                <span key={f} style={{ fontSize: 11, padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(200,169,110,0.25)', color: 'rgba(200,169,110,0.7)', background: 'rgba(200,169,110,0.05)' }}>{f}</span>
-              ))}
-            </div>
-            <button onClick={() => setStep('input')}
-              style={{ background: 'linear-gradient(135deg, #c8a96e, #a07840)', color: '#060a0f', padding: '14px 40px', borderRadius: 50, fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', letterSpacing: '0.05em' }}
-              className="pulse-glow">
-              Begin Your Journey ✦
-            </button>
-            <p style={{ color: 'rgba(255,255,255,0.15)', fontSize: 11, marginTop: 10 }}>Free forever · Private · No data stored on servers</p>
+        {/* Header */}
+        <header style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 50, background: darkMode ? 'rgba(6,10,15,0.9)' : 'rgba(245,243,240,0.9)' }} className="px-5 py-3 flex items-center gap-4 flex-wrap">
+          <Link href="/" style={{ color: darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)', fontSize: 13 }} className="hover:text-white/60 transition-colors">← Back</Link>
+          <div className="flex items-center gap-2 flex-1">
+            <span style={{ color: '#c8a96e', fontSize: 14 }}>✦</span>
+            <span style={{ color: darkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)', fontSize: 13, letterSpacing: '0.1em' }}>MIZAN · ISLAMIC LIFE BLUEPRINT</span>
           </div>
+          {step === 'result' && result && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <ExportButton result={result} name={name} day={day} month={month} year={year} />
+              <AccessibleButton onClick={() => { setStep('input'); setResult(null); setRevealStep(0); setDhikrCount(0); }}
+                style={{ color: '#c8a96e', fontSize: 12, border: '1px solid #c8a96e44', padding: '4px 12px', borderRadius: 20, background: 'transparent' }}>
+                New Reading
+              </AccessibleButton>
+            </div>
+          )}
+        </header>
 
-          {/* Archetype Preview Grid */}
-          <div style={{ marginBottom: 16 }}>
-            <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase', textAlign: 'center', marginBottom: 20 }}>
-              The 9 Islamic Archetypes — Which Are You?
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-              {Object.values(ARCHETYPES).map(a => (
-                <button key={a.name} className="archetype-card"
-                  onClick={() => setPreviewArchetype(previewArchetype === parseInt(Object.keys(ARCHETYPES).find(k => ARCHETYPES[parseInt(k)] === a) || '0') ? null : parseInt(Object.keys(ARCHETYPES).find(k => ARCHETYPES[parseInt(k)] === a) || '0'))}
-                  style={{ background: `${a.color}10`, border: `1px solid ${a.color}25`, borderRadius: 14, padding: '16px 12px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.25s' }}>
-                  <div style={{ fontSize: 28, marginBottom: 6 }}>{a.symbol}</div>
-                  <p style={{ color: a.color, fontSize: 12, fontWeight: 600, marginBottom: 2 }}>{a.title}</p>
-                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }} className="qf">{a.arabic}</p>
-                  <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 10, marginTop: 4 }}>{a.estimatedUsers.toLocaleString()} people</p>
-                </button>
-              ))}
+        {/* ── INTRO ── */}
+        {step === 'intro' && (
+          <div style={{ maxWidth: 700, margin: '0 auto', padding: '40px 16px 60px' }}>
+            <div className="text-center" style={{ marginBottom: 48 }}>
+              <div className="float" style={{ fontSize: 64, marginBottom: 16 }}>✦</div>
+              <p style={{ color: '#c8a96e', fontSize: 11, letterSpacing: '0.4em', textTransform: 'uppercase', marginBottom: 12 }}>
+                Islamic Numerology & Self-Discovery
+              </p>
+              <h1 style={{ color: darkMode ? '#fff' : '#1a1a2e', fontSize: 'clamp(32px, 6vw, 52px)', fontWeight: 700, lineHeight: 1.15, marginBottom: 16 }}>
+                Discover Your<br />
+                <span style={{ color: '#c8a96e' }}>Islamic Blueprint</span>
+              </h1>
+              <p style={{ color: darkMode ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.5)', fontSize: 15, lineHeight: 1.8, maxWidth: 520, margin: '0 auto 28px' }}>
+                Based on the ancient Abjad numerology system used by Islamic scholars for centuries — combined with the 99 Names of Allah and Quranic guidance — your birth date reveals your divine archetype, life purpose, and spiritual path.
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginBottom: 32 }}>
+                {['Your Divine Name', 'Life Purpose', 'Daily Verse', 'Rizq Path', 'Compatibility', 'Your Dhikr', 'Prophet Example'].map(f => (
+                  <span key={f} style={{ fontSize: 11, padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(200,169,110,0.25)', color: 'rgba(200,169,110,0.7)', background: 'rgba(200,169,110,0.05)' }}>{f}</span>
+                ))}
+              </div>
+              <AccessibleButton onClick={() => setStep('input')}
+                style={{ background: 'linear-gradient(135deg, #c8a96e, #a07840)', color: '#060a0f', padding: '14px 40px', borderRadius: 50, fontWeight: 700, fontSize: 15, border: 'none' }}>
+                Begin Your Journey ✦
+              </AccessibleButton>
+              <p style={{ color: darkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.2)', fontSize: 11, marginTop: 10 }}>Free forever · Private · No data stored on servers</p>
+            </div>
+
+            {/* Search Archetypes */}
+            <div style={{ marginBottom: 16 }}>
+              <p style={{ color: darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)', fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase', textAlign: 'center', marginBottom: 12 }}>
+                Search Archetypes
+              </p>
+              <input
+                type="text"
+                placeholder="Search by name or title..."
+                value={searchArchetype}
+                onChange={(e) => setSearchArchetype(e.target.value)}
+                style={{ width: '100%', padding: '10px 16px', borderRadius: 30, border: `1px solid ${darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, background: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)', color: darkMode ? '#fff' : '#333', fontSize: 14, outline: 'none' }}
+              />
+            </div>
+
+            {/* Archetype Preview Grid */}
+            <div style={{ marginBottom: 16 }}>
+              <p style={{ color: darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)', fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase', textAlign: 'center', marginBottom: 20 }}>
+                The 9 Islamic Archetypes — Which Are You?
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                {filteredArchetypes.map(a => {
+                  const archetypeNum = Object.keys(ARCHETYPES).find(k => ARCHETYPES[parseInt(k)] === a);
+                  return (
+                    <AccessibleButton key={a.name} className="archetype-card"
+                      onClick={() => setPreviewArchetype(previewArchetype === parseInt(archetypeNum || '0') ? null : parseInt(archetypeNum || '0'))}
+                      style={{ background: `${a.color}10`, border: `1px solid ${a.color}25`, borderRadius: 14, padding: '16px 12px', textAlign: 'center', width: '100%' }}>
+                      <div style={{ fontSize: 28, marginBottom: 6 }}>{a.symbol}</div>
+                      <p style={{ color: a.color, fontSize: 12, fontWeight: 600, marginBottom: 2 }}>{a.title}</p>
+                      <p style={{ color: darkMode ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.4)', fontSize: 10 }} className="qf">{a.arabic}</p>
+                      <p style={{ color: darkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)', fontSize: 10, marginTop: 4 }}>{a.estimatedUsers.toLocaleString()} people</p>
+                    </AccessibleButton>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Archetype Preview Popup */}
@@ -498,375 +682,393 @@ export default function Mizan() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                   <div>
                     <p style={{ color: ARCHETYPES[previewArchetype].color, fontWeight: 700, fontSize: 16 }}>{ARCHETYPES[previewArchetype].title}</p>
-                    <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>{ARCHETYPES[previewArchetype].name} · {ARCHETYPES[previewArchetype].divineName}</p>
+                    <p style={{ color: darkMode ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)', fontSize: 12 }}>{ARCHETYPES[previewArchetype].name} · {ARCHETYPES[previewArchetype].divineName}</p>
                   </div>
                   <span style={{ fontSize: 32 }}>{ARCHETYPES[previewArchetype].symbol}</span>
                 </div>
-                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, lineHeight: 1.7, marginBottom: 12 }}>
+                <p style={{ color: darkMode ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)', fontSize: 13, lineHeight: 1.7, marginBottom: 12 }}>
                   {ARCHETYPES[previewArchetype].personality.slice(0, 180)}...
                 </p>
-                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, fontStyle: 'italic' }}>
+                <p style={{ color: darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)', fontSize: 11, fontStyle: 'italic' }}>
                   "{ARCHETYPES[previewArchetype].verse}" — {ARCHETYPES[previewArchetype].verseRef}
                 </p>
               </div>
             )}
-          </div>
-        </div>
-      )}
 
-      {/* ── INPUT ── */}
-      {step === 'input' && (
-        <div style={{ maxWidth: 480, margin: '0 auto', padding: '48px 16px' }}>
-          <div style={{ textAlign: 'center', marginBottom: 36 }}>
-            <div className="float" style={{ fontSize: 48, marginBottom: 12 }}>✦</div>
-            <h2 style={{ color: '#fff', fontSize: 26, fontWeight: 700, marginBottom: 8 }}>Enter Your Birth Date</h2>
-            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13 }}>Your birth date is the key to your Islamic blueprint</p>
+            <ShariaDisclaimer />
           </div>
+        )}
 
-          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: 24 }}>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
-                Your Name (optional)
+        {/* ── INPUT ── */}
+        {step === 'input' && (
+          <div style={{ maxWidth: 480, margin: '0 auto', padding: '48px 16px' }}>
+            <div style={{ textAlign: 'center', marginBottom: 36 }}>
+              <div className="float" style={{ fontSize: 48, marginBottom: 12 }}>✦</div>
+              <h2 style={{ color: darkMode ? '#fff' : '#1a1a2e', fontSize: 26, fontWeight: 700, marginBottom: 8 }}>Enter Your Birth Date</h2>
+              <p style={{ color: darkMode ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.5)', fontSize: 13 }}>Your birth date is the key to your Islamic blueprint</p>
+            </div>
+
+            <div style={{ background: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', border: `1px solid ${darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`, borderRadius: 20, padding: 24 }}>
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ color: darkMode ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.5)', fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+                  Your Name (optional)
+                </label>
+                <input type="text" value={name} onChange={e => setName(e.target.value)}
+                  placeholder="e.g. Ahmed, Fatima, Muhammad..."
+                  style={{ width: '100%', background: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', border: `1px solid ${darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, borderRadius: 12, padding: '12px 16px', color: darkMode ? '#fff' : '#333', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+
+              <label style={{ color: darkMode ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.5)', fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', display: 'block', marginBottom: 12 }}>
+                Date of Birth
               </label>
-              <input type="text" value={name} onChange={e => setName(e.target.value)}
-                placeholder="e.g. Ahmed, Fatima, Muhammad..."
-                style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '12px 16px', color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
-            </div>
-
-            <label style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', display: 'block', marginBottom: 12 }}>
-              Date of Birth
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: 10, marginBottom: 24 }}>
-              <div>
-                <label style={{ color: 'rgba(255,255,255,0.25)', fontSize: 10, display: 'block', marginBottom: 6 }}>Day</label>
-                <input type="number" min="1" max="31" value={day} onChange={e => setDay(e.target.value)} placeholder="DD"
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '14px 8px', color: '#fff', fontSize: 20, fontWeight: 700, textAlign: 'center', outline: 'none', boxSizing: 'border-box' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: 10, marginBottom: 24 }}>
+                <div>
+                  <label style={{ color: darkMode ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.4)', fontSize: 10, display: 'block', marginBottom: 6 }}>Day</label>
+                  <input type="number" min="1" max="31" value={day} onChange={e => setDay(e.target.value)} placeholder="DD"
+                    style={{ width: '100%', background: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', border: `1px solid ${darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, borderRadius: 12, padding: '14px 8px', color: darkMode ? '#fff' : '#333', fontSize: 20, fontWeight: 700, textAlign: 'center', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ color: darkMode ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.4)', fontSize: 10, display: 'block', marginBottom: 6 }}>Month</label>
+                  <select value={month} onChange={e => setMonth(e.target.value)}
+                    style={{ width: '100%', background: darkMode ? '#0d1319' : '#f0f0f0', border: `1px solid ${darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, borderRadius: 12, padding: '14px 8px', color: month ? (darkMode ? '#fff' : '#333') : (darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)'), fontSize: 13, outline: 'none', boxSizing: 'border-box' }}>
+                    <option value="">Month</option>
+                    {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ color: darkMode ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.4)', fontSize: 10, display: 'block', marginBottom: 6 }}>Year</label>
+                  <input type="number" min="1900" max={new Date().getFullYear()} value={year} onChange={e => setYear(e.target.value)} placeholder="YYYY"
+                    style={{ width: '100%', background: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', border: `1px solid ${darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, borderRadius: 12, padding: '14px 8px', color: darkMode ? '#fff' : '#333', fontSize: 16, fontWeight: 700, textAlign: 'center', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
               </div>
-              <div>
-                <label style={{ color: 'rgba(255,255,255,0.25)', fontSize: 10, display: 'block', marginBottom: 6 }}>Month</label>
-                <select value={month} onChange={e => setMonth(e.target.value)}
-                  style={{ width: '100%', background: '#0d1319', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '14px 8px', color: month ? '#fff' : 'rgba(255,255,255,0.3)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}>
-                  <option value="">Month</option>
-                  {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ color: 'rgba(255,255,255,0.25)', fontSize: 10, display: 'block', marginBottom: 6 }}>Year</label>
-                <input type="number" min="1900" max="2025" value={year} onChange={e => setYear(e.target.value)} placeholder="YYYY"
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '14px 8px', color: '#fff', fontSize: 16, fontWeight: 700, textAlign: 'center', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
+
+              {error && (
+                <div style={{ background: 'rgba(224,112,80,0.1)', border: '1px solid rgba(224,112,80,0.3)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
+                  <p style={{ color: '#e07050', fontSize: 13, textAlign: 'center' }}>{error}</p>
+                </div>
+              )}
+
+              <AccessibleButton onClick={calculate} disabled={!day || !month || !year || year.length < 4}
+                style={{ width: '100%', padding: '15px', borderRadius: 12, border: 'none', fontSize: 15, fontWeight: 700, background: day && month && year && year.length >= 4 ? 'linear-gradient(135deg, #c8a96e, #a07840)' : (darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'), color: day && month && year && year.length >= 4 ? '#060a0f' : (darkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)') }}>
+                Reveal My Blueprint ✦
+              </AccessibleButton>
             </div>
-
-            <button onClick={calculate} disabled={!day || !month || !year || year.length < 4}
-              style={{ width: '100%', padding: '15px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 700, background: day && month && year && year.length >= 4 ? 'linear-gradient(135deg, #c8a96e, #a07840)' : 'rgba(255,255,255,0.1)', color: day && month && year && year.length >= 4 ? '#060a0f' : 'rgba(255,255,255,0.2)', letterSpacing: '0.05em', transition: 'all 0.3s' }}>
-              Reveal My Blueprint ✦
-            </button>
-          </div>
-          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.15)', fontSize: 11, marginTop: 12 }}>
-            Your data never leaves your device. Everything is calculated in your browser.
-          </p>
-        </div>
-      )}
-
-      {/* ── CALCULATING ── */}
-      {step === 'calculating' && (
-        <div style={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center' }}>
-          <div style={{ fontSize: 64, animation: 'spin 3s linear infinite', marginBottom: 24 }}>✦</div>
-          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 18, marginBottom: 8 }}>Calculating your blueprint...</p>
-          <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 13, marginBottom: 32 }}>Applying the Abjad numerology system</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {['Reading your birth numbers...', 'Finding your Divine Name...', 'Selecting your Quranic verse...', 'Preparing compatibility...', 'Finalising your blueprint...'].map((t, i) => (
-              <p key={t} className="shimmer" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, animationDelay: `${i * 0.4}s` }}>{t}</p>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── RESULT ── */}
-      {step === 'result' && result && arch && (
-        <div ref={resultRef} style={{ maxWidth: 680, margin: '0 auto', padding: '16px 12px 60px' }}>
-
-          {/* ── HERO CARD (shareable) ── */}
-          <div ref={cardRef}
-            className={`transition-all duration-700 ${revealStep >= 1 ? 'opacity-100' : 'opacity-0'}`}
-            style={{ background: arch.bgGradient, border: `1px solid ${arch.color}40`, borderRadius: 24, padding: '32px 24px', marginBottom: 12, textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-            {/* Background decoration */}
-            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-              <div style={{ position: 'absolute', top: '10%', right: '8%', fontSize: 80, opacity: 0.06 }}>{arch.symbol}</div>
-              <div style={{ position: 'absolute', bottom: '8%', left: '6%', opacity: 0.04, fontSize: 100 }} className="qf">{arch.arabic}</div>
-            </div>
-
-            {name && <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginBottom: 6 }}>Blueprint for <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>{name}</span></p>}
-            <div className="float" style={{ fontSize: 56, marginBottom: 12 }}>{arch.symbol}</div>
-            <p style={{ color: arch.color, fontSize: 10, letterSpacing: '0.35em', textTransform: 'uppercase', marginBottom: 8 }}>Your Islamic Archetype</p>
-            <h2 style={{ color: '#fff', fontSize: 32, fontWeight: 700, marginBottom: 4 }}>{arch.title}</h2>
-            <p className="qf" style={{ color: arch.color, fontSize: 28, marginBottom: 2 }}>{arch.arabic}</p>
-            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, marginBottom: 6 }}>{arch.name}</p>
-            <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, marginBottom: 16 }}>
-              You are 1 of {arch.estimatedUsers.toLocaleString()} {arch.title}s in our community
+            <p style={{ textAlign: 'center', color: darkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.2)', fontSize: 11, marginTop: 12 }}>
+              Your data never leaves your device. Everything is calculated in your browser.
             </p>
+            <ShariaDisclaimer />
+          </div>
+        )}
 
-            {/* Numbers */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
-              {[
-                { label: 'Life Number', value: result.life, sub: 'Core path' },
-                { label: 'Soul Number', value: result.soul, sub: 'Inner self' },
-                { label: 'Destiny', value: result.destiny, sub: 'Mission' },
-              ].map(n => (
-                <div key={n.label} style={{ background: `${arch.color}15`, border: `1px solid ${arch.color}30`, borderRadius: 14, padding: '14px 8px' }}>
-                  <p className="number-badge" style={{ color: arch.color, fontSize: 28, fontWeight: 700 }}>{n.value}</p>
-                  <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 2 }}>{n.label}</p>
-                  <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 10 }}>{n.sub}</p>
-                </div>
+        {/* ── CALCULATING ── */}
+        {step === 'calculating' && (
+          <div style={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center' }}>
+            <div style={{ fontSize: 64, animation: 'spin 3s linear infinite', marginBottom: 24 }} role="status" aria-label="Loading">✦</div>
+            <p style={{ color: darkMode ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)', fontSize: 18, marginBottom: 8 }}>Calculating your blueprint...</p>
+            <p style={{ color: darkMode ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.4)', fontSize: 13, marginBottom: 32 }}>Applying the Abjad numerology system</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {['Reading your birth numbers...', 'Finding your Divine Name...', 'Selecting your Quranic verse...', 'Preparing compatibility...', 'Finalising your blueprint...'].map((t, i) => (
+                <p key={t} className="shimmer" style={{ color: darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)', fontSize: 13, animationDelay: `${i * 0.4}s` }}>{t}</p>
               ))}
             </div>
-
-            {/* Divne name */}
-            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
-              <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, letterSpacing: '0.3em', marginBottom: 6 }}>YOUR DIVINE NAME</p>
-              <p className="qf" style={{ color: arch.color, fontSize: 30, marginBottom: 2 }}>{arch.divineArabic}</p>
-              <p style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>{arch.divineName}</p>
-            </div>
-
-            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, fontStyle: 'italic' }}>"{arch.verse}"</p>
-            <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, marginTop: 4 }}>{arch.verseRef}</p>
-
-            {/* Prophet example */}
-            <div style={{ marginTop: 16, padding: '10px 14px', background: `${arch.color}10`, borderRadius: 10, border: `1px solid ${arch.color}20` }}>
-              <p style={{ color: arch.color, fontSize: 11, fontWeight: 600 }}>✦ Your Prophetic Mirror</p>
-              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>{arch.prophetExample}</p>
-            </div>
+            <AccessibleButton 
+              onClick={() => {
+                const d = parseInt(day), m = parseInt(month), y = parseInt(year);
+                const life = getLifeNumber(d, m, y);
+                const soul = getSoulNumber(d);
+                const destiny = getDestinyNumber(m, y);
+                const newResult = { life, soul, destiny, archetype: ARCHETYPES[life] };
+                setResult(newResult);
+                setStep('result');
+              }}
+              style={{ marginTop: 40, color: darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)', fontSize: 12, background: 'none', border: 'none', cursor: 'pointer' }}
+              ariaLabel="Skip animation">
+              Skip animation →
+            </AccessibleButton>
           </div>
+        )}
 
-          {/* Share + New */}
-          <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-            <button onClick={() => { setStep('input'); setResult(null); setRevealStep(0); setDhikrCount(0); }}
-              style={{ flex: 1, padding: '12px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer' }}>
-              ← Try Another Date
-            </button>
-            <button onClick={handleShare}
-              style={{ flex: 2, padding: '12px', borderRadius: 12, border: 'none', background: copied ? '#50c878' : `linear-gradient(135deg, ${arch.color}, #a07840)`, color: '#060a0f', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all 0.3s' }}>
-              {copied ? '✅ Copied! Share it!' : '✦ Share My Blueprint'}
-            </button>
-          </div>
-          {copied && <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 11, marginBottom: 12 }}>Paste in WhatsApp, Instagram, or Twitter!</p>}
+        {/* ── RESULT ── */}
+        {step === 'result' && result && arch && (
+          <div ref={resultRef} style={{ maxWidth: 680, margin: '0 auto', padding: '16px 12px 60px' }}>
 
-          {/* ── TABS ── */}
-          <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 16, gap: 0 }} className={`transition-all duration-700 ${revealStep >= 2 ? 'opacity-100' : 'opacity-0'}`}>
-            {([
-              { id: 'blueprint', label: '🗺️ Blueprint' },
-              { id: 'daily', label: '📖 Daily Verse' },
-              { id: 'compatibility', label: '🤝 Companions' },
-              { id: 'dhikr', label: '📿 Dhikr' },
-            ] as { id: typeof activeTab; label: string }[]).map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                style={{ flex: 1, padding: '10px 4px', background: 'none', border: 'none', borderBottom: activeTab === tab.id ? `2px solid ${arch.color}` : '2px solid transparent', color: activeTab === tab.id ? arch.color : 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: activeTab === tab.id ? 700 : 400, cursor: 'pointer', transition: 'all 0.2s', marginBottom: -1 }}>
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* ── BLUEPRINT TAB ── */}
-          {activeTab === 'blueprint' && (
-            <div className={`transition-all duration-700 ${revealStep >= 2 ? 'opacity-100' : 'opacity-0'}`} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-
-              {/* Personality */}
-              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: 20 }}>
-                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 12 }}>Your Personality</p>
-                <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, lineHeight: 1.8 }}>{arch.personality}</p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 14 }}>
-                  {arch.strength.map(s => (
-                    <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8, background: `${arch.color}10`, borderRadius: 8, padding: '8px 12px' }}>
-                      <span style={{ color: arch.color, fontSize: 10 }}>✦</span>
-                      <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12 }}>{s}</span>
-                    </div>
-                  ))}
-                </div>
+            {/* Hero Card */}
+            <div ref={cardRef}
+              className={`transition-all duration-700 ${revealStep >= 1 ? 'opacity-100' : 'opacity-0'}`}
+              style={{ background: arch.bgGradient, border: `1px solid ${arch.color}40`, borderRadius: 24, padding: '32px 24px', marginBottom: 12, textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+              
+              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+                <div style={{ position: 'absolute', top: '10%', right: '8%', fontSize: 80, opacity: 0.06 }}>{arch.symbol}</div>
+                <div style={{ position: 'absolute', bottom: '8%', left: '6%', opacity: 0.04, fontSize: 100 }} className="qf">{arch.arabic}</div>
               </div>
 
-              {/* Detail cards */}
-              {[
-                { icon: '⚠️', label: 'Your Challenge', text: arch.challenge, c: '#e07050' },
-                { icon: '💎', label: 'Your Rizq & Wealth Path', text: arch.rizq, c: '#50c878' },
-                { icon: '❤️', label: 'Relationships & Love', text: arch.relationship, c: '#d4748c' },
-                { icon: '🎯', label: 'Your Life Purpose', text: arch.purpose, c: arch.color },
-              ].map(card => (
-                <div key={card.label} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 18 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                    <span style={{ fontSize: 16 }}>{card.icon}</span>
-                    <p style={{ color: card.c, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{card.label}</p>
-                  </div>
-                  <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, lineHeight: 1.75 }}>{card.text}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* ── DAILY VERSE TAB ── */}
-          {activeTab === 'daily' && todayVerse && (
-            <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ background: `linear-gradient(135deg, #0a3d2e, #0d5238)`, border: `1px solid ${arch.color}40`, borderRadius: 20, padding: 24, textAlign: 'center' }}>
-                <p style={{ color: arch.color, fontSize: 10, letterSpacing: '0.35em', textTransform: 'uppercase', marginBottom: 16 }}>Your Verse for Today</p>
-                <p style={{ color: '#fff', fontSize: 18, lineHeight: 1.9, fontStyle: 'italic', marginBottom: 12 }}>
-                  "{todayVerse.verse}"
+              {name && <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginBottom: 6 }}>Blueprint for <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>{name}</span></p>}
+              <div className="float" style={{ fontSize: 56, marginBottom: 12 }}>{arch.symbol}</div>
+              <p style={{ color: arch.color, fontSize: 10, letterSpacing: '0.35em', textTransform: 'uppercase', marginBottom: 8 }}>Your Islamic Archetype</p>
+              <h2 style={{ color: '#fff', fontSize: 32, fontWeight: 700, marginBottom: 4 }}>{arch.title}</h2>
+              <p className="qf" style={{ color: arch.color, fontSize: 28, marginBottom: 2 }}>{arch.arabic}</p>
+              <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, marginBottom: 6 }}>{arch.name}</p>
+              
+              {/* Popularity bar */}
+              <div style={{ marginBottom: 16 }}>
+                <p style={{ color: arch.color, fontSize: 11, marginBottom: 4 }}>
+                  🌍 {arch.estimatedUsers.toLocaleString()} people share your archetype
                 </p>
-                <p style={{ color: arch.color, fontSize: 12, marginBottom: 20 }}>{todayVerse.ref}</p>
-                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: '14px 16px' }}>
-                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, letterSpacing: '0.2em', marginBottom: 8 }}>REFLECTION FOR THE {arch.title.toUpperCase()}</p>
-                  <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, lineHeight: 1.75 }}>{todayVerse.reflection}</p>
+                <div style={{ width: '100%', height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
+                  <div style={{ width: `${(arch.estimatedUsers / 25000) * 100}%`, height: 4, background: arch.color, borderRadius: 2 }} />
                 </div>
               </div>
 
-              <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, textAlign: 'center' }}>A new verse awaits you every day of the week 🌙</p>
-
-              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 18 }}>
-                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, letterSpacing: '0.3em', marginBottom: 14 }}>ALL 7 VERSES FOR YOUR ARCHETYPE</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {arch.dailyVerses.map((v, i) => (
-                    <div key={i} style={{ padding: '12px 14px', background: i === getDayOfWeek() % arch.dailyVerses.length ? `${arch.color}10` : 'transparent', border: i === getDayOfWeek() % arch.dailyVerses.length ? `1px solid ${arch.color}30` : '1px solid transparent', borderRadius: 10 }}>
-                      <p style={{ color: i === getDayOfWeek() % arch.dailyVerses.length ? arch.color : 'rgba(255,255,255,0.5)', fontSize: 13, fontStyle: 'italic', marginBottom: 4 }}>"{v.verse}"</p>
-                      <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11 }}>{v.ref}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── COMPATIBILITY TAB ── */}
-          {activeTab === 'compatibility' && (
-            <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: 20 }}>
-                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 8 }}>Why These Companions?</p>
-                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, lineHeight: 1.7 }}>{arch.compatibilityReason}</p>
-              </div>
-
-              {/* Best companions */}
-              <div>
-                <p style={{ color: '#50c878', fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 10, paddingLeft: 4 }}>✦ Your Best Companions</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {arch.companions.map(n => {
-                    const a = ARCHETYPES[n];
-                    return (
-                      <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 14, background: `${a.color}08`, border: `1px solid ${a.color}20`, borderRadius: 14, padding: '14px 16px' }}>
-                        <span style={{ fontSize: 28, flexShrink: 0 }}>{a.symbol}</span>
-                        <div style={{ flex: 1 }}>
-                          <p style={{ color: a.color, fontWeight: 700, fontSize: 14 }}>{a.title}</p>
-                          <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>{a.name} · Life Number {n}</p>
-                          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>{a.personality.slice(0, 90)}...</p>
-                        </div>
-                        <div style={{ background: '#50c87822', border: '1px solid #50c87844', borderRadius: 20, padding: '3px 10px', flexShrink: 0 }}>
-                          <span style={{ color: '#50c878', fontSize: 11 }}>✦ Compatible</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Incompatible */}
-              <div>
-                <p style={{ color: '#e07050', fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 10, paddingLeft: 4 }}>⚠️ Challenging Dynamics</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {arch.incompatible.map(n => {
-                    const a = ARCHETYPES[n];
-                    return (
-                      <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(224,112,80,0.05)', border: '1px solid rgba(224,112,80,0.15)', borderRadius: 14, padding: '14px 16px' }}>
-                        <span style={{ fontSize: 28, flexShrink: 0 }}>{a.symbol}</span>
-                        <div style={{ flex: 1 }}>
-                          <p style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700, fontSize: 14 }}>{a.title}</p>
-                          <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>Life Number {n} — requires patience & understanding</p>
-                        </div>
-                        <div style={{ background: 'rgba(224,112,80,0.1)', border: '1px solid rgba(224,112,80,0.3)', borderRadius: 20, padding: '3px 10px', flexShrink: 0 }}>
-                          <span style={{ color: '#e07050', fontSize: 11 }}>⚠️ Challenging</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 14, padding: 16, textAlign: 'center' }}>
-                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>
-                  In Islam, every relationship can work with Tawakkul and patience. These are tendencies, not destinies. Allah writes our connections.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* ── DHIKR TAB ── */}
-          {activeTab === 'dhikr' && (
-            <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ background: 'linear-gradient(135deg, #0a3d2e, #0d5238)', border: `1px solid ${arch.color}40`, borderRadius: 20, padding: 28, textAlign: 'center' }}>
-                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, letterSpacing: '0.35em', textTransform: 'uppercase', marginBottom: 14 }}>Your Recommended Dhikr</p>
-                <p className="qf" style={{ color: arch.color, fontSize: 34, marginBottom: 6, lineHeight: 1.6 }}>{arch.dhikrArabic}</p>
-                <p style={{ color: '#fff', fontSize: 17, fontWeight: 600, marginBottom: 4 }}>{arch.dhikr}</p>
-                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginBottom: 28 }}>Recite {arch.dhikrCount} times daily</p>
-
-                {/* Progress ring */}
-                <div style={{ position: 'relative', width: 140, height: 140, margin: '0 auto 20px' }}>
-                  <svg style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }} viewBox="0 0 120 120">
-                    <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
-                    <circle cx="60" cy="60" r="50" fill="none"
-                      stroke={arch.color} strokeWidth="8"
-                      strokeDasharray={`${2 * Math.PI * 50}`}
-                      strokeDashoffset={`${2 * Math.PI * 50 * (1 - Math.min(dhikrCount / arch.dhikrCount, 1))}`}
-                      strokeLinecap="round"
-                      style={{ transition: 'stroke-dashoffset 0.2s ease' }} />
-                  </svg>
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ color: arch.color, fontSize: 32, fontWeight: 700, lineHeight: 1 }}>{dhikrCount}</span>
-                    <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 12, marginTop: 2 }}>/ {arch.dhikrCount}</span>
-                    <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 10, marginTop: 2 }}>
-                      {Math.round((dhikrCount / arch.dhikrCount) * 100)}%
-                    </span>
+              {/* Numbers */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
+                {[
+                  { label: 'Life Number', value: result.life, sub: 'Core path' },
+                  { label: 'Soul Number', value: result.soul, sub: 'Inner self' },
+                  { label: 'Destiny', value: result.destiny, sub: 'Mission' },
+                ].map(n => (
+                  <div key={n.label} style={{ background: `${arch.color}15`, border: `1px solid ${arch.color}30`, borderRadius: 14, padding: '14px 8px' }}>
+                    <p className="number-badge" style={{ color: arch.color, fontSize: 28, fontWeight: 700 }}>{n.value}</p>
+                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 2 }}>{n.label}</p>
+                    <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 10 }}>{n.sub}</p>
                   </div>
-                </div>
+                ))}
+              </div>
 
-                <button onClick={handleDhikr} className="dhikr-btn"
-                  style={{ padding: '16px 40px', borderRadius: 50, border: 'none', background: `linear-gradient(135deg, ${arch.color}, #a07840)`, color: '#060a0f', fontSize: 16, fontWeight: 700, cursor: 'pointer', marginBottom: 12, boxShadow: `0 4px 24px ${arch.color}44` }}>
-                  📿 {dhikrCount === 0 ? 'Begin Dhikr' : 'Tap to Count'}
+              {/* Divine name */}
+              <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
+                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, letterSpacing: '0.3em', marginBottom: 6 }}>YOUR DIVINE NAME</p>
+                <p className="qf" style={{ color: arch.color, fontSize: 30, marginBottom: 2 }}>{arch.divineArabic}</p>
+                <p style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>{arch.divineName}</p>
+              </div>
+
+              <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, fontStyle: 'italic' }}>"{arch.verse}"</p>
+              <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, marginTop: 4 }}>{arch.verseRef}</p>
+
+              {/* Prophet example */}
+              <div style={{ marginTop: 16, padding: '10px 14px', background: `${arch.color}10`, borderRadius: 10, border: `1px solid ${arch.color}20` }}>
+                <p style={{ color: arch.color, fontSize: 11, fontWeight: 600 }}>✦ Your Prophetic Mirror</p>
+                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>{arch.prophetExample}</p>
+              </div>
+            </div>
+
+            {/* Share buttons */}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+              <AccessibleButton onClick={handleShare}
+                style={{ flex: 2, padding: '12px', borderRadius: 12, border: 'none', background: copied ? '#50c878' : `linear-gradient(135deg, ${arch.color}, #a07840)`, color: '#060a0f', fontSize: 13, fontWeight: 700 }}>
+                {copied ? '✅ Copied! Share it!' : '✦ Share My Blueprint'}
+              </AccessibleButton>
+            </div>
+            {copied && <p style={{ textAlign: 'center', color: darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)', fontSize: 11, marginBottom: 12 }}>Paste in WhatsApp, Instagram, or Twitter!</p>}
+
+            {/* Tabs */}
+            <div style={{ display: 'flex', borderBottom: `1px solid ${darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`, marginBottom: 16, gap: 0 }} className={`transition-all duration-700 ${revealStep >= 2 ? 'opacity-100' : 'opacity-0'}`}>
+              {(['blueprint', 'daily', 'compatibility', 'dhikr'] as const).map(tab => (
+                <button key={tab} onClick={() => setActiveTab(tab)}
+                  style={{ flex: 1, padding: '10px 4px', background: 'none', border: 'none', borderBottom: activeTab === tab ? `2px solid ${arch.color}` : '2px solid transparent', color: activeTab === tab ? arch.color : (darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)'), fontSize: 11, fontWeight: activeTab === tab ? 700 : 400, cursor: 'pointer', transition: 'all 0.2s', marginBottom: -1 }}>
+                  {tab === 'blueprint' && '🗺️ Blueprint'}
+                  {tab === 'daily' && '📖 Daily Verse'}
+                  {tab === 'compatibility' && '🤝 Companions'}
+                  {tab === 'dhikr' && '📿 Dhikr'}
                 </button>
-
-                {dhikrCount >= arch.dhikrCount && (
-                  <p style={{ color: '#50c878', fontSize: 14, fontWeight: 600 }}>🎉 Alhamdulillah! Daily dhikr complete!</p>
-                )}
-
-                {dhikrCount > 0 && dhikrCount < arch.dhikrCount && (
-                  <div>
-                    <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, marginBottom: 8 }}>
-                      {arch.dhikrCount - dhikrCount} remaining · Saved automatically
-                    </p>
-                    <button onClick={() => { setDhikrCount(0); saveDhikr(0); }}
-                      style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, background: 'none', border: 'none', cursor: 'pointer' }}>
-                      Reset for today
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 18 }}>
-                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, letterSpacing: '0.3em', marginBottom: 12 }}>WHY THIS DHIKR FOR YOU</p>
-                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, lineHeight: 1.75 }}>
-                  The Divine Name <span style={{ color: arch.color }}>{arch.divineName}</span> ({arch.divineArabic}) reflects the attribute of Allah that your archetype most needs to connect with. Regular recitation of this Name aligns your soul with its divine purpose.
-                </p>
-              </div>
-
-              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 18 }}>
-                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, letterSpacing: '0.3em', marginBottom: 8 }}>HADITH ON DHIKR</p>
-                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontStyle: 'italic', lineHeight: 1.75 }}>
-                  "Shall I tell you about the best of your deeds, the purest in the sight of your King, the highest in raising your rank, and better for you than spending gold and silver, and better than meeting your enemy and striking their necks?" They said: Yes. He said: "Remembrance of Allah."
-                </p>
-                <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, marginTop: 8 }}>— Tirmidhi & Ibn Majah</p>
-              </div>
+              ))}
             </div>
-          )}
 
-          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.1)', fontSize: 11, marginTop: 24 }}>
-            Mizan is for self-reflection and inspiration only. All guidance should be sought from Allah ﷻ and qualified Islamic scholars.
-          </p>
-        </div>
-      )}
-    </div>
+            {/* Blueprint Tab */}
+            {activeTab === 'blueprint' && (
+              <div className={`transition-all duration-700 ${revealStep >= 2 ? 'opacity-100' : 'opacity-0'}`} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ background: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', border: `1px solid ${darkMode ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`, borderRadius: 18, padding: 20 }}>
+                  <p style={{ color: darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)', fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 12 }}>Your Personality</p>
+                  <p style={{ color: darkMode ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.7)', fontSize: 14, lineHeight: 1.8 }}>{arch.personality}</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 14 }}>
+                    {arch.strength.map(s => (
+                      <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8, background: `${arch.color}10`, borderRadius: 8, padding: '8px 12px' }}>
+                        <span style={{ color: arch.color, fontSize: 10 }}>✦</span>
+                        <span style={{ color: darkMode ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.65)', fontSize: 12 }}>{s}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {[
+                  { icon: '⚠️', label: 'Your Challenge', text: arch.challenge, c: '#e07050' },
+                  { icon: '💎', label: 'Your Rizq & Wealth Path', text: arch.rizq, c: '#50c878' },
+                  { icon: '❤️', label: 'Relationships & Love', text: arch.relationship, c: '#d4748c' },
+                  { icon: '🎯', label: 'Your Life Purpose', text: arch.purpose, c: arch.color },
+                ].map(card => (
+                  <div key={card.label} style={{ background: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', border: `1px solid ${darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`, borderRadius: 16, padding: 18 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                      <span style={{ fontSize: 16 }}>{card.icon}</span>
+                      <p style={{ color: card.c, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{card.label}</p>
+                    </div>
+                    <p style={{ color: darkMode ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.65)', fontSize: 13, lineHeight: 1.75 }}>{card.text}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Daily Verse Tab */}
+            {activeTab === 'daily' && todayVerse && (
+              <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ background: `linear-gradient(135deg, #0a3d2e, #0d5238)`, border: `1px solid ${arch.color}40`, borderRadius: 20, padding: 24, textAlign: 'center' }}>
+                  <p style={{ color: arch.color, fontSize: 10, letterSpacing: '0.35em', textTransform: 'uppercase', marginBottom: 16 }}>Your Verse for Today</p>
+                  <p style={{ color: '#fff', fontSize: 18, lineHeight: 1.9, fontStyle: 'italic', marginBottom: 12 }}>"{todayVerse.verse}"</p>
+                  <p style={{ color: arch.color, fontSize: 12, marginBottom: 20 }}>{todayVerse.ref}</p>
+                  <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: '14px 16px' }}>
+                    <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, letterSpacing: '0.2em', marginBottom: 8 }}>REFLECTION FOR THE {arch.title.toUpperCase()}</p>
+                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, lineHeight: 1.75 }}>{todayVerse.reflection}</p>
+                  </div>
+                </div>
+
+                <p style={{ color: darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)', fontSize: 12, textAlign: 'center' }}>A new verse awaits you every day of the week 🌙</p>
+
+                <div style={{ background: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', border: `1px solid ${darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`, borderRadius: 16, padding: 18 }}>
+                  <p style={{ color: darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)', fontSize: 10, letterSpacing: '0.3em', marginBottom: 14 }}>ALL 7 VERSES FOR YOUR ARCHETYPE</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {arch.dailyVerses.map((v, i) => (
+                      <div key={i} style={{ padding: '12px 14px', background: i === getDayOfWeek() % arch.dailyVerses.length ? `${arch.color}10` : 'transparent', border: i === getDayOfWeek() % arch.dailyVerses.length ? `1px solid ${arch.color}30` : '1px solid transparent', borderRadius: 10 }}>
+                        <p style={{ color: i === getDayOfWeek() % arch.dailyVerses.length ? arch.color : (darkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'), fontSize: 13, fontStyle: 'italic', marginBottom: 4 }}>"{v.verse}"</p>
+                        <p style={{ color: darkMode ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.3)', fontSize: 11 }}>{v.ref}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Compatibility Tab */}
+            {activeTab === 'compatibility' && (
+              <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ background: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', border: `1px solid ${darkMode ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`, borderRadius: 18, padding: 20 }}>
+                  <p style={{ color: darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)', fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 8 }}>Why These Companions?</p>
+                  <p style={{ color: darkMode ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)', fontSize: 13, lineHeight: 1.7 }}>{arch.compatibilityReason}</p>
+                </div>
+
+                <div>
+                  <p style={{ color: '#50c878', fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 10, paddingLeft: 4 }}>✦ Your Best Companions</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {arch.companions.map(n => {
+                      const a = ARCHETYPES[n];
+                      return (
+                        <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 14, background: `${a.color}08`, border: `1px solid ${a.color}20`, borderRadius: 14, padding: '14px 16px' }}>
+                          <span style={{ fontSize: 28, flexShrink: 0 }}>{a.symbol}</span>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ color: a.color, fontWeight: 700, fontSize: 14 }}>{a.title}</p>
+                            <p style={{ color: darkMode ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.4)', fontSize: 11 }}>{a.name} · Life Number {n}</p>
+                            <p style={{ color: darkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)', fontSize: 12, marginTop: 4 }}>{a.personality.slice(0, 90)}...</p>
+                          </div>
+                          <div style={{ background: '#50c87822', border: '1px solid #50c87844', borderRadius: 20, padding: '3px 10px', flexShrink: 0 }}>
+                            <span style={{ color: '#50c878', fontSize: 11 }}>✦ Compatible</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <p style={{ color: '#e07050', fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 10, paddingLeft: 4 }}>⚠️ Challenging Dynamics</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {arch.incompatible.map(n => {
+                      const a = ARCHETYPES[n];
+                      return (
+                        <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(224,112,80,0.05)', border: '1px solid rgba(224,112,80,0.15)', borderRadius: 14, padding: '14px 16px' }}>
+                          <span style={{ fontSize: 28, flexShrink: 0 }}>{a.symbol}</span>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ color: darkMode ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)', fontWeight: 700, fontSize: 14 }}>{a.title}</p>
+                            <p style={{ color: darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)', fontSize: 11 }}>Life Number {n} — requires patience & understanding</p>
+                          </div>
+                          <div style={{ background: 'rgba(224,112,80,0.1)', border: '1px solid rgba(224,112,80,0.3)', borderRadius: 20, padding: '3px 10px', flexShrink: 0 }}>
+                            <span style={{ color: '#e07050', fontSize: 11 }}>⚠️ Challenging</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div style={{ background: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', borderRadius: 14, padding: 16, textAlign: 'center' }}>
+                  <p style={{ color: darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)', fontSize: 12 }}>
+                    In Islam, every relationship can work with Tawakkul and patience. These are tendencies, not destinies. Allah writes our connections.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Dhikr Tab */}
+            {activeTab === 'dhikr' && (
+              <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ background: 'linear-gradient(135deg, #0a3d2e, #0d5238)', border: `1px solid ${arch.color}40`, borderRadius: 20, padding: 28, textAlign: 'center' }}>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, letterSpacing: '0.35em', textTransform: 'uppercase', marginBottom: 14 }}>Your Recommended Dhikr</p>
+                  <p className="qf" style={{ color: arch.color, fontSize: 34, marginBottom: 6, lineHeight: 1.6 }}>{arch.dhikrArabic}</p>
+                  <p style={{ color: '#fff', fontSize: 17, fontWeight: 600, marginBottom: 4 }}>{arch.dhikr}</p>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginBottom: 28 }}>Recite {arch.dhikrCount} times daily</p>
+
+                  <div style={{ position: 'relative', width: 140, height: 140, margin: '0 auto 20px' }}>
+                    <svg style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }} viewBox="0 0 120 120">
+                      <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
+                      <circle cx="60" cy="60" r="50" fill="none"
+                        stroke={arch.color} strokeWidth="8"
+                        strokeDasharray={`${2 * Math.PI * 50}`}
+                        strokeDashoffset={`${2 * Math.PI * 50 * (1 - Math.min(dhikrCount / arch.dhikrCount, 1))}`}
+                        strokeLinecap="round"
+                        style={{ transition: 'stroke-dashoffset 0.2s ease' }} />
+                    </svg>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ color: arch.color, fontSize: 32, fontWeight: 700, lineHeight: 1 }}>{dhikrCount}</span>
+                      <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 12, marginTop: 2 }}>/ {arch.dhikrCount}</span>
+                      <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 10, marginTop: 2 }}>
+                        {Math.round((dhikrCount / arch.dhikrCount) * 100)}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <AccessibleButton onClick={handleDhikr} className="dhikr-btn"
+                    style={{ padding: '16px 40px', borderRadius: 50, border: 'none', background: `linear-gradient(135deg, ${arch.color}, #a07840)`, color: '#060a0f', fontSize: 16, fontWeight: 700, marginBottom: 12, boxShadow: `0 4px 24px ${arch.color}44` }}>
+                    📿 {dhikrCount === 0 ? 'Begin Dhikr' : 'Tap to Count'}
+                  </AccessibleButton>
+
+                  {dhikrCount >= arch.dhikrCount && (
+                    <p style={{ color: '#50c878', fontSize: 14, fontWeight: 600 }}>🎉 Alhamdulillah! Daily dhikr complete!</p>
+                  )}
+
+                  {dhikrCount > 0 && dhikrCount < arch.dhikrCount && (
+                    <div>
+                      <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, marginBottom: 8 }}>
+                        {arch.dhikrCount - dhikrCount} remaining · Saved automatically
+                      </p>
+                      <AccessibleButton onClick={() => { setDhikrCount(0); saveDhikr(0); }}
+                        style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, background: 'none', border: 'none' }}>
+                        Reset for today
+                      </AccessibleButton>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ background: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', border: `1px solid ${darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`, borderRadius: 16, padding: 18 }}>
+                  <p style={{ color: darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)', fontSize: 10, letterSpacing: '0.3em', marginBottom: 12 }}>WHY THIS DHIKR FOR YOU</p>
+                  <p style={{ color: darkMode ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)', fontSize: 13, lineHeight: 1.75 }}>
+                    The Divine Name <span style={{ color: arch.color }}>{arch.divineName}</span> ({arch.divineArabic}) reflects the attribute of Allah that your archetype most needs to connect with. Regular recitation of this Name aligns your soul with its divine purpose.
+                  </p>
+                </div>
+
+                <div style={{ background: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', border: `1px solid ${darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`, borderRadius: 16, padding: 18 }}>
+                  <p style={{ color: darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)', fontSize: 10, letterSpacing: '0.3em', marginBottom: 8 }}>HADITH ON DHIKR</p>
+                  <p style={{ color: darkMode ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)', fontSize: 13, fontStyle: 'italic', lineHeight: 1.75 }}>
+                    "Shall I tell you about the best of your deeds, the purest in the sight of your King, the highest in raising your rank, and better for you than spending gold and silver, and better than meeting your enemy and striking their necks?" They said: Yes. He said: "Remembrance of Allah."
+                  </p>
+                  <p style={{ color: darkMode ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.3)', fontSize: 11, marginTop: 8 }}>— Tirmidhi & Ibn Majah</p>
+                </div>
+              </div>
+            )}
+
+            <ShariaDisclaimer />
+            
+            <p style={{ textAlign: 'center', color: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.2)', fontSize: 11, marginTop: 24 }}>
+              Mizan is for self-reflection and inspiration only. All guidance should be sought from Allah ﷻ and qualified Islamic scholars.
+            </p>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
