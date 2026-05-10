@@ -364,10 +364,17 @@ function Newsletter({ t }: { t: TranslationsType }) {
   );
 }
 
-// ── Tool card ──
+// ── Tool card with scroll save ──
 function ToolCard({ tool }: { tool: Tool }) {
+  // Save current scroll position before navigating
+  const handleClick = () => {
+    sessionStorage.setItem(SCROLL_KEY, window.scrollY.toString());
+  };
+
   return (
-    <Link href={tool.href}
+    <Link 
+      href={tool.href} 
+      onClick={handleClick}
       className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-md transition-all flex flex-col items-center text-center active:scale-95">
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-2 ${tool.color}`}>
         {tool.icon}
@@ -384,6 +391,7 @@ export default function Home() {
   const [lang, setLang] = useState('en');
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isRestoringScroll, setIsRestoringScroll] = useState(true);
   const { dark, toggle: toggleDark, mounted: darkMounted } = useDarkMode();
   const langMenuRef = useRef<HTMLDivElement>(null);
   const langButtonRef = useRef<HTMLButtonElement>(null);
@@ -428,16 +436,33 @@ export default function Home() {
     };
   }, [showLangMenu]);
 
+  // Save scroll position on scroll
   useEffect(() => {
-    const save = () => sessionStorage.setItem(SCROLL_KEY, window.scrollY.toString());
-    window.addEventListener('scroll', save, { passive: true });
-    return () => window.removeEventListener('scroll', save);
-  }, []);
+    const saveScroll = () => {
+      if (!isRestoringScroll) {
+        sessionStorage.setItem(SCROLL_KEY, window.scrollY.toString());
+      }
+    };
+    
+    window.addEventListener('scroll', saveScroll, { passive: true });
+    return () => window.removeEventListener('scroll', saveScroll);
+  }, [isRestoringScroll]);
 
+  // Restore scroll position when page loads
   useEffect(() => {
     if (!mounted) return;
-    const saved = sessionStorage.getItem(SCROLL_KEY);
-    if (saved) setTimeout(() => window.scrollTo({ top: parseInt(saved), behavior: 'instant' }), 50);
+    
+    const savedScroll = sessionStorage.getItem(SCROLL_KEY);
+    if (savedScroll) {
+      const scrollPosition = parseInt(savedScroll);
+      // Use setTimeout to ensure DOM is fully rendered
+      setTimeout(() => {
+        window.scrollTo({ top: scrollPosition, behavior: 'instant' });
+        setIsRestoringScroll(false);
+      }, 100);
+    } else {
+      setIsRestoringScroll(false);
+    }
   }, [mounted]);
 
   const switchLang = useCallback((code: string) => {
@@ -562,9 +587,12 @@ export default function Home() {
           {/* Tools */}
           <div className="flex-1 min-w-0">
 
-            {/* Mizan banner */}
+            {/* Mizan banner - also saves scroll position */}
             {!search && (
-              <Link href="/mizan" className="block mb-6 group">
+              <Link 
+                href="/mizan" 
+                onClick={() => sessionStorage.setItem(SCROLL_KEY, window.scrollY.toString())}
+                className="block mb-6 group">
                 <div className="rounded-2xl p-4 flex items-center gap-4 hover:shadow-lg transition-all"
                   style={{ background: 'linear-gradient(135deg, #1a0a00, #3d1f00)' }}>
                   <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl border border-amber-400/30 flex-shrink-0"
