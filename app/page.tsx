@@ -464,7 +464,7 @@ export default function Home() {
                 {dark ? '☀️' : '🌙'}
               </button>
 
-              {/* Language switcher */}
+              {/* Language switcher - Improved scrollable dropdown */}
               <div className="relative">
                 <button onClick={() => setShowLangMenu(v => !v)}
                   className="flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-xl px-2.5 py-1.5 text-white/70 text-xs hover:bg-white/20 transition">
@@ -473,24 +473,52 @@ export default function Home() {
                   <span className="text-white/40">▾</span>
                 </button>
 
-                {/* ── DROPDOWN with scroll — fixed height so all 8 languages visible ── */}
+                {/* DROPDOWN with custom scrollbar - all 8 languages fully visible */}
                 {showLangMenu && (
-                  <div
-                    className="absolute top-9 right-0 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 w-44"
-                    style={{
-                      maxHeight: '280px',      // enough to show all 8 languages
-                      overflowY: 'auto',       // scroll if needed
-                      overflowX: 'hidden',
-                    }}>
-                    {LANGUAGES.map(l => (
-                      <button key={l.code} onClick={() => switchLang(l.code)}
-                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-700 ${lang === l.code ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>
-                        <span className="text-base flex-shrink-0">{l.flag}</span>
-                        <span className="flex-1">{l.label}</span>
-                        {lang === l.code && <span className="text-emerald-500 text-xs flex-shrink-0">✓</span>}
-                      </button>
-                    ))}
-                  </div>
+                  <>
+                    <div 
+                      className="absolute top-9 right-0 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 w-48 overflow-y-auto"
+                      style={{
+                        maxHeight: '320px',
+                        scrollbarWidth: 'thin',
+                        msOverflowStyle: 'auto',
+                      }}>
+                      {LANGUAGES.map(l => (
+                        <button key={l.code} onClick={() => switchLang(l.code)}
+                          className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-700 ${lang === l.code ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>
+                          <span className="text-base flex-shrink-0">{l.flag}</span>
+                          <span className="flex-1">{l.label}</span>
+                          {lang === l.code && <span className="text-emerald-500 text-xs flex-shrink-0">✓</span>}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Custom scrollbar styling */}
+                    <style jsx>{`
+                      div[class*="absolute"]::-webkit-scrollbar {
+                        width: 4px;
+                      }
+                      div[class*="absolute"]::-webkit-scrollbar-track {
+                        background: #f1f1f1;
+                        border-radius: 10px;
+                      }
+                      div[class*="absolute"]::-webkit-scrollbar-thumb {
+                        background: #c1c1c1;
+                        border-radius: 10px;
+                      }
+                      div[class*="absolute"]::-webkit-scrollbar-thumb:hover {
+                        background: #a8a8a8;
+                      }
+                      .dark div[class*="absolute"]::-webkit-scrollbar-track {
+                        background: #2d2d2d;
+                      }
+                      .dark div[class*="absolute"]::-webkit-scrollbar-thumb {
+                        background: #555;
+                      }
+                      .dark div[class*="absolute"]::-webkit-scrollbar-thumb:hover {
+                        background: #666;
+                      }
+                    `}</style>
+                  </>
                 )}
               </div>
             </div>
