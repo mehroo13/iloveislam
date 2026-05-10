@@ -80,7 +80,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     footerMade: 'صُنع بمحبة للأمة الإسلامية', footerFree: 'مجاني دائماً · لا تسجيل',
     stats: { tools: '٢٠+ أداة', free: '١٠٠٪ مجاني', noSignup: 'لا تسجيل', mobile: 'يعمل على الجوال', world: 'يعمل في كل مكان', fast: 'سريع دائماً' },
     aboutTitle: 'عن أدوات أحب الإسلام',
-    aboutText1: 'أحب الإسلام مجموعة مجانية من الأدوات الإسلامية للمسلمين في جميع أنحاء العالم — حاسبة الزكاة، مواقيت الصلاة، اتجاه القبلة، قراءة القرآن والمزيد.',
+    aboutText1: 'أحب الإسلام مجموعة مجانية من الأدوات الإسلامية للمسلمين في جميع أنحاء العالم.',
     aboutText2: 'تشمل أدواتنا عداد الذكر وأسماء الله الحسنى ودليل السفر الحلال والمزيد.',
     newsletterTitle: 'توجيه إسلامي أسبوعي',
     newsletterSubtitle: 'تذكيرات روحية وتحديثات الأدوات.',
@@ -98,7 +98,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     footerMade: 'امت کے لیے محبت سے', footerFree: 'ہمیشہ مفت · کوئی رجسٹریشن نہیں',
     stats: { tools: '٢٠+ مفت ٹولز', free: '١٠٠٪ مفت', noSignup: 'سائن اپ نہیں', mobile: 'موبائل پر', world: 'دنیا بھر میں', fast: 'تیز' },
     aboutTitle: 'I Love Islam کے بارے میں',
-    aboutText1: 'I Love Islam دنیا بھر کے مسلمانوں کے لیے مفت اسلامی ٹولز کا مجموعہ ہے — زکوٰۃ، نماز، قبلہ، قرآن سب ایک جگہ۔',
+    aboutText1: 'I Love Islam دنیا بھر کے مسلمانوں کے لیے مفت اسلامی ٹولز کا مجموعہ ہے۔',
     aboutText2: 'ذکر کاؤنٹر، اللہ کے ۹۹ نام، میزان لائف بلیو پرنٹ اور بہت کچھ۔',
     newsletterTitle: 'ہفتہ وار اسلامی رہنمائی',
     newsletterSubtitle: 'روحانی یاد دہانیاں اور اپ ڈیٹس۔',
@@ -116,7 +116,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     footerMade: 'Fait avec ❤️ pour la Oumma', footerFree: 'Toujours gratuit · Sans inscription',
     stats: { tools: '20+ Outils', free: '100% Gratuit', noSignup: 'Sans inscription', mobile: 'Mobile', world: 'Mondial', fast: 'Rapide' },
     aboutTitle: 'À propos de I Love Islam',
-    aboutText1: 'I Love Islam est une collection gratuite d\'outils islamiques pour les musulmans du monde entier — Zakat, horaires de prière, Qibla, Coran et bien plus.',
+    aboutText1: 'I Love Islam est une collection gratuite d\'outils islamiques — Zakat, horaires de prière, Qibla, Coran et bien plus.',
     aboutText2: 'Compteur de Dhikr, 99 noms d\'Allah, guide de voyage halal, et notre outil unique Mizan.',
     newsletterTitle: 'Guidance islamique hebdomadaire',
     newsletterSubtitle: 'Rappels spirituels et mises à jour.',
@@ -134,8 +134,8 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     footerMade: 'Ümmet için sevgiyle', footerFree: 'Her zaman ücretsiz',
     stats: { tools: '20+ Araç', free: '%100 Ücretsiz', noSignup: 'Kayıt yok', mobile: 'Mobil', world: 'Dünya geneli', fast: 'Hızlı' },
     aboutTitle: 'I Love Islam Hakkında',
-    aboutText1: 'I Love Islam, dünya genelindeki Müslümanlar için ücretsiz İslami araçlar — Zekat hesaplayıcı, namaz vakitleri, kıble, Kuran ve daha fazlası.',
-    aboutText2: 'Dhikr sayacı, Allah\'ın 99 ismi, helal seyahat rehberi ve benzersiz Mizan aracımız.',
+    aboutText1: 'I Love Islam, Müslümanlar için ücretsiz İslami araçlar — Zekat, namaz vakitleri, kıble, Kuran ve daha fazlası.',
+    aboutText2: 'Dhikr sayacı, Allah\'ın 99 ismi, helal seyahat rehberi ve Mizan aracımız.',
     newsletterTitle: 'Haftalık İslami Rehberlik',
     newsletterSubtitle: 'Manevi hatırlatmalar ve güncellemeler.',
     newsletterPlaceholder: 'E-postanız',
@@ -153,9 +153,9 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     stats: { tools: '20+ Alat', free: '100% Gratis', noSignup: 'Tanpa Daftar', mobile: 'Mobile', world: 'Seluruh Dunia', fast: 'Cepat' },
     aboutTitle: 'Tentang I Love Islam',
     aboutText1: 'I Love Islam adalah kumpulan alat Islam gratis — Kalkulator zakat, waktu shalat, kiblat, Al-Quran dan masih banyak lagi.',
-    aboutText2: 'Penghitung dzikir, 99 Nama Allah, panduan perjalanan halal, dan Mizan Blueprint.',
+    aboutText2: 'Penghitung dzikir, 99 Nama Allah, panduan halal, dan Mizan Blueprint.',
     newsletterTitle: 'Bimbingan Islam Mingguan',
-    newsletterSubtitle: 'Pengingat spiritual dan pembaruan alat.',
+    newsletterSubtitle: 'Pengingat spiritual dan pembaruan.',
     newsletterPlaceholder: 'Email Anda',
     newsletterButton: 'Berlangganan',
   },
@@ -171,9 +171,9 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     stats: { tools: '20+ Alat', free: '100% Percuma', noSignup: 'Tanpa Daftar', mobile: 'Mudah alih', world: 'Seluruh Dunia', fast: 'Laju' },
     aboutTitle: 'Tentang I Love Islam',
     aboutText1: 'I Love Islam ialah koleksi alat Islam percuma — kalkulator zakat, waktu solat, kiblat, Al-Quran dan banyak lagi.',
-    aboutText2: 'Pembilang zikir, 99 Nama Allah, panduan perjalanan halal dan Mizan Blueprint.',
+    aboutText2: 'Pembilang zikir, 99 Nama Allah, panduan halal dan Mizan Blueprint.',
     newsletterTitle: 'Panduan Islam Mingguan',
-    newsletterSubtitle: 'Peringatan rohani dan kemas kini alat.',
+    newsletterSubtitle: 'Peringatan rohani dan kemas kini.',
     newsletterPlaceholder: 'E-mel anda',
     newsletterButton: 'Langgan',
   },
@@ -188,7 +188,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     footerMade: 'উম্মতের জন্য ভালোবাসায়', footerFree: 'সর্বদা বিনামূল্যে',
     stats: { tools: '২০+ টুল', free: '১০০% বিনামূল্যে', noSignup: 'নিবন্ধন নেই', mobile: 'মোবাইলে', world: 'বিশ্বজুড়ে', fast: 'দ্রুত' },
     aboutTitle: 'I Love Islam সম্পর্কে',
-    aboutText1: 'I Love Islam বিশ্বজুড়ে মুসলিমদের জন্য বিনামূল্যে ইসলামিক টুলের সংগ্রহ — যাকাত, নামাজ, কিবলা, কোরআন সব এক জায়গায়।',
+    aboutText1: 'I Love Islam বিশ্বজুড়ে মুসলিমদের জন্য বিনামূল্যে ইসলামিক টুলের সংগ্রহ।',
     aboutText2: 'ধিকর কাউন্টার, আল্লাহর ৯৯ নাম, হালাল ভ্রমণ গাইড এবং মিযান ব্লুপ্রিন্ট।',
     newsletterTitle: 'সাপ্তাহিক ইসলামিক গাইডেন্স',
     newsletterSubtitle: 'আধ্যাত্মিক স্মরণ এবং আপডেট।',
@@ -255,7 +255,7 @@ const SCROLL_KEY = 'iloveislam_scroll';
 const THEME_KEY = 'iloveislam_theme';
 const LANG_KEY = 'iloveislam_lang';
 
-// ==================== DARK MODE HOOK ====================
+// ── Dark mode hook ──
 function useDarkMode() {
   const [dark, setDark] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -266,7 +266,6 @@ function useDarkMode() {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const isDark = saved === 'dark' || (!saved && prefersDark);
     setDark(isDark);
-    // Apply to <html> element — this is what Tailwind dark: classes check
     document.documentElement.classList.toggle('dark', isDark);
   }, []);
 
@@ -282,7 +281,7 @@ function useDarkMode() {
   return { dark, toggle, mounted };
 }
 
-// ==================== LIVE BAR ====================
+// ── Live bar ──
 function LiveBar() {
   const [time, setTime] = useState('');
   const [hijri, setHijri] = useState('');
@@ -323,7 +322,7 @@ function LiveBar() {
   );
 }
 
-// ==================== NEWSLETTER ====================
+// ── Newsletter ──
 function Newsletter({ t }: { t: TranslationsType }) {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
@@ -355,7 +354,7 @@ function Newsletter({ t }: { t: TranslationsType }) {
           placeholder={t.newsletterPlaceholder} required
           className="flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-white text-sm outline-none focus:ring-2 focus:ring-emerald-400" />
         <button type="submit" disabled={status === 'loading'}
-          className="px-4 py-2 rounded-xl text-white text-sm font-medium disabled:opacity-50 transition-all"
+          className="px-4 py-2 rounded-xl text-white text-sm font-medium disabled:opacity-50 transition-all hover:opacity-90"
           style={{ background: '#0a3d2e' }}>
           {status === 'loading' ? '...' : t.newsletterButton}
         </button>
@@ -365,11 +364,11 @@ function Newsletter({ t }: { t: TranslationsType }) {
   );
 }
 
-// ==================== TOOL CARD ====================
+// ── Tool card ──
 function ToolCard({ tool }: { tool: Tool }) {
   return (
     <Link href={tool.href}
-      className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-md transition-all group flex flex-col items-center text-center active:scale-95">
+      className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-md transition-all flex flex-col items-center text-center active:scale-95">
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-2 ${tool.color}`}>
         {tool.icon}
       </div>
@@ -379,7 +378,7 @@ function ToolCard({ tool }: { tool: Tool }) {
   );
 }
 
-// ==================== MAIN PAGE ====================
+// ==================== MAIN ====================
 export default function Home() {
   const [search, setSearch] = useState('');
   const [lang, setLang] = useState('en');
@@ -439,8 +438,6 @@ export default function Home() {
       {/* ── HEADER ── */}
       <header className="relative overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #0a3d2e 0%, #0d5238 100%)' }}>
-
-        {/* Background decorations */}
         <div className="absolute inset-0 pointer-events-none select-none">
           <div className="absolute top-4 left-8 text-white/5 text-8xl">☽</div>
           <div className="absolute bottom-2 right-8 text-white/5 text-6xl">✦</div>
@@ -448,7 +445,7 @@ export default function Home() {
 
         <div className="relative z-10 px-4 pt-3 pb-8 max-w-6xl mx-auto">
 
-          {/* Top bar — always LTR so About/Blog stay left, lang stays right */}
+          {/* Top bar — always LTR */}
           <div className="flex items-center justify-between mb-5" dir="ltr">
 
             {/* Left nav */}
@@ -460,9 +457,8 @@ export default function Home() {
             {/* Right controls */}
             <div className="flex items-center gap-2">
 
-              {/* Dark mode toggle — fixed, always works */}
-              <button
-                onClick={toggleDark}
+              {/* Dark mode */}
+              <button onClick={toggleDark}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-all text-base"
                 aria-label="Toggle dark mode">
                 {dark ? '☀️' : '🌙'}
@@ -473,18 +469,25 @@ export default function Home() {
                 <button onClick={() => setShowLangMenu(v => !v)}
                   className="flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-xl px-2.5 py-1.5 text-white/70 text-xs hover:bg-white/20 transition">
                   <span>{currentLang?.flag}</span>
-                  <span className="hidden sm:inline max-w-16 truncate">{currentLang?.label}</span>
+                  <span className="hidden sm:inline">{currentLang?.label}</span>
                   <span className="text-white/40">▾</span>
                 </button>
 
+                {/* ── DROPDOWN with scroll — fixed height so all 8 languages visible ── */}
                 {showLangMenu && (
-                  <div className="absolute top-9 right-0 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50 w-44">
+                  <div
+                    className="absolute top-9 right-0 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 w-44"
+                    style={{
+                      maxHeight: '280px',      // enough to show all 8 languages
+                      overflowY: 'auto',       // scroll if needed
+                      overflowX: 'hidden',
+                    }}>
                     {LANGUAGES.map(l => (
                       <button key={l.code} onClick={() => switchLang(l.code)}
                         className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-700 ${lang === l.code ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>
-                        <span>{l.flag}</span>
-                        <span>{l.label}</span>
-                        {lang === l.code && <span className="ml-auto text-emerald-500 text-xs">✓</span>}
+                        <span className="text-base flex-shrink-0">{l.flag}</span>
+                        <span className="flex-1">{l.label}</span>
+                        {lang === l.code && <span className="text-emerald-500 text-xs flex-shrink-0">✓</span>}
                       </button>
                     ))}
                   </div>
@@ -499,7 +502,6 @@ export default function Home() {
             <p className="text-white/50 text-sm mb-4">{t.tagline}</p>
             <LiveBar />
 
-            {/* Search */}
             <div className="max-w-md mx-auto flex items-center gap-3 bg-white/10 border border-white/20 rounded-2xl px-4 py-2.5 focus-within:border-white/40 transition">
               <span className="text-white/40">🔍</span>
               <input type="text" value={search} onChange={e => setSearch(e.target.value)}
@@ -520,7 +522,7 @@ export default function Home() {
       <main className="max-w-6xl mx-auto px-4 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
 
-          {/* Tools column */}
+          {/* Tools */}
           <div className="flex-1 min-w-0">
 
             {/* Mizan banner */}
@@ -566,7 +568,7 @@ export default function Home() {
               </div>
             ))}
 
-            {/* Stats pills */}
+            {/* Stats */}
             {!search && (
               <div className="flex flex-wrap justify-center gap-2 my-5">
                 {Object.values(t.stats).map(label => (
@@ -577,7 +579,7 @@ export default function Home() {
               </div>
             )}
 
-            {/* SEO about block */}
+            {/* SEO block */}
             {!search && (
               <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
                 <h2 className="font-semibold text-gray-800 dark:text-gray-200 text-sm mb-2">{t.aboutTitle}</h2>
