@@ -1,15 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
-import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
-import ClientProviders from "@/components/ClientProviders";
 
 const geist = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
-// Separate viewport export (Next.js 14+ requirement)
+// Separate viewport export for Next.js 14+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -31,7 +29,6 @@ export const metadata: Metadata = {
     "islamic tools", "free muslim tools", "salah times", "islamic date today",
     "halal food finder", "mosque finder", "ramadan planner",
     "islamic inheritance calculator", "mizan islamic destiny",
-    "زكاة", "أوقات الصلاة", "القرآن الكريم", "زکوٰۃ کیلکولیٹر", "نماز کے اوقات",
   ],
   authors: [{ name: "I Love Islam", url: "https://www.iloveislam.life" }],
   creator: "I Love Islam",
@@ -87,7 +84,6 @@ export const metadata: Metadata = {
   verification: {
     google: "S6Q7IIFvzrp0iRkQqkMmJm7EV4IPTZlrAAMmd66qN1I",
   },
-  // ── Icons (favicon + app icons) ──────────────────────────────────────────
   icons: {
     icon: [
       { url: "/favicon.png", type: "image/png" },
@@ -99,7 +95,6 @@ export const metadata: Metadata = {
     ],
     shortcut: "/favicon.png",
   },
-  // PWA manifest
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -110,6 +105,23 @@ export const metadata: Metadata = {
     telephone: false,
   },
 };
+
+// Simple Client Provider component (inline to avoid extra files)
+function ClientProviders({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+}
+
+// Simple Service Worker Registration (inline)
+function ServiceWorkerRegistration() {
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch((error) => {
+        console.log('Service Worker registration failed:', error);
+      });
+    });
+  }
+  return null;
+}
 
 export default function RootLayout({
   children,
@@ -139,10 +151,9 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#0a3d2e" />
         <meta name="msapplication-TileImage" content="/icon-144.png" />
 
-        {/* Favicon variations */}
+        {/* Favicon */}
         <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0a3d2e" />
         
         {/* PWA Manifest */}
         <link rel="manifest" href="/manifest.json" />
@@ -156,7 +167,7 @@ export default function RootLayout({
               "@type": "WebSite",
               name: "I Love Islam",
               url: "https://www.iloveislam.life",
-              description: "Free Islamic tools for every Muslim — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader and more.",
+              description: "Free Islamic tools for every Muslim",
               potentialAction: {
                 "@type": "SearchAction",
                 target: "https://www.iloveislam.life/?search={search_term_string}",
