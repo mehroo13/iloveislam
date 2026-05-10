@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
+import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+import ClientProviders from "@/components/ClientProviders";
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -76,16 +78,35 @@ export const metadata: Metadata = {
   verification: {
     google: "S6Q7IIFvzrp0iRkQqkMmJm7EV4IPTZlrAAMmd66qN1I",
   },
-
   // ── Icons (favicon + app icons) ──────────────────────────────────────────
   icons: {
     icon: [
       { url: "/favicon.png", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
-      { url: "/favicon.png", sizes: "180x180", type: "image/png" },
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
     shortcut: "/favicon.png",
+  },
+  // PWA manifest
+  manifest: "/manifest.json",
+  // Theme color for PWA
+  themeColor: "#0a3d2e",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 5,
+    viewportFit: "cover",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "I Love Islam",
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: {
+    telephone: false,
   },
 };
 
@@ -97,7 +118,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geist.variable} h-full antialiased`}>
       <head>
-
         {/* Google AdSense */}
         <script
           async
@@ -106,12 +126,28 @@ export default function RootLayout({
         ></script>
 
         <link rel="canonical" href="https://www.iloveislam.life" />
+        
+        {/* PWA Meta Tags */}
         <meta name="theme-color" content="#0a3d2e" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="I Love Islam" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="application-name" content="I Love Islam" />
+        
+        {/* Windows PWA */}
+        <meta name="msapplication-TileColor" content="#0a3d2e" />
+        <meta name="msapplication-TileImage" content="/icon-144.png" />
 
-        {/* Favicon — points to favicon.png in your public folder */}
+        {/* Favicon variations */}
         <link rel="icon" href="/favicon.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/favicon.png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0a3d2e" />
+        
+        {/* PWA Manifest */}
+        <link rel="manifest" href="/manifest.json" />
 
+        {/* Schema.org structured data */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -132,7 +168,10 @@ export default function RootLayout({
       </head>
 
       <body className="min-h-full flex flex-col">
-        {children}
+        <ClientProviders>
+          {children}
+        </ClientProviders>
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );
