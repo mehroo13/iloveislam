@@ -7,25 +7,30 @@ import Link from 'next/link';
 const KAABA_LAT = 21.4225;
 const KAABA_LNG = 39.8262;
 
-// Accurate Qibla calculation
+// Accurate Qibla calculation using the correct spherical formula
 function calculateQibla(latitude: number, longitude: number): number {
+  // Convert to radians
   const lat1 = latitude * Math.PI / 180;
   const lon1 = longitude * Math.PI / 180;
   const lat2 = KAABA_LAT * Math.PI / 180;
   const lon2 = KAABA_LNG * Math.PI / 180;
   
+  // Difference in longitude
   const deltaLon = lon2 - lon1;
   
-  const y = Math.sin(deltaLon);
-  const x = Math.cos(lat1) * Math.tan(lat2) - Math.sin(lat1) * Math.cos(deltaLon);
+  // Calculate the qibla angle
+  const x = Math.sin(deltaLon);
+  const y = Math.cos(lat1) * Math.tan(lat2) - Math.sin(lat1) * Math.cos(deltaLon);
   
-  let qibla = Math.atan2(y, x) * 180 / Math.PI;
+  let qibla = Math.atan2(x, y) * 180 / Math.PI;
+  
+  // Normalize to 0-360 degrees
   qibla = (qibla + 360) % 360;
   
   return Math.round(qibla * 100) / 100;
 }
 
-// Calculate distance
+// Calculate distance using Haversine formula
 function calculateDistance(lat: number, lng: number): number {
   const R = 6371;
   const dLat = (KAABA_LAT - lat) * Math.PI / 180;
@@ -41,14 +46,36 @@ function calculateDistance(lat: number, lng: number): number {
   return Math.round(R * c);
 }
 
-// Get cardinal direction
+// Get cardinal direction with proper name
 function getCardinalDirection(degrees: number): string {
-  const directions = [
-    'N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
-    'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'
-  ];
-  const index = Math.round(degrees / 22.5) % 16;
-  return directions[index];
+  if (degrees >= 348.75 || degrees < 11.25) return 'N';
+  if (degrees >= 11.25 && degrees < 33.75) return 'NNE';
+  if (degrees >= 33.75 && degrees < 56.25) return 'NE';
+  if (degrees >= 56.25 && degrees < 78.75) return 'ENE';
+  if (degrees >= 78.75 && degrees < 101.25) return 'E';
+  if (degrees >= 101.25 && degrees < 123.75) return 'ESE';
+  if (degrees >= 123.75 && degrees < 146.25) return 'SE';
+  if (degrees >= 146.25 && degrees < 168.75) return 'SSE';
+  if (degrees >= 168.75 && degrees < 191.25) return 'S';
+  if (degrees >= 191.25 && degrees < 213.75) return 'SSW';
+  if (degrees >= 213.75 && degrees < 236.25) return 'SW';
+  if (degrees >= 236.25 && degrees < 258.75) return 'WSW';
+  if (degrees >= 258.75 && degrees < 281.25) return 'W';
+  if (degrees >= 281.25 && degrees < 303.75) return 'WNW';
+  if (degrees >= 303.75 && degrees < 326.25) return 'NW';
+  return 'NNW';
+}
+
+// Get direction emoji for visual reference
+function getDirectionEmoji(degrees: number): string {
+  if (degrees >= 337.5 || degrees < 22.5) return '⬆️';
+  if (degrees >= 22.5 && degrees < 67.5) return '↗️';
+  if (degrees >= 67.5 && degrees < 112.5) return '➡️';
+  if (degrees >= 112.5 && degrees < 157.5) return '↘️';
+  if (degrees >= 157.5 && degrees < 202.5) return '⬇️';
+  if (degrees >= 202.5 && degrees < 247.5) return '↙️';
+  if (degrees >= 247.5 && degrees < 292.5) return '⬅️';
+  return '↖️';
 }
 
 interface LocationInfo {
@@ -56,6 +83,7 @@ interface LocationInfo {
   lng: number;
   name: string;
   country: string;
+  flag: string;
 }
 
 export default function QiblaFinder() {
@@ -71,23 +99,24 @@ export default function QiblaFinder() {
   const [compassPermission, setCompassPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
   const [compassEnabled, setCompassEnabled] = useState(false);
   const [isFacingQibla, setIsFacingQibla] = useState(false);
+  const [alignmentAccuracy, setAlignmentAccuracy] = useState<number>(0);
   
-  // Refs with proper initialization (FIXED)
   const animationRef = useRef<number | null>(null);
   const lastHeadingRef = useRef<number>(0);
   const compassListenerRef = useRef<((event: DeviceOrientationEvent) => void) | null>(null);
 
-  // Calculate arrow rotation (qibla direction minus compass heading)
-  const arrowRotation = qiblaDirection !== null && compassEnabled
-    ? (qiblaDirection - compassHeading + 360) % 360
-    : qiblaDirection || 0;
-
-  // Check if facing Qibla (within +/- 5 degrees)
+  // Calculate arrow rotation and facing status
   useEffect(() => {
     if (qiblaDirection !== null && compassEnabled) {
-      const diff = Math.abs(((qiblaDirection - compassHeading + 360) % 360) - 180);
-      const isFacing = diff <= 5;
-      setIsFacingQibla(isFacing);
+      // Calculate the difference between where user is pointing and Qibla
+      let diff = Math.abs(qiblaDirection - compassHeading);
+      diff = Math.min(diff, 360 - diff);
+      
+      // Calculate alignment accuracy (0 = perfect, 180 = opposite)
+      setAlignmentAccuracy(diff);
+      
+      // Check if facing Qibla (within ±5 degrees)
+      setIsFacingQibla(diff <= 5);
     }
   }, [qiblaDirection, compassHeading, compassEnabled]);
 
@@ -100,7 +129,7 @@ export default function QiblaFinder() {
 
   // Update location
   const updateLocation = useCallback(async (lat: number, lng: number, name: string, country: string = '', countryCode: string = '') => {
-    setLocation({ lat, lng, name, country });
+    setLocation({ lat, lng, name, country, flag: getFlagEmoji(countryCode) });
     const qibla = calculateQibla(lat, lng);
     const dist = calculateDistance(lat, lng);
     setQiblaDirection(qibla);
@@ -173,7 +202,7 @@ export default function QiblaFinder() {
     }
   };
 
-  // Cleanup on unmount
+  // Cleanup
   useEffect(() => {
     return () => {
       stopCompass();
@@ -265,17 +294,24 @@ export default function QiblaFinder() {
     setCompassEnabled(false);
     setCompassPermission('prompt');
     setIsFacingQibla(false);
+    setAlignmentAccuracy(0);
     stopCompass();
   };
 
-  // Test cities
+  // Calculate arrow rotation for compass
+  const arrowRotation = qiblaDirection !== null && compassEnabled
+    ? (qiblaDirection - compassHeading + 360) % 360
+    : qiblaDirection || 0;
+
+  // Test cities with known Qibla directions
   const testCities = [
-    { name: 'New York', lat: 40.7128, lng: -74.0060 },
-    { name: 'London', lat: 51.5074, lng: -0.1278 },
-    { name: 'Istanbul', lat: 41.0082, lng: 28.9784 },
-    { name: 'Makkah', lat: 21.4225, lng: 39.8262 },
-    { name: 'Delhi', lat: 28.6139, lng: 77.2090 },
-    { name: 'Tokyo', lat: 35.6895, lng: 139.6917 },
+    { name: 'New York', lat: 40.7128, lng: -74.0060, expected: '58° NE' },
+    { name: 'London', lat: 51.5074, lng: -0.1278, expected: '118° ESE' },
+    { name: 'Istanbul', lat: 41.0082, lng: 28.9784, expected: '153° SSE' },
+    { name: 'Sydney', lat: -33.8688, lng: 151.2093, expected: '295° WNW' },
+    { name: 'Delhi', lat: 28.6139, lng: 77.2090, expected: '270° W' },
+    { name: 'Tokyo', lat: 35.6895, lng: 139.6917, expected: '293° WNW' },
+    { name: 'Makkah', lat: 21.4225, lng: 39.8262, expected: '0° N' },
   ];
 
   return (
@@ -285,7 +321,7 @@ export default function QiblaFinder() {
         <Link href="/" className="text-white/70 hover:text-white text-sm flex items-center gap-1">
           <span>←</span> Back
         </Link>
-        <h1 className="text-white font-semibold text-lg flex-1 text-center">🕋 Qibla Finder</h1>
+        <h1 className="text-white font-semibold text-lg flex-1 text-center">🕋 Qibla Compass</h1>
         <div className="w-12"></div>
       </header>
 
@@ -294,9 +330,9 @@ export default function QiblaFinder() {
         {!qiblaDirection && (
           <div className="space-y-4">
             <div className="bg-white/10 rounded-2xl p-6 text-center border border-white/20">
-              <div className="text-6xl mb-4">🕋</div>
-              <h2 className="text-white text-xl font-semibold mb-2">Find Qibla Direction</h2>
-              <p className="text-white/60 text-sm">Enter your location or use GPS</p>
+              <div className="text-6xl mb-4">🧭</div>
+              <h2 className="text-white text-xl font-semibold mb-2">Qibla Compass</h2>
+              <p className="text-white/60 text-sm">Find the direction of the Holy Kaaba</p>
             </div>
 
             <button
@@ -304,7 +340,7 @@ export default function QiblaFinder() {
               disabled={loading}
               className="w-full bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl py-4 font-semibold flex items-center justify-center gap-2 shadow-lg"
             >
-              📍 Use My Current Location
+              📍 Use My Location
             </button>
 
             <div className="relative">
@@ -341,7 +377,7 @@ export default function QiblaFinder() {
                 {testCities.map((city) => (
                   <button
                     key={city.name}
-                    onClick={() => updateLocation(city.lat, city.lng, city.name, '')}
+                    onClick={() => updateLocation(city.lat, city.lng, city.name, '', '')}
                     className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-full px-3 py-1.5 text-white/70 text-xs"
                   >
                     {city.name}
@@ -368,35 +404,36 @@ export default function QiblaFinder() {
         {/* Qibla Display */}
         {qiblaDirection !== null && location && (
           <div className="space-y-5">
-            {/* Location Info */}
-            <div className="bg-white/10 rounded-2xl p-3 text-center border border-white/20">
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-white font-medium">{location.name}</span>
+            {/* Location Header */}
+            <div className="bg-white/10 rounded-2xl p-4 text-center border border-white/20">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <span className="text-2xl">{location.flag || '📍'}</span>
+                <span className="text-white font-semibold text-lg">{location.name}</span>
                 {location.country && <span className="text-white/50 text-sm">• {location.country}</span>}
               </div>
-              <p className="text-white/30 text-xs mt-1">
+              <p className="text-white/40 text-xs">
                 {Math.abs(location.lat).toFixed(2)}°{location.lat >= 0 ? 'N' : 'S'}, {Math.abs(location.lng).toFixed(2)}°{location.lng >= 0 ? 'E' : 'W'}
               </p>
             </div>
 
-            {/* Compass Circle */}
+            {/* Main Compass - With Center Bubble/Level Indicator */}
             <div className="relative w-80 h-80 mx-auto">
-              {/* Outer Ring */}
+              {/* Compass Outer Ring */}
               <div className="absolute inset-0 rounded-full bg-emerald-800/40 border-4 border-white/30 shadow-2xl backdrop-blur-sm">
                 {/* N S E W Labels */}
-                <div className="absolute top-1 left-1/2 transform -translate-x-1/2">
+                <div className="absolute top-1 left-1/2 transform -translate-x-1/2 z-10">
                   <div className="text-red-400 font-bold text-sm">N</div>
                   <div className="w-px h-8 bg-red-400/50 mx-auto"></div>
                 </div>
-                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2">
+                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 z-10">
                   <div className="w-px h-8 bg-white/30 mx-auto"></div>
                   <div className="text-white/40 font-bold text-sm">S</div>
                 </div>
-                <div className="absolute right-1 top-1/2 transform -translate-y-1/2">
+                <div className="absolute right-1 top-1/2 transform -translate-y-1/2 z-10">
                   <div className="text-white/40 font-bold text-sm">E</div>
                   <div className="w-8 h-px bg-white/30 mx-auto"></div>
                 </div>
-                <div className="absolute left-1 top-1/2 transform -translate-y-1/2">
+                <div className="absolute left-1 top-1/2 transform -translate-y-1/2 z-10">
                   <div className="text-white/40 font-bold text-sm">W</div>
                   <div className="w-8 h-px bg-white/30 mx-auto"></div>
                 </div>
@@ -421,9 +458,9 @@ export default function QiblaFinder() {
                 })}
               </div>
 
-              {/* Qibla Arrow */}
+              {/* Qibla Needle */}
               <div
-                className="absolute inset-0 transition-transform duration-200 ease-out"
+                className="absolute inset-0 transition-transform duration-200 ease-out z-20"
                 style={{ transform: `rotate(${arrowRotation}deg)` }}
               >
                 <div className="absolute top-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center">
@@ -432,34 +469,85 @@ export default function QiblaFinder() {
                 </div>
               </div>
 
-              {/* Center */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-5 h-5 rounded-full bg-white shadow-lg z-10"></div>
+              {/* Center Bubble / Level Indicator - This is what you asked for! */}
+              <div className="absolute inset-0 flex items-center justify-center z-30">
+                {/* Outer ring that changes size based on alignment accuracy */}
+                <div className={`rounded-full transition-all duration-300 flex items-center justify-center
+                  ${isFacingQibla && compassEnabled 
+                    ? 'bg-emerald-500/40 w-16 h-16 shadow-lg shadow-emerald-500/50' 
+                    : 'bg-white/20 w-12 h-12'}`}
+                >
+                  {/* Center dot */}
+                  <div className={`rounded-full transition-all duration-300
+                    ${isFacingQibla && compassEnabled 
+                      ? 'w-4 h-4 bg-emerald-300 animate-pulse' 
+                      : 'w-3 h-3 bg-white'}`}
+                  />
+                </div>
+                {/* Crosshair lines (+) */}
+                <div className="absolute w-10 h-px bg-white/40"></div>
+                <div className="absolute w-px h-10 bg-white/40"></div>
+                {/* Diagonal lines for better alignment */}
+                <div className="absolute w-8 h-px bg-white/20 transform rotate-45"></div>
+                <div className="absolute w-8 h-px bg-white/20 transform -rotate-45"></div>
               </div>
+
+              {/* Accuracy ring that appears when close to Qibla */}
+              {compassEnabled && alignmentAccuracy <= 10 && !isFacingQibla && (
+                <div className="absolute inset-0 rounded-full border-4 border-yellow-500/50 animate-pulse z-15"
+                     style={{ transform: 'scale(0.85)' }} />
+              )}
             </div>
 
-            {/* Qibla Info */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white/10 rounded-xl p-3 text-center">
-                <p className="text-white/50 text-xs">Qibla Direction</p>
-                <p className="text-white text-2xl font-bold">{qiblaDirection}°</p>
-                <p className="text-emerald-300 text-sm">{getCardinalDirection(qiblaDirection)}</p>
-              </div>
-              <div className="bg-white/10 rounded-xl p-3 text-center">
-                <p className="text-white/50 text-xs">Distance</p>
-                <p className="text-white text-2xl font-bold">{distance?.toLocaleString()}</p>
-                <p className="text-white/60 text-sm">km</p>
-              </div>
-            </div>
-
-            {/* Facing Qibla Indicator */}
+            {/* Facing Qibla Banner */}
             {isFacingQibla && compassEnabled && (
-              <div className="bg-emerald-500/30 border-2 border-emerald-400 rounded-xl p-3 text-center animate-pulse">
-                <p className="text-emerald-300 font-bold">✓ You are facing the Qibla! ✓</p>
+              <div className="bg-emerald-500/40 border-2 border-emerald-400 rounded-xl p-3 text-center animate-pulse">
+                <p className="text-emerald-300 font-bold text-lg">✓ You are facing the Qibla! ✓</p>
+                <p className="text-emerald-200/70 text-xs mt-1">Perfect alignment!</p>
               </div>
             )}
 
-            {/* Compass Button */}
+            {/* Alignment Accuracy Meter (NEW) */}
+            {compassEnabled && !isFacingQibla && (
+              <div className="bg-white/10 rounded-xl p-3">
+                <div className="flex justify-between text-xs text-white/60 mb-1">
+                  <span>← Far</span>
+                  <span>Alignment</span>
+                  <span>Perfect →</span>
+                </div>
+                <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.max(0, 100 - (alignmentAccuracy / 1.8))}%` }}
+                  />
+                </div>
+                <p className="text-white/40 text-center text-xs mt-2">
+                  {alignmentAccuracy <= 10 
+                    ? "🎯 Getting close! Keep turning..." 
+                    : alignmentAccuracy <= 30
+                    ? "🔄 You're in the right area..."
+                    : "📱 Turn your phone towards the arrow"}
+                </p>
+              </div>
+            )}
+
+            {/* Qibla Info Cards */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white/10 rounded-xl p-3 text-center">
+                <p className="text-white/50 text-xs mb-1">Qibla Direction</p>
+                <p className="text-white text-2xl font-bold">{qiblaDirection}°</p>
+                <p className="text-emerald-300 text-sm font-semibold">{getCardinalDirection(qiblaDirection)}</p>
+                <p className="text-white/40 text-xs mt-1">{getDirectionEmoji(qiblaDirection)}</p>
+              </div>
+              <div className="bg-white/10 rounded-xl p-3 text-center">
+                <p className="text-white/50 text-xs mb-1">Distance to Kaaba</p>
+                <p className="text-white text-2xl font-bold">{distance?.toLocaleString()}</p>
+                <p className="text-white/60 text-sm">kilometers</p>
+                <p className="text-white/40 text-xs mt-1">{Math.round(distance! * 0.621371).toLocaleString()} miles</p>
+              </div>
+            </div>
+
+            {/* Compass Status */}
             {compassPermission === 'prompt' && (
               <button
                 onClick={enableCompass}
@@ -472,13 +560,25 @@ export default function QiblaFinder() {
             {compassPermission === 'granted' && compassEnabled && (
               <div className="flex items-center justify-center gap-2 bg-emerald-500/20 border border-emerald-500/30 rounded-xl py-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                <p className="text-emerald-300 text-sm">Compass Active • {Math.round(compassHeading)}°</p>
+                <p className="text-emerald-300 text-sm font-medium">
+                  Compass Active • {Math.round(compassHeading)}° {getDirectionEmoji(compassHeading)}
+                </p>
               </div>
             )}
 
             {compassPermission === 'granted' && !compassEnabled && (
-              <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-xl p-2 text-center">
-                <p className="text-yellow-300 text-sm">Waiting for compass. Try moving your phone in a figure-8 pattern.</p>
+              <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-xl p-3 text-center">
+                <p className="text-yellow-300 text-sm">
+                  ⚡ Waiting for compass data. Move your phone in a figure-8 pattern to calibrate.
+                </p>
+              </div>
+            )}
+
+            {compassPermission === 'denied' && (
+              <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-xl p-3 text-center">
+                <p className="text-yellow-300 text-sm">
+                  🔒 Compass permission denied. Use the fixed direction above with any compass app.
+                </p>
               </div>
             )}
 
@@ -486,8 +586,11 @@ export default function QiblaFinder() {
             <div className="bg-white/5 rounded-xl p-3">
               <p className="text-white/60 text-xs text-center leading-relaxed">
                 {compassEnabled 
-                  ? "🔄 The green arrow shows Qibla direction. Rotate your phone to align with it."
-                  : "📐 Tap 'Enable Live Compass' above to get real-time direction. The arrow shows the fixed Qibla direction."}
+                  ? "🎯 The green arrow shows Qibla direction. Rotate your phone until the arrow points to 🕋 and you see the green bubble center."
+                  : "📐 Tap 'Enable Live Compass' above. The arrow shows the fixed Qibla direction from your location."}
+              </p>
+              <p className="text-white/40 text-[10px] text-center mt-2">
+                For best accuracy: Hold phone flat, away from magnetic interference
               </p>
             </div>
 
