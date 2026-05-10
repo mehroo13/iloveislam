@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 
 // ==================== TYPES ====================
 interface Tool {
@@ -365,16 +366,11 @@ function Newsletter({ t }: { t: TranslationsType }) {
 }
 
 // ── Tool card with scroll save ──
-function ToolCard({ tool }: { tool: Tool }) {
-  // Save current scroll position before navigating
-  const handleClick = () => {
-    sessionStorage.setItem(SCROLL_KEY, window.scrollY.toString());
-  };
-
+function ToolCard({ tool, onSaveScroll }: { tool: Tool; onSaveScroll: () => void }) {
   return (
     <Link 
       href={tool.href} 
-      onClick={handleClick}
+      onClick={onSaveScroll}
       className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-md transition-all flex flex-col items-center text-center active:scale-95">
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-2 ${tool.color}`}>
         {tool.icon}
@@ -391,14 +387,28 @@ export default function Home() {
   const [lang, setLang] = useState('en');
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [isRestoringScroll, setIsRestoringScroll] = useState(true);
   const { dark, toggle: toggleDark, mounted: darkMounted } = useDarkMode();
   const langMenuRef = useRef<HTMLDivElement>(null);
   const langButtonRef = useRef<HTMLButtonElement>(null);
+  const pathname = usePathname();
 
   const t = TRANSLATIONS[lang] || TRANSLATIONS['en'];
   const isRTL = RTL_LANGS.includes(lang);
   const tools = TOOLS_DATA(t);
+
+  // Save scroll position function
+  const saveScrollPosition = useCallback(() => {
+    sessionStorage.setItem(SCROLL_KEY, window.scrollY.toString());
+  }, []);
+
+  // Restore scroll position function
+  const restoreScrollPosition = useCallback(() => {
+    const saved = sessionStorage.getItem(SCROLL_KEY);
+    if (saved) {
+      const scrollPosition = parseInt(saved);
+      window.scrollTo({ top: scrollPosition, behavior: 'instant' });
+    }
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -436,34 +446,25 @@ export default function Home() {
     };
   }, [showLangMenu]);
 
-  // Save scroll position on scroll
+  // Save scroll on scroll
   useEffect(() => {
-    const saveScroll = () => {
-      if (!isRestoringScroll) {
-        sessionStorage.setItem(SCROLL_KEY, window.scrollY.toString());
-      }
-    };
-    
-    window.addEventListener('scroll', saveScroll, { passive: true });
-    return () => window.removeEventListener('scroll', saveScroll);
-  }, [isRestoringScroll]);
+    window.addEventListener('scroll', saveScrollPosition, { passive: true });
+    return () => window.removeEventListener('scroll', saveScrollPosition);
+  }, [saveScrollPosition]);
 
-  // Restore scroll position when page loads
+  // Restore scroll when page loads/returns
   useEffect(() => {
-    if (!mounted) return;
-    
-    const savedScroll = sessionStorage.getItem(SCROLL_KEY);
-    if (savedScroll) {
-      const scrollPosition = parseInt(savedScroll);
-      // Use setTimeout to ensure DOM is fully rendered
-      setTimeout(() => {
-        window.scrollTo({ top: scrollPosition, behavior: 'instant' });
-        setIsRestoringScroll(false);
-      }, 100);
-    } else {
-      setIsRestoringScroll(false);
+    if (mounted) {
+      // Small delay to ensure DOM is ready
+      const timer = setTimeout(restoreScrollPosition, 50);
+      return () => clearTimeout(timer);
     }
-  }, [mounted]);
+  }, [mounted, restoreScrollPosition, pathname]);
+
+  // Also restore when pathname changes (coming back from tool page)
+  useEffect(() => {
+    restoreScrollPosition();
+  }, [restoreScrollPosition, pathname]);
 
   const switchLang = useCallback((code: string) => {
     setLang(code);
@@ -591,7 +592,7 @@ export default function Home() {
             {!search && (
               <Link 
                 href="/mizan" 
-                onClick={() => sessionStorage.setItem(SCROLL_KEY, window.scrollY.toString())}
+                onClick={saveScrollPosition}
                 className="block mb-6 group">
                 <div className="rounded-2xl p-4 flex items-center gap-4 hover:shadow-lg transition-all"
                   style={{ background: 'linear-gradient(135deg, #1a0a00, #3d1f00)' }}>
@@ -628,7 +629,7 @@ export default function Home() {
                   <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
                 </div>
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                  {section.items.map(tool => <ToolCard key={tool.name} tool={tool} />)}
+                  {section.items.map(tool => <ToolCard key={tool.name} tool={tool} onSaveScroll={saveScrollPosition} />)}
                 </div>
               </div>
             ))}
