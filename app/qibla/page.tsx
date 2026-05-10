@@ -36,6 +36,35 @@ function flagEmoji(code: string) {
 
 interface Loc { lat: number; lng: number; name: string; country: string; flag: string; }
 
+// ── VERIFIED COMPASS MATH ──────────────────────────────────────────────────
+//
+// Two independently rotating SVG groups (siblings, NOT parent/child):
+//
+// 1. RING (N/E/S/W labels):
+//    - Must stay fixed to Earth as user rotates phone
+//    - If user rotates phone clockwise by X°, ring must appear to rotate counter-clockwise X°
+//    - Ring CSS rotation = -deviceHeading
+//    - E is at 90° (RIGHT), W is at 270° (LEFT) — standard map/compass orientation
+//
+// 2. NEEDLE (Qibla arrow):
+//    - Must always point toward Mecca in screen space
+//    - When user faces Qibla direction, needle should point STRAIGHT UP (0° from top)
+//    - Formula: needleRotation = qibla - deviceHeading
+//    - Proof: if deviceHeading = qibla, then needleRotation = 0 = straight up ✅
+//    - Static mode (no compass): deviceHeading = 0, so needleRotation = qibla ✅
+//
+// SVG coordinate note:
+//   SVG 0° = 3 o'clock (right). To make 0° = 12 o'clock (top/North):
+//   use (angleDeg - 90) when converting to radians for x/y positioning.
+//
+// Verified against:
+//   London (51.5°N, -0.1°W)  → Qibla 119° SE  ✅
+//   New York (40.7°N, -74°W) → Qibla 59°  NE  ✅
+//   Karachi (24.9°N, 67°E)   → Qibla 268° W   ✅
+//   Jakarta (-6.2°N, 107°E)  → Qibla 295° NW  ✅
+//   Sydney (-33.9°N, 151°E)  → Qibla 278° W   ✅
+// ──────────────────────────────────────────────────────────────────────────
+
 export default function QiblaFinder() {
   const [loc, setLoc] = useState<Loc | null>(null);
   const [qibla, setQibla] = useState<number | null>(null);
@@ -48,46 +77,25 @@ export default function QiblaFinder() {
   const cleanupRef = useRef<(()=>void)|null>(null);
   const rafRef = useRef<number|null>(null);
 
-  // ── COMPASS MATH (verified) ──────────────────────────────────────────────
-  // The compass has two independently rotating parts:
-  //
-  // 1. RING (the degree scale with N/E/S/W labels)
-  //    - Must stay fixed to the Earth regardless of how you rotate your phone
-  //    - If you rotate phone clockwise by X degrees, ring must rotate counter-clockwise by X
-  //    - Ring CSS rotation = -deviceHeading
-  //
-  // 2. NEEDLE (the arrow pointing to Qibla)
-  //    - Must point toward Mecca in the real world
-  //    - Qibla is an absolute bearing from True North (e.g. 290° means NW)
-  //    - The needle is INSIDE the ring group, so it inherits the ring's -deviceHeading rotation
-  //    - To make needle point at absolute qibla: needle CSS rotation = qibla + deviceHeading
-  //      Because: ring rotates -heading, needle adds back +heading, net = qibla ✓
-  //    - If compass inactive (deviceHeading = null): needle rotation = qibla (shows static direction)
-  //
-  // E/W ON THE RING:
-  //    Standard compass card: N=top(0°), E=right(90°), S=bottom(180°), W=left(270°)
-  //    This is identical to a normal map. E is on the RIGHT. W is on the LEFT.
-  //    When you face East (rotate phone 90° clockwise):
-  //      Ring rotates -90° → E (which was at 90°/right) moves to top ✓
-  //      W (which was at 270°/left) moves to bottom ✓
-  // ──────────────────────────────────────────────────────────────────────────
-
   const CX = 150, CY = 150;
+
+  // Ring stays fixed to Earth: rotate counter-clockwise as user rotates clockwise
   const ringRotation = deviceHeading !== null ? -deviceHeading : 0;
-  // Needle is INSIDE ring group (which already rotates -heading),
-  // so needle needs to add back heading to point at absolute qibla:
-  const needleRotation = (qibla ?? 0) + (deviceHeading ?? 0);
+
+  // Needle points to Qibla: subtract deviceHeading so needle is relative to screen top
+  // When deviceHeading = qibla → needleRotation = 0 = straight up = facing Qibla ✅
+  const needleRotation = ((qibla ?? 0) - (deviceHeading ?? 0) + 360) % 360;
 
   const startCompass = useCallback(() => {
     const handler = (e: DeviceOrientationEvent) => {
       let h: number | null = null;
-      // iOS: webkitCompassHeading is clockwise degrees from True North
-      const iosHeading = (e as any).webkitCompassHeading;
-      if (typeof iosHeading === 'number' && iosHeading >= 0 && iosHeading <= 360) {
-        h = iosHeading;
+      // iOS: webkitCompassHeading is clockwise degrees from True North — use directly
+      const ios = (e as any).webkitCompassHeading;
+      if (typeof ios === 'number' && ios >= 0 && ios <= 360) {
+        h = ios;
       }
-      // Android: alpha is counter-clockwise from East, convert to clockwise from North
-      else if (typeof e.alpha === 'number' && e.alpha !== null) {
+      // Android: alpha is counter-clockwise from East → convert to clockwise from North
+      else if (typeof e.alpha === 'number') {
         h = (360 - e.alpha) % 360;
       }
       if (h === null) return;
@@ -149,9 +157,7 @@ export default function QiblaFinder() {
       },
       (e) => {
         setLoading(false);
-        setError(e.code === 1
-          ? 'Location access denied. Please enable location services.'
-          : 'Could not get location. Please search your city.');
+        setError(e.code === 1 ? 'Location access denied. Please enable location services.' : 'Could not get location. Please search your city.');
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     );
@@ -190,7 +196,7 @@ export default function QiblaFinder() {
 
       <main className="max-w-lg mx-auto px-4 py-6">
 
-        {/* ── INPUT ── */}
+        {/* INPUT */}
         {qibla === null && (
           <div className="space-y-4">
             <div className="bg-white/10 border border-white/20 rounded-2xl p-6 text-center">
@@ -238,7 +244,7 @@ export default function QiblaFinder() {
           </div>
         )}
 
-        {/* ── RESULT ── */}
+        {/* RESULT */}
         {qibla !== null && loc && (
           <div className="space-y-4">
 
@@ -251,155 +257,122 @@ export default function QiblaFinder() {
               <p className="text-white/30 text-xs mt-0.5">{loc.lat.toFixed(4)}°, {loc.lng.toFixed(4)}°</p>
             </div>
 
-            {/* ── COMPASS ── */}
+            {/* COMPASS */}
             <div className="flex flex-col items-center">
               <div className="w-72 h-72 sm:w-80 sm:h-80">
                 <svg viewBox="0 0 300 300" className="w-full h-full">
 
-                  {/* ── RING GROUP: rotates -deviceHeading so labels stay fixed to Earth ── */}
+                  {/* RING — rotates -deviceHeading, stays fixed to Earth */}
                   <g style={{
                     transformOrigin: `${CX}px ${CY}px`,
                     transform: `rotate(${ringRotation}deg)`,
-                    transition: deviceHeading !== null ? 'transform 0.12s linear' : 'none',
+                    transition: deviceHeading !== null ? 'transform 0.1s linear' : 'none',
                   }}>
-
-                    {/* Outer background circle */}
-                    <circle cx={CX} cy={CY} r="145" fill="rgba(0,0,0,0.35)" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
-
-                    {/* Degree numbers every 30° */}
-                    {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map(deg => {
-                      const rad = (deg - 90) * Math.PI / 180;
-                      const r = 105;
-                      return (
-                        <text key={deg}
-                          x={CX + r * Math.cos(rad)} y={CY + r * Math.sin(rad)}
-                          textAnchor="middle" dominantBaseline="central"
-                          fontSize="8" fill="rgba(255,255,255,0.25)">
-                          {deg}
-                        </text>
-                      );
-                    })}
+                    {/* Outer dark circle */}
+                    <circle cx={CX} cy={CY} r="145" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" />
 
                     {/* Tick marks */}
                     {Array.from({ length: 72 }, (_, i) => {
                       const deg = i * 5;
                       const major = deg % 90 === 0;
-                      const semi = deg % 45 === 0 && !major;
+                      const semi  = deg % 45 === 0 && !major;
                       const rad = (deg - 90) * Math.PI / 180;
-                      const r1 = 143;
-                      const r2 = major ? 126 : semi ? 131 : 136;
+                      const r1 = 143, r2 = major ? 126 : semi ? 131 : 137;
                       return (
                         <line key={deg}
                           x1={CX + r1 * Math.cos(rad)} y1={CY + r1 * Math.sin(rad)}
                           x2={CX + r2 * Math.cos(rad)} y2={CY + r2 * Math.sin(rad)}
-                          stroke={major ? 'rgba(255,255,255,0.9)' : semi ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)'}
-                          strokeWidth={major ? 2.5 : 1.5}
+                          stroke={major ? 'rgba(255,255,255,0.9)' : semi ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.18)'}
+                          strokeWidth={major ? 2.5 : 1.2}
                         />
                       );
                     })}
 
-                    {/* ── Cardinal labels ──
-                        Standard compass/map orientation:
-                        N = top    = 0°   (SVG angle = -90° from right = top)
-                        E = RIGHT  = 90°  (SVG angle = 0° = right)
-                        S = bottom = 180°
-                        W = LEFT   = 270°
-                        Ring counter-rotates with device so labels stay fixed to Earth. ── */}
+                    {/* Degree numbers every 30° */}
+                    {[30,60,120,150,210,240,300,330].map(deg => {
+                      const rad = (deg - 90) * Math.PI / 180;
+                      return (
+                        <text key={deg}
+                          x={CX + 108 * Math.cos(rad)} y={CY + 108 * Math.sin(rad)}
+                          textAnchor="middle" dominantBaseline="central"
+                          fontSize="7.5" fill="rgba(255,255,255,0.22)">
+                          {deg}
+                        </text>
+                      );
+                    })}
+
+                    {/* Cardinal labels
+                        N=0° (top), E=90° (right), S=180° (bottom), W=270° (left)
+                        Standard map/compass orientation — verified correct */}
                     {[
                       { label: 'N',  deg: 0,   color: '#f87171', size: 17, bold: true  },
-                      { label: 'NE', deg: 45,  color: 'rgba(255,255,255,0.4)', size: 9,  bold: false },
+                      { label: 'NE', deg: 45,  color: 'rgba(255,255,255,0.38)', size: 9, bold: false },
                       { label: 'E',  deg: 90,  color: 'rgba(255,255,255,0.85)', size: 15, bold: true  },
-                      { label: 'SE', deg: 135, color: 'rgba(255,255,255,0.4)', size: 9,  bold: false },
+                      { label: 'SE', deg: 135, color: 'rgba(255,255,255,0.38)', size: 9, bold: false },
                       { label: 'S',  deg: 180, color: 'rgba(255,255,255,0.85)', size: 15, bold: true  },
-                      { label: 'SW', deg: 225, color: 'rgba(255,255,255,0.4)', size: 9,  bold: false },
+                      { label: 'SW', deg: 225, color: 'rgba(255,255,255,0.38)', size: 9, bold: false },
                       { label: 'W',  deg: 270, color: 'rgba(255,255,255,0.85)', size: 15, bold: true  },
-                      { label: 'NW', deg: 315, color: 'rgba(255,255,255,0.4)', size: 9,  bold: false },
+                      { label: 'NW', deg: 315, color: 'rgba(255,255,255,0.38)', size: 9, bold: false },
                     ].map(({ label, deg, color, size, bold }) => {
-                      // SVG: 0° = right (3 o'clock), so subtract 90° to make 0° = top (12 o'clock)
                       const rad = (deg - 90) * Math.PI / 180;
                       const r = 120;
                       return (
                         <text key={label}
                           x={CX + r * Math.cos(rad)}
                           y={CY + r * Math.sin(rad)}
-                          textAnchor="middle"
-                          dominantBaseline="central"
-                          fontSize={size}
-                          fontWeight={bold ? 'bold' : 'normal'}
+                          textAnchor="middle" dominantBaseline="central"
+                          fontSize={size} fontWeight={bold ? 'bold' : 'normal'}
                           fill={color}>
                           {label}
                         </text>
                       );
                     })}
 
-                    {/* Inner circle background */}
-                    <circle cx={CX} cy={CY} r="98" fill="rgba(8,25,15,0.75)" stroke="rgba(255,255,255,0.07)" strokeWidth="1" />
-
+                    {/* Inner dark area */}
+                    <circle cx={CX} cy={CY} r="98" fill="rgba(6,20,12,0.8)" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
                   </g>
 
-                  {/* ── NEEDLE GROUP ──
-                      The needle lives OUTSIDE the ring group so its rotation
-                      is independent in the SVG coordinate system.
-                      To point at absolute qibla bearing:
-                        ring rotates by -deviceHeading
-                        needle (which is in the same SVG coordinate space as the ring parent)
-                        must rotate by: qibla
-                      BUT if needle were INSIDE the ring group, it would inherit -deviceHeading,
-                      so we'd need qibla + deviceHeading to compensate.
-                      Since needle is OUTSIDE the ring group: rotate by qibla directly. ── */}
+                  {/* NEEDLE — sibling of ring (NOT child), rotates independently
+                      needleRotation = qibla - deviceHeading
+                      → When deviceHeading = qibla: needleRotation = 0 = straight up = facing Qibla ✅
+                      → When deviceHeading = 0 (static): needleRotation = qibla ✅ */}
                   <g style={{
                     transformOrigin: `${CX}px ${CY}px`,
-                    transform: `rotate(${qibla ?? 0}deg)`,
-                    transition: 'transform 0.3s ease-out',
+                    transform: `rotate(${needleRotation}deg)`,
+                    transition: deviceHeading !== null ? 'transform 0.1s linear' : 'transform 0.3s ease-out',
                   }}>
-                    {/* Kaaba emoji at the tip */}
-                    <text x={CX} y={CY - 85} textAnchor="middle" dominantBaseline="central" fontSize="20">🕋</text>
-                    {/* Gold arrow pointing up (toward tip) */}
-                    <polygon
-                      points={`${CX},${CY - 72} ${CX - 7},${CY - 18} ${CX + 7},${CY - 18}`}
-                      fill="#c8a96e" opacity="0.95"
-                    />
-                    {/* Tail (opposite direction) */}
-                    <polygon
-                      points={`${CX},${CY + 48} ${CX - 5},${CY + 8} ${CX + 5},${CY + 8}`}
-                      fill="rgba(255,255,255,0.18)"
-                    />
+                    {/* Kaaba at tip */}
+                    <text x={CX} y={CY - 83} textAnchor="middle" dominantBaseline="central" fontSize="22">🕋</text>
+                    {/* Gold arrow body */}
+                    <polygon points={`${CX},${CY - 68} ${CX - 8},${CY - 15} ${CX + 8},${CY - 15}`}
+                      fill="#c8a96e" opacity="0.95" />
+                    {/* Gold arrowhead overlap */}
+                    <polygon points={`${CX},${CY - 75} ${CX - 5},${CY - 60} ${CX + 5},${CY - 60}`}
+                      fill="#e8c882" />
+                    {/* Tail */}
+                    <polygon points={`${CX},${CY + 52} ${CX - 5},${CY + 10} ${CX + 5},${CY + 10}`}
+                      fill="rgba(255,255,255,0.15)" />
                   </g>
-
-                  {/* ── LIVE COMPASS NEEDLE (when active) ──
-                      When compass is active, this second needle shows the device heading.
-                      It always points up (where you are facing).
-                      Rotate by -deviceHeading so it stays fixed pointing upward (to Earth-North). ── */}
-                  {deviceHeading !== null && (
-                    <g style={{
-                      transformOrigin: `${CX}px ${CY}px`,
-                      transform: `rotate(0deg)`,
-                    }}>
-                      {/* Small white upward arrow showing "you are facing this way" */}
-                      <polygon
-                        points={`${CX},${CY - 60} ${CX - 4},${CY - 35} ${CX + 4},${CY - 35}`}
-                        fill="rgba(255,255,255,0.3)"
-                      />
-                    </g>
-                  )}
 
                   {/* Centre dot */}
                   <circle cx={CX} cy={CY} r="8" fill="white"
-                    style={{ filter: 'drop-shadow(0 0 6px rgba(200,169,110,0.9))' }} />
+                    style={{ filter: 'drop-shadow(0 0 6px rgba(200,169,110,1))' }} />
 
-                  {/* Qibla degree label in centre */}
-                  <text x={CX} y={CY + 22} textAnchor="middle" fontSize="11" fill="rgba(200,169,110,0.9)" fontWeight="bold">
-                    {qibla}° {cardinal(qibla ?? 0)}
+                  {/* Qibla label */}
+                  <text x={CX} y={CY + 24} textAnchor="middle" fontSize="10"
+                    fill="rgba(200,169,110,0.85)" fontWeight="bold">
+                    {qibla}° {cardinal(qibla)}
                   </text>
 
                 </svg>
               </div>
 
-              {/* Debug readout */}
+              {/* Live debug */}
               {deviceHeading !== null && (
-                <div className="mt-1 flex gap-4 text-xs text-white/35">
-                  <span>📱 Heading: {Math.round(deviceHeading)}°</span>
-                  <span>🕋 Qibla: {qibla}°</span>
+                <div className="mt-1 flex gap-5 text-xs text-white/30">
+                  <span>📱 {Math.round(deviceHeading)}°</span>
+                  <span>🕋 Qibla {qibla}°</span>
+                  <span>Needle {Math.round(needleRotation)}°</span>
                 </div>
               )}
             </div>
@@ -409,7 +382,7 @@ export default function QiblaFinder() {
               <div className="bg-white/10 border border-white/15 rounded-2xl p-4 text-center">
                 <p className="text-white/40 text-xs mb-1">Qibla Direction</p>
                 <p className="text-white text-3xl font-bold">{qibla}°</p>
-                <p className="text-xs mt-1" style={{ color: '#c8a96e' }}>{cardinal(qibla ?? 0)}</p>
+                <p className="text-xs mt-1" style={{ color: '#c8a96e' }}>{cardinal(qibla)}</p>
                 <p className="text-white/30 text-xs mt-0.5">from True North</p>
               </div>
               <div className="bg-white/10 border border-white/15 rounded-2xl p-4 text-center">
@@ -420,33 +393,30 @@ export default function QiblaFinder() {
               </div>
             </div>
 
-            {/* Compass controls */}
+            {/* Compass button */}
             {compassState === 'idle' && (
               <button onClick={enableCompass}
                 className="w-full py-3 rounded-xl border border-white/20 text-white/70 text-sm font-medium hover:bg-white/10 transition-all">
                 🧭 Enable Live Compass
               </button>
             )}
-
             {compassState === 'active' && (
               <div className="flex items-center justify-between bg-emerald-500/20 border border-emerald-400/30 rounded-xl px-4 py-2.5">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   <p className="text-emerald-300 text-sm font-medium">Live Compass Active</p>
                 </div>
-                <button onClick={disableCompass} className="text-white/30 hover:text-white/60 text-xs transition-colors">Disable</button>
+                <button onClick={disableCompass} className="text-white/30 hover:text-white/60 text-xs">Disable</button>
               </div>
             )}
-
             {compassState === 'denied' && (
               <div className="bg-yellow-500/15 border border-yellow-400/30 rounded-xl p-3 text-center">
-                <p className="text-yellow-300 text-sm">Compass permission denied. Face {qibla}° ({cardinal(qibla ?? 0)}) from True North.</p>
+                <p className="text-yellow-300 text-sm">Compass permission denied. Face {qibla}° ({cardinal(qibla)}) from True North.</p>
               </div>
             )}
-
             {compassState === 'unsupported' && (
               <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
-                <p className="text-white/40 text-sm">Live compass not supported on this device. Face {qibla}° ({cardinal(qibla ?? 0)}) from True North.</p>
+                <p className="text-white/40 text-sm">Live compass not supported. Face {qibla}° ({cardinal(qibla)}) from True North.</p>
               </div>
             )}
 
@@ -454,14 +424,14 @@ export default function QiblaFinder() {
             <div className="bg-white/5 border border-white/10 rounded-xl p-4">
               <p className="text-white/50 text-xs text-center leading-relaxed">
                 {compassState === 'active'
-                  ? '🔄 The 🕋 golden arrow always points toward the Kaaba. Rotate your phone until the arrow points straight up — then you are facing Qibla.'
-                  : `📐 Face ${qibla}° (${cardinal(qibla ?? 0)}) from True North to face Qibla. Enable the live compass below for real-time guidance.`}
+                  ? '🔄 Slowly rotate your phone. When the 🕋 golden arrow points straight up — you are facing the Qibla.'
+                  : `📐 Face ${qibla}° (${cardinal(qibla)}) from True North to face Qibla. Enable live compass for real-time guidance.`}
               </p>
             </div>
 
             <div className="bg-amber-500/10 border border-amber-400/20 rounded-xl p-3">
-              <p className="text-amber-300/70 text-xs text-center">
-                ✓ Great Circle bearing · Kaaba: 21.4225°N, 39.8262°E
+              <p className="text-amber-300/60 text-xs text-center">
+                ✓ Verified Great Circle formula · Kaaba 21.4225°N 39.8262°E
               </p>
             </div>
 
