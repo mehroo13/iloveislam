@@ -3,62 +3,22 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  /* Light mode (default) */
-  :root {
-    --background: #f5f4f0;
-    --foreground: #1a1a1a;
-    --card-bg: #ffffff;
-    --card-border: #e5e7eb;
-    --text-muted: #6b7280;
-  }
-
-  /* Dark mode */
-  .dark {
-    --background: #111827;
-    --foreground: #f3f4f6;
-    --card-bg: #1f2937;
-    --card-border: #374151;
-    --text-muted: #9ca3af;
-  }
-
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--background);
-    color: var(--foreground);
-    transition: background-color 0.3s ease, color 0.3s ease;
-  }
-}
-
-@layer utilities {
-  .font-arabic {
-    font-family: 'Amiri', serif;
-  }
-  
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 6px;
-  }
-  
-  ::-webkit-scrollbar-track {
-    background: #e5e7eb;
-    border-radius: 3px;
-  }
-  
-  ::-webkit-scrollbar-thumb {
-    background: #c8a96e;
-    border-radius: 3px;
-  }
-  
-  .dark ::-webkit-scrollbar-track {
-    background: #374151;
-  }
-  
-  .dark ::-webkit-scrollbar-thumb {
-    background: #c8a96e;
-  }
+:root {
+  --green-dark: #0a3d2e;
+  --green-mid: #1a5c44;
+  --gold: #c8a96e;
 }
 
 * {
   box-sizing: border-box;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #f5f4f0;
+  color: #1a1a1a;
+}
+
+.font-arabic {
+  font-family: 'Amiri', serif;
 }
