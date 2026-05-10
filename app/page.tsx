@@ -12,8 +12,50 @@ interface Tool {
   color: string;
 }
 
+interface StatsType {
+  tools: string;
+  free: string;
+  noSignup: string;
+  mobile: string;
+  world: string;
+  fast: string;
+}
+
+interface TranslationsType {
+  tagline: string;
+  search: string;
+  found: string;
+  results: string;
+  noTools: string;
+  noToolsSub: string;
+  clear: string;
+  about: string;
+  blog: string;
+  privacy: string;
+  contact: string;
+  faq: string;
+  terms: string;
+  mostUsed: string;
+  daily: string;
+  finance: string;
+  travel: string;
+  footerMade: string;
+  footerFree: string;
+  stats: StatsType;
+  aboutTitle: string;
+  aboutText1: string;
+  aboutText2: string;
+  metaDescription: string;
+  newsletterTitle: string;
+  newsletterSubtitle: string;
+  newsletterPlaceholder: string;
+  newsletterButton: string;
+  darkMode: string;
+  lightMode: string;
+}
+
 // ==================== TRANSLATIONS ====================
-const TRANSLATIONS: Record<string, any> = {
+const TRANSLATIONS: Record<string, TranslationsType> = {
   en: {
     tagline: 'The complete toolkit for every Muslim',
     search: 'Search tools — zakat, qibla, quran...',
@@ -87,7 +129,7 @@ const LANGUAGES = [
 
 const RTL_LANGS = ['ar', 'ur'];
 
-const TOOLS_DATA = (t: any) => [
+const TOOLS_DATA = (t: TranslationsType) => [
   {
     category: t.mostUsed, emoji: '⭐',
     items: [
@@ -202,7 +244,9 @@ function LiveBar() {
           const h = data.data.hijri;
           setHijri(`${h.day} ${h.month.en.slice(0, 3)} ${h.year} AH`);
         }
-      } catch { /* silent */ }
+      } catch {
+        // Silent fail
+      }
     };
     fetchHijri();
   }, []);
@@ -216,7 +260,7 @@ function LiveBar() {
   );
 }
 
-function Newsletter({ t }: { t: any }) {
+function Newsletter({ t }: { t: TranslationsType }) {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
 
@@ -329,7 +373,6 @@ export default function Home() {
   }, []);
 
   const handleToolClick = (tool: Tool) => {
-    // Save current scroll position before navigating
     sessionStorage.setItem(SCROLL_KEY, window.scrollY.toString());
   };
 
@@ -360,10 +403,15 @@ export default function Home() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [showLangMenu]);
 
+  // Get stats values as array for rendering
+  const statsValues = t.stats ? Object.values(t.stats) : [];
+
   if (!mounted) {
-    return <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-      <div className="animate-pulse text-emerald-700 dark:text-emerald-400">Loading...</div>
-    </div>;
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="animate-pulse text-emerald-700 dark:text-emerald-400">Loading...</div>
+      </div>
+    );
   }
 
   return (
@@ -400,7 +448,9 @@ export default function Home() {
                       <button
                         key={l.code}
                         onClick={() => switchLang(l.code)}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 text-left ${lang === l.code ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-300'}`}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 text-left ${
+                          lang === l.code ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-300'
+                        }`}
                       >
                         <span>{l.flag}</span>
                         <span>{l.label}</span>
@@ -487,16 +537,18 @@ export default function Home() {
             ))}
 
             {/* Stats */}
-            {!search && (
+            {!search && statsValues.length > 0 && (
               <div className="flex flex-wrap justify-center gap-2 my-6">
-                {Object.values(t.stats).map((label: string) => (
-                  <span key={label} className="text-[10px] text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-100 dark:border-gray-700">{label}</span>
+                {statsValues.map((label: string) => (
+                  <span key={label} className="text-[10px] text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-100 dark:border-gray-700">
+                    {label}
+                  </span>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Sidebar - Newsletter only (compact on desktop) */}
+          {/* Sidebar - Newsletter only */}
           <div className="lg:w-72">
             <Newsletter t={t} />
           </div>
@@ -516,10 +568,10 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 py-6 text-center">
           <p className="text-xs text-gray-400">{t.footerMade} · {t.footerFree}</p>
           <div className="flex flex-wrap justify-center gap-4 mt-3">
-            <Link href="/about" className="text-xs text-gray-400 hover:text-gray-600">{t.about}</Link>
-            <Link href="/privacy" className="text-xs text-gray-400 hover:text-gray-600">{t.privacy}</Link>
-            <Link href="/terms" className="text-xs text-gray-400 hover:text-gray-600">{t.terms}</Link>
-            <Link href="/contact" className="text-xs text-gray-400 hover:text-gray-600">{t.contact}</Link>
+            <Link href="/about" className="text-xs text-gray-400 hover:text-gray-600">About</Link>
+            <Link href="/privacy" className="text-xs text-gray-400 hover:text-gray-600">Privacy</Link>
+            <Link href="/terms" className="text-xs text-gray-400 hover:text-gray-600">Terms</Link>
+            <Link href="/contact" className="text-xs text-gray-400 hover:text-gray-600">Contact</Link>
           </div>
         </div>
       </footer>
