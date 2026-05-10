@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
@@ -8,6 +8,15 @@ const geist = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
+
+// Separate viewport export (Next.js 14+ requirement)
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: "#0a3d2e",
+};
 
 export const metadata: Metadata = {
   title: {
@@ -92,14 +101,6 @@ export const metadata: Metadata = {
   },
   // PWA manifest
   manifest: "/manifest.json",
-  // Theme color for PWA
-  themeColor: "#0a3d2e",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 5,
-    viewportFit: "cover",
-  },
   appleWebApp: {
     capable: true,
     title: "I Love Islam",
@@ -128,7 +129,6 @@ export default function RootLayout({
         <link rel="canonical" href="https://www.iloveislam.life" />
         
         {/* PWA Meta Tags */}
-        <meta name="theme-color" content="#0a3d2e" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="I Love Islam" />

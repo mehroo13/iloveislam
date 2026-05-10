@@ -24,7 +24,6 @@ export default function ClientProviders({
   }, []);
 
   if (!mounted) {
-    // Return a minimal placeholder to avoid hydration mismatch
     return <div style={{ visibility: 'hidden' }}>{children}</div>;
   }
 
