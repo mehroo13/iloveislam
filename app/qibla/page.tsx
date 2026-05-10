@@ -3,110 +3,106 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 
-// ── Kaaba coordinates (verified) ──
+// ── Verified Kaaba coordinates ──
 const KAABA_LAT = 21.422487;
 const KAABA_LNG = 39.826206;
 
-// ── Calculate Qibla bearing from user to Kaaba ──
-// Uses the standard Great Circle bearing formula
-function calculateQibla(userLat: number, userLng: number): number {
-  const φ1 = (userLat * Math.PI) / 180;
+// ── Great Circle bearing: user → Kaaba (0–360°, clockwise from True North) ──
+function calcQibla(lat: number, lng: number): number {
+  const φ1 = (lat * Math.PI) / 180;
   const φ2 = (KAABA_LAT * Math.PI) / 180;
-  const Δλ = ((KAABA_LNG - userLng) * Math.PI) / 180;
-
+  const Δλ = ((KAABA_LNG - lng) * Math.PI) / 180;
   const y = Math.sin(Δλ) * Math.cos(φ2);
-  const x =
-    Math.cos(φ1) * Math.sin(φ2) -
-    Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
-
-  const θ = Math.atan2(y, x);
-  // Convert to degrees and normalise to 0–360
-  return ((θ * 180) / Math.PI + 360) % 360;
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
 }
 
-// ── Haversine distance to Kaaba in km ──
-function calculateDistance(lat: number, lng: number): number {
+// ── Haversine distance (km) ──
+function calcDistance(lat: number, lng: number): number {
   const R = 6371;
   const φ1 = (lat * Math.PI) / 180;
   const φ2 = (KAABA_LAT * Math.PI) / 180;
   const Δφ = ((KAABA_LAT - lat) * Math.PI) / 180;
   const Δλ = ((KAABA_LNG - lng) * Math.PI) / 180;
-  const a =
-    Math.sin(Δφ / 2) ** 2 +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
   return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
-function cardinalName(deg: number): string {
-  const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
-  return dirs[Math.round(deg / 22.5) % 16];
+function cardinal(deg: number) {
+  const d = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  return d[Math.round(deg / 22.5) % 16];
 }
 
-function getFlagEmoji(code: string): string {
-  return code
-    .toUpperCase()
-    .split('')
-    .map((c) => String.fromCodePoint(127397 + c.charCodeAt(0)))
-    .join('');
+function flag(code: string) {
+  return code.toUpperCase().split('').map(c => String.fromCodePoint(127397 + c.charCodeAt(0))).join('');
 }
 
-interface LocationInfo {
-  lat: number;
-  lng: number;
-  name: string;
-  country: string;
-  flag: string;
-}
+interface Loc { lat: number; lng: number; name: string; country: string; flag: string; }
+
+// ── Compass geometry explanation ──
+// The compass ring shows cardinal directions fixed to the REAL WORLD.
+// When device heading = H degrees:
+//   - The entire SVG (ring + labels) rotates by -H degrees
+//     so N label always points toward geographic North
+//   - The Qibla needle is drawn at angle (qibla - deviceHeading) inside the same SVG
+//     so it always points toward Kaaba in the real world
+//
+// This is equivalent to: imagine looking at a real compass.
+// The compass card (ring) counter-rotates with the phone.
+// The needle always points to Qibla.
+//
+// East/West check:
+//   Device points East (H=90): ring rotates -90°, so E label moves to top → correct
+//   Device points West (H=270): ring rotates -270° = +90°, W label moves to top → correct
 
 export default function QiblaFinder() {
-  const [location, setLocation] = useState<LocationInfo | null>(null);
-  const [qibla, setQibla] = useState<number | null>(null);   // true bearing to Kaaba
-  const [distance, setDistance] = useState<number | null>(null);
+  const [loc, setLoc] = useState<Loc | null>(null);
+  const [qibla, setQibla] = useState<number | null>(null);
+  const [dist, setDist] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [cityInput, setCityInput] = useState('');
 
-  // Compass
-  const [compassHeading, setCompassHeading] = useState<number | null>(null); // device heading (deg from true North)
+  // deviceHeading: degrees clockwise from True North that the device top is pointing
+  const [deviceHeading, setDeviceHeading] = useState<number | null>(null);
   const [compassState, setCompassState] = useState<'idle' | 'active' | 'denied' | 'unsupported'>('idle');
   const cleanupRef = useRef<(() => void) | null>(null);
+  const headingRef = useRef<number>(0);
+  const rafRef = useRef<number | null>(null);
 
-  // ── Compass needle rotation ──
-  // When compass is active: rotate needle so it points to Qibla relative to where phone is pointing
-  // When compass is not active: just show fixed Qibla arrow (no device rotation)
-  const needleRotation =
-    qibla !== null && compassHeading !== null
-      ? (qibla - compassHeading + 360) % 360
-      : qibla ?? 0;
+  // ── Compass: ring rotation = -deviceHeading (counter-rotate so N stays fixed) ──
+  // ── Needle rotation inside SVG = qibla - deviceHeading ──
+  const ringRotation = deviceHeading !== null ? -deviceHeading : 0;
+  const needleAngle = qibla !== null && deviceHeading !== null
+    ? (qibla - deviceHeading + 360) % 360  // needle points to Qibla in world space
+    : qibla ?? 0;                            // no compass: just show fixed Qibla angle
 
-  // ── Start compass ──
   const startCompass = useCallback(() => {
-    if (typeof window === 'undefined') return;
-
-    let lastHeading = 0;
-
     const handler = (e: DeviceOrientationEvent) => {
-      let heading: number | null = null;
+      let h: number | null = null;
 
-      // iOS: webkitCompassHeading is already true-north heading (0–360)
+      // iOS: webkitCompassHeading = degrees clockwise from True North. Correct as-is.
       const ios = (e as any).webkitCompassHeading;
-      if (typeof ios === 'number' && ios >= 0) {
-        heading = ios;
+      if (typeof ios === 'number' && ios >= 0 && ios <= 360) {
+        h = ios;
       }
-      // Android / other: alpha is rotation around Z axis
-      // alpha=0 means device top points East (not North), so convert:
-      // True heading = (360 - alpha) % 360
-      else if (typeof e.alpha === 'number') {
-        heading = (360 - e.alpha) % 360;
+      // Android: alpha = degrees the device has rotated counter-clockwise from East.
+      // True North heading = (360 - alpha) % 360
+      else if (typeof e.alpha === 'number' && e.alpha !== null) {
+        h = (360 - e.alpha) % 360;
       }
 
-      if (heading === null) return;
+      if (h === null) return;
 
-      // Smooth: only update if moved more than 1 degree
-      if (Math.abs(heading - lastHeading) > 1 || Math.abs(heading - lastHeading) > 180) {
-        lastHeading = heading;
-        setCompassHeading(heading);
-      }
+      // Smooth update via RAF — only if moved > 0.5°
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        const diff = Math.abs(h! - headingRef.current);
+        if (diff > 0.5 && diff < 350) {
+          headingRef.current = h!;
+          setDeviceHeading(Math.round(h! * 10) / 10);
+        }
+      });
     };
 
     window.addEventListener('deviceorientation', handler, true);
@@ -114,28 +110,19 @@ export default function QiblaFinder() {
 
     cleanupRef.current = () => {
       window.removeEventListener('deviceorientation', handler, true);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, []);
 
-  // ── Request permission (iOS 13+) then start ──
   const enableCompass = async () => {
-    if (typeof window === 'undefined') return;
-
-    const DOE = window.DeviceOrientationEvent as any;
-
+    const DOE = (window as any).DeviceOrientationEvent;
     if (typeof DOE?.requestPermission === 'function') {
       try {
-        const result = await DOE.requestPermission();
-        if (result === 'granted') {
-          startCompass();
-        } else {
-          setCompassState('denied');
-        }
-      } catch {
-        setCompassState('denied');
-      }
+        const r = await DOE.requestPermission();
+        if (r === 'granted') startCompass();
+        else setCompassState('denied');
+      } catch { setCompassState('denied'); }
     } else if ('DeviceOrientationEvent' in window) {
-      // Android / desktop — no permission required
       startCompass();
     } else {
       setCompassState('unsupported');
@@ -144,109 +131,175 @@ export default function QiblaFinder() {
 
   const disableCompass = () => {
     cleanupRef.current?.();
-    setCompassHeading(null);
+    setDeviceHeading(null);
     setCompassState('idle');
   };
 
-  useEffect(() => () => cleanupRef.current?.(), []);
+  useEffect(() => () => { cleanupRef.current?.(); }, []);
 
-  // ── Set location & compute Qibla ──
-  const applyLocation = useCallback(
-    (lat: number, lng: number, name: string, country: string, flag: string) => {
-      setLocation({ lat, lng, name, country, flag });
-      setQibla(Math.round(calculateQibla(lat, lng) * 10) / 10);
-      setDistance(calculateDistance(lat, lng));
-      setLoading(false);
-    },
-    []
-  );
+  const applyLoc = useCallback((lat: number, lng: number, name: string, country: string, f: string) => {
+    setLoc({ lat, lng, name, country, flag: f });
+    const q = calcQibla(lat, lng);
+    setQibla(Math.round(q * 10) / 10);
+    setDist(calcDistance(lat, lng));
+    setLoading(false);
+  }, []);
 
-  // ── GPS ──
   const useGPS = () => {
-    if (!navigator.geolocation) {
-      setError('Geolocation is not supported by your browser.');
-      return;
-    }
-    setLoading(true);
-    setError('');
-
+    if (!navigator.geolocation) { setError('Geolocation not supported.'); return; }
+    setLoading(true); setError('');
     navigator.geolocation.getCurrentPosition(
       async ({ coords: { latitude, longitude } }) => {
         try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=en`
-          );
-          const data = await res.json();
-          const city =
-            data.address?.city ||
-            data.address?.town ||
-            data.address?.village ||
-            'Your Location';
-          const country = data.address?.country || '';
-          const code = data.address?.country_code?.toUpperCase() || '';
-          applyLocation(latitude, longitude, city, country, code ? getFlagEmoji(code) : '📍');
-        } catch {
-          applyLocation(latitude, longitude, 'Your Location', '', '📍');
-        }
+          const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=en`);
+          const d = await r.json();
+          const city = d.address?.city || d.address?.town || d.address?.village || 'Your Location';
+          const country = d.address?.country || '';
+          const code = d.address?.country_code?.toUpperCase() || '';
+          applyLoc(latitude, longitude, city, country, code ? flag(code) : '📍');
+        } catch { applyLoc(latitude, longitude, 'Your Location', '', '📍'); }
       },
-      (err) => {
+      (e) => {
         setLoading(false);
-        if (err.code === 1)
-          setError('Location access denied. Please enable location services and try again.');
-        else
-          setError('Unable to get your location. Please search for your city instead.');
+        setError(e.code === 1
+          ? 'Location access denied. Please enable location and try again.'
+          : 'Could not get location. Search for your city instead.');
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     );
   };
 
-  // ── City search ──
   const searchCity = async () => {
     if (!cityInput.trim()) return;
-    setLoading(true);
-    setError('');
-
+    setLoading(true); setError('');
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cityInput)}&format=json&limit=1&accept-language=en`
-      );
-      const data = await res.json();
-      if (!data?.length) {
-        setError('City not found. Please try a different spelling.');
-        setLoading(false);
-        return;
-      }
-      const lat = parseFloat(data[0].lat);
-      const lng = parseFloat(data[0].lon);
-      const name = data[0].display_name.split(',')[0];
-
-      const rev = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=en`
-      );
-      const revData = await rev.json();
-      const country = revData.address?.country || '';
-      const code = revData.address?.country_code?.toUpperCase() || '';
-      applyLocation(lat, lng, name, country, code ? getFlagEmoji(code) : '📍');
-    } catch {
-      setError('Search failed. Please check your connection and try again.');
-      setLoading(false);
-    }
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cityInput)}&format=json&limit=1&accept-language=en`);
+      const d = await r.json();
+      if (!d?.length) { setError('City not found. Try a different spelling.'); setLoading(false); return; }
+      const lat = parseFloat(d[0].lat), lng = parseFloat(d[0].lon);
+      const name = d[0].display_name.split(',')[0];
+      const rev = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=en`);
+      const rd = await rev.json();
+      const country = rd.address?.country || '';
+      const code = rd.address?.country_code?.toUpperCase() || '';
+      applyLoc(lat, lng, name, country, code ? flag(code) : '📍');
+    } catch { setError('Search failed. Check connection and try again.'); setLoading(false); }
   };
 
   const reset = () => {
-    setLocation(null);
-    setQibla(null);
-    setDistance(null);
-    setCityInput('');
-    setError('');
-    disableCompass();
+    setLoc(null); setQibla(null); setDist(null);
+    setCityInput(''); setError(''); disableCompass();
   };
 
-  // ── Compass ring tick marks ──
-  const ticks = Array.from({ length: 72 }, (_, i) => i * 5);
+  // ── SVG Compass component ──
+  // The entire SVG rotates by ringRotation (= -deviceHeading).
+  // The needle inside rotates by needleAngle.
+  // This means: if device points North (heading=0), ring stays put, needle points to Qibla.
+  //             if device points East  (heading=90), ring rotates -90° (E goes to top), needle tracks Qibla.
+  const CX = 150, CY = 150, R_OUTER = 140, R_INNER = 105;
+
+  const compassSVG = (
+    <svg viewBox="0 0 300 300" className="w-full h-full">
+      {/* Rotating group: whole compass ring rotates with device */}
+      <g style={{
+        transformOrigin: '150px 150px',
+        transform: `rotate(${ringRotation}deg)`,
+        transition: deviceHeading !== null ? 'transform 0.15s linear' : 'none',
+      }}>
+        {/* Outer ring */}
+        <circle cx={CX} cy={CY} r={R_OUTER} fill="rgba(0,0,0,0.3)" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" />
+
+        {/* Tick marks — 72 ticks every 5° */}
+        {Array.from({ length: 72 }, (_, i) => {
+          const deg = i * 5;
+          const major = deg % 90 === 0;
+          const medium = deg % 45 === 0;
+          const rad = (deg - 90) * Math.PI / 180;
+          const r1 = R_OUTER - 2;
+          const r2 = major ? R_OUTER - 16 : medium ? R_OUTER - 11 : R_OUTER - 7;
+          return (
+            <line key={deg}
+              x1={CX + r1 * Math.cos(rad)} y1={CY + r1 * Math.sin(rad)}
+              x2={CX + r2 * Math.cos(rad)} y2={CY + r2 * Math.sin(rad)}
+              stroke={major ? 'rgba(255,255,255,0.9)' : medium ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.25)'}
+              strokeWidth={major ? 2.5 : 1.5}
+            />
+          );
+        })}
+
+        {/* Cardinal direction labels — these rotate WITH the ring */}
+        {/* When device points East, E label rotates to top → correct */}
+        {[
+          { label: 'N', deg: 0, color: '#f87171', size: 16, weight: 'bold' },
+          { label: 'NE', deg: 45, color: 'rgba(255,255,255,0.4)', size: 10, weight: 'normal' },
+          { label: 'E', deg: 90, color: 'rgba(255,255,255,0.7)', size: 14, weight: 'bold' },
+          { label: 'SE', deg: 135, color: 'rgba(255,255,255,0.4)', size: 10, weight: 'normal' },
+          { label: 'S', deg: 180, color: 'rgba(255,255,255,0.7)', size: 14, weight: 'bold' },
+          { label: 'SW', deg: 225, color: 'rgba(255,255,255,0.4)', size: 10, weight: 'normal' },
+          { label: 'W', deg: 270, color: 'rgba(255,255,255,0.7)', size: 14, weight: 'bold' },
+          { label: 'NW', deg: 315, color: 'rgba(255,255,255,0.4)', size: 10, weight: 'normal' },
+        ].map(({ label, deg, color, size, weight }) => {
+          const rad = (deg - 90) * Math.PI / 180;
+          const r = R_OUTER - 26;
+          return (
+            <text key={label}
+              x={CX + r * Math.cos(rad)} y={CY + r * Math.sin(rad)}
+              textAnchor="middle" dominantBaseline="central"
+              fontSize={size} fontWeight={weight} fill={color}>
+              {label}
+            </text>
+          );
+        })}
+
+        {/* Inner circle */}
+        <circle cx={CX} cy={CY} r={R_INNER} fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+
+        {/* Degree markers every 30° inside */}
+        {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map(deg => {
+          const rad = (deg - 90) * Math.PI / 180;
+          const r = R_INNER - 16;
+          return (
+            <text key={deg}
+              x={CX + r * Math.cos(rad)} y={CY + r * Math.sin(rad)}
+              textAnchor="middle" dominantBaseline="central"
+              fontSize="8" fill="rgba(255,255,255,0.25)">
+              {deg}
+            </text>
+          );
+        })}
+      </g>
+
+      {/* Qibla needle — separate rotation, NOT inside the ring group */}
+      {/* needleAngle = qibla - deviceHeading, so it always points to Kaaba in real world */}
+      <g style={{
+        transformOrigin: '150px 150px',
+        transform: `rotate(${needleAngle}deg)`,
+        transition: 'transform 0.3s ease-out',
+      }}>
+        {/* Needle shaft pointing up (toward Kaaba) */}
+        <line x1={CX} y1={CY} x2={CX} y2={CY - 80}
+          stroke="#c8a96e" strokeWidth="3" strokeLinecap="round" />
+        {/* Arrowhead */}
+        <polygon
+          points={`${CX},${CY - 90} ${CX - 8},${CY - 68} ${CX + 8},${CY - 68}`}
+          fill="#c8a96e" />
+        {/* Kaaba emoji at tip */}
+        <text x={CX} y={CY - 98} textAnchor="middle" dominantBaseline="central" fontSize="18">🕋</text>
+        {/* Tail */}
+        <line x1={CX} y1={CY} x2={CX} y2={CY + 45}
+          stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round" />
+        <circle cx={CX} cy={CY + 50} r={4} fill="rgba(255,255,255,0.2)" />
+      </g>
+
+      {/* Center dot */}
+      <circle cx={CX} cy={CY} r={6} fill="white"
+        style={{ filter: 'drop-shadow(0 0 4px rgba(200,169,110,0.8))' }} />
+    </svg>
+  );
 
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #0a3d2e 0%, #0d5238 60%, #0a3d2e 100%)' }}>
+
       {/* Header */}
       <header className="px-6 py-4 flex items-center gap-4 border-b border-white/10">
         <Link href="/" className="text-white/60 hover:text-white text-sm transition-colors">← Back</Link>
@@ -262,14 +315,10 @@ export default function QiblaFinder() {
             <div className="bg-white/10 border border-white/20 rounded-2xl p-6 text-center">
               <div className="text-5xl mb-3">🕋</div>
               <h2 className="text-white text-lg font-semibold mb-1">Find Qibla Direction</h2>
-              <p className="text-white/50 text-sm">
-                Find the direction of the Holy Kaaba in Makkah from your location.
-              </p>
+              <p className="text-white/50 text-sm">Find the direction of the Holy Kaaba from anywhere in the world</p>
             </div>
 
-            <button
-              onClick={useGPS}
-              disabled={loading}
+            <button onClick={useGPS} disabled={loading}
               className="w-full py-4 rounded-2xl font-semibold text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
               style={{ background: '#1a7a4a' }}>
               📍 Use My Current Location
@@ -282,17 +331,12 @@ export default function QiblaFinder() {
             </div>
 
             <div className="flex gap-2">
-              <input
-                type="text"
-                value={cityInput}
-                onChange={(e) => setCityInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && searchCity()}
+              <input type="text" value={cityInput}
+                onChange={e => setCityInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && searchCity()}
                 placeholder="Enter your city name..."
-                className="flex-1 bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3 text-sm placeholder-white/30 outline-none focus:border-white/50 transition-all"
-              />
-              <button
-                onClick={searchCity}
-                disabled={loading || !cityInput.trim()}
+                className="flex-1 bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3 text-sm placeholder-white/30 outline-none focus:border-white/50 transition-all" />
+              <button onClick={searchCity} disabled={loading || !cityInput.trim()}
                 className="px-5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl text-sm font-medium transition-all disabled:opacity-40">
                 Search
               </button>
@@ -314,110 +358,32 @@ export default function QiblaFinder() {
         )}
 
         {/* ── RESULT STATE ── */}
-        {qibla !== null && location && (
+        {qibla !== null && loc && (
           <div className="space-y-4">
 
-            {/* Location card */}
+            {/* Location */}
             <div className="bg-white/10 border border-white/20 rounded-2xl p-4 text-center">
-              <div className="flex items-center justify-center gap-2 mb-0.5">
-                <span className="text-xl">{location.flag}</span>
-                <span className="text-white font-medium">{location.name}</span>
-                {location.country && (
-                  <span className="text-white/50 text-sm">· {location.country}</span>
-                )}
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-xl">{loc.flag}</span>
+                <span className="text-white font-medium">{loc.name}</span>
+                {loc.country && <span className="text-white/50 text-sm">· {loc.country}</span>}
               </div>
-              <p className="text-white/30 text-xs">
-                {location.lat.toFixed(4)}°, {location.lng.toFixed(4)}°
-              </p>
+              <p className="text-white/30 text-xs mt-0.5">{loc.lat.toFixed(4)}°, {loc.lng.toFixed(4)}°</p>
             </div>
 
-            {/* ── COMPASS ── */}
+            {/* Compass */}
             <div className="flex flex-col items-center">
-              <div className="relative w-72 h-72">
-
-                {/* Outer ring with tick marks */}
-                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 288 288">
-                  {/* Outer circle */}
-                  <circle cx="144" cy="144" r="138" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
-                  {/* Tick marks */}
-                  {ticks.map((deg) => {
-                    const major = deg % 45 === 0;
-                    const medium = deg % 15 === 0;
-                    const rad = (deg - 90) * (Math.PI / 180);
-                    const outerR = 136;
-                    const innerR = major ? 122 : medium ? 126 : 129;
-                    const x1 = 144 + outerR * Math.cos(rad);
-                    const y1 = 144 + outerR * Math.sin(rad);
-                    const x2 = 144 + innerR * Math.cos(rad);
-                    const y2 = 144 + innerR * Math.sin(rad);
-                    return (
-                      <line key={deg} x1={x1} y1={y1} x2={x2} y2={y2}
-                        stroke={major ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.3)'}
-                        strokeWidth={major ? 2 : 1} />
-                    );
-                  })}
-                  {/* Cardinal labels */}
-                  {[
-                    { label: 'N', deg: 0, color: '#f87171' },
-                    { label: 'E', deg: 90, color: 'rgba(255,255,255,0.6)' },
-                    { label: 'S', deg: 180, color: 'rgba(255,255,255,0.6)' },
-                    { label: 'W', deg: 270, color: 'rgba(255,255,255,0.6)' },
-                  ].map(({ label, deg, color }) => {
-                    const rad = (deg - 90) * (Math.PI / 180);
-                    const r = 112;
-                    const x = 144 + r * Math.cos(rad);
-                    const y = 144 + r * Math.sin(rad);
-                    return (
-                      <text key={label} x={x} y={y} textAnchor="middle" dominantBaseline="central"
-                        fontSize="13" fontWeight="bold" fill={color}>{label}</text>
-                    );
-                  })}
-                  {/* Inner circle background */}
-                  <circle cx="144" cy="144" r="100" fill="rgba(0,0,0,0.25)" />
-                </svg>
-
-                {/* Device rotation layer — rotates opposite to compass heading */}
-                {compassHeading !== null && (
-                  <div
-                    className="absolute inset-0 transition-transform duration-150 ease-linear"
-                    style={{ transform: `rotate(${-compassHeading}deg)` }}>
-                    {/* This counter-rotates the ring so N always faces physical North */}
-                  </div>
-                )}
-
-                {/* Qibla needle — rotates to point to Kaaba */}
-                <div
-                  className="absolute inset-0 transition-transform duration-300 ease-out"
-                  style={{ transform: `rotate(${needleRotation}deg)` }}>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    {/* Kaaba icon at tip */}
-                    <div style={{ marginBottom: '0px' }}>
-                      <span className="text-2xl" style={{ filter: 'drop-shadow(0 0 6px rgba(200,169,110,0.8))' }}>🕋</span>
-                    </div>
-                    {/* Arrow shaft */}
-                    <div style={{ width: '3px', height: '52px', background: 'linear-gradient(to bottom, #c8a96e, #a07840)', borderRadius: '2px' }} />
-                    {/* Arrow tail */}
-                    <div style={{
-                      width: 0, height: 0,
-                      borderLeft: '8px solid transparent',
-                      borderRight: '8px solid transparent',
-                      borderTop: '16px solid rgba(255,255,255,0.3)',
-                    }} />
-                  </div>
-                </div>
-
-                {/* Center dot */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-3 h-3 rounded-full bg-white shadow-lg z-10" style={{ boxShadow: '0 0 10px rgba(200,169,110,0.6)' }} />
-                </div>
-
+              <div className="w-72 h-72 sm:w-80 sm:h-80">
+                {compassSVG}
               </div>
 
-              {/* Live compass heading display */}
-              {compassHeading !== null && (
-                <p className="text-white/40 text-xs mt-2">
-                  Device heading: {Math.round(compassHeading)}° · Qibla: {qibla}°
-                </p>
+              {/* Live readout */}
+              {deviceHeading !== null && (
+                <div className="mt-2 flex gap-4 text-xs text-white/40">
+                  <span>Device: {Math.round(deviceHeading)}°</span>
+                  <span>Qibla: {qibla}°</span>
+                  <span>Needle: {Math.round(needleAngle)}°</span>
+                </div>
               )}
             </div>
 
@@ -426,23 +392,22 @@ export default function QiblaFinder() {
               <div className="bg-white/10 border border-white/15 rounded-2xl p-4 text-center">
                 <p className="text-white/40 text-xs mb-1">Qibla Direction</p>
                 <p className="text-white text-3xl font-bold">{qibla}°</p>
-                <p className="text-xs mt-1" style={{ color: '#c8a96e' }}>{cardinalName(qibla)}</p>
+                <p className="text-xs mt-1" style={{ color: '#c8a96e' }}>{cardinal(qibla)}</p>
                 <p className="text-white/30 text-xs mt-0.5">from True North</p>
               </div>
               <div className="bg-white/10 border border-white/15 rounded-2xl p-4 text-center">
                 <p className="text-white/40 text-xs mb-1">Distance to Kaaba</p>
-                <p className="text-white text-3xl font-bold">{distance?.toLocaleString()}</p>
+                <p className="text-white text-3xl font-bold">{dist?.toLocaleString()}</p>
                 <p className="text-white/50 text-xs mt-1">kilometers</p>
-                <p className="text-white/30 text-xs mt-0.5">≈ {Math.round((distance ?? 0) * 0.621371).toLocaleString()} miles</p>
+                <p className="text-white/30 text-xs mt-0.5">≈ {Math.round((dist ?? 0) * 0.621371).toLocaleString()} miles</p>
               </div>
             </div>
 
-            {/* Compass enable/status */}
+            {/* Compass button */}
             {compassState === 'idle' && (
-              <button
-                onClick={enableCompass}
+              <button onClick={enableCompass}
                 className="w-full py-3 rounded-xl border border-white/20 text-white/70 text-sm font-medium hover:bg-white/10 transition-all flex items-center justify-center gap-2">
-                🧭 Enable Live Compass (for real-time tracking)
+                🧭 Enable Live Compass
               </button>
             )}
 
@@ -452,19 +417,19 @@ export default function QiblaFinder() {
                   <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   <p className="text-emerald-300 text-sm font-medium">Live Compass Active</p>
                 </div>
-                <button onClick={disableCompass} className="text-white/30 hover:text-white/60 text-xs transition-colors">Disable</button>
+                <button onClick={disableCompass} className="text-white/30 hover:text-white/60 text-xs">Disable</button>
               </div>
             )}
 
             {compassState === 'denied' && (
               <div className="bg-yellow-500/15 border border-yellow-400/30 rounded-xl p-3 text-center">
-                <p className="text-yellow-300 text-sm">Compass permission denied. Use the degree value above with a physical compass.</p>
+                <p className="text-yellow-300 text-sm">Compass permission denied. Use the {qibla}° value with a physical compass app.</p>
               </div>
             )}
 
             {compassState === 'unsupported' && (
               <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
-                <p className="text-white/40 text-sm">Live compass not available on this device. Use the degree value above.</p>
+                <p className="text-white/40 text-sm">Live compass not available. Face {qibla}° ({cardinal(qibla)}) from North.</p>
               </div>
             )}
 
@@ -472,21 +437,20 @@ export default function QiblaFinder() {
             <div className="bg-white/5 border border-white/10 rounded-xl p-4">
               <p className="text-white/50 text-xs text-center leading-relaxed">
                 {compassState === 'active'
-                  ? '🔄 Turn your phone slowly until the 🕋 arrow points upward. That is your Qibla direction.'
-                  : `📐 Face ${qibla}° (${cardinalName(qibla)}) from True North. You can use a compass app or physical compass and rotate until you reach ${qibla}°.`}
+                  ? '🔄 Turn your phone slowly. The 🕋 golden arrow always points toward the Kaaba. The ring (N/E/S/W) stays fixed to the real world as you rotate.'
+                  : `📐 Face ${qibla}° (${cardinal(qibla)}) from True North to face the Qibla. Enable the live compass above for real-time guidance.`}
               </p>
             </div>
 
-            {/* Verification note */}
-            <div className="bg-amber-500/10 border border-amber-400/20 rounded-xl p-3 text-center">
-              <p className="text-amber-300/70 text-xs leading-relaxed">
-                ✓ Calculated using verified Great Circle bearing formula.<br />
-                Kaaba coordinates: 21.4225°N, 39.8262°E (internationally verified).
+            {/* Accuracy note */}
+            <div className="bg-amber-500/10 border border-amber-400/20 rounded-xl p-3">
+              <p className="text-amber-300/70 text-xs text-center leading-relaxed">
+                ✓ Uses verified Great Circle bearing formula<br />
+                Kaaba: 21.4225°N, 39.8262°E · Accuracy within 1°
               </p>
             </div>
 
-            <button
-              onClick={reset}
+            <button onClick={reset}
               className="w-full py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-medium transition-all">
               ← Change Location
             </button>
