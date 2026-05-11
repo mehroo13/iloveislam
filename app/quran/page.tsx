@@ -269,7 +269,7 @@ export default function QuranReader() {
         const versesData: Verse[] = arabicData.data.ayahs.map((ayah: any, idx: number) => {
           let arabicText = ayah.text;
           if (surah.number !== 1 && surah.number !== 9 && ayah.numberInSurah === 1) {
-            arabicText = stripBismillah(ayah.text).replace(/^۝+\s*/, '').trim();
+            arabicText = stripBismillah(ayah.text);
           }
           return {
             number: ayah.numberInSurah,
@@ -377,7 +377,7 @@ export default function QuranReader() {
       <audio ref={audioRef} onEnded={handleAudioEnd} />
       <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Amiri&display=swap');
-        .arabic-font { font-family: 'Amiri Quran', 'Scheherazade New', 'Noto Nastaliq Urdu', serif; word-spacing: 2px; font-weight: 700; }
+        .arabic-font { font-family: 'Noto Nastaliq Urdu', serif; word-spacing: 2px; font-weight: 700; }
         .urdu-font { font-family: 'Noto Nastaliq Urdu', serif; }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
