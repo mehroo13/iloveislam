@@ -224,18 +224,6 @@ export default function QuranReader() {
     if (lastRead) localStorage.setItem('quran_last_read', JSON.stringify(lastRead));
   }, [lastRead]);
 
-  const toggleBookmark = (surah: Surah, verseNum: number) => {
-    const exists = bookmarks.find(b => b.surahNumber === surah.number && b.verseNumber === verseNum);
-    if (exists) {
-      setBookmarks(bookmarks.filter(b => !(b.surahNumber === surah.number && b.verseNumber === verseNum)));
-    } else {
-      setBookmarks([...bookmarks, { surahNumber: surah.number, surahName: surah.name, verseNumber: verseNum, timestamp: Date.now() }]);
-    }
-  };
-
-  const isBookmarked = (surahNum: number, verseNum: number) => 
-    bookmarks.some(b => b.surahNumber === surahNum && b.verseNumber === verseNum);
-
   const loadSurah = useCallback(async (surah: Surah, targetVerse: number = 1) => {
     setSelectedSurah(surah);
     setVerses([]);
@@ -319,6 +307,17 @@ export default function QuranReader() {
           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       }
+    }
+  };
+
+  const toggleContinuous = () => {
+    if (playingAudio !== null) {
+      // If already playing, just toggle pause/resume
+      const currentVerse = verses[playingAudio - 1];
+      playAudio(currentVerse, true);
+    } else {
+      // If not playing, start from the first verse
+      playAudio(verses[0], true);
     }
   };
 
@@ -483,7 +482,7 @@ export default function QuranReader() {
 
                   {mode === 'mushaf' && (
                     <div style={{ textAlign: 'center', marginBottom: 15, display: 'flex', justifyContent: 'center', gap: 10 }}>
-                      <button onClick={() => playAudio(verses[0], true)} style={{ padding: '8px 16px', borderRadius: 20, background: COLORS.gold, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <button onClick={toggleContinuous} style={{ padding: '8px 16px', borderRadius: 20, background: COLORS.gold, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                         {playingAudio !== null && !isPaused ? '⏸️ Pause' : '▶️ Play Continuous'}
                       </button>
                       {playingAudio !== null && (
