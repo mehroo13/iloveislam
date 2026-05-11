@@ -146,10 +146,10 @@ const SURAHS: Surah[] = [
 ];
 
 const FONT_SIZES = [
-  { label: 'S', arabicSize: '26px', transSize: '14px' },
-  { label: 'M', arabicSize: '32px', transSize: '15px' },
-  { label: 'L', arabicSize: '38px', transSize: '16px' },
-  { label: 'XL', arabicSize: '44px', transSize: '17px' },
+  { label: 'S', arabicSize: '24px', transSize: '14px' },
+  { label: 'M', arabicSize: '30px', transSize: '15px' },
+  { label: 'L', arabicSize: '36px', transSize: '16px' },
+  { label: 'XL', arabicSize: '42px', transSize: '17px' },
 ];
 
 const toArabicNum = (n: number): string =>
@@ -202,10 +202,10 @@ export default function QuranReader() {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [lastRead, setLastRead] = useState<Bookmark | null>(null);
   const [playingAudio, setPlayingAudio] = useState<number | null>(null);
+  const [continuousAudio, setContinuousAudio] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
 
-  // Load bookmarks and last read from local storage
   useEffect(() => {
     try {
       const b = localStorage.getItem('quran_bookmarks_v2');
@@ -215,12 +215,10 @@ export default function QuranReader() {
     } catch {}
   }, []);
 
-  // Save bookmarks to local storage
   useEffect(() => {
     localStorage.setItem('quran_bookmarks_v2', JSON.stringify(bookmarks));
   }, [bookmarks]);
 
-  // Save last read to local storage
   useEffect(() => {
     if (lastRead) localStorage.setItem('quran_last_read', JSON.stringify(lastRead));
   }, [lastRead]);
@@ -242,6 +240,8 @@ export default function QuranReader() {
     setVerses([]);
     setLoading(true);
     setError('');
+    setPlayingAudio(null);
+    setContinuousAudio(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     try {
@@ -272,7 +272,6 @@ export default function QuranReader() {
         setVerses(versesData);
         setLastRead({ surahNumber: surah.number, surahName: surah.name, verseNumber: targetVerse, timestamp: Date.now() });
         
-        // Scroll to target verse if needed
         if (targetVerse > 1) {
           setTimeout(() => {
             const el = document.getElementById(`verse-${targetVerse}`);
@@ -289,14 +288,14 @@ export default function QuranReader() {
     }
   }, [lang]);
 
-  // ── FIXED: Reload Surah when language changes ──
   useEffect(() => {
     if (selectedSurah) {
       loadSurah(selectedSurah, 1);
     }
   }, [lang]);
 
-  const playAudio = (verse: Verse) => {
+  const playAudio = (verse: Verse, continuous: boolean = false) => {
+    setContinuousAudio(continuous);
     if (playingAudio === verse.number) {
       audioRef.current?.pause();
       setPlayingAudio(null);
@@ -305,7 +304,23 @@ export default function QuranReader() {
         audioRef.current.src = verse.audio || '';
         audioRef.current.play();
         setPlayingAudio(verse.number);
+        
+        // Scroll to playing verse in Mushaf mode
+        if (mode === 'mushaf') {
+          const el = document.getElementById(`verse-${verse.number}`);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
       }
+    }
+  };
+
+  const handleAudioEnd = () => {
+    if (continuousAudio && playingAudio !== null && playingAudio < verses.length) {
+      const nextVerse = verses[playingAudio];
+      playAudio(nextVerse, true);
+    } else {
+      setPlayingAudio(null);
+      setContinuousAudio(false);
     }
   };
 
@@ -324,23 +339,28 @@ export default function QuranReader() {
 
   return (
     <div style={{ minHeight: '100vh', background: bgCol, fontFamily: 'system-ui, -apple-system, sans-serif', color: textCol, transition: 'background 0.3s ease' }}>
-      <audio ref={audioRef} onEnded={() => setPlayingAudio(null)} />
+      <audio ref={audioRef} onEnded={handleAudioEnd} />
       <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Amiri&display=swap');
-        .arabic-font { font-family: 'Noto Nastaliq Urdu', serif; word-spacing: 2px; }
+        .arabic-font { font-family: 'Noto Nastaliq Urdu', serif; word-spacing: 2px; font-weight: 700; }
         .urdu-font { font-family: 'Noto Nastaliq Urdu', serif; }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: ${COLORS.skyBlueMid}44; borderRadius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: ${COLORS.skyBlueMid}66; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .playing-verse { background: ${COLORS.gold}33; border-radius: 8px; transition: background 0.3s ease; }
+        @media (max-width: 600px) {
+          .surah-grid { grid-template-columns: 1fr !important; }
+          .header-title { font-size: 32px !important; }
+          .reader-controls { flex-wrap: wrap; justify-content: center; gap: 5px !important; }
+          .mushaf-text { font-size: 24px !important; line-height: 2.8 !important; }
+        }
       `}} />
 
       {!selectedSurah ? (
         <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 20px' }}>
           <header style={{ textAlign: 'center', marginBottom: 40 }}>
-            <h1 style={{ fontSize: 42, color: dark ? COLORS.skyBlueLight : COLORS.skyBlueDark, margin: '0 0 10px', fontWeight: 800 }}>Al-Quran Al-Kareem</h1>
-            <p style={{ color: dark ? '#81d4fa' : '#0288d1', fontSize: 16, fontWeight: 500 }}>South Asian (Indo-Pak) Script Edition</p>
+            <h1 className="header-title" style={{ fontSize: 42, color: dark ? COLORS.skyBlueLight : COLORS.skyBlueDark, margin: '0 0 10px', fontWeight: 800 }}>Al-Quran Al-Kareem</h1>
             
             <div style={{ marginTop: 30, position: 'relative', maxWidth: 500, margin: '30px auto 0' }}>
               <input
@@ -352,123 +372,123 @@ export default function QuranReader() {
               />
             </div>
 
-            {/* Quick Access Bar */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 15, marginTop: 25, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 25, flexWrap: 'wrap' }}>
               {lastRead && (
-                <button onClick={() => loadSurah(SURAHS[lastRead.surahNumber - 1], lastRead.verseNumber)} style={{ padding: '10px 20px', borderRadius: 30, background: COLORS.gold, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
-                  📖 Last Read: {lastRead.surahName} ({lastRead.verseNumber})
+                <button onClick={() => loadSurah(SURAHS[lastRead.surahNumber - 1], lastRead.verseNumber)} style={{ padding: '10px 18px', borderRadius: 30, background: COLORS.gold, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12 }}>
+                  📖 Last Read: {lastRead.surahName}
                 </button>
               )}
               {bookmarks.length > 0 && (
-                <div style={{ position: 'relative', display: 'inline-block' }}>
-                  <button style={{ padding: '10px 20px', borderRadius: 30, background: COLORS.skyBlueDark, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
-                    🔖 Bookmarks ({bookmarks.length})
-                  </button>
-                </div>
+                <button style={{ padding: '10px 18px', borderRadius: 30, background: COLORS.skyBlueDark, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12 }}>
+                  🔖 Bookmarks ({bookmarks.length})
+                </button>
               )}
             </div>
           </header>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+          <div className="surah-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 15 }}>
             {filtered.map(s => (
               <div key={s.number} onClick={() => loadSurah(s)} style={{
-                background: cardBg, padding: 20, borderRadius: 16, border: `1px solid ${borderCol}`, cursor: 'pointer',
+                background: cardBg, padding: 18, borderRadius: 16, border: `1px solid ${borderCol}`, cursor: 'pointer',
                 transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', gap: 15, boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.08)'; e.currentTarget.style.borderColor = COLORS.skyBlueMid; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.03)'; e.currentTarget.style.borderColor = borderCol; }}>
-                <div style={{ width: 45, height: 45, borderRadius: 12, background: COLORS.skyBlueDark, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 18, flexShrink: 0 }}>
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 15px rgba(0,0,0,0.08)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.03)'; }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: COLORS.skyBlueDark, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16, flexShrink: 0 }}>
                   {s.number}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{s.name}</h3>
-                  <p style={{ margin: '2px 0 0', fontSize: 13, color: dark ? '#81d4fa' : '#039be5' }}>{s.meaning}</p>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{s.name}</h3>
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: dark ? '#81d4fa' : '#039be5' }}>{s.meaning}</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <p className="arabic-font" style={{ margin: 0, fontSize: 22, color: dark ? COLORS.skyBlueLight : COLORS.skyBlueDark }}>{s.arabic}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: 11, color: dark ? '#4fc3f7' : '#0288d1' }}>{s.verses} Ayahs</p>
+                  <p className="arabic-font" style={{ margin: 0, fontSize: 20, color: dark ? COLORS.skyBlueLight : COLORS.skyBlueDark }}>{s.arabic}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
       ) : (
-        <div ref={topRef} style={{ maxWidth: 900, margin: '0 auto', padding: '20px' }}>
-          {/* Sticky Reader Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, background: cardBg, padding: '12px 20px', borderRadius: 12, border: `1px solid ${borderCol}`, position: 'sticky', top: 10, zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-            <button onClick={() => setSelectedSurah(null)} style={{ background: 'none', border: 'none', color: COLORS.skyBlueDark, cursor: 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div ref={topRef} style={{ maxWidth: 900, margin: '0 auto', padding: '15px' }}>
+          <div className="reader-controls" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, background: cardBg, padding: '10px 15px', borderRadius: 12, border: `1px solid ${borderCol}`, position: 'sticky', top: 10, zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+            <button onClick={() => setSelectedSurah(null)} style={{ background: 'none', border: 'none', color: COLORS.skyBlueDark, cursor: 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}>
               ← Back
             </button>
             
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <select value={mode} onChange={(e) => setMode(e.target.value)} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${borderCol}`, background: cardBg, color: textCol, fontWeight: 600 }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <select value={mode} onChange={(e) => setMode(e.target.value)} style={{ padding: '5px 8px', borderRadius: 6, border: `1px solid ${borderCol}`, background: cardBg, color: textCol, fontWeight: 600, fontSize: 12 }}>
                 <option value="mushaf">Mushaf</option>
                 <option value="verse">Verse</option>
               </select>
-              <button onClick={() => setLang(lang === 'en' ? 'ur' : 'en')} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: COLORS.skyBlueDark, color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 12 }}>
+              <button onClick={() => setLang(lang === 'en' ? 'ur' : 'en')} style={{ padding: '5px 10px', borderRadius: 6, border: 'none', background: COLORS.skyBlueDark, color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 11 }}>
                 {lang === 'en' ? 'اردو' : 'English'}
               </button>
-              <button onClick={() => setDark(!dark)} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${borderCol}`, background: cardBg, color: textCol, cursor: 'pointer' }}>
+              <button onClick={() => setDark(!dark)} style={{ padding: '5px 8px', borderRadius: 6, border: `1px solid ${borderCol}`, background: cardBg, color: textCol, cursor: 'pointer', fontSize: 12 }}>
                 {dark ? '☀️' : '🌙'}
               </button>
             </div>
           </div>
 
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '100px 0' }}>
-              <div style={{ width: 40, height: 40, border: `4px solid ${COLORS.skyBlueMid}22`, borderTopColor: COLORS.skyBlueDark, borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }} />
-              <p style={{ color: COLORS.skyBlueDark, fontWeight: 700 }}>Loading Surah...</p>
-              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <div style={{ textAlign: 'center', padding: '80px 0' }}>
+              <div style={{ width: 35, height: 35, border: `3px solid ${COLORS.skyBlueMid}22`, borderTopColor: COLORS.skyBlueDark, borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 15px' }} />
+              <p style={{ color: COLORS.skyBlueDark, fontWeight: 700, fontSize: 14 }}>Loading Surah...</p>
             </div>
           ) : (
-            <div style={{ animation: 'fadeIn 0.5s ease' }}>
-              <div style={{ background: dark ? 'linear-gradient(135deg, #0b253a 0%, #011627 100%)' : 'linear-gradient(135deg, #0277bd 0%, #01579b 100%)', borderRadius: 24, padding: '40px 30px', color: '#fff', marginBottom: 30, position: 'relative', overflow: 'hidden', boxShadow: '0 10px 30px rgba(2,119,189,0.3)' }}>
-                <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
-                
+            <div style={{ animation: 'fadeIn 0.4s ease' }}>
+              <div style={{ background: dark ? 'linear-gradient(135deg, #0b253a 0%, #011627 100%)' : 'linear-gradient(135deg, #0277bd 0%, #01579b 100%)', borderRadius: 20, padding: '30px 20px', color: '#fff', marginBottom: 25, position: 'relative', overflow: 'hidden', boxShadow: '0 8px 25px rgba(2,119,189,0.25)' }}>
                 <div style={{ position: 'relative', zIndex: 1 }}>
-                  <div style={{ textAlign: 'center', marginBottom: 18 }}>
-                    <div style={{ display: 'inline-block', border: `2px solid ${COLORS.gold}`, borderRadius: 10, padding: '12px 40px', background: 'rgba(0,0,0,0.2)', position: 'relative' }}>
-                      <div style={{ position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)', background: COLORS.skyBlueDark, padding: '0 12px', color: COLORS.gold, fontSize: 11, fontWeight: 800, borderRadius: 20, whiteSpace: 'nowrap' }}>
+                  <div style={{ textAlign: 'center', marginBottom: 15 }}>
+                    <div style={{ display: 'inline-block', border: `2px solid ${COLORS.gold}`, borderRadius: 8, padding: '10px 30px', background: 'rgba(0,0,0,0.2)', position: 'relative' }}>
+                      <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: COLORS.skyBlueDark, padding: '0 10px', color: COLORS.gold, fontSize: 10, fontWeight: 800, borderRadius: 20 }}>
                         سورة {selectedSurah.number}
                       </div>
-                      <p className="arabic-font" style={{ fontSize: 42, color: COLORS.gold, margin: 0, lineHeight: 1.2 }}>{selectedSurah.arabic}</p>
-                      <p style={{ color: '#e1f5fe', fontSize: 14, margin: '8px 0 0', fontWeight: 600 }}>{selectedSurah.name} · {selectedSurah.meaning}</p>
+                      <p className="arabic-font" style={{ fontSize: 38, color: COLORS.gold, margin: 0, lineHeight: 1.1 }}>{selectedSurah.arabic}</p>
+                      <p style={{ color: '#e1f5fe', fontSize: 13, margin: '6px 0 0', fontWeight: 600 }}>{selectedSurah.name} · {selectedSurah.meaning}</p>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22, justifyContent: 'center' }}>
-                    <div style={{ flex: 1, height: 1, background: `linear-gradient(to right, transparent, ${COLORS.gold}88)` }} />
-                    <span style={{ color: COLORS.gold, fontSize: 20 }}>❧</span>
-                    <div style={{ flex: 1, height: 1, background: `linear-gradient(to left, transparent, ${COLORS.gold}88)` }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, justifyContent: 'center' }}>
+                    <div style={{ flex: 1, height: 1, background: `linear-gradient(to right, transparent, ${COLORS.gold}66)` }} />
+                    <span style={{ color: COLORS.gold, fontSize: 18 }}>❧</span>
+                    <div style={{ flex: 1, height: 1, background: `linear-gradient(to left, transparent, ${COLORS.gold}66)` }} />
                   </div>
 
                   {selectedSurah.number !== 9 && (
-                    <div style={{ textAlign: 'center', marginBottom: 26 }}>
-                      <p className="arabic-font" style={{ fontSize: '38px', color: '#fff', margin: 0, lineHeight: 1.5, textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+                    <div style={{ textAlign: 'center', marginBottom: 22 }}>
+                      <p className="arabic-font" style={{ fontSize: '34px', color: '#fff', margin: 0, lineHeight: 1.4, textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
                         بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
                       </p>
                     </div>
                   )}
 
                   {mode === 'mushaf' && (
-                    <p className="arabic-font" dir="rtl" style={{
+                    <div style={{ textAlign: 'center', marginBottom: 15 }}>
+                      <button onClick={() => playAudio(verses[0], true)} style={{ padding: '8px 16px', borderRadius: 20, background: COLORS.gold, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        {playingAudio !== null ? '⏸️ Pause Recitation' : '▶️ Play Continuous'}
+                      </button>
+                    </div>
+                  )}
+
+                  {mode === 'mushaf' && (
+                    <p className="arabic-font mushaf-text" dir="rtl" style={{
                       fontSize: FONT_SIZES[fontSize].arabicSize,
                       color: '#fff',
-                      lineHeight: 2.5,
+                      lineHeight: 3.0,
                       textAlign: 'justify',
                       textAlignLast: 'right',
-                      wordSpacing: 5,
+                      wordSpacing: 4,
                       margin: 0,
-                      textShadow: '0 1px 3px rgba(0,0,0,0.25)',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.2)',
                     }}>
                       {verses.map(v => (
-                        <span key={v.number} id={`verse-${v.number}`}>
+                        <span key={v.number} id={`verse-${v.number}`} className={playingAudio === v.number ? 'playing-verse' : ''} style={{ padding: '0 4px' }}>
                           {v.arabic}
                           {v.arabic && (
                             <span style={{
                               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                              width: '1.9em', height: '1.9em', borderRadius: '50%',
-                              fontSize: '0.5em', margin: '0 0.3em', verticalAlign: 'middle',
+                              width: '1.8em', height: '1.8em', borderRadius: '50%',
+                              fontSize: '0.55em', margin: '0 0.2em', verticalAlign: 'middle',
                               fontFamily: 'Amiri, serif',
                               background: 'rgba(255,255,255,0.2)',
                               border: '1px solid rgba(255,255,255,0.4)',
@@ -483,21 +503,21 @@ export default function QuranReader() {
                   )}
 
                   {mode === 'verse' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       {verses.map(v => (
-                        <div key={v.number} id={`verse-${v.number}`} style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: '16px 18px', border: `1px solid rgba(255,255,255,0.2)` }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <div style={{ width: 28, height: 28, borderRadius: '50%', background: COLORS.gold, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, flexShrink: 0 }}>
+                        <div key={v.number} id={`verse-${v.number}`} style={{ background: playingAudio === v.number ? 'rgba(200,169,110,0.2)' : 'rgba(255,255,255,0.08)', borderRadius: 12, padding: '14px 16px', border: `1px solid ${playingAudio === v.number ? COLORS.gold : 'rgba(255,255,255,0.15)'}`, transition: 'all 0.3s ease' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ width: 24, height: 24, borderRadius: '50%', background: COLORS.gold, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800 }}>
                                 {v.number}
                               </div>
-                              <span style={{ color: '#e1f5fe', fontSize: 11, fontWeight: 600 }}>{selectedSurah.name} · Ayah {v.number}</span>
+                              <span style={{ color: '#e1f5fe', fontSize: 10, fontWeight: 600 }}>Ayah {v.number}</span>
                             </div>
-                            <div style={{ display: 'flex', gap: 10 }}>
-                              <button onClick={() => playAudio(v)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 16 }}>
+                            <div style={{ display: 'flex', gap: 12 }}>
+                              <button onClick={() => playAudio(v, false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 14 }}>
                                 {playingAudio === v.number ? '⏸️' : '▶️'}
                               </button>
-                              <button onClick={() => toggleBookmark(selectedSurah, v.number)} style={{ background: 'none', border: 'none', color: isBookmarked(selectedSurah.number, v.number) ? COLORS.gold : '#fff', cursor: 'pointer', fontSize: 16 }}>
+                              <button onClick={() => toggleBookmark(selectedSurah, v.number)} style={{ background: 'none', border: 'none', color: isBookmarked(selectedSurah.number, v.number) ? COLORS.gold : '#fff', cursor: 'pointer', fontSize: 14 }}>
                                 {isBookmarked(selectedSurah.number, v.number) ? '🔖' : '📑'}
                               </button>
                             </div>
@@ -506,18 +526,18 @@ export default function QuranReader() {
                           <p className="arabic-font" dir="rtl" style={{
                             fontSize: FONT_SIZES[fontSize].arabicSize,
                             color: '#fff',
-                            lineHeight: 2.2,
+                            lineHeight: 2.0,
                             textAlign: 'right',
                             margin: 0,
-                            wordSpacing: 4,
-                            textShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                            wordSpacing: 3,
+                            textShadow: '0 1px 2px rgba(0,0,0,0.2)',
                           }}>
                             {v.arabic}
                             {v.arabic && (
                               <span style={{
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                width: '1.8em', height: '1.8em', borderRadius: '50%',
-                                fontSize: '0.5em', margin: '0 0.3em', verticalAlign: 'middle',
+                                width: '1.7em', height: '1.7em', borderRadius: '50%',
+                                fontSize: '0.55em', margin: '0 0.2em', verticalAlign: 'middle',
                                 fontFamily: 'Amiri, serif',
                                 background: 'rgba(255,255,255,0.2)',
                                 border: '1px solid rgba(255,255,255,0.4)',
@@ -529,14 +549,14 @@ export default function QuranReader() {
                           </p>
 
                           {showTranslation && v.translation && (
-                            <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid rgba(255,255,255,0.2)` }}>
+                            <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid rgba(255,255,255,0.15)` }}>
                               <p
                                 className={lang === 'ur' ? 'urdu-font' : ''}
                                 dir={lang === 'ur' ? 'rtl' : 'ltr'}
                                 style={{
                                   color: '#fff',
                                   fontSize: lang === 'ur' ? FONT_SIZES[fontSize].transSize : FONT_SIZES[fontSize].transSize,
-                                  lineHeight: 1.85,
+                                  lineHeight: 1.7,
                                   margin: 0,
                                   fontStyle: lang === 'en' ? 'italic' : 'normal',
                                   textAlign: lang === 'ur' ? 'right' : 'left',
@@ -550,24 +570,24 @@ export default function QuranReader() {
                     </div>
                   )}
 
-                  <div style={{ textAlign: 'center', marginTop: 28, paddingTop: 18, borderTop: `1px solid rgba(255,255,255,0.2)` }}>
-                    <p className="arabic-font" style={{ color: COLORS.gold, fontSize: 26, margin: 0 }}>
+                  <div style={{ textAlign: 'center', marginTop: 25, paddingTop: 15, borderTop: `1px solid rgba(255,255,255,0.15)` }}>
+                    <p className="arabic-font" style={{ color: COLORS.gold, fontSize: 24, margin: 0 }}>
                       ۝ صَدَقَ اللَّهُ الْعَظِيمُ ۝
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 20 }}>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 15 }}>
                 {selectedSurah.number > 1 && (
                   <button onClick={() => loadSurah(SURAHS[selectedSurah.number - 2])}
-                    style={{ padding: '11px 22px', borderRadius: 40, border: `1px solid ${borderCol}`, background: cardBg, color: textCol, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
+                    style={{ padding: '10px 20px', borderRadius: 40, border: `1px solid ${borderCol}`, background: cardBg, color: textCol, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
                     ← Previous
                   </button>
                 )}
                 {selectedSurah.number < 114 && (
                   <button onClick={() => loadSurah(SURAHS[selectedSurah.number])}
-                    style={{ padding: '11px 26px', borderRadius: 40, border: 'none', background: COLORS.skyBlueDark, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
+                    style={{ padding: '10px 24px', borderRadius: 40, border: 'none', background: COLORS.skyBlueDark, color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
                     Next Surah →
                   </button>
                 )}
