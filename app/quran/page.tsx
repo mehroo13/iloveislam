@@ -163,7 +163,6 @@ const BISMILLAH_FRAGMENTS = [
   'بسم الله الرحمن الرحيم',
 ];
 
-// Improved stripping for Indo-Pak script
 function stripBismillah(text: string): string {
   let t = text.trim();
   
@@ -174,11 +173,17 @@ function stripBismillah(text: string): string {
     }
   }
 
-  // Stronger regex for Indo-Pak style
-  t = t.replace(/^بِسْمِ\s+اللَّهِ\s+الرَّحْمَٰنِ\s+الرَّحِيمِ[\s\u06DD\u06D6]*/u, '').trim();
-  t = t.replace(/^بسم الله الرحمن الرحيم[\s\u06DD\u06D6]*/u, '').trim();
-  t = t.replace(/^[\u06DD\u06D6\s]+/, '').trim();
+  const patterns = [
+    /^بِسْمِ\s+اللَّهِ\s+الرَّحْمَٰنِ\s+الرَّحِيمِ[\s\u06DD\u06D6]*/u,
+    /^بسم الله الرحمن الرحيم[\s\u06DD\u06D6]*/u,
+    /^بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ[\s\u06DD\u06D6]*/u,
+  ];
 
+  for (const pattern of patterns) {
+    t = t.replace(pattern, '').trim();
+  }
+
+  t = t.replace(/^[\s\u06DD\u06D6]+/, '').trim();
   return t;
 }
 
@@ -270,12 +275,9 @@ export default function QuranReader() {
       if (arabicData.code === 200 && transData.code === 200) {
         const versesData: Verse[] = arabicData.data.ayahs.map((ayah: any, idx: number) => {
           let arabicText = ayah.text;
-          
-          // Remove Bismillah only from the first verse of each Surah (except Surah 1 & 9)
           if (surah.number !== 1 && surah.number !== 9 && ayah.numberInSurah === 1) {
             arabicText = stripBismillah(ayah.text);
           }
-
           return {
             number: ayah.numberInSurah,
             arabic: arabicText,
@@ -400,8 +402,14 @@ export default function QuranReader() {
       `}} />
 
       {!selectedSurah ? (
-        // ... [All the Surah list UI code remains exactly the same] ...
         <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 20px' }}>
+          {/* Back Button Added */}
+          <button 
+            onClick={() => window.location.href = '/'} 
+            style={{ padding: '12px 24px', background: COLORS.skyBlueDark, color: '#fff', border: 'none', borderRadius: 30, cursor: 'pointer', fontWeight: 700, marginBottom: 30 }}>
+            ← Back to Main Menu
+          </button>
+
           <header style={{ textAlign: 'center', marginBottom: 40 }}>
             <h1 className="header-title" style={{ fontSize: 42, color: dark ? COLORS.skyBlueLight : COLORS.skyBlueDark, margin: '0 0 10px', fontWeight: 800 }}>Al-Quran Al-Kareem</h1>
 
