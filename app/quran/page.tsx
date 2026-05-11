@@ -394,12 +394,6 @@ export default function QuranReader() {
         .urdu-font { font-family: 'Noto Nastaliq Urdu', serif; }
         .playing-verse { background: ${COLORS.gold}33; border-radius: 8px; transition: background 0.3s ease; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @media (max-width: 600px) {
-          .surah-grid { grid-template-columns: 1fr !important; }
-          .header-title { font-size: 32px !important; }
-          .mushaf-text { font-size: 26px !important; line-height: 2.8 !important; }
-        }
       `}} />
 
       {!selectedSurah ? (
@@ -469,6 +463,28 @@ export default function QuranReader() {
                 <option value="mushaf">Mushaf</option>
                 <option value="verse">Verse</option>
               </select>
+
+              {/* Font Size Buttons - S M L XL */}
+              <div style={{ display: 'flex', gap: 4 }}>
+                {FONT_SIZES.map((f, i) => (
+                  <button 
+                    key={i}
+                    onClick={() => setFontSize(i)}
+                    style={{ 
+                      padding: '5px 11px', 
+                      borderRadius: 6, 
+                      border: `1px solid ${fontSize === i ? COLORS.gold : borderCol}`, 
+                      background: fontSize === i ? COLORS.gold : cardBg, 
+                      color: fontSize === i ? '#000' : textCol,
+                      fontWeight: 700,
+                      fontSize: '13px'
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
               <button onClick={() => setLang(lang === 'en' ? 'ur' : 'en')} style={{ padding: '5px 10px', borderRadius: 6, border: 'none', background: COLORS.skyBlueDark, color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 11 }}>
                 {lang === 'en' ? 'اردو' : 'English'}
               </button>
