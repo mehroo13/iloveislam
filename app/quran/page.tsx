@@ -18,12 +18,14 @@ interface Verse {
   number: number;
   arabic: string;
   translation: string;
+  audio?: string;
 }
 
 interface Bookmark {
-  number: number;
-  name: string;
-  arabic: string;
+  surahNumber: number;
+  surahName: string;
+  verseNumber: number;
+  timestamp: number;
 }
 
 const SURAHS: Surah[] = [
@@ -195,32 +197,47 @@ export default function QuranReader() {
   const [mode, setMode] = useState('mushaf');
   const [fontSize, setFontSize] = useState(1);
   const [showTranslation, setShowTranslation] = useState(true);
-  // ── FIXED: Default language set to Urdu ('ur') ──
   const [lang, setLang] = useState<'en' | 'ur'>('ur');
   const [dark, setDark] = useState(false);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [lastRead, setLastRead] = useState<Bookmark | null>(null);
+  const [playingAudio, setPlayingAudio] = useState<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
 
+  // Load bookmarks and last read from local storage
   useEffect(() => {
     try {
-      const s = localStorage.getItem('quran_bookmarks');
-      if (s) setBookmarks(JSON.parse(s));
+      const b = localStorage.getItem('quran_bookmarks_v2');
+      if (b) setBookmarks(JSON.parse(b));
+      const lr = localStorage.getItem('quran_last_read');
+      if (lr) setLastRead(JSON.parse(lr));
     } catch {}
   }, []);
 
+  // Save bookmarks to local storage
   useEffect(() => {
-    localStorage.setItem('quran_bookmarks', JSON.stringify(bookmarks));
+    localStorage.setItem('quran_bookmarks_v2', JSON.stringify(bookmarks));
   }, [bookmarks]);
 
-  const filtered = SURAHS.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.arabic.includes(search) ||
-    s.urduName.includes(search) ||
-    s.meaning.toLowerCase().includes(search.toLowerCase()) ||
-    s.number.toString() === search.trim()
-  );
+  // Save last read to local storage
+  useEffect(() => {
+    if (lastRead) localStorage.setItem('quran_last_read', JSON.stringify(lastRead));
+  }, [lastRead]);
 
-  const loadSurah = useCallback(async (surah: Surah) => {
+  const toggleBookmark = (surah: Surah, verseNum: number) => {
+    const exists = bookmarks.find(b => b.surahNumber === surah.number && b.verseNumber === verseNum);
+    if (exists) {
+      setBookmarks(bookmarks.filter(b => !(b.surahNumber === surah.number && b.verseNumber === verseNum)));
+    } else {
+      setBookmarks([...bookmarks, { surahNumber: surah.number, surahName: surah.name, verseNumber: verseNum, timestamp: Date.now() }]);
+    }
+  };
+
+  const isBookmarked = (surahNum: number, verseNum: number) => 
+    bookmarks.some(b => b.surahNumber === surahNum && b.verseNumber === verseNum);
+
+  const loadSurah = useCallback(async (surah: Surah, targetVerse: number = 1) => {
     setSelectedSurah(surah);
     setVerses([]);
     setLoading(true);
@@ -229,7 +246,6 @@ export default function QuranReader() {
 
     try {
       const arabicEdition = 'quran-indopak';
-      // ── FIXED: Ensure correct translation edition is used based on current state ──
       const translationEdition = lang === 'en' ? 'en.asad' : 'ur.jalandhry';
 
       const [arabicRes, transRes] = await Promise.all([
@@ -250,9 +266,19 @@ export default function QuranReader() {
             number: ayah.numberInSurah,
             arabic: arabicText,
             translation: transData.data?.ayahs?.[idx]?.text || '',
+            audio: `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${ayah.number}.mp3`
           };
         });
         setVerses(versesData);
+        setLastRead({ surahNumber: surah.number, surahName: surah.name, verseNumber: targetVerse, timestamp: Date.now() });
+        
+        // Scroll to target verse if needed
+        if (targetVerse > 1) {
+          setTimeout(() => {
+            const el = document.getElementById(`verse-${targetVerse}`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 500);
+        }
       } else {
         setError('Failed to load Surah content.');
       }
@@ -263,7 +289,34 @@ export default function QuranReader() {
     }
   }, [lang]);
 
-  // ── SKY BLUE THEME COLORS ──
+  // ── FIXED: Reload Surah when language changes ──
+  useEffect(() => {
+    if (selectedSurah) {
+      loadSurah(selectedSurah, 1);
+    }
+  }, [lang]);
+
+  const playAudio = (verse: Verse) => {
+    if (playingAudio === verse.number) {
+      audioRef.current?.pause();
+      setPlayingAudio(null);
+    } else {
+      if (audioRef.current) {
+        audioRef.current.src = verse.audio || '';
+        audioRef.current.play();
+        setPlayingAudio(verse.number);
+      }
+    }
+  };
+
+  const filtered = SURAHS.filter(s =>
+    s.name.toLowerCase().includes(search.toLowerCase()) ||
+    s.arabic.includes(search) ||
+    s.urduName.includes(search) ||
+    s.meaning.toLowerCase().includes(search.toLowerCase()) ||
+    s.number.toString() === search.trim()
+  );
+
   const bgCol = dark ? '#011627' : COLORS.skyBlue;
   const cardBg = dark ? '#0b253a' : '#fff';
   const textCol = dark ? '#e0f2f1' : '#01579b';
@@ -271,19 +324,16 @@ export default function QuranReader() {
 
   return (
     <div style={{ minHeight: '100vh', background: bgCol, fontFamily: 'system-ui, -apple-system, sans-serif', color: textCol, transition: 'background 0.3s ease' }}>
+      <audio ref={audioRef} onEnded={() => setPlayingAudio(null)} />
       <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Amiri&display=swap');
-        .arabic-font {
-          font-family: 'Noto Nastaliq Urdu', serif;
-          word-spacing: 2px;
-        }
-        .urdu-font {
-          font-family: 'Noto Nastaliq Urdu', serif;
-        }
+        .arabic-font { font-family: 'Noto Nastaliq Urdu', serif; word-spacing: 2px; }
+        .urdu-font { font-family: 'Noto Nastaliq Urdu', serif; }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: ${COLORS.skyBlueMid}44; borderRadius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: ${COLORS.skyBlueMid}66; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
       `}} />
 
       {!selectedSurah ? (
@@ -300,6 +350,22 @@ export default function QuranReader() {
                 onChange={(e) => setSearch(e.target.value)}
                 style={{ width: '100%', padding: '16px 24px', borderRadius: 50, border: `2px solid ${borderCol}`, fontSize: 16, outline: 'none', background: cardBg, color: textCol, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
               />
+            </div>
+
+            {/* Quick Access Bar */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 15, marginTop: 25, flexWrap: 'wrap' }}>
+              {lastRead && (
+                <button onClick={() => loadSurah(SURAHS[lastRead.surahNumber - 1], lastRead.verseNumber)} style={{ padding: '10px 20px', borderRadius: 30, background: COLORS.gold, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
+                  📖 Last Read: {lastRead.surahName} ({lastRead.verseNumber})
+                </button>
+              )}
+              {bookmarks.length > 0 && (
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <button style={{ padding: '10px 20px', borderRadius: 30, background: COLORS.skyBlueDark, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
+                    🔖 Bookmarks ({bookmarks.length})
+                  </button>
+                </div>
+              )}
             </div>
           </header>
 
@@ -328,18 +394,19 @@ export default function QuranReader() {
         </div>
       ) : (
         <div ref={topRef} style={{ maxWidth: 900, margin: '0 auto', padding: '20px' }}>
+          {/* Sticky Reader Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, background: cardBg, padding: '12px 20px', borderRadius: 12, border: `1px solid ${borderCol}`, position: 'sticky', top: 10, zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
             <button onClick={() => setSelectedSurah(null)} style={{ background: 'none', border: 'none', color: COLORS.skyBlueDark, cursor: 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
               ← Back
             </button>
             
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <select value={mode} onChange={(e) => setMode(e.target.value)} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${borderCol}`, background: cardBg, color: textCol, fontWeight: 600 }}>
-                <option value="mushaf">Mushaf Mode</option>
-                <option value="verse">Verse Mode</option>
+                <option value="mushaf">Mushaf</option>
+                <option value="verse">Verse</option>
               </select>
-              <button onClick={() => setLang(lang === 'en' ? 'ur' : 'en')} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${borderCol}`, background: COLORS.skyBlueDark, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>
-                {lang === 'en' ? 'Switch to Urdu' : 'Switch to English'}
+              <button onClick={() => setLang(lang === 'en' ? 'ur' : 'en')} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: COLORS.skyBlueDark, color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 12 }}>
+                {lang === 'en' ? 'اردو' : 'English'}
               </button>
               <button onClick={() => setDark(!dark)} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${borderCol}`, background: cardBg, color: textCol, cursor: 'pointer' }}>
                 {dark ? '☀️' : '🌙'}
@@ -357,7 +424,6 @@ export default function QuranReader() {
             <div style={{ animation: 'fadeIn 0.5s ease' }}>
               <div style={{ background: dark ? 'linear-gradient(135deg, #0b253a 0%, #011627 100%)' : 'linear-gradient(135deg, #0277bd 0%, #01579b 100%)', borderRadius: 24, padding: '40px 30px', color: '#fff', marginBottom: 30, position: 'relative', overflow: 'hidden', boxShadow: '0 10px 30px rgba(2,119,189,0.3)' }}>
                 <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
-                <div style={{ position: 'absolute', bottom: -30, left: -30, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
                 
                 <div style={{ position: 'relative', zIndex: 1 }}>
                   <div style={{ textAlign: 'center', marginBottom: 18 }}>
@@ -396,7 +462,7 @@ export default function QuranReader() {
                       textShadow: '0 1px 3px rgba(0,0,0,0.25)',
                     }}>
                       {verses.map(v => (
-                        <span key={v.number}>
+                        <span key={v.number} id={`verse-${v.number}`}>
                           {v.arabic}
                           {v.arabic && (
                             <span style={{
@@ -419,12 +485,22 @@ export default function QuranReader() {
                   {mode === 'verse' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                       {verses.map(v => (
-                        <div key={v.number} style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: '16px 18px', border: `1px solid rgba(255,255,255,0.2)` }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                            <div style={{ width: 28, height: 28, borderRadius: '50%', background: COLORS.gold, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, flexShrink: 0 }}>
-                              {v.number}
+                        <div key={v.number} id={`verse-${v.number}`} style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: '16px 18px', border: `1px solid rgba(255,255,255,0.2)` }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <div style={{ width: 28, height: 28, borderRadius: '50%', background: COLORS.gold, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, flexShrink: 0 }}>
+                                {v.number}
+                              </div>
+                              <span style={{ color: '#e1f5fe', fontSize: 11, fontWeight: 600 }}>{selectedSurah.name} · Ayah {v.number}</span>
                             </div>
-                            <span style={{ color: '#e1f5fe', fontSize: 11, fontWeight: 600 }}>{selectedSurah.name} · Ayah {v.number}</span>
+                            <div style={{ display: 'flex', gap: 10 }}>
+                              <button onClick={() => playAudio(v)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 16 }}>
+                                {playingAudio === v.number ? '⏸️' : '▶️'}
+                              </button>
+                              <button onClick={() => toggleBookmark(selectedSurah, v.number)} style={{ background: 'none', border: 'none', color: isBookmarked(selectedSurah.number, v.number) ? COLORS.gold : '#fff', cursor: 'pointer', fontSize: 16 }}>
+                                {isBookmarked(selectedSurah.number, v.number) ? '🔖' : '📑'}
+                              </button>
+                            </div>
                           </div>
 
                           <p className="arabic-font" dir="rtl" style={{
@@ -484,13 +560,13 @@ export default function QuranReader() {
 
               <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 20 }}>
                 {selectedSurah.number > 1 && (
-                  <button onClick={() => loadSurah(SURAHS.find(s => s.number === selectedSurah.number - 1)!)}
+                  <button onClick={() => loadSurah(SURAHS[selectedSurah.number - 2])}
                     style={{ padding: '11px 22px', borderRadius: 40, border: `1px solid ${borderCol}`, background: cardBg, color: textCol, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
                     ← Previous
                   </button>
                 )}
                 {selectedSurah.number < 114 && (
-                  <button onClick={() => loadSurah(SURAHS.find(s => s.number === selectedSurah.number + 1)!)}
+                  <button onClick={() => loadSurah(SURAHS[selectedSurah.number])}
                     style={{ padding: '11px 26px', borderRadius: 40, border: 'none', background: COLORS.skyBlueDark, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
                     Next Surah →
                   </button>
