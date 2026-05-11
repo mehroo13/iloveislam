@@ -155,22 +155,8 @@ const FONT_SIZES = [
 const toArabicNum = (n: number): string =>
   n.toString().split('').map(d => String.fromCharCode(0x0660 + parseInt(d))).join('');
 
-const BISMILLAH_FRAGMENTS = [
-  'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
-  'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ',
-  'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ',
-  'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيمِ',
-  'بسم الله الرحمن الرحيم',
-];
-
 function stripBismillah(text: string): string {
   let t = text.trim();
-  for (const b of BISMILLAH_FRAGMENTS) {
-    if (t.startsWith(b)) {
-      t = t.slice(b.length).trim();
-      return t;
-    }
-  }
   const patterns = [
     /^[\s\u06DD\u06D6]*بِسْمِ\s*اللَّهِ\s*الرَّحْمَٰنِ\s*الرَّحِيمِ[\s\u06DD\u06D6]*/u,
     /^[\s\u06DD\u06D6]*بسم الله الرحمن الرحيم[\s\u06DD\u06D6]*/u,
@@ -398,7 +384,6 @@ export default function QuranReader() {
         @media (max-width: 600px) {
           .surah-grid { grid-template-columns: 1fr !important; }
           .header-title { font-size: 32px !important; }
-          .mushaf-text { font-size: 26px !important; line-height: 2.8 !important; }
         }
       `}} />
 
@@ -464,11 +449,33 @@ export default function QuranReader() {
               ← Back
             </button>
 
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <select value={mode} onChange={(e) => setMode(e.target.value)} style={{ padding: '5px 8px', borderRadius: 6, border: `1px solid ${borderCol}`, background: cardBg, color: textCol, fontWeight: 600, fontSize: 12 }}>
                 <option value="mushaf">Mushaf</option>
                 <option value="verse">Verse</option>
               </select>
+
+              {/* Font Size Buttons */}
+              <div style={{ display: 'flex', gap: 4 }}>
+                {FONT_SIZES.map((f, i) => (
+                  <button 
+                    key={i}
+                    onClick={() => setFontSize(i)}
+                    style={{ 
+                      padding: '4px 10px', 
+                      borderRadius: 6, 
+                      border: `1px solid ${fontSize === i ? COLORS.gold : borderCol}`, 
+                      background: fontSize === i ? COLORS.gold : cardBg, 
+                      color: fontSize === i ? '#000' : textCol,
+                      fontWeight: 700,
+                      fontSize: '13px'
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
               <button onClick={() => setLang(lang === 'en' ? 'ur' : 'en')} style={{ padding: '5px 10px', borderRadius: 6, border: 'none', background: COLORS.skyBlueDark, color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 11 }}>
                 {lang === 'en' ? 'اردو' : 'English'}
               </button>
@@ -508,19 +515,6 @@ export default function QuranReader() {
                       <p className="arabic-font" style={{ fontSize: '34px', color: '#fff', margin: 0, lineHeight: 1.4, textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
                         بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
                       </p>
-                    </div>
-                  )}
-
-                  {mode === 'mushaf' && (
-                    <div style={{ textAlign: 'center', marginBottom: 15, display: 'flex', justifyContent: 'center', gap: 10 }}>
-                      <button onClick={toggleContinuous} style={{ padding: '8px 16px', borderRadius: 20, background: COLORS.gold, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        {playingAudio !== null && !isPaused ? '⏸️ Pause' : '▶️ Play Continuous'}
-                      </button>
-                      {playingAudio !== null && (
-                        <button onClick={stopAudio} style={{ padding: '8px 16px', borderRadius: 20, background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12 }}>
-                          ⏹️ Reset
-                        </button>
-                      )}
                     </div>
                   )}
 
@@ -578,7 +572,6 @@ export default function QuranReader() {
                             lineHeight: 2.4,
                             textAlign: 'right',
                             margin: 0,
-                            wordSpacing: 8,
                           }}>
                             {v.arabic}
                           </p>
