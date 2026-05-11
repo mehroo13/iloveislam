@@ -268,7 +268,7 @@ export default function QuranReader() {
       if (arabicData.code === 200 && transData.code === 200) {
         const versesData: Verse[] = arabicData.data.ayahs.map((ayah: any, idx: number) => {
           let arabicText = ayah.text;
-          if (surah.number !== 9 && ayah.numberInSurah === 1) {
+          if (surah.number !== 1 && surah.number !== 9 && ayah.numberInSurah === 1) {
             arabicText = stripBismillah(ayah.text);
           }
           return {
