@@ -163,19 +163,22 @@ const BISMILLAH_FRAGMENTS = [
   'بسم الله الرحمن الرحيم',
 ];
 
+// Improved stripping for Indo-Pak script
 function stripBismillah(text: string): string {
   let t = text.trim();
+  
   for (const b of BISMILLAH_FRAGMENTS) {
     if (t.startsWith(b)) {
       t = t.slice(b.length).trim();
-      t = t.replace(/^[\u06DD\s]+/, '').trim();
       return t;
     }
   }
-  const bismillahRegex = /^بِسْمِ\s+[\u0600-\u06FF\u064B-\u065F\s]+?الرَّحِيمِ[\s\u06DD]*/u;
-  const bismillahRegexUthmani = /^بِسۡمِ\s+[\u0600-\u06FF\u064B-\u065F\s]+?الرَّحِیمِ[\s\u06DD]*/u;
-  t = t.replace(bismillahRegex, '').trim();
-  t = t.replace(bismillahRegexUthmani, '').trim();
+
+  // Stronger regex for Indo-Pak style
+  t = t.replace(/^بِسْمِ\s+اللَّهِ\s+الرَّحْمَٰنِ\s+الرَّحِيمِ[\s\u06DD\u06D6]*/u, '').trim();
+  t = t.replace(/^بسم الله الرحمن الرحيم[\s\u06DD\u06D6]*/u, '').trim();
+  t = t.replace(/^[\u06DD\u06D6\s]+/, '').trim();
+
   return t;
 }
 
@@ -224,7 +227,6 @@ export default function QuranReader() {
     if (lastRead) localStorage.setItem('quran_last_read', JSON.stringify(lastRead));
   }, [lastRead]);
 
-  // ── FIXED: toggleBookmark and isBookmarked added here ──
   const isBookmarked = useCallback((surahNumber: number, verseNumber: number): boolean => {
     return bookmarks.some(b => b.surahNumber === surahNumber && b.verseNumber === verseNumber);
   }, [bookmarks]);
@@ -268,9 +270,12 @@ export default function QuranReader() {
       if (arabicData.code === 200 && transData.code === 200) {
         const versesData: Verse[] = arabicData.data.ayahs.map((ayah: any, idx: number) => {
           let arabicText = ayah.text;
+          
+          // Remove Bismillah only from the first verse of each Surah (except Surah 1 & 9)
           if (surah.number !== 1 && surah.number !== 9 && ayah.numberInSurah === 1) {
             arabicText = stripBismillah(ayah.text);
           }
+
           return {
             number: ayah.numberInSurah,
             arabic: arabicText,
@@ -395,6 +400,7 @@ export default function QuranReader() {
       `}} />
 
       {!selectedSurah ? (
+        // ... [All the Surah list UI code remains exactly the same] ...
         <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 20px' }}>
           <header style={{ textAlign: 'center', marginBottom: 40 }}>
             <h1 className="header-title" style={{ fontSize: 42, color: dark ? COLORS.skyBlueLight : COLORS.skyBlueDark, margin: '0 0 10px', fontWeight: 800 }}>Al-Quran Al-Kareem</h1>
