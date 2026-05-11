@@ -146,10 +146,10 @@ const SURAHS: Surah[] = [
 ];
 
 const FONT_SIZES = [
-  { label: 'S', arabicSize: '24px', transSize: '14px' },
-  { label: 'M', arabicSize: '30px', transSize: '15px' },
-  { label: 'L', arabicSize: '36px', transSize: '16px' },
-  { label: 'XL', arabicSize: '42px', transSize: '17px' },
+  { label: 'S', arabicSize: '27px', transSize: '15px' },
+  { label: 'M', arabicSize: '33px', transSize: '16px' },
+  { label: 'L', arabicSize: '39px', transSize: '17px' },
+  { label: 'XL', arabicSize: '45px', transSize: '18px' },
 ];
 
 const toArabicNum = (n: number): string =>
@@ -165,24 +165,20 @@ const BISMILLAH_FRAGMENTS = [
 
 function stripBismillah(text: string): string {
   let t = text.trim();
-  
   for (const b of BISMILLAH_FRAGMENTS) {
     if (t.startsWith(b)) {
       t = t.slice(b.length).trim();
       return t;
     }
   }
-
   const patterns = [
-    /^بِسْمِ\s+اللَّهِ\s+الرَّحْمَٰنِ\s+الرَّحِيمِ[\s\u06DD\u06D6]*/u,
-    /^بسم الله الرحمن الرحيم[\s\u06DD\u06D6]*/u,
-    /^بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ[\s\u06DD\u06D6]*/u,
+    /^[\s\u06DD\u06D6]*بِسْمِ\s*اللَّهِ\s*الرَّحْمَٰنِ\s*الرَّحِيمِ[\s\u06DD\u06D6]*/u,
+    /^[\s\u06DD\u06D6]*بسم الله الرحمن الرحيم[\s\u06DD\u06D6]*/u,
+    /^[\s\u06DD\u06D6]*بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ[\s\u06DD\u06D6]*/u,
   ];
-
   for (const pattern of patterns) {
     t = t.replace(pattern, '').trim();
   }
-
   t = t.replace(/^[\s\u06DD\u06D6]+/, '').trim();
   return t;
 }
@@ -383,30 +379,32 @@ export default function QuranReader() {
     <div style={{ minHeight: '100vh', background: bgCol, fontFamily: 'system-ui, -apple-system, sans-serif', color: textCol, transition: 'background 0.3s ease' }}>
       <audio ref={audioRef} onEnded={handleAudioEnd} />
       <style dangerouslySetInnerHTML={{ __html: `
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Amiri&display=swap');
-        .arabic-font { font-family: 'Noto Nastaliq Urdu', serif; word-spacing: 2px; font-weight: 700; }
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Amiri:wght@400;700&display=swap');
+        .arabic-font { 
+          font-family: 'Noto Nastaliq Urdu', 'Amiri', serif; 
+          word-spacing: 12px; 
+          line-height: 2.9; 
+          font-weight: 700; 
+        }
+        .mushaf-text { 
+          font-family: 'Noto Nastaliq Urdu', 'Amiri', serif; 
+          word-spacing: 14px; 
+          line-height: 3.4; 
+        }
         .urdu-font { font-family: 'Noto Nastaliq Urdu', serif; }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: ${COLORS.skyBlueMid}44; borderRadius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: ${COLORS.skyBlueMid}66; }
         .playing-verse { background: ${COLORS.gold}33; border-radius: 8px; transition: background 0.3s ease; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @media (max-width: 600px) {
           .surah-grid { grid-template-columns: 1fr !important; }
           .header-title { font-size: 32px !important; }
-          .reader-controls { flex-wrap: wrap; justify-content: center; gap: 5px !important; }
-          .mushaf-text { font-size: 24px !important; line-height: 2.8 !important; }
+          .mushaf-text { font-size: 26px !important; line-height: 2.8 !important; }
         }
       `}} />
 
       {!selectedSurah ? (
         <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 20px' }}>
-          {/* Back Button Added */}
-          <button 
-            onClick={() => window.location.href = '/'} 
-            style={{ padding: '12px 24px', background: COLORS.skyBlueDark, color: '#fff', border: 'none', borderRadius: 30, cursor: 'pointer', fontWeight: 700, marginBottom: 30 }}>
+          <button onClick={() => window.location.href = '/'} style={{ padding: '12px 24px', background: COLORS.skyBlueDark, color: '#fff', border: 'none', borderRadius: 30, cursor: 'pointer', fontWeight: 700, marginBottom: 30 }}>
             ← Back to Main Menu
           </button>
 
@@ -527,32 +525,27 @@ export default function QuranReader() {
                   )}
 
                   {mode === 'mushaf' && (
-                    <p className="arabic-font mushaf-text" dir="rtl" style={{
+                    <p className="mushaf-text arabic-font" dir="rtl" style={{
                       fontSize: FONT_SIZES[fontSize].arabicSize,
                       color: '#fff',
-                      lineHeight: 3.0,
                       textAlign: 'justify',
                       textAlignLast: 'right',
-                      wordSpacing: 4,
                       margin: 0,
                       textShadow: '0 1px 2px rgba(0,0,0,0.2)',
                     }}>
                       {verses.map(v => (
-                        <span key={v.number} id={`verse-${v.number}`} className={playingAudio === v.number ? 'playing-verse' : ''} style={{ padding: '0 4px' }}>
+                        <span key={v.number} id={`verse-${v.number}`} className={playingAudio === v.number ? 'playing-verse' : ''} style={{ padding: '4px 2px' }}>
                           {v.arabic}
-                          {v.arabic && (
-                            <span style={{
-                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                              width: '1.8em', height: '1.8em', borderRadius: '50%',
-                              fontSize: '0.55em', margin: '0 0.2em', verticalAlign: 'middle',
-                              fontFamily: 'Amiri, serif',
-                              background: 'rgba(255,255,255,0.2)',
-                              border: '1px solid rgba(255,255,255,0.4)',
-                              color: '#fff', flexShrink: 0,
-                            }}>
-                              {toArabicNum(v.number)}
-                            </span>
-                          )}
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            width: '1.8em', height: '1.8em', borderRadius: '50%',
+                            fontSize: '0.55em', margin: '0 8px', verticalAlign: 'middle',
+                            background: 'rgba(255,255,255,0.25)',
+                            border: '1px solid rgba(255,255,255,0.4)',
+                            color: '#fff'
+                          }}>
+                            {toArabicNum(v.number)}
+                          </span>
                         </span>
                       ))}
                     </p>
@@ -582,41 +575,22 @@ export default function QuranReader() {
                           <p className="arabic-font" dir="rtl" style={{
                             fontSize: FONT_SIZES[fontSize].arabicSize,
                             color: '#fff',
-                            lineHeight: 2.0,
+                            lineHeight: 2.4,
                             textAlign: 'right',
                             margin: 0,
-                            wordSpacing: 3,
-                            textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                            wordSpacing: 8,
                           }}>
                             {v.arabic}
-                            {v.arabic && (
-                              <span style={{
-                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                width: '1.7em', height: '1.7em', borderRadius: '50%',
-                                fontSize: '0.55em', margin: '0 0.2em', verticalAlign: 'middle',
-                                fontFamily: 'Amiri, serif',
-                                background: 'rgba(255,255,255,0.2)',
-                                border: '1px solid rgba(255,255,255,0.4)',
-                                color: '#fff', flexShrink: 0,
-                              }}>
-                                {toArabicNum(v.number)}
-                              </span>
-                            )}
                           </p>
 
                           {showTranslation && v.translation && (
                             <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid rgba(255,255,255,0.15)` }}>
-                              <p
-                                className={lang === 'ur' ? 'urdu-font' : ''}
-                                dir={lang === 'ur' ? 'rtl' : 'ltr'}
-                                style={{
-                                  color: '#fff',
-                                  fontSize: FONT_SIZES[fontSize].transSize,
-                                  lineHeight: 1.7,
-                                  margin: 0,
-                                  fontStyle: lang === 'en' ? 'italic' : 'normal',
-                                  textAlign: lang === 'ur' ? 'right' : 'left',
-                                }}>
+                              <p className={lang === 'ur' ? 'urdu-font' : ''} dir={lang === 'ur' ? 'rtl' : 'ltr'} style={{
+                                color: '#fff',
+                                fontSize: FONT_SIZES[fontSize].transSize,
+                                lineHeight: 1.8,
+                                margin: 0,
+                              }}>
                                 {v.translation}
                               </p>
                             </div>
