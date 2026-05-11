@@ -202,6 +202,7 @@ export default function QuranReader() {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [lastRead, setLastRead] = useState<Bookmark | null>(null);
   const [playingAudio, setPlayingAudio] = useState<number | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
   const [continuousAudio, setContinuousAudio] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
@@ -241,6 +242,7 @@ export default function QuranReader() {
     setLoading(true);
     setError('');
     setPlayingAudio(null);
+    setIsPaused(false);
     setContinuousAudio(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -296,16 +298,22 @@ export default function QuranReader() {
 
   const playAudio = (verse: Verse, continuous: boolean = false) => {
     setContinuousAudio(continuous);
+    
     if (playingAudio === verse.number) {
-      audioRef.current?.pause();
-      setPlayingAudio(null);
+      if (isPaused) {
+        audioRef.current?.play();
+        setIsPaused(false);
+      } else {
+        audioRef.current?.pause();
+        setIsPaused(true);
+      }
     } else {
       if (audioRef.current) {
         audioRef.current.src = verse.audio || '';
         audioRef.current.play();
         setPlayingAudio(verse.number);
+        setIsPaused(false);
         
-        // Scroll to playing verse in Mushaf mode
         if (mode === 'mushaf') {
           const el = document.getElementById(`verse-${verse.number}`);
           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -314,12 +322,23 @@ export default function QuranReader() {
     }
   };
 
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setPlayingAudio(null);
+    setIsPaused(false);
+    setContinuousAudio(false);
+  };
+
   const handleAudioEnd = () => {
     if (continuousAudio && playingAudio !== null && playingAudio < verses.length) {
       const nextVerse = verses[playingAudio];
       playAudio(nextVerse, true);
     } else {
       setPlayingAudio(null);
+      setIsPaused(false);
       setContinuousAudio(false);
     }
   };
@@ -463,10 +482,15 @@ export default function QuranReader() {
                   )}
 
                   {mode === 'mushaf' && (
-                    <div style={{ textAlign: 'center', marginBottom: 15 }}>
+                    <div style={{ textAlign: 'center', marginBottom: 15, display: 'flex', justifyContent: 'center', gap: 10 }}>
                       <button onClick={() => playAudio(verses[0], true)} style={{ padding: '8px 16px', borderRadius: 20, background: COLORS.gold, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        {playingAudio !== null ? '⏸️ Pause Recitation' : '▶️ Play Continuous'}
+                        {playingAudio !== null && !isPaused ? '⏸️ Pause' : '▶️ Play Continuous'}
                       </button>
+                      {playingAudio !== null && (
+                        <button onClick={stopAudio} style={{ padding: '8px 16px', borderRadius: 20, background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12 }}>
+                          ⏹️ Reset
+                        </button>
+                      )}
                     </div>
                   )}
 
@@ -515,7 +539,7 @@ export default function QuranReader() {
                             </div>
                             <div style={{ display: 'flex', gap: 12 }}>
                               <button onClick={() => playAudio(v, false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 14 }}>
-                                {playingAudio === v.number ? '⏸️' : '▶️'}
+                                {playingAudio === v.number && !isPaused ? '⏸️' : '▶️'}
                               </button>
                               <button onClick={() => toggleBookmark(selectedSurah, v.number)} style={{ background: 'none', border: 'none', color: isBookmarked(selectedSurah.number, v.number) ? COLORS.gold : '#fff', cursor: 'pointer', fontSize: 14 }}>
                                 {isBookmarked(selectedSurah.number, v.number) ? '🔖' : '📑'}
