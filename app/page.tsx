@@ -68,7 +68,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'About', blog: 'Blog', privacy: 'Privacy', contact: 'Contact', faq: 'FAQ', terms: 'Terms',
     mostUsed: 'Most Used', daily: 'Daily Practice', finance: 'Finance & Giving', travel: 'Travel & Knowledge', kids: '🧒 Kids Corner',
     footerMade: 'Made with ❤️ for the Ummah', footerFree: 'Always Free · No Sign-up',
-    stats: { tools: '21 Free Tools', free: '100% Free', noSignup: 'No Sign-up', mobile: 'Works on Mobile', world: 'Works Worldwide', fast: 'Always Fast' },
+    stats: { tools: '22 Free Tools', free: '100% Free', noSignup: 'No Sign-up', mobile: 'Works on Mobile', world: 'Works Worldwide', fast: 'Always Fast' },
     aboutTitle: 'About I Love Islam Tools',
     aboutText1: 'I Love Islam is a free collection of Islamic tools for Muslims worldwide — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Hijri Calendar, Kaffarah Calculator, and much more. Everything in one place, completely free.',
     aboutText2: 'Our tools include Dhikr counter, 99 Names of Allah, Halal Travel guide, Mosque Finder, Islamic Inheritance Calculator, Sadaqah Tracker, and our unique Mizan Islamic Life Blueprint.',
@@ -86,7 +86,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'عن الموقع', blog: 'مدونة', privacy: 'الخصوصية', contact: 'تواصل معنا', faq: 'الأسئلة الشائعة', terms: 'الشروط',
     mostUsed: 'الأكثر استخداماً', daily: 'الممارسة اليومية', finance: 'المال والعطاء', travel: 'السفر والمعرفة', kids: '🧒 ركن الأطفال',
     footerMade: 'صُنع بمحبة للأمة الإسلامية', footerFree: 'مجاني دائماً · لا تسجيل',
-    stats: { tools: '٢١ أداة', free: '١٠٠٪ مجاني', noSignup: 'لا تسجيل', mobile: 'يعمل على الجوال', world: 'يعمل في كل مكان', fast: 'سريع دائماً' },
+    stats: { tools: '٢٢ أداة', free: '١٠٠٪ مجاني', noSignup: 'لا تسجيل', mobile: 'يعمل على الجوال', world: 'يعمل في كل مكان', fast: 'سريع دائماً' },
     aboutTitle: 'عن أدوات أحب الإسلام',
     aboutText1: 'أحب الإسلام مجموعة مجانية من الأدوات الإسلامية للمسلمين في جميع أنحاء العالم.',
     aboutText2: 'تشمل أدواتنا عداد الذكر وأسماء الله الحسنى ودليل السفر الحلال والمزيد.',
@@ -104,7 +104,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'ہمارے بارے میں', blog: 'بلاگ', privacy: 'رازداری', contact: 'رابطہ', faq: 'سوالات', terms: 'شرائط',
     mostUsed: 'سب سے زیادہ', daily: 'روزانہ عبادت', finance: 'مال اور صدقہ', travel: 'سفر اور علم', kids: '🧒 بچوں کا کونا',
     footerMade: 'امت کے لیے محبت سے', footerFree: 'ہمیشہ مفت · کوئی رجسٹریشن نہیں',
-    stats: { tools: '٢١ مفت ٹولز', free: '١٠٠٪ مفت', noSignup: 'سائن اپ نہیں', mobile: 'موبائل پر', world: 'دنیا بھر میں', fast: 'تیز' },
+    stats: { tools: '٢٢ مفت ٹولز', free: '١٠٠٪ مفت', noSignup: 'سائن اپ نہیں', mobile: 'موبائل پر', world: 'دنیا بھر میں', fast: 'تیز' },
     aboutTitle: 'I Love Islam کے بارے میں',
     aboutText1: 'I Love Islam دنیا بھر کے مسلمانوں کے لیے مفت اسلامی ٹولز کا مجموعہ ہے۔',
     aboutText2: 'ذکر کاؤنٹر، اللہ کے ۹۹ نام، میزان لائف بلیو پرنٹ اور بہت کچھ۔',
@@ -122,7 +122,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'À propos', blog: 'Blog', privacy: 'Confidentialité', contact: 'Contact', faq: 'FAQ', terms: 'Conditions',
     mostUsed: 'Les plus utilisés', daily: 'Pratique quotidienne', finance: 'Finance & Dons', travel: 'Voyage & Savoir', kids: '🧒 Coin des enfants',
     footerMade: 'Fait avec ❤️ pour la Oumma', footerFree: 'Toujours gratuit · Sans inscription',
-    stats: { tools: '21 Outils', free: '100% Gratuit', noSignup: 'Sans inscription', mobile: 'Mobile', world: 'Mondial', fast: 'Rapide' },
+    stats: { tools: '22 Outils', free: '100% Gratuit', noSignup: 'Sans inscription', mobile: 'Mobile', world: 'Mondial', fast: 'Rapide' },
     aboutTitle: 'À propos de I Love Islam',
     aboutText1: 'I Love Islam est une collection gratuite d\'outils islamiques — Zakat, horaires de prière, Qibla, Coran et bien plus.',
     aboutText2: 'Compteur de Dhikr, 99 noms d\'Allah, guide de voyage halal, et notre outil unique Mizan.',
@@ -140,7 +140,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'Hakkında', blog: 'Blog', privacy: 'Gizlilik', contact: 'İletişim', faq: 'SSS', terms: 'Şartlar',
     mostUsed: 'En Çok Kullanılan', daily: 'Günlük İbadet', finance: 'Finans & Sadaka', travel: 'Seyahat & Bilgi', kids: '🧒 Çocuk Köşesi',
     footerMade: 'Ümmet için sevgiyle', footerFree: 'Her zaman ücretsiz',
-    stats: { tools: '21 Araç', free: '%100 Ücretsiz', noSignup: 'Kayıt yok', mobile: 'Mobil', world: 'Dünya geneli', fast: 'Hızlı' },
+    stats: { tools: '22 Araç', free: '%100 Ücretsiz', noSignup: 'Kayıt yok', mobile: 'Mobil', world: 'Dünya geneli', fast: 'Hızlı' },
     aboutTitle: 'I Love Islam Hakkında',
     aboutText1: 'I Love Islam, Müslümanlar için ücretsiz İslami araçlar — Zekat, namaz vakitleri, kıble, Kuran ve daha fazlası.',
     aboutText2: 'Dhikr sayacı, Allah\'ın 99 ismi, helal seyahat rehberi ve Mizan aracımız.',
@@ -158,7 +158,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'Tentang', blog: 'Blog', privacy: 'Privasi', contact: 'Kontak', faq: 'FAQ', terms: 'Ketentuan',
     mostUsed: 'Paling Sering', daily: 'Ibadah Harian', finance: 'Keuangan & Sedekah', travel: 'Perjalanan & Ilmu', kids: '🧒 Sudut Anak',
     footerMade: 'Dibuat dengan ❤️ untuk Umat', footerFree: 'Selalu Gratis',
-    stats: { tools: '21 Alat', free: '100% Gratis', noSignup: 'Tanpa Daftar', mobile: 'Mobile', world: 'Seluruh Dunia', fast: 'Cepat' },
+    stats: { tools: '22 Alat', free: '100% Gratis', noSignup: 'Tanpa Daftar', mobile: 'Mobile', world: 'Seluruh Dunia', fast: 'Cepat' },
     aboutTitle: 'Tentang I Love Islam',
     aboutText1: 'I Love Islam adalah kumpulan alat Islam gratis — Kalkulator zakat, waktu shalat, kiblat, Al-Quran dan masih banyak lagi.',
     aboutText2: 'Penghitung dzikir, 99 Nama Allah, panduan halal, dan Mizan Blueprint.',
@@ -176,7 +176,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'Tentang', blog: 'Blog', privacy: 'Privasi', contact: 'Hubungi', faq: 'Soalan Lazim', terms: 'Terma',
     mostUsed: 'Paling Kerap', daily: 'Amalan Harian', finance: 'Kewangan & Sedekah', travel: 'Perjalanan & Ilmu', kids: '🧒 Sudut Kanak-kanak',
     footerMade: 'Dibuat dengan ❤️ untuk Umat', footerFree: 'Sentiasa Percuma',
-    stats: { tools: '21 Alat', free: '100% Percuma', noSignup: 'Tanpa Daftar', mobile: 'Mudah alih', world: 'Seluruh Dunia', fast: 'Laju' },
+    stats: { tools: '22 Alat', free: '100% Percuma', noSignup: 'Tanpa Daftar', mobile: 'Mudah alih', world: 'Seluruh Dunia', fast: 'Laju' },
     aboutTitle: 'Tentang I Love Islam',
     aboutText1: 'I Love Islam ialah koleksi alat Islam percuma — kalkulator zakat, waktu solat, kiblat, Al-Quran dan banyak lagi.',
     aboutText2: 'Pembilang zikir, 99 Nama Allah, panduan halal dan Mizan Blueprint.',
@@ -194,7 +194,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'সম্পর্কে', blog: 'ব্লগ', privacy: 'গোপনীয়তা', contact: 'যোগাযোগ', faq: 'প্রশ্নোত্তর', terms: 'শর্তাবলী',
     mostUsed: 'সর্বাধিক ব্যবহৃত', daily: 'দৈনিক ইবাদত', finance: 'অর্থ ও দান', travel: 'ভ্রমণ ও জ্ঞান', kids: '🧒 বাচ্চাদের কর্নার',
     footerMade: 'উম্মতের জন্য ভালোবাসায়', footerFree: 'সর্বদা বিনামূল্যে',
-    stats: { tools: '২১ টুল', free: '১০০% বিনামূল্যে', noSignup: 'নিবন্ধন নেই', mobile: 'মোবাইলে', world: 'বিশ্বজুড়ে', fast: 'দ্রুত' },
+    stats: { tools: '২২ টুল', free: '১০০% বিনামূল্যে', noSignup: 'নিবন্ধন নেই', mobile: 'মোবাইলে', world: 'বিশ্বজুড়ে', fast: 'দ্রুত' },
     aboutTitle: 'I Love Islam সম্পর্কে',
     aboutText1: 'I Love Islam বিশ্বজুড়ে মুসলিমদের জন্য বিনামূল্যে ইসলামিক টুলের সংগ্রহ।',
     aboutText2: 'ধিকর কাউন্টার, আল্লাহর ৯৯ নাম, হালাল ভ্রমণ গাইড এবং মিযান ব্লুপ্রিন্ট।',
@@ -252,7 +252,7 @@ const DAILY_QUOTES = [
   { text: "None of you will enter Paradise by his deeds alone — except by the Mercy of Allah.", source: "Bukhari", arabic: "" },
 ];
 
-// ==================== TOOLS DATA — ALL 21 TOOLS + KIDS CORNER ====================
+// ==================== TOOLS DATA — ORIGINAL 21 TOOLS + KIDS HUB (1 CARD) ====================
 const TOOLS_DATA = (t: TranslationsType) => [
   {
     category: t.mostUsed, emoji: '⭐',
@@ -295,16 +295,11 @@ const TOOLS_DATA = (t: TranslationsType) => [
       { name: 'Islamic Events', desc: 'Eid & Ramadan dates', icon: '🗓️', href: '/eid', color: 'bg-amber-100 text-amber-700' },
     ],
   },
-  // ==================== NEW: KIDS CORNER SECTION ====================
+  // ==================== KIDS CORNER - ONLY 1 CARD (HUB) ====================
   {
     category: t.kids, emoji: '🧒',
     items: [
       { name: 'Islamic Games Hub', desc: '5 fun Islamic games for kids', icon: '🎮', href: '/kids', color: 'bg-pink-100 text-pink-700' },
-      { name: 'Memory Match Game', desc: 'Match Islamic symbols', icon: '🎴', href: '/kids/games/memory-match', color: 'bg-rose-100 text-rose-700' },
-      { name: 'Learn to Pray', desc: 'Step-by-step prayer guide', icon: '🕌', href: '/kids/games/prayer-guide', color: 'bg-emerald-100 text-emerald-700' },
-      { name: 'Arabic Letters', desc: 'Learn Alif to Ya', icon: '🔤', href: '/kids/games/arabic-letters', color: 'bg-blue-100 text-blue-700' },
-      { name: 'Dua Memory', desc: 'Learn daily duas', icon: '🤲', href: '/kids/games/dua-memory', color: 'bg-purple-100 text-purple-700' },
-      { name: '5 Pillars Quiz', desc: 'Test your knowledge', icon: '🏛️', href: '/kids/games/pillars-quiz', color: 'bg-amber-100 text-amber-700' },
     ],
   },
 ];
@@ -548,8 +543,8 @@ const FEATURED_TOOLS = [
   },
   {
     href: '/kids',
-    badge: '🎮 New Section!',
-    title: 'Kids Islamic Games',
+    badge: '🎮 New for Kids!',
+    title: 'Islamic Games Hub',
     desc: '5 fun games to learn about Islam',
     icon: '🧒',
     cta: 'Play Now →',
@@ -902,7 +897,7 @@ export default function Home() {
                   <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-2">📊 Community Stats</p>
                   <div className="space-y-2 text-center">
                     <div className="flex justify-around text-[10px] text-gray-500">
-                      <div>✏️ 27+ Tools</div>
+                      <div>✏️ 22 Tools</div>
                       <div>🌍 8 Languages</div>
                       <div>🆓 100% Free</div>
                     </div>
