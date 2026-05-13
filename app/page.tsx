@@ -54,7 +54,7 @@ interface TranslationsType {
 }
 
 // ==================== GOOGLE ANALYTICS ID ====================
-const GA_MEASUREMENT_ID = 'G-4BDTXNC58M'; // Replace with your actual GA4 ID
+const GA_MEASUREMENT_ID = 'G-4BDTXNC58M';
 
 // ==================== TRANSLATIONS ====================
 const TRANSLATIONS: Record<string, TranslationsType> = {
@@ -517,7 +517,7 @@ function BackToTop() {
   );
 }
 
-// ==================== MIZAN BANNER (rotates between 3 featured tools) ====================
+// ==================== MIZAN BANNER ====================
 const FEATURED_TOOLS = [
   {
     href: '/mizan',
@@ -647,7 +647,6 @@ export default function Home() {
     setShowLangMenu(false);
   }, []);
 
-  // FIX 1: IMPROVED SEARCH - searches through category name too
   const filteredTools = useMemo(() => {
     if (!search.trim()) return tools;
     const searchLower = search.toLowerCase();
@@ -666,17 +665,6 @@ export default function Home() {
   const totalResults = filteredTools.reduce((acc, s) => acc + s.items.length, 0);
   const currentLang = LANGUAGES.find(l => l.code === lang);
 
-  // Track page view in GA
-  useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'page_view', {
-        page_title: 'Home - I Love Islam',
-        page_location: window.location.href,
-        language: lang
-      });
-    }
-  }, [lang]);
-
   if (!mounted || !darkMounted) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#f7f6f2' }}>
@@ -687,14 +675,14 @@ export default function Home() {
 
   return (
     <>
-      {/* Google Analytics Script */}
+      {/* Google Analytics - Fixed Version */}
       <Script
-        strategy="afterInteractive"
+        strategy="lazyOnload"
         src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
       />
       <Script
         id="google-analytics"
-        strategy="afterInteractive"
+        strategy="lazyOnload"
         dangerouslySetInnerHTML={{
           __html: `
             window.dataLayer = window.dataLayer || [];
@@ -702,8 +690,10 @@ export default function Home() {
             gtag('js', new Date());
             gtag('config', '${GA_MEASUREMENT_ID}', {
               page_path: window.location.pathname,
-              send_page_view: true
+              send_page_view: true,
+              transport_type: 'beacon'
             });
+            console.log('Google Analytics initialized with ID: ${GA_MEASUREMENT_ID}');
           `,
         }}
       />
@@ -769,7 +759,6 @@ export default function Home() {
               <p className="text-white/50 text-sm mb-4">{t.tagline}</p>
               <LiveBar />
               
-              {/* FIX 2: ENHANCED SEARCH BAR with better UX */}
               <div className="max-w-md mx-auto">
                 <div className="flex items-center gap-3 bg-white/10 border border-white/20 rounded-2xl px-4 py-2.5 focus-within:border-white/40 transition">
                   <span className="text-white/40">🔍</span>
@@ -792,7 +781,6 @@ export default function Home() {
                   )}
                 </div>
                 
-                {/* FIX 3: BETTER SEARCH RESULTS FEEDBACK */}
                 {search && (
                   <div className="mt-2 text-center">
                     <p className="text-white/60 text-xs">
@@ -820,14 +808,9 @@ export default function Home() {
 
             {/* Tools column */}
             <div className="flex-1 min-w-0">
-
-              {/* Quote of the Day */}
               {!search && <QuoteOfTheDay />}
-
-              {/* Rotating featured banner */}
               {!search && <FeaturedBanner onSaveScroll={saveScrollPosition} />}
 
-              {/* No results */}
               {filteredTools.length === 0 && (
                 <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 text-center border border-gray-100 dark:border-gray-700">
                   <p className="text-5xl mb-3">🔍</p>
@@ -839,7 +822,6 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Tool sections */}
               {filteredTools.map(section => (
                 <div key={section.category} className="mb-7">
                   <div className="flex items-center gap-2 mb-3">
@@ -856,24 +838,21 @@ export default function Home() {
                 </div>
               ))}
 
-              {/* Stats */}
               {!search && (
-                <div className="flex flex-wrap justify-center gap-2 my-5">
-                  {Object.values(t.stats).map(label => (
-                    <span key={label} className="text-[10px] text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-100 dark:border-gray-700">
-                      {label}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* SEO / About block */}
-              {!search && (
-                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
-                  <h2 className="font-semibold text-gray-800 dark:text-gray-200 text-sm mb-2">{t.aboutTitle}</h2>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed mb-2">{t.aboutText1}</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">{t.aboutText2}</p>
-                </div>
+                <>
+                  <div className="flex flex-wrap justify-center gap-2 my-5">
+                    {Object.values(t.stats).map(label => (
+                      <span key={label} className="text-[10px] text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-100 dark:border-gray-700">
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
+                    <h2 className="font-semibold text-gray-800 dark:text-gray-200 text-sm mb-2">{t.aboutTitle}</h2>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed mb-2">{t.aboutText1}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">{t.aboutText2}</p>
+                  </div>
+                </>
               )}
             </div>
 
@@ -882,7 +861,6 @@ export default function Home() {
               <div className="lg:w-64 xl:w-72 flex-shrink-0 space-y-4">
                 <Newsletter t={t} />
 
-                {/* Quick links sidebar card - FIX 4: Added working links to core tools */}
                 <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4">
                   <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-3">⭐ Popular Tools</p>
                   <div className="space-y-1">
@@ -913,7 +891,6 @@ export default function Home() {
                   </div>
                 </div>
                 
-                {/* FIX 5: Usage stats display */}
                 <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4">
                   <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-2">📊 Community Stats</p>
                   <div className="space-y-2 text-center">
@@ -963,7 +940,6 @@ export default function Home() {
           </div>
         </footer>
 
-        {/* Back to top button */}
         <BackToTop />
       </div>
     </>
