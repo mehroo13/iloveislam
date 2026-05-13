@@ -54,7 +54,7 @@ interface TranslationsType {
 }
 
 // ==================== GOOGLE ANALYTICS ID ====================
-const GA_MEASUREMENT_ID = 'G-XXXXXXXXXX'; // Replace with your actual GA4 ID
+const GA_MEASUREMENT_ID = 'G-4BDTXNC58M'; // Replace with your actual GA4 ID
 
 // ==================== TRANSLATIONS ====================
 const TRANSLATIONS: Record<string, TranslationsType> = {
