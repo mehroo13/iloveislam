@@ -41,6 +41,7 @@ interface TranslationsType {
   daily: string;
   finance: string;
   travel: string;
+  kids: string;
   footerMade: string;
   footerFree: string;
   stats: StatsType;
@@ -65,7 +66,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     noTools: 'No tools found', noToolsSub: 'Try: zakat, prayer, quran, qibla...',
     clear: 'Clear Search',
     about: 'About', blog: 'Blog', privacy: 'Privacy', contact: 'Contact', faq: 'FAQ', terms: 'Terms',
-    mostUsed: 'Most Used', daily: 'Daily Practice', finance: 'Finance & Giving', travel: 'Travel & Knowledge',
+    mostUsed: 'Most Used', daily: 'Daily Practice', finance: 'Finance & Giving', travel: 'Travel & Knowledge', kids: '🧒 Kids Corner',
     footerMade: 'Made with ❤️ for the Ummah', footerFree: 'Always Free · No Sign-up',
     stats: { tools: '21 Free Tools', free: '100% Free', noSignup: 'No Sign-up', mobile: 'Works on Mobile', world: 'Works Worldwide', fast: 'Always Fast' },
     aboutTitle: 'About I Love Islam Tools',
@@ -83,7 +84,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     noTools: 'لم يتم العثور على أدوات', noToolsSub: 'جرب: زكاة، صلاة، قرآن...',
     clear: 'مسح البحث',
     about: 'عن الموقع', blog: 'مدونة', privacy: 'الخصوصية', contact: 'تواصل معنا', faq: 'الأسئلة الشائعة', terms: 'الشروط',
-    mostUsed: 'الأكثر استخداماً', daily: 'الممارسة اليومية', finance: 'المال والعطاء', travel: 'السفر والمعرفة',
+    mostUsed: 'الأكثر استخداماً', daily: 'الممارسة اليومية', finance: 'المال والعطاء', travel: 'السفر والمعرفة', kids: '🧒 ركن الأطفال',
     footerMade: 'صُنع بمحبة للأمة الإسلامية', footerFree: 'مجاني دائماً · لا تسجيل',
     stats: { tools: '٢١ أداة', free: '١٠٠٪ مجاني', noSignup: 'لا تسجيل', mobile: 'يعمل على الجوال', world: 'يعمل في كل مكان', fast: 'سريع دائماً' },
     aboutTitle: 'عن أدوات أحب الإسلام',
@@ -101,7 +102,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     noTools: 'کوئی ٹول نہیں ملا', noToolsSub: 'تلاش: زکوٰۃ، نماز، قرآن...',
     clear: 'صاف کریں',
     about: 'ہمارے بارے میں', blog: 'بلاگ', privacy: 'رازداری', contact: 'رابطہ', faq: 'سوالات', terms: 'شرائط',
-    mostUsed: 'سب سے زیادہ', daily: 'روزانہ عبادت', finance: 'مال اور صدقہ', travel: 'سفر اور علم',
+    mostUsed: 'سب سے زیادہ', daily: 'روزانہ عبادت', finance: 'مال اور صدقہ', travel: 'سفر اور علم', kids: '🧒 بچوں کا کونا',
     footerMade: 'امت کے لیے محبت سے', footerFree: 'ہمیشہ مفت · کوئی رجسٹریشن نہیں',
     stats: { tools: '٢١ مفت ٹولز', free: '١٠٠٪ مفت', noSignup: 'سائن اپ نہیں', mobile: 'موبائل پر', world: 'دنیا بھر میں', fast: 'تیز' },
     aboutTitle: 'I Love Islam کے بارے میں',
@@ -119,7 +120,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     noTools: 'Aucun outil trouvé', noToolsSub: 'Essayez: zakat, prière, coran...',
     clear: 'Effacer',
     about: 'À propos', blog: 'Blog', privacy: 'Confidentialité', contact: 'Contact', faq: 'FAQ', terms: 'Conditions',
-    mostUsed: 'Les plus utilisés', daily: 'Pratique quotidienne', finance: 'Finance & Dons', travel: 'Voyage & Savoir',
+    mostUsed: 'Les plus utilisés', daily: 'Pratique quotidienne', finance: 'Finance & Dons', travel: 'Voyage & Savoir', kids: '🧒 Coin des enfants',
     footerMade: 'Fait avec ❤️ pour la Oumma', footerFree: 'Toujours gratuit · Sans inscription',
     stats: { tools: '21 Outils', free: '100% Gratuit', noSignup: 'Sans inscription', mobile: 'Mobile', world: 'Mondial', fast: 'Rapide' },
     aboutTitle: 'À propos de I Love Islam',
@@ -137,7 +138,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     noTools: 'Araç bulunamadı', noToolsSub: 'Deneyin: zekat, namaz, kuran...',
     clear: 'Temizle',
     about: 'Hakkında', blog: 'Blog', privacy: 'Gizlilik', contact: 'İletişim', faq: 'SSS', terms: 'Şartlar',
-    mostUsed: 'En Çok Kullanılan', daily: 'Günlük İbadet', finance: 'Finans & Sadaka', travel: 'Seyahat & Bilgi',
+    mostUsed: 'En Çok Kullanılan', daily: 'Günlük İbadet', finance: 'Finans & Sadaka', travel: 'Seyahat & Bilgi', kids: '🧒 Çocuk Köşesi',
     footerMade: 'Ümmet için sevgiyle', footerFree: 'Her zaman ücretsiz',
     stats: { tools: '21 Araç', free: '%100 Ücretsiz', noSignup: 'Kayıt yok', mobile: 'Mobil', world: 'Dünya geneli', fast: 'Hızlı' },
     aboutTitle: 'I Love Islam Hakkında',
@@ -155,7 +156,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     noTools: 'Tidak ada alat', noToolsSub: 'Coba: zakat, shalat, quran...',
     clear: 'Hapus',
     about: 'Tentang', blog: 'Blog', privacy: 'Privasi', contact: 'Kontak', faq: 'FAQ', terms: 'Ketentuan',
-    mostUsed: 'Paling Sering', daily: 'Ibadah Harian', finance: 'Keuangan & Sedekah', travel: 'Perjalanan & Ilmu',
+    mostUsed: 'Paling Sering', daily: 'Ibadah Harian', finance: 'Keuangan & Sedekah', travel: 'Perjalanan & Ilmu', kids: '🧒 Sudut Anak',
     footerMade: 'Dibuat dengan ❤️ untuk Umat', footerFree: 'Selalu Gratis',
     stats: { tools: '21 Alat', free: '100% Gratis', noSignup: 'Tanpa Daftar', mobile: 'Mobile', world: 'Seluruh Dunia', fast: 'Cepat' },
     aboutTitle: 'Tentang I Love Islam',
@@ -173,7 +174,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     noTools: 'Tiada alat', noToolsSub: 'Cuba: zakat, solat, quran...',
     clear: 'Padam',
     about: 'Tentang', blog: 'Blog', privacy: 'Privasi', contact: 'Hubungi', faq: 'Soalan Lazim', terms: 'Terma',
-    mostUsed: 'Paling Kerap', daily: 'Amalan Harian', finance: 'Kewangan & Sedekah', travel: 'Perjalanan & Ilmu',
+    mostUsed: 'Paling Kerap', daily: 'Amalan Harian', finance: 'Kewangan & Sedekah', travel: 'Perjalanan & Ilmu', kids: '🧒 Sudut Kanak-kanak',
     footerMade: 'Dibuat dengan ❤️ untuk Umat', footerFree: 'Sentiasa Percuma',
     stats: { tools: '21 Alat', free: '100% Percuma', noSignup: 'Tanpa Daftar', mobile: 'Mudah alih', world: 'Seluruh Dunia', fast: 'Laju' },
     aboutTitle: 'Tentang I Love Islam',
@@ -191,7 +192,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     noTools: 'কোনো টুল পাওয়া যায়নি', noToolsSub: 'চেষ্টা: যাকাত, নামাজ, কোরআন...',
     clear: 'মুছুন',
     about: 'সম্পর্কে', blog: 'ব্লগ', privacy: 'গোপনীয়তা', contact: 'যোগাযোগ', faq: 'প্রশ্নোত্তর', terms: 'শর্তাবলী',
-    mostUsed: 'সর্বাধিক ব্যবহৃত', daily: 'দৈনিক ইবাদত', finance: 'অর্থ ও দান', travel: 'ভ্রমণ ও জ্ঞান',
+    mostUsed: 'সর্বাধিক ব্যবহৃত', daily: 'দৈনিক ইবাদত', finance: 'অর্থ ও দান', travel: 'ভ্রমণ ও জ্ঞান', kids: '🧒 বাচ্চাদের কর্নার',
     footerMade: 'উম্মতের জন্য ভালোবাসায়', footerFree: 'সর্বদা বিনামূল্যে',
     stats: { tools: '২১ টুল', free: '১০০% বিনামূল্যে', noSignup: 'নিবন্ধন নেই', mobile: 'মোবাইলে', world: 'বিশ্বজুড়ে', fast: 'দ্রুত' },
     aboutTitle: 'I Love Islam সম্পর্কে',
@@ -251,7 +252,7 @@ const DAILY_QUOTES = [
   { text: "None of you will enter Paradise by his deeds alone — except by the Mercy of Allah.", source: "Bukhari", arabic: "" },
 ];
 
-// ==================== TOOLS DATA — ALL 21 TOOLS ====================
+// ==================== TOOLS DATA — ALL 21 TOOLS + KIDS CORNER ====================
 const TOOLS_DATA = (t: TranslationsType) => [
   {
     category: t.mostUsed, emoji: '⭐',
@@ -294,6 +295,18 @@ const TOOLS_DATA = (t: TranslationsType) => [
       { name: 'Islamic Events', desc: 'Eid & Ramadan dates', icon: '🗓️', href: '/eid', color: 'bg-amber-100 text-amber-700' },
     ],
   },
+  // ==================== NEW: KIDS CORNER SECTION ====================
+  {
+    category: t.kids, emoji: '🧒',
+    items: [
+      { name: 'Islamic Games Hub', desc: '5 fun Islamic games for kids', icon: '🎮', href: '/kids', color: 'bg-pink-100 text-pink-700' },
+      { name: 'Memory Match Game', desc: 'Match Islamic symbols', icon: '🎴', href: '/kids/games/memory-match', color: 'bg-rose-100 text-rose-700' },
+      { name: 'Learn to Pray', desc: 'Step-by-step prayer guide', icon: '🕌', href: '/kids/games/prayer-guide', color: 'bg-emerald-100 text-emerald-700' },
+      { name: 'Arabic Letters', desc: 'Learn Alif to Ya', icon: '🔤', href: '/kids/games/arabic-letters', color: 'bg-blue-100 text-blue-700' },
+      { name: 'Dua Memory', desc: 'Learn daily duas', icon: '🤲', href: '/kids/games/dua-memory', color: 'bg-purple-100 text-purple-700' },
+      { name: '5 Pillars Quiz', desc: 'Test your knowledge', icon: '🏛️', href: '/kids/games/pillars-quiz', color: 'bg-amber-100 text-amber-700' },
+    ],
+  },
 ];
 
 const SCROLL_KEY = 'iloveislam_scroll';
@@ -334,7 +347,6 @@ function trackToolClick(toolName: string) {
     clicks[toolName] = (clicks[toolName] || 0) + 1;
     localStorage.setItem(TOOL_CLICKS_KEY, JSON.stringify(clicks));
     
-    // Also send to Google Analytics if available
     if (typeof window !== 'undefined' && (window as any).gtag) {
       (window as any).gtag('event', 'tool_click', {
         event_category: 'engagement',
@@ -413,7 +425,7 @@ function QuoteOfTheDay() {
   );
 }
 
-// ==================== NEWSLETTER — WORKING FORMSPREE ====================
+// ==================== NEWSLETTER ====================
 function Newsletter({ t }: { t: TranslationsType }) {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -433,7 +445,6 @@ function Newsletter({ t }: { t: TranslationsType }) {
         setEmail('');
         setTimeout(() => setStatus('idle'), 4000);
         
-        // Track newsletter signup in GA
         if (typeof window !== 'undefined' && (window as any).gtag) {
           (window as any).gtag('event', 'newsletter_signup', {
             event_category: 'engagement',
@@ -536,12 +547,12 @@ const FEATURED_TOOLS = [
     cta: 'Check Now →',
   },
   {
-    href: '/kaffarah',
-    badge: '📚 Islamic Law',
-    title: 'Kaffarah Calculator',
-    desc: 'Calculate expiation for broken oaths and fasts',
-    icon: '📋',
-    cta: 'Calculate →',
+    href: '/kids',
+    badge: '🎮 New Section!',
+    title: 'Kids Islamic Games',
+    desc: '5 fun games to learn about Islam',
+    icon: '🧒',
+    cta: 'Play Now →',
   },
 ];
 
@@ -675,7 +686,6 @@ export default function Home() {
 
   return (
     <>
-      {/* Google Analytics - Fixed Version */}
       <Script
         strategy="lazyOnload"
         src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
@@ -700,7 +710,7 @@ export default function Home() {
       
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300" dir={isRTL ? 'rtl' : 'ltr'}>
 
-        {/* ── HEADER ── */}
+        {/* HEADER */}
         <header className="relative overflow-hidden"
           style={{ background: 'linear-gradient(135deg, #0a3d2e 0%, #0d5238 100%)' }}>
           <div className="absolute inset-0 pointer-events-none select-none">
@@ -709,7 +719,6 @@ export default function Home() {
           </div>
 
           <div className="relative z-10 px-4 pt-3 pb-8 max-w-6xl mx-auto">
-            {/* Top bar */}
             <div className="flex items-center justify-between mb-5" dir="ltr">
               <div className="flex items-center gap-1">
                 <Link href="/about" className="text-white/50 hover:text-white/80 text-xs transition px-2 py-1.5 rounded-lg hover:bg-white/10">{t.about}</Link>
@@ -748,7 +757,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Hero */}
             <div className="text-center">
               <Link href="/"
                 className="font-arabic text-5xl md:text-6xl mb-2 block hover:opacity-80 transition-opacity cursor-pointer"
@@ -792,7 +800,7 @@ export default function Home() {
                     </p>
                     {totalResults === 0 && (
                       <p className="text-white/30 text-[10px] mt-1">
-                        Try: zakat, prayer, quran, qibla, dhikr
+                        Try: zakat, prayer, quran, qibla, dhikr, kids, games
                       </p>
                     )}
                   </div>
@@ -802,11 +810,10 @@ export default function Home() {
           </div>
         </header>
 
-        {/* ── MAIN ── */}
+        {/* MAIN */}
         <main className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex flex-col lg:flex-row gap-6">
 
-            {/* Tools column */}
             <div className="flex-1 min-w-0">
               {!search && <QuoteOfTheDay />}
               {!search && <FeaturedBanner onSaveScroll={saveScrollPosition} />}
@@ -870,7 +877,7 @@ export default function Home() {
                       { label: '🧭 Qibla Finder', href: '/qibla', desc: 'Find Mecca direction' },
                       { label: '📿 Dhikr Counter', href: '/dhikr', desc: 'Digital tasbih' },
                       { label: '📖 Quran Reader', href: '/quran', desc: 'Read with translation' },
-                      { label: '🌙 Hijri Calendar', href: '/hijri', desc: 'Islamic date converter' },
+                      { label: '🎮 Kids Games', href: '/kids', desc: 'Fun Islamic games for children' },
                     ].map(link => (
                       <Link 
                         key={link.href} 
@@ -895,7 +902,7 @@ export default function Home() {
                   <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-2">📊 Community Stats</p>
                   <div className="space-y-2 text-center">
                     <div className="flex justify-around text-[10px] text-gray-500">
-                      <div>✏️ 21 Tools</div>
+                      <div>✏️ 27+ Tools</div>
                       <div>🌍 8 Languages</div>
                       <div>🆓 100% Free</div>
                     </div>
@@ -907,7 +914,7 @@ export default function Home() {
           </div>
         </main>
 
-        {/* ── FOOTER ── */}
+        {/* FOOTER */}
         <footer className="mt-8 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
           <div className="max-w-6xl mx-auto px-4 py-6">
             <div className="text-center mb-4">

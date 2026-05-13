@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: "%s | I Love Islam",
   },
   description:
-    "Free Islamic tools for every Muslim. Calculate Zakat, find Prayer Times, locate Qibla, read the Quran, convert Hijri dates, use Dhikr counter and 20+ more free tools. No sign-up needed.",
+    "Free Islamic tools for every Muslim. Calculate Zakat, find Prayer Times, locate Qibla, read the Quran, convert Hijri dates, use Dhikr counter and 25+ more free tools including Kids Islamic Games. No sign-up needed.",
   keywords: [
     "zakat calculator", "prayer times", "qibla finder", "quran reader online",
     "hijri calendar converter", "dhikr counter", "99 names of allah",
@@ -30,8 +30,10 @@ export const metadata: Metadata = {
     "islamic inheritance calculator", "kaffarah calculator",
     "mizan islamic destiny", "islamic will", "sadaqah tracker",
     "halal finance", "islamic name finder", "dua generator",
-    "زكاة", "أوقات الصلاة", "القرآن الكريم",
-    "زکوٰۃ کیلکولیٹر", "نماز کے اوقات",
+    "kids islamic games", "islamic games for children", "learn to pray kids",
+    "arabic letters for kids", "dua for kids", "pillars of islam quiz",
+    "زكاة", "أوقات الصلاة", "القرآن الكريم", "ألعاب إسلامية للأطفال",
+    "زکوٰۃ کیلکولیٹر", "نماز کے اوقات", "بچوں کے لیے اسلامی کھیل",
   ],
   authors: [{ name: "I Love Islam", url: "https://www.iloveislam.life" }],
   creator: "I Love Islam",
@@ -55,23 +57,23 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://www.iloveislam.life",
     siteName: "I Love Islam",
-    title: "I Love Islam — Free Islamic Tools for Every Muslim",
+    title: "I Love Islam — Free Islamic Tools & Kids Games for Every Muslim",
     description:
-      "Calculate Zakat, find Prayer Times, locate Qibla, read Quran, convert Hijri dates and 20+ more free Islamic tools. No sign-up needed.",
+      "Calculate Zakat, find Prayer Times, locate Qibla, read Quran, convert Hijri dates, play Islamic games for kids, and 25+ more free Islamic tools. No sign-up needed.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "I Love Islam — Free Islamic Tools",
+        alt: "I Love Islam — Free Islamic Tools & Kids Games",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "I Love Islam — Free Islamic Tools for Every Muslim",
+    title: "I Love Islam — Free Islamic Tools & Kids Games for Every Muslim",
     description:
-      "Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kaffarah Calculator and 20+ more free Islamic tools.",
+      "Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kids Islamic Games, and 25+ more free Islamic tools.",
     images: ["/og-image.png"],
   },
   robots: {
@@ -112,7 +114,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geist.variable} h-full antialiased`}>
       <head>
-        {/* Google AdSense */}
+        {/* Google AdSense - Optional, remove if not needed */}
         <script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2264561932019289"
@@ -135,7 +137,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
 
-        {/* Schema.org */}
+        {/* WebSite Schema */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -145,7 +147,7 @@ export default function RootLayout({
               name: "I Love Islam",
               url: "https://www.iloveislam.life",
               description:
-                "Free Islamic tools for every Muslim — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader and 20+ more tools.",
+                "Free Islamic tools for every Muslim — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kids Islamic Games, and 25+ more tools.",
               potentialAction: {
                 "@type": "SearchAction",
                 target:
@@ -166,11 +168,63 @@ export default function RootLayout({
               name: "I Love Islam",
               url: "https://www.iloveislam.life",
               logo: "https://www.iloveislam.life/icon-512.png",
+              sameAs: [
+                "https://www.facebook.com/iloveislam.life",
+                "https://twitter.com/iloveislam_life",
+                "https://www.instagram.com/iloveislam.life",
+              ],
               contactPoint: {
                 "@type": "ContactPoint",
                 contactType: "customer support",
                 url: "https://www.iloveislam.life/contact",
+                email: "contact@iloveislam.life",
               },
+            }),
+          }}
+        />
+
+        {/* Kids Games Schema */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "ItemList",
+              name: "Islamic Games for Kids",
+              description: "Fun and educational Islamic games for children",
+              numberOfItems: 5,
+              itemListElement: [
+                {
+                  "@type": "ListItem",
+                  position: 1,
+                  name: "Memory Match Game",
+                  url: "https://www.iloveislam.life/kids/games/memory-match",
+                },
+                {
+                  "@type": "ListItem",
+                  position: 2,
+                  name: "Learn to Pray",
+                  url: "https://www.iloveislam.life/kids/games/prayer-guide",
+                },
+                {
+                  "@type": "ListItem",
+                  position: 3,
+                  name: "Arabic Letters",
+                  url: "https://www.iloveislam.life/kids/games/arabic-letters",
+                },
+                {
+                  "@type": "ListItem",
+                  position: 4,
+                  name: "Dua Memory",
+                  url: "https://www.iloveislam.life/kids/games/dua-memory",
+                },
+                {
+                  "@type": "ListItem",
+                  position: 5,
+                  name: "5 Pillars of Islam Quiz",
+                  url: "https://www.iloveislam.life/kids/games/pillars-quiz",
+                },
+              ],
             }),
           }}
         />
