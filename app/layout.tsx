@@ -7,7 +7,6 @@ const geist = Geist({
   subsets: ["latin"],
 });
 
-// Separate viewport export for Next.js 14+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -22,13 +21,17 @@ export const metadata: Metadata = {
     template: "%s | I Love Islam",
   },
   description:
-    "Free Islamic tools for every Muslim. Calculate Zakat, find Prayer Times, locate Qibla, read the Quran, convert Hijri dates, use Dhikr counter and 15+ more free tools. No sign-up needed.",
+    "Free Islamic tools for every Muslim. Calculate Zakat, find Prayer Times, locate Qibla, read the Quran, convert Hijri dates, use Dhikr counter and 20+ more free tools. No sign-up needed.",
   keywords: [
     "zakat calculator", "prayer times", "qibla finder", "quran reader online",
     "hijri calendar converter", "dhikr counter", "99 names of allah",
     "islamic tools", "free muslim tools", "salah times", "islamic date today",
     "halal food finder", "mosque finder", "ramadan planner",
-    "islamic inheritance calculator", "mizan islamic destiny",
+    "islamic inheritance calculator", "kaffarah calculator",
+    "mizan islamic destiny", "islamic will", "sadaqah tracker",
+    "halal finance", "islamic name finder", "dua generator",
+    "زكاة", "أوقات الصلاة", "القرآن الكريم",
+    "زکوٰۃ کیلکولیٹر", "نماز کے اوقات",
   ],
   authors: [{ name: "I Love Islam", url: "https://www.iloveislam.life" }],
   creator: "I Love Islam",
@@ -37,14 +40,14 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/",
     languages: {
-      "en": "/",
-      "ar": "/ar",
-      "ur": "/ur",
-      "fr": "/fr",
-      "tr": "/tr",
-      "id": "/id",
-      "ms": "/ms",
-      "bn": "/bn",
+      en: "/",
+      ar: "/ar",
+      ur: "/ur",
+      fr: "/fr",
+      tr: "/tr",
+      id: "/id",
+      ms: "/ms",
+      bn: "/bn",
     },
   },
   openGraph: {
@@ -54,7 +57,7 @@ export const metadata: Metadata = {
     siteName: "I Love Islam",
     title: "I Love Islam — Free Islamic Tools for Every Muslim",
     description:
-      "Calculate Zakat, find Prayer Times, locate Qibla, read Quran, convert Hijri dates and 15+ more free Islamic tools. No sign-up needed.",
+      "Calculate Zakat, find Prayer Times, locate Qibla, read Quran, convert Hijri dates and 20+ more free Islamic tools. No sign-up needed.",
     images: [
       {
         url: "/og-image.png",
@@ -67,7 +70,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "I Love Islam — Free Islamic Tools for Every Muslim",
-    description: "Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader and 15+ more free Islamic tools.",
+    description:
+      "Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kaffarah Calculator and 20+ more free Islamic tools.",
     images: ["/og-image.png"],
   },
   robots: {
@@ -90,9 +94,7 @@ export const metadata: Metadata = {
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
-    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
     shortcut: "/favicon.png",
   },
   manifest: "/manifest.json",
@@ -101,33 +103,12 @@ export const metadata: Metadata = {
     title: "I Love Islam",
     statusBarStyle: "black-translucent",
   },
-  formatDetection: {
-    telephone: false,
-  },
+  formatDetection: { telephone: false },
 };
-
-// Simple Client Provider component (inline to avoid extra files)
-function ClientProviders({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
-}
-
-// Simple Service Worker Registration (inline)
-function ServiceWorkerRegistration() {
-  if (typeof window !== 'undefined' && 'serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch((error) => {
-        console.log('Service Worker registration failed:', error);
-      });
-    });
-  }
-  return null;
-}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${geist.variable} h-full antialiased`}>
       <head>
@@ -136,29 +117,25 @@ export default function RootLayout({
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2264561932019289"
           crossOrigin="anonymous"
-        ></script>
+        />
 
         <link rel="canonical" href="https://www.iloveislam.life" />
-        
-        {/* PWA Meta Tags */}
+
+        {/* PWA */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="I Love Islam" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="application-name" content="I Love Islam" />
-        
-        {/* Windows PWA */}
         <meta name="msapplication-TileColor" content="#0a3d2e" />
         <meta name="msapplication-TileImage" content="/icon-144.png" />
 
-        {/* Favicon */}
+        {/* Icons */}
         <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        
-        {/* PWA Manifest */}
         <link rel="manifest" href="/manifest.json" />
 
-        {/* Schema.org structured data */}
+        {/* Schema.org */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -167,22 +144,40 @@ export default function RootLayout({
               "@type": "WebSite",
               name: "I Love Islam",
               url: "https://www.iloveislam.life",
-              description: "Free Islamic tools for every Muslim",
+              description:
+                "Free Islamic tools for every Muslim — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader and 20+ more tools.",
               potentialAction: {
                 "@type": "SearchAction",
-                target: "https://www.iloveislam.life/?search={search_term_string}",
+                target:
+                  "https://www.iloveislam.life/?search={search_term_string}",
                 "query-input": "required name=search_term_string",
+              },
+            }),
+          }}
+        />
+
+        {/* Organization Schema */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "I Love Islam",
+              url: "https://www.iloveislam.life",
+              logo: "https://www.iloveislam.life/icon-512.png",
+              contactPoint: {
+                "@type": "ContactPoint",
+                contactType: "customer support",
+                url: "https://www.iloveislam.life/contact",
               },
             }),
           }}
         />
       </head>
 
-      <body className="min-h-full flex flex-col">
-        <ClientProviders>
-          {children}
-        </ClientProviders>
-        <ServiceWorkerRegistration />
+      <body className="min-h-full flex flex-col bg-gray-50 dark:bg-gray-900">
+        {children}
       </body>
     </html>
   );
