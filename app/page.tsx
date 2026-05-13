@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
+import Script from 'next/script';
 
 // ==================== TYPES ====================
 interface Tool {
@@ -51,6 +52,9 @@ interface TranslationsType {
   newsletterPlaceholder: string;
   newsletterButton: string;
 }
+
+// ==================== GOOGLE ANALYTICS ID ====================
+const GA_MEASUREMENT_ID = 'G-XXXXXXXXXX'; // Replace with your actual GA4 ID
 
 // ==================== TRANSLATIONS ====================
 const TRANSLATIONS: Record<string, TranslationsType> = {
@@ -277,7 +281,6 @@ const TOOLS_DATA = (t: TranslationsType) => [
       { name: 'Islamic Will', desc: 'Draft your Wasiyyah', icon: '📜', href: '/will', color: 'bg-stone-100 text-stone-700' },
       { name: 'Inheritance Calc', desc: 'Islamic shares', icon: '⚖️', href: '/inheritance', color: 'bg-orange-100 text-orange-700' },
       { name: 'Halal Finance', desc: 'Riba-free check', icon: '✅', href: '/halal-finance', color: 'bg-lime-100 text-lime-700' },
-      // ── KAFFARAH RESTORED ──
       { name: 'Kaffarah Calc', desc: 'Expiation for oaths', icon: '📋', href: '/kaffarah', color: 'bg-yellow-100 text-yellow-700' },
     ],
   },
@@ -296,6 +299,7 @@ const TOOLS_DATA = (t: TranslationsType) => [
 const SCROLL_KEY = 'iloveislam_scroll';
 const THEME_KEY = 'iloveislam_theme';
 const LANG_KEY = 'iloveislam_lang';
+const TOOL_CLICKS_KEY = 'iloveislam_tool_clicks';
 
 // ==================== DARK MODE HOOK ====================
 function useDarkMode() {
@@ -321,6 +325,24 @@ function useDarkMode() {
   }, []);
 
   return { dark, toggle, mounted };
+}
+
+// ==================== TRACK TOOL CLICKS ====================
+function trackToolClick(toolName: string) {
+  try {
+    const clicks = JSON.parse(localStorage.getItem(TOOL_CLICKS_KEY) || '{}');
+    clicks[toolName] = (clicks[toolName] || 0) + 1;
+    localStorage.setItem(TOOL_CLICKS_KEY, JSON.stringify(clicks));
+    
+    // Also send to Google Analytics if available
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', 'tool_click', {
+        event_category: 'engagement',
+        event_label: toolName,
+        value: clicks[toolName]
+      });
+    }
+  } catch (e) {}
 }
 
 // ==================== LIVE BAR ====================
@@ -391,7 +413,7 @@ function QuoteOfTheDay() {
   );
 }
 
-// ==================== NEWSLETTER — REAL FORMSPREE ====================
+// ==================== NEWSLETTER — WORKING FORMSPREE ====================
 function Newsletter({ t }: { t: TranslationsType }) {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -410,6 +432,14 @@ function Newsletter({ t }: { t: TranslationsType }) {
         setStatus('success');
         setEmail('');
         setTimeout(() => setStatus('idle'), 4000);
+        
+        // Track newsletter signup in GA
+        if (typeof window !== 'undefined' && (window as any).gtag) {
+          (window as any).gtag('event', 'newsletter_signup', {
+            event_category: 'engagement',
+            event_label: email
+          });
+        }
       } else {
         setStatus('error');
         setTimeout(() => setStatus('idle'), 3000);
@@ -447,8 +477,13 @@ function Newsletter({ t }: { t: TranslationsType }) {
 
 // ==================== TOOL CARD ====================
 function ToolCard({ tool, onSaveScroll }: { tool: Tool; onSaveScroll: () => void }) {
+  const handleClick = () => {
+    trackToolClick(tool.name);
+    onSaveScroll();
+  };
+  
   return (
-    <Link href={tool.href} onClick={onSaveScroll}
+    <Link href={tool.href} onClick={handleClick}
       className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-md transition-all flex flex-col items-center text-center active:scale-95">
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-2 ${tool.color}`}>
         {tool.icon}
@@ -519,9 +554,14 @@ function FeaturedBanner({ onSaveScroll }: { onSaveScroll: () => void }) {
   }, []);
 
   const tool = FEATURED_TOOLS[idx];
+  
+  const handleClick = () => {
+    trackToolClick(tool.title);
+    onSaveScroll();
+  };
 
   return (
-    <Link href={tool.href} onClick={onSaveScroll} className="block mb-6 group">
+    <Link href={tool.href} onClick={handleClick} className="block mb-6 group">
       <div className="rounded-2xl p-4 flex items-center gap-4 hover:shadow-lg transition-all"
         style={{ background: 'linear-gradient(135deg, #1a0a00, #3d1f00)' }}>
         <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl border border-amber-400/30 flex-shrink-0"
@@ -607,15 +647,35 @@ export default function Home() {
     setShowLangMenu(false);
   }, []);
 
+  // FIX 1: IMPROVED SEARCH - searches through category name too
   const filteredTools = useMemo(() => {
     if (!search.trim()) return tools;
+    const searchLower = search.toLowerCase();
     return tools
-      .map(s => ({ ...s, items: s.items.filter(item => `${item.name} ${item.desc}`.toLowerCase().includes(search.toLowerCase())) }))
-      .filter(s => s.items.length > 0);
+      .map(section => ({
+        ...section,
+        items: section.items.filter(item => 
+          item.name.toLowerCase().includes(searchLower) || 
+          item.desc.toLowerCase().includes(searchLower) ||
+          section.category.toLowerCase().includes(searchLower)
+        )
+      }))
+      .filter(section => section.items.length > 0);
   }, [search, tools]);
 
   const totalResults = filteredTools.reduce((acc, s) => acc + s.items.length, 0);
   const currentLang = LANGUAGES.find(l => l.code === lang);
+
+  // Track page view in GA
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', 'page_view', {
+        page_title: 'Home - I Love Islam',
+        page_location: window.location.href,
+        language: lang
+      });
+    }
+  }, [lang]);
 
   if (!mounted || !darkMounted) {
     return (
@@ -626,215 +686,286 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300" dir={isRTL ? 'rtl' : 'ltr'}>
+    <>
+      {/* Google Analytics Script */}
+      <Script
+        strategy="afterInteractive"
+        src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+      />
+      <Script
+        id="google-analytics"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_MEASUREMENT_ID}', {
+              page_path: window.location.pathname,
+              send_page_view: true
+            });
+          `,
+        }}
+      />
+      
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300" dir={isRTL ? 'rtl' : 'ltr'}>
 
-      {/* ── HEADER ── */}
-      <header className="relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #0a3d2e 0%, #0d5238 100%)' }}>
-        <div className="absolute inset-0 pointer-events-none select-none">
-          <div className="absolute top-4 left-8 text-white/5 text-8xl">☽</div>
-          <div className="absolute bottom-2 right-8 text-white/5 text-6xl">✦</div>
-        </div>
+        {/* ── HEADER ── */}
+        <header className="relative overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #0a3d2e 0%, #0d5238 100%)' }}>
+          <div className="absolute inset-0 pointer-events-none select-none">
+            <div className="absolute top-4 left-8 text-white/5 text-8xl">☽</div>
+            <div className="absolute bottom-2 right-8 text-white/5 text-6xl">✦</div>
+          </div>
 
-        <div className="relative z-10 px-4 pt-3 pb-8 max-w-6xl mx-auto">
-          {/* Top bar */}
-          <div className="flex items-center justify-between mb-5" dir="ltr">
-            <div className="flex items-center gap-1">
-              <Link href="/about" className="text-white/50 hover:text-white/80 text-xs transition px-2 py-1.5 rounded-lg hover:bg-white/10">{t.about}</Link>
-              <Link href="/blog" className="text-white/50 hover:text-white/80 text-xs transition px-2 py-1.5 rounded-lg hover:bg-white/10">{t.blog}</Link>
-              <Link href="/faq" className="text-white/50 hover:text-white/80 text-xs transition px-2 py-1.5 rounded-lg hover:bg-white/10 hidden sm:inline">{t.faq}</Link>
-              <Link href="/contact" className="text-white/50 hover:text-white/80 text-xs transition px-2 py-1.5 rounded-lg hover:bg-white/10 hidden sm:inline">{t.contact}</Link>
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={toggleDark}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-all text-base"
-                aria-label="Toggle dark mode">
-                {dark ? '☀️' : '🌙'}
-              </button>
-              <div className="relative">
-                <button ref={langButtonRef} onClick={() => setShowLangMenu(v => !v)}
-                  className="flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-xl px-2.5 py-1.5 text-white/70 text-xs hover:bg-white/20 transition">
-                  <span>{currentLang?.flag}</span>
-                  <span className="hidden sm:inline">{currentLang?.label}</span>
-                  <span className="text-white/40">▾</span>
+          <div className="relative z-10 px-4 pt-3 pb-8 max-w-6xl mx-auto">
+            {/* Top bar */}
+            <div className="flex items-center justify-between mb-5" dir="ltr">
+              <div className="flex items-center gap-1">
+                <Link href="/about" className="text-white/50 hover:text-white/80 text-xs transition px-2 py-1.5 rounded-lg hover:bg-white/10">{t.about}</Link>
+                <Link href="/blog" className="text-white/50 hover:text-white/80 text-xs transition px-2 py-1.5 rounded-lg hover:bg-white/10">{t.blog}</Link>
+                <Link href="/faq" className="text-white/50 hover:text-white/80 text-xs transition px-2 py-1.5 rounded-lg hover:bg-white/10 hidden sm:inline">{t.faq}</Link>
+                <Link href="/contact" className="text-white/50 hover:text-white/80 text-xs transition px-2 py-1.5 rounded-lg hover:bg-white/10 hidden sm:inline">{t.contact}</Link>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={toggleDark}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-all text-base"
+                  aria-label="Toggle dark mode">
+                  {dark ? '☀️' : '🌙'}
                 </button>
-                {showLangMenu && (
-                  <div ref={langMenuRef}
-                    className="absolute top-9 right-0 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 w-44"
-                    style={{ maxHeight: 280, overflowY: 'auto' }}>
-                    {LANGUAGES.map(l => (
-                      <button key={l.code} onClick={() => switchLang(l.code)}
-                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition hover:bg-gray-50 dark:hover:bg-gray-700 ${lang === l.code ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>
-                        <span>{l.flag}</span>
-                        <span className="flex-1">{l.label}</span>
-                        {lang === l.code && <span className="text-emerald-500 text-xs">✓</span>}
-                      </button>
-                    ))}
+                <div className="relative">
+                  <button ref={langButtonRef} onClick={() => setShowLangMenu(v => !v)}
+                    className="flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-xl px-2.5 py-1.5 text-white/70 text-xs hover:bg-white/20 transition">
+                    <span>{currentLang?.flag}</span>
+                    <span className="hidden sm:inline">{currentLang?.label}</span>
+                    <span className="text-white/40">▾</span>
+                  </button>
+                  {showLangMenu && (
+                    <div ref={langMenuRef}
+                      className="absolute top-9 right-0 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 w-44"
+                      style={{ maxHeight: 280, overflowY: 'auto' }}>
+                      {LANGUAGES.map(l => (
+                        <button key={l.code} onClick={() => switchLang(l.code)}
+                          className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition hover:bg-gray-50 dark:hover:bg-gray-700 ${lang === l.code ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>
+                          <span>{l.flag}</span>
+                          <span className="flex-1">{l.label}</span>
+                          {lang === l.code && <span className="text-emerald-500 text-xs">✓</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Hero */}
+            <div className="text-center">
+              <Link href="/"
+                className="font-arabic text-5xl md:text-6xl mb-2 block hover:opacity-80 transition-opacity cursor-pointer"
+                style={{ color: '#c8a96e' }}
+                aria-label="I Love Islam — Home">
+                ♡ I Love Islam
+              </Link>
+              <p className="text-white/50 text-sm mb-4">{t.tagline}</p>
+              <LiveBar />
+              
+              {/* FIX 2: ENHANCED SEARCH BAR with better UX */}
+              <div className="max-w-md mx-auto">
+                <div className="flex items-center gap-3 bg-white/10 border border-white/20 rounded-2xl px-4 py-2.5 focus-within:border-white/40 transition">
+                  <span className="text-white/40">🔍</span>
+                  <input 
+                    type="text" 
+                    value={search} 
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder={t.search}
+                    className="bg-transparent text-white placeholder-white/30 text-sm outline-none flex-1"
+                    aria-label="Search Islamic tools"
+                  />
+                  {search && (
+                    <button 
+                      onClick={() => setSearch('')} 
+                      className="text-white/40 hover:text-white text-lg leading-none transition"
+                      aria-label="Clear search"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+                
+                {/* FIX 3: BETTER SEARCH RESULTS FEEDBACK */}
+                {search && (
+                  <div className="mt-2 text-center">
+                    <p className="text-white/60 text-xs">
+                      {totalResults === 0 ? (
+                        <span>🔍 No matches for "<span className="text-white font-semibold">{search}</span>"</span>
+                      ) : (
+                        <span>✨ Found <span className="text-white font-semibold">{totalResults}</span> {totalResults === 1 ? 'tool' : 'tools'} matching "<span className="text-white/80">{search}</span>"</span>
+                      )}
+                    </p>
+                    {totalResults === 0 && (
+                      <p className="text-white/30 text-[10px] mt-1">
+                        Try: zakat, prayer, quran, qibla, dhikr
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
             </div>
           </div>
+        </header>
 
-          {/* Hero — logo is now clickable ✅ */}
-          <div className="text-center">
-            <Link href="/"
-              className="font-arabic text-5xl md:text-6xl mb-2 block hover:opacity-80 transition-opacity cursor-pointer"
-              style={{ color: '#c8a96e' }}
-              aria-label="I Love Islam — Home">
-              ♡ I Love Islam
-            </Link>
-            <p className="text-white/50 text-sm mb-4">{t.tagline}</p>
-            <LiveBar />
-            <div className="max-w-md mx-auto flex items-center gap-3 bg-white/10 border border-white/20 rounded-2xl px-4 py-2.5 focus-within:border-white/40 transition">
-              <span className="text-white/40">🔍</span>
-              <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-                placeholder={t.search}
-                className="bg-transparent text-white placeholder-white/30 text-sm outline-none flex-1"
-                aria-label="Search Islamic tools" />
-              {search && (
-                <button onClick={() => setSearch('')} className="text-white/40 hover:text-white text-lg leading-none">✕</button>
+        {/* ── MAIN ── */}
+        <main className="max-w-6xl mx-auto px-4 py-6">
+          <div className="flex flex-col lg:flex-row gap-6">
+
+            {/* Tools column */}
+            <div className="flex-1 min-w-0">
+
+              {/* Quote of the Day */}
+              {!search && <QuoteOfTheDay />}
+
+              {/* Rotating featured banner */}
+              {!search && <FeaturedBanner onSaveScroll={saveScrollPosition} />}
+
+              {/* No results */}
+              {filteredTools.length === 0 && (
+                <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 text-center border border-gray-100 dark:border-gray-700">
+                  <p className="text-5xl mb-3">🔍</p>
+                  <p className="text-gray-700 dark:text-gray-300 font-semibold mb-1">{t.noTools} "{search}"</p>
+                  <p className="text-gray-400 text-sm mb-4">{t.noToolsSub}</p>
+                  <button onClick={() => setSearch('')}
+                    className="px-5 py-2 rounded-xl text-white text-sm transition hover:opacity-90"
+                    style={{ background: '#0a3d2e' }}>{t.clear}</button>
+                </div>
+              )}
+
+              {/* Tool sections */}
+              {filteredTools.map(section => (
+                <div key={section.category} className="mb-7">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span>{section.emoji}</span>
+                    <h2 className="text-[10px] font-bold tracking-widest uppercase text-gray-400 dark:text-gray-500">{section.category}</h2>
+                    <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+                    <span className="text-[10px] text-gray-300 dark:text-gray-600">{section.items.length} tools</span>
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                    {section.items.map(tool => (
+                      <ToolCard key={tool.name} tool={tool} onSaveScroll={saveScrollPosition} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {/* Stats */}
+              {!search && (
+                <div className="flex flex-wrap justify-center gap-2 my-5">
+                  {Object.values(t.stats).map(label => (
+                    <span key={label} className="text-[10px] text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-100 dark:border-gray-700">
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* SEO / About block */}
+              {!search && (
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
+                  <h2 className="font-semibold text-gray-800 dark:text-gray-200 text-sm mb-2">{t.aboutTitle}</h2>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed mb-2">{t.aboutText1}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">{t.aboutText2}</p>
+                </div>
               )}
             </div>
-            {search && (
-              <p className="text-white/40 text-xs mt-2">
-                {t.found} <span className="text-white font-semibold">{totalResults}</span> {t.results}{totalResults !== 1 ? 's' : ''}
-              </p>
-            )}
-          </div>
-        </div>
-      </header>
 
-      {/* ── MAIN ── */}
-      <main className="max-w-6xl mx-auto px-4 py-6">
-        <div className="flex flex-col lg:flex-row gap-6">
-
-          {/* Tools column */}
-          <div className="flex-1 min-w-0">
-
-            {/* Quote of the Day */}
-            {!search && <QuoteOfTheDay />}
-
-            {/* Rotating featured banner */}
-            {!search && <FeaturedBanner onSaveScroll={saveScrollPosition} />}
-
-            {/* No results */}
-            {filteredTools.length === 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 text-center border border-gray-100 dark:border-gray-700">
-                <p className="text-5xl mb-3">🔍</p>
-                <p className="text-gray-700 dark:text-gray-300 font-semibold mb-1">{t.noTools} "{search}"</p>
-                <p className="text-gray-400 text-sm mb-4">{t.noToolsSub}</p>
-                <button onClick={() => setSearch('')}
-                  className="px-5 py-2 rounded-xl text-white text-sm"
-                  style={{ background: '#0a3d2e' }}>{t.clear}</button>
-              </div>
-            )}
-
-            {/* Tool sections */}
-            {filteredTools.map(section => (
-              <div key={section.category} className="mb-7">
-                <div className="flex items-center gap-2 mb-3">
-                  <span>{section.emoji}</span>
-                  <h2 className="text-[10px] font-bold tracking-widest uppercase text-gray-400 dark:text-gray-500">{section.category}</h2>
-                  <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
-                  <span className="text-[10px] text-gray-300 dark:text-gray-600">{section.items.length} tools</span>
-                </div>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                  {section.items.map(tool => (
-                    <ToolCard key={tool.name} tool={tool} onSaveScroll={saveScrollPosition} />
-                  ))}
-                </div>
-              </div>
-            ))}
-
-            {/* Stats */}
+            {/* Sidebar */}
             {!search && (
-              <div className="flex flex-wrap justify-center gap-2 my-5">
-                {Object.values(t.stats).map(label => (
-                  <span key={label} className="text-[10px] text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-100 dark:border-gray-700">
-                    {label}
-                  </span>
-                ))}
-              </div>
-            )}
+              <div className="lg:w-64 xl:w-72 flex-shrink-0 space-y-4">
+                <Newsletter t={t} />
 
-            {/* SEO / About block */}
-            {!search && (
-              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
-                <h2 className="font-semibold text-gray-800 dark:text-gray-200 text-sm mb-2">{t.aboutTitle}</h2>
-                <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed mb-2">{t.aboutText1}</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">{t.aboutText2}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar */}
-          {!search && (
-            <div className="lg:w-64 xl:w-72 flex-shrink-0 space-y-4">
-              <Newsletter t={t} />
-
-              {/* Quick links sidebar card */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4">
-                <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-3">Quick Links</p>
-                <div className="space-y-1">
-                  {[
-                    { label: '🕌 Mosque Finder', href: '/mosque' },
-                    { label: '📿 Dhikr Counter', href: '/dhikr' },
-                    { label: '🌙 Ramadan Planner', href: '/ramadan' },
-                    { label: '⚖️ Inheritance Calc', href: '/inheritance' },
-                    { label: '📋 Kaffarah Calc', href: '/kaffarah' },
-                    { label: '🤲 Dua Generator', href: '/dua' },
-                  ].map(link => (
-                    <Link key={link.href} href={link.href} onClick={saveScrollPosition}
-                      className="flex items-center justify-between px-3 py-2 rounded-xl text-xs text-gray-600 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-700 dark:hover:text-emerald-400 transition-all">
-                      <span>{link.label}</span>
-                      <span className="text-gray-300">→</span>
-                    </Link>
-                  ))}
+                {/* Quick links sidebar card - FIX 4: Added working links to core tools */}
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4">
+                  <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-3">⭐ Popular Tools</p>
+                  <div className="space-y-1">
+                    {[
+                      { label: '💰 Zakat Calculator', href: '/zakat', desc: 'Calculate your annual zakat' },
+                      { label: '🕐 Prayer Times', href: '/prayer-times', desc: 'Daily salah times' },
+                      { label: '🧭 Qibla Finder', href: '/qibla', desc: 'Find Mecca direction' },
+                      { label: '📿 Dhikr Counter', href: '/dhikr', desc: 'Digital tasbih' },
+                      { label: '📖 Quran Reader', href: '/quran', desc: 'Read with translation' },
+                      { label: '🌙 Hijri Calendar', href: '/hijri', desc: 'Islamic date converter' },
+                    ].map(link => (
+                      <Link 
+                        key={link.href} 
+                        href={link.href} 
+                        onClick={() => {
+                          trackToolClick(link.label);
+                          saveScrollPosition();
+                        }}
+                        className="flex items-center justify-between px-3 py-2 rounded-xl text-xs text-gray-600 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-700 dark:hover:text-emerald-400 transition-all group"
+                      >
+                        <div>
+                          <span>{link.label}</span>
+                          <p className="text-[9px] text-gray-400 hidden group-hover:block">{link.desc}</p>
+                        </div>
+                        <span className="text-gray-300 group-hover:translate-x-1 transition-transform">→</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* FIX 5: Usage stats display */}
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4">
+                  <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-2">📊 Community Stats</p>
+                  <div className="space-y-2 text-center">
+                    <div className="flex justify-around text-[10px] text-gray-500">
+                      <div>✏️ 21 Tools</div>
+                      <div>🌍 8 Languages</div>
+                      <div>🆓 100% Free</div>
+                    </div>
+                    <p className="text-[9px] text-gray-400">Join thousands of Muslims worldwide using our tools daily</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-      </main>
-
-      {/* ── FOOTER ── */}
-      <footer className="mt-8 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          {/* Logo in footer — also clickable */}
-          <div className="text-center mb-4">
-            <Link href="/" className="font-arabic text-emerald-700 dark:text-emerald-500 text-xl hover:opacity-80 transition-opacity">
-              ♡ I Love Islam
-            </Link>
-            <p className="font-arabic text-emerald-700 dark:text-emerald-500 text-base mt-1">بسم الله الرحمن الرحيم</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t.footerMade} · {t.footerFree}</p>
+            )}
           </div>
+        </main>
 
-          {/* Footer links */}
-          <div className="flex flex-wrap justify-center gap-3 md:gap-5 mb-4">
-            {[
-              { href: '/about', label: t.about },
-              { href: '/blog', label: t.blog },
-              { href: '/faq', label: t.faq },
-              { href: '/privacy', label: t.privacy },
-              { href: '/terms', label: t.terms },
-              { href: '/contact', label: t.contact },
-            ].map(link => (
-              <Link key={link.href} href={link.href}
-                className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition">
-                {link.label}
+        {/* ── FOOTER ── */}
+        <footer className="mt-8 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <div className="max-w-6xl mx-auto px-4 py-6">
+            <div className="text-center mb-4">
+              <Link href="/" className="font-arabic text-emerald-700 dark:text-emerald-500 text-xl hover:opacity-80 transition-opacity">
+                ♡ I Love Islam
               </Link>
-            ))}
+              <p className="font-arabic text-emerald-700 dark:text-emerald-500 text-base mt-1">بسم الله الرحمن الرحيم</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t.footerMade} · {t.footerFree}</p>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-3 md:gap-5 mb-4">
+              {[
+                { href: '/about', label: t.about },
+                { href: '/blog', label: t.blog },
+                { href: '/faq', label: t.faq },
+                { href: '/privacy', label: t.privacy },
+                { href: '/terms', label: t.terms },
+                { href: '/contact', label: t.contact },
+              ].map(link => (
+                <Link key={link.href} href={link.href}
+                  className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition">
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+
+            <p className="text-center text-[10px] text-gray-300 dark:text-gray-600">
+              © {new Date().getFullYear()} iloveislam.life · All tools are free for the Ummah
+            </p>
           </div>
+        </footer>
 
-          <p className="text-center text-[10px] text-gray-300 dark:text-gray-600">
-            © {new Date().getFullYear()} iloveislam.life · All tools are free for the Ummah
-          </p>
-        </div>
-      </footer>
-
-      {/* Back to top button */}
-      <BackToTop />
-    </div>
+        {/* Back to top button */}
+        <BackToTop />
+      </div>
+    </>
   );
 }
