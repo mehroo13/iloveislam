@@ -213,6 +213,41 @@ const LANGUAGES = [
 
 const RTL_LANGS = ['ar', 'ur'];
 
+// ==================== QUOTE OF THE DAY DATA ====================
+// One quote per day — cycles through automatically, same quote all day for every user
+const DAILY_QUOTES = [
+  { text: "Indeed, with hardship will be ease.", source: "Quran 94:6", arabic: "فَإِنَّ مَعَ الْعُسْرِ يُسْرًا" },
+  { text: "And He found you lost and guided you.", source: "Quran 93:7", arabic: "وَوَجَدَكَ ضَالًّا فَهَدَىٰ" },
+  { text: "So remember Me; I will remember you.", source: "Quran 2:152", arabic: "فَاذْكُرُونِي أَذْكُرْكُمْ" },
+  { text: "Allah does not burden a soul beyond that it can bear.", source: "Quran 2:286", arabic: "لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا" },
+  { text: "Verily, the most honoured of you in the sight of Allah is the most righteous.", source: "Quran 49:13", arabic: "إِنَّ أَكْرَمَكُمْ عِندَ اللَّهِ أَتْقَاكُمْ" },
+  { text: "And put your trust in Allah if you are believers.", source: "Quran 5:23", arabic: "وَعَلَى اللَّهِ فَتَوَكَّلُوا إِن كُنتُم مُّؤْمِنِينَ" },
+  { text: "The strong person is not one who can overpower others; the strong person is one who controls himself when angry.", source: "Bukhari & Muslim", arabic: "لَيْسَ الشَّدِيدُ بِالصُّرَعَةِ" },
+  { text: "Make things easy and do not make them difficult.", source: "Bukhari", arabic: "يَسِّرُوا وَلَا تُعَسِّرُوا" },
+  { text: "The best of people are those who are most beneficial to others.", source: "Al-Mu'jam al-Awsat", arabic: "خَيْرُ النَّاسِ أَنْفَعُهُمْ لِلنَّاسِ" },
+  { text: "None of you truly believes until he loves for his brother what he loves for himself.", source: "Bukhari & Muslim", arabic: "لَا يُؤْمِنُ أَحَدُكُمْ حَتَّى يُحِبَّ لِأَخِيهِ مَا يُحِبُّ لِنَفْسِهِ" },
+  { text: "Speak good or remain silent.", source: "Bukhari & Muslim", arabic: "مَنْ كَانَ يُؤْمِنُ بِاللَّهِ وَالْيَوْمِ الْآخِرِ فَلْيَقُلْ خَيْرًا أَوْ لِيَصْمُتْ" },
+  { text: "Whoever believes in Allah and the Last Day should show hospitality to his guest.", source: "Bukhari", arabic: "" },
+  { text: "Do not look at how small the sin is, but look at how great is the One you are sinning against.", source: "Ibn Mas'ud", arabic: "" },
+  { text: "Take benefit of five before five: your youth before your old age, your health before your sickness, your wealth before your poverty, your free time before your preoccupation, and your life before your death.", source: "Al-Hakim", arabic: "" },
+  { text: "Whoever does not show mercy to people, Allah will not show mercy to him.", source: "Bukhari & Muslim", arabic: "مَنْ لَا يَرْحَمُ لَا يُرْحَمُ" },
+  { text: "Allah is beautiful and He loves beauty.", source: "Muslim", arabic: "إِنَّ اللَّهَ جَمِيلٌ يُحِبُّ الْجَمَالَ" },
+  { text: "The heaviest thing on the scale of deeds is good character.", source: "Abu Dawud & Tirmidhi", arabic: "" },
+  { text: "Tie your camel, then put your trust in Allah.", source: "Tirmidhi", arabic: "" },
+  { text: "Smiling at your brother is an act of charity.", source: "Tirmidhi", arabic: "تَبَسُّمُكَ فِي وَجْهِ أَخِيكَ لَكَ صَدَقَةٌ" },
+  { text: "The most beloved deeds to Allah are those done consistently, even if they are small.", source: "Bukhari & Muslim", arabic: "" },
+  { text: "He who has no mercy for others will receive no mercy.", source: "Bukhari", arabic: "" },
+  { text: "Seek knowledge from the cradle to the grave.", source: "Attributed tradition", arabic: "اطْلُبُوا الْعِلْمَ مِنَ الْمَهْدِ إِلَى اللَّحْدِ" },
+  { text: "Verily, Allah does not look at your appearance or wealth, but He looks at your hearts and deeds.", source: "Muslim", arabic: "" },
+  { text: "Be in this world as if you were a stranger or a traveller.", source: "Bukhari", arabic: "كُنْ فِي الدُّنْيَا كَأَنَّكَ غَرِيبٌ أَوْ عَابِرُ سَبِيلٍ" },
+  { text: "The son of Adam does not fill any vessel worse than his stomach.", source: "Tirmidhi & Ibn Majah", arabic: "" },
+  { text: "O Allah, You are Forgiving and love forgiveness, so forgive me.", source: "Tirmidhi", arabic: "اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي" },
+  { text: "Whoever teaches good, Allah and His angels and all creation send blessings upon him.", source: "Tirmidhi", arabic: "" },
+  { text: "The world is a prison for the believer and a paradise for the disbeliever.", source: "Muslim", arabic: "الدُّنْيَا سِجْنُ الْمُؤْمِنِ وَجَنَّةُ الْكَافِرِ" },
+  { text: "Fear Allah wherever you are, and follow a bad deed with a good one to erase it.", source: "Tirmidhi", arabic: "" },
+  { text: "Give charity without delay, for it stands in the way of calamity.", source: "Tirmidhi", arabic: "" },
+];
+
 const TOOLS_DATA = (t: TranslationsType) => [
   {
     category: t.mostUsed, emoji: '⭐',
@@ -232,6 +267,8 @@ const TOOLS_DATA = (t: TranslationsType) => [
       { name: '99 Names of Allah', desc: 'Asma ul Husna', icon: '⭐', href: '/names', color: 'bg-rose-100 text-rose-700' },
       { name: 'Ramadan Planner', desc: 'Suhoor & iftar tracker', icon: '🌙', href: '/ramadan', color: 'bg-indigo-100 text-indigo-700' },
       { name: 'Hadith Search', desc: 'Search hadith books', icon: '🔍', href: '/hadith', color: 'bg-cyan-100 text-cyan-700' },
+      // ── NEW: Islamic Events tool ──
+      { name: 'Islamic Events', desc: 'Eid & Ramadan countdowns', icon: '🗓️', href: '/eid', color: 'bg-amber-100 text-amber-700' },
     ],
   },
   {
@@ -325,6 +362,56 @@ function LiveBar() {
   );
 }
 
+// ── Quote of the Day ──
+// Picks the same quote for everyone on the same day (based on day-of-year)
+function QuoteOfTheDay() {
+  const quote = useMemo(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 0);
+    const diff = now.getTime() - start.getTime();
+    const dayOfYear = Math.floor(diff / 86400000);
+    return DAILY_QUOTES[dayOfYear % DAILY_QUOTES.length];
+  }, []);
+
+  return (
+    <div
+      className="rounded-2xl p-4 mb-6 border relative overflow-hidden"
+      style={{
+        background: 'linear-gradient(135deg, #0a1a0f 0%, #0d2818 100%)',
+        borderColor: 'rgba(200,169,110,0.2)',
+      }}
+    >
+      {/* Decorative background text */}
+      <div className="absolute top-2 right-3 text-5xl opacity-5 select-none pointer-events-none">
+        ✦
+      </div>
+
+      {/* Label */}
+      <p className="text-[10px] font-bold tracking-widest uppercase mb-2" style={{ color: '#c8a96e' }}>
+        ✨ Verse / Hadith of the Day
+      </p>
+
+      {/* Arabic text if available */}
+      {quote.arabic && (
+        <p
+          className="text-right text-base leading-relaxed mb-2 font-arabic"
+          style={{ color: '#c8a96e', direction: 'rtl' }}
+        >
+          {quote.arabic}
+        </p>
+      )}
+
+      {/* English text */}
+      <p className="text-white/80 text-sm leading-relaxed italic mb-2">
+        "{quote.text}"
+      </p>
+
+      {/* Source */}
+      <p className="text-white/30 text-[11px]">— {quote.source}</p>
+    </div>
+  );
+}
+
 // ── Newsletter ──
 function Newsletter({ t }: { t: TranslationsType }) {
   const [email, setEmail] = useState('');
@@ -370,8 +457,8 @@ function Newsletter({ t }: { t: TranslationsType }) {
 // ── Tool card with scroll save ──
 function ToolCard({ tool, onSaveScroll }: { tool: Tool; onSaveScroll: () => void }) {
   return (
-    <Link 
-      href={tool.href} 
+    <Link
+      href={tool.href}
       onClick={onSaveScroll}
       className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-md transition-all flex flex-col items-center text-center active:scale-95">
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-2 ${tool.color}`}>
@@ -398,17 +485,14 @@ export default function Home() {
   const isRTL = RTL_LANGS.includes(lang);
   const tools = TOOLS_DATA(t);
 
-  // Save scroll position function
   const saveScrollPosition = useCallback(() => {
     sessionStorage.setItem(SCROLL_KEY, window.scrollY.toString());
   }, []);
 
-  // Restore scroll position function
   const restoreScrollPosition = useCallback(() => {
     const saved = sessionStorage.getItem(SCROLL_KEY);
     if (saved) {
-      const scrollPosition = parseInt(saved);
-      window.scrollTo({ top: scrollPosition, behavior: 'instant' });
+      window.scrollTo({ top: parseInt(saved), behavior: 'instant' });
     }
   }, []);
 
@@ -418,43 +502,30 @@ export default function Home() {
     if (savedLang && TRANSLATIONS[savedLang]) setLang(savedLang);
   }, []);
 
-  // Handle click outside to close language menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        showLangMenu && 
-        langMenuRef.current && 
-        !langMenuRef.current.contains(event.target as Node) &&
-        langButtonRef.current &&
-        !langButtonRef.current.contains(event.target as Node)
+        showLangMenu &&
+        langMenuRef.current && !langMenuRef.current.contains(event.target as Node) &&
+        langButtonRef.current && !langButtonRef.current.contains(event.target as Node)
       ) {
         setShowLangMenu(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showLangMenu]);
 
-  // Prevent body scroll when menu is open
   useEffect(() => {
-    if (showLangMenu) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
+    document.body.style.overflow = showLangMenu ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
   }, [showLangMenu]);
 
-  // Save scroll on scroll
   useEffect(() => {
     window.addEventListener('scroll', saveScrollPosition, { passive: true });
     return () => window.removeEventListener('scroll', saveScrollPosition);
   }, [saveScrollPosition]);
 
-  // Restore scroll when page loads/returns
   useEffect(() => {
     if (mounted) {
       const timer = setTimeout(restoreScrollPosition, 50);
@@ -462,7 +533,6 @@ export default function Home() {
     }
   }, [mounted, restoreScrollPosition, pathname]);
 
-  // Also restore when pathname changes (coming back from tool page)
   useEffect(() => {
     restoreScrollPosition();
   }, [restoreScrollPosition, pathname]);
@@ -503,30 +573,21 @@ export default function Home() {
         </div>
 
         <div className="relative z-10 px-4 pt-3 pb-8 max-w-6xl mx-auto">
-
-          {/* Top bar — always LTR */}
+          {/* Top bar */}
           <div className="flex items-center justify-between mb-5" dir="ltr">
-
-            {/* Left nav */}
             <div className="flex items-center gap-1">
               <Link href="/about" className="text-white/50 hover:text-white/80 text-xs transition px-2 py-1.5 rounded-lg hover:bg-white/10">{t.about}</Link>
               <Link href="/blog" className="text-white/50 hover:text-white/80 text-xs transition px-2 py-1.5 rounded-lg hover:bg-white/10">{t.blog}</Link>
               <Link href="/faq" className="text-white/50 hover:text-white/80 text-xs transition px-2 py-1.5 rounded-lg hover:bg-white/10 hidden sm:inline">{t.faq}</Link>
             </div>
-
-            {/* Right controls */}
             <div className="flex items-center gap-2">
-
-              {/* Dark mode */}
               <button onClick={toggleDark}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-all text-base"
                 aria-label="Toggle dark mode">
                 {dark ? '☀️' : '🌙'}
               </button>
-
-              {/* Language switcher with proper scrollable dropdown */}
               <div className="relative">
-                <button 
+                <button
                   ref={langButtonRef}
                   onClick={() => setShowLangMenu(v => !v)}
                   className="flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-xl px-2.5 py-1.5 text-white/70 text-xs hover:bg-white/20 transition">
@@ -534,20 +595,14 @@ export default function Home() {
                   <span className="hidden sm:inline">{currentLang?.label}</span>
                   <span className="text-white/40">▾</span>
                 </button>
-
-                {/* DROPDOWN with proper scrolling - all 8 languages visible */}
                 {showLangMenu && (
-                  <div 
+                  <div
                     ref={langMenuRef}
                     className="absolute top-9 right-0 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 w-48"
-                    style={{
-                      maxHeight: '280px',
-                      overflowY: 'auto',
-                      overflowX: 'hidden',
-                    }}>
+                    style={{ maxHeight: '280px', overflowY: 'auto', overflowX: 'hidden' }}>
                     {LANGUAGES.map(l => (
-                      <button 
-                        key={l.code} 
+                      <button
+                        key={l.code}
                         onClick={() => switchLang(l.code)}
                         className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-700 ${lang === l.code ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>
                         <span className="text-base flex-shrink-0">{l.flag}</span>
@@ -566,7 +621,6 @@ export default function Home() {
             <h1 className="font-arabic text-5xl md:text-6xl mb-2" style={{ color: '#c8a96e' }}>♡ I Love Islam</h1>
             <p className="text-white/50 text-sm mb-4">{t.tagline}</p>
             <LiveBar />
-
             <div className="max-w-md mx-auto flex items-center gap-3 bg-white/10 border border-white/20 rounded-2xl px-4 py-2.5 focus-within:border-white/40 transition">
               <span className="text-white/40">🔍</span>
               <input type="text" value={search} onChange={e => setSearch(e.target.value)}
@@ -587,13 +641,16 @@ export default function Home() {
       <main className="max-w-6xl mx-auto px-4 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
 
-          {/* Tools */}
+          {/* Tools column */}
           <div className="flex-1 min-w-0">
 
-            {/* Mizan banner - also saves scroll position */}
+            {/* ── QUOTE OF THE DAY — shown above tools when not searching ── */}
+            {!search && <QuoteOfTheDay />}
+
+            {/* Mizan banner */}
             {!search && (
-              <Link 
-                href="/mizan" 
+              <Link
+                href="/mizan"
                 onClick={saveScrollPosition}
                 className="block mb-6 group">
                 <div className="rounded-2xl p-4 flex items-center gap-4 hover:shadow-lg transition-all"
@@ -666,7 +723,7 @@ export default function Home() {
         </div>
       </main>
 
-      {/* ── FOOTER WITH FAQ ADDED ── */}
+      {/* ── FOOTER ── */}
       <footer className="mt-8 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="text-center mb-4">
