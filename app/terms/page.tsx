@@ -83,7 +83,7 @@ We are not liable for any decisions made based on the output of our tools. Alway
     },
     {
       title: '12. Contact',
-      content: `If you have any questions about these Terms of Service, please contact us through our Contact page or by emailing mehrakhanuet3@gmail.com. We aim to respond within 48 hours insha'Allah.`,
+      content: `If you have any questions about these Terms of Service, please contact us through our Contact page. We aim to respond within 48 hours insha'Allah.`,
     },
     {
       title: '13. Governing Law',
