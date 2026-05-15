@@ -1,10 +1,28 @@
 'use client';
-import { useState, useEffect } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
+/* ── Constants ── */
 const DUAS = [
-  { time: 'Suhoor', arabic: 'نَوَيْتُ صَوْمَ غَدٍ', transliteration: 'Nawaitu sawma ghadin', meaning: 'I intend to fast tomorrow' },
-  { time: 'Iftar', arabic: 'اللَّهُمَّ اِنِّى لَكَ صُمْتُ', transliteration: 'Allahumma inni laka sumtu', meaning: 'O Allah, I fasted for You' },
+  {
+    time: 'Suhoor',
+    arabic: 'وَبِصَوْمِ غَدٍ نَّوَيْتُ مِن شَهْرِ رَمَضَانَ',
+    transliteration: 'Wa bisawmi ghadin nawaytu min shahri Ramadan',
+    meaning: 'I intend to keep the fast for tomorrow in the month of Ramadan',
+  },
+  {
+    time: 'Iftar',
+    arabic: 'اللَّهُمَّ إِنِّي لَكَ صُمْتُ وَبِكَ آمَنْتُ وَعَلَيْكَ تَوَكَّلْتُ وَعَلَى رِزْقِكَ أَفْطَرْتُ',
+    transliteration: 'Allahumma inni laka sumtu wa bika aamantu wa alayka tawakkaltu wa ala rizq-ika aftartu',
+    meaning: 'O Allah! I fasted for You and I believe in You and I put my trust in You and I break my fast with Your sustenance',
+  },
+];
+
+const MOODS = ['😄', '🙂', '😐', '😔', '🤲'];
+
+const IBADAH_OPTIONS = [
+  'Quran', 'Tarawih', 'Tahajjud', 'Sadaqah', 'Dhikr', 'Fasting', 'Dua', 'Good Deed',
 ];
 
 const GOALS = [
@@ -15,109 +33,97 @@ const GOALS = [
   { id: 'tahajjud', label: 'Pray Tahajjud', icon: '🌙', target: 10 },
 ];
 
-const IBADAH_OPTIONS = ['Quran', 'Tarawih', 'Tahajjud', 'Sadaqah', 'Dhikr', 'Fasting', 'Dua', 'Good Deed'];
-
-function getTodayKey() {
+function getTodayKey(): string {
   return new Date().toISOString().split('T')[0];
 }
 
-function getDayOfRamadan() {
-  // For demo, returns a number 1-30 based on current day of month
+function getDayOfRamadan(): number {
   return ((new Date().getDate() - 1) % 30) + 1;
 }
 
+type DayData = {
+  ibadah: string[];
+  fasted: boolean;
+};
+
 export default function RamadanPlanner() {
-  const [activeTab, setActiveTab] = useState('tracker');
-  const [days, setDays] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('ramadan_days');
-      return saved ? JSON.parse(saved) : {};
-    }
-    return {};
-  });
-  const [goals, setGoals] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('ramadan_goals');
-      return saved ? JSON.parse(saved) : {};
-    }
-    return {};
-  });
-  const [notes, setNotes] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('ramadan_notes') || '';
-    }
-    return '';
-  });
-  const [mood, setMood] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('ramadan_mood_' + getTodayKey());
-      return saved || '';
-    }
-    return '';
-  });
+  const [activeTab, setActiveTab] = useState<string>('tracker');
+  const [days, setDays] = useState<Record<string, DayData>>({});
+  const [notes, setNotes] = useState<string>('');
+  const [mood, setMood] = useState<string>('');
 
   const ramadanDay = getDayOfRamadan();
   const todayKey = getTodayKey();
-  const todayData = days[todayKey] || { ibadah: [], fasted: false };
+  const todayData: DayData = days[todayKey] || { ibadah: [], fasted: false };
 
   useEffect(() => {
-    localStorage.setItem('ramadan_days', JSON.stringify(days));
+    if (typeof window !== 'undefined') {
+      setDays(JSON.parse(localStorage.getItem('ramadan_days_v2') || '{}'));
+      setNotes(localStorage.getItem('ramadan_notes_v2') || '');
+      setMood(localStorage.getItem(`ramadan_mood_${todayKey}`) || '');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (Object.keys(days).length) localStorage.setItem('ramadan_days_v2', JSON.stringify(days));
   }, [days]);
 
   useEffect(() => {
-    localStorage.setItem('ramadan_goals', JSON.stringify(goals));
-  }, [goals]);
-
-  useEffect(() => {
-    localStorage.setItem('ramadan_notes', notes);
+    localStorage.setItem('ramadan_notes_v2', notes);
   }, [notes]);
 
-  function toggleFasted() {
+  useEffect(() => {
+    localStorage.setItem(`ramadan_mood_${todayKey}`, mood);
+  }, [mood, todayKey]);
+
+  const toggleFasted = () => {
     setDays(prev => ({
       ...prev,
-      [todayKey]: { ...todayData, fasted: !todayData.fasted }
+      [todayKey]: { ...todayData, fasted: !todayData.fasted },
     }));
-  }
+  };
 
-  function toggleIbadah(item) {
+  const toggleIbadah = (item: string) => {
     const current = todayData.ibadah || [];
-    const updated = current.includes(item) ? current.filter(i => i !== item) : [...current, item];
+    const updated = current.includes(item)
+      ? current.filter(i => i !== item)
+      : [...current, item];
     setDays(prev => ({
       ...prev,
-      [todayKey]: { ...todayData, ibadah: updated }
+      [todayKey]: { ...todayData, ibadah: updated },
     }));
-  }
+  };
 
-  function saveMood(m) {
-    setMood(m);
-    localStorage.setItem('ramadan_mood_' + todayKey, m);
-  }
+  const getGoalCount = (goalId: string) => {
+    return Object.values(days).filter(d =>
+      d.ibadah?.includes(
+        goalId === 'quran' ? 'Quran' :
+        goalId === 'tarawih' ? 'Tarawih' :
+        goalId === 'sadaqah' ? 'Sadaqah' :
+        goalId === 'dhikr' ? 'Dhikr' :
+        goalId === 'tahajjud' ? 'Tahajjud' : ''
+      )
+    ).length;
+  };
 
-  function getGoalCount(goalId) {
-    return Object.values(days).filter(d => d.ibadah && d.ibadah.includes(
-      goalId === 'quran' ? 'Quran' :
-      goalId === 'tarawih' ? 'Tarawih' :
-      goalId === 'sadaqah' ? 'Sadaqah' :
-      goalId === 'dhikr' ? 'Dhikr' :
-      goalId === 'tahajjud' ? 'Tahajjud' : ''
-    )).length;
-  }
+  const getDaysCompleted = () => Object.values(days).filter(d => d.fasted).length;
 
-  function getDaysCompleted() {
-    return Object.values(days).filter(d => d.fasted).length;
-  }
+  const totalIbadah = Object.values(days).reduce((sum, d) => sum + (d.ibadah?.length || 0), 0);
 
-  const MOODS = ['😄', '🙂', '😐', '😔', '🤲'];
+  // Shared styles
+  const card = 'bg-white rounded-2xl border border-gray-100 p-5 shadow-sm';
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-amber-50/30">
       {/* Header */}
-      <header style={{ background: 'linear-gradient(135deg, #0a3d2e 0%, #1a6b4a 100%)' }} className="px-6 py-4">
+      <header className="bg-gradient-to-r from-[#0a3d2e] to-[#1a6b4a] text-white px-4 py-4 shadow-lg sticky top-0 z-10">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <Link href="/" className="text-white/60 hover:text-white text-sm">← Back</Link>
-          <h1 className="text-white font-semibold">🌙 Ramadan Planner</h1>
-          <div className="bg-white/20 rounded-full px-3 py-1 text-white text-xs">
-            Day {ramadanDay}/30
+          <Link href="/" className="text-white/70 hover:text-white text-sm flex items-center gap-1">
+            <span>←</span> Back
+          </Link>
+          <h1 className="text-xl font-bold tracking-wide">🌙 Ramadan Planner</h1>
+          <div className="bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-semibold">
+            Day {ramadanDay} / 30
           </div>
         </div>
 
@@ -127,125 +133,135 @@ export default function RamadanPlanner() {
             <span>Ramadan Progress</span>
             <span>{ramadanDay} of 30 days</span>
           </div>
-          <div className="h-2 bg-white/20 rounded-full">
+          <div className="h-3 bg-white/20 rounded-full overflow-hidden">
             <div
-              className="h-2 rounded-full transition-all"
-              style={{ width: `${(ramadanDay / 30) * 100}%`, background: '#c8a96e' }}
+              className="h-full bg-gradient-to-r from-amber-300 to-amber-500 rounded-full transition-all duration-500"
+              style={{ width: `${(ramadanDay / 30) * 100}%` }}
             />
           </div>
         </div>
       </header>
 
       {/* Stats bar */}
-      <div style={{ background: '#0a3d2e' }} className="px-4 py-3">
+      <div className="bg-[#0a3d2e] text-white px-4 py-4">
         <div className="max-w-2xl mx-auto grid grid-cols-3 gap-4 text-center">
           <div>
-            <p className="text-2xl font-bold" style={{ color: '#c8a96e' }}>{getDaysCompleted()}</p>
-            <p className="text-white/50 text-xs">Days Fasted</p>
+            <p className="text-2xl font-bold text-amber-300">{getDaysCompleted()}</p>
+            <p className="text-white/60 text-xs">Days Fasted</p>
           </div>
           <div>
-            <p className="text-2xl font-bold" style={{ color: '#c8a96e' }}>
-              {Object.values(days).reduce((sum, d) => sum + (d.ibadah?.length || 0), 0)}
-            </p>
-            <p className="text-white/50 text-xs">Ibadah Done</p>
+            <p className="text-2xl font-bold text-amber-300">{totalIbadah}</p>
+            <p className="text-white/60 text-xs">Ibadah Done</p>
           </div>
           <div>
-            <p className="text-2xl font-bold" style={{ color: '#c8a96e' }}>
-              {30 - ramadanDay}
-            </p>
-            <p className="text-white/50 text-xs">Days Left</p>
+            <p className="text-2xl font-bold text-amber-300">{30 - ramadanDay}</p>
+            <p className="text-white/60 text-xs">Days Left</p>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="max-w-2xl mx-auto px-4 pt-4">
-        <div className="flex bg-white rounded-xl border border-gray-100 p-1 gap-1">
+        <div className="flex bg-white rounded-2xl border border-gray-100 p-1.5 gap-1 shadow-sm">
           {[
             { id: 'tracker', label: '📅 Today' },
             { id: 'goals', label: '🎯 Goals' },
             { id: 'duas', label: '🤲 Duas' },
-            { id: 'notes', label: '📝 Notes' },
+            { id: 'notes', label: '📝 Journal' },
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+              className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${
                 activeTab === tab.id
-                  ? 'text-white shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-[#0a3d2e] text-white shadow'
+                  : 'text-gray-500 hover:bg-gray-50'
               }`}
-              style={activeTab === tab.id ? { background: '#0a3d2e' } : {}}
             >
-              {tab.label}
+              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="sm:hidden">{tab.label.split(' ')[1]}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <main className="max-w-2xl mx-auto px-4 py-4 space-y-4 pb-10">
-
+      <main className="max-w-2xl mx-auto px-4 py-5 space-y-5 pb-10">
         {/* TODAY TAB */}
         {activeTab === 'tracker' && (
           <>
-            {/* Fasting toggle */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            {/* Fasting Toggle */}
+            <div className={card}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-gray-800">Did you fast today?</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+                  <p className="font-semibold text-gray-800 text-lg">Did you fast today?</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                  </p>
                 </div>
                 <button
                   onClick={toggleFasted}
-                  className={`w-14 h-8 rounded-full transition-all relative ${todayData.fasted ? '' : 'bg-gray-200'}`}
-                  style={todayData.fasted ? { background: '#0a3d2e' } : {}}
+                  className={`w-16 h-9 rounded-full transition-all relative flex items-center ${
+                    todayData.fasted ? 'bg-emerald-600' : 'bg-gray-300'
+                  }`}
                 >
-                  <div className={`w-6 h-6 bg-white rounded-full shadow absolute top-1 transition-all ${todayData.fasted ? 'left-7' : 'left-1'}`} />
+                  <div
+                    className={`w-7 h-7 bg-white rounded-full shadow absolute transform transition-transform ${
+                      todayData.fasted ? 'translate-x-8' : 'translate-x-0.5'
+                    }`}
+                  />
                 </button>
               </div>
               {todayData.fasted && (
-                <div className="mt-3 bg-emerald-50 rounded-xl p-3 text-center">
-                  <p className="text-emerald-700 text-sm font-medium">✅ Alhamdulillah! Fast recorded</p>
+                <div className="mt-4 bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
+                  <p className="text-emerald-700 text-sm font-semibold">✅ Alhamdulillah! Fast recorded</p>
                 </div>
               )}
             </div>
 
-            {/* Mood tracker */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <p className="font-semibold text-gray-800 mb-3">How are you feeling?</p>
+            {/* Mood Tracker */}
+            <div className={card}>
+              <p className="font-semibold text-gray-800 mb-4 text-lg">How are you feeling?</p>
               <div className="flex gap-3 justify-center">
                 {MOODS.map(m => (
                   <button
                     key={m}
-                    onClick={() => saveMood(m)}
-                    className={`text-2xl w-12 h-12 rounded-full transition-all ${mood === m ? 'shadow-inner scale-90' : 'hover:scale-110'}`}
-                    style={mood === m ? { background: '#f0faf5', border: '2px solid #0a3d2e' } : { background: '#f5f5f5' }}
+                    onClick={() => setMood(m === mood ? '' : m)}
+                    className={`text-3xl w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${
+                      mood === m
+                        ? 'bg-emerald-100 border-2 border-emerald-500 shadow-inner scale-95'
+                        : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
+                    }`}
                   >
                     {m}
                   </button>
                 ))}
               </div>
+              {mood && <p className="text-center text-xs text-gray-400 mt-3">Your mood is saved for today</p>}
             </div>
 
-            {/* Ibadah checklist */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <p className="font-semibold text-gray-800 mb-3">Today's Ibadah</p>
-              <div className="grid grid-cols-2 gap-2">
+            {/* Ibadah Checklist */}
+            <div className={card}>
+              <p className="font-semibold text-gray-800 mb-4 text-lg">Today's Ibadah</p>
+              <div className="grid grid-cols-2 gap-3">
                 {IBADAH_OPTIONS.map(item => {
                   const done = todayData.ibadah?.includes(item);
                   return (
                     <button
                       key={item}
                       onClick={() => toggleIbadah(item)}
-                      className={`py-3 px-4 rounded-xl border text-sm font-medium transition-all text-left flex items-center gap-2 ${
-                        done ? 'border-emerald-200 text-emerald-800' : 'border-gray-100 text-gray-600 hover:border-gray-200'
+                      className={`py-3 px-4 rounded-xl border text-sm font-medium transition-all flex items-center gap-3 text-left ${
+                        done
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                          : 'bg-gray-50 border-gray-100 text-gray-600 hover:border-gray-200'
                       }`}
-                      style={done ? { background: '#f0faf5' } : { background: '#fafafa' }}
                     >
-                      <span className={`w-4 h-4 rounded border-2 flex items-center justify-center text-xs flex-shrink-0 ${
-                        done ? 'border-emerald-500' : 'border-gray-300'
-                      }`}
-                      style={done ? { background: '#0a3d2e', borderColor: '#0a3d2e', color: 'white' } : {}}>
+                      <span
+                        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center text-xs flex-shrink-0 ${
+                          done
+                            ? 'bg-emerald-600 border-emerald-600 text-white'
+                            : 'border-gray-300'
+                        }`}
+                      >
                         {done ? '✓' : ''}
                       </span>
                       {item}
@@ -254,8 +270,8 @@ export default function RamadanPlanner() {
                 })}
               </div>
               {todayData.ibadah?.length > 0 && (
-                <p className="text-xs text-gray-400 mt-3 text-center">
-                  {todayData.ibadah.length} of {IBADAH_OPTIONS.length} completed today — MashaAllah! 🎉
+                <p className="text-xs text-gray-400 mt-4 text-center">
+                  {todayData.ibadah.length} of {IBADAH_OPTIONS.length} completed — MashaAllah! ✨
                 </p>
               )}
             </div>
@@ -265,27 +281,36 @@ export default function RamadanPlanner() {
         {/* GOALS TAB */}
         {activeTab === 'goals' && (
           <>
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <p className="font-semibold text-gray-800 mb-1">Ramadan Goals</p>
-              <p className="text-xs text-gray-400 mb-4">Track your 30-day ibadah goals</p>
-              <div className="space-y-4">
+            <div className={card}>
+              <p className="font-semibold text-gray-800 text-lg mb-1">Ramadan Goals</p>
+              <p className="text-xs text-gray-400 mb-5">Track your 30-day ibadah goals</p>
+              <div className="space-y-5">
                 {GOALS.map(goal => {
                   const count = getGoalCount(goal.id);
                   const pct = Math.min((count / goal.target) * 100, 100);
                   return (
                     <div key={goal.id}>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm text-gray-700">{goal.icon} {goal.label}</span>
-                        <span className="text-xs text-gray-400">{count}/{goal.target} days</span>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                          <span className="text-lg">{goal.icon}</span> {goal.label}
+                        </span>
+                        <span className="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">
+                          {count}/{goal.target}
+                        </span>
                       </div>
-                      <div className="h-2.5 bg-gray-100 rounded-full">
+                      <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                         <div
-                          className="h-2.5 rounded-full transition-all"
-                          style={{ width: `${pct}%`, background: pct === 100 ? '#c8a96e' : '#0a3d2e' }}
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${pct}%`,
+                            background: pct === 100
+                              ? 'linear-gradient(to right, #f59e0b, #d97706)'
+                              : 'linear-gradient(to right, #0a3d2e, #1a6b4a)',
+                          }}
                         />
                       </div>
                       {pct === 100 && (
-                        <p className="text-xs text-amber-600 mt-0.5">🏆 Goal achieved!</p>
+                        <p className="text-xs text-amber-600 mt-1 font-semibold">🏆 Goal completed!</p>
                       )}
                     </div>
                   );
@@ -293,9 +318,9 @@ export default function RamadanPlanner() {
               </div>
             </div>
 
-            {/* Calendar heatmap */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <p className="font-semibold text-gray-800 mb-3">Fasting Calendar</p>
+            {/* Fasting Calendar */}
+            <div className={card}>
+              <p className="font-semibold text-gray-800 mb-4 text-lg">Fasting Calendar</p>
               <div className="grid grid-cols-10 gap-1.5">
                 {Array.from({ length: 30 }, (_, i) => {
                   const d = new Date();
@@ -306,11 +331,16 @@ export default function RamadanPlanner() {
                   return (
                     <div
                       key={i}
-                      className={`aspect-square rounded-lg flex items-center justify-center text-xs font-medium ${isToday ? 'ring-2 ring-offset-1' : ''}`}
+                      className={`aspect-square rounded-lg flex items-center justify-center text-xs font-bold transition-all ${
+                        isToday ? 'ring-2 ring-offset-1 ring-amber-400' : ''
+                      }`}
                       style={{
-                        background: fasted ? '#0a3d2e' : i + 1 < ramadanDay ? '#f0f0f0' : '#f8f8f8',
+                        background: fasted
+                          ? 'linear-gradient(135deg, #0a3d2e, #1a6b4a)'
+                          : i + 1 < ramadanDay
+                          ? '#f1f1f1'
+                          : '#fafafa',
                         color: fasted ? 'white' : '#aaa',
-                        ringColor: '#0a3d2e',
                       }}
                     >
                       {i + 1}
@@ -318,9 +348,13 @@ export default function RamadanPlanner() {
                   );
                 })}
               </div>
-              <div className="flex gap-4 mt-3 text-xs text-gray-400">
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded" style={{ background: '#0a3d2e', display: 'inline-block' }} /> Fasted</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-200 inline-block" /> Missed</span>
+              <div className="flex gap-4 mt-4 text-xs text-gray-400">
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-sm bg-[#0a3d2e] inline-block" /> Fasted
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-sm bg-gray-200 inline-block" /> Missed
+                </span>
               </div>
             </div>
           </>
@@ -329,38 +363,42 @@ export default function RamadanPlanner() {
         {/* DUAS TAB */}
         {activeTab === 'duas' && (
           <>
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-              <div className="p-4 border-b border-gray-50">
-                <p className="font-semibold text-gray-800">Essential Ramadan Duas</p>
-              </div>
+            <div className={card}>
+              <p className="font-semibold text-gray-800 text-lg mb-4">Essential Ramadan Duas</p>
               {DUAS.map((dua, i) => (
-                <div key={i} className={`p-5 ${i < DUAS.length - 1 ? 'border-b border-gray-50' : ''}`}>
+                <div key={i} className={`${i > 0 ? 'mt-6 pt-6 border-t border-gray-100' : ''}`}>
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full text-white" style={{ background: '#0a3d2e' }}>{dua.time}</span>
+                    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">
+                      {dua.time}
+                    </span>
                   </div>
-                  <p className="font-arabic text-3xl text-right text-gray-800 leading-loose mb-3">{dua.arabic}</p>
+                  <p className="text-3xl text-right text-gray-800 leading-loose mb-3 font-arabic">{dua.arabic}</p>
                   <p className="text-sm text-gray-500 italic mb-1">{dua.transliteration}</p>
                   <p className="text-sm text-gray-700">{dua.meaning}</p>
                 </div>
               ))}
             </div>
 
-            {/* Extra duas */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <p className="font-semibold text-gray-800 mb-3">Laylatul Qadr Dua</p>
-              <div style={{ background: 'linear-gradient(135deg, #0a3d2e, #1a6b4a)' }} className="rounded-xl p-5 text-center">
-                <p className="font-arabic text-3xl text-white leading-loose mb-3">
+            <div className={card}>
+              <p className="font-semibold text-gray-800 text-lg mb-4">Laylatul Qadr Dua</p>
+              <div className="bg-gradient-to-r from-[#0a3d2e] to-[#1a6b4a] rounded-xl p-5 text-center text-white">
+                <p className="text-3xl leading-loose mb-3 font-arabic">
                   اللَّهُمَّ إِنَّكَ عُفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي
                 </p>
-                <p className="text-white/70 text-sm italic mb-1">Allahumma innaka 'afuwwun tuhibbul 'afwa fa'fu 'anni</p>
-                <p className="text-white/90 text-sm mt-2">O Allah, You are Forgiving and love forgiveness, so forgive me</p>
+                <p className="text-white/70 text-sm italic mb-1">
+                  Allahumma innaka 'afuwwun tuhibbul 'afwa fa'fu 'anni
+                </p>
+                <p className="text-white/90 text-sm mt-2">
+                  O Allah, You are Forgiving and love forgiveness, so forgive me
+                </p>
               </div>
-              <p className="text-xs text-gray-400 mt-3 text-center">Recite abundantly in the last 10 nights — Hadith (Tirmidhi)</p>
+              <p className="text-xs text-gray-400 mt-3 text-center">
+                Recite abundantly in the last 10 nights — Hadith (Tirmidhi)
+              </p>
             </div>
 
-            {/* Ramadan tips */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <p className="font-semibold text-gray-800 mb-3">✨ Ramadan Tips</p>
+            <div className={card}>
+              <p className="font-semibold text-gray-800 text-lg mb-4">✨ Ramadan Tips</p>
               <div className="space-y-3">
                 {[
                   { icon: '🌙', tip: 'Make intention for fasting every night before Fajr' },
@@ -371,7 +409,7 @@ export default function RamadanPlanner() {
                   { icon: '🕌', tip: 'Pray Tarawih — even a few rakahs is better than none' },
                 ].map((t, i) => (
                   <div key={i} className="flex gap-3 items-start">
-                    <span className="text-lg">{t.icon}</span>
+                    <span className="text-xl">{t.icon}</span>
                     <p className="text-sm text-gray-600 leading-relaxed">{t.tip}</p>
                   </div>
                 ))}
@@ -383,22 +421,20 @@ export default function RamadanPlanner() {
         {/* NOTES TAB */}
         {activeTab === 'notes' && (
           <>
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <p className="font-semibold text-gray-800 mb-1">Personal Ramadan Journal</p>
-              <p className="text-xs text-gray-400 mb-3">Write your reflections, gratitude, and goals</p>
+            <div className={card}>
+              <p className="font-semibold text-gray-800 text-lg mb-1">Personal Ramadan Journal</p>
+              <p className="text-xs text-gray-400 mb-4">Write your reflections, gratitude, and goals</p>
               <textarea
                 value={notes}
-                onChange={e => setNotes(e.target.value)}
+                onChange={(e) => setNotes(e.target.value)}
                 placeholder="Bismillah... write your thoughts, what you're grateful for, goals for this Ramadan, reflections on today's fast..."
-                className="w-full h-64 border border-gray-100 rounded-xl p-4 text-sm text-gray-700 resize-none focus:outline-none focus:border-gray-300"
-                style={{ background: '#fafafa' }}
+                className="w-full h-56 border border-gray-200 rounded-xl p-4 text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-200 bg-gray-50"
               />
-              <p className="text-xs text-gray-300 text-right mt-1">{notes.length} characters — saved automatically</p>
+              <p className="text-xs text-gray-300 text-right mt-2">{notes.length} characters — saved automatically</p>
             </div>
 
-            {/* Gratitude prompts */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <p className="font-semibold text-gray-800 mb-3">💡 Journal Prompts</p>
+            <div className={card}>
+              <p className="font-semibold text-gray-800 text-lg mb-4">💡 Journal Prompts</p>
               <div className="space-y-2">
                 {[
                   'What am I most grateful to Allah for today?',
@@ -410,7 +446,7 @@ export default function RamadanPlanner() {
                   <button
                     key={i}
                     onClick={() => setNotes(n => n + (n ? '\n\n' : '') + prompt + '\n')}
-                    className="w-full text-left text-sm text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl px-4 py-3 transition-all border border-gray-100"
+                    className="w-full text-left text-sm text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl px-4 py-3 transition-all border border-gray-200"
                   >
                     + {prompt}
                   </button>
