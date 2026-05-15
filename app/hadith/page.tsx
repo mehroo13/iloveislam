@@ -28,19 +28,16 @@ interface HadithResult {
   _id: string;
   bookSlug: string;
   hadithNumber: string;
-  text: string;
+  textEn: string;   // English text
+  textUr: string;   // Urdu text
   arabic: string;
   grade: string;
 }
 
-/* ── Cache ── */
+/* ── Cache: merged hadiths by book (bookSlug → array of HadithResult) ── */
 const bookCache: Record<string, HadithResult[]> = {};
 
-async function fetchBookHadiths(bookSlug: string, lang: string): Promise<HadithResult[]> {
-  const cacheKey = `${lang}-${bookSlug}`;
-  if (bookCache[cacheKey]) return bookCache[cacheKey];
-
-  // Multiple fallback URLs to ensure reliable delivery
+async function fetchLanguageHadiths(bookSlug: string, lang: string): Promise<Record<string, { text: string; number: string }>> {
   const urls = [
     `https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/${lang}-${bookSlug}.min.json`,
     `https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/${lang}-${bookSlug}.json`,
@@ -52,24 +49,47 @@ async function fetchBookHadiths(bookSlug: string, lang: string): Promise<HadithR
       const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
       if (!res.ok) continue;
       const data = await res.json();
-      const hadiths: HadithResult[] = (data?.hadiths || []).map((h: any) => ({
-        _id: `${bookSlug}-${h.hadithnumber}`,
-        bookSlug,
-        hadithNumber: h.hadithnumber,
-        text: h.text || '',
-        arabic: '',
-        grade: h.grades?.[0]?.grade || '',
-      }));
-      bookCache[cacheKey] = hadiths;
-      return hadiths;
-    } catch (err) {
-      // Try next URL
+      const map: Record<string, { text: string; number: string }> = {};
+      (data?.hadiths || []).forEach((h: any) => {
+        map[h.hadithnumber] = { text: h.text || '', number: h.hadithnumber };
+      });
+      return map;
+    } catch {
       continue;
     }
   }
-  // All URLs failed – return empty
-  console.error(`Failed to load ${lang}-${bookSlug} from all sources`);
-  return [];
+  return {};
+}
+
+async function fetchMergedHadiths(bookSlug: string): Promise<HadithResult[]> {
+  if (bookCache[bookSlug]) return bookCache[bookSlug];
+
+  const [enMap, urMap] = await Promise.all([
+    fetchLanguageHadiths(bookSlug, 'eng'),
+    fetchLanguageHadiths(bookSlug, 'urd'),
+  ]);
+
+  // Combine by hadith number (both should have the same numbers)
+  const merged: HadithResult[] = [];
+  const allNumbers = new Set([...Object.keys(enMap), ...Object.keys(urMap)]);
+  allNumbers.forEach(num => {
+    const en = enMap[num];
+    const ur = urMap[num];
+    if (en || ur) {
+      merged.push({
+        _id: `${bookSlug}-${num}`,
+        bookSlug,
+        hadithNumber: num,
+        textEn: en?.text || '',
+        textUr: ur?.text || '',
+        arabic: '', // Arabic not fetched from these editions
+        grade: '',  // grade not available in this dataset
+      });
+    }
+  });
+
+  bookCache[bookSlug] = merged;
+  return merged;
 }
 
 /* ── Main Component ── */
@@ -91,7 +111,7 @@ export default function HadithSearch() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        const raw = localStorage.getItem('saved_hadiths_v2');
+        const raw = localStorage.getItem('saved_hadiths_v3');
         if (raw) setSaved(JSON.parse(raw));
       } catch {}
     }
@@ -99,12 +119,14 @@ export default function HadithSearch() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('saved_hadiths_v2', JSON.stringify(saved));
+      localStorage.setItem('saved_hadiths_v3', JSON.stringify(saved));
     }
   }, [saved]);
 
+  // The search function now loads both language versions for every book being searched,
+  // then searches across both texts. Results are displayed in the currently selected language.
   const search = useCallback(async (q?: string, book?: string) => {
-    const term = (q || query).trim();
+    const term = (q || query).trim().toLowerCase();
     if (!term) return;
     setLoading(true);
     setError('');
@@ -119,20 +141,14 @@ export default function HadithSearch() {
       for (const slug of booksToSearch) {
         const bookLabel = BOOKS.find(b => b.apiName === slug)?.label || slug;
         setLoadingMsg(`Searching ${bookLabel}...`);
-        const hadiths = await fetchBookHadiths(slug, language);
-        // If Urdu edition returned empty, warn once
-        if (language === 'urd' && hadiths.length === 0 && !bookCache[`urd-${slug}`]) {
-          // Actually we still set cache as empty array, so warn
-        }
+        const hadiths = await fetchMergedHadiths(slug);
+        // Search in both English and Urdu texts (case-insensitive)
         const matches = hadiths.filter(h =>
-          (h.text || '').toLowerCase().includes(term.toLowerCase())
+          (h.textEn || '').toLowerCase().includes(term) ||
+          (h.textUr || '').toLowerCase().includes(term)
         );
         allMatches = [...allMatches, ...matches];
         if (allMatches.length >= 30) break;
-      }
-
-      if (allMatches.length === 0 && language === 'urd') {
-        setLangWarning('Make sure you are searching with Urdu script (e.g., ایمان, نماز). If the problem persists, the Urdu edition may be temporarily unavailable.');
       }
 
       setResults(allMatches.slice(0, 30));
@@ -141,7 +157,7 @@ export default function HadithSearch() {
     }
     setLoading(false);
     setLoadingMsg('');
-  }, [query, language, selectedBook]);
+  }, [query]);
 
   const handleSave = (h: HadithResult) => {
     const exists = saved.some(s => s._id === h._id);
@@ -151,7 +167,7 @@ export default function HadithSearch() {
   const isSaved = (h: HadithResult) => saved.some(s => s._id === h._id);
 
   const copyHadith = (h: HadithResult) => {
-    const text = `${h.text}\n— ${getBookLabel(h.bookSlug)}, Hadith #${h.hadithNumber}${h.grade ? ' | ' + h.grade : ''}`;
+    const text = `${language === 'eng' ? h.textEn : h.textUr}\n— ${getBookLabel(h.bookSlug)}, Hadith #${h.hadithNumber}${h.grade ? ' | ' + h.grade : ''}`;
     navigator.clipboard?.writeText(text).catch(() => {});
     setCopiedId(h._id);
     setTimeout(() => setCopiedId(null), 1500);
@@ -160,10 +176,11 @@ export default function HadithSearch() {
   const getBookLabel = (slug: string) =>
     BOOKS.find(b => b.apiName === slug)?.label || 'Hadith Collection';
 
-  // Hadith Card (unchanged)
+  // Hadith Card – now shows text based on selected language
   const HadithCard = ({ h }: { h: HadithResult }) => {
     const saved_ = isSaved(h);
     const grade = h.grade || '';
+    const displayText = language === 'eng' ? h.textEn : h.textUr;
     return (
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="bg-gray-50 px-4 py-2.5 flex items-center gap-2 flex-wrap">
@@ -196,7 +213,7 @@ export default function HadithSearch() {
           </div>
         </div>
         <div className="p-4">
-          <p className="text-sm text-gray-700 leading-relaxed">{h.text}</p>
+          <p className="text-sm text-gray-700 leading-relaxed">{displayText}</p>
         </div>
       </div>
     );
@@ -214,11 +231,7 @@ export default function HadithSearch() {
             <h1 className="text-xl font-bold">📚 Hadith Search</h1>
             <select
               value={language}
-              onChange={(e) => {
-                setLanguage(e.target.value);
-                setResults(null);
-                setLangWarning('');
-              }}
+              onChange={(e) => setLanguage(e.target.value)}
               className="bg-white/20 backdrop-blur-sm text-white text-xs rounded-full px-3 py-1.5 border border-white/30 focus:outline-none cursor-pointer"
             >
               {LANGUAGES.map(lang => (
@@ -229,7 +242,7 @@ export default function HadithSearch() {
             </select>
           </div>
           <p className="text-white/60 text-xs text-center">
-            Search authentic hadiths from Bukhari, Muslim, Abu Dawud & more
+            Search in English or Urdu – results switch instantly
           </p>
 
           {/* Search bar */}
@@ -241,7 +254,7 @@ export default function HadithSearch() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && search()}
-                placeholder={language === 'urd' ? 'اردو میں تلاش کریں...' : 'Search hadith...'}
+                placeholder={language === 'urd' ? 'اردو میں تلاش کریں...' : 'Search hadith... (e.g., faith, prayer)'}
                 className="w-full pl-10 pr-4 py-3 rounded-xl border-none outline-none text-sm text-gray-800 bg-white shadow-sm"
               />
             </div>
@@ -309,14 +322,6 @@ export default function HadithSearch() {
       <main className="max-w-2xl mx-auto px-4 py-5 space-y-4 pb-12">
         {activeTab === 'search' && (
           <>
-            {/* Language warning */}
-            {langWarning && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
-                {langWarning}
-              </div>
-            )}
-
-            {/* Empty state */}
             {!results && !loading && !error && (
               <>
                 <div className="bg-gradient-to-r from-emerald-900 to-emerald-700 text-white rounded-2xl p-6 text-center shadow">
@@ -348,7 +353,7 @@ export default function HadithSearch() {
                     {BOOKS.map(b => (
                       <button
                         key={b.id}
-                        onClick={() => { setQuery(language === 'urd' ? 'ایمان' : 'faith'); setSelectedBook(b.apiName); search(language === 'urd' ? 'ایمان' : 'faith', b.apiName); }}
+                        onClick={() => { setQuery('faith'); setSelectedBook(b.apiName); search('faith', b.apiName); }}
                         className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 text-left"
                       >
                         <span className="text-sm font-medium text-gray-700">{b.label}</span>
@@ -394,9 +399,7 @@ export default function HadithSearch() {
                     <p className="text-4xl mb-3">📖</p>
                     <p className="text-gray-700 font-medium mb-1">No results for "{searched}"</p>
                     <p className="text-gray-400 text-sm">
-                      {language === 'urd'
-                        ? 'کوشش کریں اردو میں دوبارہ لکھیں (مثلاً: ایمان، نماز)۔ اگر مسئلہ حل نہ ہو تو شاید اردو ایڈیشن دستیاب نہ ہو۔'
-                        : 'Try different keywords or select a different book.'}
+                      Try different keywords or select a different book.
                     </p>
                   </div>
                 ) : (
@@ -424,7 +427,7 @@ export default function HadithSearch() {
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-gray-600">{saved.length} saved hadith{saved.length !== 1 ? 's' : ''}</p>
                   <button
-                    onClick={() => { setSaved([]); localStorage.removeItem('saved_hadiths_v2'); }}
+                    onClick={() => { setSaved([]); localStorage.removeItem('saved_hadiths_v3'); }}
                     className="text-xs text-red-500 hover:text-red-700"
                   >
                     Clear all
