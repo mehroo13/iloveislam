@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
-/* ── Books and languages ── */
+/* ── Books & Languages ── */
 const BOOKS = [
   { id: 'bukhari', label: 'Sahih Bukhari', short: 'Bukhari', apiName: 'bukhari' },
   { id: 'muslim', label: 'Sahih Muslim', short: 'Muslim', apiName: 'muslim' },
@@ -40,14 +40,16 @@ async function fetchBookHadiths(bookSlug: string, lang: string): Promise<HadithR
   const cacheKey = `${lang}-${bookSlug}`;
   if (bookCache[cacheKey]) return bookCache[cacheKey];
 
+  // Multiple fallback URLs to ensure reliable delivery
   const urls = [
     `https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/${lang}-${bookSlug}.min.json`,
     `https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/${lang}-${bookSlug}.json`,
+    `https://raw.githubusercontent.com/fawazahmed0/hadith-api/main/editions/${lang}-${bookSlug}.json`,
   ];
 
   for (const url of urls) {
     try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
       if (!res.ok) continue;
       const data = await res.json();
       const hadiths: HadithResult[] = (data?.hadiths || []).map((h: any) => ({
@@ -55,19 +57,22 @@ async function fetchBookHadiths(bookSlug: string, lang: string): Promise<HadithR
         bookSlug,
         hadithNumber: h.hadithnumber,
         text: h.text || '',
-        arabic: '', // We only fetch translation text, Arabic could be added later
+        arabic: '',
         grade: h.grades?.[0]?.grade || '',
       }));
       bookCache[cacheKey] = hadiths;
       return hadiths;
-    } catch {
+    } catch (err) {
+      // Try next URL
       continue;
     }
   }
+  // All URLs failed – return empty
+  console.error(`Failed to load ${lang}-${bookSlug} from all sources`);
   return [];
 }
 
-/* ── Main component ── */
+/* ── Main Component ── */
 export default function HadithSearch() {
   const [query, setQuery] = useState('');
   const [selectedBook, setSelectedBook] = useState('');
@@ -80,8 +85,9 @@ export default function HadithSearch() {
   const [activeTab, setActiveTab] = useState('search');
   const [searched, setSearched] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [langWarning, setLangWarning] = useState('');
 
-  // Load saved from localStorage
+  // Load saved
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -102,6 +108,7 @@ export default function HadithSearch() {
     if (!term) return;
     setLoading(true);
     setError('');
+    setLangWarning('');
     setResults(null);
     setSearched(term);
 
@@ -113,11 +120,19 @@ export default function HadithSearch() {
         const bookLabel = BOOKS.find(b => b.apiName === slug)?.label || slug;
         setLoadingMsg(`Searching ${bookLabel}...`);
         const hadiths = await fetchBookHadiths(slug, language);
+        // If Urdu edition returned empty, warn once
+        if (language === 'urd' && hadiths.length === 0 && !bookCache[`urd-${slug}`]) {
+          // Actually we still set cache as empty array, so warn
+        }
         const matches = hadiths.filter(h =>
           (h.text || '').toLowerCase().includes(term.toLowerCase())
         );
         allMatches = [...allMatches, ...matches];
         if (allMatches.length >= 30) break;
+      }
+
+      if (allMatches.length === 0 && language === 'urd') {
+        setLangWarning('Make sure you are searching with Urdu script (e.g., ایمان, نماز). If the problem persists, the Urdu edition may be temporarily unavailable.');
       }
 
       setResults(allMatches.slice(0, 30));
@@ -145,7 +160,7 @@ export default function HadithSearch() {
   const getBookLabel = (slug: string) =>
     BOOKS.find(b => b.apiName === slug)?.label || 'Hadith Collection';
 
-  // Hadith card component (inline for simplicity)
+  // Hadith Card (unchanged)
   const HadithCard = ({ h }: { h: HadithResult }) => {
     const saved_ = isSaved(h);
     const grade = h.grade || '';
@@ -197,10 +212,13 @@ export default function HadithSearch() {
               <span>←</span> Back
             </Link>
             <h1 className="text-xl font-bold">📚 Hadith Search</h1>
-            {/* Language selector */}
             <select
               value={language}
-              onChange={(e) => setLanguage(e.target.value)}
+              onChange={(e) => {
+                setLanguage(e.target.value);
+                setResults(null);
+                setLangWarning('');
+              }}
               className="bg-white/20 backdrop-blur-sm text-white text-xs rounded-full px-3 py-1.5 border border-white/30 focus:outline-none cursor-pointer"
             >
               {LANGUAGES.map(lang => (
@@ -223,7 +241,7 @@ export default function HadithSearch() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && search()}
-                placeholder="Search hadith..."
+                placeholder={language === 'urd' ? 'اردو میں تلاش کریں...' : 'Search hadith...'}
                 className="w-full pl-10 pr-4 py-3 rounded-xl border-none outline-none text-sm text-gray-800 bg-white shadow-sm"
               />
             </div>
@@ -291,6 +309,13 @@ export default function HadithSearch() {
       <main className="max-w-2xl mx-auto px-4 py-5 space-y-4 pb-12">
         {activeTab === 'search' && (
           <>
+            {/* Language warning */}
+            {langWarning && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
+                {langWarning}
+              </div>
+            )}
+
             {/* Empty state */}
             {!results && !loading && !error && (
               <>
@@ -323,7 +348,7 @@ export default function HadithSearch() {
                     {BOOKS.map(b => (
                       <button
                         key={b.id}
-                        onClick={() => { setQuery('faith'); setSelectedBook(b.apiName); search('faith', b.apiName); }}
+                        onClick={() => { setQuery(language === 'urd' ? 'ایمان' : 'faith'); setSelectedBook(b.apiName); search(language === 'urd' ? 'ایمان' : 'faith', b.apiName); }}
                         className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 text-left"
                       >
                         <span className="text-sm font-medium text-gray-700">{b.label}</span>
@@ -335,7 +360,6 @@ export default function HadithSearch() {
               </>
             )}
 
-            {/* Loading */}
             {loading && (
               <div className="flex flex-col items-center justify-center py-16">
                 <div className="w-10 h-10 border-4 border-emerald-900 border-t-transparent rounded-full animate-spin mb-3" />
@@ -343,7 +367,6 @@ export default function HadithSearch() {
               </div>
             )}
 
-            {/* Error */}
             {error && !loading && (
               <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
                 <p className="text-red-600 font-semibold text-sm mb-1">⚠️ Connection Error</p>
@@ -354,7 +377,6 @@ export default function HadithSearch() {
               </div>
             )}
 
-            {/* Results */}
             {results && !loading && (
               <>
                 <div className="flex items-center justify-between">
@@ -371,7 +393,11 @@ export default function HadithSearch() {
                   <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center shadow-sm">
                     <p className="text-4xl mb-3">📖</p>
                     <p className="text-gray-700 font-medium mb-1">No results for "{searched}"</p>
-                    <p className="text-gray-400 text-sm">Try different keywords or a different book</p>
+                    <p className="text-gray-400 text-sm">
+                      {language === 'urd'
+                        ? 'کوشش کریں اردو میں دوبارہ لکھیں (مثلاً: ایمان، نماز)۔ اگر مسئلہ حل نہ ہو تو شاید اردو ایڈیشن دستیاب نہ ہو۔'
+                        : 'Try different keywords or select a different book.'}
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -385,7 +411,6 @@ export default function HadithSearch() {
           </>
         )}
 
-        {/* Saved Tab */}
         {activeTab === 'saved' && (
           <>
             {saved.length === 0 ? (
