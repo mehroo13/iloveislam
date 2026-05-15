@@ -55,10 +55,9 @@ function getDirectionEmoji(degrees: number): string {
   return '↖️';
 }
 
-// ── Low‑pass filter for compass (smooth out jitter) ──
-function lowPassFilter(newValue: number, oldValue: number, smoothing: number = 0.2): number {
+// Low‑pass filter for compass
+function lowPassFilter(newValue: number, oldValue: number, smoothing: number = 0.15): number {
   const diff = newValue - oldValue;
-  // Handle wrap-around (360 ↔ 0)
   const adjustedDiff = ((diff + 540) % 360) - 180;
   return (oldValue + adjustedDiff * smoothing + 360) % 360;
 }
@@ -85,13 +84,11 @@ export default function QiblaFinder() {
   const [compassEnabled, setCompassEnabled] = useState(false);
   const [isFacingQibla, setIsFacingQibla] = useState(false);
   const [alignmentAccuracy, setAlignmentAccuracy] = useState<number>(180);
-  const [compassAccuracy, setCompassAccuracy] = useState<number | null>(null); // from event
+  const [compassAccuracy, setCompassAccuracy] = useState<number | null>(null);
 
   const compassListenerRef = useRef<((event: DeviceOrientationEvent) => void) | null>(null);
-  const lastHeadingRef = useRef<number>(0);
-  const filterRef = useRef<number>(0); // current filtered heading
+  const filterRef = useRef<number>(0);
 
-  // Update facing status
   useEffect(() => {
     if (qiblaDirection !== null && compassEnabled) {
       const diff = Math.abs(qiblaDirection - compassHeading);
@@ -116,7 +113,6 @@ export default function QiblaFinder() {
     setLoading(false);
   }, []);
 
-  // ── Compass handling ──
   const startCompass = useCallback(() => {
     if (!window.DeviceOrientationEvent) {
       setCompassPermission('denied');
@@ -126,29 +122,27 @@ export default function QiblaFinder() {
     const handleOrientation = (event: DeviceOrientationEvent) => {
       let rawHeading: number | null = null;
 
-      // iOS: webkitCompassHeading is absolute heading (0=North)
+      // iOS: webkitCompassHeading
       if ((event as any).webkitCompassHeading !== undefined) {
         rawHeading = (event as any).webkitCompassHeading;
       }
-      // Android / other: try to get absolute orientation
+      // Android absolute orientation
       else if (event.absolute === true && event.alpha !== null) {
-        // Alpha is 0–360, but 0 = device front pointing North? Depends on browser.
-        // In practice on Android Chrome, alpha = compass heading (0=North).
         rawHeading = event.alpha;
       }
-      // Fallback: use alpha anyway (may be relative to initial orientation)
+      // Fallback
       else if (event.alpha !== null) {
         rawHeading = event.alpha;
       }
 
       if (rawHeading !== null) {
-        // Apply low‑pass filter
         const filtered = lowPassFilter(rawHeading, filterRef.current, 0.15);
         filterRef.current = filtered;
         setCompassHeading(Math.round(filtered * 10) / 10);
         setCompassEnabled(true);
-        if (event.webkitCompassAccuracy) {
-          setCompassAccuracy(event.webkitCompassAccuracy);
+        // Fix: cast event to any to access webkitCompassAccuracy
+        if ((event as any).webkitCompassAccuracy) {
+          setCompassAccuracy((event as any).webkitCompassAccuracy);
         }
       }
     };
@@ -165,7 +159,6 @@ export default function QiblaFinder() {
   }, []);
 
   const enableCompass = async () => {
-    // iOS 13+ requires user gesture and permission
     if (typeof DeviceOrientationEvent !== 'undefined' &&
         typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
       try {
@@ -180,7 +173,6 @@ export default function QiblaFinder() {
         setCompassPermission('denied');
       }
     } else {
-      // Android or older iOS
       setCompassPermission('granted');
       startCompass();
     }
@@ -190,7 +182,6 @@ export default function QiblaFinder() {
     return () => stopCompass();
   }, [stopCompass]);
 
-  // Geolocation
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
       setError('Geolocation not supported');
@@ -266,7 +257,6 @@ export default function QiblaFinder() {
     stopCompass();
   };
 
-  // Arrow rotation: difference between Qibla bearing and phone heading
   const arrowRotation = qiblaDirection !== null && compassEnabled
     ? (qiblaDirection - compassHeading + 360) % 360
     : qiblaDirection || 0;
@@ -358,15 +348,120 @@ export default function QiblaFinder() {
               </p>
             </div>
 
-            {/* Compass visualization – same as before but with filtered heading */}
+            {/* Main Compass */}
             <div className="relative w-80 h-80 mx-auto">
-              {/* ... the same compass UI you had, but ensure it uses the filtered heading ... */}
-              {/* I'll replicate the key parts, but your existing JSX for compass is fine – just keep it and the arrow rotation logic uses compassHeading which is now filtered. */}
-              {/* For brevity, I'll include a simplified version; you already have the full UI. */}
-              {/* ... */}
+              <div className="absolute inset-0 rounded-full bg-emerald-800/40 border-4 border-white/30 shadow-2xl backdrop-blur-sm">
+                <div className="absolute top-1 left-1/2 transform -translate-x-1/2 z-10">
+                  <div className="text-red-400 font-bold text-sm">N</div>
+                  <div className="w-px h-8 bg-red-400/50 mx-auto"></div>
+                </div>
+                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 z-10">
+                  <div className="w-px h-8 bg-white/30 mx-auto"></div>
+                  <div className="text-white/40 font-bold text-sm">S</div>
+                </div>
+                <div className="absolute right-1 top-1/2 transform -translate-y-1/2 z-10">
+                  <div className="text-white/40 font-bold text-sm">E</div>
+                  <div className="w-8 h-px bg-white/30 mx-auto"></div>
+                </div>
+                <div className="absolute left-1 top-1/2 transform -translate-y-1/2 z-10">
+                  <div className="text-white/40 font-bold text-sm">W</div>
+                  <div className="w-8 h-px bg-white/30 mx-auto"></div>
+                </div>
+                {[...Array(36)].map((_, i) => {
+                  const rotation = i * 10;
+                  const isMajor = i % 3 === 0;
+                  return (
+                    <div
+                      key={i}
+                      className="absolute top-0 left-1/2"
+                      style={{
+                        width: '1px',
+                        height: isMajor ? '12px' : '6px',
+                        background: isMajor ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.3)',
+                        transform: `rotate(${rotation}deg) translateX(-50%)`,
+                        transformOrigin: '0 160px',
+                      }}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Qibla Arrow */}
+              <div
+                className="absolute inset-0 transition-transform duration-200 ease-out z-20"
+                style={{ transform: `rotate(${arrowRotation}deg)` }}
+              >
+                <div className="absolute top-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center">
+                  <div className="w-0 h-0 border-l-[18px] border-r-[18px] border-b-[70px] border-l-transparent border-r-transparent border-b-emerald-500 drop-shadow-lg" />
+                  <div className="absolute -top-9 left-1/2 transform -translate-x-1/2 text-2xl filter drop-shadow-lg">🕋</div>
+                </div>
+              </div>
+
+              {/* Center Bubble */}
+              <div className="absolute inset-0 flex items-center justify-center z-30">
+                <div className={`rounded-full transition-all duration-300 flex items-center justify-center ${
+                  isFacingQibla && compassEnabled 
+                    ? 'bg-emerald-500/40 w-16 h-16 shadow-lg shadow-emerald-500/50' 
+                    : 'bg-white/20 w-12 h-12'}`}
+                >
+                  <div className={`rounded-full transition-all duration-300 ${
+                    isFacingQibla && compassEnabled 
+                      ? 'w-4 h-4 bg-emerald-300 animate-pulse' 
+                      : 'w-3 h-3 bg-white'}`}
+                  />
+                </div>
+                <div className="absolute w-10 h-px bg-white/40"></div>
+                <div className="absolute w-px h-10 bg-white/40"></div>
+                <div className="absolute w-8 h-px bg-white/20 transform rotate-45"></div>
+                <div className="absolute w-8 h-px bg-white/20 transform -rotate-45"></div>
+              </div>
             </div>
 
-            {/* Compass controls */}
+            {isFacingQibla && compassEnabled && (
+              <div className="bg-emerald-500/40 border-2 border-emerald-400 rounded-xl p-3 text-center animate-pulse">
+                <p className="text-emerald-300 font-bold text-lg">✓ You are facing the Qibla! ✓</p>
+                <p className="text-emerald-200/70 text-xs mt-1">Perfect alignment!</p>
+              </div>
+            )}
+
+            {compassEnabled && !isFacingQibla && (
+              <div className="bg-white/10 rounded-xl p-3">
+                <div className="flex justify-between text-xs text-white/60 mb-1">
+                  <span>← Far</span>
+                  <span>Alignment</span>
+                  <span>Perfect →</span>
+                </div>
+                <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.max(0, 100 - (alignmentAccuracy / 1.8))}%` }}
+                  />
+                </div>
+                <p className="text-white/40 text-center text-xs mt-2">
+                  {alignmentAccuracy <= 10 
+                    ? "🎯 Getting close! Keep turning..." 
+                    : alignmentAccuracy <= 30
+                    ? "🔄 You're in the right area..."
+                    : "📱 Turn your phone towards the arrow"}
+                </p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white/10 rounded-xl p-3 text-center">
+                <p className="text-white/50 text-xs mb-1">Qibla Direction</p>
+                <p className="text-white text-2xl font-bold">{qiblaDirection}°</p>
+                <p className="text-emerald-300 text-sm font-semibold">{getCardinalDirection(qiblaDirection)}</p>
+                <p className="text-white/40 text-xs mt-1">{getDirectionEmoji(qiblaDirection)}</p>
+              </div>
+              <div className="bg-white/10 rounded-xl p-3 text-center">
+                <p className="text-white/50 text-xs mb-1">Distance to Kaaba</p>
+                <p className="text-white text-2xl font-bold">{distance?.toLocaleString()}</p>
+                <p className="text-white/60 text-sm">kilometers</p>
+                <p className="text-white/40 text-xs mt-1">{Math.round(distance! * 0.621371).toLocaleString()} miles</p>
+              </div>
+            </div>
+
             {compassPermission === 'prompt' && (
               <button onClick={enableCompass} className="w-full bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/50 text-blue-300 rounded-xl py-3 font-semibold flex items-center justify-center gap-2">
                 <span>🧭</span> Enable Live Compass
@@ -385,6 +480,7 @@ export default function QiblaFinder() {
                 <p className="text-yellow-300 text-sm">🔒 Compass permission denied. Use the fixed direction above with any compass app.</p>
               </div>
             )}
+
             <button onClick={resetLocation} className="w-full bg-white/10 hover:bg-white/20 text-white rounded-xl py-3 font-semibold">
               Change Location
             </button>
