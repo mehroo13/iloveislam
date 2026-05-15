@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useLayoutEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { usePathname } from 'next/navigation';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import Script from 'next/script';
 
 // ==================== TYPES ====================
@@ -329,7 +328,6 @@ const TOOLS_DATA = (t: TranslationsType) => [
   },
 ];
 
-const SCROLL_KEY = 'iloveislam_scroll_v3';
 const THEME_KEY = 'iloveislam_theme';
 const LANG_KEY = 'iloveislam_lang';
 const TOOL_CLICKS_KEY = 'iloveislam_tool_clicks';
@@ -377,16 +375,14 @@ function trackToolClick(toolName: string) {
 }
 
 // ==================== SCROLL MANAGER ====================
-// Save position every scroll. Restore happens in useLayoutEffect BEFORE paint.
+// ScrollRestorer in layout.tsx handles save/restore globally.
+// This helper just saves position when user clicks a tool link.
 const ScrollManager = {
   save() {
-    try { sessionStorage.setItem(SCROLL_KEY, String(Math.round(window.scrollY))); } catch {}
-  },
-  getSaved(): number {
-    try { return parseInt(sessionStorage.getItem(SCROLL_KEY) || '0') || 0; } catch { return 0; }
-  },
-  clear() {
-    try { sessionStorage.removeItem(SCROLL_KEY); } catch {}
+    try {
+      const key = 'scroll_' + window.location.pathname;
+      sessionStorage.setItem(key, String(Math.round(window.scrollY)));
+    } catch {}
   },
 };
 
@@ -708,32 +704,11 @@ export default function Home() {
   const langMenuRef = useRef<HTMLDivElement>(null);
   const langButtonRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  const pathname = usePathname();
 
   const t = TRANSLATIONS[lang] || TRANSLATIONS['en'];
   const isRTL = RTL_LANGS.includes(lang);
 
   const tools = useMemo(() => TOOLS_DATA(t), [t]);
-
-  // ---- Restore scroll BEFORE paint — fires synchronously before browser renders ----
-  // useLayoutEffect is the only reliable way in Next.js App Router.
-  // We don't gate on `mounted` because that delay is exactly what causes the jump-to-top.
-  useLayoutEffect(() => {
-    const saved = ScrollManager.getSaved();
-    if (saved > 0) {
-      document.documentElement.style.scrollBehavior = 'auto';
-      window.scrollTo(0, saved);
-      requestAnimationFrame(() => {
-        document.documentElement.style.scrollBehavior = '';
-      });
-    }
-  }, [pathname]);
-
-  // ---- Save scroll position on every scroll event ----
-  useEffect(() => {
-    window.addEventListener('scroll', ScrollManager.save, { passive: true });
-    return () => window.removeEventListener('scroll', ScrollManager.save);
-  }, []);
 
   useEffect(() => {
     setMounted(true);

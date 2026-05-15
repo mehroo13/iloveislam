@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
+import ScrollRestorer from "./ScrollRestorer";
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -205,16 +206,7 @@ export default function RootLayout({
       </head>
 
       <body className="min-h-full flex flex-col bg-gray-50 dark:bg-gray-900">
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              // Disable browser scroll restoration so Next.js doesn't fight our manual restore
-              if ('scrollRestoration' in history) {
-                history.scrollRestoration = 'manual';
-              }
-            `,
-          }}
-        />
+        <ScrollRestorer />
         {children}
       </body>
     </html>
