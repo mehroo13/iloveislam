@@ -84,6 +84,13 @@ export default function ZakatCalculator() {
 
   const sym = CURRENCIES[currency]?.symbol || '$';
 
+  // Helper to calculate width based on content length
+  const getDynamicWidth = (val: string | number, extraPadding = 40) => {
+    const len = String(val).length || 1;
+    // Base width + roughly 9px per character
+    return Math.max(80, (len * 9.5) + extraPadding);
+  };
+
   // Derived grams from inputs
   const goldGrams = goldInput
     ? goldUnit === 'tola'
@@ -342,7 +349,7 @@ export default function ZakatCalculator() {
                 Gold ({sym})
               </label>
               <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: getDynamicWidth(goldPrice, 20), transition: 'min-width 0.2s ease' }}>
                   <input
                     type="number"
                     value={goldPrice}
@@ -376,7 +383,7 @@ export default function ZakatCalculator() {
                 Silver ({sym})
               </label>
               <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: getDynamicWidth(silverPrice, 20), transition: 'min-width 0.2s ease' }}>
                   <input
                     type="number"
                     value={silverPrice}
@@ -455,7 +462,7 @@ export default function ZakatCalculator() {
                 setAsset(field.key, e.target.value);
 
               const currentVal = isGoldOrSilver ? inputValue : assets[field.key];
-              const dynamicWidth = Math.max(140, (String(currentVal).length * 9) + (isGoldOrSilver ? 95 : 40));
+              const dynamicWidth = getDynamicWidth(currentVal, isGoldOrSilver ? 100 : 45);
 
               return (
                 <div key={field.key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -526,7 +533,7 @@ export default function ZakatCalculator() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 20 }}>💳</span>
             <label style={{ fontSize: 13, color: '#444', flex: 1 }}>Debts & liabilities ({sym})</label>
-            <div style={{ position: 'relative', width: Math.max(140, (String(debts).length * 9) + 40), transition: 'width 0.2s ease' }}>
+            <div style={{ position: 'relative', width: getDynamicWidth(debts, 45), transition: 'width 0.2s ease' }}>
               <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#aaa' }}>{sym}</span>
               <input
                 type="number"
