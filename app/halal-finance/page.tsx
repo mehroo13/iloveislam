@@ -1,7 +1,9 @@
 'use client';
-import { useState } from 'react';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 
+/* ── Data (unchanged) ── */
 const DEAL_TYPES = [
   { id: 'loan', label: 'Personal Loan', icon: '💳', desc: 'Bank loan, credit card debt, personal lending' },
   { id: 'mortgage', label: 'Home Mortgage', icon: '🏠', desc: 'Home purchase financing' },
@@ -14,6 +16,7 @@ const DEAL_TYPES = [
 ];
 
 const QUESTIONS = {
+  // ... keep the exact same QUESTIONS object, no changes needed ...
   loan: [
     { id: 'interest', q: 'Does this loan charge interest (Riba)?', flag: true, weight: 10, tip: 'Any fixed charge on borrowed money is Riba — strictly forbidden in Islam.' },
     { id: 'compound', q: 'Is there compound interest involved?', flag: true, weight: 10, tip: 'Compound interest is considered even more severe than simple interest.' },
@@ -84,28 +87,29 @@ const ALTERNATIVES = {
 };
 
 export default function HalalFinanceCheck() {
-  const [dealType, setDealType] = useState(null);
-  const [answers, setAnswers] = useState({});
-  const [result, setResult] = useState(null);
-  const [step, setStep] = useState('select'); // select | questions | result
+  const [dealType, setDealType] = useState<{ id: string; label: string; icon: string } | null>(null);
+  const [answers, setAnswers] = useState<Record<string, boolean>>({});
+  const [result, setResult] = useState<any>(null);
+  const [step, setStep] = useState<'select' | 'questions' | 'result'>('select');
 
-  function selectDeal(type) {
+  const selectDeal = (type: any) => {
     setDealType(type);
     setAnswers({});
     setResult(null);
     setStep('questions');
-  }
+  };
 
-  function answer(id, val) {
+  const answer = (id: string, val: boolean) => {
     setAnswers(prev => ({ ...prev, [id]: val }));
-  }
+  };
 
-  function calculateResult() {
-    const qs = QUESTIONS[dealType.id];
+  const calculateResult = () => {
+    if (!dealType) return;
+    const qs = QUESTIONS[dealType.id as keyof typeof QUESTIONS];
     let riskScore = 0;
     let maxScore = 0;
-    let redFlags = [];
-    let greenPoints = [];
+    const redFlags: string[] = [];
+    const greenPoints: string[] = [];
 
     for (const q of qs) {
       const ans = answers[q.id];
@@ -122,76 +126,77 @@ export default function HalalFinanceCheck() {
     }
 
     const pct = maxScore > 0 ? (riskScore / maxScore) * 100 : 0;
-    let verdict, color, emoji;
-    if (pct === 0) { verdict = 'Likely Halal'; color = '#0a3d2e'; emoji = '✅'; }
-    else if (pct <= 25) { verdict = 'Mostly Halal — Minor Concerns'; color = '#2d8a5e'; emoji = '🟡'; }
-    else if (pct <= 60) { verdict = 'Questionable — Seek Scholar Advice'; color = '#c8a96e'; emoji = '⚠️'; }
-    else { verdict = 'High Risk of Haram'; color = '#c0392b'; emoji = '🚫'; }
+    let verdict: string, color: string, emoji: string;
+    if (pct === 0) { verdict = 'Likely Halal'; color = '#059669'; emoji = '✅'; }
+    else if (pct <= 25) { verdict = 'Mostly Halal — Minor Concerns'; color = '#10b981'; emoji = '🟡'; }
+    else if (pct <= 60) { verdict = 'Questionable — Seek Scholar Advice'; color = '#d97706'; emoji = '⚠️'; }
+    else { verdict = 'High Risk of Haram'; color = '#dc2626'; emoji = '🚫'; }
 
     setResult({ pct, verdict, color, emoji, redFlags, greenPoints, riskScore, maxScore });
     setStep('result');
-  }
+  };
 
-  const qs = dealType ? QUESTIONS[dealType.id] : [];
+  const qs = dealType ? QUESTIONS[dealType.id as keyof typeof QUESTIONS] : [];
   const answered = qs.filter(q => answers[q.id] !== undefined).length;
   const allAnswered = answered === qs.length;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header style={{ background: 'linear-gradient(135deg, #0a3d2e 0%, #1a6b4a 100%)' }} className="px-6 py-5">
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50/30 to-white font-serif">
+      <header className="bg-gradient-to-r from-emerald-900 to-emerald-700 text-white px-5 py-4 shadow-lg sticky top-0 z-20">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           {step !== 'select' ? (
             <button onClick={() => { setStep(step === 'result' ? 'questions' : 'select'); setResult(null); }}
-              className="text-white/60 hover:text-white text-sm">← Back</button>
+              className="text-white/80 hover:text-white text-sm transition">
+              ← Back
+            </button>
           ) : (
-            <Link href="/" className="text-white/60 hover:text-white text-sm">← Back</Link>
+            <Link href="/" className="text-white/80 hover:text-white text-sm transition">← Back</Link>
           )}
-          <h1 className="text-white font-semibold">☪️ Halal Finance Check</h1>
+          <h1 className="text-xl font-bold tracking-wide">☪️ Halal Finance Check</h1>
           <div className="w-16" />
         </div>
-        <p className="text-white/50 text-xs text-center mt-2">Check if a financial deal is Riba-free</p>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-5 pb-10 space-y-4">
-
+      <main className="max-w-2xl mx-auto px-4 py-6 pb-12 space-y-5">
         {/* SELECT DEAL TYPE */}
         {step === 'select' && (
           <>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
-              <p className="text-xs text-gray-500 leading-relaxed">
-                Answer a few questions about your financial deal to get an Islamic finance assessment. 
-                This tool checks for Riba (interest), Gharar (uncertainty), and Maysir (gambling).
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 text-center">
+              <h2 className="text-2xl font-bold text-emerald-800 mb-2">Is It Halal?</h2>
+              <p className="text-gray-500 text-sm leading-relaxed">
+                Answer a few questions about your financial deal to check for <strong>Riba</strong> (interest), <strong>Gharar</strong> (uncertainty), and <strong>Maysir</strong> (gambling).
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               {DEAL_TYPES.map(type => (
-                <button key={type.id} onClick={() => selectDeal(type)}
-                  className="bg-white rounded-2xl border border-gray-100 p-4 text-left hover:border-gray-300 hover:shadow-sm transition-all">
-                  <span className="text-3xl">{type.icon}</span>
-                  <p className="font-semibold text-gray-800 text-sm mt-2">{type.label}</p>
-                  <p className="text-xs text-gray-400 mt-0.5 leading-snug">{type.desc}</p>
+                <button
+                  key={type.id}
+                  onClick={() => selectDeal(type)}
+                  className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 text-left hover:border-emerald-200 hover:shadow-md transition-all group"
+                >
+                  <span className="text-4xl">{type.icon}</span>
+                  <p className="font-semibold text-gray-800 text-base mt-2 group-hover:text-emerald-800">{type.label}</p>
+                  <p className="text-xs text-gray-400 mt-1 leading-relaxed">{type.desc}</p>
                 </button>
               ))}
             </div>
 
-            {/* Three prohibitions */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <p className="font-semibold text-gray-800 mb-3">The Three Prohibitions in Islamic Finance</p>
-              <div className="space-y-3">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <h3 className="font-semibold text-gray-800 text-lg mb-4">The Three Prohibitions</h3>
+              <div className="space-y-4">
                 {[
                   { icon: '💸', term: 'Riba (ربا)', meaning: 'Interest / Usury', detail: 'Any fixed, predetermined return on a loan or debt. Strictly forbidden in Quran 2:275.' },
                   { icon: '🎲', term: 'Maysir (ميسر)', meaning: 'Gambling / Speculation', detail: 'Profit from chance alone with no productive effort or asset backing.' },
                   { icon: '🌫️', term: 'Gharar (غرر)', meaning: 'Excessive Uncertainty', detail: 'Contracts with ambiguous terms, hidden conditions, or unclear outcomes.' },
                 ].map((item, i) => (
                   <div key={i} className="flex gap-3 items-start">
-                    <span className="text-2xl">{item.icon}</span>
+                    <span className="text-3xl">{item.icon}</span>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-semibold text-gray-800">{item.term}</p>
                         <span className="text-xs text-gray-400">— {item.meaning}</span>
                       </div>
-                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{item.detail}</p>
+                      <p className="text-xs text-gray-500 mt-1 leading-relaxed">{item.detail}</p>
                     </div>
                   </div>
                 ))}
@@ -203,60 +208,82 @@ export default function HalalFinanceCheck() {
         {/* QUESTIONS */}
         {step === 'questions' && dealType && (
           <>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
-              <span className="text-3xl">{dealType.icon}</span>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center gap-4">
+              <span className="text-4xl">{dealType.icon}</span>
               <div>
-                <p className="font-semibold text-gray-800">{dealType.label}</p>
-                <p className="text-xs text-gray-400">{dealType.desc}</p>
+                <p className="font-semibold text-gray-800 text-lg">{dealType.label}</p>
+                <p className="text-sm text-gray-500">{dealType.desc}</p>
               </div>
             </div>
 
-            {/* Progress */}
             <div>
               <div className="flex justify-between text-xs text-gray-400 mb-1">
                 <span>Questions answered</span>
                 <span>{answered} / {qs.length}</span>
               </div>
-              <div className="h-1.5 bg-gray-100 rounded-full">
-                <div className="h-1.5 rounded-full transition-all" style={{ width: `${(answered / qs.length) * 100}%`, background: '#0a3d2e' }} />
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-2 bg-emerald-700 rounded-full transition-all duration-300"
+                  style={{ width: `${(answered / qs.length) * 100}%` }}
+                />
               </div>
             </div>
 
-            <div className="space-y-3">
-              {qs.map((q, i) => (
-                <div key={q.id} className="bg-white rounded-2xl border border-gray-100 p-5">
-                  <div className="flex items-start gap-3 mb-4">
-                    <span className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5 ${answers[q.id] !== undefined ? 'text-white' : 'bg-gray-100 text-gray-400'}`}
-                      style={answers[q.id] !== undefined ? { background: '#0a3d2e' } : {}}>
-                      {i + 1}
-                    </span>
-                    <p className="text-sm text-gray-800 font-medium leading-relaxed">{q.q}</p>
-                  </div>
-
-                  <div className="flex gap-2 mb-3">
-                    {[{ val: true, label: 'Yes' }, { val: false, label: 'No' }].map(opt => (
-                      <button key={String(opt.val)} onClick={() => answer(q.id, opt.val)}
-                        className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all border ${answers[q.id] === opt.val
-                          ? opt.val === q.flag ? 'border-red-300 text-red-700 bg-red-50' : 'border-emerald-300 text-emerald-700 bg-emerald-50'
-                          : 'border-gray-100 text-gray-500 bg-gray-50 hover:border-gray-200'}`}>
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {answers[q.id] !== undefined && (
-                    <div className={`rounded-xl p-3 text-xs leading-relaxed ${answers[q.id] === q.flag ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>
-                      {answers[q.id] === q.flag ? '⚠️' : '✅'} {q.tip}
+            <div className="space-y-4">
+              {qs.map((q, i) => {
+                const hasAnswered = answers[q.id] !== undefined;
+                const isYes = answers[q.id] === true;
+                const isNo = answers[q.id] === false;
+                return (
+                  <div key={q.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 transition-all">
+                    <div className="flex items-start gap-3 mb-4">
+                      <span className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                        hasAnswered ? 'bg-emerald-800 text-white' : 'bg-gray-100 text-gray-400'
+                      }`}>
+                        {i + 1}
+                      </span>
+                      <p className="text-sm text-gray-800 font-medium leading-relaxed flex-1">{q.q}</p>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    <div className="flex gap-2 mb-3">
+                      {[
+                        { val: true, label: 'Yes' },
+                        { val: false, label: 'No' },
+                      ].map(opt => (
+                        <button
+                          key={String(opt.val)}
+                          onClick={() => answer(q.id, opt.val)}
+                          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all border ${
+                            hasAnswered && ((opt.val === true && isYes) || (opt.val === false && isNo))
+                              ? opt.val === q.flag
+                                ? 'border-red-300 bg-red-50 text-red-700'
+                                : 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                              : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {hasAnswered && (
+                      <div className={`rounded-xl p-3 text-xs leading-relaxed ${
+                        isYes === q.flag ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                      }`}>
+                        {isYes === q.flag ? '⚠️ ' : '✅ '}{q.tip}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
-            <button onClick={calculateResult} disabled={!allAnswered}
-              className="w-full py-4 rounded-2xl text-white font-semibold disabled:opacity-40 transition-all"
-              style={{ background: '#0a3d2e' }}>
-              {allAnswered ? 'Get My Result ⚖️' : `Answer all ${qs.length - answered} remaining questions`}
+            <button
+              onClick={calculateResult}
+              disabled={!allAnswered}
+              className="w-full py-4 rounded-2xl bg-emerald-800 hover:bg-emerald-700 text-white font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition shadow-md"
+            >
+              {allAnswered ? 'Get My Result ⚖️' : `Answer ${qs.length - answered} more question${qs.length - answered !== 1 ? 's' : ''}`}
             </button>
           </>
         )}
@@ -264,89 +291,83 @@ export default function HalalFinanceCheck() {
         {/* RESULT */}
         {step === 'result' && result && dealType && (
           <>
-            {/* Verdict card */}
-            <div className="rounded-2xl p-6 text-center text-white"
-              style={{ background: `linear-gradient(135deg, ${result.color}, ${result.color}cc)` }}>
+            <div
+              className="rounded-2xl p-6 text-center text-white shadow-xl"
+              style={{ background: `linear-gradient(135deg, ${result.color}ee, ${result.color}aa)` }}
+            >
               <p className="text-5xl mb-3">{result.emoji}</p>
               <p className="text-2xl font-bold mb-1">{result.verdict}</p>
-              <p className="text-white/70 text-sm">{dealType.label} — {result.pct.toFixed(0)}% risk score</p>
+              <p className="text-white/80 text-sm">{dealType.label} — {result.pct.toFixed(0)}% risk score</p>
 
-              {/* Risk meter */}
-              <div className="mt-4 h-3 bg-white/20 rounded-full overflow-hidden">
-                <div className="h-3 rounded-full transition-all bg-white"
-                  style={{ width: `${result.pct}%`, opacity: 0.9 }} />
+              <div className="mt-5 h-3 bg-white/20 rounded-full overflow-hidden">
+                <div
+                  className="h-3 rounded-full bg-white transition-all duration-500"
+                  style={{ width: `${result.pct}%`, opacity: 0.9 }}
+                />
               </div>
-              <div className="flex justify-between text-xs text-white/50 mt-1">
+              <div className="flex justify-between text-xs text-white/60 mt-1">
                 <span>Halal</span>
                 <span>Haram Risk</span>
               </div>
             </div>
 
-            {/* Red flags */}
             {result.redFlags.length > 0 && (
-              <div className="bg-red-50 border border-red-100 rounded-2xl p-5">
-                <p className="font-semibold text-red-800 mb-3">🚩 Red Flags Found ({result.redFlags.length})</p>
-                <div className="space-y-2">
-                  {result.redFlags.map((flag, i) => (
-                    <div key={i} className="flex gap-2 items-start text-sm text-red-700">
-                      <span className="flex-shrink-0 mt-0.5">•</span>
-                      <span>{flag}</span>
-                    </div>
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-5 shadow-sm">
+                <h3 className="font-semibold text-red-800 text-lg mb-3">🚩 Red Flags ({result.redFlags.length})</h3>
+                <ul className="space-y-2 list-disc list-inside text-sm text-red-700">
+                  {result.redFlags.map((flag: string, i: number) => (
+                    <li key={i}>{flag}</li>
                   ))}
-                </div>
+                </ul>
               </div>
             )}
 
-            {/* Green points */}
             {result.greenPoints.length > 0 && (
-              <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5">
-                <p className="font-semibold text-emerald-800 mb-3">✅ Positive Factors ({result.greenPoints.length})</p>
-                <div className="space-y-2">
-                  {result.greenPoints.map((pt, i) => (
-                    <div key={i} className="flex gap-2 items-start text-sm text-emerald-700">
-                      <span className="flex-shrink-0 mt-0.5">•</span>
-                      <span>{pt}</span>
-                    </div>
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 shadow-sm">
+                <h3 className="font-semibold text-emerald-800 text-lg mb-3">✅ Positive Factors ({result.greenPoints.length})</h3>
+                <ul className="space-y-2 list-disc list-inside text-sm text-emerald-700">
+                  {result.greenPoints.map((pt: string, i: number) => (
+                    <li key={i}>{pt}</li>
                   ))}
-                </div>
+                </ul>
               </div>
             )}
 
-            {/* Halal alternatives */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <p className="font-semibold text-gray-800 mb-3">💡 Halal Alternatives</p>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <h3 className="font-semibold text-gray-800 text-lg mb-3">💡 Halal Alternatives</h3>
               <div className="space-y-2">
-                {ALTERNATIVES[dealType.id].map((alt, i) => (
+                {ALTERNATIVES[dealType.id as keyof typeof ALTERNATIVES].map((alt, i) => (
                   <div key={i} className="flex gap-2 items-start text-sm text-gray-600">
-                    <span className="text-emerald-500 flex-shrink-0 mt-0.5 font-bold">→</span>
+                    <span className="text-emerald-600 font-bold mt-0.5">→</span>
                     <span>{alt}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Scholar reminder */}
-            <div style={{ background: 'linear-gradient(135deg, #0a3d2e, #1a5c3a)' }} className="rounded-2xl p-5 text-center">
-              <p className="font-arabic text-xl text-white/80 mb-2">وَأَحَلَّ ٱللَّهُ ٱلْبَيْعَ وَحَرَّمَ ٱلرِّبَوٰا۟</p>
-              <p className="text-white/60 text-xs italic">"Allah has permitted trade and forbidden interest" — Quran 2:275</p>
+            <div className="bg-gradient-to-r from-emerald-900 to-emerald-700 text-white rounded-2xl p-6 text-center shadow-md">
+              <p className="text-2xl font-arabic mb-2">وَأَحَلَّ ٱللَّهُ ٱلْبَيْعَ وَحَرَّمَ ٱلرِّبَوٰا۟</p>
+              <p className="text-white/70 text-sm italic">"Allah has permitted trade and forbidden interest" — Quran 2:275</p>
             </div>
 
-            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
-              <p className="text-xs font-medium text-amber-800 mb-1">⚠️ Disclaimer</p>
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 shadow-sm">
+              <p className="text-sm font-semibold text-amber-800 mb-1">⚠️ Disclaimer</p>
               <p className="text-xs text-amber-700 leading-relaxed">
-                This is a general screening tool, not a fatwa. Consult a qualified Islamic finance scholar 
-                (e.g. AAOIFI-certified advisor, Mufti Faraz Adam, or your local Islamic centre) for a binding ruling.
+                This is a general screening tool, not a fatwa. Consult a qualified Islamic finance scholar for a binding ruling.
               </p>
             </div>
 
             <div className="flex gap-3">
-              <button onClick={() => { setStep('questions'); setResult(null); }}
-                className="flex-1 py-4 rounded-2xl border border-gray-200 text-gray-600 font-medium">
+              <button
+                onClick={() => { setStep('questions'); setResult(null); }}
+                className="flex-1 py-4 rounded-2xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition"
+              >
                 ← Edit Answers
               </button>
-              <button onClick={() => { setStep('select'); setDealType(null); setAnswers({}); setResult(null); }}
-                className="flex-1 py-4 rounded-2xl text-white font-semibold"
-                style={{ background: '#0a3d2e' }}>
+              <button
+                onClick={() => { setStep('select'); setDealType(null); setAnswers({}); setResult(null); }}
+                className="flex-1 py-4 rounded-2xl bg-emerald-800 hover:bg-emerald-700 text-white font-semibold transition shadow-md"
+              >
                 Check Another Deal
               </button>
             </div>
