@@ -106,41 +106,111 @@ const ALLAH_NAMES = [
   { number: 99, arabic: 'الرَّشِيدُ', transliteration: 'Ar-Rashid', meaning: 'The Guide to the Right Path', benefit: 'The One who guides.' },
 ];
 
-/* ── Blessed Names of Prophet Muhammad ﷺ ── */
+/* ── 99 Blessed Names of Prophet Muhammad ﷺ ──
+   Compiled from Imam al-Jazuli's Dalail al-Khayrat, Ibn al-Qayyim's Zad al-Ma'ad,
+   Qadi Iyad's al-Shifa, and authentic hadith collections. */
 const PROPHET_NAMES = [
-  { number: 1, arabic: 'مُحَمَّد', transliteration: 'Muhammad', meaning: 'The Praised One', benefit: 'The most praised; his name is praised on earth and in the heavens.' },
-  { number: 2, arabic: 'أَحْمَد', transliteration: 'Ahmad', meaning: 'The Most Praiseworthy', benefit: 'As mentioned in the Quran, Prophet Isa (AS) gave glad tidings of Ahmad.' },
-  { number: 3, arabic: 'الْمَاحِي', transliteration: 'Al-Mahi', meaning: 'The Eraser', benefit: 'By him Allah erases disbelief.' },
-  { number: 4, arabic: 'الْحَاشِر', transliteration: 'Al-Hashir', meaning: 'The Gatherer', benefit: 'People will be gathered at his feet on the Day of Judgment.' },
-  { number: 5, arabic: 'الْعَاقِب', transliteration: 'Al-Aqib', meaning: 'The Last Prophet', benefit: 'The one who is after whom there is no prophet.' },
-  { number: 6, arabic: 'نَبِيُّ التَّوْبَة', transliteration: 'Nabiyy at-Tawbah', meaning: 'The Prophet of Repentance', benefit: 'He opened the door of repentance.' },
-  { number: 7, arabic: 'نَبِيُّ الرَّحْمَة', transliteration: 'Nabiyy ar-Rahmah', meaning: 'The Prophet of Mercy', benefit: 'He was sent as a mercy to the worlds.' },
-  { number: 8, arabic: 'نَبِيُّ الْمَلْحَمَة', transliteration: 'Nabiyy al-Malhamah', meaning: 'The Prophet of Battles', benefit: 'He was sent with striving in the cause of Allah.' },
-  { number: 9, arabic: 'الْأُمِّي', transliteration: 'Al-Ummi', meaning: 'The Unlettered', benefit: 'He could not read or write, yet received the Quran.' },
-  { number: 10, arabic: 'شَاهِد', transliteration: 'Shahid', meaning: 'The Witness', benefit: 'He will be a witness over his nation.' },
-  { number: 11, arabic: 'مُبَشِّر', transliteration: 'Mubashshir', meaning: 'The Bringer of Good News', benefit: 'He brings glad tidings of Paradise.' },
-  { number: 12, arabic: 'نَذِير', transliteration: 'Nadhir', meaning: 'The Warner', benefit: 'He warns of the punishment of the Hellfire.' },
-  { number: 13, arabic: 'سِرَاج', transliteration: 'Siraj', meaning: 'The Radiant Lamp', benefit: 'He illuminates the path of guidance.' },
-  { number: 14, arabic: 'مُدَّثِّر', transliteration: 'Muddaththir', meaning: 'The Enwrapped', benefit: 'The one covered with garments, called to arise and warn.' },
-  { number: 15, arabic: 'مُزَّمِّل', transliteration: 'Muzzammil', meaning: 'The Wrapped in Cloak', benefit: 'The one who spent nights in prayer.' },
-  { number: 16, arabic: 'طٰهٰ', transliteration: 'Ta-Ha', meaning: 'Purifier, Guide', benefit: 'A blessed name by which Allah addressed him in the Quran.' },
-  { number: 17, arabic: 'يٰسٓ', transliteration: 'Ya-Sin', meaning: 'Chief of Mankind', benefit: 'The heart of the Quran; a special name for the Prophet.' },
-  { number: 18, arabic: 'الْمُصْطَفَى', transliteration: 'Al-Mustafa', meaning: 'The Chosen One', benefit: 'Allah chose him above all creation.' },
-  { number: 19, arabic: 'الْمُجْتَبَى', transliteration: 'Al-Mujtaba', meaning: 'The Selected', benefit: 'He was specially selected for prophethood.' },
-  { number: 20, arabic: 'خَاتَمُ النَّبِيِّين', transliteration: 'Khatam an-Nabiyyin', meaning: 'The Seal of the Prophets', benefit: 'The last and final prophet, no prophet will come after him.' },
-  { number: 21, arabic: 'رَسُولُ اللَّه', transliteration: 'Rasulullah', meaning: 'Messenger of Allah', benefit: 'He delivered the final message to mankind.' },
-  { number: 22, arabic: 'حَبِيبُ اللَّه', transliteration: 'Habibullah', meaning: 'Beloved of Allah', benefit: 'He is the most beloved to Allah.' },
-  { number: 23, arabic: 'صَاحِبُ الشَّفَاعَة', transliteration: 'Sahib ash-Shafa\'ah', meaning: 'The Owner of Intercession', benefit: 'He will intercede for the believers on Judgement Day.' },
-  { number: 24, arabic: 'صَاحِبُ الْحَوْض', transliteration: 'Sahib al-Hawd', meaning: 'The Owner of the Pool', benefit: 'He will have the Hawd al-Kawthar to give drink to his followers.' },
-  { number: 25, arabic: 'صَاحِبُ الْوَسِيلَة', transliteration: 'Sahib al-Wasilah', meaning: 'The Owner of the Highest Station', benefit: 'He will be granted the Maqam Mahmud (the station of praise).' },
-  { number: 26, arabic: 'نَبِيُّ الْهُدَى', transliteration: 'Nabiyy al-Huda', meaning: 'The Prophet of Guidance', benefit: 'He guides to the straight path.' },
-  { number: 27, arabic: 'رَحْمَةً لِّلْعَالَمِين', transliteration: 'Rahmatan lil-Alamin', meaning: 'Mercy to the Worlds', benefit: 'He is a mercy to all of creation.' },
-  { number: 28, arabic: 'النُّور', transliteration: 'An-Nur', meaning: 'The Light', benefit: 'He illuminates the darkness of ignorance.' },
-  { number: 29, arabic: 'الْبَشِير', transliteration: 'Al-Bashir', meaning: 'The Bringer of Good News', benefit: 'He announces the reward of Paradise for the believers.' },
-  { number: 30, arabic: 'الْمُنِير', transliteration: 'Al-Munir', meaning: 'The Illuminator', benefit: 'He enlightens the hearts with faith.' },
+  { number: 1, arabic: 'مُحَمَّد', transliteration: 'Muhammad', meaning: 'The Oft-Praised', benefit: 'His blessed personal name; the one praised repeatedly in the heavens and on earth.' },
+  { number: 2, arabic: 'أَحْمَد', transliteration: 'Ahmad', meaning: 'The Most Praiseworthy', benefit: 'The name given by Isa (AS) in glad tidings; the one who praises Allah most.' },
+  { number: 3, arabic: 'حَامِد', transliteration: 'Hamid', meaning: 'The Praiser', benefit: 'The one who praises Allah in every circumstance.' },
+  { number: 4, arabic: 'مَحْمُود', transliteration: 'Mahmud', meaning: 'The Praised One', benefit: 'The one praised by all creation for his noble character.' },
+  { number: 5, arabic: 'الْمَاحِي', transliteration: 'Al-Mahi', meaning: 'The Effacer', benefit: 'Through him Allah erased disbelief from the earth. (Sahih Muslim)' },
+  { number: 6, arabic: 'الْحَاشِر', transliteration: 'Al-Hashir', meaning: 'The Gatherer', benefit: 'People will be gathered at his feet on Judgement Day. (Sahih Muslim)' },
+  { number: 7, arabic: 'الْعَاقِب', transliteration: 'Al-Aqib', meaning: 'The Last in Succession', benefit: 'The one after whom there is no prophet. (Sahih Muslim)' },
+  { number: 8, arabic: 'الْمُقَفِّي', transliteration: 'Al-Muqaffi', meaning: 'The Surpasser', benefit: 'He surpasses all previous prophets in completeness.' },
+  { number: 9, arabic: 'نَبِيّ التَّوْبَة', transliteration: 'Nabiyy at-Tawbah', meaning: 'The Prophet of Repentance', benefit: 'By him Allah opened the door of repentance for the world.' },
+  { number: 10, arabic: 'نَبِيّ الرَّحْمَة', transliteration: 'Nabiyy ar-Rahmah', meaning: 'The Prophet of Mercy', benefit: 'He was sent as a mercy to all the worlds. (Quran 21:107)' },
+  { number: 11, arabic: 'نَبِيّ الْمَلْحَمَة', transliteration: 'Nabiyy al-Malhamah', meaning: 'The Prophet of Battles', benefit: 'Sent with striving in the way of Allah against falsehood.' },
+  { number: 12, arabic: 'رَسُولُ اللَّه', transliteration: 'Rasulullah', meaning: 'Messenger of Allah', benefit: 'The bearer of the final divine message to all mankind.' },
+  { number: 13, arabic: 'النَّبِيّ', transliteration: 'An-Nabiyy', meaning: 'The Prophet', benefit: 'He received revelation and conveyed it faithfully.' },
+  { number: 14, arabic: 'عَبْدُ اللَّه', transliteration: 'Abdullah', meaning: 'Servant of Allah', benefit: 'The most honoured title; mentioned in the Quran (72:19).' },
+  { number: 15, arabic: 'الْأُمِّيّ', transliteration: 'Al-Ummiyy', meaning: 'The Unlettered', benefit: 'He could not read or write, yet brought the Quran — a clear miracle.' },
+  { number: 16, arabic: 'خَاتَمُ النَّبِيِّين', transliteration: 'Khatam an-Nabiyyin', meaning: 'Seal of the Prophets', benefit: 'The last and final prophet forever. (Quran 33:40)' },
+  { number: 17, arabic: 'خَاتِمُ الرُّسُل', transliteration: 'Khatim ar-Rusul', meaning: 'Seal of the Messengers', benefit: 'No messenger will come after him.' },
+  { number: 18, arabic: 'حَبِيبُ اللَّه', transliteration: 'Habibullah', meaning: 'Beloved of Allah', benefit: 'The most beloved creation to Allah.' },
+  { number: 19, arabic: 'صَفِيّ اللَّه', transliteration: 'Safiyyullah', meaning: 'Chosen by Allah', benefit: 'Exclusively selected by Allah for the final message.' },
+  { number: 20, arabic: 'نَجِيّ اللَّه', transliteration: 'Najiyyullah', meaning: 'Confidant of Allah', benefit: 'The one who conversed intimately with Allah during Mi\'raj.' },
+  { number: 21, arabic: 'كَلِيمُ اللَّه', transliteration: 'Kalimullah', meaning: 'One Addressed by Allah', benefit: 'Allah spoke to him directly without intermediary.' },
+  { number: 22, arabic: 'الْمُصْطَفَى', transliteration: 'Al-Mustafa', meaning: 'The Chosen One', benefit: 'Allah chose him above all of creation for the final prophethood.' },
+  { number: 23, arabic: 'الْمُجْتَبَى', transliteration: 'Al-Mujtaba', meaning: 'The Selected', benefit: 'Specially selected and purified.' },
+  { number: 24, arabic: 'الْمُنْتَقَى', transliteration: 'Al-Muntaqa', meaning: 'The Elect', benefit: 'Elected for the most honoured station.' },
+  { number: 25, arabic: 'رَحْمَةٌ لِلْعَالَمِين', transliteration: 'Rahmatan lil-Alamin', meaning: 'Mercy to the Worlds', benefit: 'A universal mercy for all creation. (Quran 21:107)' },
+  { number: 26, arabic: 'سَيِّدُ الْمُرْسَلِين', transliteration: 'Sayyid al-Mursalin', meaning: 'Master of the Messengers', benefit: 'He is the leader of all prophets and messengers.' },
+  { number: 27, arabic: 'إِمَامُ الْمُتَّقِين', transliteration: 'Imam al-Muttaqin', meaning: 'Leader of the God-Fearing', benefit: 'He leads the righteous on the path to Allah.' },
+  { number: 28, arabic: 'قَائِدُ الْغُرِّ الْمُحَجَّلِين', transliteration: 'Qa\'id al-Ghurr al-Muhajjalin', meaning: 'Leader of the Brightly Shining', benefit: 'He leads those marked by the light of wudu on Judgement Day.' },
+  { number: 29, arabic: 'الشَّافِع', transliteration: 'Ash-Shafi\'', meaning: 'The Intercessor', benefit: 'He will intercede for the believers on the Day of Judgement.' },
+  { number: 30, arabic: 'الْمُشَفَّع', transliteration: 'Al-Mushaffa\'', meaning: 'The One Granted Intercession', benefit: 'Allah has granted him the highest intercession (Maqam Mahmud).' },
+  { number: 31, arabic: 'صَاحِبُ الشَّفَاعَة', transliteration: 'Sahib ash-Shafa\'ah', meaning: 'Owner of Intercession', benefit: 'He alone holds the banner of praise on Judgement Day.' },
+  { number: 32, arabic: 'صَاحِبُ الْوَسِيلَة', transliteration: 'Sahib al-Wasilah', meaning: 'Owner of the Highest Station', benefit: 'Granted al-Maqam al-Mahmud — the station of universal praise.' },
+  { number: 33, arabic: 'صَاحِبُ الْحَوْض', transliteration: 'Sahib al-Hawd', meaning: 'Owner of the Pool', benefit: 'Al-Kawthar — his blessed pool from which the believers will drink.' },
+  { number: 34, arabic: 'الشَّاهِد', transliteration: 'Ash-Shahid', meaning: 'The Testifier', benefit: 'He will testify for or against his nation on Judgement Day. (Quran 2:143)' },
+  { number: 35, arabic: 'الشَّهِيد', transliteration: 'Ash-Shahid', meaning: 'The Witness', benefit: 'A witness to the truth of Tawhid and the final message.' },
+  { number: 36, arabic: 'الْمُبَشِّر', transliteration: 'Al-Mubashshir', meaning: 'The Bringer of Good News', benefit: 'He gives glad tidings of Paradise to the obedient.' },
+  { number: 37, arabic: 'الْبَشِير', transliteration: 'Al-Bashir', meaning: 'The Announcer of Good', benefit: 'He heralds the mercy and reward of Allah.' },
+  { number: 38, arabic: 'النَّذِير', transliteration: 'An-Nadhir', meaning: 'The Warner', benefit: 'He warns of the punishment of the Hellfire. (Quran 35:23)' },
+  { number: 39, arabic: 'الْمُنْذِر', transliteration: 'Al-Mundhir', meaning: 'The Admonisher', benefit: 'He cautions against disobedience and heedlessness.' },
+  { number: 40, arabic: 'الدَّاعِي', transliteration: 'Ad-Da\'i', meaning: 'The Caller to Allah', benefit: 'He invites all humanity to the worship of Allah. (Quran 33:46)' },
+  { number: 41, arabic: 'النُّور', transliteration: 'An-Nur', meaning: 'The Light', benefit: 'A light from Allah illuminating the path of guidance. (Quran 5:15)' },
+  { number: 42, arabic: 'السِّرَاج', transliteration: 'As-Siraj', meaning: 'The Radiant Lamp', benefit: 'A shining lamp of guidance in the darkness. (Quran 33:46)' },
+  { number: 43, arabic: 'الْمِصْبَاح', transliteration: 'Al-Misbah', meaning: 'The Lantern', benefit: 'Illuminates hearts with faith and knowledge.' },
+  { number: 44, arabic: 'الْمُنِير', transliteration: 'Al-Munir', meaning: 'The Illuminator', benefit: 'Gives light to the path of truth and righteousness.' },
+  { number: 45, arabic: 'الْهُدَى', transliteration: 'Al-Huda', meaning: 'The Guidance', benefit: 'He embodies and delivers divine guidance.' },
+  { number: 46, arabic: 'الْمَهْدِيّ', transliteration: 'Al-Mahdiyy', meaning: 'The Guided', benefit: 'Guided by Allah to the straight path.' },
+  { number: 47, arabic: 'طٰهٰ', transliteration: 'Ta-Ha', meaning: 'Purifier, Guide', benefit: 'A blessed Quranic name by which Allah addressed him. (Quran 20:1)' },
+  { number: 48, arabic: 'يٰسٓ', transliteration: 'Ya-Sin', meaning: 'Chief of Mankind', benefit: 'The heart of the Quran; a special name for the Prophet. (Quran 36:1)' },
+  { number: 49, arabic: 'الْمُزَّمِّل', transliteration: 'Al-Muzzammil', meaning: 'The Enwrapped in Cloak', benefit: 'The one who stood in night prayer wrapped in his garment. (Quran 73:1)' },
+  { number: 50, arabic: 'الْمُدَّثِّر', transliteration: 'Al-Muddaththir', meaning: 'The Enshrouded', benefit: 'Called to arise and warn mankind. (Quran 74:1)' },
+  { number: 51, arabic: 'الْأَمِين', transliteration: 'Al-Amin', meaning: 'The Trustworthy', benefit: 'Known as Al-Amin even before prophethood for his honesty.' },
+  { number: 52, arabic: 'الْمَأْمُون', transliteration: 'Al-Ma\'mun', meaning: 'The Trusted', benefit: 'Entrusted with the most precious revelation.' },
+  { number: 53, arabic: 'الصَّادِق', transliteration: 'As-Sadiq', meaning: 'The Truthful', benefit: 'He never spoke a lie; everything he conveyed is absolute truth.' },
+  { number: 54, arabic: 'الْمُصَدَّق', transliteration: 'Al-Musaddaq', meaning: 'The Confirmed', benefit: 'Confirmed by miracles and by all previous scriptures.' },
+  { number: 55, arabic: 'الْحَقّ', transliteration: 'Al-Haqq', meaning: 'The Truth', benefit: 'He came with the truth and his way is the way of truth.' },
+  { number: 56, arabic: 'الْكَرِيم', transliteration: 'Al-Karim', meaning: 'The Noble & Generous', benefit: 'The most generous and honourable of all creation.' },
+  { number: 57, arabic: 'الْمُكَرَّم', transliteration: 'Al-Mukarram', meaning: 'The Ennobled', benefit: 'Honoured by Allah above all others.' },
+  { number: 58, arabic: 'الرَّؤُوف', transliteration: 'Ar-Ra\'uf', meaning: 'The Compassionate', benefit: 'Profoundly kind and compassionate to his nation. (Quran 9:128)' },
+  { number: 59, arabic: 'الرَّحِيم', transliteration: 'Ar-Rahim', meaning: 'The Merciful', benefit: 'For the believers he is full of mercy. (Quran 9:128)' },
+  { number: 60, arabic: 'الْعَفُوّ', transliteration: 'Al-\'Afuww', meaning: 'The Much-Pardoning', benefit: 'He pardoned those who wronged him with unmatched magnanimity.' },
+  { number: 61, arabic: 'الشَّفِيق', transliteration: 'Ash-Shafiq', meaning: 'The Tenderhearted', benefit: 'Full of tender care and concern for his followers.' },
+  { number: 62, arabic: 'النَّاصِح', transliteration: 'An-Nasih', meaning: 'The Sincere Advisor', benefit: 'He gave the most sincere counsel to all of mankind.' },
+  { number: 63, arabic: 'الْوَجِيه', transliteration: 'Al-Wajih', meaning: 'The Eminent', benefit: 'Of the highest standing before Allah and all creation.' },
+  { number: 64, arabic: 'الْوَكِيل', transliteration: 'Al-Wakil', meaning: 'The Entrusted', benefit: 'Entrusted with delivering the final and complete message.' },
+  { number: 65, arabic: 'الْمُتَوَكِّل', transliteration: 'Al-Mutawakkil', meaning: 'Wholly Reliant on Allah', benefit: 'Described in the Torah as the one who places complete trust in Allah. (Sahih Bukhari)' },
+  { number: 66, arabic: 'الْقَوِيّ', transliteration: 'Al-Qawiyy', meaning: 'The Mighty', benefit: 'Endowed with spiritual and moral strength from Allah.' },
+  { number: 67, arabic: 'الْمَتِين', transliteration: 'Al-Matin', meaning: 'The Firm', benefit: 'Steadfast and unshakeable in conveying the truth.' },
+  { number: 68, arabic: 'الْفَاتِح', transliteration: 'Al-Fatih', meaning: 'The Opener', benefit: 'By him Allah opened the doors of guidance after they were closed.' },
+  { number: 69, arabic: 'الْجَامِع', transliteration: 'Al-Jami\'', meaning: 'The Embodier of all Virtues', benefit: 'He gathered within himself all noble qualities and virtues.' },
+  { number: 70, arabic: 'الْكَامِل', transliteration: 'Al-Kamil', meaning: 'The Complete', benefit: 'Perfect in character, message, and station.' },
+  { number: 71, arabic: 'إِكْلِيل', transliteration: 'Iklil', meaning: 'The Crown', benefit: 'The crown of prophethood and the adornment of creation.' },
+  { number: 72, arabic: 'الْبَرّ', transliteration: 'Al-Barr', meaning: 'The Dutiful', benefit: 'Utmost dutifulness to Allah and kindness to creation.' },
+  { number: 73, arabic: 'الْمُبِين', transliteration: 'Al-Mubin', meaning: 'The Clarifier', benefit: 'He clarified the revelation and made the path crystal clear.' },
+  { number: 74, arabic: 'الْمُذَكِّر', transliteration: 'Al-Mudhakkir', meaning: 'The Reminder', benefit: 'He reminds people of Allah, the Hereafter, and their purpose.' },
+  { number: 75, arabic: 'الْبَشَر', transliteration: 'Al-Bashar', meaning: 'The Human Being', benefit: 'A human like us, yet the best of humanity — so we can follow him.' },
+  { number: 76, arabic: 'النَّجْمُ الثَّاقِب', transliteration: 'An-Najm ath-Thaqib', meaning: 'The Piercing Star', benefit: 'A shining star that pierces through darkness and ignorance.' },
+  { number: 77, arabic: 'الْغَوْث', transliteration: 'Al-Ghawth', meaning: 'The Aid', benefit: 'A source of divine help and relief for those in distress.' },
+  { number: 78, arabic: 'الْغِيَاث', transliteration: 'Al-Ghiyath', meaning: 'The Succour', benefit: 'He brings relief and answers to those who seek.' },
+  { number: 79, arabic: 'سَيْفُ اللَّه', transliteration: 'Sayfullah', meaning: 'Sword of Allah', benefit: 'A warrior in the path of truth, defending the faith.' },
+  { number: 80, arabic: 'حِزْبُ اللَّه', transliteration: 'Hizbullah', meaning: 'Party of Allah', benefit: 'The leader of Allah\'s party and those who follow him.' },
+  { number: 81, arabic: 'نِعْمَةُ اللَّه', transliteration: 'Ni\'matullah', meaning: 'Blessing of Allah', benefit: 'He is the greatest blessing Allah has given to creation.' },
+  { number: 82, arabic: 'هَدِيَّةُ اللَّه', transliteration: 'Hadiyyatullah', meaning: 'Gift of Allah', benefit: 'A divine gift to humanity, sent out of Allah\'s mercy.' },
+  { number: 83, arabic: 'الصِّرَاطُ الْمُسْتَقِيم', transliteration: 'As-Sirat al-Mustaqim', meaning: 'The Straight Path', benefit: 'Following him means following the straight path to Allah.' },
+  { number: 84, arabic: 'ذِكْرُ اللَّه', transliteration: 'Dhikrullah', meaning: 'Remembrance of Allah', benefit: 'He is a means of remembering Allah and drawing close to Him.' },
+  { number: 85, arabic: 'الْعُرْوَةُ الْوُثْقَى', transliteration: 'Al-\'Urwah al-Wuthqa', meaning: 'The Trustworthy Handhold', benefit: 'The firmest grip that never breaks — belief in him and his message.' },
+  { number: 86, arabic: 'أَبُو الْقَاسِم', transliteration: 'Abu al-Qasim', meaning: 'Father of Qasim', benefit: 'His kunya (teknonym) — he named himself after his first son.' },
+  { number: 87, arabic: 'أَبُو الطَّاهِر', transliteration: 'Abu at-Tahir', meaning: 'Father of Tahir', benefit: 'Another blessed kunya of the Prophet ﷺ.' },
+  { number: 88, arabic: 'أَبُو الطَّيِّب', transliteration: 'Abu at-Tayyib', meaning: 'Father of Tayyib', benefit: 'From his kunyas; all his names are fragrant and pure.' },
+  { number: 89, arabic: 'أَبُو إِبْرَاهِيم', transliteration: 'Abu Ibrahim', meaning: 'Father of Ibrahim', benefit: 'Named after his son Ibrahim who passed away in infancy.' },
+  { number: 90, arabic: 'الْمُخْتَار', transliteration: 'Al-Mukhtar', meaning: 'The Preferred One', benefit: 'Preferred by Allah over all of creation.' },
+  { number: 91, arabic: 'الْعَرَبِيّ', transliteration: 'Al-\'Arabi', meaning: 'The Arab', benefit: 'From the noble lineage of the Arabs, the descendants of Isma\'il (AS).' },
+  { number: 92, arabic: 'الْحِجَازِيّ', transliteration: 'Al-Hijazi', meaning: 'The Hijazi', benefit: 'From the blessed land of Hijaz, the cradle of Islam.' },
+  { number: 93, arabic: 'الْمَدَنِيّ', transliteration: 'Al-Madani', meaning: 'The Madinan', benefit: 'The one who established the illuminated city of Madinah.' },
+  { number: 94, arabic: 'الْهَاشِمِيّ', transliteration: 'Al-Hashimi', meaning: 'The Hashimi', benefit: 'From the noble clan of Banu Hashim of Quraysh.' },
+  { number: 95, arabic: 'طَاهِر', transliteration: 'Tahir', meaning: 'The Pure', benefit: 'Pure in lineage, character, heart, and soul.' },
+  { number: 96, arabic: 'مُطَهَّر', transliteration: 'Mutahhar', meaning: 'The Purified', benefit: 'Purified by Allah from all spiritual and moral defects.' },
+  { number: 97, arabic: 'طَيِّب', transliteration: 'Tayyib', meaning: 'The Fragrant', benefit: 'Fragrant in name, character, and even in his blessed body.' },
+  { number: 98, arabic: 'سَيِّد', transliteration: 'Sayyid', meaning: 'The Master', benefit: 'The master of all the children of Adam. (Sahih Muslim)' },
+  { number: 99, arabic: 'رَسُولُ الرَّحْمَة', transliteration: 'Rasul ar-Rahmah', meaning: 'Messenger of Mercy', benefit: 'The messenger sent as the embodiment of divine mercy.' },
 ];
 
-// Combine data
 type NameItem = { number: number; arabic: string; transliteration: string; meaning: string; benefit: string };
 
 export default function NamesOfAllah() {
@@ -157,11 +227,6 @@ export default function NamesOfAllah() {
     n.arabic.includes(search) ||
     n.number.toString().includes(search)
   );
-
-  const getColor = (index: number) => {
-    const colors = ['#0a3d2e', '#1a6b4a', '#b8860b', '#2563eb', '#7c3aed', '#b45309', '#059669'];
-    return colors[index % colors.length];
-  };
 
   if (selected) {
     return (
@@ -187,6 +252,13 @@ export default function NamesOfAllah() {
                 <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
                   <p className="text-emerald-700 text-sm">
                     📖 The Prophet ﷺ said: <em>"Allah has ninety-nine names. Whoever preserves them will enter Paradise."</em> (Bukhari)
+                  </p>
+                </div>
+              )}
+              {viewMode === 'prophet' && (
+                <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
+                  <p className="text-emerald-700 text-sm">
+                    📖 "The Messenger of Allah ﷺ said: I have five names: I am Muhammad, I am Ahmad, I am al-Mahi (the Effacer) through whom Allah effaces disbelief, I am al-Hashir (the Gatherer) at whose feet people will be gathered, and I am al-\'Aqib (the Last)." — Sahih Muslim
                   </p>
                 </div>
               )}
@@ -227,7 +299,7 @@ export default function NamesOfAllah() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-6">
-        {/* Toggle between Allah and Prophet names */}
+        {/* Toggle */}
         <div className="flex bg-white rounded-2xl p-1 border border-gray-200 shadow-sm mb-6">
           <button
             onClick={() => { setViewMode('allah'); setSelected(null); }}
@@ -243,7 +315,7 @@ export default function NamesOfAllah() {
               viewMode === 'prophet' ? 'bg-[#0a3d2e] text-white shadow' : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
-            💚 Names of Prophet ﷺ
+            💚 99 Names of Prophet ﷺ
           </button>
         </div>
 
@@ -255,7 +327,7 @@ export default function NamesOfAllah() {
           <p className="text-white/80 text-sm">
             {viewMode === 'allah'
               ? 'The 99 Beautiful Names of Allah – learn, memorize, and reflect'
-              : 'Blessed names and titles of the Messenger of Allah ﷺ'}
+              : 'Blessed names and titles of the Messenger of Allah ﷺ from Quran & Hadith'}
           </p>
           <p className="text-white/50 text-xs mt-2">Tap any name to see details</p>
         </div>
@@ -330,12 +402,11 @@ export default function NamesOfAllah() {
           </div>
         )}
 
-        {/* Footer */}
         <div className="mt-10 text-center border-t pt-6">
           <p className="text-sm text-gray-500">
             {viewMode === 'allah'
               ? '“And to Allah belong the best names, so invoke Him by them.” — Quran 7:180'
-              : '“Indeed, Allah and His angels send blessings upon the Prophet.” — Quran 33:56'}
+              : '“Indeed, Allah and His angels send blessings upon the Prophet. O you who believe, ask Allah to send blessings and peace upon him.” — Quran 33:56'}
           </p>
         </div>
       </main>
