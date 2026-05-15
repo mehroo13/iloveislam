@@ -1,145 +1,94 @@
 import type { Metadata } from 'next';
 
-// ── SEO METADATA ──────────────────────────────────────────────────────────────
 export const metadata: Metadata = {
-  title: 'Zakat Calculator 2025 — Free Islamic Zakat Tool | I Love Islam',
+  title: 'Zakat Calculator — Easy Islamic Wealth Tax Calculation | I Love Islam',
   description:
-    'Calculate your annual Zakat in seconds. Enter gold, silver, cash, savings & investments. Supports 11 currencies. Based on authentic Hanafi fiqh. Free, no sign-up.',
-  keywords: [
-    'zakat calculator',
-    'zakat calculator 2025',
-    'how much zakat do I owe',
-    'nisab threshold 2025',
-    'zakat on gold',
-    'zakat on savings',
-    'islamic finance calculator',
-    'zakat hanafi',
-    'zakat sunni',
-    'free zakat calculator',
-  ],
+    'Calculate your Zakat accurately using gold & silver nisab. Supports any currency, live prices, tola/grams, and full breakdown. Free, no sign-up.',
   openGraph: {
-    title: 'Zakat Calculator 2025 — Free Islamic Zakat Tool | I Love Islam',
+    title: 'Zakat Calculator — Easy Islamic Wealth Tax Calculation | I Love Islam',
     description:
-      'Calculate your Zakat in seconds. Supports gold, silver, cash, savings & 11 currencies. Based on authentic Hanafi fiqh.',
-    url: 'https://iloveislam.life/zakat',
-    siteName: 'I Love Islam',
-    locale: 'en_US',
+      'Calculate your Zakat accurately using gold & silver nisab. Supports any currency, live prices, tola/grams, and full breakdown. Free, no sign-up.',
     type: 'website',
   },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Zakat Calculator 2025 — Free | I Love Islam',
-    description:
-      'Free Zakat calculator for gold, silver, cash, savings & investments. 11 currencies. Based on Hanafi fiqh.',
-  },
-  alternates: {
-    canonical: 'https://iloveislam.life/zakat',
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
-  },
 };
 
-// ── JSON-LD SCHEMA ────────────────────────────────────────────────────────────
-const jsonLd = {
+const faqSchema = {
   '@context': 'https://schema.org',
-  '@graph': [
-    // SoftwareApplication schema
+  '@type': 'FAQPage',
+  mainEntity: [
     {
-      '@type': 'SoftwareApplication',
-      name: 'Zakat Calculator',
-      applicationCategory: 'FinanceApplication',
-      operatingSystem: 'Web',
-      offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'USD',
-      },
-      description:
-        'A free Islamic Zakat calculator supporting 11 currencies. Enter gold, silver, cash, savings, investments and debts to calculate your annual Zakat obligation based on authentic Hanafi fiqh.',
-      url: 'https://iloveislam.life/zakat',
-      provider: {
-        '@type': 'Organization',
-        name: 'I Love Islam',
-        url: 'https://iloveislam.life',
+      '@type': 'Question',
+      name: 'How is Zakat calculated?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Zakat is 2.5% of your zakatable wealth above the nisab threshold (minimum amount). You add up all eligible assets (gold, silver, cash, investments, etc.), subtract immediate debts, and if the net amount exceeds the nisab (based on silver or gold), Zakat is due.',
       },
     },
-    // BreadcrumbList schema
     {
-      '@type': 'BreadcrumbList',
-      itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Zakat Calculator', item: 'https://iloveislam.life/zakat' },
-      ],
+      '@type': 'Question',
+      name: 'What is nisab and which method should I use?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Nisab is the minimum wealth that makes one liable for Zakat. We use either the silver nisab (612.36g) or gold nisab (87.48g). Most scholars recommend the silver nisab because it benefits more poor people. You can choose in the settings.',
+      },
     },
-    // FAQPage schema
     {
-      '@type': 'FAQPage',
-      mainEntity: [
-        {
-          '@type': 'Question',
-          name: 'How much Zakat do I have to pay?',
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: 'Zakat is 2.5% (one-fortieth) of your total net zakatable wealth — cash, savings, gold, silver, investments and business stock — after deducting immediate debts, provided that total exceeds the nisab threshold and a full lunar year (hawl) has passed.',
-          },
-        },
-        {
-          '@type': 'Question',
-          name: 'What is the nisab for Zakat in 2025?',
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: 'The nisab is the minimum wealth threshold for Zakat to become obligatory. It is equal to 87.48 g of gold or 612.36 g of silver. Most scholars recommend using the silver nisab as it is more inclusive and benefits more people in need.',
-          },
-        },
-        {
-          '@type': 'Question',
-          name: 'Is Zakat due on gold jewellery?',
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: 'According to the Hanafi madhab, Zakat is due on all gold jewellery — including personal-use jewellery — because gold is an intrinsically zakatable asset. The Shafi\'i, Maliki and Hanbali schools generally exempt jewellery worn for personal use. This calculator uses the Hanafi position by default.',
-          },
-        },
-        {
-          '@type': 'Question',
-          name: 'Do I pay Zakat on money I have borrowed or owe?',
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: 'No. Immediate debts due within the year are deducted from your total wealth before calculating Zakat. Enter your outstanding liabilities in the "Debts & Liabilities" field and they will be subtracted automatically.',
-          },
-        },
-        {
-          '@type': 'Question',
-          name: 'When should I pay Zakat?',
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: 'Zakat becomes due once your wealth has been above the nisab for a full lunar year (hawl — 354 days). Many Muslims choose to pay in Ramadan to benefit from multiplied reward, but it can be paid at any time once the hawl is complete.',
-          },
-        },
-        {
-          '@type': 'Question',
-          name: 'Who are the 8 categories that can receive Zakat?',
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: 'According to Quran 9:60, Zakat may be given to: (1) the poor (fuqara), (2) the needy (masakin), (3) Zakat administrators, (4) those whose hearts are to be reconciled, (5) freeing captives/slaves, (6) those in debt (gharimin), (7) in the way of Allah (fi sabilillah), and (8) wayfarers (ibn al-sabil).',
-          },
-        },
-      ],
+      '@type': 'Question',
+      name: 'Can I enter gold and silver in tola instead of grams?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes! The calculator lets you switch between grams and tola (1 tola = 11.66g). Just select your preferred unit next to the input field.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Are the gold and silver prices live?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'When you enable live prices, we fetch the latest spot gold/silver prices and convert them to your chosen currency using real exchange rates. You can also manually enter prices if you prefer.',
+      },
     },
   ],
 };
 
-// ── LAYOUT ────────────────────────────────────────────────────────────────────
 export default function ZakatLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
+      <header className="max-w-2xl mx-auto px-4 pt-8 pb-4">
+        <a href="/" className="text-sm text-emerald-700 hover:underline">
+          ← Back to I Love Islam Tools
+        </a>
+        <h1 className="text-3xl font-bold text-gray-900 mt-2">
+          Free Zakat Calculator
+        </h1>
+        <p className="text-gray-500 mt-2 max-w-xl">
+          Calculate your Zakat in seconds. Choose between gold/silver nisab, enter
+          your assets in grams or tola, and get a detailed breakdown. Live gold & silver
+          prices for any currency are supported.
+        </p>
+      </header>
+
       {children}
+
+      <section className="max-w-2xl mx-auto px-4 py-10 space-y-6">
+        <h2 className="text-2xl font-semibold text-gray-800">
+          Frequently Asked Questions
+        </h2>
+        <div className="space-y-4">
+          {faqSchema.mainEntity.map((item) => (
+            <div key={item.name}>
+              <h3 className="font-medium text-gray-700">{item.name}</h3>
+              <p className="text-gray-500 text-sm mt-1">
+                {item.acceptedAnswer.text}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
     </>
   );
 }
