@@ -120,12 +120,9 @@ export default function QiblaFinder() {
     const handleOrientation = (event: DeviceOrientationEvent) => {
       let rawHeading: number | null = null;
 
-      // iOS: webkitCompassHeading is absolute
       if ((event as any).webkitCompassHeading !== undefined) {
         rawHeading = (event as any).webkitCompassHeading;
-      }
-      // Android absolute event (should be alpha)
-      else if (event.absolute === true && event.alpha !== null) {
+      } else if (event.absolute === true && event.alpha !== null) {
         rawHeading = event.alpha;
       }
 
@@ -140,9 +137,7 @@ export default function QiblaFinder() {
       }
     };
 
-    // Try to use the absolute event on Android (Chrome 78+)
     const absoluteHandler = (event: DeviceOrientationEvent) => {
-      // This event guarantees absolute = true
       if (event.alpha !== null) {
         const filtered = lowPassFilter(event.alpha, filterRef.current, 0.15);
         filterRef.current = filtered;
@@ -152,25 +147,23 @@ export default function QiblaFinder() {
     };
 
     if ('ondeviceorientationabsolute' in window) {
-      window.addEventListener('deviceorientationabsolute', absoluteHandler, true);
+      globalThis.addEventListener('deviceorientationabsolute', absoluteHandler, true);
       compassListenerRef.current = absoluteHandler;
     } else {
-      // Fallback to regular deviceorientation
-      window.addEventListener('deviceorientation', handleOrientation, true);
+      globalThis.addEventListener('deviceorientation', handleOrientation, true);
       compassListenerRef.current = handleOrientation;
     }
   }, []);
 
   const stopCompass = useCallback(() => {
     if (compassListenerRef.current) {
-      window.removeEventListener('deviceorientation', compassListenerRef.current, true);
-      window.removeEventListener('deviceorientationabsolute', compassListenerRef.current as any, true);
+      globalThis.removeEventListener('deviceorientation', compassListenerRef.current, true);
+      globalThis.removeEventListener('deviceorientationabsolute', compassListenerRef.current as any, true);
       compassListenerRef.current = null;
     }
   }, []);
 
   const enableCompass = async () => {
-    // iOS 13+ permission
     if (typeof DeviceOrientationEvent !== 'undefined' &&
         typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
       try {
@@ -194,7 +187,6 @@ export default function QiblaFinder() {
     return () => stopCompass();
   }, [stopCompass]);
 
-  // Geolocation
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
       setError('Geolocation not supported');
@@ -386,13 +378,11 @@ export default function QiblaFinder() {
               <div className="relative w-72 h-72 sm:w-80 sm:h-80">
                 {/* Compass rose */}
                 <div className="absolute inset-0 rounded-full bg-emerald-900/50 border-4 border-white/20 shadow-inner">
-                  {/* Cardinal labels */}
                   <div className="absolute top-2 left-1/2 -translate-x-1/2 text-red-400 text-xs font-bold">N</div>
                   <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-white/40 text-xs font-bold">S</div>
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 text-xs font-bold">E</div>
                   <div className="absolute left-2 top-1/2 -translate-y-1/2 text-white/40 text-xs font-bold">W</div>
 
-                  {/* Degree marks */}
                   {[...Array(36)].map((_, i) => {
                     const rotation = i * 10;
                     const isMajor = i % 3 === 0;
@@ -437,7 +427,6 @@ export default function QiblaFinder() {
                 </div>
               </div>
 
-              {/* Alignment feedback */}
               {compassEnabled && (
                 <div className="w-full mt-4">
                   {isFacingQibla ? (
@@ -484,7 +473,6 @@ export default function QiblaFinder() {
               </div>
             </div>
 
-            {/* Compass controls */}
             {compassPermission === 'prompt' && (
               <button
                 onClick={enableCompass}
@@ -512,7 +500,6 @@ export default function QiblaFinder() {
               </div>
             )}
 
-            {/* Tip */}
             <p className="text-white/30 text-xs text-center">
               For best accuracy: keep phone flat, away from magnets. If the live compass doesn't match, use the static bearing with any compass app.
             </p>

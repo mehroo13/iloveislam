@@ -454,6 +454,9 @@ export default function ZakatCalculator() {
               const inputHandler = (e: React.ChangeEvent<HTMLInputElement>) =>
                 setAsset(field.key, e.target.value);
 
+              const currentVal = isGoldOrSilver ? inputValue : assets[field.key];
+              const dynamicWidth = Math.max(140, (String(currentVal).length * 9) + (isGoldOrSilver ? 95 : 40));
+
               return (
                 <div key={field.key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div className="tooltip" style={{ flexShrink: 0 }}>
@@ -464,17 +467,18 @@ export default function ZakatCalculator() {
                     {field.label}
                     {isGoldOrSilver ? null : <span style={{ color: '#aaa', fontSize: 11 }}> ({sym})</span>}
                   </label>
-                  <div style={{ position: 'relative', width: 140, flexShrink: 0, display: 'flex', gap: 4 }}>
+                  <div style={{ position: 'relative', width: dynamicWidth, flexShrink: 0, display: 'flex', gap: 4, transition: 'width 0.2s ease' }}>
                     {!isGoldOrSilver && (
                       <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#aaa' }}>{sym}</span>
                     )}
                     <input
                       type="number"
-                      value={isGoldOrSilver ? inputValue : assets[field.key]}
+                      value={currentVal}
                       onChange={inputHandler}
                       placeholder="0"
                       style={{
-                        width: isGoldOrSilver ? '100%' : 'calc(100% - 60px)',
+                        flex: 1,
+                        width: '100%',
                         border: '1px solid #e0d8c8',
                         borderRadius: 10,
                         padding: isGoldOrSilver ? '9px 12px' : '9px 12px 9px 28px',
@@ -522,7 +526,7 @@ export default function ZakatCalculator() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 20 }}>💳</span>
             <label style={{ fontSize: 13, color: '#444', flex: 1 }}>Debts & liabilities ({sym})</label>
-            <div style={{ position: 'relative', width: 140 }}>
+            <div style={{ position: 'relative', width: Math.max(140, (String(debts).length * 9) + 40), transition: 'width 0.2s ease' }}>
               <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#aaa' }}>{sym}</span>
               <input
                 type="number"
