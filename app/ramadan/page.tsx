@@ -33,37 +33,35 @@ const GOALS = [
   { id: 'tahajjud', label: 'Pray Tahajjud', icon: '🌙', target: 10 },
 ];
 
-function getTodayKey(): string {
-  return new Date().toISOString().split('T')[0];
-}
-
-function getDayOfRamadan(): number {
-  return ((new Date().getDate() - 1) % 30) + 1;
-}
-
 type DayData = {
   ibadah: string[];
   fasted: boolean;
 };
 
 export default function RamadanPlanner() {
+  // User‑controlled Ramadan day (1‑30). Persisted in localStorage.
+  const [ramadanDay, setRamadanDay] = useState<number>(1);
   const [activeTab, setActiveTab] = useState<string>('tracker');
   const [days, setDays] = useState<Record<string, DayData>>({});
   const [notes, setNotes] = useState<string>('');
   const [mood, setMood] = useState<string>('');
 
-  const ramadanDay = getDayOfRamadan();
-  const todayKey = getTodayKey();
-  const todayData: DayData = days[todayKey] || { ibadah: [], fasted: false };
-
+  // Load all data from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const savedDay = localStorage.getItem('ramadan_day_number');
+      if (savedDay) setRamadanDay(Math.min(30, Math.max(1, parseInt(savedDay, 10))));
       setDays(JSON.parse(localStorage.getItem('ramadan_days_v2') || '{}'));
       setNotes(localStorage.getItem('ramadan_notes_v2') || '');
-      setMood(localStorage.getItem(`ramadan_mood_${todayKey}`) || '');
     }
   }, []);
 
+  // Persist ramadan day
+  useEffect(() => {
+    localStorage.setItem('ramadan_day_number', ramadanDay.toString());
+  }, [ramadanDay]);
+
+  // Persist days and notes
   useEffect(() => {
     if (Object.keys(days).length) localStorage.setItem('ramadan_days_v2', JSON.stringify(days));
   }, [days]);
@@ -72,9 +70,23 @@ export default function RamadanPlanner() {
     localStorage.setItem('ramadan_notes_v2', notes);
   }, [notes]);
 
+  // Mood persistence
+  const todayKey = `day-${ramadanDay}`; // unique key per ramadan day
   useEffect(() => {
-    localStorage.setItem(`ramadan_mood_${todayKey}`, mood);
+    const savedMood = localStorage.getItem(`ramadan_mood_${todayKey}`);
+    if (savedMood) setMood(savedMood);
+    else setMood('');
+  }, [todayKey]);
+
+  useEffect(() => {
+    if (mood) localStorage.setItem(`ramadan_mood_${todayKey}`, mood);
   }, [mood, todayKey]);
+
+  const todayData: DayData = days[todayKey] || { ibadah: [], fasted: false };
+
+  const changeDay = (delta: number) => {
+    setRamadanDay(prev => Math.min(30, Math.max(1, prev + delta)));
+  };
 
   const toggleFasted = () => {
     setDays(prev => ({
@@ -95,22 +107,21 @@ export default function RamadanPlanner() {
   };
 
   const getGoalCount = (goalId: string) => {
-    return Object.values(days).filter(d =>
-      d.ibadah?.includes(
-        goalId === 'quran' ? 'Quran' :
-        goalId === 'tarawih' ? 'Tarawih' :
-        goalId === 'sadaqah' ? 'Sadaqah' :
-        goalId === 'dhikr' ? 'Dhikr' :
-        goalId === 'tahajjud' ? 'Tahajjud' : ''
-      )
-    ).length;
+    const ibadahMap: Record<string, string> = {
+      quran: 'Quran',
+      tarawih: 'Tarawih',
+      sadaqah: 'Sadaqah',
+      dhikr: 'Dhikr',
+      tahajjud: 'Tahajjud',
+    };
+    const targetIbadah = ibadahMap[goalId];
+    return Object.values(days).filter(d => d.ibadah?.includes(targetIbadah)).length;
   };
 
-  const getDaysCompleted = () => Object.values(days).filter(d => d.fasted).length;
+  const getDaysFasted = () => Object.values(days).filter(d => d.fasted).length;
 
   const totalIbadah = Object.values(days).reduce((sum, d) => sum + (d.ibadah?.length || 0), 0);
 
-  // Shared styles
   const card = 'bg-white rounded-2xl border border-gray-100 p-5 shadow-sm';
 
   return (
@@ -122,8 +133,25 @@ export default function RamadanPlanner() {
             <span>←</span> Back
           </Link>
           <h1 className="text-xl font-bold tracking-wide">🌙 Ramadan Planner</h1>
-          <div className="bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-semibold">
-            Day {ramadanDay} / 30
+          {/* Day selector */}
+          <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1">
+            <button
+              onClick={() => changeDay(-1)}
+              disabled={ramadanDay <= 1}
+              className="text-white hover:text-amber-300 disabled:opacity-40 text-lg leading-none"
+            >
+              ‹
+            </button>
+            <span className="text-sm font-semibold min-w-[4rem] text-center">
+              Day {ramadanDay}/30
+            </span>
+            <button
+              onClick={() => changeDay(1)}
+              disabled={ramadanDay >= 30}
+              className="text-white hover:text-amber-300 disabled:opacity-40 text-lg leading-none"
+            >
+              ›
+            </button>
           </div>
         </div>
 
@@ -146,7 +174,7 @@ export default function RamadanPlanner() {
       <div className="bg-[#0a3d2e] text-white px-4 py-4">
         <div className="max-w-2xl mx-auto grid grid-cols-3 gap-4 text-center">
           <div>
-            <p className="text-2xl font-bold text-amber-300">{getDaysCompleted()}</p>
+            <p className="text-2xl font-bold text-amber-300">{getDaysFasted()}</p>
             <p className="text-white/60 text-xs">Days Fasted</p>
           </div>
           <div>
@@ -195,7 +223,7 @@ export default function RamadanPlanner() {
                 <div>
                   <p className="font-semibold text-gray-800 text-lg">Did you fast today?</p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                    Ramadan Day {ramadanDay}
                   </p>
                 </div>
                 <button
@@ -323,11 +351,10 @@ export default function RamadanPlanner() {
               <p className="font-semibold text-gray-800 mb-4 text-lg">Fasting Calendar</p>
               <div className="grid grid-cols-10 gap-1.5">
                 {Array.from({ length: 30 }, (_, i) => {
-                  const d = new Date();
-                  d.setDate(d.getDate() - (ramadanDay - 1) + i);
-                  const key = d.toISOString().split('T')[0];
+                  const dayNumber = i + 1;
+                  const key = `day-${dayNumber}`;
                   const fasted = days[key]?.fasted;
-                  const isToday = i + 1 === ramadanDay;
+                  const isToday = dayNumber === ramadanDay;
                   return (
                     <div
                       key={i}
@@ -337,13 +364,13 @@ export default function RamadanPlanner() {
                       style={{
                         background: fasted
                           ? 'linear-gradient(135deg, #0a3d2e, #1a6b4a)'
-                          : i + 1 < ramadanDay
+                          : dayNumber < ramadanDay
                           ? '#f1f1f1'
                           : '#fafafa',
                         color: fasted ? 'white' : '#aaa',
                       }}
                     >
-                      {i + 1}
+                      {dayNumber}
                     </div>
                   );
                 })}
