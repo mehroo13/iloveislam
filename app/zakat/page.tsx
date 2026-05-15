@@ -78,7 +78,6 @@ export default function ZakatCalculator() {
   const [debts, setDebts] = useState('');
   const [nisabMethod, setNisabMethod] = useState<'silver' | 'gold'>('silver');
   const [result, setResult] = useState<Result | null>(null);
-  const [showTip, setShowTip] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [fetchingPrices, setFetchingPrices] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -98,7 +97,7 @@ export default function ZakatCalculator() {
       : parseFloat(silverInput)
     : 0;
 
-  // Update assets when inputs change (for calculation consistency)
+  // Sync grams to assets for calculation
   useEffect(() => {
     setAssets((prev) => ({
       ...prev,
@@ -107,7 +106,7 @@ export default function ZakatCalculator() {
     }));
   }, [goldGrams, silverGrams]);
 
-  // Auto-update prices when live mode is on and currency changes
+  // Update displayed prices when live data or currency changes
   useEffect(() => {
     if (useLivePrices && usdGoldPerGram !== null && usdSilverPerGram !== null && exchangeRates) {
       const rate = exchangeRates[currency] || 1;
@@ -116,48 +115,32 @@ export default function ZakatCalculator() {
     }
   }, [currency, useLivePrices, usdGoldPerGram, usdSilverPerGram, exchangeRates]);
 
-  // Reset live prices if user turns off live mode
+  // When turning off live mode, revert to defaults
   useEffect(() => {
     if (!useLivePrices) {
-      // Reset to defaults based on currency
       setGoldPrice(CURRENCIES[currency]?.goldDefault || 98);
       setSilverPrice(CURRENCIES[currency]?.silverDefault || 1.1);
     }
   }, [useLivePrices, currency]);
 
-  // Fetch live gold/silver + exchange rates
+  // ── Fetch live prices via our own API route (no CORS) ──
   const fetchLivePrices = useCallback(async () => {
     setFetchingPrices(true);
     try {
-      // Fetch spot prices in USD per troy ounce
-      const metalsRes = await fetch('https://api.metals.live/v1/spot/gold,silver');
-      const metalsData = await metalsRes.json();
-      if (metalsData?.gold && metalsData?.silver) {
-        const goldPerGram = parseFloat((metalsData.gold / 31.1035).toFixed(2));
-        const silverPerGram = parseFloat((metalsData.silver / 31.1035).toFixed(2));
-        setUsdGoldPerGram(goldPerGram);
-        setUsdSilverPerGram(silverPerGram);
-      } else {
-        // Fallback to defaults
-        alert('Could not fetch live metal prices. Using default values.');
-        setUseLivePrices(false);
-        setFetchingPrices(false);
-        return;
-      }
+      const response = await fetch('/api/live-prices');
+      if (!response.ok) throw new Error('Failed to fetch');
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
 
-      // Fetch exchange rates (USD base)
-      const forexRes = await fetch('https://open.er-api.com/v6/latest/USD');
-      const forexData = await forexRes.json();
-      if (forexData?.rates) {
-        setExchangeRates(forexData.rates);
-      } else {
-        // Fallback: only USD available
-        setExchangeRates({ USD: 1 });
-      }
-
+      const goldUsd = parseFloat((data.gold / 31.1035).toFixed(2));
+      const silverUsd = parseFloat((data.silver / 31.1035).toFixed(2));
+      setUsdGoldPerGram(goldUsd);
+      setUsdSilverPerGram(silverUsd);
+      setExchangeRates(data.rates || { USD: 1 });
       setUseLivePrices(true);
-    } catch {
-      alert('Network error while fetching live prices. Please try again.');
+    } catch (err) {
+      console.error(err);
+      alert('Could not fetch live prices. The server might be busy. Using current values.');
       setUseLivePrices(false);
     }
     setFetchingPrices(false);
@@ -170,10 +153,9 @@ export default function ZakatCalculator() {
     else setAssets((prev) => ({ ...prev, [key]: val }));
   }
 
-  // Unit toggle handlers
+  // Toggle between grams and tola (with conversion)
   const toggleGoldUnit = () => {
     if (goldInput) {
-      // Convert existing input value to new unit
       const currentGrams = goldGrams;
       const newUnit = goldUnit === 'grams' ? 'tola' : 'grams';
       const newValue = newUnit === 'tola' ? currentGrams / GRAMS_PER_TOLA : currentGrams;
@@ -192,7 +174,7 @@ export default function ZakatCalculator() {
     setSilverUnit((prev) => (prev === 'grams' ? 'tola' : 'grams'));
   };
 
-  // Calculate
+  // Calculate Zakat
   function calculate() {
     const goldVal = goldGrams * goldPrice;
     const silverVal = silverGrams * silverPrice;
@@ -242,7 +224,6 @@ export default function ZakatCalculator() {
     setUseLivePrices(false);
   }
 
-  // Share / Print functions (unchanged, using sym and fmt)
   function handleShare() {
     if (!result) return;
     const text = `📊 My Zakat Calculation — I Love Islam\n\n` +
@@ -305,7 +286,6 @@ export default function ZakatCalculator() {
       </header>
 
       <main style={{ maxWidth: 720, margin: '0 auto', padding: '20px 14px 60px' }}>
-
         {/* ── SETTINGS CARD ── */}
         <div className="no-print" style={{ background: '#fff', borderRadius: 20, border: '1px solid #e8e0cc', padding: '20px 22px', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -359,51 +339,70 @@ export default function ZakatCalculator() {
             </div>
             <div>
               <label style={{ fontSize: 11, color: '#888', display: 'block', marginBottom: 5 }}>
-                Gold price/gram ({sym})
+                Gold ({sym})
               </label>
-              <input
-                type="number"
-                value={goldPrice}
-                onChange={(e) => {
-                  setGoldPrice(parseFloat(e.target.value) || 0);
-                  setUseLivePrices(false); // manual override turns off live
-                }}
-                disabled={useLivePrices}
-                style={{
-                  width: '100%',
-                  border: '1px solid #e0d8c8',
-                  borderRadius: 10,
-                  padding: '9px 12px',
-                  fontSize: 13,
-                  background: useLivePrices ? '#f0f0f0' : '#fafaf7',
-                  color: '#1a1a1a',
-                  boxSizing: 'border-box',
-                }}
-              />
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                <div style={{ flex: 1 }}>
+                  <input
+                    type="number"
+                    value={goldPrice}
+                    onChange={(e) => {
+                      setGoldPrice(parseFloat(e.target.value) || 0);
+                      setUseLivePrices(false);
+                    }}
+                    disabled={useLivePrices}
+                    placeholder="per gram"
+                    style={{
+                      width: '100%',
+                      border: '1px solid #e0d8c8',
+                      borderRadius: 10,
+                      padding: '9px 8px',
+                      fontSize: 12,
+                      background: useLivePrices ? '#f0f0f0' : '#fafaf7',
+                      color: '#1a1a1a',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <span style={{ fontSize: 11, color: '#666' }}>/g</span>
+              </div>
+              {/* Tola price display */}
+              <div style={{ marginTop: 4, fontSize: 11, color: '#666' }}>
+                ≈ {sym}{fmt(goldPrice * GRAMS_PER_TOLA)} / tola
+              </div>
             </div>
             <div>
               <label style={{ fontSize: 11, color: '#888', display: 'block', marginBottom: 5 }}>
-                Silver price/gram ({sym})
+                Silver ({sym})
               </label>
-              <input
-                type="number"
-                value={silverPrice}
-                onChange={(e) => {
-                  setSilverPrice(parseFloat(e.target.value) || 0);
-                  setUseLivePrices(false);
-                }}
-                disabled={useLivePrices}
-                style={{
-                  width: '100%',
-                  border: '1px solid #e0d8c8',
-                  borderRadius: 10,
-                  padding: '9px 12px',
-                  fontSize: 13,
-                  background: useLivePrices ? '#f0f0f0' : '#fafaf7',
-                  color: '#1a1a1a',
-                  boxSizing: 'border-box',
-                }}
-              />
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                <div style={{ flex: 1 }}>
+                  <input
+                    type="number"
+                    value={silverPrice}
+                    onChange={(e) => {
+                      setSilverPrice(parseFloat(e.target.value) || 0);
+                      setUseLivePrices(false);
+                    }}
+                    disabled={useLivePrices}
+                    placeholder="per gram"
+                    style={{
+                      width: '100%',
+                      border: '1px solid #e0d8c8',
+                      borderRadius: 10,
+                      padding: '9px 8px',
+                      fontSize: 12,
+                      background: useLivePrices ? '#f0f0f0' : '#fafaf7',
+                      color: '#1a1a1a',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <span style={{ fontSize: 11, color: '#666' }}>/g</span>
+              </div>
+              <div style={{ marginTop: 4, fontSize: 11, color: '#666' }}>
+                ≈ {sym}{fmt(silverPrice * GRAMS_PER_TOLA)} / tola
+              </div>
             </div>
           </div>
 
@@ -442,10 +441,9 @@ export default function ZakatCalculator() {
           </div>
         </div>
 
-        {/* ── ASSETS CARD ── */}
+        {/* ── ASSETS CARD (same as before) ── */}
         <div className="no-print" style={{ background: '#fff', borderRadius: 20, border: '1px solid #e8e0cc', padding: '20px 22px', marginBottom: 14 }}>
           <p style={{ fontWeight: 700, fontSize: 14, color: '#1a1a1a', margin: '0 0 16px' }}>📦 Your Assets</p>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {ASSET_FIELDS.map((field) => {
               const isGoldOrSilver = field.key === 'gold' || field.key === 'silver';
@@ -549,10 +547,10 @@ export default function ZakatCalculator() {
           </button>
         </div>
 
-        {/* ── RESULT ── (unchanged but works with new data) */}
+        {/* ── RESULT (same as before) ── */}
         {result && (
           <div ref={resultRef} className="fade-up print-area" style={{ background: '#fff', borderRadius: 24, border: `2px solid ${result.meetsNisab ? '#0a3d2e' : '#d97706'}`, overflow: 'hidden', marginBottom: 16 }}>
-            {/* Same result JSX as before, no changes needed */}
+            {/* result header */}
             <div style={{ background: result.meetsNisab ? 'linear-gradient(135deg, #0a3d2e, #0d5238)' : 'linear-gradient(135deg, #92400e, #b45309)', padding: '24px 24px 20px', textAlign: 'center' }}>
               <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', margin: '0 0 8px' }}>
                 {result.meetsNisab ? 'Zakat is Obligatory' : 'Below Nisab Threshold'}
@@ -582,6 +580,7 @@ export default function ZakatCalculator() {
                 {progressPct >= 100 ? '100% — Nisab reached' : `${progressPct.toFixed(1)}% toward nisab`}
               </p>
             </div>
+            {/* Breakdown */}
             <div style={{ padding: '20px 24px' }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: '#aaa', letterSpacing: '0.2em', textTransform: 'uppercase', margin: '0 0 14px' }}>Breakdown</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
