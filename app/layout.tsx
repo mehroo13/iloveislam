@@ -114,7 +114,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geist.variable} h-full antialiased`}>
       <head>
-        {/* Google AdSense - Optional, remove if not needed */}
+        {/* Google AdSense */}
         <script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2264561932019289"
@@ -150,8 +150,7 @@ export default function RootLayout({
                 "Free Islamic tools for every Muslim — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kids Islamic Games, and 25+ more tools.",
               potentialAction: {
                 "@type": "SearchAction",
-                target:
-                  "https://www.iloveislam.life/?search={search_term_string}",
+                target: "https://www.iloveislam.life/?search={search_term_string}",
                 "query-input": "required name=search_term_string",
               },
             }),
@@ -194,36 +193,11 @@ export default function RootLayout({
               description: "Fun and educational Islamic games for children",
               numberOfItems: 5,
               itemListElement: [
-                {
-                  "@type": "ListItem",
-                  position: 1,
-                  name: "Memory Match Game",
-                  url: "https://www.iloveislam.life/kids/games/memory-match",
-                },
-                {
-                  "@type": "ListItem",
-                  position: 2,
-                  name: "Learn to Pray",
-                  url: "https://www.iloveislam.life/kids/games/prayer-guide",
-                },
-                {
-                  "@type": "ListItem",
-                  position: 3,
-                  name: "Arabic Letters",
-                  url: "https://www.iloveislam.life/kids/games/arabic-letters",
-                },
-                {
-                  "@type": "ListItem",
-                  position: 4,
-                  name: "Dua Memory",
-                  url: "https://www.iloveislam.life/kids/games/dua-memory",
-                },
-                {
-                  "@type": "ListItem",
-                  position: 5,
-                  name: "5 Pillars of Islam Quiz",
-                  url: "https://www.iloveislam.life/kids/games/pillars-quiz",
-                },
+                { "@type": "ListItem", position: 1, name: "Memory Match Game", url: "https://www.iloveislam.life/kids/games/memory-match" },
+                { "@type": "ListItem", position: 2, name: "Learn to Pray", url: "https://www.iloveislam.life/kids/games/prayer-guide" },
+                { "@type": "ListItem", position: 3, name: "Arabic Letters", url: "https://www.iloveislam.life/kids/games/arabic-letters" },
+                { "@type": "ListItem", position: 4, name: "Dua Memory", url: "https://www.iloveislam.life/kids/games/dua-memory" },
+                { "@type": "ListItem", position: 5, name: "5 Pillars of Islam Quiz", url: "https://www.iloveislam.life/kids/games/pillars-quiz" },
               ],
             }),
           }}
