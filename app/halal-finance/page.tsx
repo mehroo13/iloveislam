@@ -15,8 +15,9 @@ const DEAL_TYPES = [
   { id: 'rent', label: 'Rental / Lease', icon: '🏢', desc: 'Property rental, car lease, equipment hire' },
 ];
 
+type DealType = (typeof DEAL_TYPES)[number]; // ✅ new type
+
 const QUESTIONS = {
-  // ... keep the exact same QUESTIONS object, no changes needed ...
   loan: [
     { id: 'interest', q: 'Does this loan charge interest (Riba)?', flag: true, weight: 10, tip: 'Any fixed charge on borrowed money is Riba — strictly forbidden in Islam.' },
     { id: 'compound', q: 'Is there compound interest involved?', flag: true, weight: 10, tip: 'Compound interest is considered even more severe than simple interest.' },
@@ -87,12 +88,12 @@ const ALTERNATIVES = {
 };
 
 export default function HalalFinanceCheck() {
-  const [dealType, setDealType] = useState<{ id: string; label: string; icon: string } | null>(null);
+  const [dealType, setDealType] = useState<DealType | null>(null); // ✅ fixed type
   const [answers, setAnswers] = useState<Record<string, boolean>>({});
   const [result, setResult] = useState<any>(null);
   const [step, setStep] = useState<'select' | 'questions' | 'result'>('select');
 
-  const selectDeal = (type: any) => {
+  const selectDeal = (type: DealType) => { // ✅ fixed parameter type
     setDealType(type);
     setAnswers({});
     setResult(null);
