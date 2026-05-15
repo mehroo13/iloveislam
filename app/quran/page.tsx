@@ -155,31 +155,43 @@ const FONT_SIZES = [
 const toArabicNum = (n: number): string =>
   n.toString().split('').map(d => String.fromCharCode(0x0660 + parseInt(d))).join('');
 
-const BISMILLAH_FRAGMENTS = [
-  'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
-  'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ',
-  'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ',
-  'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيمِ',
-  'بسم الله الرحمن الرحيم',
-];
+// Nuclear Bismillah stripper: removes ALL diacritics then checks for the
+// bare consonantal skeleton "بسم الله الرحمن الرحيم" at the start.
+// Works regardless of which Unicode diacritic variant the API returns.
+function removeDiacritics(s: string): string {
+  // Strip Arabic diacritics (harakat), tatweel, and other combining marks
+  return s.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E4\u06E7\u06E8\u06EA-\u06ED\u0640]/g, '');
+}
 
 function stripBismillah(text: string): string {
-  let t = text.trim();
-  for (const b of BISMILLAH_FRAGMENTS) {
-    if (t.startsWith(b)) {
-      t = t.slice(b.length).trim();
-      return t;
+  const t = text.trim();
+  const bare = removeDiacritics(t);
+  // The bare skeleton of Bismillah (no diacritics, normalised spaces)
+  const skeleton = 'بسم الله الرحمن الرحيم';
+  if (bare.startsWith(skeleton)) {
+    // Find how many characters in the original string correspond to the skeleton
+    // We walk the original string, skipping diacritic-only chars until we've
+    // matched all skeleton consonants
+    let origIdx = 0;
+    let skelIdx = 0;
+    while (origIdx < t.length && skelIdx < skeleton.length) {
+      const ch = t[origIdx];
+      const isMark = /[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E4\u06E7\u06E8\u06EA-\u06ED\u0640]/.test(ch);
+      if (isMark) {
+        origIdx++;
+      } else if (ch === skeleton[skelIdx]) {
+        origIdx++;
+        skelIdx++;
+      } else {
+        break;
+      }
     }
+    // Skip any trailing whitespace / marks
+    while (origIdx < t.length && /[\s\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E4\u06E7\u06E8\u06EA-\u06ED\u0640]/.test(t[origIdx])) {
+      origIdx++;
+    }
+    return t.slice(origIdx).trim();
   }
-  const patterns = [
-    /^[\s\u06DD\u06D6]*بِسْمِ\s*اللَّهِ\s*الرَّحْمَٰنِ\s*الرَّحِيمِ[\s\u06DD\u06D6]*/u,
-    /^[\s\u06DD\u06D6]*بسم الله الرحمن الرحيم[\s\u06DD\u06D6]*/u,
-    /^[\s\u06DD\u06D6]*بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ[\s\u06DD\u06D6]*/u,
-  ];
-  for (const pattern of patterns) {
-    t = t.replace(pattern, '').trim();
-  }
-  t = t.replace(/^[\s\u06DD\u06D6]+/, '').trim();
   return t;
 }
 
@@ -402,14 +414,30 @@ function MushafPage({
             {verses.map(v => (
               <span key={v.number} id={`verse-${v.number}`}
                 style={{
-                  background: playingAudio === v.number ? '#d4a84340' : 'transparent',
+                  background: isBookmarked(v.number)
+                    ? (dark ? '#3a1a0044' : '#fff0a844')
+                    : playingAudio === v.number
+                      ? (dark ? '#d4a84340' : '#d4a84328')
+                      : 'transparent',
                   borderRadius: 4,
-                  padding: playingAudio === v.number ? '2px 4px' : '0',
+                  padding: (playingAudio === v.number || isBookmarked(v.number)) ? '2px 4px' : '0',
                   transition: 'background 0.3s ease',
                   cursor: 'pointer',
+                  outline: isBookmarked(v.number) ? `1.5px solid ${goldColor}` : 'none',
+                  position: 'relative',
                 }}
                 onClick={() => onPlayAudio(v, false)}
+                onDoubleClick={(e) => { e.stopPropagation(); onToggleBookmark(v.number); }}
+                title={`Tap to play · Double-tap to ${isBookmarked(v.number) ? 'remove' : 'add'} bookmark`}
               >
+                {isBookmarked(v.number) && (
+                  <span style={{
+                    fontSize: '0.45em',
+                    verticalAlign: 'super',
+                    marginLeft: 2,
+                    color: goldColor,
+                  }}>🔖</span>
+                )}
                 {v.arabic}
                 {/* Floral ayah marker with Arabic number */}
                 <span style={{
@@ -474,6 +502,15 @@ function MushafPage({
               ۝ صَدَقَ اللَّهُ الْعَظِيمُ ۝
             </span>
           </div>
+
+          {/* Bookmark hint */}
+          <p style={{
+            textAlign: 'center', marginTop: 10,
+            fontSize: 11, color: dark ? '#6b4f1a' : '#b89040',
+            fontStyle: 'italic',
+          }}>
+            Tap an ayah to play · Double-tap to bookmark 🔖
+          </p>
         </div>
       </div>
     </div>
@@ -769,11 +806,11 @@ export default function QuranReader() {
     s.number.toString() === search.trim()
   );
 
-  // ── Theme colors (list page) ──
-  const bgCol = dark ? '#011627' : COLORS.skyBlue;
-  const cardBg = dark ? '#0b253a' : '#fff';
-  const textCol = dark ? '#e0f2f1' : '#01579b';
-  const borderCol = dark ? '#1e3a5f' : '#bbdefb';
+  // ── Theme colors (list page) — parchment to match mushaf ──
+  const bgCol = dark ? '#0d0800' : '#ede4cc';
+  const cardBg = dark ? '#1a1000' : '#fdf8f0';
+  const textCol = dark ? '#f0e6cc' : COLORS.mushafText;
+  const borderCol = dark ? '#8B6914' : '#c8a96e';
 
   // ── Mushaf page theme ──
   const mushafBg = dark ? '#0d0800' : '#ede4cc';
@@ -837,7 +874,7 @@ export default function QuranReader() {
           <button
             onClick={() => window.location.href = '/'}
             style={{
-              padding: '12px 24px', background: COLORS.skyBlueDark, color: '#fff',
+              padding: '12px 24px', background: COLORS.mushafGold, color: '#fff',
               border: 'none', borderRadius: 30, cursor: 'pointer', fontWeight: 700, marginBottom: 30,
             }}
           >
@@ -845,31 +882,42 @@ export default function QuranReader() {
           </button>
 
           <header style={{ textAlign: 'center', marginBottom: 40 }}>
-            <h1 style={{ fontSize: 42, color: dark ? COLORS.skyBlueLight : COLORS.skyBlueDark, margin: '0 0 10px', fontWeight: 800 }}>
-              Al-Quran Al-Kareem
-            </h1>
+            {/* Ornate title matching Mushaf style */}
+            <div style={{ display: 'inline-block', border: `2px solid ${dark ? '#8B6914' : COLORS.mushafBorder}`, borderRadius: 6, padding: '14px 40px', background: cardBg, position: 'relative' }}>
+              <span style={{ position: 'absolute', top: -1, left: -1, fontSize: 12, color: dark ? '#d4a843' : COLORS.mushafGold }}>❖</span>
+              <span style={{ position: 'absolute', top: -1, right: -1, fontSize: 12, color: dark ? '#d4a843' : COLORS.mushafGold }}>❖</span>
+              <span style={{ position: 'absolute', bottom: -1, left: -1, fontSize: 12, color: dark ? '#d4a843' : COLORS.mushafGold }}>❖</span>
+              <span style={{ position: 'absolute', bottom: -1, right: -1, fontSize: 12, color: dark ? '#d4a843' : COLORS.mushafGold }}>❖</span>
+              <h1 style={{ fontSize: 32, color: dark ? '#d4a843' : COLORS.mushafBorder, margin: 0, fontWeight: 800, fontFamily: '"Scheherazade New", serif' }}>
+                Al-Quran Al-Kareem
+              </h1>
+              <p style={{ fontFamily: '"Scheherazade New", serif', fontSize: 22, color: dark ? '#f0e6cc' : COLORS.mushafText, margin: '4px 0 0', fontWeight: 700, direction: 'rtl' }}>
+                القرآن الكريم
+              </p>
+            </div>
 
-            <div style={{ marginTop: 30, position: 'relative', maxWidth: 500, margin: '30px auto 0' }}>
+            <div style={{ marginTop: 24, position: 'relative', maxWidth: 500, margin: '24px auto 0' }}>
               <input
                 type="text"
-                placeholder="Search Surah..."
+                placeholder="Search Surah by name or number..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 style={{
-                  width: '100%', padding: '16px 24px', borderRadius: 50,
-                  border: `2px solid ${borderCol}`, fontSize: 16, outline: 'none',
+                  width: '100%', padding: '14px 22px', borderRadius: 8,
+                  border: `1.5px solid ${borderCol}`, fontSize: 15, outline: 'none',
                   background: cardBg, color: textCol,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                  boxShadow: '0 2px 8px rgba(139,105,20,0.1)',
+                  fontFamily: 'system-ui, sans-serif',
                 }}
               />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 25, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
               {lastRead && (
                 <button
                   onClick={() => loadSurah(SURAHS[lastRead.surahNumber - 1], lastRead.verseNumber)}
                   style={{
-                    padding: '10px 18px', borderRadius: 30, background: COLORS.gold,
+                    padding: '9px 18px', borderRadius: 6, background: COLORS.mushafGold,
                     color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12,
                   }}
                 >
@@ -878,53 +926,74 @@ export default function QuranReader() {
               )}
               {bookmarks.length > 0 && (
                 <button style={{
-                  padding: '10px 18px', borderRadius: 30, background: COLORS.skyBlueDark,
-                  color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12,
+                  padding: '9px 18px', borderRadius: 6, background: dark ? '#2a1800' : '#fff8e8',
+                  color: dark ? '#d4a843' : COLORS.mushafBorder,
+                  border: `1.5px solid ${dark ? '#8B6914' : COLORS.mushafBorder}`,
+                  cursor: 'pointer', fontWeight: 700, fontSize: 12,
                 }}>
                   🔖 Bookmarks ({bookmarks.length})
                 </button>
               )}
+              {/* Dark mode toggle on list page */}
+              <button onClick={() => setDark(!dark)} style={{
+                padding: '9px 14px', borderRadius: 6,
+                border: `1.5px solid ${borderCol}`,
+                background: cardBg, color: textCol,
+                cursor: 'pointer', fontSize: 14,
+              }}>
+                {dark ? '☀️' : '🌙'}
+              </button>
             </div>
           </header>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 15 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
             {filtered.map(s => (
               <div
                 key={s.number}
                 onClick={() => loadSurah(s)}
                 style={{
-                  background: cardBg, padding: 18, borderRadius: 16,
+                  background: cardBg, padding: '14px 16px', borderRadius: 8,
                   border: `1px solid ${borderCol}`, cursor: 'pointer',
                   transition: 'all 0.2s ease', display: 'flex', alignItems: 'center',
-                  gap: 15, boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                  gap: 14, boxShadow: '0 2px 6px rgba(139,105,20,0.06)',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-3px)';
-                  e.currentTarget.style.boxShadow = '0 8px 15px rgba(0,0,0,0.08)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(139,105,20,0.14)';
+                  e.currentTarget.style.borderColor = COLORS.mushafGold;
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'none';
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.03)';
+                  e.currentTarget.style.boxShadow = '0 2px 6px rgba(139,105,20,0.06)';
+                  e.currentTarget.style.borderColor = borderCol;
                 }}
               >
+                {/* Number badge — rosette style */}
                 <div style={{
-                  width: 40, height: 40, borderRadius: 10, background: COLORS.skyBlueDark,
-                  color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontWeight: 700, fontSize: 16, flexShrink: 0,
+                  width: 40, height: 40, borderRadius: '50%',
+                  border: `2px solid ${dark ? '#8B6914' : COLORS.mushafGold}`,
+                  background: dark ? '#2a1800' : '#fff8e8',
+                  color: dark ? '#d4a843' : COLORS.mushafBorder,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontWeight: 800, fontSize: 14, flexShrink: 0,
+                  fontFamily: '"Scheherazade New", serif',
                 }}>
-                  {s.number}
+                  {toArabicNum(s.number)}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{s.name}</h3>
-                  <p style={{ margin: '2px 0 0', fontSize: 12, color: dark ? '#81d4fa' : '#039be5' }}>{s.meaning}</p>
+                  <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: textCol }}>{s.name}</h3>
+                  <p style={{ margin: '2px 0 0', fontSize: 11, color: dark ? '#c8a96e' : COLORS.mushafGold }}>{s.meaning} · {s.verses} verses</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <p style={{
                     fontFamily: '"Scheherazade New", "Noto Naskh Arabic", serif',
-                    margin: 0, fontSize: 20, color: dark ? COLORS.skyBlueLight : COLORS.skyBlueDark,
-                    fontWeight: 700,
+                    margin: 0, fontSize: 20, color: dark ? '#f0e6cc' : COLORS.mushafText,
+                    fontWeight: 700, direction: 'rtl',
                   }}>
                     {s.arabic}
+                  </p>
+                  <p style={{ margin: '2px 0 0', fontSize: 10, color: dark ? '#8B6914' : '#a08030', textAlign: 'right' }}>
+                    {s.makki ? 'Makki' : 'Madani'} · Juz {s.juz}
                   </p>
                 </div>
               </div>
