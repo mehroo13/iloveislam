@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import Script from 'next/script';
 
@@ -329,7 +329,7 @@ const TOOLS_DATA = (t: TranslationsType) => [
   },
 ];
 
-const SCROLL_KEY = 'iloveislam_scroll_v2';
+const SCROLL_KEY = 'iloveislam_scroll_v3';
 const THEME_KEY = 'iloveislam_theme';
 const LANG_KEY = 'iloveislam_lang';
 const TOOL_CLICKS_KEY = 'iloveislam_tool_clicks';
@@ -376,25 +376,14 @@ function trackToolClick(toolName: string) {
   } catch {}
 }
 
-// ==================== SCROLL MANAGER (bulletproof) ====================
+// ==================== SCROLL MANAGER ====================
+// Save position every scroll. Restore happens in useLayoutEffect BEFORE paint.
 const ScrollManager = {
   save() {
     try { sessionStorage.setItem(SCROLL_KEY, String(Math.round(window.scrollY))); } catch {}
   },
-  restore() {
-    try {
-      const y = sessionStorage.getItem(SCROLL_KEY);
-      if (y && parseInt(y) > 0) {
-        // Try multiple times to ensure layout is done
-        const attempt = (tries: number) => {
-          window.scrollTo({ top: parseInt(y), behavior: 'instant' });
-          if (tries > 0 && window.scrollY < parseInt(y) - 10) {
-            setTimeout(() => attempt(tries - 1), 80);
-          }
-        };
-        setTimeout(() => attempt(4), 60);
-      }
-    } catch {}
+  getSaved(): number {
+    try { return parseInt(sessionStorage.getItem(SCROLL_KEY) || '0') || 0; } catch { return 0; }
   },
   clear() {
     try { sessionStorage.removeItem(SCROLL_KEY); } catch {}
@@ -726,13 +715,21 @@ export default function Home() {
 
   const tools = useMemo(() => TOOLS_DATA(t), [t]);
 
-  // ---- Scroll restore on back navigation ----
-  useEffect(() => {
-    if (!mounted) return;
-    ScrollManager.restore();
-  }, [mounted, pathname]);
+  // ---- Restore scroll BEFORE paint — fires synchronously before browser renders ----
+  // useLayoutEffect is the only reliable way in Next.js App Router.
+  // We don't gate on `mounted` because that delay is exactly what causes the jump-to-top.
+  useLayoutEffect(() => {
+    const saved = ScrollManager.getSaved();
+    if (saved > 0) {
+      document.documentElement.style.scrollBehavior = 'auto';
+      window.scrollTo(0, saved);
+      requestAnimationFrame(() => {
+        document.documentElement.style.scrollBehavior = '';
+      });
+    }
+  }, [pathname]);
 
-  // ---- Save scroll on every scroll event ----
+  // ---- Save scroll position on every scroll event ----
   useEffect(() => {
     window.addEventListener('scroll', ScrollManager.save, { passive: true });
     return () => window.removeEventListener('scroll', ScrollManager.save);

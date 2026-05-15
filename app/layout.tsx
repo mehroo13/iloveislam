@@ -205,6 +205,16 @@ export default function RootLayout({
       </head>
 
       <body className="min-h-full flex flex-col bg-gray-50 dark:bg-gray-900">
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Disable browser scroll restoration so Next.js doesn't fight our manual restore
+              if ('scrollRestoration' in history) {
+                history.scrollRestoration = 'manual';
+              }
+            `,
+          }}
+        />
         {children}
       </body>
     </html>
