@@ -1,4 +1,5 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
@@ -8,7 +9,7 @@ const HIJRI_MONTHS = [
   'Ramadan', 'Shawwal', "Dhu al-Qi'dah", 'Dhu al-Hijjah'
 ];
 
-const ISLAMIC_EVENTS = {
+const ISLAMIC_EVENTS: Record<string, string> = {
   '1-1': 'Islamic New Year',
   '1-10': 'Day of Ashura',
   '3-12': 'Mawlid al-Nabi ﷺ',
@@ -21,17 +22,39 @@ const ISLAMIC_EVENTS = {
   '12-10': 'Eid al-Adha 🐑',
 };
 
+interface HijriData {
+  day: string;
+  month: { number: number; en: string; ar: string };
+  year: string;
+  weekday?: { en: string };
+}
+
+interface GregorianData {
+  day: string;
+  month: { number: number; en: string };
+  year: string;
+  weekday: { en: string };
+}
+
+interface ConversionResult {
+  hijri: string;
+  hijriArabic: string;
+  gregorian: string;
+  weekday: string;
+  event: string;
+}
+
 export default function HijriCalendar() {
   const [gregorianDate, setGregorianDate] = useState('');
   const [hijriDay, setHijriDay] = useState('');
   const [hijriMonth, setHijriMonth] = useState('');
   const [hijriYear, setHijriYear] = useState('');
-  const [todayHijri, setTodayHijri] = useState(null);
+  const [todayHijri, setTodayHijri] = useState<HijriData | null>(null);
   const [event, setEvent] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [mode, setMode] = useState('g2h');
-  const [result, setResult] = useState(null);
+  const [mode, setMode] = useState<'g2h' | 'h2g'>('g2h');
+  const [result, setResult] = useState<ConversionResult | null>(null);
 
   useEffect(() => { fetchTodayHijri(); }, []);
 
@@ -42,11 +65,11 @@ export default function HijriCalendar() {
       const res = await fetch(`https://api.aladhan.com/v1/gToH/${dateStr}`);
       const data = await res.json();
       if (data.code === 200) {
-        const h = data.data.hijri;
+        const h: HijriData = data.data.hijri;
         setTodayHijri(h);
         setEvent(ISLAMIC_EVENTS[`${h.month.number}-${h.day}`] || '');
       }
-    } catch {}
+    } catch { /* silent */ }
   };
 
   const convertG2H = async () => {
@@ -58,8 +81,8 @@ export default function HijriCalendar() {
       const res = await fetch(`https://api.aladhan.com/v1/gToH/${dateStr}`);
       const data = await res.json();
       if (data.code === 200) {
-        const h = data.data.hijri;
-        const g = data.data.gregorian;
+        const h: HijriData = data.data.hijri;
+        const g: GregorianData = data.data.gregorian;
         setResult({
           hijri: `${h.day} ${h.month.en} ${h.year} AH`,
           hijriArabic: `${h.day} ${h.month.ar} ${h.year}`,
@@ -79,8 +102,8 @@ export default function HijriCalendar() {
       const res = await fetch(`https://api.aladhan.com/v1/hToG/${hijriDay}-${hijriMonth}-${hijriYear}`);
       const data = await res.json();
       if (data.code === 200) {
-        const h = data.data.hijri;
-        const g = data.data.gregorian;
+        const h: HijriData = data.data.hijri;
+        const g: GregorianData = data.data.gregorian;
         setResult({
           hijri: `${h.day} ${h.month.en} ${h.year} AH`,
           hijriArabic: `${h.day} ${h.month.ar} ${h.year}`,
@@ -95,17 +118,17 @@ export default function HijriCalendar() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Tool navigation bar */}
       <header style={{ background: '#0a3d2e' }} className="px-6 py-4 flex items-center gap-4">
         <Link href="/" className="text-white/60 hover:text-white text-sm">← Back</Link>
-        <h1 className="text-white font-medium">Hijri Calendar</h1>
+        <span className="text-white font-medium">Hijri Calendar</span>
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-8">
-
         {todayHijri && (
           <div style={{ background: '#0a3d2e' }} className="rounded-2xl p-5 mb-4 text-center">
             <p className="text-white/50 text-xs uppercase tracking-wider mb-1">Today's Islamic Date</p>
-            <p className="font-arabic text-3xl mb-1" style={{ color: '#c8a96e' }}>
+            <p className="text-3xl mb-1" style={{ color: '#c8a96e' }}>
               {todayHijri.day} {todayHijri.month.ar} {todayHijri.year}
             </p>
             <p className="text-white text-lg font-medium">
@@ -181,7 +204,6 @@ export default function HijriCalendar() {
         </div>
 
         {error && <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-sm text-red-500 mb-4">{error}</div>}
-
         {loading && (
           <div className="text-center py-8">
             <div className="text-4xl mb-3 animate-pulse">🌙</div>
@@ -195,7 +217,7 @@ export default function HijriCalendar() {
             <div className="space-y-3">
               <div className="bg-purple-50 rounded-xl p-4">
                 <p className="text-xs text-purple-500 mb-1">Hijri Date</p>
-                <p className="font-arabic text-2xl text-purple-800 mb-1">{result.hijriArabic}</p>
+                <p className="text-2xl text-purple-800 mb-1">{result.hijriArabic}</p>
                 <p className="font-medium text-purple-700">{result.hijri}</p>
               </div>
               <div className="bg-blue-50 rounded-xl p-4">
@@ -212,9 +234,10 @@ export default function HijriCalendar() {
           </div>
         )}
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+        {/* Islamic months list + important events (SEO friendly) */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-4">
           <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Islamic Months</p>
-          <div className="grid grid-cols-2 gap-1">
+          <div className="grid grid-cols-2 gap-1 mb-4">
             {HIJRI_MONTHS.map((m, i) => (
               <div key={m} className="flex items-center gap-2 py-1">
                 <span className="text-xs text-gray-400 w-4">{i + 1}.</span>
@@ -222,8 +245,20 @@ export default function HijriCalendar() {
               </div>
             ))}
           </div>
-        </div>
 
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3 mt-4">Key Islamic Events</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {Object.entries(ISLAMIC_EVENTS).map(([key, name]) => {
+              const [month, day] = key.split('-').map(Number);
+              return (
+                <div key={key} className="flex items-center gap-2 py-1">
+                  <span className="text-xs text-gray-400 w-16">{month}/{day}</span>
+                  <span className="text-sm text-gray-600">{name}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </main>
     </div>
   );
