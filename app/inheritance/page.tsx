@@ -72,7 +72,8 @@ function calculate(
   const net = Math.max(0, estate - deductions);
   if (net === 0) return [];
 
-  const has = (id: string): boolean => heirCounts[id] && heirCounts[id] > 0;
+  // ✅ Fixed: double‑bang forces boolean return
+  const has = (id: string): boolean => !!(heirCounts[id] && heirCounts[id] > 0);
   const count = (id: string): number => heirCounts[id] || 0;
 
   const hasSon = has('son');
