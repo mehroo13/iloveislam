@@ -1,7 +1,6 @@
-// app/halal-travel/page.tsx
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
 
 const TABS = [
@@ -44,7 +43,6 @@ const DUAS = [
   { arabic: 'رَبِّ أَنزِلْنِي مُنزَلًا مُّبَارَكًا وَأَنتَ خَيْرُ الْمُنزِلِينَ', transliteration: "Rabbi anzilnee munzalan mubaarakan wa anta khayrul munzileen.", meaning: 'Dua upon arriving at a destination', reference: 'Quran 23:29' },
 ];
 
-/* ── Helper to format time ── */
 function formatTime(timeStr: string): string {
   if (!timeStr) return '--:--';
   const [hour, minute] = timeStr.split(':');
@@ -54,13 +52,12 @@ function formatTime(timeStr: string): string {
   return `${h12}:${minute} ${ampm}`;
 }
 
-/* ── Place type ── */
 interface Place {
   id: number;
   name: string;
   lat: number;
   lon: number;
-  type?: string; // cuisine, hotel class, etc.
+  cuisine?: string;
   opening?: string;
   phone?: string;
   website?: string;
@@ -75,16 +72,13 @@ export default function HalalTravel() {
   const [error, setError] = useState('');
   const [searchType, setSearchType] = useState<'food' | 'mosque' | 'hotel' | ''>('');
 
-  // Prayer times state
   const [prayerCity, setPrayerCity] = useState('');
   const [prayerData, setPrayerData] = useState<any>(null);
   const [prayerLoading, setPrayerLoading] = useState(false);
   const [prayerError, setPrayerError] = useState('');
 
-  // Current location coordinates
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
 
-  // Get current location
   const getCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setError('Geolocation not supported');
@@ -95,7 +89,7 @@ export default function HalalTravel() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude });
-        setCity(''); // clear manual input
+        setCity('');
         setLoading(false);
       },
       () => {
@@ -105,13 +99,11 @@ export default function HalalTravel() {
     );
   }, []);
 
-  // Search places via Overpass API
   const searchPlaces = useCallback(async (type: 'food' | 'mosque' | 'hotel') => {
     let lat: number, lon: number;
     if (coords) {
       lat = coords.lat;
       lon = coords.lon;
-      // Use reverse geocoding to get city name for display
       try {
         const reverse = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
         const revData = await reverse.json();
@@ -123,7 +115,6 @@ export default function HalalTravel() {
         setError('Please enter a city or use your current location.');
         return;
       }
-      // geocode city
       const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`);
       const geoData = await geoRes.json();
       if (!geoData.length) {
@@ -146,7 +137,7 @@ export default function HalalTravel() {
         query = `[out:json][timeout:30];(node["amenity"="restaurant"]["diet:halal"="yes"](around:5000,${lat},${lon});node["amenity"="fast_food"]["diet:halal"="yes"](around:5000,${lat},${lon});node["cuisine"="halal"](around:5000,${lat},${lon}););out body;`;
       } else if (type === 'mosque') {
         query = `[out:json][timeout:30];(node["amenity"="place_of_worship"]["religion"="muslim"](around:5000,${lat},${lon});way["amenity"="place_of_worship"]["religion"="muslim"](around:5000,${lat},${lon}););out center;`;
-      } else { // hotel
+      } else {
         query = `[out:json][timeout:30];(node["tourism"="hotel"](around:5000,${lat},${lon});node["building"="hotel"](around:5000,${lat},${lon});way["tourism"="hotel"](around:5000,${lat},${lon}););out center;`;
       }
 
@@ -181,7 +172,6 @@ export default function HalalTravel() {
     }
   }, [city, coords]);
 
-  // Open directions
   const openDirections = (lat: number, lon: number, name: string) => {
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&destination_place_id=${encodeURIComponent(name)}`, '_blank');
   };
@@ -190,7 +180,6 @@ export default function HalalTravel() {
     window.open(`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}&zoom=17`, '_blank');
   };
 
-  // Fetch prayer times
   const fetchPrayerTimes = async () => {
     if (!prayerCity.trim()) return;
     setPrayerLoading(true);
@@ -212,14 +201,12 @@ export default function HalalTravel() {
     setPrayerLoading(false);
   };
 
-  // Shared classes
   const inputClass = 'flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200';
   const btnClass = 'bg-emerald-800 hover:bg-emerald-700 text-white px-5 rounded-xl text-sm font-semibold active:scale-95 transition-all';
   const cardClass = 'bg-white rounded-2xl shadow-sm border border-gray-100 p-5';
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/30 to-white font-serif">
-      {/* Header */}
       <header className="bg-gradient-to-r from-emerald-900 to-emerald-700 text-white px-5 py-4 shadow-lg sticky top-0 z-20">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <Link href="/" className="text-white/80 hover:text-white text-sm">← Back</Link>
@@ -228,7 +215,6 @@ export default function HalalTravel() {
         </div>
       </header>
 
-      {/* Tabs */}
       <div className="bg-white border-b border-gray-100 sticky top-[57px] z-10 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 flex overflow-x-auto gap-1 py-2">
           {TABS.map(tab => (
@@ -251,7 +237,7 @@ export default function HalalTravel() {
 
       <main className="max-w-3xl mx-auto px-4 py-6 pb-12 space-y-5">
         {/* Common search bar for Food, Mosque, Hotel */}
-        {(['food', 'mosque', 'hotel'] as const).includes(activeTab) && (
+        {['food', 'mosque', 'hotel'].includes(activeTab) && (
           <div className={cardClass + ' space-y-4'}>
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 flex gap-2">
@@ -261,12 +247,12 @@ export default function HalalTravel() {
                     type="text"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && searchPlaces(activeTab)}
+                    onKeyDown={(e) => e.key === 'Enter' && searchPlaces(activeTab as 'food' | 'mosque' | 'hotel')}
                     placeholder={activeTab === 'food' ? 'City (e.g. Istanbul)' : activeTab === 'mosque' ? 'City or district' : 'City or area'}
                     className="pl-10 w-full border border-gray-200 rounded-xl py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
                   />
                 </div>
-                <button onClick={() => searchPlaces(activeTab)} className={btnClass}>
+                <button onClick={() => searchPlaces(activeTab as 'food' | 'mosque' | 'hotel')} className={btnClass}>
                   Search
                 </button>
               </div>
@@ -278,7 +264,6 @@ export default function HalalTravel() {
           </div>
         )}
 
-        {/* Loading state */}
         {loading && (
           <div className="flex flex-col items-center justify-center py-16">
             <div className="w-10 h-10 border-4 border-emerald-800 border-t-transparent rounded-full animate-spin mb-3" />
@@ -286,12 +271,10 @@ export default function HalalTravel() {
           </div>
         )}
 
-        {/* Error */}
         {error && !loading && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-600">{error}</div>
         )}
 
-        {/* Results */}
         {results.length > 0 && !loading && (
           <>
             <div className="flex items-center justify-between">
@@ -335,7 +318,6 @@ export default function HalalTravel() {
           </>
         )}
 
-        {/* Empty state tips */}
         {!loading && results.length === 0 && !error && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 shadow-sm">
             <p className="text-sm font-semibold text-amber-800 mb-2">💡 Tips</p>
