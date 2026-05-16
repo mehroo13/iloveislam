@@ -33,11 +33,6 @@ const ARTICLES = [
 ];
 
 // ── Full article content ──────────────────────────────────────────────────
-// All internal links use ONLY routes confirmed to exist in your /app folder:
-// /zakat /prayer-times /qibla /dua /hijri /dhikr /quran /names /names-finder
-// /mosque /ramadan /hajj /sadaqah /inheritance /will /halal-finance /kaffarah
-// /eid /hadith /kids /mizan /travel /about /contact /faq
-// ─────────────────────────────────────────────────────────────────────────
 const CONTENT: Record<string, React.ReactNode> = {
 
   'how-to-calculate-zakat': (
@@ -1022,7 +1017,23 @@ export async function generateMetadata(
   };
 }
 
-// ── Article page ──────────────────────────────────────────────────────────
+// ── TYPE for related articles ─────────────────────────────────────────────
+type ArticleMeta = {
+  slug: string;
+  title: string;
+  emoji: string;
+  readTime: string;
+  category: string;
+  excerpt: string;
+  date: string;
+};
+
+// ── Related articles — CLIENT component (needs hover handlers) ────────────
+// This is defined inline as a separate component at the bottom of this file.
+// We import it dynamically so the Server Component above stays pure.
+import RelatedArticles from './RelatedArticles';
+
+// ── Article page (Server Component) ──────────────────────────────────────
 export default async function ArticlePage(
   { params }: { params: Promise<{ slug: string }> }
 ) {
@@ -1031,11 +1042,10 @@ export default async function ArticlePage(
   if (!article) notFound();
 
   const content = CONTENT[article.slug];
-  const related = ARTICLES
+  const related: ArticleMeta[] = ARTICLES
     .filter(a => a.slug !== article.slug && a.category === article.category)
     .slice(0, 2);
 
-  // Format date for display
   const displayDate = new Date(article.date).toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric',
   });
@@ -1049,7 +1059,6 @@ export default async function ArticlePage(
           <Link href="/blog" style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textDecoration: 'none', display: 'inline-block', marginBottom: 20 }}>
             ← Back to Blog
           </Link>
-          {/* Breadcrumb */}
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 14 }}>
             <Link href="/" style={{ color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>Home</Link>
             <span style={{ margin: '0 6px' }}>/</span>
@@ -1103,29 +1112,8 @@ export default async function ArticlePage(
           </Link>
         </div>
 
-        {/* Related articles */}
-        {related.length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0a3d2e', margin: '0 0 12px' }}>Related Articles</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-              {related.map(r => (
-                <Link key={r.slug} href={`/blog/${r.slug}`} style={{ textDecoration: 'none' }}>
-                  <div style={{
-                    background: '#fff', borderRadius: 12, border: '1px solid #ede9e2', padding: '16px',
-                    transition: 'border-color .15s',
-                  }}
-                    onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.borderColor = '#0a3d2e'}
-                    onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.borderColor = '#ede9e2'}
-                  >
-                    <div style={{ fontSize: 24, marginBottom: 8 }}>{r.emoji}</div>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: '#0a3d2e', margin: '0 0 4px', lineHeight: 1.3 }}>{r.title}</p>
-                    <p style={{ fontSize: 11, color: '#bbb', margin: 0 }}>{r.readTime}</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Related articles — rendered by Client Component */}
+        {related.length > 0 && <RelatedArticles articles={related} />}
 
         {/* Schema */}
         <script
