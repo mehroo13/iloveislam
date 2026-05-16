@@ -1,54 +1,106 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Islamic Name Finder – 14,585+ Muslim Names with Meanings | I Love Islam',
+  title: 'Islamic Name Finder — 14,000+ Muslim Baby Names with Meanings | I Love Islam',
   description:
-    'Search 14,585+ authentic Islamic names by meaning, keyword, or Arabic script. Browse boy and girl names, save favourites, and copy meanings. Free, no sign‑up.',
+    'Search 14,585+ Islamic baby names for boys and girls. See Arabic script, full meanings, and origins. Filter by Quranic, Prophets, Sahaba, and more. Free, instant search.',
+  keywords: [
+    'islamic baby names',
+    'muslim names',
+    'islamic names with meanings',
+    'muslim baby names 2025',
+    'arabic names for boys',
+    'arabic names for girls',
+    'quranic names',
+    'prophet names in islam',
+    'sahaba names',
+    'islamic name meanings arabic',
+    'best muslim baby names',
+  ],
   openGraph: {
-    title: 'Islamic Name Finder – 14,585+ Muslim Names with Meanings | I Love Islam',
+    title: 'Islamic Name Finder — 14,000+ Muslim Baby Names | I Love Islam',
     description:
-      'Search 14,585+ authentic Islamic names by meaning, keyword, or Arabic script. Browse boy and girl names, save favourites, and copy meanings. Free, no sign‑up.',
+      'Search 14,585+ Islamic names for boys and girls with Arabic script, full meanings, and origins. Free and instant.',
+    url: 'https://iloveislam.life/names',
+    siteName: 'I Love Islam',
+    locale: 'en_US',
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Islamic Name Finder — 14,000+ Muslim Names | I Love Islam',
+    description:
+      'Search 14,585+ Islamic baby names with Arabic script, meanings, and origins. Free, instant search.',
+  },
+  alternates: {
+    canonical: 'https://iloveislam.life/names',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
   },
 };
 
-const faqSchema = {
+const jsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: [
+  '@graph': [
     {
-      '@type': 'Question',
-      name: 'How many names are in this Islamic name database?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Over 14,585 authentic Muslim names from the Hugging Face Muslim Names Dataset, with Arabic script, English transliteration, meaning, and gender.',
-      },
+      '@type': 'SoftwareApplication',
+      name: 'Islamic Name Finder',
+      applicationCategory: 'LifestyleApplication',
+      operatingSystem: 'Web',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      description:
+        'Search 14,585+ Islamic baby names for boys and girls with Arabic script, full meanings, and origins. Filter by Quranic names, Prophets, Sahaba, and more.',
+      url: 'https://iloveislam.life/names',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
     },
     {
-      '@type': 'Question',
-      name: 'Can I search for names by meaning?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Yes! You can search by name, meaning, or topic (e.g., “prophet”, “brave”, “flower”). You can also filter by boy or girl names.',
-      },
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home',              item: 'https://iloveislam.life'       },
+        { '@type': 'ListItem', position: 2, name: 'Islamic Name Finder', item: 'https://iloveislam.life/names' },
+      ],
     },
     {
-      '@type': 'Question',
-      name: 'Can I save names for later?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Absolutely. Tap the “Save Name” button on any name to bookmark it. Your saved names are shown in the “Saved” tab.',
-      },
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'What is the best Islamic name for a baby boy?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Some of the most beloved Islamic names for boys include Muhammad, Ahmed, Ali, Omar, Ibrahim, Yusuf, and Abdullah — all names of Prophets or prominent companions. Use the search tool to explore meanings and find the name that resonates most with your family.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'What are good Islamic names for a baby girl?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Popular Islamic names for girls include Fatima, Aisha, Maryam, Khadijah, Zainab, Noor, and Hana. These names carry deep meanings rooted in Islamic history and the Quran.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'What does Quranic name mean?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'A Quranic name is a name that appears directly in the text of the Holy Quran, or is closely derived from Quranic vocabulary. Examples include Maryam, Ibrahim, Noor, and Taha.',
+          },
+        },
+      ],
     },
   ],
 };
 
-export default function IslamicNamesLayout({ children }: { children: React.ReactNode }) {
+export default function NamesLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       {children}
     </>
