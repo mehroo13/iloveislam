@@ -97,17 +97,23 @@ function getQiblaAngle(lat: number, lon: number): number {
 function saveLS(k: string, v: unknown) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 function loadLS<T>(k: string, fb: T): T { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch { return fb; } }
 
-// ─── Overpass search (GET, reliable mirrors) ──────────────────────────────────
+// ─── Overpass search — simple POST, no AbortSignal.timeout ───────────────────
 async function overpassSearch(query: string): Promise<any[]> {
-  const encoded = encodeURIComponent(query);
-  const mirrors = [
-    `https://overpass-api.de/api/interpreter?data=${encoded}`,
-    `https://overpass.kumi.systems/api/interpreter?data=${encoded}`,
-    `https://maps.mail.ru/osm/tools/overpass/api/interpreter?data=${encoded}`,
+  const endpoints = [
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
   ];
-  for (const url of mirrors) {
+  for (const url of endpoints) {
     try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15000);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `data=${encodeURIComponent(query)}`,
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
       if (!res.ok) continue;
       const data = await res.json();
       return data.elements || [];
@@ -212,18 +218,64 @@ function PlaceCard({ place, type, saved, onDirections, onSave, onRemove }: {
   onRemove: () => void;
 }) {
   const icons = { food: '🍱', mosque: '🕌', hotel: '🏨' };
+
+  // Format distance prominently
+  const distStr = place.distance !== undefined
+    ? place.distance < 0.1
+      ? `${Math.round(place.distance * 1000)}m`
+      : place.distance < 1
+        ? `${Math.round(place.distance * 1000)}m`
+        : `${place.distance.toFixed(1)}km`
+    : null;
+
+  const isVeryClose = place.distance !== undefined && place.distance < 0.5;
+  const isClose     = place.distance !== undefined && place.distance < 2;
+
   return (
-    <div style={{ background: C.white, borderRadius: 16, border: `1px solid ${C.border}`, padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'flex-start', boxShadow: '0 1px 6px rgba(26,71,49,0.05)', transition: 'border-color 0.2s' }}>
-      <div style={{ width: 44, height: 44, borderRadius: 12, background: C.greenPale, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
+    <div style={{ background: C.white, borderRadius: 16, border: `1.5px solid ${isVeryClose ? C.greenLight : C.border}`, padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'flex-start', boxShadow: isVeryClose ? `0 2px 12px rgba(64,145,108,0.15)` : '0 1px 6px rgba(26,71,49,0.05)', transition: 'border-color 0.2s' }}>
+      <div style={{ width: 44, height: 44, borderRadius: 12, background: isVeryClose ? C.greenPale : '#f5f0e8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
         {icons[type]}
       </div>
+
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontWeight: 700, fontSize: 14, color: C.text, margin: '0 0 3px', fontFamily: 'Georgia, serif' }}>{place.name}</p>
+        {/* Name + distance badge on same row */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6, marginBottom: 3 }}>
+          <p style={{ fontWeight: 700, fontSize: 14, color: C.text, margin: 0, fontFamily: 'Georgia, serif', flex: 1, lineHeight: 1.3 }}>{place.name}</p>
+          {distStr && (
+            <span style={{
+              flexShrink: 0,
+              background: isVeryClose ? C.green : isClose ? C.greenMid : '#6b7280',
+              color: '#fff',
+              fontSize: 12,
+              fontWeight: 800,
+              padding: '3px 9px',
+              borderRadius: 20,
+              letterSpacing: 0.3,
+              fontFamily: 'Georgia, serif',
+              whiteSpace: 'nowrap',
+            }}>
+              {isVeryClose ? '📍 ' : ''}{distStr}
+            </span>
+          )}
+        </div>
+
+        {/* Walking time estimate */}
+        {place.distance !== undefined && (
+          <p style={{ fontSize: 11, color: isVeryClose ? C.greenLight : C.muted, margin: '0 0 3px', fontStyle: 'italic' }}>
+            {place.distance < 0.1
+              ? '🚶 Less than 2 min walk'
+              : place.distance < 0.5
+                ? `🚶 ~${Math.round(place.distance * 1000 / 80)} min walk`
+                : place.distance < 2
+                  ? `🚗 ~${Math.round(place.distance / 0.5)} min drive`
+                  : `🚗 ~${Math.round(place.distance / 0.8)} min drive`}
+          </p>
+        )}
+
         {place.cuisine && <p style={{ fontSize: 11, color: C.muted, margin: '0 0 2px', textTransform: 'capitalize' }}>{place.cuisine.replace(/_/g, ' ')}</p>}
         {place.address && <p style={{ fontSize: 11, color: C.muted, margin: '0 0 2px' }}>📍 {place.address}</p>}
         {place.opening && <p style={{ fontSize: 11, color: C.greenLight, margin: '0 0 2px' }}>🕐 {place.opening}</p>}
         {place.phone && <p style={{ fontSize: 11, color: C.muted, margin: '0 0 2px' }}>📞 {place.phone}</p>}
-        {place.distance !== undefined && <p style={{ fontSize: 11, color: C.muted, margin: '0 0 2px' }}>📏 {place.distance < 1 ? `${Math.round(place.distance * 1000)}m` : `${place.distance.toFixed(1)} km`} away</p>}
         {place.website && (
           <a href={place.website.startsWith('http') ? place.website : `https://${place.website}`} target="_blank" rel="noopener noreferrer"
             style={{ fontSize: 11, color: '#2563eb', textDecoration: 'none', display: 'block', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -231,11 +283,12 @@ function PlaceCard({ place, type, saved, onDirections, onSave, onRemove }: {
           </a>
         )}
       </div>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
         <button onClick={onDirections} style={{ ...S.btnPrimary, padding: '7px 12px', fontSize: 12 }}>🧭 Go</button>
         <button onClick={saved ? onRemove : onSave}
           style={{ padding: '6px 12px', borderRadius: 10, border: `1.5px solid ${saved ? C.gold : C.border}`, background: saved ? C.goldLight : C.cream, color: saved ? '#92400e' : C.muted, fontSize: 12, cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
-          {saved ? '🔖 Saved' : '🔖 Save'}
+          {saved ? '🔖' : '🔖 Save'}
         </button>
       </div>
     </div>
@@ -318,6 +371,7 @@ export default function HalalTravel() {
   const [coords, setCoords]         = useState<{ lat: number; lon: number } | null>(null);
   const [savedPlaces, setSavedPlaces] = useState<SavedPlace[]>([]);
   const [locating, setLocating]     = useState(false);
+  const [searchRadius, setSearchRadius] = useState<number | null>(null);
 
   // Prayer
   const [prayerCity, setPrayerCity] = useState('');
@@ -371,108 +425,175 @@ export default function HalalTravel() {
     );
   }, []);
 
-  // ── Search Places ──
+  // ── Search Places — GPS-first, auto-expanding radius ──
   const searchPlaces = useCallback(async (type: 'food' | 'mosque' | 'hotel') => {
     setLoading(true);
     setError('');
     setResults([]);
+    setSearchRadius(null);
 
+    // ── Step 1: resolve the origin point ──
+    // IMPORTANT: if we already have GPS coords (from "My Location"), always use
+    // those exact coordinates — never re-geocode a city name, because the city
+    // centre could be kilometres away from the user.
     let lat: number, lon: number;
+    let usingGPS = false;
 
-    try {
-      if (coords && !city.trim()) {
-        lat = coords.lat;
-        lon = coords.lon;
-      } else if (city.trim()) {
-        const geo = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city.trim())}&format=json&limit=1`);
+    if (coords) {
+      // GPS coords are available — use them directly regardless of city text
+      lat = coords.lat;
+      lon = coords.lon;
+      usingGPS = true;
+    } else if (city.trim()) {
+      try {
+        const geo = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city.trim())}&format=json&limit=1`
+        );
         const gd = await geo.json();
-        if (!gd.length) { setError('City not found. Try a different spelling or nearby city.'); setLoading(false); return; }
+        if (!gd.length) {
+          setError('City not found. Try a different spelling or a nearby city.');
+          setLoading(false);
+          return;
+        }
         lat = parseFloat(gd[0].lat);
         lon = parseFloat(gd[0].lon);
+        // Store so subsequent searches reuse this point
         setCoords({ lat, lon });
-      } else {
-        setError('Please enter a city name or tap "My Location".');
+      } catch {
+        setError('Network error while finding your city. Check your connection.');
         setLoading(false);
         return;
       }
-    } catch {
-      setError('Network error while finding your city. Check your connection.');
+    } else {
+      setError('Please enter a city name or tap "📍 My Location".');
       setLoading(false);
       return;
     }
 
-    try {
-      let query = '';
-      const radius = 8000; // 8 km
-
+    // ── Step 2: build query for a given radius ──
+    const buildQuery = (r: number) => {
       if (type === 'food') {
-        query = `[out:json][timeout:25];(
-          node["amenity"="restaurant"]["diet:halal"="yes"](around:${radius},${lat},${lon});
-          node["amenity"="fast_food"]["diet:halal"="yes"](around:${radius},${lat},${lon});
-          node["amenity"="cafe"]["diet:halal"="yes"](around:${radius},${lat},${lon});
-          node["cuisine"="halal"](around:${radius},${lat},${lon});
-          node["amenity"="restaurant"]["cuisine"~"arabic|turkish|indian|pakistani|persian|lebanese|moroccan|halal",i](around:${radius},${lat},${lon});
-        );out body;`;
+        return `[out:json][timeout:30];
+(
+  node["amenity"="restaurant"]["diet:halal"="yes"](around:${r},${lat},${lon});
+  node["amenity"="fast_food"]["diet:halal"="yes"](around:${r},${lat},${lon});
+  node["amenity"="cafe"]["diet:halal"="yes"](around:${r},${lat},${lon});
+  node["cuisine"="halal"](around:${r},${lat},${lon});
+  node["amenity"="restaurant"]["cuisine"="arabic"](around:${r},${lat},${lon});
+  node["amenity"="restaurant"]["cuisine"="turkish"](around:${r},${lat},${lon});
+  node["amenity"="restaurant"]["cuisine"="indian"](around:${r},${lat},${lon});
+  node["amenity"="restaurant"]["cuisine"="pakistani"](around:${r},${lat},${lon});
+  node["amenity"="restaurant"]["cuisine"="lebanese"](around:${r},${lat},${lon});
+  node["amenity"="restaurant"]["cuisine"="persian"](around:${r},${lat},${lon});
+  node["amenity"="restaurant"]["cuisine"="moroccan"](around:${r},${lat},${lon});
+  node["amenity"="restaurant"]["cuisine"="bangladeshi"](around:${r},${lat},${lon});
+  node["amenity"="restaurant"]["cuisine"="malaysian"](around:${r},${lat},${lon});
+  node["amenity"="restaurant"]["cuisine"="indonesian"](around:${r},${lat},${lon});
+);
+out body;`;
       } else if (type === 'mosque') {
-        query = `[out:json][timeout:25];(
-          node["amenity"="place_of_worship"]["religion"="muslim"](around:${radius},${lat},${lon});
-          way["amenity"="place_of_worship"]["religion"="muslim"](around:${radius},${lat},${lon});
-          relation["amenity"="place_of_worship"]["religion"="muslim"](around:${radius},${lat},${lon});
-        );out center;`;
+        // Broadest possible mosque query — catches tagged ways, relations,
+        // nodes with name containing "masjid/mosque", and building=mosque
+        return `[out:json][timeout:30];
+(
+  node["amenity"="place_of_worship"]["religion"="muslim"](around:${r},${lat},${lon});
+  way["amenity"="place_of_worship"]["religion"="muslim"](around:${r},${lat},${lon});
+  relation["amenity"="place_of_worship"]["religion"="muslim"](around:${r},${lat},${lon});
+  node["building"="mosque"](around:${r},${lat},${lon});
+  way["building"="mosque"](around:${r},${lat},${lon});
+  node["amenity"="place_of_worship"]["name"~"[Mm]asjid|[Mm]osque|[Jj]amia|[Mm]usalla",i](around:${r},${lat},${lon});
+  way["amenity"="place_of_worship"]["name"~"[Mm]asjid|[Mm]osque|[Jj]amia|[Mm]usalla",i](around:${r},${lat},${lon});
+);
+out center;`;
       } else {
-        query = `[out:json][timeout:25];(
-          node["tourism"="hotel"](around:${radius},${lat},${lon});
-          way["tourism"="hotel"](around:${radius},${lat},${lon});
-          node["tourism"="guest_house"](around:${radius},${lat},${lon});
-          node["tourism"="hostel"](around:${radius},${lat},${lon});
-        );out center;`;
+        return `[out:json][timeout:30];
+(
+  node["tourism"="hotel"](around:${r},${lat},${lon});
+  way["tourism"="hotel"](around:${r},${lat},${lon});
+  node["tourism"="guest_house"](around:${r},${lat},${lon});
+  way["tourism"="guest_house"](around:${r},${lat},${lon});
+  node["tourism"="hostel"](around:${r},${lat},${lon});
+  node["tourism"="apartment"](around:${r},${lat},${lon});
+);
+out center;`;
       }
+    };
 
-      const elements = await overpassSearch(query);
+    // ── Step 3: try expanding radii until we get results ──
+    // Start very close (1 km) so the genuinely nearest result is always first.
+    const RADII = [1000, 3000, 6000, 12000, 25000]; // 1 km → 25 km
+    const MIN_RESULTS = 3;
+
+    let elements: any[] = [];
+    let usedRadius = RADII[0];
+
+    try {
+      for (const r of RADII) {
+        usedRadius = r;
+        elements = await overpassSearch(buildQuery(r));
+        if (elements.length >= MIN_RESULTS) break;
+        // If fewer than MIN_RESULTS, widen and try again
+      }
 
       const defaultName = type === 'food' ? 'Halal Restaurant' : type === 'mosque' ? 'Mosque' : 'Hotel';
 
       let places: Place[] = elements
-        .filter((el: any) => (el.lat || el.center?.lat) && (el.lon || el.center?.lon))
-        .map((el: any) => ({
-          id: el.id,
-          name: el.tags?.name || el.tags?.['name:en'] || defaultName,
-          lat: el.lat ?? el.center?.lat,
-          lon: el.lon ?? el.center?.lon,
-          cuisine: el.tags?.cuisine || '',
-          opening: el.tags?.opening_hours || '',
-          phone: el.tags?.phone || el.tags?.['contact:phone'] || '',
-          website: el.tags?.website || el.tags?.['contact:website'] || '',
-          address: [el.tags?.['addr:street'], el.tags?.['addr:housenumber']].filter(Boolean).join(' '),
-          distance: getDistance(lat, lon, el.lat ?? el.center?.lat, el.lon ?? el.center?.lon),
-          tags: el.tags || {},
-        }));
+        .filter((el: any) => (el.lat != null || el.center?.lat != null))
+        .map((el: any) => {
+          const pLat = el.lat ?? el.center?.lat;
+          const pLon = el.lon ?? el.center?.lon;
+          return {
+            id: el.id,
+            name: el.tags?.name || el.tags?.['name:en'] || el.tags?.['name:ar'] || defaultName,
+            lat: pLat,
+            lon: pLon,
+            cuisine: el.tags?.cuisine || '',
+            opening: el.tags?.opening_hours || '',
+            phone: el.tags?.phone || el.tags?.['contact:phone'] || '',
+            website: el.tags?.website || el.tags?.['contact:website'] || '',
+            address: [el.tags?.['addr:street'], el.tags?.['addr:housenumber']].filter(Boolean).join(' '),
+            // Always compute distance from the exact origin point (GPS or geocoded)
+            distance: getDistance(lat, lon, pLat, pLon),
+            tags: el.tags || {},
+          };
+        });
 
-      // De-duplicate by name + approx position
+      // De-duplicate (same name + very close position)
       const seen = new Set<string>();
       places = places.filter(p => {
-        const key = `${p.name}-${Math.round(p.lat * 1000)}-${Math.round(p.lon * 1000)}`;
+        const key = `${p.name.toLowerCase().trim()}-${Math.round(p.lat * 500)}-${Math.round(p.lon * 500)}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       });
 
-      // Filter cuisine
+      // Cuisine filter
       if (type === 'food' && filterCuisine.trim()) {
-        places = places.filter(p => p.cuisine?.toLowerCase().includes(filterCuisine.toLowerCase()) || p.name.toLowerCase().includes(filterCuisine.toLowerCase()));
+        places = places.filter(p =>
+          p.cuisine?.toLowerCase().includes(filterCuisine.toLowerCase()) ||
+          p.name.toLowerCase().includes(filterCuisine.toLowerCase())
+        );
       }
 
-      // Sort
-      places.sort((a, b) => sortBy === 'distance' ? (a.distance ?? 0) - (b.distance ?? 0) : a.name.localeCompare(b.name));
+      // Always sort by distance — nearest first, guaranteed
+      places.sort((a, b) =>
+        sortBy === 'name'
+          ? a.name.localeCompare(b.name)
+          : (a.distance ?? 999) - (b.distance ?? 999)
+      );
 
-      setResults(places.slice(0, 40));
+      setResults(places.slice(0, 50));
+      setSearchRadius(usedRadius);
 
       if (places.length === 0) {
-        setError(`No ${type === 'food' ? 'halal restaurants' : type === 'mosque' ? 'mosques' : 'hotels'} found within 8 km. Try a more central location or use Google Maps below.`);
+        setError(
+          `No ${type === 'food' ? 'halal restaurants' : type === 'mosque' ? 'mosques' : 'hotels'} found within 25 km of ${usingGPS ? 'your location' : city}. ` +
+          `Try Google Maps below for more options.`
+        );
       }
     } catch (err) {
-      console.error(err);
-      setError('Search failed — the map data service may be temporarily unavailable. Try again in a moment or use the Google Maps link below.');
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Search failed (${msg}). The map service may be slow — please try again, or use Google Maps below.`);
     } finally {
       setLoading(false);
     }
@@ -729,10 +850,11 @@ export default function HalalTravel() {
             {/* Results */}
             {results.length > 0 && !loading && (
               <div className="fade-up">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
                   <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>
-                    Found <strong style={{ color: C.green }}>{results.length}</strong> {activeTab === 'food' ? 'halal places' : activeTab === 'mosque' ? 'mosques' : 'hotels'}
-                    {city ? ` near ${city}` : ''}
+                    <strong style={{ color: C.green }}>{results.length}</strong> {activeTab === 'food' ? 'halal places' : activeTab === 'mosque' ? 'mosques' : 'hotels'} found
+                    {searchRadius && <span style={{ color: C.greenLight }}> within {searchRadius >= 1000 ? `${searchRadius / 1000} km` : `${searchRadius}m`}</span>}
+                    {coords && <span style={{ color: C.greenLight }}> · sorted by distance</span>}
                   </p>
                   <button onClick={() => openGMaps(activeTab === 'food' ? `halal food ${city}` : activeTab === 'mosque' ? `mosque ${city}` : `hotel ${city}`)}
                     style={{ fontSize: 11, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
