@@ -775,7 +775,7 @@ export default function IslamicNamesFinder() {
             {[
               { href: '/',       label: '🏠 Home'         },
               { href: '/zakat',  label: '💰 Zakat'        },
-              { href: '/prayer', label: '🕌 Prayer Times' },
+              
               { href: '/qibla',  label: '🧭 Qibla'        },
               { href: '/about',  label: 'ℹ️ About'        },
             ].map(l => (
