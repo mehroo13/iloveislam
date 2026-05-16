@@ -1,54 +1,84 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Qibla Finder — Find Accurate Qibla Direction from Any Location | I Love Islam',
+  title: 'Qibla Finder — Find Accurate Qibla Direction from Anywhere | I Love Islam',
   description:
-    'Find the exact Qibla direction from your location with our free Qibla compass. Accurate, works worldwide, and includes a live compass mode.',
+    'Find the exact Qibla direction from your location. Use GPS or search a city. Includes a live compass and distance to Kaaba. Free, no sign‑up.',
+  keywords: [
+    'qibla finder', 'qibla direction', 'find qibla', 'kaaba direction', 'mecca direction', 'prayer direction',
+    'qibla compass', 'online qibla', 'qibla locator', 'muslim qibla',
+  ],
   openGraph: {
-    title: 'Qibla Finder — Accurate Qibla Direction from Any Location | I Love Islam',
-    description:
-      'Find the exact Qibla direction from your location with our free Qibla compass. Accurate, works worldwide, and includes a live compass mode.',
+    title: 'Qibla Finder — Accurate Qibla Direction | I Love Islam',
+    description: 'Find the exact direction to the Kaaba from your current location or any city.',
+    url: 'https://iloveislam.life/qibla',
+    siteName: 'I Love Islam',
+    locale: 'en_US',
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Qibla Finder | I Love Islam',
+    description: 'Free Qibla compass with live direction.',
+  },
+  alternates: { canonical: 'https://iloveislam.life/qibla' },
+  robots: {
+    index: true, follow: true,
+    googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
   },
 };
 
-const faqSchema = {
+const jsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: [
+  '@graph': [
     {
-      '@type': 'Question',
-      name: 'How does the Qibla finder work?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'We use your device GPS (or a city search) to get your latitude and longitude, then compute the exact bearing to the Kaaba using the great‑circle formula.',
-      },
+      '@type': 'SoftwareApplication',
+      name: 'Qibla Finder',
+      applicationCategory: 'LifestyleApplication',
+      operatingSystem: 'Web',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      description:
+        'Find the exact Qibla direction (towards the Kaaba in Mecca) from any location using GPS or city search, with a live compass and distance display.',
+      url: 'https://iloveislam.life/qibla',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
     },
     {
-      '@type': 'Question',
-      name: 'Is the Qibla direction accurate?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Yes, it’s calculated using the standard spherical Earth model, typically accurate within 1°. For best results, enable the live compass and hold your phone flat.',
-      },
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Qibla Finder', item: 'https://iloveislam.life/qibla' },
+      ],
     },
     {
-      '@type': 'Question',
-      name: 'Can I use this without giving location permission?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Absolutely. You can search for any city in the world and get the fixed Qibla direction. The live compass requires device orientation permission, but the static direction works without it.',
-      },
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'How accurate is the Qibla direction?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'The Qibla is calculated using the great‑circle formula, accurate to within 1°. For best results, enable the live compass and hold your phone flat away from metal objects.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Can I use the Qibla finder without GPS?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Yes, you can search for any city and the tool will show the fixed Qibla bearing. The live compass requires device orientation permission.',
+          },
+        },
+      ],
     },
   ],
 };
 
-export default function QiblaLayout({ children }: { children: React.ReactNode }) {
+export default function QiblaFinderLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       {children}
     </>

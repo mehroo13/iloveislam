@@ -1,44 +1,74 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Hijri Calendar Converter — Convert Dates Between Gregorian & Hijri | I Love Islam',
+  title: 'Hijri Calendar Converter — Gregorian to Hijri & Islamic Date Today | I Love Islam',
   description:
-    'Convert any Gregorian date to Hijri and vice versa. See today’s Islamic date, upcoming events, and a list of all Hijri months. Free, no sign‑up.',
+    'Convert any date between Gregorian and Hijri calendars. See today’s Islamic date, upcoming events, and all Hijri months. Free, no sign‑up.',
+  keywords: [
+    'hijri calendar', 'islamic date today', 'hijri to gregorian', 'gregorian to hijri', 'arabic date',
+    'islamic calendar 1446', 'hijri months', 'today hijri date', 'hijri converter',
+  ],
   openGraph: {
-    title: 'Hijri Calendar Converter — Convert Dates Between Gregorian & Hijri | I Love Islam',
-    description:
-      'Convert any Gregorian date to Hijri and vice versa. See today’s Islamic date, upcoming events, and a list of all Hijri months. Free, no sign‑up.',
+    title: 'Hijri Calendar Converter | I Love Islam',
+    description: 'Convert dates between Gregorian and Hijri, see today’s Islamic date, and browse all Hijri months.',
+    url: 'https://iloveislam.life/hijri-calendar',
+    siteName: 'I Love Islam',
+    locale: 'en_US',
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Hijri Calendar Converter | I Love Islam',
+    description: 'Free Hijri to Gregorian date converter with Islamic events.',
+  },
+  alternates: { canonical: 'https://iloveislam.life/hijri-calendar' },
+  robots: {
+    index: true, follow: true,
+    googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
   },
 };
 
-const faqSchema = {
+const jsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: [
+  '@graph': [
     {
-      '@type': 'Question',
-      name: 'How does the Hijri calendar converter work?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'We use the Umm al-Qura algorithm to accurately convert dates between the Gregorian and Hijri systems. You can also see today’s Islamic date automatically.',
-      },
+      '@type': 'SoftwareApplication',
+      name: 'Hijri Calendar Converter',
+      applicationCategory: 'LifestyleApplication',
+      operatingSystem: 'Web',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      description:
+        'Convert dates between the Gregorian and Hijri calendars, view today’s Islamic date, and explore all Hijri months with their Islamic significance.',
+      url: 'https://iloveislam.life/hijri-calendar',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
     },
     {
-      '@type': 'Question',
-      name: 'What is the Hijri calendar?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'The Hijri calendar is a lunar calendar of 12 months used to determine Islamic holidays like Ramadan, Eid al-Fitr, and Eid al-Adha.',
-      },
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Hijri Calendar', item: 'https://iloveislam.life/hijri-calendar' },
+      ],
     },
     {
-      '@type': 'Question',
-      name: 'Can I convert any date?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Yes, you can pick a Gregorian date or manually enter a Hijri date (day, month, year). The converter is fast and free.',
-      },
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'What is the Hijri date today?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'The tool shows today’s Hijri date automatically when you open the page. You can also convert any Gregorian or Hijri date.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'How accurate is the Hijri conversion?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'We use the Umm al‑Qura algorithm, the most widely accepted Islamic calendar. Actual dates may vary by one day depending on moon sighting.',
+          },
+        },
+      ],
     },
   ],
 };
@@ -48,7 +78,7 @@ export default function HijriCalendarLayout({ children }: { children: React.Reac
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       {children}
     </>
