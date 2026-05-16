@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 
 /* ── Tabs ── */
@@ -52,7 +52,7 @@ const DUAS = [
   { arabic: 'اللَّهُمَّ إِنَّا نَسْأَلُكَ فِي سَفَرِنَا هَذَا البِرَّ وَالتَّقْوَى وَمِنَ العَمَلِ مَا تَرْضَى', transliteration: 'Allahumma inna nas’aluka fi safarina hadha al-birra wat-taqwa wa minal-‘amali ma tarda.', meaning: 'O Allah, we ask You for righteousness, piety, and deeds that please You', reference: 'Muslim' },
 ];
 
-/* ── Helper: format time ── */
+/* ── Format time ── */
 function formatTime(timeStr: string): string {
   if (!timeStr) return '--:--';
   const [hour, minute] = timeStr.split(':');
@@ -62,7 +62,7 @@ function formatTime(timeStr: string): string {
   return `${h12}:${minute} ${ampm}`;
 }
 
-/* ── Helper: calculate distance (km) using Haversine ── */
+/* ── Haversine distance ── */
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -89,7 +89,7 @@ interface Place {
   distance?: number;
 }
 
-/* ── Saved places ── */
+/* ── Saved place ── */
 interface SavedPlace extends Place {
   type: 'food' | 'mosque' | 'hotel';
   savedAt: number;
@@ -105,33 +105,29 @@ export default function HalalTravel() {
   const [sortBy, setSortBy] = useState<'distance' | 'name'>('distance');
   const [filterCuisine, setFilterCuisine] = useState('');
 
-  // Prayer times
   const [prayerCity, setPrayerCity] = useState('');
   const [prayerData, setPrayerData] = useState<any>(null);
   const [prayerLoading, setPrayerLoading] = useState(false);
   const [prayerError, setPrayerError] = useState('');
 
-  // Current location
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
-
-  // Saved places (localStorage)
   const [savedPlaces, setSavedPlaces] = useState<SavedPlace[]>([]);
 
-  // Load saved places on mount
+  // Load saved places
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('halal_travel_saved');
+      const saved = localStorage.getItem('halal_travel_saved_v2');
       if (saved) setSavedPlaces(JSON.parse(saved));
     }
   }, []);
 
-  // Persist saved places
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('halal_travel_saved', JSON.stringify(savedPlaces));
+      localStorage.setItem('halal_travel_saved_v2', JSON.stringify(savedPlaces));
     }
   }, [savedPlaces]);
 
+  // Get current location
   const getCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setError('Geolocation not supported');
@@ -152,6 +148,7 @@ export default function HalalTravel() {
     );
   }, []);
 
+  // Search places
   const searchPlaces = useCallback(async (type: 'food' | 'mosque' | 'hotel') => {
     let lat: number, lon: number;
     if (coords) {
@@ -168,15 +165,21 @@ export default function HalalTravel() {
         setError('Please enter a city or use your current location.');
         return;
       }
-      const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`);
-      const geoData = await geoRes.json();
-      if (!geoData.length) {
-        setError('City not found. Try another name.');
+      try {
+        const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`);
+        const geoData = await geoRes.json();
+        if (!geoData.length) {
+          setError('City not found. Try another name.');
+          setLoading(false);
+          return;
+        }
+        lat = parseFloat(geoData[0].lat);
+        lon = parseFloat(geoData[0].lon);
+      } catch {
+        setError('Could not find coordinates. Check your internet.');
         setLoading(false);
         return;
       }
-      lat = parseFloat(geoData[0].lat);
-      lon = parseFloat(geoData[0].lon);
     }
 
     setLoading(true);
@@ -185,17 +188,22 @@ export default function HalalTravel() {
     setSearchType(type);
 
     try {
-      let query: string;
+      let query = '';
       if (type === 'food') {
         query = `[out:json][timeout:30];(node["amenity"="restaurant"]["diet:halal"="yes"](around:5000,${lat},${lon});node["amenity"="fast_food"]["diet:halal"="yes"](around:5000,${lat},${lon});node["cuisine"="halal"](around:5000,${lat},${lon}););out body;`;
       } else if (type === 'mosque') {
         query = `[out:json][timeout:30];(node["amenity"="place_of_worship"]["religion"="muslim"](around:5000,${lat},${lon});way["amenity"="place_of_worship"]["religion"="muslim"](around:5000,${lat},${lon}););out center;`;
       } else {
-        query = `[out:json][timeout:30];(node["tourism"="hotel"](around:5000,${lat},${lon});node["building"="hotel"](around:5000,${lat},${lon});way["tourism"="hotel"](around:5000,${lat},${lon}););out center;`;
+        query = `[out:json][timeout:30];(node["tourism"="hotel"](around:5000,${lat},${lon});way["tourism"="hotel"](around:5000,${lat},${lon}););out center;`;
       }
 
-      const overpassRes = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
-      if (!overpassRes.ok) throw new Error('Overpass API error');
+      const overpassRes = await fetch(`https://overpass-api.de/api/interpreter`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: query,
+      });
+
+      if (!overpassRes.ok) throw new Error(`Overpass API responded with ${overpassRes.status}`);
       const overpassData = await overpassRes.json();
 
       let places: Place[] = (overpassData.elements || [])
@@ -212,20 +220,17 @@ export default function HalalTravel() {
           address: el.tags?.['addr:street'] ? `${el.tags['addr:street']} ${el.tags['addr:housenumber'] || ''}` : '',
         }));
 
-      // Calculate distance if coords available
+      // Distance & filter
       if (coords) {
         places = places.map(p => ({ ...p, distance: getDistance(coords.lat, coords.lon, p.lat, p.lon) }));
       } else {
-        // Use searched city center as reference
         places = places.map(p => ({ ...p, distance: getDistance(lat, lon, p.lat, p.lon) }));
       }
 
-      // Filter by cuisine if food and filter set
       if (type === 'food' && filterCuisine) {
         places = places.filter(p => p.cuisine?.toLowerCase().includes(filterCuisine.toLowerCase()));
       }
 
-      // Sort
       if (sortBy === 'distance') {
         places.sort((a, b) => (a.distance || 0) - (b.distance || 0));
       } else {
@@ -234,28 +239,31 @@ export default function HalalTravel() {
 
       setResults(places.slice(0, 30));
       if (places.length === 0) {
-        setError(`No ${type === 'food' ? 'halal restaurants' : type === 'mosque' ? 'mosques' : 'hotels'} found.`);
+        setError(`No results found. Try a larger city or check your internet.`);
       }
-    } catch (e) {
-      setError('Search failed. Check your connection.');
+    } catch (err: any) {
+      console.error('Search error:', err);
+      setError('Search failed. This may be a network issue. You can also search directly on Google Maps:');
     } finally {
       setLoading(false);
     }
   }, [city, coords, filterCuisine, sortBy]);
 
-  const openDirections = (lat: number, lon: number, name: string) => {
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&destination_place_id=${encodeURIComponent(name)}`, '_blank');
+  // Open directions in Google Maps
+  const openDirections = (lat: number, lon: number) => {
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`, '_blank');
   };
 
-  const openMap = (lat: number, lon: number) => {
-    window.open(`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}&zoom=17`, '_blank');
+  const openGoogleMapsSearch = (type: string) => {
+    const query = type === 'food' ? 'halal+restaurants+near+' + encodeURIComponent(city || 'me') : type === 'mosque' ? 'mosques+near+' + encodeURIComponent(city || 'me') : 'hotels+near+' + encodeURIComponent(city || 'me');
+    window.open(`https://www.google.com/maps/search/${query}`, '_blank');
   };
 
   const savePlace = (place: Place, type: 'food' | 'mosque' | 'hotel') => {
     setSavedPlaces(prev => {
       const exists = prev.find(p => p.id === place.id && p.type === type);
-      if (exists) return prev; // already saved
-      return [{ ...place, type, savedAt: Date.now() }, ...prev].slice(0, 50); // max 50
+      if (exists) return prev;
+      return [{ ...place, type, savedAt: Date.now() }, ...prev].slice(0, 50);
     });
   };
 
@@ -263,10 +271,9 @@ export default function HalalTravel() {
     setSavedPlaces(prev => prev.filter(p => !(p.id === id && p.type === type)));
   };
 
-  const isPlaceSaved = (id: number, type: 'food' | 'mosque' | 'hotel') => {
-    return savedPlaces.some(p => p.id === id && p.type === type);
-  };
+  const isPlaceSaved = (id: number, type: string) => savedPlaces.some(p => p.id === id && p.type === type);
 
+  // Prayer times
   const fetchPrayerTimes = async () => {
     if (!prayerCity.trim()) return;
     setPrayerLoading(true);
@@ -279,24 +286,23 @@ export default function HalalTravel() {
       const { lat, lon } = geoData[0];
       const today = new Date();
       const dateStr = `${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`;
-      const res = await fetch(`https://api.aladhan.com/v1/timings/${dateStr}?latitude=${lat}&longitude=${lon}&method=2`);
+      const [res, hijriRes] = await Promise.all([
+        fetch(`https://api.aladhan.com/v1/timings/${dateStr}?latitude=${lat}&longitude=${lon}&method=2`),
+        fetch(`https://api.aladhan.com/v1/gToH/${dateStr}`),
+      ]);
       const data = await res.json();
+      const hijriData = await hijriRes.json();
       if (data.code === 200) {
-        // Also get Hijri date
-        const hijriRes = await fetch(`https://api.aladhan.com/v1/gToH/${dateStr}`);
-        const hijriData = await hijriRes.json();
-        const hijri = hijriData.code === 200 ? hijriData.data.hijri : null;
         setPrayerData({
           timings: data.data.timings,
           city: geoData[0].display_name.split(',')[0],
-          hijri: hijri ? `${hijri.day} ${hijri.month.en} ${hijri.year}` : '',
+          hijri: hijriData.code === 200 ? `${hijriData.data.hijri.day} ${hijriData.data.hijri.month.en} ${hijriData.data.hijri.year}` : '',
         });
       } else setPrayerError('Could not fetch prayer times.');
     } catch { setPrayerError('Network error.'); }
     setPrayerLoading(false);
   };
 
-  // Next prayer indicator
   const getNextPrayer = (timings: Record<string, string>) => {
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
@@ -317,7 +323,6 @@ export default function HalalTravel() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/30 to-white font-serif">
-      {/* Header */}
       <header className="bg-gradient-to-r from-emerald-900 to-emerald-700 text-white px-5 py-4 shadow-lg sticky top-0 z-20">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <Link href="/" className="text-white/80 hover:text-white text-sm">← Back</Link>
@@ -326,7 +331,6 @@ export default function HalalTravel() {
         </div>
       </header>
 
-      {/* Tabs */}
       <div className="bg-white border-b border-gray-100 sticky top-[57px] z-10 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 flex overflow-x-auto gap-1 py-2">
           {TABS.map(tab => (
@@ -348,7 +352,6 @@ export default function HalalTravel() {
       </div>
 
       <main className="max-w-3xl mx-auto px-4 py-6 pb-12 space-y-5">
-        {/* Common search bar for Food, Mosque, Hotel */}
         {['food', 'mosque', 'hotel'].includes(activeTab) && (
           <div className={cardClass + ' space-y-4'}>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -374,39 +377,28 @@ export default function HalalTravel() {
             </div>
             {coords && !city && <p className="text-xs text-emerald-600">Using your current location</p>}
 
-            {/* Sort & Filter (only for food) */}
             {activeTab === 'food' && (
               <div className="flex gap-2 flex-wrap">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as 'distance' | 'name')}
-                  className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white"
-                >
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value as 'distance' | 'name')} className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
                   <option value="distance">Sort by distance</option>
                   <option value="name">Sort by name</option>
                 </select>
                 <input
                   type="text"
-                  placeholder="Filter by cuisine (e.g. Turkish, Indian)"
+                  placeholder="Filter by cuisine (e.g. Turkish)"
                   value={filterCuisine}
                   onChange={(e) => setFilterCuisine(e.target.value)}
-                  className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white w-48"
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white w-44"
                 />
-                <button
-                  onClick={() => searchPlaces('food')}
-                  className="text-xs bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-lg"
-                >
-                  Apply
-                </button>
+                <button onClick={() => searchPlaces('food')} className="text-xs bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-lg">Apply</button>
               </div>
             )}
           </div>
         )}
 
-        {/* Loading skeleton */}
         {loading && (
           <div className="space-y-3">
-            {[1, 2, 3].map(i => (
+            {[1,2,3].map(i => (
               <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
                 <div className="flex gap-3">
                   <div className="w-10 h-10 bg-gray-200 rounded-xl" />
@@ -421,23 +413,27 @@ export default function HalalTravel() {
           </div>
         )}
 
-        {/* Error */}
         {error && !loading && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-600">{error}</div>
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-600">
+            <p>{error}</p>
+            {error.includes('Search failed') && (
+              <button onClick={() => openGoogleMapsSearch(activeTab)} className="mt-2 text-white bg-blue-600 px-4 py-2 rounded-lg text-sm">
+                🔍 Search on Google Maps
+              </button>
+            )}
+          </div>
         )}
 
-        {/* Results */}
         {results.length > 0 && !loading && (
           <>
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-500">
                 Found <strong className="text-emerald-800">{results.length}</strong> {activeTab === 'food' ? 'halal restaurants' : activeTab === 'mosque' ? 'mosques' : 'hotels'}
               </p>
-              <p className="text-xs text-gray-400">{sortBy === 'distance' ? 'Sorted by distance' : 'Sorted by name'}</p>
             </div>
             <div className="space-y-3">
               {results.map(place => {
-                const saved = isPlaceSaved(place.id, activeTab as 'food' | 'mosque' | 'hotel');
+                const saved = isPlaceSaved(place.id, activeTab);
                 return (
                   <div key={place.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:border-emerald-200 transition-all">
                     <div className="flex items-start justify-between gap-4">
@@ -462,14 +458,11 @@ export default function HalalTravel() {
                         </div>
                       </div>
                       <div className="flex flex-col gap-1.5 flex-shrink-0">
-                        <button onClick={() => openDirections(place.lat, place.lon, place.name)} className="bg-emerald-800 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-emerald-700 whitespace-nowrap">
+                        <button onClick={() => openDirections(place.lat, place.lon)} className="bg-emerald-800 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-emerald-700 whitespace-nowrap">
                           🧭 Directions
                         </button>
-                        <button onClick={() => openMap(place.lat, place.lon)} className="border border-gray-200 text-gray-600 text-xs px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap">
-                          🗺️ Map
-                        </button>
                         <button
-                          onClick={() => saved ? removeSavedPlace(place.id, activeTab as 'food' | 'mosque' | 'hotel') : savePlace(place, activeTab as 'food' | 'mosque' | 'hotel')}
+                          onClick={() => saved ? removeSavedPlace(place.id, activeTab as 'food'|'mosque'|'hotel') : savePlace(place, activeTab as 'food'|'mosque'|'hotel')}
                           className={`text-xs px-3 py-1.5 rounded-lg whitespace-nowrap ${saved ? 'bg-amber-100 text-amber-800' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
                         >
                           {saved ? '🔖 Saved' : '🔖 Save'}
@@ -483,51 +476,25 @@ export default function HalalTravel() {
           </>
         )}
 
-        {/* Empty state tips */}
-        {!loading && results.length === 0 && !error && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 shadow-sm">
-            <p className="text-sm font-semibold text-amber-800 mb-2">💡 Tips</p>
-            <ul className="space-y-1.5">
-              {(activeTab === 'food' ? [
-                'Search for cities with a known Muslim presence',
-                'Use the current location button if you’re already there',
-                'Look for official Halal certification logos'
-              ] : activeTab === 'mosque' ? [
-                'Enter a major city name for best results',
-                'You can also use your current location',
-                'Mosques are often also community centres'
-              ] : [
-                'Enter a popular tourist destination',
-                'Hotels near city centres are more likely to be listed',
-                'Use the map link to explore the area'
-              ]).map((t, i) => (
-                <li key={i} className="text-xs text-amber-700 flex items-start gap-1.5"><span>•</span>{t}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
         {/* Saved places */}
         {savedPlaces.length > 0 && ['food', 'mosque', 'hotel'].includes(activeTab) && (
           <div className={cardClass}>
-            <h3 className="font-semibold text-gray-800 mb-3">🔖 Saved Places</h3>
+            <h3 className="font-semibold text-gray-800 mb-3">🔖 Your Saved Places</h3>
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              {savedPlaces
-                .filter(p => p.type === activeTab)
-                .map(place => (
-                  <div key={`saved-${place.id}`} className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <span>{place.type === 'food' ? '🍱' : place.type === 'mosque' ? '🕌' : '🏨'}</span>
-                      <span className="text-gray-700">{place.name}</span>
-                    </span>
-                    <button onClick={() => removeSavedPlace(place.id, place.type)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
-                  </div>
-                ))}
+              {savedPlaces.filter(p => p.type === activeTab).map(place => (
+                <div key={`saved-${place.id}`} className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2">
+                    <span>{place.type === 'food' ? '🍱' : place.type === 'mosque' ? '🕌' : '🏨'}</span>
+                    <span className="text-gray-700">{place.name}</span>
+                  </span>
+                  <button onClick={() => removeSavedPlace(place.id, place.type)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Prayer Times Tab */}
+        {/* Prayer Times */}
         {activeTab === 'prayer' && (
           <>
             <div className={cardClass + ' space-y-4'}>
@@ -543,19 +510,11 @@ export default function HalalTravel() {
                     className="pl-10 w-full border border-gray-200 rounded-xl py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
                   />
                 </div>
-                <button onClick={fetchPrayerTimes} className={btnClass}>
-                  Get Times
-                </button>
+                <button onClick={fetchPrayerTimes} className={btnClass}>Get Times</button>
               </div>
             </div>
 
-            {prayerLoading && (
-              <div className="flex flex-col items-center justify-center py-16">
-                <div className="w-10 h-10 border-4 border-emerald-800 border-t-transparent rounded-full animate-spin mb-3" />
-                <p className="text-gray-500 text-sm">Fetching prayer times...</p>
-              </div>
-            )}
-
+            {prayerLoading && <div className="text-center py-10"><div className="w-8 h-8 border-4 border-emerald-800 border-t-transparent rounded-full animate-spin mx-auto" /></div>}
             {prayerError && <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-600">{prayerError}</div>}
 
             {prayerData && !prayerLoading && (
@@ -575,7 +534,7 @@ export default function HalalTravel() {
                   );
                 })()}
                 {Object.entries(prayerData.timings).map(([key, value]: [string, any]) => {
-                  if (!['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].includes(key)) return null;
+                  if (!['Fajr','Sunrise','Dhuhr','Asr','Maghrib','Isha'].includes(key)) return null;
                   return (
                     <div key={key} className="flex items-center px-5 py-3.5 border-b border-gray-50 last:border-0">
                       <span className="text-xl mr-3">{PRAYER_ICONS[key]}</span>
@@ -586,20 +545,9 @@ export default function HalalTravel() {
                 })}
               </div>
             )}
-
-            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 shadow-sm">
-              <p className="text-sm font-semibold text-blue-800 mb-2">✈️ Traveller’s Salah Rules</p>
-              <ul className="space-y-1.5 text-xs text-blue-700">
-                <li>• Shorten 4‑rakah prayers to 2 (Qasr)</li>
-                <li>• Combine Dhuhr & Asr, Maghrib & Isha</li>
-                <li>• Valid when travelling ~80 km or more</li>
-                <li>• On a plane, pray facing Qibla if possible</li>
-              </ul>
-            </div>
           </>
         )}
 
-        {/* Travel Tips Tab (expanded) */}
         {activeTab === 'tips' && (
           <div className="space-y-3">
             {TIPS.map(tip => (
@@ -617,7 +565,6 @@ export default function HalalTravel() {
           </div>
         )}
 
-        {/* Duas Tab */}
         {activeTab === 'dua' && (
           <div className="space-y-4">
             <div className="bg-emerald-800 rounded-2xl p-5 text-center text-white shadow-md">
