@@ -1,85 +1,71 @@
-// app/faq/page.tsx
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
-// ==================== TRANSLATIONS ====================
+// ==================== FULL TRANSLATIONS (original kept + new English additions) ====================
 const FAQ_TRANSLATIONS: Record<string, any> = {
   en: {
     title: 'Frequently Asked Questions',
     subtitle: 'Find answers to common questions about I Love Islam tools',
     backToHome: '← Back to Home',
+    searchPlaceholder: 'Search questions...',
+    noResults: 'No matching questions found.',
+    allCategories: 'All',
+    contactText: 'Still have questions?',
+    contactLink: 'Contact us',
+    footerText: 'We’re here to help you on your spiritual journey.',
     categories: {
-      general: 'General Questions',
-      tools: 'About Our Tools',
-      technical: 'Technical Questions',
+      general: 'General',
+      tools: 'Tools',
+      prayer: 'Prayer & Qibla',
+      mizan: 'Mizan & Destiny',
       privacy: 'Privacy & Data',
     },
     faqs: [
-      {
-        category: 'general',
-        q: 'Is I Love Islam completely free?',
-        a: 'Yes! All our tools are 100% free to use. No hidden fees, no subscription plans, and no credit card required. We believe every Muslim should have access to quality Islamic tools without financial barriers.',
-      },
-      {
-        category: 'general',
-        q: 'Do I need to create an account?',
-        a: 'No account needed! You can use all tools immediately without registration. Some features like saving your Dhikr progress use your browser\'s local storage, but no personal data is collected on our servers.',
-      },
-      {
-        category: 'general',
-        q: 'How accurate are the prayer times?',
-        a: 'Prayer times are calculated using the Aladhan API, which uses accurate astronomical calculations based on your location. Times are adjusted for your specific city and follow standard Islamic calculation methods (Muslim World League by default).',
-      },
-      {
-        category: 'tools',
-        q: 'How does the Zakat Calculator work?',
-        a: 'Our Zakat Calculator helps you calculate your annual Zakat based on current gold/silver prices. Enter your assets (cash, gold, silver, investments, business goods) and liabilities (debts, expenses) to determine your Zakatable wealth, then calculate 2.5% of that amount.',
-      },
-      {
-        category: 'tools',
-        q: 'Is the Qibla Finder accurate?',
-        a: 'Yes! The Qibla Finder uses the great-circle calculation method (spherical law of cosines) to find the shortest path to the Kaaba in Makkah. For best accuracy, enable location services and use the compass feature on your mobile device.',
-      },
-      {
-        category: 'tools',
-        q: 'What is the Mizan Islamic Life Blueprint?',
-        a: 'Mizan is a unique self-discovery tool based on Abjad numerology, the 99 Names of Allah, and Quranic guidance. It analyzes your birth date to reveal your spiritual archetype, life purpose, divine name, recommended Dhikr, and compatibility with others. It\'s designed for reflection and inspiration.',
-      },
-      {
-        category: 'technical',
-        q: 'Does this work on mobile phones?',
-        a: 'Absolutely! All our tools are fully responsive and work perfectly on smartphones, tablets, and desktop computers. You can also install our app on your phone\'s home screen for quick access (look for "Add to Home Screen" in your browser menu).',
-      },
-      {
-        category: 'technical',
-        q: 'Why does the compass not work on my device?',
-        a: 'The compass feature requires a device with a magnetometer (most modern smartphones have one). For best results: 1) Grant location permission, 2) Enable compass when prompted, 3) Calibrate by moving your phone in a figure-8 pattern, 4) Keep your phone away from magnetic interference.',
-      },
-      {
-        category: 'privacy',
-        q: 'Do you store my personal data?',
-        a: 'No! All calculations happen locally in your browser. We do not store any personal information on our servers. Your birth date, location, and Dhikr progress are saved only in your browser\'s local storage and never sent to us.',
-      },
-      {
-        category: 'privacy',
-        q: 'Is my location shared with anyone?',
-        a: 'Your location is only used to calculate prayer times and Qibla direction within your browser. We never send your location to our servers or share it with third parties. The geolocation API is used locally and results are discarded after calculation.',
-      },
+      // ── General ──
+      { category: 'general', q: 'Is I Love Islam completely free?', a: 'Yes! All our tools are 100% free to use. No hidden fees, no subscription plans, and no credit card required. We believe every Muslim should have access to quality Islamic tools without financial barriers.' },
+      { category: 'general', q: 'Do I need to create an account?', a: 'No account needed! You can use all tools immediately without registration. Some features like saving your Dhikr progress use your browser\'s local storage, but no personal data is collected on our servers.' },
+      { category: 'general', q: 'How accurate are the prayer times?', a: 'Prayer times are calculated using the Aladhan API, which uses accurate astronomical calculations based on your location. Times are adjusted for your specific city and follow standard Islamic calculation methods (Muslim World League by default).' },
+      { category: 'general', q: 'Is the site available in multiple languages?', a: 'Yes! We support English, Arabic, Urdu, French, Turkish, Indonesian, Malay, and Bengali. More languages are being added regularly.' },
+      { category: 'general', q: 'Who built I Love Islam and why?', a: 'We are a small team of Muslims passionate about technology and faith. Our goal is to provide a single, reliable destination for essential Islamic tools — completely free for the global Ummah.' },
+
+      // ── Tools ──
+      { category: 'tools', q: 'How does the Zakat Calculator work?', a: 'Our Zakat Calculator helps you calculate your annual Zakat based on current gold/silver prices. Enter your assets (cash, gold, silver, investments, business goods) and liabilities (debts, expenses) to determine your Zakatable wealth, then calculate 2.5% of that amount.' },
+      { category: 'tools', q: 'Is the Qibla Finder accurate?', a: 'Yes! The Qibla Finder uses the great-circle calculation method to find the shortest path to the Kaaba in Makkah. For best accuracy, enable location services and use the compass feature on your mobile device.' },
+      { category: 'tools', q: 'What is the Halal Finance Check?', a: 'It’s a screening tool that asks specific questions about a financial transaction (loan, mortgage, investment, insurance, crypto, etc.) and gives a risk score based on Riba, Gharar, and Maysir. It also suggests Shariah‑compliant alternatives.' },
+      { category: 'tools', q: 'How does the Inheritance Calculator work?', a: 'It follows the Hanafi fiqh. Enter the estate value, deduct funeral costs, debts, and wasiyyah, then select the number of living heirs. The tool calculates the exact share for each heir according to Islamic inheritance law (Fara’id).' },
+      { category: 'tools', q: 'What does the Kaffarah Calculator cover?', a: 'It covers four types of Kaffarah: broken oaths, Zihar, accidental killing, and broken Ramadan fasts. You can customise local meal/clothing costs and the number of occurrences to see the monetary equivalent or fasting days.' },
+      { category: 'tools', q: 'Can I use the Halal Travel tool offline?', a: 'The travel tips, duas, and prayer times (once loaded) can be viewed offline. Searching for restaurants/mosques requires an internet connection.' },
+      { category: 'tools', q: 'What is the Islamic Names Finder?', a: 'A searchable database of over 14,585 authentic Muslim names with meanings and Arabic script. Filter by gender and save favourites.' },
+
+      // ── Prayer & Qibla ──
+      { category: 'prayer', q: 'Why does the Qibla compass seem off on my phone?', a: 'The mathematical direction is accurate. Phone compasses can be affected by magnetic interference. Calibrate your phone by moving it in a figure‑8 pattern, keep it away from metal objects, and ensure location services are enabled. The static bearing shown is always correct.' },
+      { category: 'prayer', q: 'Which calculation method should I choose for prayer times?', a: 'If you’re in North America, ISNA is common. For Europe and the Middle East, Muslim World League or Umm al‑Qura are widely used. You can switch and compare. The differences are usually only a few minutes.' },
+
+      // ── Mizan ──
+      { category: 'mizan', q: 'What is the Mizan Islamic Life Blueprint?', a: 'Mizan is a unique self-discovery tool based on Abjad numerology, the 99 Names of Allah, and Quranic guidance. It analyzes your birth date to reveal your spiritual archetype, life purpose, divine name, recommended Dhikr, and compatibility with others. It\'s designed for reflection and inspiration.' },
+      { category: 'mizan', q: 'How are the Mizan numbers calculated?', a: 'Three core numbers — Life, Soul, and Destiny — are derived from your birth date using digit‑reduction. They map to one of 9 archetypes, each linked to a specific Divine Name and Quranic guidance. Everything is computed privately in your browser.' },
+      { category: 'mizan', q: 'Is Mizan Islamic?', a: 'Mizan uses patterns to encourage reflection and closeness to Allah. All insights are aligned with Quranic verses and hadith. It is not fortune‑telling. For religious guidance, always consult a qualified scholar.' },
+
+      // ── Privacy ──
+      { category: 'privacy', q: 'Do you store my personal data?', a: 'No! All calculations happen locally in your browser. We do not store any personal information on our servers. Your birth date, location, and Dhikr progress are saved only in your browser\'s local storage and never sent to us.' },
+      { category: 'privacy', q: 'Is my location shared with anyone?', a: 'Your location is only used to calculate prayer times and Qibla direction within your browser. We never send your location to our servers or share it with third parties. The geolocation API is used locally and results are discarded after calculation.' },
+      { category: 'privacy', q: 'What about cookies?', a: 'We only use essential technical cookies for functionality (like remembering your language preference). We do not use tracking or advertising cookies.' },
     ],
-    contactText: 'Still have questions?',
-    contactLink: 'Contact us',
-    footerText: 'We\'re here to help you on your spiritual journey.',
   },
+
+  // ===== ARABIC (full original list kept) =====
   ar: {
     title: 'الأسئلة الشائعة',
     subtitle: 'اعثر على إجابات للأسئلة الشائعة حول أدوات أحب الإسلام',
     backToHome: '← العودة إلى الرئيسية',
+    searchPlaceholder: 'ابحث في الأسئلة...',
+    noResults: 'لا توجد أسئلة مطابقة.',
+    allCategories: 'الكل',
     categories: {
       general: 'أسئلة عامة',
       tools: 'عن أدواتنا',
-      technical: 'أسئلة تقنية',
       privacy: 'الخصوصية والبيانات',
     },
     faqs: [
@@ -108,14 +94,18 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
     contactLink: 'اتصل بنا',
     footerText: 'نحن هنا لمساعدتك في رحلتك الروحية.',
   },
+
+  // ===== URDU (full original kept) =====
   ur: {
     title: 'اکثر پوچھے جانے والے سوالات',
     subtitle: 'I Love Islam ٹولز کے بارے میں عام سوالات کے جوابات حاصل کریں',
     backToHome: '← ہوم پیج پر واپس',
+    searchPlaceholder: 'سوالات تلاش کریں...',
+    noResults: 'کوئی مماثل سوال نہیں ملا۔',
+    allCategories: 'تمام',
     categories: {
       general: 'عمومی سوالات',
       tools: 'ہمارے ٹولز کے بارے میں',
-      technical: 'تکنیکی سوالات',
       privacy: 'رازداری اور ڈیٹا',
     },
     faqs: [
@@ -139,14 +129,18 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
     contactLink: 'ہم سے رابطہ کریں',
     footerText: 'ہم آپ کے روحانی سفر میں آپ کی مدد کے لیے یہاں ہیں۔',
   },
+
+  // ===== FRENCH (full original kept) =====
   fr: {
     title: 'Questions Fréquemment Posées',
     subtitle: 'Trouvez des réponses aux questions courantes sur les outils I Love Islam',
     backToHome: '← Retour à l\'accueil',
+    searchPlaceholder: 'Rechercher...',
+    noResults: 'Aucune question trouvée.',
+    allCategories: 'Toutes',
     categories: {
       general: 'Questions Générales',
       tools: 'À Propos de Nos Outils',
-      technical: 'Questions Techniques',
       privacy: 'Confidentialité et Données',
     },
     faqs: [
@@ -165,14 +159,18 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
     contactLink: 'Contactez-nous',
     footerText: 'Nous sommes là pour vous aider dans votre voyage spirituel.',
   },
+
+  // ===== TURKISH (full original kept) =====
   tr: {
     title: 'Sıkça Sorulan Sorular',
     subtitle: 'I Love Islam araçları hakkında sık sorulan soruların cevaplarını bulun',
     backToHome: '← Ana Sayfaya Dön',
+    searchPlaceholder: 'Ara...',
+    noResults: 'Eşleşen soru yok.',
+    allCategories: 'Tümü',
     categories: {
       general: 'Genel Sorular',
       tools: 'Araçlarımız Hakkında',
-      technical: 'Teknik Sorular',
       privacy: 'Gizlilik ve Veri',
     },
     faqs: [
@@ -186,14 +184,18 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
     contactLink: 'Bize Ulaşın',
     footerText: 'Manevi yolculuğunuzda size yardımcı olmak için buradayız.',
   },
+
+  // ===== INDONESIAN (full original kept) =====
   id: {
     title: 'Pertanyaan yang Sering Diajukan',
     subtitle: 'Temukan jawaban untuk pertanyaan umum tentang alat I Love Islam',
     backToHome: '← Kembali ke Beranda',
+    searchPlaceholder: 'Cari...',
+    noResults: 'Tidak ada pertanyaan cocok.',
+    allCategories: 'Semua',
     categories: {
       general: 'Pertanyaan Umum',
       tools: 'Tentang Alat Kami',
-      technical: 'Pertanyaan Teknis',
       privacy: 'Privasi & Data',
     },
     faqs: [
@@ -207,14 +209,18 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
     contactLink: 'Hubungi Kami',
     footerText: 'Kami di sini untuk membantu perjalanan spiritual Anda.',
   },
+
+  // ===== MALAY (full original kept) =====
   ms: {
     title: 'Soalan Lazim',
     subtitle: 'Cari jawapan kepada soalan lazim tentang alat I Love Islam',
     backToHome: '← Kembali ke Utama',
+    searchPlaceholder: 'Cari...',
+    noResults: 'Tiada soalan sepadan.',
+    allCategories: 'Semua',
     categories: {
       general: 'Soalan Umum',
       tools: 'Mengenai Alat Kami',
-      technical: 'Soalan Teknikal',
       privacy: 'Privasi & Data',
     },
     faqs: [
@@ -228,14 +234,18 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
     contactLink: 'Hubungi Kami',
     footerText: 'Kami di sini untuk membantu perjalanan rohani anda.',
   },
+
+  // ===== BENGALI (full original kept) =====
   bn: {
     title: 'প্রায়শই জিজ্ঞাসিত প্রশ্নাবলী',
     subtitle: 'I Love Islam টুলস সম্পর্কে সাধারণ প্রশ্নের উত্তর খুঁজুন',
     backToHome: '← হোমে ফিরে যান',
+    searchPlaceholder: 'অনুসন্ধান...',
+    noResults: 'কোনো মিল পাওয়া যায়নি।',
+    allCategories: 'সব',
     categories: {
       general: 'সাধারণ প্রশ্ন',
       tools: 'আমাদের টুলস সম্পর্কে',
-      technical: 'প্রযুক্তিগত প্রশ্ন',
       privacy: 'গোপনীয়তা এবং ডেটা',
     },
     faqs: [
@@ -264,17 +274,18 @@ const LANGUAGES = [
 
 const RTL_LANGS = ['ar', 'ur'];
 
-// Category colors
 const CATEGORY_COLORS: Record<string, string> = {
   general: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   tools: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  technical: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  privacy: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  prayer: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  mizan: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  privacy: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
 };
 
 export default function FAQPage() {
   const [lang, setLang] = useState('en');
   const [activeCategory, setActiveCategory] = useState('all');
+  const [search, setSearch] = useState('');
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -294,29 +305,20 @@ export default function FAQPage() {
     setShowLangMenu(false);
   };
 
-  const categories = [
-    { id: 'all', name: 'All Questions', nameAr: 'جميع الأسئلة', nameUr: 'تمام سوالات' },
-    { id: 'general', name: 'General', nameAr: 'عام', nameUr: 'عمومی' },
-    { id: 'tools', name: 'Tools', nameAr: 'الأدوات', nameUr: 'ٹولز' },
-    { id: 'technical', name: 'Technical', nameAr: 'تقني', nameUr: 'تکنیکی' },
-    { id: 'privacy', name: 'Privacy', nameAr: 'الخصوصية', nameUr: 'رازداری' },
-  ];
-
-  const getCategoryName = (id: string) => {
-    if (lang === 'ar') {
-      const cat = categories.find(c => c.id === id);
-      return cat?.nameAr || id;
+  // Filter FAQs by category and search
+  const filteredFAQs = useMemo(() => {
+    let faqs = t.faqs || [];
+    if (activeCategory !== 'all') {
+      faqs = faqs.filter((f: any) => f.category === activeCategory);
     }
-    if (lang === 'ur') {
-      const cat = categories.find(c => c.id === id);
-      return cat?.nameUr || id;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      faqs = faqs.filter((f: any) => f.q.toLowerCase().includes(q) || f.a.toLowerCase().includes(q));
     }
-    return categories.find(c => c.id === id)?.name || id;
-  };
+    return faqs;
+  }, [t.faqs, activeCategory, search]);
 
-  const filteredFAQs = activeCategory === 'all' 
-    ? t.faqs 
-    : t.faqs.filter((faq: any) => faq.category === activeCategory);
+  const categoryKeys = Object.keys(t.categories || {});
 
   if (!mounted) {
     return (
@@ -375,56 +377,82 @@ export default function FAQPage() {
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         
+        {/* Search Bar */}
+        <div className="relative mb-6">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t.searchPlaceholder || 'Search questions...'}
+            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+          />
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+        </div>
+
         {/* Category Filters */}
-        <div className="flex flex-wrap gap-2 mb-8">
-          {categories.map(cat => (
+        <div className="flex flex-wrap gap-2 mb-6">
+          <button
+            onClick={() => setActiveCategory('all')}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+              activeCategory === 'all'
+                ? 'bg-emerald-600 text-white shadow-md'
+                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+            }`}
+          >
+            {t.allCategories || 'All'}
+          </button>
+          {categoryKeys.map(cat => (
             <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                activeCategory === cat.id
+                activeCategory === cat
                   ? 'bg-emerald-600 text-white shadow-md'
                   : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
               }`}
             >
-              {getCategoryName(cat.id)}
+              {t.categories[cat] || cat}
             </button>
           ))}
         </div>
 
         {/* FAQ List */}
-        <div className="space-y-4">
-          {filteredFAQs.map((faq: any, index: number) => (
-            <div
-              key={index}
-              className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow"
-            >
-              <details className="group">
-                <summary className="flex items-center justify-between cursor-pointer list-none p-5">
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className={`w-2 h-2 rounded-full ${CATEGORY_COLORS[faq.category]?.split(' ')[0] || 'bg-emerald-500'}`} />
-                    <h3 className="font-semibold text-gray-800 dark:text-gray-200 text-sm md:text-base">
-                      {faq.q}
-                    </h3>
+        {filteredFAQs.length === 0 ? (
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">{t.noResults || 'No matching questions.'}</div>
+        ) : (
+          <div className="space-y-4">
+            {filteredFAQs.map((faq: any, index: number) => (
+              <div
+                key={index}
+                className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow"
+              >
+                <details className="group">
+                  <summary className="flex items-center justify-between cursor-pointer list-none p-5">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className={`w-2 h-2 rounded-full ${CATEGORY_COLORS[faq.category]?.split(' ')[0] || 'bg-emerald-500'}`} />
+                      <h3 className="font-semibold text-gray-800 dark:text-gray-200 text-sm md:text-base">
+                        {faq.q}
+                      </h3>
+                    </div>
+                    <span className="text-gray-400 group-open:rotate-180 transition-transform">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </span>
+                  </summary>
+                  <div className="px-5 pb-5 pt-0">
+                    <div className={`inline-block px-2 py-1 rounded-full text-xs mb-3 ${CATEGORY_COLORS[faq.category] || 'bg-gray-100 text-gray-600'}`}>
+                      {t.categories[faq.category] || faq.category}
+                    </div>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                      {faq.a}
+                    </p>
                   </div>
-                  <span className="text-gray-400 group-open:rotate-180 transition-transform">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </span>
-                </summary>
-                <div className="px-5 pb-5 pt-0">
-                  <div className={`inline-block px-2 py-1 rounded-full text-xs mb-3 ${CATEGORY_COLORS[faq.category] || 'bg-gray-100 text-gray-600'}`}>
-                    {t.categories[faq.category] || faq.category}
-                  </div>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
-                    {faq.a}
-                  </p>
-                </div>
-              </details>
-            </div>
-          ))}
-        </div>
+                </details>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Contact Section */}
         <div className="mt-12 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 rounded-2xl p-6 text-center border border-emerald-100 dark:border-emerald-800">
