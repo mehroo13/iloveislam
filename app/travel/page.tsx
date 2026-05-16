@@ -97,6 +97,7 @@ function saveLS(k: string, v: unknown) { try { localStorage.setItem(k, JSON.stri
 function loadLS<T>(k: string, fb: T): T { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch { return fb; } }
 
 // ─── Overpass fetch — tries multiple mirrors, proper timeout ──────────────────
+// ─── Overpass fetch — tries multiple mirrors with GET fallback ────────────────
 async function overpassFetch(query: string): Promise<any[]> {
   const MIRRORS = [
     'https://overpass-api.de/api/interpreter',
@@ -104,41 +105,44 @@ async function overpassFetch(query: string): Promise<any[]> {
     'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
   ];
   for (const url of MIRRORS) {
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 20000);
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `data=${encodeURIComponent(query)}`,
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
-      if (!res.ok) continue;
-      const data = await res.json();
-      if (data.elements) return data.elements;
-    } catch { continue; }
+    // Try POST first, then GET (some mirrors prefer one over the other)
+    for (const method of ['POST', 'GET'] as const) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 25000);
+        const fetchUrl = method === 'GET'
+          ? `${url}?data=${encodeURIComponent(query)}`
+          : url;
+        const res = await fetch(fetchUrl, {
+          method,
+          ...(method === 'POST' ? {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `data=${encodeURIComponent(query)}`,
+          } : {}),
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+        if (!res.ok) continue;
+        const data = await res.json();
+        if (data.elements && data.elements.length >= 0) return data.elements;
+      } catch { continue; }
+    }
   }
-  throw new Error('All map servers are busy. Please try again.');
+  throw new Error('Map servers unavailable. Please try again in a moment.');
 }
 
-// ─── Build Overpass queries — FIXED: use "out body" not "out center" for nodes ─
+// ─── Build Overpass queries — simple & fast ───────────────────────────────────
 function buildQuery(type: 'food' | 'mosque' | 'hotel', lat: number, lon: number, radius: number): string {
   if (type === 'mosque') {
-    // Comprehensive mosque query — nodes + ways + relations, all with "out body"
-    return `[out:json][timeout:40];
+    // Keep it simple — fewer lines = faster, less likely to timeout
+    return `[out:json][timeout:25];
 (
   node["amenity"="place_of_worship"]["religion"="muslim"](around:${radius},${lat},${lon});
-  node["amenity"="place_of_worship"]["religion"="islam"](around:${radius},${lat},${lon});
-  node["building"="mosque"](around:${radius},${lat},${lon});
-  node["amenity"="place_of_worship"]["name"~"[Mm]asjid|[Mm]osque|[Jj]ame|[Mm]usalla|[Mm]usala|[Ii]slamic [Cc]enter|[Ii]slamic [Cc]entre",i](around:${radius},${lat},${lon});
   way["amenity"="place_of_worship"]["religion"="muslim"](around:${radius},${lat},${lon});
+  node["building"="mosque"](around:${radius},${lat},${lon});
   way["building"="mosque"](around:${radius},${lat},${lon});
-  way["amenity"="place_of_worship"]["name"~"[Mm]asjid|[Mm]osque|[Jj]ame|[Mm]usalla|[Mm]usala",i](around:${radius},${lat},${lon});
-  relation["amenity"="place_of_worship"]["religion"="muslim"](around:${radius},${lat},${lon});
 );
 out body center;`;
-    // "out body center" gives us both node lat/lon AND way/relation centre coordinates
   }
 
   if (type === 'food') {
@@ -433,27 +437,31 @@ export default function HalalTravel() {
     setResults([]);
     setSearchRadius(null);
 
-    // Auto-expanding radii — start at 3km for mosques (they may be sparse), 2km for food/hotel
+    // Auto-expanding radii — mosques start bigger since they can be sparse
     const RADII = type === 'mosque'
-      ? [3000, 6000, 12000, 25000, 50000]
+      ? [5000, 10000, 20000, 40000]
       : [2000, 5000, 10000, 20000];
-    const MIN_RESULTS = 3;
+    const MIN_RESULTS = 2;
 
     let elements: any[] = [];
     let usedRadius = RADII[0];
-    let lastError = '';
-
+    let fetchSucceeded = false;
     try {
       for (const r of RADII) {
         usedRadius = r;
         try {
           elements = await overpassFetch(buildQuery(type, lat, lon, r));
+          fetchSucceeded = true;
           if (elements.length >= MIN_RESULTS) break;
-        } catch (e) {
-          lastError = e instanceof Error ? e.message : String(e);
-          // If fetch itself failed, don't keep trying bigger radii — it's a network issue
-          if (lastError.includes('busy') || lastError.includes('failed')) throw new Error(lastError);
+          // Got a valid response but few results — try wider radius
+        } catch {
+          // This mirror/radius failed — keep trying with next wider radius
+          continue;
         }
+      }
+
+      if (!fetchSucceeded) {
+        throw new Error('Map servers are busy right now. Please wait 30 seconds and try again.');
       }
 
       const defaultName = type === 'food' ? 'Halal Restaurant' : type === 'mosque' ? 'Mosque' : 'Hotel';
