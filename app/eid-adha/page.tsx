@@ -817,7 +817,7 @@ export default function EidulAdha() {
               <p style={{ color: C.gold, fontSize: 13, fontWeight: 700, margin: '0 0 6px', fontFamily: 'Lora, serif', textTransform: 'uppercase', letterSpacing: 0.8 }}>🕌 Find Eid Prayer Near You</p>
               <p style={{ fontSize: 12, color: C.muted, margin: '0 0 14px', lineHeight: 1.6 }}>Eid prayer is performed in congregation after sunrise on Eid day. Tap below to find your nearest mosque.</p>
               <button
-                onClick={() => window.open('https://iloveislam.life/halal-travel', '_blank')}
+                onClick={() => window.open('https://www.iloveislam.life/mosque', '_blank')}
                 style={{ width: '100%', padding: '14px 0', borderRadius: 14, background: `linear-gradient(135deg, ${C.gold}, #a07030)`, color: '#0d1117', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Lora, Georgia, serif' }}>
                 🗺️ Find Nearest Mosque → Halal Travel Tool
               </button>
