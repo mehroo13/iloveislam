@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import Script from 'next/script';
 
@@ -275,7 +276,6 @@ const ALL_FEATURED_TOOLS = [
   { href: '/kaffarah', badge: '📋 Fiqh', title: 'Kaffarah Calculator', desc: 'Expiation for broken oaths and fasts', icon: '📋', gradient: 'linear-gradient(135deg, #0f0a00, #1f1400)', accent: '#fbbf24' },
   { href: '/names-finder', badge: '✏️ Names', title: 'Islamic Name Finder', desc: 'Beautiful names with meanings & origins', icon: '✏️', gradient: 'linear-gradient(135deg, #100a18, #201030)', accent: '#d8b4fe' },
   { href: '/eid', badge: '🗓️ Events', title: 'Islamic Events', desc: 'Eid, Ramadan & key Islamic dates', icon: '🗓️', gradient: 'linear-gradient(135deg, #1a0c00, #3d1a00)', accent: '#fdba74' },
-  // ── NEW: Eid ul Adha Toolkit ──
   { href: '/eid-adha', badge: '🐄 Eid ul Adha', title: 'Eid ul Adha Toolkit', desc: 'Qurbani calc, takbeer, checklist & recipes', icon: '🐄', gradient: 'linear-gradient(135deg, #0d1a00, #1a3300)', accent: '#a3e635' },
 ];
 
@@ -320,7 +320,6 @@ const TOOLS_DATA = (t: TranslationsType) => [
       { name: 'Mosque Finder', desc: 'Nearest masjid', icon: '🕌', href: '/mosque', color: 'bg-emerald-100 text-emerald-700' },
       { name: 'Islamic Names', desc: 'Name meanings', icon: '✏️', href: '/names-finder', color: 'bg-violet-100 text-violet-700' },
       { name: 'Islamic Events', desc: 'Eid & Ramadan dates', icon: '🗓️', href: '/eid', color: 'bg-amber-100 text-amber-700' },
-      // ── NEW: Eid ul Adha Toolkit ──
       { name: 'Eid ul Adha Toolkit', desc: 'Qurbani, takbeer & more', icon: '🐄', href: '/eid-adha', color: 'bg-lime-100 text-lime-700' },
     ],
   },
@@ -776,9 +775,23 @@ export default function Home() {
           </div>
 
           <div className="relative z-10 px-4 pt-3 pb-8 max-w-6xl mx-auto">
-            {/* Top nav bar */}
+            {/* ── TOP NAV BAR ── */}
             <div className="flex items-center justify-between mb-6" dir="ltr">
-              <div className="flex items-center gap-0.5">
+
+              {/* LEFT: Logo image + nav links */}
+              <div className="flex items-center gap-1">
+                {/* Logo image — top left */}
+                <Link href="/" aria-label="I Love Islam — Home" className="flex-shrink-0 mr-1 hover:opacity-80 transition-opacity">
+                  <Image
+                    src="/logo.png"
+                    alt="I Love Islam"
+                    width={36}
+                    height={36}
+                    className="rounded-lg"
+                    priority
+                  />
+                </Link>
+
                 {[
                   { href: '/about', label: t.about },
                   { href: '/blog', label: t.blog },
@@ -795,6 +808,7 @@ export default function Home() {
                 ))}
               </div>
 
+              {/* RIGHT: Dark mode toggle + language switcher */}
               <div className="flex items-center gap-2">
                 <button
                   onClick={toggleDark}
@@ -837,7 +851,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Logo + tagline */}
+            {/* Logo + tagline (centre hero) */}
             <div className="text-center">
               <Link
                 href="/"
@@ -1004,10 +1018,17 @@ export default function Home() {
         <footer className="mt-8 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
           <div className="max-w-6xl mx-auto px-4 py-6">
             <div className="text-center mb-4">
-              <Link href="/" className="text-emerald-700 dark:text-emerald-500 text-xl hover:opacity-80 transition-opacity" style={{ fontFamily: 'serif' }}>
-                ♡ I Love Islam
+              {/* ── Logo image replacing the text link in footer ── */}
+              <Link href="/" aria-label="I Love Islam — Home" className="inline-block hover:opacity-80 transition-opacity">
+                <Image
+                  src="/logo.png"
+                  alt="I Love Islam"
+                  width={52}
+                  height={52}
+                  className="rounded-xl mx-auto"
+                />
               </Link>
-              <p className="text-emerald-700 dark:text-emerald-500 text-base mt-1" style={{ fontFamily: 'serif' }}>بسم الله الرحمن الرحيم</p>
+              <p className="text-emerald-700 dark:text-emerald-500 text-base mt-2" style={{ fontFamily: 'serif' }}>بسم الله الرحمن الرحيم</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t.footerMade} · {t.footerFree}</p>
             </div>
 
