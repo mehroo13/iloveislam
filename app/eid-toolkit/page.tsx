@@ -498,7 +498,7 @@ export default function EidulAdha() {
                   {partners.map((p, i) => (
                     <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: C.bgCard, borderRadius: 10, border: `1px solid ${p.paid ? C.green + '55' : C.border}` }}>
                       <span style={{ fontSize: 13, color: C.text }}>{i + 1}. {p.name || `Person ${i + 1}`}</span>
-                      <div style={{ display: 'flex', items: 'center', gap: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span style={{ fontSize: 13, fontWeight: 700, color: C.gold }}>{currency} {perShare.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                         <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 8, background: p.paid ? C.greenPale : C.bgCard2, color: p.paid ? C.greenLight : C.muted, border: `1px solid ${p.paid ? C.green + '44' : C.border}` }}>
                           {p.paid ? '✅' : '⏳'}
