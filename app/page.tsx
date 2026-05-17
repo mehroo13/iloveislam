@@ -785,9 +785,9 @@ export default function Home() {
                   <Image
                     src="/logo.png"
                     alt="I Love Islam"
-                    width={36}
-                    height={36}
-                    className="rounded-lg"
+                    width={52}
+                    height={52}
+                    className="rounded-xl"
                     priority
                   />
                 </Link>
@@ -1023,9 +1023,9 @@ export default function Home() {
                 <Image
                   src="/logo.png"
                   alt="I Love Islam"
-                  width={52}
-                  height={52}
-                  className="rounded-xl mx-auto"
+                  width={72}
+                  height={72}
+                  className="rounded-2xl mx-auto"
                 />
               </Link>
               <p className="text-emerald-700 dark:text-emerald-500 text-base mt-2" style={{ fontFamily: 'serif' }}>بسم الله الرحمن الرحيم</p>
