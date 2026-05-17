@@ -137,7 +137,7 @@ export default function RootLayout({
         {/* Icons */}
         <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="manifest" href="/manifest.json" />
+        <link rel="manifest" href="/manifest.json?v=2" />
 
         {/* WebSite Schema */}
         <script
