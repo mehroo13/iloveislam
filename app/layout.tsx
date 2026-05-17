@@ -93,11 +93,13 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon.png", type: "image/png" },
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/favicon.png",  type: "image/png", sizes: "32x32"   },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
     ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
     shortcut: "/favicon.png",
   },
   manifest: "/manifest.json",
@@ -131,7 +133,6 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="application-name" content="I Love Islam" />
         <meta name="msapplication-TileColor" content="#0a3d2e" />
-        <meta name="msapplication-TileImage" content="/icon-144.png" />
 
         {/* Icons */}
         <link rel="icon" href="/favicon.png" type="image/png" />
@@ -194,11 +195,11 @@ export default function RootLayout({
               description: "Fun and educational Islamic games for children",
               numberOfItems: 5,
               itemListElement: [
-                { "@type": "ListItem", position: 1, name: "Memory Match Game", url: "https://www.iloveislam.life/kids/games/memory-match" },
-                { "@type": "ListItem", position: 2, name: "Learn to Pray", url: "https://www.iloveislam.life/kids/games/prayer-guide" },
-                { "@type": "ListItem", position: 3, name: "Arabic Letters", url: "https://www.iloveislam.life/kids/games/arabic-letters" },
-                { "@type": "ListItem", position: 4, name: "Dua Memory", url: "https://www.iloveislam.life/kids/games/dua-memory" },
-                { "@type": "ListItem", position: 5, name: "5 Pillars of Islam Quiz", url: "https://www.iloveislam.life/kids/games/pillars-quiz" },
+                { "@type": "ListItem", position: 1, name: "Memory Match Game",       url: "https://www.iloveislam.life/kids/games/memory-match"   },
+                { "@type": "ListItem", position: 2, name: "Learn to Pray",           url: "https://www.iloveislam.life/kids/games/prayer-guide"    },
+                { "@type": "ListItem", position: 3, name: "Arabic Letters",          url: "https://www.iloveislam.life/kids/games/arabic-letters"  },
+                { "@type": "ListItem", position: 4, name: "Dua Memory",              url: "https://www.iloveislam.life/kids/games/dua-memory"      },
+                { "@type": "ListItem", position: 5, name: "5 Pillars of Islam Quiz", url: "https://www.iloveislam.life/kids/games/pillars-quiz"    },
               ],
             }),
           }}
