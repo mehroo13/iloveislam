@@ -783,7 +783,7 @@ export default function Home() {
                 {/* Logo image — top left */}
                 <Link href="/" aria-label="I Love Islam — Home" className="flex-shrink-0 mr-1 hover:opacity-80 transition-opacity">
                   <Image
-                    src="/logo.png"
+                    src="/logo2.png"
                     alt="I Love Islam"
                     width={52}
                     height={52}
