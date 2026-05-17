@@ -987,7 +987,7 @@ export default function Home() {
             {/* Top row */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6 mb-6">
               <Link href="/" className="flex items-center gap-2.5 group">
-                <div className="relative h-9 w-20 flex-shrink-0">
+                <div className="relative w-9 h-9 flex-shrink-0">
                   <Image src="/logo.png" alt="I Love Islam" fill className="object-contain" />
                 </div>
                 <div>
