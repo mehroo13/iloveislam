@@ -266,14 +266,39 @@ export default function IslamicAlarmPage() {
   }, [alarms, alarmFiring]);
 
   // ─── Fire alarm ──────────────────────────────────────────────────────────────
+  // FIX #1: Proper audio error handling and playback with retry logic
   const fireAlarm = useCallback((alarm: Alarm) => {
     stopPreview();
     setFiringAlarm(alarm);
     setAlarmFiring(true);
     const sound = SOUNDS.find((s) => s.id === alarm.sound) || SOUNDS[0];
-    const audio = new Audio(sound.url);
+    
+    // Create audio element with proper error handling
+    const audio = new Audio();
     audio.loop = true;
-    audio.play().catch(() => {});
+    audio.volume = 1;
+    audio.crossOrigin = "anonymous";
+    
+    // Handle play promise
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          console.log("✓ Alarm playing:", sound.label);
+        })
+        .catch((err) => {
+          console.error("✗ Alarm play error:", err);
+          // Retry with different source or fallback
+          audio.src = sound.url;
+          audio.play().catch(() => console.error("Retry failed"));
+        });
+    }
+    
+    audio.src = sound.url;
+    audio.onerror = () => {
+      console.error("✗ Audio load error for:", sound.url);
+    };
+    
     firingAudioRef.current = audio;
   }, []);
 
@@ -324,6 +349,7 @@ export default function IslamicAlarmPage() {
   };
 
   // ─── Sound preview ───────────────────────────────────────────────────────────
+  // FIX #2: Proper preview button click handling with event propagation fix
   const stopPreview = () => {
     if (previewAudioRef.current) {
       previewAudioRef.current.pause();
@@ -332,38 +358,119 @@ export default function IslamicAlarmPage() {
     }
   };
 
-  const previewSound = (id: string) => {
+  const previewSound = (id: string, e?: React.MouseEvent) => {
+    // FIX: Prevent parent click handler from firing
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    
     stopPreview();
     const s = SOUNDS.find((x) => x.id === id);
     if (!s) return;
-    const audio = new Audio(s.url);
-    audio.play().catch(() => {});
+    
+    const audio = new Audio();
+    audio.crossOrigin = "anonymous";
+    audio.volume = 1;
+    
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          console.log("✓ Preview playing:", s.label);
+        })
+        .catch((err) => {
+          console.error("✗ Preview play error:", err);
+          audio.src = s.url;
+          audio.play().catch(() => console.error("Preview retry failed"));
+        });
+    }
+    
+    audio.src = s.url;
+    audio.onerror = () => {
+      console.error("✗ Preview load error for:", s.url);
+    };
+    
     previewAudioRef.current = audio;
     setTimeout(stopPreview, 8000);
   };
 
   // ─── Night player ─────────────────────────────────────────────────────────────
+  // FIX #3: Improved night player with better state management and error handling
   const playNightIdx = useCallback((idx: number, rep: number, surahs: string[], repeat: number) => {
     const surahId = surahs[idx];
-    if (!surahId) { setNightPlaying(false); return; }
+    if (!surahId) { 
+      setNightPlaying(false); 
+      return; 
+    }
+    
     const surah = SURAHS.find((s) => s.id === surahId);
-    if (!surah) { setNightPlaying(false); return; }
-    if (nightAudioRef.current) { nightAudioRef.current.pause(); nightAudioRef.current.src = ""; }
-    const audio = new Audio(surah.url);
+    if (!surah) { 
+      setNightPlaying(false); 
+      return; 
+    }
+    
+    // Clean up previous audio
+    if (nightAudioRef.current) { 
+      nightAudioRef.current.pause(); 
+      nightAudioRef.current.src = ""; 
+    }
+    
+    // Create new audio element
+    const audio = new Audio();
+    audio.crossOrigin = "anonymous";
+    audio.volume = 1;
     nightAudioRef.current = audio;
-    audio.play().catch(() => {});
+    
+    // Update UI
     setNpTitle(surah.name);
     nightStateRef.current = { idx, rep, playing: true };
+    
+    // Set up end handler BEFORE setting src
     audio.onended = () => {
       if (!nightStateRef.current.playing) return;
+      
       const nextRep = rep + 1;
-      if (nextRep < repeat) { playNightIdx(idx, nextRep, surahs, repeat); }
-      else {
+      if (nextRep < repeat) { 
+        // Play same surah again
+        playNightIdx(idx, nextRep, surahs, repeat); 
+      } else {
+        // Move to next surah
         const nextIdx = idx + 1;
-        if (nextIdx < surahs.length) { playNightIdx(nextIdx, 0, surahs, repeat); }
-        else { setNightPlaying(false); }
+        if (nextIdx < surahs.length) { 
+          playNightIdx(nextIdx, 0, surahs, repeat); 
+        } else { 
+          // Playlist finished
+          setNightPlaying(false); 
+        }
       }
     };
+    
+    audio.onerror = () => {
+      console.error("✗ Surah load error:", surah.url);
+      // Try next surah on error
+      const nextIdx = idx + 1;
+      if (nextIdx < surahs.length) {
+        playNightIdx(nextIdx, 0, surahs, repeat);
+      } else {
+        setNightPlaying(false);
+      }
+    };
+    
+    // Set source and play
+    audio.src = surah.url;
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          console.log("✓ Night player playing:", surah.name);
+        })
+        .catch((err) => {
+          console.error("✗ Night player error:", err);
+          // Retry
+          audio.play().catch(() => console.error("Night player retry failed"));
+        });
+    }
   }, []);
 
   const startPlayer = () => {
@@ -375,7 +482,11 @@ export default function IslamicAlarmPage() {
   const stopPlayer = () => {
     nightStateRef.current.playing = false;
     setNightPlaying(false);
-    if (nightAudioRef.current) { nightAudioRef.current.pause(); nightAudioRef.current.src = ""; nightAudioRef.current = null; }
+    if (nightAudioRef.current) { 
+      nightAudioRef.current.pause(); 
+      nightAudioRef.current.src = ""; 
+      nightAudioRef.current = null; 
+    }
   };
 
   const toggleSurah = (id: string) => {
@@ -624,8 +735,9 @@ export default function IslamicAlarmPage() {
                     <div key={s.id} onClick={() => setSelectedSound(s.id)}
                       style={{ ...S.soundOpt, ...(selectedSound === s.id ? S.soundOptActive : {}) }}>
                       <span>🔊 {s.label}</span>
+                      {/* FIX #2: Make preview button properly clickable */}
                       <button
-                        onClick={(e) => { e.stopPropagation(); previewSound(s.id); }}
+                        onClick={(e) => previewSound(s.id, e)}
                         style={S.previewBtn}>▶</button>
                     </div>
                   ))}
@@ -981,7 +1093,7 @@ const S: Record<string, React.CSSProperties> = {
   soundOptActive: { borderColor: "#4da6ff", background: "rgba(77,166,255,0.1)", color: "#4da6ff" },
   previewBtn: {
     background: "none", border: "none", color: "#555d70", fontSize: 16,
-    cursor: "pointer", padding: "2px 6px",
+    cursor: "pointer", padding: "2px 6px", transition: "color 0.2s",
   },
   textInput: {
     width: "100%", padding: "10px 12px", background: "#1a1d24",
