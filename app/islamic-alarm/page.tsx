@@ -105,7 +105,7 @@ const SLEEP_LIST: CheckItem[] = [
   { id: "wudu", text: "Perform Wudu", arabic: "الوضوء" },
   { id: "right_side", text: "Sleep on your right side", arabic: "النوم على الجانب الأيمن" },
   { id: "ayatul_kursi", text: "Recite Ayatul Kursi", arabic: "آية الكرسي" },
-  { id: "three_quls", text: "Recite the Three Quls (3× each )", arabic: "المعوذات" },
+  { id: "three_quls", text: "Recite the Three Quls (3× each)", arabic: "المعوذات" },
   { id: "tasbih", text: "SubhanAllah 33x · Alhamdulillah 33x · Allahu Akbar 34x", arabic: "التسبيح" },
   { id: "sleep_dua", text: "Recite sleeping dua", arabic: "دعاء النوم" },
   { id: "forgive", text: "Forgive everyone before sleeping", arabic: "العفو" },
@@ -217,7 +217,7 @@ export default function IslamicAlarmPage() {
       try {
         const n = new Date();
         const res = await fetch(
-          `https://api.aladhan.com/v1/timings/${n.getDate( )}-${n.getMonth() + 1}-${n.getFullYear()}?latitude=${lat}&longitude=${lon}&method=2`
+          `https://api.aladhan.com/v1/timings/${n.getDate()}-${n.getMonth() + 1}-${n.getFullYear()}?latitude=${lat}&longitude=${lon}&method=2`
         );
         const data = await res.json();
         if (data.code === 200) {
@@ -243,7 +243,7 @@ export default function IslamicAlarmPage() {
       async (pos) => {
         const { latitude: lat, longitude: lon } = pos.coords;
         try {
-          const g = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json` );
+          const g = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
           const gd = await g.json();
           const city = [gd.address.city || gd.address.town || gd.address.village || "", gd.address.country || ""]
             .filter(Boolean)
@@ -255,7 +255,7 @@ export default function IslamicAlarmPage() {
       },
       async () => {
         try {
-          const r = await fetch("https://ipapi.co/json/" );
+          const r = await fetch("https://ipapi.co/json/");
           const d = await r.json();
           fetchPrayers(d.latitude, d.longitude, `${d.city}, ${d.country_name}`);
         } catch {
@@ -306,7 +306,6 @@ export default function IslamicAlarmPage() {
         });
     };
 
-    // Try to play immediately, or wait for user interaction
     playAudio();
     const resumeOnClick = () => {
       if (!firingAudioRef.current) {
