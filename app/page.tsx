@@ -68,10 +68,10 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'About', blog: 'Blog', privacy: 'Privacy', contact: 'Contact', faq: 'FAQ', terms: 'Terms',
     mostUsed: 'Most Used', daily: 'Daily Practice', finance: 'Finance & Giving', travel: 'Travel & Knowledge', kids: '🧒 Kids Corner',
     footerMade: 'Made with ❤️ for the Ummah', footerFree: 'Always Free · No Sign-up',
-    stats: { tools: '23 Free Tools', free: '100% Free', noSignup: 'No Sign-up', mobile: 'Works on Mobile', world: 'Works Worldwide', fast: 'Always Fast' },
+    stats: { tools: '24 Free Tools', free: '100% Free', noSignup: 'No Sign-up', mobile: 'Works on Mobile', world: 'Works Worldwide', fast: 'Always Fast' },
     aboutTitle: 'About I Love Islam Tools',
     aboutText1: 'I Love Islam is a free collection of Islamic tools for Muslims worldwide — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Hijri Calendar, Kaffarah Calculator, and much more. Everything in one place, completely free.',
-    aboutText2: 'Our tools include Dhikr counter, 99 Names of Allah, Halal Travel guide, Mosque Finder, Islamic Inheritance Calculator, Sadaqah Tracker, Eid ul Adha toolkit, and our unique Mizan Islamic Life Blueprint.',
+    aboutText2: 'Our tools include Dhikr counter, 99 Names of Allah, Halal Travel guide, Mosque Finder, Islamic Inheritance Calculator, Sadaqah Tracker, Eid ul Adha toolkit, Islamic Alarm, and our unique Mizan Islamic Life Blueprint.',
     newsletterTitle: 'Weekly Islamic Guidance',
     newsletterSubtitle: 'Spiritual reminders and tool updates.',
     newsletterPlaceholder: 'Your email',
@@ -86,10 +86,10 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'عن الموقع', blog: 'مدونة', privacy: 'الخصوصية', contact: 'تواصل معنا', faq: 'الأسئلة الشائعة', terms: 'الشروط',
     mostUsed: 'الأكثر استخداماً', daily: 'الممارسة اليومية', finance: 'المال والعطاء', travel: 'السفر والمعرفة', kids: '🧒 ركن الأطفال',
     footerMade: 'صُنع بمحبة للأمة الإسلامية', footerFree: 'مجاني دائماً · لا تسجيل',
-    stats: { tools: '٢٣ أداة', free: '١٠٠٪ مجاني', noSignup: 'لا تسجيل', mobile: 'يعمل على الجوال', world: 'يعمل في كل مكان', fast: 'سريع دائماً' },
+    stats: { tools: '٢٤ أداة', free: '١٠٠٪ مجاني', noSignup: 'لا تسجيل', mobile: 'يعمل على الجوال', world: 'يعمل في كل مكان', fast: 'سريع دائماً' },
     aboutTitle: 'عن أدوات أحب الإسلام',
     aboutText1: 'أحب الإسلام مجموعة مجانية من الأدوات الإسلامية للمسلمين في جميع أنحاء العالم.',
-    aboutText2: 'تشمل أدواتنا عداد الذكر وأسماء الله الحسنى ودليل السفر الحلال وأدوات عيد الأضحى والمزيد.',
+    aboutText2: 'تشمل أدواتنا عداد الذكر وأسماء الله الحسنى ودليل السفر الحلال وأدوات عيد الأضحى ومنبه إسلامي والمزيد.',
     newsletterTitle: 'توجيه إسلامي أسبوعي',
     newsletterSubtitle: 'تذكيرات روحية وتحديثات الأدوات.',
     newsletterPlaceholder: 'بريدك الإلكتروني',
@@ -104,10 +104,10 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'ہمارے بارے میں', blog: 'بلاگ', privacy: 'رازداری', contact: 'رابطہ', faq: 'سوالات', terms: 'شرائط',
     mostUsed: 'سب سے زیادہ', daily: 'روزانہ عبادت', finance: 'مال اور صدقہ', travel: 'سفر اور علم', kids: '🧒 بچوں کا کونا',
     footerMade: 'امت کے لیے محبت سے', footerFree: 'ہمیشہ مفت · کوئی رجسٹریشن نہیں',
-    stats: { tools: '٢٣ مفت ٹولز', free: '١٠٠٪ مفت', noSignup: 'سائن اپ نہیں', mobile: 'موبائل پر', world: 'دنیا بھر میں', fast: 'تیز' },
+    stats: { tools: '٢٤ مفت ٹولز', free: '١٠٠٪ مفت', noSignup: 'سائن اپ نہیں', mobile: 'موبائل پر', world: 'دنیا بھر میں', fast: 'تیز' },
     aboutTitle: 'I Love Islam کے بارے میں',
     aboutText1: 'I Love Islam دنیا بھر کے مسلمانوں کے لیے مفت اسلامی ٹولز کا مجموعہ ہے۔',
-    aboutText2: 'ذکر کاؤنٹر، اللہ کے ۹۹ نام، عید الاضحیٰ ٹول کٹ، میزان لائف بلیو پرنٹ اور بہت کچھ۔',
+    aboutText2: 'ذکر کاؤنٹر، اللہ کے ۹۹ نام، عید الاضحیٰ ٹول کٹ، اسلامی الارم، میزان لائف بلیو پرنٹ اور بہت کچھ۔',
     newsletterTitle: 'ہفتہ وار اسلامی رہنمائی',
     newsletterSubtitle: 'روحانی یاد دہانیاں اور اپ ڈیٹس۔',
     newsletterPlaceholder: 'آپ کا ای میل',
@@ -122,10 +122,10 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'À propos', blog: 'Blog', privacy: 'Confidentialité', contact: 'Contact', faq: 'FAQ', terms: 'Conditions',
     mostUsed: 'Les plus utilisés', daily: 'Pratique quotidienne', finance: 'Finance & Dons', travel: 'Voyage & Savoir', kids: '🧒 Coin des enfants',
     footerMade: 'Fait avec ❤️ pour la Oumma', footerFree: 'Toujours gratuit · Sans inscription',
-    stats: { tools: '23 Outils', free: '100% Gratuit', noSignup: 'Sans inscription', mobile: 'Mobile', world: 'Mondial', fast: 'Rapide' },
+    stats: { tools: '24 Outils', free: '100% Gratuit', noSignup: 'Sans inscription', mobile: 'Mobile', world: 'Mondial', fast: 'Rapide' },
     aboutTitle: 'À propos de I Love Islam',
     aboutText1: 'I Love Islam est une collection gratuite d\'outils islamiques — Zakat, horaires de prière, Qibla, Coran et bien plus.',
-    aboutText2: 'Compteur de Dhikr, 99 noms d\'Allah, guide de voyage halal, kit Aïd el-Adha, et notre outil unique Mizan.',
+    aboutText2: 'Compteur de Dhikr, 99 noms d\'Allah, guide de voyage halal, kit Aïd el-Adha, alarme islamique, et notre outil unique Mizan.',
     newsletterTitle: 'Guidance islamique hebdomadaire',
     newsletterSubtitle: 'Rappels spirituels et mises à jour.',
     newsletterPlaceholder: 'Votre email',
@@ -140,10 +140,10 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'Hakkında', blog: 'Blog', privacy: 'Gizlilik', contact: 'İletişim', faq: 'SSS', terms: 'Şartlar',
     mostUsed: 'En Çok Kullanılan', daily: 'Günlük İbadet', finance: 'Finans & Sadaka', travel: 'Seyahat & Bilgi', kids: '🧒 Çocuk Köşesi',
     footerMade: 'Ümmet için sevgiyle', footerFree: 'Her zaman ücretsiz',
-    stats: { tools: '23 Araç', free: '%100 Ücretsiz', noSignup: 'Kayıt yok', mobile: 'Mobil', world: 'Dünya geneli', fast: 'Hızlı' },
+    stats: { tools: '24 Araç', free: '%100 Ücretsiz', noSignup: 'Kayıt yok', mobile: 'Mobil', world: 'Dünya geneli', fast: 'Hızlı' },
     aboutTitle: 'I Love Islam Hakkında',
     aboutText1: 'I Love Islam, Müslümanlar için ücretsiz İslami araçlar — Zekat, namaz vakitleri, kıble, Kuran ve daha fazlası.',
-    aboutText2: 'Dhikr sayacı, Allah\'ın 99 ismi, helal seyahat rehberi, Kurban Bayramı araç seti ve Mizan aracımız.',
+    aboutText2: 'Dhikr sayacı, Allah\'ın 99 ismi, helal seyahat rehberi, Kurban Bayramı araç seti, İslami alarm ve Mizan aracımız.',
     newsletterTitle: 'Haftalık İslami Rehberlik',
     newsletterSubtitle: 'Manevi hatırlatmalar ve güncellemeler.',
     newsletterPlaceholder: 'E-postanız',
@@ -158,10 +158,10 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'Tentang', blog: 'Blog', privacy: 'Privasi', contact: 'Kontak', faq: 'FAQ', terms: 'Ketentuan',
     mostUsed: 'Paling Sering', daily: 'Ibadah Harian', finance: 'Keuangan & Sedekah', travel: 'Perjalanan & Ilmu', kids: '🧒 Sudut Anak',
     footerMade: 'Dibuat dengan ❤️ untuk Umat', footerFree: 'Selalu Gratis',
-    stats: { tools: '23 Alat', free: '100% Gratis', noSignup: 'Tanpa Daftar', mobile: 'Mobile', world: 'Seluruh Dunia', fast: 'Cepat' },
+    stats: { tools: '24 Alat', free: '100% Gratis', noSignup: 'Tanpa Daftar', mobile: 'Mobile', world: 'Seluruh Dunia', fast: 'Cepat' },
     aboutTitle: 'Tentang I Love Islam',
     aboutText1: 'I Love Islam adalah kumpulan alat Islam gratis — Kalkulator zakat, waktu shalat, kiblat, Al-Quran dan masih banyak lagi.',
-    aboutText2: 'Penghitung dzikir, 99 Nama Allah, panduan halal, kit Idul Adha, dan Mizan Blueprint.',
+    aboutText2: 'Penghitung dzikir, 99 Nama Allah, panduan halal, kit Idul Adha, alarm Islam, dan Mizan Blueprint.',
     newsletterTitle: 'Bimbingan Islam Mingguan',
     newsletterSubtitle: 'Pengingat spiritual dan pembaruan.',
     newsletterPlaceholder: 'Email Anda',
@@ -176,10 +176,10 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'Tentang', blog: 'Blog', privacy: 'Privasi', contact: 'Hubungi', faq: 'Soalan Lazim', terms: 'Terma',
     mostUsed: 'Paling Kerap', daily: 'Amalan Harian', finance: 'Kewangan & Sedekah', travel: 'Perjalanan & Ilmu', kids: '🧒 Sudut Kanak-kanak',
     footerMade: 'Dibuat dengan ❤️ untuk Umat', footerFree: 'Sentiasa Percuma',
-    stats: { tools: '23 Alat', free: '100% Percuma', noSignup: 'Tanpa Daftar', mobile: 'Mudah alih', world: 'Seluruh Dunia', fast: 'Laju' },
+    stats: { tools: '24 Alat', free: '100% Percuma', noSignup: 'Tanpa Daftar', mobile: 'Mudah alih', world: 'Seluruh Dunia', fast: 'Laju' },
     aboutTitle: 'Tentang I Love Islam',
     aboutText1: 'I Love Islam ialah koleksi alat Islam percuma — kalkulator zakat, waktu solat, kiblat, Al-Quran dan banyak lagi.',
-    aboutText2: 'Pembilang zikir, 99 Nama Allah, panduan halal, kit Hari Raya Aidiladha dan Mizan Blueprint.',
+    aboutText2: 'Pembilang zikir, 99 Nama Allah, panduan halal, kit Hari Raya Aidiladha, penggera Islam dan Mizan Blueprint.',
     newsletterTitle: 'Panduan Islam Mingguan',
     newsletterSubtitle: 'Peringatan rohani dan kemas kini.',
     newsletterPlaceholder: 'E-mel anda',
@@ -194,10 +194,10 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'সম্পর্কে', blog: 'ব্লগ', privacy: 'গোপনীয়তা', contact: 'যোগাযোগ', faq: 'প্রশ্নোত্তর', terms: 'শর্তাবলী',
     mostUsed: 'সর্বাধিক ব্যবহৃত', daily: 'দৈনিক ইবাদত', finance: 'অর্থ ও দান', travel: 'ভ্রমণ ও জ্ঞান', kids: '🧒 বাচ্চাদের কর্নার',
     footerMade: 'উম্মতের জন্য ভালোবাসায়', footerFree: 'সর্বদা বিনামূল্যে',
-    stats: { tools: '২৩ টুল', free: '১০০% বিনামূল্যে', noSignup: 'নিবন্ধন নেই', mobile: 'মোবাইলে', world: 'বিশ্বজুড়ে', fast: 'দ্রুত' },
+    stats: { tools: '২৪ টুল', free: '১০০% বিনামূল্যে', noSignup: 'নিবন্ধন নেই', mobile: 'মোবাইলে', world: 'বিশ্বজুড়ে', fast: 'দ্রুত' },
     aboutTitle: 'I Love Islam সম্পর্কে',
     aboutText1: 'I Love Islam বিশ্বজুড়ে মুসলিমদের জন্য বিনামূল্যে ইসলামিক টুলের সংগ্রহ।',
-    aboutText2: 'ধিকর কাউন্টার, আল্লাহর ৯৯ নাম, হালাল ভ্রমণ গাইড, ঈদুল আযহা টুলকিট এবং মিযান ব্লুপ্রিন্ট।',
+    aboutText2: 'ধিকর কাউন্টার, আল্লাহর ৯৯ নাম, হালাল ভ্রমণ গাইড, ঈদুল আযহা টুলকিট, ইসলামিক অ্যালার্ম এবং মিযান ব্লুপ্রিন্ট।',
     newsletterTitle: 'সাপ্তাহিক ইসলামিক গাইডেন্স',
     newsletterSubtitle: 'আধ্যাত্মিক স্মরণ এবং আপডেট।',
     newsletterPlaceholder: 'আপনার ইমেইল',
@@ -277,6 +277,7 @@ const ALL_FEATURED_TOOLS = [
   { href: '/names-finder', badge: '✏️ Names', title: 'Islamic Name Finder', desc: 'Beautiful names with meanings & origins', icon: '✏️', gradient: 'linear-gradient(135deg, #100a18, #201030)', accent: '#d8b4fe' },
   { href: '/eid', badge: '🗓️ Events', title: 'Islamic Events', desc: 'Eid, Ramadan & key Islamic dates', icon: '🗓️', gradient: 'linear-gradient(135deg, #1a0c00, #3d1a00)', accent: '#fdba74' },
   { href: '/eid-adha', badge: '🐄 Eid ul Adha', title: 'Eid ul Adha Toolkit', desc: 'Qurbani calc, takbeer, checklist & recipes', icon: '🐄', gradient: 'linear-gradient(135deg, #0d1a00, #1a3300)', accent: '#a3e635' },
+  { href: '/islamic-alarm', badge: '⏰ Alarm', title: 'Islamic Alarm', desc: 'Wake up to adhan & Islamic reminders', icon: '⏰', gradient: 'linear-gradient(135deg, #0a0f1a, #101a3d)', accent: '#7dd3fc' },
 ];
 
 // ==================== TOOLS DATA ====================
@@ -290,6 +291,8 @@ const TOOLS_DATA = (t: TranslationsType) => [
       { name: 'Hijri Calendar', desc: 'Islamic date converter', icon: '🌙', href: '/hijri', color: 'bg-purple-100 text-purple-700' },
       { name: 'Quran Reader', desc: 'Read with translation', icon: '📖', href: '/quran', color: 'bg-green-100 text-green-700' },
       { name: 'Dhikr Counter', desc: 'Digital tasbih', icon: '📿', href: '/dhikr', color: 'bg-teal-100 text-teal-700' },
+      // ✅ NEW: Islamic Alarm added to Most Used
+      { name: 'Islamic Alarm', desc: 'Adhan & Islamic reminders', icon: '⏰', href: '/islamic-alarm', color: 'bg-blue-100 text-blue-700' },
     ],
   },
   {
@@ -681,12 +684,74 @@ function FeaturedBanner() {
   );
 }
 
+// ==================== CATEGORY TABS ====================
+// Tab bar: "All" + one tab per section category.
+// Compact pill-style, horizontally scrollable on mobile.
+interface CategoryTabsProps {
+  categories: { category: string; emoji: string }[];
+  activeTab: string; // 'all' or category name
+  onSelect: (tab: string) => void;
+}
+
+function CategoryTabs({ categories, activeTab, onSelect }: CategoryTabsProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Scroll active tab into view on change
+  useEffect(() => {
+    if (!scrollRef.current) return;
+    const active = scrollRef.current.querySelector('[data-active="true"]') as HTMLElement | null;
+    if (active) {
+      active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [activeTab]);
+
+  return (
+    <div
+      ref={scrollRef}
+      className="flex gap-1.5 overflow-x-auto pb-1 mb-4 no-scrollbar"
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+    >
+      {/* All tab */}
+      <button
+        data-active={activeTab === 'all'}
+        onClick={() => onSelect('all')}
+        className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all duration-150 whitespace-nowrap ${
+          activeTab === 'all'
+            ? 'text-white shadow-sm'
+            : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-700'
+        }`}
+        style={activeTab === 'all' ? { background: '#0a3d2e' } : {}}
+      >
+        🌟 All
+      </button>
+
+      {categories.map(({ category, emoji }) => (
+        <button
+          key={category}
+          data-active={activeTab === category}
+          onClick={() => onSelect(category)}
+          className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all duration-150 whitespace-nowrap ${
+            activeTab === category
+              ? 'text-white shadow-sm'
+              : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-700'
+          }`}
+          style={activeTab === category ? { background: '#0a3d2e' } : {}}
+        >
+          {emoji} {category}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ==================== MAIN PAGE ====================
 export default function Home() {
   const [search, setSearch] = useState('');
   const [lang, setLang] = useState('en');
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [mounted, setMounted] = useState(false);
+  // 'all' or a category name — resets to 'all' when search is active
+  const [activeTab, setActiveTab] = useState('all');
   const { dark, toggle: toggleDark, mounted: darkMounted } = useDarkMode();
   const langMenuRef = useRef<HTMLDivElement>(null);
   const langButtonRef = useRef<HTMLButtonElement>(null);
@@ -696,6 +761,16 @@ export default function Home() {
   const isRTL = RTL_LANGS.includes(lang);
 
   const tools = useMemo(() => TOOLS_DATA(t), [t]);
+
+  // When search is active, tab filtering is bypassed
+  const isSearching = search.trim().length > 0;
+
+  // Reset tab to 'all' if the category no longer exists (e.g. language switch)
+  useEffect(() => {
+    if (activeTab !== 'all' && !tools.find(s => s.category === activeTab)) {
+      setActiveTab('all');
+    }
+  }, [tools, activeTab]);
 
   useEffect(() => {
     setMounted(true);
@@ -721,23 +796,33 @@ export default function Home() {
     setShowLangMenu(false);
   }, []);
 
+  // Filtered tools: search takes priority over tab
   const filteredTools = useMemo(() => {
-    if (!search.trim()) return tools;
-    const q = search.toLowerCase();
-    return tools
-      .map(section => ({
-        ...section,
-        items: section.items.filter(item =>
-          item.name.toLowerCase().includes(q) ||
-          item.desc.toLowerCase().includes(q) ||
-          section.category.toLowerCase().includes(q)
-        ),
-      }))
-      .filter(s => s.items.length > 0);
-  }, [search, tools]);
+    if (isSearching) {
+      const q = search.toLowerCase();
+      return tools
+        .map(section => ({
+          ...section,
+          items: section.items.filter(item =>
+            item.name.toLowerCase().includes(q) ||
+            item.desc.toLowerCase().includes(q) ||
+            section.category.toLowerCase().includes(q)
+          ),
+        }))
+        .filter(s => s.items.length > 0);
+    }
+
+    if (activeTab === 'all') return tools;
+
+    // Single category view: return only that section
+    return tools.filter(s => s.category === activeTab);
+  }, [search, tools, activeTab, isSearching]);
 
   const totalResults = filteredTools.reduce((acc, s) => acc + s.items.length, 0);
   const currentLang = LANGUAGES.find(l => l.code === lang);
+
+  // Category list for tab bar (stable, based on full tools list)
+  const categoryList = useMemo(() => tools.map(({ category, emoji }) => ({ category, emoji })), [tools]);
 
   if (!mounted || !darkMounted) {
     return (
@@ -780,7 +865,6 @@ export default function Home() {
 
               {/* LEFT: Logo image + nav links */}
               <div className="flex items-center gap-1">
-                {/* Logo image — top left */}
                 <Link href="/" aria-label="I Love Islam — Home" className="flex-shrink-0 mr-1 hover:opacity-80 transition-opacity">
                   <Image
                     src="/logo2.png"
@@ -895,7 +979,7 @@ export default function Home() {
                     {totalResults === 0 ? (
                       <p className="text-white/50 text-xs">
                         No matches for <span className="text-white font-medium">"{search}"</span>
-                        <span className="block text-white/25 text-[10px] mt-0.5">Try: zakat · prayer · quran · qibla · dhikr · kids · eid</span>
+                        <span className="block text-white/25 text-[10px] mt-0.5">Try: zakat · prayer · quran · qibla · dhikr · kids · eid · alarm</span>
                       </p>
                     ) : (
                       <p className="text-white/50 text-xs">
@@ -916,8 +1000,17 @@ export default function Home() {
             {/* ---- Content column ---- */}
             <div className="flex-1 min-w-0">
 
-              {!search && <QuoteOfTheDay />}
-              {!search && <FeaturedBanner />}
+              {!isSearching && <QuoteOfTheDay />}
+              {!isSearching && <FeaturedBanner />}
+
+              {/* ── CATEGORY TABS (hidden while searching) ── */}
+              {!isSearching && (
+                <CategoryTabs
+                  categories={categoryList}
+                  activeTab={activeTab}
+                  onSelect={setActiveTab}
+                />
+              )}
 
               {/* No results */}
               {filteredTools.length === 0 && (
@@ -938,16 +1031,33 @@ export default function Home() {
               {/* Tool sections */}
               {filteredTools.map(section => (
                 <div key={section.category} className="mb-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-base">{section.emoji}</span>
-                    <h2 className="text-[10px] font-bold tracking-[0.16em] uppercase text-gray-400 dark:text-gray-500">
-                      {section.category}
-                    </h2>
-                    <div className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent dark:from-gray-700" />
-                    <span className="text-[9px] text-gray-300 dark:text-gray-600 tabular-nums">
-                      {section.items.length} tools
-                    </span>
-                  </div>
+                  {/* Show section header only in "All" view or when searching */}
+                  {(activeTab === 'all' || isSearching) && (
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-base">{section.emoji}</span>
+                      <h2 className="text-[10px] font-bold tracking-[0.16em] uppercase text-gray-400 dark:text-gray-500">
+                        {section.category}
+                      </h2>
+                      <div className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent dark:from-gray-700" />
+                      <span className="text-[9px] text-gray-300 dark:text-gray-600 tabular-nums">
+                        {section.items.length} tools
+                      </span>
+                    </div>
+                  )}
+
+                  {/* In single-category view, show a minimal heading */}
+                  {activeTab !== 'all' && !isSearching && (
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-base">{section.emoji}</span>
+                      <h2 className="text-[10px] font-bold tracking-[0.16em] uppercase text-gray-400 dark:text-gray-500">
+                        {section.category}
+                      </h2>
+                      <div className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent dark:from-gray-700" />
+                      <span className="text-[9px] text-gray-300 dark:text-gray-600 tabular-nums">
+                        {section.items.length} tools
+                      </span>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                     {section.items.map(tool => (
@@ -957,8 +1067,8 @@ export default function Home() {
                 </div>
               ))}
 
-              {/* Stats + About */}
-              {!search && (
+              {/* Stats + About (only in All tab, not searching) */}
+              {!isSearching && activeTab === 'all' && (
                 <>
                   <div className="flex flex-wrap justify-center gap-2 my-5">
                     {Object.values(t.stats).map(label => (
@@ -980,8 +1090,8 @@ export default function Home() {
               )}
             </div>
 
-            {/* ---- Sidebar ---- */}
-            {!search && (
+            {/* ---- Sidebar (only in All tab, not searching) ---- */}
+            {!isSearching && activeTab === 'all' && (
               <div className="lg:w-64 xl:w-72 flex-shrink-0 space-y-4">
                 <Newsletter t={t} />
 
@@ -994,6 +1104,7 @@ export default function Home() {
                       { label: '🧭 Qibla Finder', href: '/qibla', desc: 'Find Mecca direction' },
                       { label: '📿 Dhikr Counter', href: '/dhikr', desc: 'Digital tasbih' },
                       { label: '📖 Quran Reader', href: '/quran', desc: 'Read with translation' },
+                      { label: '⏰ Islamic Alarm', href: '/islamic-alarm', desc: 'Adhan & Islamic reminders' },
                       { label: '🐄 Eid ul Adha', href: '/eid-adha', desc: 'Qurbani toolkit' },
                       { label: '🎮 Kids Games', href: '/kids', desc: 'Fun Islamic games' },
                     ].map(link => (
@@ -1018,7 +1129,6 @@ export default function Home() {
         <footer className="mt-8 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
           <div className="max-w-6xl mx-auto px-4 py-6">
             <div className="text-center mb-4">
-              {/* ── Logo image replacing the text link in footer ── */}
               <Link href="/" aria-label="I Love Islam — Home" className="inline-block hover:opacity-80 transition-opacity">
                 <Image
                   src="/logo.png"
