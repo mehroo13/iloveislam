@@ -34,23 +34,48 @@ interface CheckItem {
   arabic: string;
 }
 
+interface SoundItem {
+  id: string;
+  label: string;
+  url: string | null;
+}
+
+interface SurahItem {
+  id: string;
+  name: string;
+  arabic: string;
+  url: string;
+}
+
+interface DuaItem {
+  title: string;
+  arabic: string;
+  roman: string;
+  english: string;
+  ref: string;
+}
+
+interface BeepController {
+  stop: () => void;
+}
+
 // ─── Constants ─────────────────────────────────────────────────────────────────
-const SOUNDS = [
-  { id: "adhan_makkah", label: "Adhan – Makkah", url: "https://ia803007.us.archive.org/17/items/AdhaanMakkahFajr/AdhaanMakkahFajr.mp3" },
-  { id: "adhan_madinah", label: "Adhan – Madinah", url: "https://ia903407.us.archive.org/16/items/Madinah_Adhan/Madinah_Adhan.mp3" },
-  { id: "mishary_fatiha", label: "Fatiha – Mishary", url: "https://server8.mp3quran.net/mishary/001.mp3" },
-  { id: "sudais_quran", label: "Quran – Sudais", url: "https://server11.mp3quran.net/abdulbaset/001.mp3" },
+const SOUNDS: SoundItem[] = [
+  { id: "adhan_makkah",  label: "Adhan – Makkah",  url: "https://www.islamicfinder.org/prayer-alarm/audio/adhan_makkah.mp3" },
+  { id: "adhan_madinah", label: "Adhan – Madinah", url: "https://www.islamicfinder.org/prayer-alarm/audio/adhan_madinah.mp3" },
+  { id: "beep_gentle",   label: "Gentle Beep",     url: null },
+  { id: "beep_classic",  label: "Classic Alarm",   url: null },
 ];
 
-const SURAHS = [
-  { id: "mulk", name: "Surah Al-Mulk", arabic: "سورة الملك", url: "https://server8.mp3quran.net/mishary/067.mp3" },
-  { id: "rahman", name: "Surah Ar-Rahman", arabic: "سورة الرحمن", url: "https://server8.mp3quran.net/mishary/055.mp3" },
-  { id: "sajdah", name: "Surah As-Sajdah", arabic: "سورة السجدة", url: "https://server8.mp3quran.net/mishary/032.mp3" },
-  { id: "waqiah", name: "Surah Al-Waqi'ah", arabic: "سورة الواقعة", url: "https://server8.mp3quran.net/mishary/056.mp3" },
-  { id: "kahf", name: "Surah Al-Kahf", arabic: "سورة الكهف", url: "https://server8.mp3quran.net/mishary/018.mp3" },
+const SURAHS: SurahItem[] = [
+  { id: "mulk",   name: "Surah Al-Mulk",    arabic: "سورة الملك",   url: "https://cdn.islamic.network/quran/audio/128/ar.alafasy/67.mp3" },
+  { id: "rahman", name: "Surah Ar-Rahman",  arabic: "سورة الرحمن",  url: "https://cdn.islamic.network/quran/audio/128/ar.alafasy/55.mp3" },
+  { id: "sajdah", name: "Surah As-Sajdah",  arabic: "سورة السجدة",  url: "https://cdn.islamic.network/quran/audio/128/ar.alafasy/32.mp3" },
+  { id: "waqiah", name: "Surah Al-Waqi'ah", arabic: "سورة الواقعة", url: "https://cdn.islamic.network/quran/audio/128/ar.alafasy/56.mp3" },
+  { id: "kahf",   name: "Surah Al-Kahf",    arabic: "سورة الكهف",   url: "https://cdn.islamic.network/quran/audio/128/ar.alafasy/18.mp3" },
 ];
 
-const MORNING_DUAS = [
+const MORNING_DUAS: DuaItem[] = [
   {
     title: "Waking Up",
     arabic: "الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ",
@@ -67,7 +92,7 @@ const MORNING_DUAS = [
   },
 ];
 
-const SLEEP_DUAS = [
+const SLEEP_DUAS: DuaItem[] = [
   {
     title: "Before Sleeping",
     arabic: "بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا",
@@ -85,31 +110,31 @@ const SLEEP_DUAS = [
 ];
 
 const DHIKR: DhikrItem[] = [
-  { arabic: "سُبْحَانَ اللَّهِ", name: "SubhanAllah", meaning: "Glory be to Allah", target: 33 },
-  { arabic: "الْحَمْدُ لِلَّهِ", name: "Alhamdulillah", meaning: "All praise be to Allah", target: 33 },
-  { arabic: "اللَّهُ أَكْبَرُ", name: "Allahu Akbar", meaning: "Allah is the Greatest", target: 34 },
-  { arabic: "لَا إِلَهَ إِلَّا اللَّهُ", name: "La ilaha illallah", meaning: "There is no god but Allah", target: 10 },
-  { arabic: "أَسْتَغْفِرُ اللَّهَ", name: "Astaghfirullah", meaning: "I seek forgiveness from Allah", target: 100 },
+  { arabic: "سُبْحَانَ اللَّهِ",          name: "SubhanAllah",       meaning: "Glory be to Allah",          target: 33  },
+  { arabic: "الْحَمْدُ لِلَّهِ",          name: "Alhamdulillah",     meaning: "All praise be to Allah",      target: 33  },
+  { arabic: "اللَّهُ أَكْبَرُ",           name: "Allahu Akbar",      meaning: "Allah is the Greatest",       target: 34  },
+  { arabic: "لَا إِلَهَ إِلَّا اللَّهُ", name: "La ilaha illallah",  meaning: "There is no god but Allah",   target: 10  },
+  { arabic: "أَسْتَغْفِرُ اللَّهَ",       name: "Astaghfirullah",    meaning: "I seek forgiveness from Allah", target: 100 },
 ];
 
 const SLEEP_LIST: CheckItem[] = [
-  { id: "wudu", text: "Perform Wudu", arabic: "الوضوء" },
-  { id: "right_side", text: "Sleep on your right side", arabic: "النوم على الجانب الأيمن" },
-  { id: "ayatul_kursi", text: "Recite Ayatul Kursi", arabic: "آية الكرسي" },
-  { id: "three_quls", text: "Recite the Three Quls (3× each)", arabic: "المعوذات" },
-  { id: "tasbih", text: "SubhanAllah 33x · Alhamdulillah 33x · Allahu Akbar 34x", arabic: "التسبيح" },
-  { id: "sleep_dua", text: "Recite sleeping dua", arabic: "دعاء النوم" },
-  { id: "forgive", text: "Forgive everyone before sleeping", arabic: "العفو" },
+  { id: "wudu",       text: "Perform Wudu",                                           arabic: "الوضوء" },
+  { id: "right_side", text: "Sleep on your right side",                               arabic: "النوم على الجانب الأيمن" },
+  { id: "ayatul",     text: "Recite Ayatul Kursi",                                    arabic: "آية الكرسي" },
+  { id: "three_quls", text: "Recite the Three Quls (3× each)",                        arabic: "المعوذات" },
+  { id: "tasbih",     text: "SubhanAllah 33x · Alhamdulillah 33x · Allahu Akbar 34x", arabic: "التسبيح" },
+  { id: "sleep_dua",  text: "Recite sleeping dua",                                    arabic: "دعاء النوم" },
+  { id: "forgive",    text: "Forgive everyone before sleeping",                       arabic: "العفو" },
 ];
 
 const WAKE_LIST: CheckItem[] = [
-  { id: "wake_dua", text: "Recite waking-up dua", arabic: "دعاء الاستيقاظ" },
-  { id: "alhamdulillah", text: "Say Alhamdulillah for being alive", arabic: "الحمد لله" },
-  { id: "wudu_w", text: "Make Wudu", arabic: "الوضوء" },
-  { id: "fajr_sunnah", text: "Pray 2 Rak'ahs Sunnah of Fajr", arabic: "ركعتا الفجر" },
-  { id: "fajr_fard", text: "Pray Fajr Salah on time", arabic: "صلاة الفجر" },
-  { id: "morning_adhkar", text: "Read morning adhkar", arabic: "أذكار الصباح" },
-  { id: "quran", text: "Read some Quran", arabic: "تلاوة القرآن" },
+  { id: "wake_dua",       text: "Recite waking-up dua",               arabic: "دعاء الاستيقاظ" },
+  { id: "alhamdulillah",  text: "Say Alhamdulillah for being alive",   arabic: "الحمد لله" },
+  { id: "wudu_w",         text: "Make Wudu",                           arabic: "الوضوء" },
+  { id: "fajr_sunnah",    text: "Pray 2 Rak'ahs Sunnah of Fajr",      arabic: "ركعتا الفجر" },
+  { id: "fajr_fard",      text: "Pray Fajr Salah on time",             arabic: "صلاة الفجر" },
+  { id: "morning_adhkar", text: "Read morning adhkar",                 arabic: "أذكار الصباح" },
+  { id: "quran",          text: "Read some Quran",                     arabic: "تلاوة القرآن" },
 ];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -137,11 +162,76 @@ function calcTahajjud(isha: string, fajr: string): string {
   return fromMin(i + Math.floor((2 * (f - i)) / 3));
 }
 
-function getDayName(d: number) {
+function getDayName(d: number): string {
   return ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][d];
 }
-function getMonthName(m: number) {
+
+function getMonthName(m: number): string {
   return ["January","February","March","April","May","June","July","August","September","October","November","December"][m];
+}
+
+// ─── Web Audio beep (works without any network) ───────────────────────────────
+function createBeepAudio(ctx: AudioContext, type: "gentle" | "classic"): BeepController {
+  const gainNode = ctx.createGain();
+  gainNode.connect(ctx.destination);
+
+  let stopped = false;
+  const timeoutIds: ReturnType<typeof setTimeout>[] = [];
+
+  function playBeepCycle(): void {
+    if (stopped) return;
+    const osc = ctx.createOscillator();
+    osc.connect(gainNode);
+
+    if (type === "gentle") {
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(660, ctx.currentTime + 0.3);
+      gainNode.gain.setValueAtTime(0, ctx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05);
+      gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
+    } else {
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      gainNode.gain.setValueAtTime(0.4, ctx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.15);
+    }
+
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.6);
+
+    const tid = setTimeout(playBeepCycle, type === "gentle" ? 1500 : 800);
+    timeoutIds.push(tid);
+  }
+
+  playBeepCycle();
+
+  return {
+    stop(): void {
+      stopped = true;
+      timeoutIds.forEach(clearTimeout);
+      gainNode.gain.setValueAtTime(0, ctx.currentTime);
+    },
+  };
+}
+
+// ─── Toggle Switch ────────────────────────────────────────────────────────────
+function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+  return (
+    <div
+      onClick={onChange}
+      style={{
+        position: "relative", width: 50, height: 28, cursor: "pointer",
+        background: checked ? "#34c77b" : "#22262f",
+        borderRadius: 14, border: `1px solid ${checked ? "#34c77b" : "#2a2f3d"}`,
+        transition: "background 0.3s, border-color 0.3s", flexShrink: 0,
+      }}
+    >
+      <div style={{
+        position: "absolute", top: 3, left: checked ? 23 : 3,
+        width: 20, height: 20, background: "#fff", borderRadius: "50%",
+        transition: "left 0.3s",
+      }} />
+    </div>
+  );
 }
 
 // ─── Main Component ────────────────────────────────────────────────────────────
@@ -166,6 +256,8 @@ export default function IslamicAlarmPage() {
   const [firingAlarm, setFiringAlarm] = useState<Alarm | null>(null);
   const [showAlham, setShowAlham] = useState(false);
   const firingAudioRef = useRef<HTMLAudioElement | null>(null);
+  const firingBeepRef = useRef<BeepController | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   // Alarm form
   const [alarmType, setAlarmType] = useState<"custom" | "fajr" | "tahajjud">("custom");
@@ -184,6 +276,11 @@ export default function IslamicAlarmPage() {
   const nightAudioRef = useRef<HTMLAudioElement | null>(null);
   const nightStateRef = useRef({ idx: 0, rep: 0, playing: false });
 
+  // Preview
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const previewBeepRef = useRef<BeepController | null>(null);
+  const [previewingId, setPreviewingId] = useState<string | null>(null);
+
   // Dhikr
   const [dhikrCounts, setDhikrCounts] = useState<Record<number, number>>({});
 
@@ -191,22 +288,29 @@ export default function IslamicAlarmPage() {
   const [sleepChecked, setSleepChecked] = useState<string[]>([]);
   const [wakeChecked, setWakeChecked] = useState<string[]>([]);
 
-  // Preview audio
-  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  // ─── Audio context ──────────────────────────────────────────────────────────
+  function getAudioCtx(): AudioContext {
+    if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
+      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    if (audioCtxRef.current.state === "suspended") {
+      audioCtxRef.current.resume();
+    }
+    return audioCtxRef.current;
+  }
 
   // ─── Load from localStorage ──────────────────────────────────────────────────
   useEffect(() => {
     try {
-      const a = localStorage.getItem("ialarms"); if (a) setAlarms(JSON.parse(a));
-      const d = localStorage.getItem("idhikr"); if (d) setDhikrCounts(JSON.parse(d));
-      const sl = localStorage.getItem("isleep"); if (sl) setSleepChecked(JSON.parse(sl));
-      const wl = localStorage.getItem("iwake"); if (wl) setWakeChecked(JSON.parse(wl));
+      const a = localStorage.getItem("ialarms");  if (a)  setAlarms(JSON.parse(a));
+      const d = localStorage.getItem("idhikr");   if (d)  setDhikrCounts(JSON.parse(d));
+      const sl = localStorage.getItem("isleep");  if (sl) setSleepChecked(JSON.parse(sl));
+      const wl = localStorage.getItem("iwake");   if (wl) setWakeChecked(JSON.parse(wl));
     } catch {}
   }, []);
 
-  // ─── Save alarms ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    localStorage.setItem("ialarms", JSON.stringify(alarms));
+    try { localStorage.setItem("ialarms", JSON.stringify(alarms)); } catch {}
   }, [alarms]);
 
   // ─── Fetch prayer times ──────────────────────────────────────────────────────
@@ -223,7 +327,7 @@ export default function IslamicAlarmPage() {
           setPrayerTimes({ Fajr: t.Fajr, Sunrise: t.Sunrise, Dhuhr: t.Dhuhr, Asr: t.Asr, Maghrib: t.Maghrib, Isha: t.Isha });
           const h = data.data.date.hijri;
           setHijriDate(`${h.day} ${h.month.en} ${h.year} AH`);
-          setLocationName(city || `${lat.toFixed(2)}, ${lon.toFixed(2)}`);
+          setLocationName(city ?? `${lat.toFixed(2)}, ${lon.toFixed(2)}`);
         }
       } catch {}
     };
@@ -248,51 +352,68 @@ export default function IslamicAlarmPage() {
     );
   }, []);
 
-  // ─── Alarm checker (every 10s) ───────────────────────────────────────────────
+  // ─── Stop all audio helper ────────────────────────────────────────────────────
+  const stopAllPreviewAudio = useCallback(() => {
+    if (previewAudioRef.current) {
+      try { previewAudioRef.current.pause(); previewAudioRef.current.src = ""; } catch {}
+      previewAudioRef.current = null;
+    }
+    if (previewBeepRef.current) {
+      try { previewBeepRef.current.stop(); } catch {}
+      previewBeepRef.current = null;
+    }
+    setPreviewingId(null);
+  }, []);
+
+  // ─── Alarm checker ────────────────────────────────────────────────────────────
   useEffect(() => {
     const check = () => {
       if (alarmFiring) return;
       const n = new Date();
       const nowStr = String(n.getHours()).padStart(2, "0") + ":" + String(n.getMinutes()).padStart(2, "0");
       for (const a of alarms) {
-        if (a.enabled && a.time24 === nowStr) {
-          fireAlarm(a);
-          break;
-        }
+        if (a.enabled && a.time24 === nowStr) { fireAlarm(a); break; }
       }
     };
     const t = setInterval(check, 10000);
     return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alarms, alarmFiring]);
 
-  // ─── Fire alarm ──────────────────────────────────────────────────────────────
-  // FIXED: Set source FIRST, then play
+  // ─── Fire alarm ───────────────────────────────────────────────────────────────
   const fireAlarm = useCallback((alarm: Alarm) => {
-    stopPreview();
+    stopAllPreviewAudio();
     setFiringAlarm(alarm);
     setAlarmFiring(true);
-    const sound = SOUNDS.find((s) => s.id === alarm.sound) || SOUNDS[0];
-    
-    const audio = new Audio();
-    audio.loop = true;
-    audio.volume = 1;
-    
-    // SET SOURCE FIRST
-    audio.src = sound.url;
-    
-    // THEN play
-    audio.play().catch((err) => {
-      console.error("Alarm play error:", err);
-    });
-    
-    firingAudioRef.current = audio;
-  }, []);
+
+    const sound = SOUNDS.find((s) => s.id === alarm.sound);
+
+    if (sound?.url) {
+      const audio = new Audio();
+      audio.crossOrigin = "anonymous";
+      audio.loop = true;
+      audio.src = sound.url;
+      audio.play().catch(() => {
+        // URL blocked – fall back to beep
+        const ctx = getAudioCtx();
+        firingBeepRef.current = createBeepAudio(ctx, "gentle");
+      });
+      firingAudioRef.current = audio;
+    } else {
+      const ctx = getAudioCtx();
+      const type: "gentle" | "classic" = alarm.sound === "beep_classic" ? "classic" : "gentle";
+      firingBeepRef.current = createBeepAudio(ctx, type);
+    }
+  }, [stopAllPreviewAudio]);
 
   const dismissAlarm = () => {
     if (firingAudioRef.current) {
-      firingAudioRef.current.pause();
-      firingAudioRef.current.src = "";
+      try { firingAudioRef.current.pause(); firingAudioRef.current.src = ""; } catch {}
       firingAudioRef.current = null;
+    }
+    if (firingBeepRef.current) {
+      try { firingBeepRef.current.stop(); } catch {}
+      firingBeepRef.current = null;
     }
     setAlarmFiring(false);
     setFiringAlarm(null);
@@ -300,7 +421,68 @@ export default function IslamicAlarmPage() {
     setTimeout(() => setShowAlham(false), 3500);
   };
 
-  // ─── Alarm form helpers ──────────────────────────────────────────────────────
+  // ─── Preview sound ────────────────────────────────────────────────────────────
+  const previewSound = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    const ctx = getAudioCtx(); // must happen in click handler
+
+    if (previewingId === id) {
+      stopAllPreviewAudio();
+      return;
+    }
+
+    stopAllPreviewAudio();
+    setPreviewingId(id);
+
+    const sound = SOUNDS.find((s) => s.id === id);
+
+    if (sound?.url) {
+      const audio = new Audio();
+      audio.crossOrigin = "anonymous";
+      audio.src = sound.url;
+      audio.volume = 0.8;
+
+      const p = audio.play();
+      if (p !== undefined) {
+        p.then(() => {
+          previewAudioRef.current = audio;
+          setTimeout(() => {
+            if (previewAudioRef.current === audio) {
+              try { audio.pause(); } catch {}
+              previewAudioRef.current = null;
+              setPreviewingId(null);
+            }
+          }, 8000);
+        }).catch(() => {
+          // URL failed – use beep
+          const beep = createBeepAudio(ctx, "gentle");
+          previewBeepRef.current = beep;
+          setTimeout(() => {
+            if (previewBeepRef.current === beep) {
+              beep.stop();
+              previewBeepRef.current = null;
+              setPreviewingId(null);
+            }
+          }, 3000);
+        });
+      }
+    } else {
+      const type: "gentle" | "classic" = id === "beep_classic" ? "classic" : "gentle";
+      const beep = createBeepAudio(ctx, type);
+      previewBeepRef.current = beep;
+      setTimeout(() => {
+        if (previewBeepRef.current === beep) {
+          beep.stop();
+          previewBeepRef.current = null;
+          setPreviewingId(null);
+        }
+      }, 3000);
+    }
+  };
+
+  // ─── Alarm form helpers ───────────────────────────────────────────────────────
   const getAlarmMin = (): number => {
     if (alarmType === "custom") {
       const h = pickH % 12 + (pickAmpm === "PM" ? 12 : 0);
@@ -321,112 +503,61 @@ export default function IslamicAlarmPage() {
       alarmLabel.trim() ||
       (alarmType === "fajr" ? (mbf > 0 ? `${mbf} min before Fajr` : "At Fajr") :
        alarmType === "tahajjud" ? "Tahajjud" : "Custom Alarm");
-    const newAlarm: Alarm = { id: Date.now(), time24: fromMin(min), label, sound: selectedSound, enabled: true, type: alarmType };
+    const newAlarm: Alarm = {
+      id: Date.now(), time24: fromMin(min), label,
+      sound: selectedSound, enabled: true, type: alarmType,
+    };
     setAlarms((prev) => [...prev, newAlarm]);
     setAlarmLabel("");
   };
 
-  const toggleAlarm = (id: number) => {
+  const toggleAlarm = (id: number) =>
     setAlarms((prev) => prev.map((a) => a.id === id ? { ...a, enabled: !a.enabled } : a));
-  };
 
-  const deleteAlarm = (id: number) => {
+  const deleteAlarm = (id: number) =>
     setAlarms((prev) => prev.filter((a) => a.id !== id));
-  };
-
-  // ─── Sound preview ───────────────────────────────────────────────────────────
-  const stopPreview = () => {
-    if (previewAudioRef.current) {
-      previewAudioRef.current.pause();
-      previewAudioRef.current.src = "";
-      previewAudioRef.current = null;
-    }
-  };
-
-  // FIXED: Set source FIRST, then play
-  const previewSound = (id: string, e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-    
-    stopPreview();
-    const s = SOUNDS.find((x) => x.id === id);
-    if (!s) return;
-    
-    const audio = new Audio();
-    audio.volume = 1;
-    
-    // SET SOURCE FIRST
-    audio.src = s.url;
-    
-    // THEN play
-    audio.play().catch((err) => {
-      console.error("Preview play error:", err);
-    });
-    
-    previewAudioRef.current = audio;
-    setTimeout(stopPreview, 8000);
-  };
 
   // ─── Night player ─────────────────────────────────────────────────────────────
-  // FIXED: Set source FIRST, then play, and handle state properly
   const playNightIdx = useCallback((idx: number, rep: number, surahs: string[], repeat: number) => {
+    if (!nightStateRef.current.playing) return;
     const surahId = surahs[idx];
-    if (!surahId) { 
-      setNightPlaying(false); 
-      return; 
-    }
-    
+    if (!surahId) { setNightPlaying(false); return; }
     const surah = SURAHS.find((s) => s.id === surahId);
-    if (!surah) { 
-      setNightPlaying(false); 
-      return; 
+    if (!surah) { setNightPlaying(false); return; }
+
+    if (nightAudioRef.current) {
+      try { nightAudioRef.current.pause(); nightAudioRef.current.src = ""; } catch {}
     }
-    
-    // Clean up previous audio
-    if (nightAudioRef.current) { 
-      nightAudioRef.current.pause(); 
-      nightAudioRef.current.src = ""; 
-    }
-    
-    // Create new audio element
+
     const audio = new Audio();
-    audio.volume = 1;
+    audio.crossOrigin = "anonymous";
+    audio.src = surah.url;
     nightAudioRef.current = audio;
-    
-    // Update UI
     setNpTitle(surah.name);
-    nightStateRef.current = { idx, rep, playing: true };
-    
-    // Set up end handler BEFORE setting src
+
+    audio.play().catch(() => { setNightPlaying(false); });
+
     audio.onended = () => {
       if (!nightStateRef.current.playing) return;
-      
-      const nextRep = rep + 1;
-      if (nextRep < repeat) { 
-        playNightIdx(idx, nextRep, surahs, repeat); 
+      if (rep + 1 < repeat) {
+        playNightIdx(idx, rep + 1, surahs, repeat);
+      } else if (idx + 1 < surahs.length) {
+        playNightIdx(idx + 1, 0, surahs, repeat);
       } else {
-        const nextIdx = idx + 1;
-        if (nextIdx < surahs.length) { 
-          playNightIdx(nextIdx, 0, surahs, repeat); 
-        } else { 
-          setNightPlaying(false); 
-        }
+        setNightPlaying(false);
       }
     };
-    
-    // SET SOURCE FIRST
-    audio.src = surah.url;
-    
-    // THEN play
-    audio.play().catch((err) => {
-      console.error("Night player error:", err);
-    });
+
+    audio.onerror = () => {
+      if (!nightStateRef.current.playing) return;
+      if (idx + 1 < surahs.length) playNightIdx(idx + 1, 0, surahs, repeat);
+      else setNightPlaying(false);
+    };
   }, []);
 
   const startPlayer = () => {
     if (!selectedSurahs.length) return;
+    nightStateRef.current = { idx: 0, rep: 0, playing: true };
     setNightPlaying(true);
     playNightIdx(0, 0, selectedSurahs, repeatCount);
   };
@@ -434,76 +565,77 @@ export default function IslamicAlarmPage() {
   const stopPlayer = () => {
     nightStateRef.current.playing = false;
     setNightPlaying(false);
-    if (nightAudioRef.current) { 
-      nightAudioRef.current.pause(); 
-      nightAudioRef.current.src = ""; 
-      nightAudioRef.current = null; 
+    if (nightAudioRef.current) {
+      try { nightAudioRef.current.pause(); nightAudioRef.current.src = ""; } catch {}
+      nightAudioRef.current = null;
     }
   };
 
-  const toggleSurah = (id: string) => {
-    setSelectedSurahs((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
-  };
+  const toggleSurah = (id: string) =>
+    setSelectedSurahs((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
 
-  // ─── Dhikr ───────────────────────────────────────────────────────────────────
+  // ─── Dhikr ────────────────────────────────────────────────────────────────────
   const incDhikr = (i: number) => {
     setDhikrCounts((prev) => {
       const next = { ...prev, [i]: (prev[i] || 0) + 1 };
-      localStorage.setItem("idhikr", JSON.stringify(next));
-      return next;
-    });
-  };
-  const resetDhikr = (i: number) => {
-    setDhikrCounts((prev) => {
-      const next = { ...prev, [i]: 0 };
-      localStorage.setItem("idhikr", JSON.stringify(next));
+      try { localStorage.setItem("idhikr", JSON.stringify(next)); } catch {}
       return next;
     });
   };
 
-  // ─── Checklists ──────────────────────────────────────────────────────────────
+  const resetDhikr = (i: number) => {
+    setDhikrCounts((prev) => {
+      const next = { ...prev, [i]: 0 };
+      try { localStorage.setItem("idhikr", JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
+  // ─── Checklists ───────────────────────────────────────────────────────────────
   const toggleCheck = (list: "sleep" | "wake", id: string) => {
     if (list === "sleep") {
       setSleepChecked((prev) => {
         const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-        localStorage.setItem("isleep", JSON.stringify(next));
+        try { localStorage.setItem("isleep", JSON.stringify(next)); } catch {}
         return next;
       });
     } else {
       setWakeChecked((prev) => {
         const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-        localStorage.setItem("iwake", JSON.stringify(next));
+        try { localStorage.setItem("iwake", JSON.stringify(next)); } catch {}
         return next;
       });
     }
   };
+
   const resetList = (list: "sleep" | "wake") => {
-    if (list === "sleep") { setSleepChecked([]); localStorage.setItem("isleep", "[]"); }
-    else { setWakeChecked([]); localStorage.setItem("iwake", "[]"); }
+    if (list === "sleep") { setSleepChecked([]); try { localStorage.setItem("isleep", "[]"); } catch {} }
+    else { setWakeChecked([]); try { localStorage.setItem("iwake", "[]"); } catch {} }
   };
 
   // ─── Clock display ────────────────────────────────────────────────────────────
-  const nowH = now.getHours(), nowM = now.getMinutes(), nowS = now.getSeconds();
+  const nowH = now.getHours();
+  const nowM = now.getMinutes();
   const ampm = nowH >= 12 ? "PM" : "AM";
   const h12 = nowH % 12 || 12;
   const clockStr = `${String(h12).padStart(2, "0")}:${String(nowM).padStart(2, "0")}`;
   const dateStr = `${getDayName(now.getDay())}, ${now.getDate()} ${getMonthName(now.getMonth())} ${now.getFullYear()}`;
 
-  // ─── Next prayer ─────────────────────────────────────────────────────────────
-  const PRAYER_ORDER = ["Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"] as const;
+  const PRAYER_ORDER: (keyof PrayerTimes)[] = ["Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"];
   const nowTotalMin = nowH * 60 + nowM;
   const nextPrayerIdx = prayerTimes
     ? PRAYER_ORDER.findIndex((p) => toMin(prayerTimes[p]) > nowTotalMin)
     : -1;
 
-  // ─── Alarm preview time ───────────────────────────────────────────────────────
   const fajrPreviewTime = prayerTimes ? fmt12(fromMin(toMin(prayerTimes.Fajr) - mbf)) : null;
   const tahajjudTime = prayerTimes ? fmt12(calcTahajjud(prayerTimes.Isha, prayerTimes.Fajr)) : null;
 
   // ─── Render ───────────────────────────────────────────────────────────────────
   return (
     <>
-      {/* ── Alarm firing overlay ──────────────────────────────────────────── */}
+      {/* Alarm firing overlay */}
       {alarmFiring && (
         <div style={S.overlay}>
           <div style={{ fontSize: 80, animation: "bounce 0.6s ease-in-out infinite alternate" }}>☀️</div>
@@ -518,7 +650,7 @@ export default function IslamicAlarmPage() {
         </div>
       )}
 
-      {/* ── Alhamdulillah overlay ─────────────────────────────────────────── */}
+      {/* Alhamdulillah overlay */}
       {showAlham && (
         <div style={S.alhamOverlay}>
           <div style={{ fontSize: 56, color: "#f0c060", marginBottom: 8 }}>الحمد لله</div>
@@ -529,20 +661,20 @@ export default function IslamicAlarmPage() {
 
       <div style={S.app}>
 
-        {/* ── Header / Clock ────────────────────────────────────────────────── */}
+        {/* Header / Clock */}
         <div style={S.header}>
           <div>
             <span style={S.clockTime}>{clockStr}</span>
             <span style={S.clockAmpm}>{ampm}</span>
           </div>
-          <div style={S.clockDate}>{dateStr}</div>
-          <div style={S.hijri}>{hijriDate}</div>
+          <span style={S.clockDate}>{dateStr}</span>
+          <span style={S.hijri}>{hijriDate}</span>
         </div>
 
-        {/* ── Location ─────────────────────────────────────────────────────── */}
+        {/* Location */}
         <div style={S.locRow}>📍 <span style={{ marginLeft: 6 }}>{locationName}</span></div>
 
-        {/* ── Prayer bar ───────────────────────────────────────────────────── */}
+        {/* Prayer bar */}
         <div style={S.prayerBar}>
           <div style={S.prayerBarInner}>
             {PRAYER_ORDER.map((p, i) => (
@@ -554,22 +686,20 @@ export default function IslamicAlarmPage() {
           </div>
         </div>
 
-        {/* ── Tab bar ──────────────────────────────────────────────────────── */}
+        {/* Tab bar */}
         <div style={S.tabbar}>
           {(["alarm", "night", "duas", "list"] as const).map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               style={{ ...S.tab, ...(activeTab === tab ? S.tabActive : {}) }}>
               {tab === "alarm" && "⏰ Alarm"}
               {tab === "night" && "🌙 Night"}
-              {tab === "duas" && "🤲 Duas"}
-              {tab === "list" && "✅ Lists"}
+              {tab === "duas"  && "🤲 Duas"}
+              {tab === "list"  && "✅ Lists"}
             </button>
           ))}
         </div>
 
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* ALARM TAB */}
-        {/* ══════════════════════════════════════════════════════════════════ */}
+        {/* ═══════════ ALARM TAB ═══════════ */}
         {activeTab === "alarm" && (
           <div style={S.panel}>
 
@@ -582,7 +712,9 @@ export default function IslamicAlarmPage() {
                 </div>
               ) : (
                 alarms.map((a) => {
-                  const [timeStr, ap] = fmt12(a.time24).split(" ");
+                  const parts = fmt12(a.time24).split(" ");
+                  const timeStr = parts[0];
+                  const ap = parts[1];
                   return (
                     <div key={a.id} style={S.alarmItem}>
                       <div>
@@ -613,8 +745,8 @@ export default function IslamicAlarmPage() {
                 {(["custom", "fajr", "tahajjud"] as const).map((t) => (
                   <button key={t} onClick={() => setAlarmType(t)}
                     style={{ ...S.typeBtn, ...(alarmType === t ? S.typeBtnActive : {}) }}>
-                    {t === "custom" && "🕐 Custom"}
-                    {t === "fajr" && "🌅 Before Fajr"}
+                    {t === "custom"   && "🕐 Custom"}
+                    {t === "fajr"     && "🌅 Before Fajr"}
                     {t === "tahajjud" && "🌙 Tahajjud"}
                   </button>
                 ))}
@@ -625,20 +757,17 @@ export default function IslamicAlarmPage() {
                 <div style={{ marginTop: 14 }}>
                   <div style={S.fieldLabel}>Time</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {/* Hours */}
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
                       <button style={S.udBtn} onClick={() => setPickH((h) => (h % 12) + 1)}>▲</button>
                       <div style={S.timeScroll}>{String(pickH).padStart(2, "0")}</div>
                       <button style={S.udBtn} onClick={() => setPickH((h) => ((h - 2 + 12) % 12) + 1)}>▼</button>
                     </div>
                     <div style={{ fontSize: 28, fontWeight: 300, color: "#9096a8" }}>:</div>
-                    {/* Minutes */}
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
                       <button style={S.udBtn} onClick={() => setPickM((m) => (m + 1) % 60)}>▲</button>
                       <div style={S.timeScroll}>{String(pickM).padStart(2, "0")}</div>
                       <button style={S.udBtn} onClick={() => setPickM((m) => (m - 1 + 60) % 60)}>▼</button>
                     </div>
-                    {/* AM/PM */}
                     <div style={{ display: "flex", flexDirection: "column", gap: 4, marginLeft: 4 }}>
                       <button onClick={() => setPickAmpm("AM")}
                         style={{ ...S.ampmBtn, ...(pickAmpm === "AM" ? S.ampmBtnActive : {}) }}>AM</button>
@@ -674,24 +803,38 @@ export default function IslamicAlarmPage() {
                 <div style={{ marginTop: 14 }}>
                   <div style={S.infoBoxGold}>
                     🌙 Tahajjud (last third of night) begins at{" "}
-                    <strong>{tahajjudTime || "Waiting for prayer times…"}</strong>
+                    <strong>{tahajjudTime ?? "Waiting for prayer times…"}</strong>
                   </div>
                 </div>
               )}
 
-              {/* Sound */}
+              {/* Sound selector — preview button uses stopPropagation */}
               <div style={{ marginTop: 16 }}>
                 <div style={S.fieldLabel}>Wake Sound</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {SOUNDS.map((s) => (
-                    <div key={s.id} onClick={() => setSelectedSound(s.id)}
-                      style={{ ...S.soundOpt, ...(selectedSound === s.id ? S.soundOptActive : {}) }}>
-                      <span>🔊 {s.label}</span>
+                    <div
+                      key={s.id}
+                      onClick={() => setSelectedSound(s.id)}
+                      style={{ ...S.soundOpt, ...(selectedSound === s.id ? S.soundOptActive : {}) }}
+                    >
+                      <span style={{ flex: 1, pointerEvents: "none" }}>
+                        {selectedSound === s.id ? "🔵" : "⚪"} {s.label}
+                      </span>
                       <button
-                        onClick={(e) => previewSound(s.id, e)}
-                        style={S.previewBtn}>▶</button>
+                        type="button"
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => previewSound(e, s.id)}
+                        style={{ ...S.previewBtn, color: previewingId === s.id ? "#f0c060" : "#9096a8" }}
+                        title="Preview sound"
+                      >
+                        {previewingId === s.id ? "■" : "▶"}
+                      </button>
                     </div>
                   ))}
+                </div>
+                <div style={{ fontSize: 11, color: "#555d70", marginTop: 6 }}>
+                  💡 Tap ▶ to preview · Tap row to select
                 </div>
               </div>
 
@@ -712,30 +855,26 @@ export default function IslamicAlarmPage() {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* NIGHT TAB */}
-        {/* ══════════════════════════════════════════════════════════════════ */}
+        {/* ═══════════ NIGHT TAB ═══════════ */}
         {activeTab === "night" && (
           <div style={S.panel}>
             <div style={S.card}>
               <div style={S.cardTitle}>Night Sleep Player</div>
               <div style={{ fontSize: 13, color: "#555d70", marginBottom: 14 }}>
-                Mishary Rashid — Plays as you fall asleep
+                Mishary Rashid Alafasy — Plays as you fall asleep
               </div>
 
-              {/* Now playing bar */}
               {nightPlaying && (
                 <div style={S.playerBar}>
                   <div style={S.playerDot} />
                   <div style={{ flex: 1, fontSize: 13, color: "#9096a8" }}>
                     <strong style={{ color: "#f0f0f0", display: "block", fontSize: 14 }}>{npTitle}</strong>
-                    Playing…
+                    Now playing…
                   </div>
                   <button onClick={stopPlayer} style={S.stopBtn}>■ Stop</button>
                 </div>
               )}
 
-              {/* Surah list */}
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {SURAHS.map((s) => {
                   const sel = selectedSurahs.includes(s.id);
@@ -744,7 +883,9 @@ export default function IslamicAlarmPage() {
                     <div key={s.id} onClick={() => toggleSurah(s.id)}
                       style={{ ...S.surahItem, ...(sel ? S.surahItemSel : {}) }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <div style={{ ...S.surahNum, ...(sel ? S.surahNumSel : {}) }}>{sel ? pos : "·"}</div>
+                        <div style={{ ...S.surahNum, ...(sel ? S.surahNumSel : {}) }}>
+                          {sel ? pos : "·"}
+                        </div>
                         <div>
                           <div style={{ fontSize: 14, color: "#f0f0f0", fontWeight: 500 }}>{s.name}</div>
                           <div style={{ fontSize: 15, color: "#555d70", direction: "rtl" }}>{s.arabic}</div>
@@ -756,7 +897,6 @@ export default function IslamicAlarmPage() {
                 })}
               </div>
 
-              {/* Repeat */}
               <div style={{ marginTop: 16 }}>
                 <div style={S.fieldLabel}>Repeat each surah</div>
                 <div style={S.row}>
@@ -770,24 +910,29 @@ export default function IslamicAlarmPage() {
               </div>
 
               <div style={S.infoBoxBlue}>
-                🎙️ <strong>Mishary Rashid Alafasy</strong> — Auto-stops when playlist ends
+                🎙️ <strong>Mishary Rashid Alafasy</strong> — Auto-stops when playlist ends.<br />
+                <span style={{ fontSize: 11, opacity: 0.8 }}>Select surahs above then tap Start.</span>
               </div>
 
-              <button onClick={startPlayer} disabled={selectedSurahs.length === 0}
-                style={{ ...S.btnGreen, opacity: selectedSurahs.length === 0 ? 0.4 : 1, cursor: selectedSurahs.length === 0 ? "not-allowed" : "pointer" }}>
+              <button
+                onClick={startPlayer}
+                disabled={selectedSurahs.length === 0}
+                style={{
+                  ...S.btnGreen,
+                  opacity: selectedSurahs.length === 0 ? 0.4 : 1,
+                  cursor: selectedSurahs.length === 0 ? "not-allowed" : "pointer",
+                }}
+              >
                 ▶ Start Night Player
               </button>
             </div>
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* DUAS TAB */}
-        {/* ══════════════════════════════════════════════════════════════════ */}
+        {/* ═══════════ DUAS TAB ═══════════ */}
         {activeTab === "duas" && (
           <div style={S.panel}>
 
-            {/* Morning Duas */}
             <div style={S.card}>
               <div style={S.cardTitle}>🌅 Morning Duas</div>
               {MORNING_DUAS.map((d, i) => (
@@ -801,7 +946,6 @@ export default function IslamicAlarmPage() {
               ))}
             </div>
 
-            {/* Sleep Duas */}
             <div style={S.card}>
               <div style={S.cardTitle}>🌙 Sleep Duas</div>
               {SLEEP_DUAS.map((d, i) => (
@@ -815,10 +959,11 @@ export default function IslamicAlarmPage() {
               ))}
             </div>
 
-            {/* Dhikr counter */}
             <div style={S.card}>
               <div style={S.cardTitle}>📿 Morning Dhikr</div>
-              <div style={{ fontSize: 12, color: "#555d70", marginBottom: 12 }}>Tap + to count. Tap reset when done.</div>
+              <div style={{ fontSize: 12, color: "#555d70", marginBottom: 12 }}>
+                Tap + to count. Tap reset when done.
+              </div>
               {DHIKR.map((d, i) => {
                 const cnt = dhikrCounts[i] || 0;
                 const done = cnt >= d.target;
@@ -843,9 +988,7 @@ export default function IslamicAlarmPage() {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* LIST TAB */}
-        {/* ══════════════════════════════════════════════════════════════════ */}
+        {/* ═══════════ LIST TAB ═══════════ */}
         {activeTab === "list" && (
           <div style={S.panel}>
 
@@ -858,9 +1001,10 @@ export default function IslamicAlarmPage() {
                     style={{ ...S.checkItem, ...(checked ? S.checkItemDone : {}) }}>
                     <span style={{ fontSize: 20, flexShrink: 0 }}>{checked ? "✅" : "⬜"}</span>
                     <span>
-                      <div style={{ fontSize: 14, color: checked ? "#555d70" : "#f0f0f0", fontWeight: 500, textDecoration: checked ? "line-through" : "none" }}>
-                        {item.text}
-                      </div>
+                      <div style={{
+                        fontSize: 14, color: checked ? "#555d70" : "#f0f0f0", fontWeight: 500,
+                        textDecoration: checked ? "line-through" : "none",
+                      }}>{item.text}</div>
                       <div style={{ fontSize: 12, color: "#555d70", direction: "rtl", marginTop: 3 }}>{item.arabic}</div>
                     </span>
                   </button>
@@ -878,9 +1022,10 @@ export default function IslamicAlarmPage() {
                     style={{ ...S.checkItem, ...(checked ? S.checkItemDone : {}) }}>
                     <span style={{ fontSize: 20, flexShrink: 0 }}>{checked ? "✅" : "⬜"}</span>
                     <span>
-                      <div style={{ fontSize: 14, color: checked ? "#555d70" : "#f0f0f0", fontWeight: 500, textDecoration: checked ? "line-through" : "none" }}>
-                        {item.text}
-                      </div>
+                      <div style={{
+                        fontSize: 14, color: checked ? "#555d70" : "#f0f0f0", fontWeight: 500,
+                        textDecoration: checked ? "line-through" : "none",
+                      }}>{item.text}</div>
                       <div style={{ fontSize: 12, color: "#555d70", direction: "rtl", marginTop: 3 }}>{item.arabic}</div>
                     </span>
                   </button>
@@ -893,7 +1038,7 @@ export default function IslamicAlarmPage() {
 
       </div>
 
-      {/* ── Global styles (keyframes) ─────────────────────────────────────── */}
+      {/* Global styles */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -901,7 +1046,7 @@ export default function IslamicAlarmPage() {
         @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-16px); } }
         @keyframes pulse {
           0%, 100% { box-shadow: 0 0 0 0 rgba(52,199,123,0.5); }
-          50% { box-shadow: 0 0 0 16px rgba(52,199,123,0); }
+          50%       { box-shadow: 0 0 0 16px rgba(52,199,123,0); }
         }
         @keyframes pdot { from { opacity: 1; } to { opacity: 0.3; } }
         input, button { font-family: 'Inter', sans-serif; }
@@ -912,32 +1057,10 @@ export default function IslamicAlarmPage() {
   );
 }
 
-// ─── Toggle Switch Component ───────────────────────────────────────────────────
-function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: () => void }) {
-  return (
-    <div
-      onClick={onChange}
-      style={{
-        position: "relative", width: 50, height: 28, cursor: "pointer",
-        background: checked ? "#34c77b" : "#22262f",
-        borderRadius: 14, border: `1px solid ${checked ? "#34c77b" : "#2a2f3d"}`,
-        transition: "background 0.3s, border-color 0.3s", flexShrink: 0,
-      }}
-    >
-      <div style={{
-        position: "absolute", top: 3, left: checked ? 23 : 3,
-        width: 20, height: 20, background: "#fff", borderRadius: "50%",
-        transition: "left 0.3s",
-      }} />
-    </div>
-  );
-}
-
-// ─── Styles object ─────────────────────────────────────────────────────────────
+// ─── Styles ────────────────────────────────────────────────────────────────────
 const S: Record<string, React.CSSProperties> = {
   app: { maxWidth: 420, margin: "0 auto", paddingBottom: 80, background: "#111318", minHeight: "100vh" },
 
-  // Overlays
   overlay: {
     position: "fixed", inset: 0, zIndex: 9999, background: "#0a1a0e",
     display: "flex", flexDirection: "column", alignItems: "center",
@@ -954,17 +1077,14 @@ const S: Record<string, React.CSSProperties> = {
     animation: "pulse 1.5s ease-in-out infinite",
   },
 
-  // Header
   header: { textAlign: "center", padding: "36px 20px 20px" },
   clockTime: { fontSize: 64, fontWeight: 300, letterSpacing: -2, lineHeight: 1, color: "#fff" },
   clockAmpm: { fontSize: 22, fontWeight: 400, color: "#9096a8", marginLeft: 6 },
   clockDate: { fontSize: 14, color: "#9096a8", marginTop: 8, fontWeight: 400, display: "block" },
   hijri: { fontSize: 12, color: "#555d70", marginTop: 4, display: "block" },
 
-  // Location
   locRow: { display: "flex", alignItems: "center", padding: "8px 16px", fontSize: 12, color: "#555d70" },
 
-  // Prayer bar
   prayerBar: {
     background: "#1a1d24", borderTop: "1px solid #2a2f3d", borderBottom: "1px solid #2a2f3d",
     padding: "12px 16px", overflowX: "auto", whiteSpace: "nowrap",
@@ -979,7 +1099,6 @@ const S: Record<string, React.CSSProperties> = {
   prayerName: { fontSize: 10, color: "#555d70", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 },
   prayerTime: { fontSize: 13, color: "#f0c060", fontWeight: 600 },
 
-  // Tabbar
   tabbar: {
     display: "flex", background: "#1a1d24",
     borderBottom: "1px solid #2a2f3d", position: "sticky", top: 0, zIndex: 50,
@@ -992,25 +1111,19 @@ const S: Record<string, React.CSSProperties> = {
   },
   tabActive: { color: "#f0c060", borderBottomColor: "#f0c060" },
 
-  // Panel & card
   panel: { padding: "20px 16px", display: "flex", flexDirection: "column", gap: 16 },
-  card: {
-    background: "#1e2230", border: "1px solid #2a2f3d", borderRadius: 14,
-    padding: 18,
-  },
+  card: { background: "#1e2230", border: "1px solid #2a2f3d", borderRadius: 14, padding: 18 },
   cardTitle: {
     fontSize: 13, fontWeight: 600, color: "#9096a8",
     textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 14,
   },
 
-  // Alarm
   alarmItem: {
     display: "flex", alignItems: "center", justifyContent: "space-between",
     padding: "16px 0", borderBottom: "1px solid #2a2f3d",
   },
   alarmTimeBig: { fontSize: 36, fontWeight: 300, color: "#fff", letterSpacing: -1 },
 
-  // Form
   row: { display: "flex", gap: 6, flexWrap: "wrap" },
   typeBtn: {
     flex: 1, minWidth: 80, padding: "8px 4px", borderRadius: 10,
@@ -1040,11 +1153,13 @@ const S: Record<string, React.CSSProperties> = {
     display: "flex", alignItems: "center", justifyContent: "space-between",
     padding: "10px 12px", borderRadius: 10, border: "1px solid #2a2f3d",
     background: "#22262f", cursor: "pointer", fontSize: 13, color: "#f0f0f0",
+    userSelect: "none",
   },
   soundOptActive: { borderColor: "#4da6ff", background: "rgba(77,166,255,0.1)", color: "#4da6ff" },
   previewBtn: {
-    background: "none", border: "none", color: "#555d70", fontSize: 16,
-    cursor: "pointer", padding: "2px 6px", transition: "color 0.2s",
+    background: "rgba(255,255,255,0.05)", border: "1px solid #3a3f50",
+    borderRadius: 6, fontSize: 14, cursor: "pointer",
+    padding: "4px 10px", minWidth: 32, flexShrink: 0, zIndex: 10,
   },
   textInput: {
     width: "100%", padding: "10px 12px", background: "#1a1d24",
@@ -1061,12 +1176,8 @@ const S: Record<string, React.CSSProperties> = {
     background: "#34c77b", color: "#000", fontSize: 15, fontWeight: 700,
     cursor: "pointer", marginTop: 12,
   },
-  iconBtn: {
-    background: "none", border: "none", color: "#555d70",
-    fontSize: 18, cursor: "pointer", padding: "4px 6px",
-  },
+  iconBtn: { background: "none", border: "none", color: "#555d70", fontSize: 18, cursor: "pointer", padding: "4px 6px" },
 
-  // Info boxes
   infoBoxGold: {
     marginTop: 10, padding: "12px 14px", borderRadius: 10,
     border: "1px solid rgba(240,192,96,0.3)", background: "rgba(240,192,96,0.08)",
@@ -1078,7 +1189,6 @@ const S: Record<string, React.CSSProperties> = {
     color: "#4da6ff", fontSize: 12, lineHeight: 1.5,
   },
 
-  // Night player
   playerBar: {
     background: "#22262f", border: "1px solid #34c77b", borderRadius: 12,
     padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, marginBottom: 12,
@@ -1089,12 +1199,11 @@ const S: Record<string, React.CSSProperties> = {
   },
   stopBtn: {
     padding: "8px 16px", borderRadius: 8, border: "1px solid rgba(255,85,85,0.4)",
-    background: "rgba(255,85,85,0.1)", color: "#ff5555", fontSize: 12,
-    fontWeight: 700, cursor: "pointer",
+    background: "rgba(255,85,85,0.1)", color: "#ff5555", fontSize: 12, fontWeight: 700, cursor: "pointer",
   },
   surahItem: {
     display: "flex", alignItems: "center", justifyContent: "space-between",
-    padding: "14px", background: "#22262f", border: "1px solid #2a2f3d",
+    padding: 14, background: "#22262f", border: "1px solid #2a2f3d",
     borderRadius: 12, cursor: "pointer", transition: "all 0.2s",
   },
   surahItemSel: { borderColor: "#f0c060", background: "rgba(240,192,96,0.08)" },
@@ -1105,7 +1214,6 @@ const S: Record<string, React.CSSProperties> = {
   },
   surahNumSel: { background: "#f0c060", borderColor: "#f0c060", color: "#000" },
 
-  // Duas
   duaCard: {
     padding: 16, background: "#22262f", border: "1px solid #2a2f3d",
     borderLeft: "3px solid #f0c060", borderRadius: 12, marginBottom: 12,
@@ -1114,15 +1222,11 @@ const S: Record<string, React.CSSProperties> = {
     fontSize: 11, color: "#f0c060", fontWeight: 700,
     textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10,
   },
-  duaArabic: {
-    direction: "rtl", textAlign: "right", fontSize: 20, color: "#fff",
-    lineHeight: 1.9, marginBottom: 8,
-  },
+  duaArabic: { direction: "rtl", textAlign: "right", fontSize: 20, color: "#fff", lineHeight: 1.9, marginBottom: 8 },
   duaRoman: { fontSize: 12, color: "#4da6ff", fontStyle: "italic", marginBottom: 4, lineHeight: 1.5 },
   duaEnglish: { fontSize: 13, color: "#9096a8", lineHeight: 1.5, marginBottom: 6 },
   duaRef: { fontSize: 11, color: "#555d70" },
 
-  // Dhikr
   dhikrItem: {
     display: "flex", alignItems: "center", justifyContent: "space-between",
     padding: 14, background: "#22262f", border: "1px solid #2a2f3d",
@@ -1136,17 +1240,12 @@ const S: Record<string, React.CSSProperties> = {
     color: "#34c77b", fontSize: 22, cursor: "pointer",
     display: "flex", alignItems: "center", justifyContent: "center",
   },
-  dhikrReset: {
-    background: "none", border: "none", color: "#555d70",
-    fontSize: 10, cursor: "pointer", textDecoration: "underline",
-  },
+  dhikrReset: { background: "none", border: "none", color: "#555d70", fontSize: 10, cursor: "pointer", textDecoration: "underline" },
 
-  // Checklists
   checkItem: {
     display: "flex", alignItems: "flex-start", gap: 12, padding: 14,
     background: "#22262f", border: "1px solid #2a2f3d", borderRadius: 12,
-    marginBottom: 8, cursor: "pointer", textAlign: "left",
-    width: "100%", transition: "all 0.2s",
+    marginBottom: 8, cursor: "pointer", textAlign: "left", width: "100%", transition: "all 0.2s",
   },
   checkItemDone: { borderColor: "rgba(52,199,123,0.4)", background: "rgba(52,199,123,0.05)" },
   resetBtn: {
