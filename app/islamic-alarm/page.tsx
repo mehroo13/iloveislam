@@ -1,6 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { Trash2, Plus, Play, Pause, Volume2, RotateCcw, Check } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface PrayerTimes {
@@ -34,21 +43,20 @@ interface CheckItem {
   arabic: string;
 }
 
-// ─── Constants ─────────────────────────────────────────────────────────────────
-// Using the most reliable URLs found during testing
-const SOUNDS = [
-  { id: "adhan_makkah", label: "Adhan – Makkah", url: "https://praytimes.org/audio/sunni/Adhan-Makkah.mp3" },
-  { id: "adhan_madinah", label: "Adhan – Madinah", url: "https://praytimes.org/audio/sunni/Adhan-Madinah.mp3" },
-  { id: "adhan_egypt", label: "Adhan – Egypt", url: "https://praytimes.org/audio/sunni/Adhan-Egypt.mp3" },
-  { id: "adhan_alaqsa", label: "Adhan – Al-Aqsa", url: "https://praytimes.org/audio/sunni/Adhan-Alaqsa.mp3" },
+// ─── Audio Sources ─────────────────────────────────────────────────────────────
+const ADHAN_SOUNDS = [
+  { id: "adhan_makkah", label: "Adhan – Makkah", url: "https://cdn.islamic.network/quran/recitations/v3/recitations.json" },
+  { id: "adhan_madinah", label: "Adhan – Madinah", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+  { id: "adhan_egypt", label: "Adhan – Egypt", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
+  { id: "adhan_alaqsa", label: "Adhan – Al-Aqsa", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
 ];
 
 const SURAHS = [
-  { id: "mulk", name: "Surah Al-Mulk", arabic: "سورة الملك", url: "https://archive.org/download/MisharyRashidAlafasyQuranmp3.info/067.mp3" },
-  { id: "rahman", name: "Surah Ar-Rahman", arabic: "سورة الرحمن", url: "https://archive.org/download/MisharyRashidAlafasyQuranmp3.info/055.mp3" },
-  { id: "sajdah", name: "Surah As-Sajdah", arabic: "سورة السجدة", url: "https://archive.org/download/MisharyRashidAlafasyQuranmp3.info/032.mp3" },
-  { id: "waqiah", name: "Surah Al-Waqi'ah", arabic: "سورة الواقعة", url: "https://archive.org/download/MisharyRashidAlafasyQuranmp3.info/056.mp3" },
-  { id: "kahf", name: "Surah Al-Kahf", arabic: "سورة الكهف", url: "https://archive.org/download/MisharyRashidAlafasyQuranmp3.info/018.mp3" },
+  { id: "mulk", name: "Surah Al-Mulk", arabic: "سورة الملك", url: "https://download.quranic.audio/quran/ar-alafasy/067.mp3" },
+  { id: "rahman", name: "Surah Ar-Rahman", arabic: "سورة الرحمن", url: "https://download.quranic.audio/quran/ar-alafasy/055.mp3" },
+  { id: "sajdah", name: "Surah As-Sajdah", arabic: "سورة السجدة", url: "https://download.quranic.audio/quran/ar-alafasy/032.mp3" },
+  { id: "waqiah", name: "Surah Al-Waqi'ah", arabic: "سورة الواقعة", url: "https://download.quranic.audio/quran/ar-alafasy/056.mp3" },
+  { id: "kahf", name: "Surah Al-Kahf", arabic: "سورة الكهف", url: "https://download.quranic.audio/quran/ar-alafasy/018.mp3" },
 ];
 
 const MORNING_DUAS = [
@@ -97,7 +105,7 @@ const SLEEP_LIST: CheckItem[] = [
   { id: "wudu", text: "Perform Wudu", arabic: "الوضوء" },
   { id: "right_side", text: "Sleep on your right side", arabic: "النوم على الجانب الأيمن" },
   { id: "ayatul_kursi", text: "Recite Ayatul Kursi", arabic: "آية الكرسي" },
-  { id: "three_quls", text: "Recite the Three Quls (3× each)", arabic: "المعوذات" },
+  { id: "three_quls", text: "Recite the Three Quls (3× each )", arabic: "المعوذات" },
   { id: "tasbih", text: "SubhanAllah 33x · Alhamdulillah 33x · Allahu Akbar 34x", arabic: "التسبيح" },
   { id: "sleep_dua", text: "Recite sleeping dua", arabic: "دعاء النوم" },
   { id: "forgive", text: "Forgive everyone before sleeping", arabic: "العفو" },
@@ -138,13 +146,6 @@ function calcTahajjud(isha: string, fajr: string): string {
   return fromMin(i + Math.floor((2 * (f - i)) / 3));
 }
 
-function getDayName(d: number) {
-  return ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][d];
-}
-function getMonthName(m: number) {
-  return ["January","February","March","April","May","June","July","August","September","October","November","December"][m];
-}
-
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function IslamicAlarmPage() {
   const [activeTab, setActiveTab] = useState<"alarm" | "night" | "duas" | "list">("alarm");
@@ -165,7 +166,6 @@ export default function IslamicAlarmPage() {
   const [alarms, setAlarms] = useState<Alarm[]>([]);
   const [alarmFiring, setAlarmFiring] = useState(false);
   const [firingAlarm, setFiringAlarm] = useState<Alarm | null>(null);
-  const [showAlham, setShowAlham] = useState(false);
   const firingAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Alarm form
@@ -192,16 +192,17 @@ export default function IslamicAlarmPage() {
   const [sleepChecked, setSleepChecked] = useState<string[]>([]);
   const [wakeChecked, setWakeChecked] = useState<string[]>([]);
 
-  // Preview audio
-  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
-
   // ─── Load from localStorage ──────────────────────────────────────────────────
   useEffect(() => {
     try {
-      const a = localStorage.getItem("ialarms"); if (a) setAlarms(JSON.parse(a));
-      const d = localStorage.getItem("idhikr"); if (d) setDhikrCounts(JSON.parse(d));
-      const sl = localStorage.getItem("isleep"); if (sl) setSleepChecked(JSON.parse(sl));
-      const wl = localStorage.getItem("iwake"); if (wl) setWakeChecked(JSON.parse(wl));
+      const a = localStorage.getItem("ialarms");
+      if (a) setAlarms(JSON.parse(a));
+      const d = localStorage.getItem("idhikr");
+      if (d) setDhikrCounts(JSON.parse(d));
+      const sl = localStorage.getItem("isleep");
+      if (sl) setSleepChecked(JSON.parse(sl));
+      const wl = localStorage.getItem("iwake");
+      if (wl) setWakeChecked(JSON.parse(wl));
     } catch {}
   }, []);
 
@@ -216,35 +217,50 @@ export default function IslamicAlarmPage() {
       try {
         const n = new Date();
         const res = await fetch(
-          `https://api.aladhan.com/v1/timings/${n.getDate()}-${n.getMonth() + 1}-${n.getFullYear()}?latitude=${lat}&longitude=${lon}&method=2`
+          `https://api.aladhan.com/v1/timings/${n.getDate( )}-${n.getMonth() + 1}-${n.getFullYear()}?latitude=${lat}&longitude=${lon}&method=2`
         );
         const data = await res.json();
         if (data.code === 200) {
           const t = data.data.timings;
-          setPrayerTimes({ Fajr: t.Fajr, Sunrise: t.Sunrise, Dhuhr: t.Dhuhr, Asr: t.Asr, Maghrib: t.Maghrib, Isha: t.Isha });
+          setPrayerTimes({
+            Fajr: t.Fajr,
+            Sunrise: t.Sunrise,
+            Dhuhr: t.Dhuhr,
+            Asr: t.Asr,
+            Maghrib: t.Maghrib,
+            Isha: t.Isha,
+          });
           const h = data.data.date.hijri;
           setHijriDate(`${h.day} ${h.month.en} ${h.year} AH`);
           setLocationName(city || `${lat.toFixed(2)}, ${lon.toFixed(2)}`);
         }
-      } catch {}
+      } catch (e) {
+        console.error("Prayer times error:", e);
+      }
     };
 
     navigator.geolocation?.getCurrentPosition(
       async (pos) => {
         const { latitude: lat, longitude: lon } = pos.coords;
         try {
-          const g = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+          const g = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json` );
           const gd = await g.json();
-          const city = [gd.address.city || gd.address.town || gd.address.village || "", gd.address.country || ""].filter(Boolean).join(", ");
+          const city = [gd.address.city || gd.address.town || gd.address.village || "", gd.address.country || ""]
+            .filter(Boolean)
+            .join(", ");
           fetchPrayers(lat, lon, city);
-        } catch { fetchPrayers(lat, lon); }
+        } catch {
+          fetchPrayers(lat, lon);
+        }
       },
       async () => {
         try {
-          const r = await fetch("https://ipapi.co/json/");
+          const r = await fetch("https://ipapi.co/json/" );
           const d = await r.json();
           fetchPrayers(d.latitude, d.longitude, `${d.city}, ${d.country_name}`);
-        } catch { setLocationName("Location unavailable"); }
+        } catch {
+          setLocationName("Location unavailable");
+        }
       }
     );
   }, []);
@@ -268,23 +284,37 @@ export default function IslamicAlarmPage() {
 
   // ─── Fire alarm ──────────────────────────────────────────────────────────────
   const fireAlarm = useCallback((alarm: Alarm) => {
-    stopPreview();
-    stopPlayer();
     setFiringAlarm(alarm);
     setAlarmFiring(true);
-    const sound = SOUNDS.find((s) => s.id === alarm.sound) || SOUNDS[0];
-    
+    const sound = ADHAN_SOUNDS.find((s) => s.id === alarm.sound) || ADHAN_SOUNDS[0];
+
     const audio = new Audio();
-    audio.src = sound.url;
     audio.loop = true;
+    audio.volume = 1;
     audio.crossOrigin = "anonymous";
-    
-    audio.play().catch(() => {
-      // Fallback for browser blocking
-      const resume = () => { audio.play(); window.removeEventListener("click", resume); };
-      window.addEventListener("click", resume);
-    });
-    firingAudioRef.current = audio;
+
+    const playAudio = () => {
+      audio.src = sound.url;
+      audio
+        .play()
+        .then(() => {
+          firingAudioRef.current = audio;
+        })
+        .catch((err) => {
+          console.error("Alarm play error:", err);
+          toast.error("Could not play alarm sound. Please check audio settings.");
+        });
+    };
+
+    // Try to play immediately, or wait for user interaction
+    playAudio();
+    const resumeOnClick = () => {
+      if (!firingAudioRef.current) {
+        playAudio();
+      }
+      window.removeEventListener("click", resumeOnClick);
+    };
+    window.addEventListener("click", resumeOnClick);
   }, []);
 
   const dismissAlarm = () => {
@@ -295,14 +325,13 @@ export default function IslamicAlarmPage() {
     }
     setAlarmFiring(false);
     setFiringAlarm(null);
-    setShowAlham(true);
-    setTimeout(() => setShowAlham(false), 3500);
+    toast.success("Alarm dismissed. Have a blessed day!");
   };
 
   // ─── Alarm form helpers ──────────────────────────────────────────────────────
   const getAlarmMin = (): number => {
     if (alarmType === "custom") {
-      const h = pickH % 12 + (pickAmpm === "PM" ? 12 : 0);
+      const h = (pickH % 12) + (pickAmpm === "PM" ? 12 : 0);
       return h * 60 + pickM;
     }
     if (alarmType === "fajr" && prayerTimes) return toMin(prayerTimes.Fajr) - mbf;
@@ -312,454 +341,593 @@ export default function IslamicAlarmPage() {
 
   const addAlarm = () => {
     if ((alarmType === "fajr" || alarmType === "tahajjud") && !prayerTimes) {
-      alert("Prayer times not loaded yet.");
+      toast.error("Prayer times not loaded yet. Please use Custom time or wait.");
       return;
     }
     const min = getAlarmMin();
-    const label = alarmLabel.trim() || (alarmType === "fajr" ? "Fajr" : alarmType === "tahajjud" ? "Tahajjud" : "Alarm");
-    const newAlarm: Alarm = { id: Date.now(), time24: fromMin(min), label, sound: selectedSound, enabled: true, type: alarmType };
-    setAlarms((prev) => [...prev, newAlarm]);
-    setAlarmLabel("");
-  };
+    const label =
+      alarmLabel ||
+      (alarmType === "custom"
+        ? `${fmt12(fromMin(min))}`
+        : alarmType === "fajr"
+          ? `Fajr (${fmt12(fromMin(min))})`
+          : `Tahajjud (${fmt12(fromMin(min))})`);
 
-  const toggleAlarm = (id: number) => {
-    setAlarms((prev) => prev.map((a) => a.id === id ? { ...a, enabled: !a.enabled } : a));
+    const newAlarm: Alarm = {
+      id: Date.now(),
+      time24: fromMin(min),
+      label,
+      sound: selectedSound,
+      enabled: true,
+      type: alarmType,
+    };
+
+    setAlarms([...alarms, newAlarm]);
+    setAlarmLabel("");
+    toast.success(`Alarm set for ${label}`);
   };
 
   const deleteAlarm = (id: number) => {
-    setAlarms((prev) => prev.filter((a) => a.id !== id));
+    setAlarms(alarms.filter((a) => a.id !== id));
+    toast.success("Alarm deleted");
   };
 
-  // ─── Sound preview ───────────────────────────────────────────────────────────
-  const stopPreview = () => {
-    if (previewAudioRef.current) {
-      previewAudioRef.current.pause();
-      previewAudioRef.current.src = "";
-      previewAudioRef.current = null;
+  const toggleAlarm = (id: number) => {
+    setAlarms(alarms.map((a) => (a.id === id ? { ...a, enabled: !a.enabled } : a)));
+  };
+
+  // ─── Night player ────────────────────────────────────────────────────────────
+  const playNightSurahs = () => {
+    if (selectedSurahs.length === 0) {
+      toast.error("Please select at least one Surah");
+      return;
     }
-  };
 
-  const previewSound = (id: string, e?: React.MouseEvent) => {
-    if (e) { e.stopPropagation(); e.preventDefault(); }
-    stopPreview();
-    const s = SOUNDS.find((x) => x.id === id);
-    if (!s) return;
-    
     const audio = new Audio();
-    audio.src = s.url;
     audio.crossOrigin = "anonymous";
-    audio.play().catch(() => {});
-    previewAudioRef.current = audio;
-    setTimeout(stopPreview, 10000);
-  };
+    audio.volume = 0.8;
 
-  // ─── Night player ─────────────────────────────────────────────────────────────
-  const playNightIdx = useCallback((idx: number, rep: number, surahs: string[], repeat: number) => {
-    if (!nightStateRef.current.playing) return;
-    
-    const surahId = surahs[idx];
-    if (!surahId) { setNightPlaying(false); return; }
-    
-    const surah = SURAHS.find((s) => s.id === surahId);
-    if (!surah) { setNightPlaying(false); return; }
-    
-    if (nightAudioRef.current) {
-      nightAudioRef.current.pause();
-      nightAudioRef.current.src = "";
-    }
-    
-    const audio = new Audio();
-    audio.src = surah.url;
-    audio.crossOrigin = "anonymous";
-    nightAudioRef.current = audio;
-    
-    setNpTitle(surah.name);
-    nightStateRef.current = { idx, rep, playing: true };
-    
-    audio.onended = () => {
-      if (!nightStateRef.current.playing) return;
-      const nextRep = rep + 1;
-      if (nextRep < repeat) {
-        playNightIdx(idx, nextRep, surahs, repeat);
-      } else {
-        const nextIdx = idx + 1;
-        if (nextIdx < surahs.length) {
-          playNightIdx(nextIdx, 0, surahs, repeat);
-        } else {
-          setNightPlaying(false);
-          nightStateRef.current.playing = false;
-        }
-      }
-    };
-    
-    audio.play().catch(() => {
-      setNightPlaying(false);
-      nightStateRef.current.playing = false;
-    });
-  }, []);
-
-  const startPlayer = () => {
-    if (!selectedSurahs.length) return;
-    stopPreview();
+    nightStateRef.current = { idx: 0, rep: 0, playing: true };
     setNightPlaying(true);
-    nightStateRef.current.playing = true;
-    playNightIdx(0, 0, selectedSurahs, repeatCount);
+
+    const playNext = () => {
+      const idx = nightStateRef.current.idx;
+      const rep = nightStateRef.current.rep;
+
+      if (rep >= repeatCount) {
+        setNightPlaying(false);
+        nightStateRef.current.playing = false;
+        toast.success("Night Surahs completed");
+        return;
+      }
+
+      if (idx >= selectedSurahs.length) {
+        nightStateRef.current.idx = 0;
+        nightStateRef.current.rep += 1;
+        playNext();
+        return;
+      }
+
+      const surahId = selectedSurahs[idx];
+      const surah = SURAHS.find((s) => s.id === surahId);
+      if (!surah) return;
+
+      setNpTitle(`${surah.name} (${rep + 1}/${repeatCount})`);
+      audio.src = surah.url;
+
+      audio.onended = () => {
+        nightStateRef.current.idx += 1;
+        playNext();
+      };
+
+      audio.onerror = () => {
+        console.error("Error loading Surah audio");
+        toast.error(`Could not load ${surah.name}`);
+        nightStateRef.current.idx += 1;
+        playNext();
+      };
+
+      audio
+        .play()
+        .catch((err) => {
+          console.error("Surah play error:", err);
+          toast.error("Could not play Surah. Please check audio settings.");
+        });
+    };
+
+    nightAudioRef.current = audio;
+    playNext();
   };
 
-  const stopPlayer = () => {
-    nightStateRef.current.playing = false;
+  const pauseNightSurahs = () => {
+    if (nightAudioRef.current) {
+      nightAudioRef.current.pause();
+    }
     setNightPlaying(false);
+    nightStateRef.current.playing = false;
+  };
+
+  const stopNightSurahs = () => {
     if (nightAudioRef.current) {
       nightAudioRef.current.pause();
       nightAudioRef.current.src = "";
     }
+    setNightPlaying(false);
+    setNpTitle("");
+    nightStateRef.current = { idx: 0, rep: 0, playing: false };
   };
 
-  const toggleSurah = (id: string) => {
-    setSelectedSurahs((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
-  };
-
-  // ─── Dhikr ───────────────────────────────────────────────────────────────────
-  const incDhikr = (i: number) => {
-    setDhikrCounts((prev) => {
-      const next = { ...prev, [i]: (prev[i] || 0) + 1 };
-      localStorage.setItem("idhikr", JSON.stringify(next));
-      return next;
-    });
-  };
-  const resetDhikr = (i: number) => {
-    setDhikrCounts((prev) => {
-      const next = { ...prev, [i]: 0 };
-      localStorage.setItem("idhikr", JSON.stringify(next));
-      return next;
-    });
-  };
-
-  // ─── Checklists ──────────────────────────────────────────────────────────────
-  const toggleCheck = (list: "sleep" | "wake", id: string) => {
-    if (list === "sleep") {
-      setSleepChecked((prev) => {
-        const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-        localStorage.setItem("isleep", JSON.stringify(next));
-        return next;
-      });
-    } else {
-      setWakeChecked((prev) => {
-        const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-        localStorage.setItem("iwake", JSON.stringify(next));
-        return next;
-      });
+  // ─── Dhikr helpers ───────────────────────────────────────────────────────────
+  const incrementDhikr = (idx: number) => {
+    const current = dhikrCounts[idx] || 0;
+    const target = DHIKR[idx].target;
+    if (current < target) {
+      const updated = { ...dhikrCounts, [idx]: current + 1 };
+      setDhikrCounts(updated);
+      localStorage.setItem("idhikr", JSON.stringify(updated));
     }
   };
-  const resetList = (list: "sleep" | "wake") => {
-    if (list === "sleep") { setSleepChecked([]); localStorage.setItem("isleep", "[]"); }
-    else { setWakeChecked([]); localStorage.setItem("iwake", "[]"); }
+
+  const resetDhikr = (idx: number) => {
+    const updated = { ...dhikrCounts, [idx]: 0 };
+    setDhikrCounts(updated);
+    localStorage.setItem("idhikr", JSON.stringify(updated));
   };
 
-  // ─── Clock display ────────────────────────────────────────────────────────────
-  const nowH = now.getHours(), nowM = now.getMinutes();
-  const ampm = nowH >= 12 ? "PM" : "AM";
-  const h12 = nowH % 12 || 12;
-  const clockStr = `${String(h12).padStart(2, "0")}:${String(nowM).padStart(2, "0")}`;
-  const dateStr = `${getDayName(now.getDay())}, ${now.getDate()} ${getMonthName(now.getMonth())} ${now.getFullYear()}`;
+  // ─── Checklist helpers ───────────────────────────────────────────────────────
+  const toggleSleepCheck = (id: string) => {
+    const updated = sleepChecked.includes(id) ? sleepChecked.filter((x) => x !== id) : [...sleepChecked, id];
+    setSleepChecked(updated);
+    localStorage.setItem("isleep", JSON.stringify(updated));
+  };
 
-  // ─── Next prayer ─────────────────────────────────────────────────────────────
-  const PRAYER_ORDER = ["Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"] as const;
-  const nowTotalMin = nowH * 60 + nowM;
-  const nextPrayerIdx = prayerTimes
-    ? PRAYER_ORDER.findIndex((p) => toMin(prayerTimes[p]) > nowTotalMin)
-    : -1;
+  const toggleWakeCheck = (id: string) => {
+    const updated = wakeChecked.includes(id) ? wakeChecked.filter((x) => x !== id) : [...wakeChecked, id];
+    setWakeChecked(updated);
+    localStorage.setItem("iwake", JSON.stringify(updated));
+  };
 
-  // ─── Render ───────────────────────────────────────────────────────────────────
+  const resetSleepList = () => {
+    setSleepChecked([]);
+    localStorage.setItem("isleep", JSON.stringify([]));
+  };
+
+  const resetWakeList = () => {
+    setWakeChecked([]);
+    localStorage.setItem("iwake", JSON.stringify([]));
+  };
+
+  // ─── Render ──────────────────────────────────────────────────────────────────
+  const currentTime = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+
   return (
-    <>
-      {/* ── Alarm firing overlay ──────────────────────────────────────────── */}
-      {alarmFiring && (
-        <div style={S.overlay}>
-          <div style={{ fontSize: 80, animation: "bounce 0.6s ease-in-out infinite alternate" }}>☀️</div>
-          <div style={{ fontSize: 16, color: "#9096a8", marginTop: 20, fontWeight: 500 }}>Time to Wake Up</div>
-          <div style={{ fontSize: 24, color: "#fff", fontWeight: 700, marginTop: 4 }}>{firingAlarm?.label}</div>
-          <div style={{ fontSize: 72, fontWeight: 300, color: "#34c77b", margin: "16px 0", letterSpacing: -2, lineHeight: 1 }}>
-            {firingAlarm ? fmt12(firingAlarm.time24) : ""}
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      {/* Alarm Modal */}
+      <Dialog open={alarmFiring} onOpenChange={() => {}}>
+        <DialogContent className="max-w-md border-0 bg-gradient-to-b from-amber-900 to-slate-900 text-center">
+          <DialogHeader>
+            <DialogTitle className="text-3xl font-bold text-amber-200">ALARM!</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-6">
+            <p className="text-2xl font-semibold text-white">{firingAlarm?.label}</p>
+            <p className="text-lg text-amber-100">{currentTime}</p>
+            <Button onClick={dismissAlarm} size="lg" className="w-full bg-amber-500 hover:bg-amber-600 text-black font-bold">
+              Dismiss Alarm
+            </Button>
           </div>
-          <button onClick={dismissAlarm} style={S.dismissBtn}>
-            Dismiss — إغلاق
-          </button>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
-      {/* ── Alhamdulillah overlay ─────────────────────────────────────────── */}
-      {showAlham && (
-        <div style={S.alhamOverlay}>
-          <div style={{ fontSize: 56, color: "#f0c060", marginBottom: 8 }}>الحمد لله</div>
-          <div style={{ fontSize: 20, color: "#fff", fontWeight: 600 }}>Alhamdulillah</div>
-          <div style={{ fontSize: 14, color: "#9096a8", marginTop: 6 }}>All praise is for Allah</div>
-        </div>
-      )}
-
-      <div style={S.app}>
-
-        {/* ── Header / Clock ────────────────────────────────────────────────── */}
-        <div style={S.header}>
-          <div>
-            <span style={S.clockTime}>{clockStr}</span>
-            <span style={S.clockAmpm}>{ampm}</span>
-          </div>
-          <div style={S.clockDate}>{dateStr}</div>
-          <div style={S.hijri}>{hijriDate}</div>
+      {/* Main Container */}
+      <div className="container mx-auto max-w-2xl px-4 py-6">
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <h1 className="text-4xl font-bold text-white mb-2">Islamic Alarm Pro</h1>
+          <p className="text-amber-200 text-lg font-semibold">{currentTime}</p>
+          <p className="text-slate-400 text-sm mt-2">{hijriDate}</p>
+          <p className="text-slate-400 text-sm">{locationName}</p>
         </div>
 
-        {/* ── Location ─────────────────────────────────────────────────────── */}
-        <div style={S.locRow}>📍 <span style={{ marginLeft: 6 }}>{locationName}</span></div>
-
-        {/* ── Prayer bar ───────────────────────────────────────────────────── */}
-        <div style={S.prayerBar}>
-          <div style={S.prayerBarInner}>
-            {PRAYER_ORDER.map((p, i) => (
-              <div key={p} style={{ ...S.prayerPill, ...(i === nextPrayerIdx ? S.prayerPillNext : {}) }}>
-                <span style={S.prayerName}>{p}</span>
-                <span style={S.prayerTime}>{prayerTimes ? fmt12(prayerTimes[p]) : "—"}</span>
+        {/* Prayer Times */}
+        {prayerTimes && (
+          <Card className="mb-6 bg-slate-800 border-slate-700 p-4">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <p className="text-xs text-slate-400">Fajr</p>
+                <p className="text-sm font-semibold text-amber-200">{fmt12(prayerTimes.Fajr)}</p>
               </div>
-            ))}
-          </div>
-        </div>
+              <div>
+                <p className="text-xs text-slate-400">Dhuhr</p>
+                <p className="text-sm font-semibold text-amber-200">{fmt12(prayerTimes.Dhuhr)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">Asr</p>
+                <p className="text-sm font-semibold text-amber-200">{fmt12(prayerTimes.Asr)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">Maghrib</p>
+                <p className="text-sm font-semibold text-amber-200">{fmt12(prayerTimes.Maghrib)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">Isha</p>
+                <p className="text-sm font-semibold text-amber-200">{fmt12(prayerTimes.Isha)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">Sunrise</p>
+                <p className="text-sm font-semibold text-amber-200">{fmt12(prayerTimes.Sunrise)}</p>
+              </div>
+            </div>
+          </Card>
+        )}
 
-        {/* ── Tab bar ──────────────────────────────────────────────────────── */}
-        <div style={S.tabbar}>
-          {(["alarm", "night", "duas", "list"] as const).map((tab) => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              style={{ ...S.tab, ...(activeTab === tab ? S.tabActive : {}) }}>
-              {tab === "alarm" && "⏰ Alarm"}
-              {tab === "night" && "🌙 Night"}
-              {tab === "duas" && "🤲 Duas"}
-              {tab === "list" && "✅ Lists"}
-            </button>
-          ))}
-        </div>
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+          <TabsList className="grid w-full grid-cols-4 bg-slate-800 border border-slate-700">
+            <TabsTrigger value="alarm" className="text-xs">
+              Alarms
+            </TabsTrigger>
+            <TabsTrigger value="night" className="text-xs">
+              Night
+            </TabsTrigger>
+            <TabsTrigger value="duas" className="text-xs">
+              Duas
+            </TabsTrigger>
+            <TabsTrigger value="list" className="text-xs">
+              Lists
+            </TabsTrigger>
+          </TabsList>
 
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* ALARM TAB */}
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        {activeTab === "alarm" && (
-          <div style={S.panel}>
-            <div style={S.card}>
-              <div style={S.cardTitle}>My Alarms</div>
-              {alarms.length === 0 ? (
-                <div style={{ color: "#555d70", fontSize: 13, textAlign: "center", padding: "20px 0" }}>No alarms set.</div>
-              ) : (
-                alarms.map((a) => (
-                  <div key={a.id} style={S.alarmItem}>
+          {/* Alarms Tab */}
+          <TabsContent value="alarm" className="space-y-4 mt-4">
+            <Card className="bg-slate-800 border-slate-700 p-4 space-y-4">
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Type</label>
+                  <Select value={alarmType} onValueChange={(v) => setAlarmType(v as any)}>
+                    <SelectTrigger className="bg-slate-700 border-slate-600">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-700 border-slate-600">
+                      <SelectItem value="custom">Custom Time</SelectItem>
+                      <SelectItem value="fajr">Fajr Prayer</SelectItem>
+                      <SelectItem value="tahajjud">Tahajjud</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {alarmType === "custom" && (
+                  <div className="grid grid-cols-3 gap-2">
                     <div>
-                      <div style={S.alarmTimeBig}>{fmt12(a.time24)}</div>
-                      <div style={{ fontSize: 13, color: "#9096a8" }}>{a.label}</div>
+                      <label className="text-xs text-slate-400 block mb-1">Hour</label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="12"
+                        value={pickH}
+                        onChange={(e) => setPickH(Number(e.target.value))}
+                        className="bg-slate-700 border-slate-600"
+                      />
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <ToggleSwitch checked={a.enabled} onChange={() => toggleAlarm(a.id)} />
-                      <button onClick={() => deleteAlarm(a.id)} style={S.iconBtn}>🗑️</button>
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">Min</label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={pickM}
+                        onChange={(e) => setPickM(Number(e.target.value))}
+                        className="bg-slate-700 border-slate-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">AM/PM</label>
+                      <Select value={pickAmpm} onValueChange={(v) => setPickAmpm(v as any)}>
+                        <SelectTrigger className="bg-slate-700 border-slate-600">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-700 border-slate-600">
+                          <SelectItem value="AM">AM</SelectItem>
+                          <SelectItem value="PM">PM</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
+                )}
+
+                {alarmType === "fajr" && (
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Minutes before Fajr</label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="60"
+                      value={mbf}
+                      onChange={(e) => setMbf(Number(e.target.value))}
+                      className="bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Sound</label>
+                  <Select value={selectedSound} onValueChange={setSelectedSound}>
+                    <SelectTrigger className="bg-slate-700 border-slate-600">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-700 border-slate-600">
+                      {ADHAN_SOUNDS.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Label (optional)</label>
+                  <Input
+                    placeholder="e.g., Fajr Alarm"
+                    value={alarmLabel}
+                    onChange={(e) => setAlarmLabel(e.target.value)}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+
+                <Button onClick={addAlarm} className="w-full bg-amber-500 hover:bg-amber-600 text-black font-bold">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Alarm
+                </Button>
+              </div>
+            </Card>
+
+            {/* Alarms List */}
+            <div className="space-y-2">
+              {alarms.length === 0 ? (
+                <p className="text-slate-400 text-center py-4">No alarms set</p>
+              ) : (
+                alarms.map((a) => (
+                  <Card key={a.id} className="bg-slate-800 border-slate-700 p-3 flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="font-semibold text-white">{a.label}</p>
+                      <p className="text-xs text-slate-400">{ADHAN_SOUNDS.find((s) => s.id === a.sound)?.label}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch checked={a.enabled} onCheckedChange={() => toggleAlarm(a.id)} />
+                      <Button size="sm" variant="ghost" onClick={() => deleteAlarm(a.id)}>
+                        <Trash2 className="w-4 h-4 text-red-400" />
+                      </Button>
+                    </div>
+                  </Card>
                 ))
               )}
             </div>
+          </TabsContent>
 
-            <div style={S.card}>
-              <div style={S.cardTitle}>Add Alarm</div>
-              <div style={S.row}>
-                {(["custom", "fajr", "tahajjud"] as const).map((t) => (
-                  <button key={t} onClick={() => setAlarmType(t)}
-                    style={{ ...S.typeBtn, ...(alarmType === t ? S.typeBtnActive : {}) }}>
-                    {t === "custom" ? "🕐 Custom" : t === "fajr" ? "🌅 Fajr" : "🌙 Tahajjud"}
-                  </button>
-                ))}
-              </div>
-
-              {alarmType === "custom" && (
-                <div style={{ marginTop: 14, display: "flex", gap: 10, alignItems: "center" }}>
-                  <input type="number" value={pickH} onChange={e => setPickH(Number(e.target.value))} style={S.numInput} min="1" max="12" />
-                  <span>:</span>
-                  <input type="number" value={pickM} onChange={e => setPickM(Number(e.target.value))} style={S.numInput} min="0" max="59" />
-                  <select value={pickAmpm} onChange={e => setPickAmpm(e.target.value as any)} style={S.numInput}>
-                    <option>AM</option><option>PM</option>
-                  </select>
-                </div>
-              )}
-
-              <div style={{ marginTop: 16 }}>
-                <div style={S.fieldLabel}>Sound</div>
-                {SOUNDS.map((s) => (
-                  <div key={s.id} onClick={() => setSelectedSound(s.id)}
-                    style={{ ...S.soundOpt, ...(selectedSound === s.id ? S.soundOptActive : {}) }}>
-                    <span>🔊 {s.label}</span>
-                    <button onClick={(e) => previewSound(s.id, e)} style={S.previewBtn}>▶</button>
-                  </div>
-                ))}
-              </div>
-
-              <button onClick={addAlarm} style={S.btnPrimary}>+ Set Alarm</button>
-            </div>
-          </div>
-        )}
-
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* NIGHT TAB */}
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        {activeTab === "night" && (
-          <div style={S.panel}>
-            <div style={S.card}>
-              <div style={S.cardTitle}>Night Player</div>
-              {nightPlaying && (
-                <div style={S.playerBar}>
-                  <div style={S.playerDot} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, color: "#fff" }}>{npTitle}</div>
-                    <div style={{ fontSize: 11, color: "#34c77b" }}>Playing…</div>
-                  </div>
-                  <button onClick={stopPlayer} style={S.stopBtn}>■ Stop</button>
-                </div>
-              )}
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {SURAHS.map((s) => (
-                  <div key={s.id} onClick={() => toggleSurah(s.id)}
-                    style={{ ...S.surahItem, ...(selectedSurahs.includes(s.id) ? S.surahItemSel : {}) }}>
-                    <div>
-                      <div style={{ fontSize: 14, color: "#fff" }}>{s.name}</div>
-                      <div style={{ fontSize: 12, color: "#555d70" }}>{s.arabic}</div>
+          {/* Night Surahs Tab */}
+          <TabsContent value="night" className="space-y-4 mt-4">
+            <Card className="bg-slate-800 border-slate-700 p-4 space-y-4">
+              <div>
+                <label className="text-xs text-slate-400 block mb-2">Select Surahs</label>
+                <div className="space-y-2">
+                  {SURAHS.map((s) => (
+                    <div key={s.id} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id={s.id}
+                        checked={selectedSurahs.includes(s.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedSurahs([...selectedSurahs, s.id]);
+                          } else {
+                            setSelectedSurahs(selectedSurahs.filter((x) => x !== s.id));
+                          }
+                        }}
+                        className="w-4 h-4 rounded bg-slate-700 border-slate-600"
+                      />
+                      <label htmlFor={s.id} className="text-sm text-white cursor-pointer flex-1">
+                        {s.name} <span className="text-slate-400">{s.arabic}</span>
+                      </label>
                     </div>
-                    <span>{selectedSurahs.includes(s.id) ? "✓" : "+"}</span>
-                  </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Repeat</label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={repeatCount}
+                  onChange={(e) => setRepeatCount(Number(e.target.value))}
+                  className="bg-slate-700 border-slate-600"
+                />
+              </div>
+
+              {npTitle && (
+                <div className="bg-slate-700 p-3 rounded text-center">
+                  <p className="text-amber-200 font-semibold">{npTitle}</p>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                {!nightPlaying ? (
+                  <Button onClick={playNightSurahs} className="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-bold">
+                    <Play className="w-4 h-4 mr-2" />
+                    Play
+                  </Button>
+                ) : (
+                  <Button onClick={pauseNightSurahs} className="flex-1 bg-orange-500 hover:bg-orange-600 text-black font-bold">
+                    <Pause className="w-4 h-4 mr-2" />
+                    Pause
+                  </Button>
+                )}
+                <Button onClick={stopNightSurahs} variant="outline" className="flex-1 border-slate-600">
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Stop
+                </Button>
+              </div>
+            </Card>
+          </TabsContent>
+
+          {/* Duas Tab */}
+          <TabsContent value="duas" className="space-y-4 mt-4">
+            <div className="space-y-3">
+              <div>
+                <h3 className="text-lg font-bold text-amber-200 mb-3">Morning Duas</h3>
+                {MORNING_DUAS.map((d, i) => (
+                  <Card key={i} className="bg-slate-800 border-slate-700 p-4 mb-3">
+                    <p className="text-xs text-amber-300 font-bold mb-2">{d.title}</p>
+                    <p className="text-lg text-amber-100 font-semibold mb-2 text-right" dir="rtl">
+                      {d.arabic}
+                    </p>
+                    <p className="text-sm text-blue-300 italic mb-2">{d.roman}</p>
+                    <p className="text-sm text-slate-300 mb-1">{d.english}</p>
+                    <p className="text-xs text-slate-500">{d.ref}</p>
+                  </Card>
                 ))}
               </div>
-              <button onClick={startPlayer} style={S.btnGreen}>▶ Start Player</button>
-            </div>
-          </div>
-        )}
 
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* DUAS TAB */}
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        {activeTab === "duas" && (
-          <div style={S.panel}>
-            <div style={S.card}>
-              <div style={S.cardTitle}>🌅 Morning Duas</div>
-              {MORNING_DUAS.map((d, i) => (
-                <div key={i} style={S.duaCard}>
-                  <div style={S.duaTitle}>{d.title}</div>
-                  <div style={S.duaArabic}>{d.arabic}</div>
-                  <div style={S.duaEnglish}>{d.english}</div>
+              <div>
+                <h3 className="text-lg font-bold text-amber-200 mb-3">Sleep Duas</h3>
+                {SLEEP_DUAS.map((d, i) => (
+                  <Card key={i} className="bg-slate-800 border-slate-700 p-4 mb-3">
+                    <p className="text-xs text-amber-300 font-bold mb-2">{d.title}</p>
+                    <p className="text-lg text-amber-100 font-semibold mb-2 text-right" dir="rtl">
+                      {d.arabic}
+                    </p>
+                    <p className="text-sm text-blue-300 italic mb-2">{d.roman}</p>
+                    <p className="text-sm text-slate-300 mb-1">{d.english}</p>
+                    <p className="text-xs text-slate-500">{d.ref}</p>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Lists Tab */}
+          <TabsContent value="list" className="space-y-4 mt-4">
+            <div className="space-y-6">
+              {/* Sleep Checklist */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-bold text-amber-200">Sleep Checklist</h3>
+                  <Button size="sm" variant="outline" onClick={resetSleepList} className="text-xs">
+                    Reset
+                  </Button>
                 </div>
-              ))}
-            </div>
-            <div style={S.card}>
-              <div style={S.cardTitle}>📿 Dhikr</div>
-              {DHIKR.map((d, i) => (
-                <div key={i} style={S.dhikrItem}>
-                  <div style={{ flex: 1 }}>
-                    <div style={S.dhikrArabic}>{d.arabic}</div>
-                    <div style={{ fontSize: 12, color: "#9096a8" }}>{d.name}</div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 20, color: "#34c77b" }}>{dhikrCounts[i] || 0}</span>
-                    <button onClick={() => incDhikr(i)} style={S.dhikrTap}>+</button>
-                  </div>
+                <div className="space-y-2">
+                  {SLEEP_LIST.map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => toggleSleepCheck(item.id)}
+                      className={`p-3 rounded-lg cursor-pointer transition-all ${
+                        sleepChecked.includes(item.id)
+                          ? "bg-green-900 border border-green-600"
+                          : "bg-slate-800 border border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {sleepChecked.includes(item.id) && <Check className="w-4 h-4 text-green-400" />}
+                        <div>
+                          <p className={`text-sm font-medium ${sleepChecked.includes(item.id) ? "text-green-200 line-through" : "text-white"}`}>
+                            {item.text}
+                          </p>
+                          <p className="text-xs text-slate-400">{item.arabic}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              </div>
 
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* LIST TAB */}
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        {activeTab === "list" && (
-          <div style={S.panel}>
-            <div style={S.card}>
-              <div style={S.cardTitle}>🌙 Sleep Sunnah</div>
-              {SLEEP_LIST.map((item) => (
-                <button key={item.id} onClick={() => toggleCheck("sleep", item.id)}
-                  style={{ ...S.checkItem, ...(sleepChecked.includes(item.id) ? S.checkItemDone : {}) }}>
-                  <span>{sleepChecked.includes(item.id) ? "✅" : "⬜"}</span>
-                  <div style={{ flex: 1 }}>{item.text}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+              {/* Wake Checklist */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-bold text-amber-200">Wake Checklist</h3>
+                  <Button size="sm" variant="outline" onClick={resetWakeList} className="text-xs">
+                    Reset
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {WAKE_LIST.map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => toggleWakeCheck(item.id)}
+                      className={`p-3 rounded-lg cursor-pointer transition-all ${
+                        wakeChecked.includes(item.id)
+                          ? "bg-green-900 border border-green-600"
+                          : "bg-slate-800 border border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {wakeChecked.includes(item.id) && <Check className="w-4 h-4 text-green-400" />}
+                        <div>
+                          <p className={`text-sm font-medium ${wakeChecked.includes(item.id) ? "text-green-200 line-through" : "text-white"}`}>
+                            {item.text}
+                          </p>
+                          <p className="text-xs text-slate-400">{item.arabic}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
+              {/* Dhikr Counter */}
+              <div>
+                <h3 className="text-lg font-bold text-amber-200 mb-3">Dhikr Counter</h3>
+                <div className="space-y-2">
+                  {DHIKR.map((d, i) => {
+                    const count = dhikrCounts[i] || 0;
+                    const progress = (count / d.target) * 100;
+                    return (
+                      <div
+                        key={i}
+                        onClick={() => incrementDhikr(i)}
+                        className="p-3 rounded-lg bg-slate-800 border border-slate-700 cursor-pointer hover:border-amber-500 transition-all"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <p className="text-sm font-semibold text-amber-100">{d.name}</p>
+                            <p className="text-xs text-slate-400">{d.arabic}</p>
+                            <p className="text-xs text-slate-500">{d.meaning}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-amber-200">{count}</p>
+                            <p className="text-xs text-slate-400">/{d.target}</p>
+                          </div>
+                        </div>
+                        <div className="w-full bg-slate-700 rounded-full h-2">
+                          <div
+                            className="bg-amber-500 h-2 rounded-full transition-all"
+                            style={{ width: `${Math.min(progress, 100)}%` }}
+                          />
+                        </div>
+                        {count >= d.target && <p className="text-xs text-green-400 mt-1">✓ Completed!</p>}
+                        {count > 0 && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              resetDhikr(i);
+                            }}
+                            className="text-xs mt-2"
+                          >
+                            Reset
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
-
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { background: #111318; color: #f0f0f0; font-family: 'Inter', sans-serif; }
-        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-10px); } }
-        @keyframes pdot { from { opacity: 1; } to { opacity: 0.3; } }
-      `}</style>
-    </>
-  );
-}
-
-// ─── Toggle Switch Component ───────────────────────────────────────────────────
-function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: () => void }) {
-  return (
-    <div onClick={onChange} style={{
-      width: 44, height: 24, borderRadius: 12, background: checked ? "#34c77b" : "#22262f",
-      position: "relative", cursor: "pointer", transition: "0.3s"
-    }}>
-      <div style={{
-        width: 18, height: 18, borderRadius: "50%", background: "#fff",
-        position: "absolute", top: 3, left: checked ? 23 : 3, transition: "0.3s"
-      }} />
     </div>
   );
 }
-
-// ─── Styles object ─────────────────────────────────────────────────────────────
-const S: Record<string, React.CSSProperties> = {
-  app: { maxWidth: 420, margin: "0 auto", paddingBottom: 80 },
-  overlay: { position: "fixed", inset: 0, zIndex: 9999, background: "#0a1a0e", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" },
-  alhamOverlay: { position: "fixed", inset: 0, zIndex: 9998, background: "rgba(0,0,0,0.9)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" },
-  dismissBtn: { padding: "16px 40px", borderRadius: 30, background: "#34c77b", border: "none", fontWeight: 700, cursor: "pointer" },
-  header: { textAlign: "center", padding: "40px 20px" },
-  clockTime: { fontSize: 60, fontWeight: 300 },
-  clockAmpm: { fontSize: 20, color: "#9096a8", marginLeft: 8 },
-  clockDate: { color: "#9096a8", marginTop: 8 },
-  hijri: { fontSize: 12, color: "#555d70", marginTop: 4 },
-  locRow: { padding: "0 20px", fontSize: 12, color: "#555d70" },
-  prayerBar: { background: "#1a1d24", padding: "12px", overflowX: "auto", margin: "20px 0" },
-  prayerBarInner: { display: "flex", gap: 10 },
-  prayerPill: { padding: "8px 12px", background: "#22262f", borderRadius: 8, minWidth: 80, textAlign: "center" },
-  prayerPillNext: { borderColor: "#f0c060", border: "1px solid #f0c060" },
-  prayerName: { fontSize: 10, color: "#555d70", display: "block" },
-  prayerTime: { fontSize: 12, color: "#f0c060", fontWeight: 600 },
-  tabbar: { display: "flex", background: "#1a1d24", position: "sticky", top: 0, zIndex: 10 },
-  tab: { flex: 1, padding: "15px", background: "none", border: "none", color: "#555d70", fontSize: 12, cursor: "pointer" },
-  tabActive: { color: "#f0c060", borderBottom: "2px solid #f0c060" },
-  panel: { padding: 20, display: "flex", flexDirection: "column", gap: 20 },
-  card: { background: "#1e2230", borderRadius: 15, padding: 20 },
-  cardTitle: { fontSize: 12, color: "#9096a8", textTransform: "uppercase", marginBottom: 15 },
-  alarmItem: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "15px 0", borderBottom: "1px solid #2a2f3d" },
-  alarmTimeBig: { fontSize: 30, fontWeight: 300 },
-  row: { display: "flex", gap: 8 },
-  typeBtn: { flex: 1, padding: "10px", borderRadius: 10, background: "#22262f", border: "1px solid #2a2f3d", color: "#9096a8", cursor: "pointer" },
-  typeBtnActive: { borderColor: "#f0c060", color: "#f0c060" },
-  numInput: { background: "#1a1d24", border: "1px solid #2a2f3d", color: "#fff", padding: 8, borderRadius: 5, width: 60 },
-  soundOpt: { display: "flex", justifyContent: "space-between", padding: 12, background: "#22262f", borderRadius: 10, marginBottom: 5, cursor: "pointer" },
-  soundOptActive: { border: "1px solid #34c77b" },
-  previewBtn: { background: "none", border: "none", color: "#555d70", cursor: "pointer" },
-  btnPrimary: { width: "100%", padding: 15, background: "#f0c060", border: "none", borderRadius: 10, fontWeight: 700, marginTop: 15, cursor: "pointer" },
-  btnGreen: { width: "100%", padding: 15, background: "#34c77b", border: "none", borderRadius: 10, fontWeight: 700, marginTop: 15, cursor: "pointer" },
-  iconBtn: { background: "none", border: "none", cursor: "pointer" },
-  playerBar: { background: "#22262f", border: "1px solid #34c77b", borderRadius: 10, padding: 15, display: "flex", alignItems: "center", gap: 15, marginBottom: 15 },
-  playerDot: { width: 8, height: 8, borderRadius: "50%", background: "#34c77b", animation: "pdot 0.8s infinite alternate" },
-  stopBtn: { padding: "5px 10px", background: "rgba(255,0,0,0.1)", border: "1px solid red", color: "red", borderRadius: 5, cursor: "pointer" },
-  surahItem: { display: "flex", justifyContent: "space-between", padding: 15, background: "#22262f", borderRadius: 10, cursor: "pointer" },
-  surahItemSel: { border: "1px solid #f0c060" },
-  duaCard: { padding: 15, background: "#22262f", borderRadius: 10, marginBottom: 10 },
-  duaTitle: { color: "#f0c060", fontSize: 12, marginBottom: 10 },
-  duaArabic: { fontSize: 18, textAlign: "right", direction: "rtl", marginBottom: 10 },
-  duaEnglish: { fontSize: 13, color: "#9096a8" },
-  dhikrItem: { display: "flex", alignItems: "center", padding: 15, background: "#22262f", borderRadius: 10, marginBottom: 5 },
-  dhikrArabic: { fontSize: 16, color: "#f0c060", direction: "rtl" },
-  dhikrTap: { width: 40, height: 40, borderRadius: "50%", background: "#34c77b", border: "none", color: "#000", fontWeight: 700, cursor: "pointer" },
-  checkItem: { display: "flex", gap: 15, padding: 15, background: "#22262f", borderRadius: 10, width: "100%", border: "none", color: "#fff", textAlign: "left", marginBottom: 5, cursor: "pointer" },
-  checkItemDone: { opacity: 0.5 }
-};
