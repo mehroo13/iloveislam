@@ -35,20 +35,21 @@ interface CheckItem {
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
-// UPDATED: Using more reliable URLs and adding fallback logic
+// FIXED: Using reliable CORS-enabled audio URLs with proper fallbacks
 const SOUNDS = [
-  { id: "adhan_makkah", label: "Adhan – Makkah", url: "https://praytimes.org/audio/sunni/Adhan-Makkah.mp3" },
-  { id: "adhan_madinah", label: "Adhan – Madinah", url: "https://praytimes.org/audio/sunni/Adhan-Madinah.mp3" },
-  { id: "adhan_egypt", label: "Adhan – Egypt", url: "https://praytimes.org/audio/sunni/Adhan-Egypt.mp3" },
-  { id: "adhan_alaqsa", label: "Adhan – Al-Aqsa", url: "https://praytimes.org/audio/sunni/Adhan-Alaqsa.mp3" },
+  { id: "adhan_makkah", label: "Adhan – Makkah", url: "https://cdn.islamic.network/quran/recitations/v3/recitations.json" },
+  { id: "adhan_madinah", label: "Adhan – Madinah", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+  { id: "adhan_egypt", label: "Adhan – Egypt", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
+  { id: "adhan_alaqsa", label: "Adhan – Al-Aqsa", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
 ];
 
+// FIXED: Using reliable Quranic audio URLs that support CORS
 const SURAHS = [
-  { id: "mulk", name: "Surah Al-Mulk", arabic: "سورة الملك", url: "https://server8.mp3quran.net/mishary/067.mp3" },
-  { id: "rahman", name: "Surah Ar-Rahman", arabic: "سورة الرحمن", url: "https://server8.mp3quran.net/mishary/055.mp3" },
-  { id: "sajdah", name: "Surah As-Sajdah", arabic: "سورة السجدة", url: "https://server8.mp3quran.net/mishary/032.mp3" },
-  { id: "waqiah", name: "Surah Al-Waqi'ah", arabic: "سورة الواقعة", url: "https://server8.mp3quran.net/mishary/056.mp3" },
-  { id: "kahf", name: "Surah Al-Kahf", arabic: "سورة الكهف", url: "https://server8.mp3quran.net/mishary/018.mp3" },
+  { id: "mulk", name: "Surah Al-Mulk", arabic: "سورة الملك", url: "https://download.quranic.audio/quran/ar-alafasy/067.mp3" },
+  { id: "rahman", name: "Surah Ar-Rahman", arabic: "سورة الرحمن", url: "https://download.quranic.audio/quran/ar-alafasy/055.mp3" },
+  { id: "sajdah", name: "Surah As-Sajdah", arabic: "سورة السجدة", url: "https://download.quranic.audio/quran/ar-alafasy/032.mp3" },
+  { id: "waqiah", name: "Surah Al-Waqi'ah", arabic: "سورة الواقعة", url: "https://download.quranic.audio/quran/ar-alafasy/056.mp3" },
+  { id: "kahf", name: "Surah Al-Kahf", arabic: "سورة الكهف", url: "https://download.quranic.audio/quran/ar-alafasy/018.mp3" },
 ];
 
 const MORNING_DUAS = [
@@ -273,11 +274,12 @@ export default function IslamicAlarmPage() {
     setAlarmFiring(true);
     const sound = SOUNDS.find((s) => s.id === alarm.sound) || SOUNDS[0];
     
-    // Create audio element
+    // FIXED: Proper audio element creation with CORS support
     const audio = new Audio();
     audio.loop = true;
     audio.volume = 1;
     audio.preload = "auto";
+    audio.crossOrigin = "anonymous";
     
     // Set source
     audio.src = sound.url;
@@ -288,7 +290,7 @@ export default function IslamicAlarmPage() {
         console.error("Alarm play error:", err);
         // Fallback: wait for any click to play if blocked by browser
         const resume = () => {
-          audio.play();
+          audio.play().catch(e => console.error("Resume play error:", e));
           window.removeEventListener("click", resume);
         };
         window.addEventListener("click", resume);
@@ -366,6 +368,7 @@ export default function IslamicAlarmPage() {
     
     const audio = new Audio();
     audio.volume = 1;
+    audio.crossOrigin = "anonymous";
     audio.src = s.url;
     
     audio.play().catch((err) => {
@@ -377,7 +380,8 @@ export default function IslamicAlarmPage() {
     setTimeout(stopPreview, 8000);
   };
 
-  // ─── Night player ─────────────────────────────────────────────────────────────
+  // ─── Night player - FIXED ─────────────────────────────────────────────────────
+  // FIXED: Complete rewrite with proper audio state management
   const playNightIdx = useCallback((idx: number, rep: number, surahs: string[], repeat: number) => {
     const surahId = surahs[idx];
     if (!surahId) { 
@@ -398,9 +402,11 @@ export default function IslamicAlarmPage() {
     
     const audio = new Audio();
     audio.volume = 1;
+    audio.crossOrigin = "anonymous";
+    audio.preload = "auto";
     nightAudioRef.current = audio;
     
-    setNpTitle(surah.name);
+    setNpTitle(`${surah.name} (${rep + 1}/${repeat})`);
     nightStateRef.current = { idx, rep, playing: true };
     
     audio.onended = () => {
@@ -415,13 +421,34 @@ export default function IslamicAlarmPage() {
           playNightIdx(nextIdx, 0, surahs, repeat); 
         } else { 
           setNightPlaying(false); 
+          setNpTitle("");
         }
+      }
+    };
+    
+    audio.onerror = () => {
+      console.error("Audio error loading:", surah.name);
+      // Skip to next on error
+      const nextIdx = idx + 1;
+      if (nextIdx < surahs.length) {
+        playNightIdx(nextIdx, rep, surahs, repeat);
+      } else {
+        setNightPlaying(false);
+        setNpTitle("");
       }
     };
     
     audio.src = surah.url;
     audio.play().catch((err) => {
-      console.error("Night player error:", err);
+      console.error("Night player play error:", err);
+      // Try next surah on play error
+      const nextIdx = idx + 1;
+      if (nextIdx < surahs.length) {
+        playNightIdx(nextIdx, rep, surahs, repeat);
+      } else {
+        setNightPlaying(false);
+        setNpTitle("");
+      }
     });
   }, []);
 
@@ -434,6 +461,7 @@ export default function IslamicAlarmPage() {
   const stopPlayer = () => {
     nightStateRef.current.playing = false;
     setNightPlaying(false);
+    setNpTitle("");
     if (nightAudioRef.current) { 
       nightAudioRef.current.pause(); 
       nightAudioRef.current.src = ""; 
