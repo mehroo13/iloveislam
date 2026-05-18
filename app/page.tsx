@@ -277,7 +277,6 @@ const ALL_FEATURED_TOOLS = [
   { href: '/names-finder', badge: '✏️ Names', title: 'Islamic Name Finder', desc: 'Beautiful names with meanings & origins', icon: '✏️', gradient: 'linear-gradient(135deg, #100a18, #201030)', accent: '#d8b4fe' },
   { href: '/eid', badge: '🗓️ Events', title: 'Islamic Events', desc: 'Eid, Ramadan & key Islamic dates', icon: '🗓️', gradient: 'linear-gradient(135deg, #1a0c00, #3d1a00)', accent: '#fdba74' },
   { href: '/eid-adha', badge: '🐄 Eid ul Adha', title: 'Eid ul Adha Toolkit', desc: 'Qurbani calc, takbeer, checklist & recipes', icon: '🐄', gradient: 'linear-gradient(135deg, #0d1a00, #1a3300)', accent: '#a3e635' },
-  { href: '/islamic-alarm', badge: '⏰ Alarm', title: 'Islamic Alarm', desc: 'Wake up to adhan & Islamic reminders', icon: '⏰', gradient: 'linear-gradient(135deg, #0a0f1a, #101a3d)', accent: '#7dd3fc' },
 ];
 
 // ==================== TOOLS DATA ====================
@@ -291,8 +290,7 @@ const TOOLS_DATA = (t: TranslationsType) => [
       { name: 'Hijri Calendar', desc: 'Islamic date converter', icon: '🌙', href: '/hijri', color: 'bg-purple-100 text-purple-700' },
       { name: 'Quran Reader', desc: 'Read with translation', icon: '📖', href: '/quran', color: 'bg-green-100 text-green-700' },
       { name: 'Dhikr Counter', desc: 'Digital tasbih', icon: '📿', href: '/dhikr', color: 'bg-teal-100 text-teal-700' },
-      // ✅ NEW: Islamic Alarm added to Most Used
-      { name: 'Islamic Alarm', desc: 'Adhan & Islamic reminders', icon: '⏰', href: '/islamic-alarm', color: 'bg-blue-100 text-blue-700' },
+      
     ],
   },
   {
@@ -1104,7 +1102,6 @@ export default function Home() {
                       { label: '🧭 Qibla Finder', href: '/qibla', desc: 'Find Mecca direction' },
                       { label: '📿 Dhikr Counter', href: '/dhikr', desc: 'Digital tasbih' },
                       { label: '📖 Quran Reader', href: '/quran', desc: 'Read with translation' },
-                      { label: '⏰ Islamic Alarm', href: '/islamic-alarm', desc: 'Adhan & Islamic reminders' },
                       { label: '🐄 Eid ul Adha', href: '/eid-adha', desc: 'Qurbani toolkit' },
                       { label: '🎮 Kids Games', href: '/kids', desc: 'Fun Islamic games' },
                     ].map(link => (
