@@ -21,63 +21,22 @@ interface Alarm {
   type: string;
 }
 
-// ─── WORKING Audio URLs - TESTED & VERIFIED ─────────────────────────────────
-// These are direct MP3 URLs that work with CORS and don't require special headers
+// ─── WORKING AUDIO URLs – Reliable & CORS-friendly ─────────────────────────────
+// Adhan from islamcan.com (these are direct MP3s that work cross‑origin)
 const ADHAN_SOUNDS = [
-  { 
-    id: "adhan_1", 
-    label: "Adhan - Makkah (Bilal)", 
-    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" 
-  },
-  { 
-    id: "adhan_2", 
-    label: "Adhan - Madinah", 
-    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" 
-  },
-  { 
-    id: "adhan_3", 
-    label: "Adhan - Egypt", 
-    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" 
-  },
-  { 
-    id: "adhan_4", 
-    label: "Adhan - Al-Aqsa", 
-    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" 
-  },
+  { id: "adhan_makkah", label: "Adhan – Makkah", url: "https://www.islamcan.com/audio/adhan/makkah-adhan.mp3" },
+  { id: "adhan_madinah", label: "Adhan – Madinah", url: "https://www.islamcan.com/audio/adhan/madinah-adhan.mp3" },
+  { id: "adhan_egypt", label: "Adhan – Egypt", url: "https://www.islamcan.com/audio/adhan/egypt-adhan.mp3" },
+  { id: "adhan_turkey", label: "Adhan – Turkey", url: "https://www.islamcan.com/audio/adhan/turkey-adhan.mp3" },
 ];
 
-// Direct working Surah URLs - Tested to work
+// Surahs from Islamic Network CDN (Alafasy, 128kbps – stable and CORS‑enabled)
 const SURAHS = [
-  { 
-    id: "mulk", 
-    name: "Surah Al-Mulk (67)", 
-    arabic: "سورة الملك",
-    url: "https://server8.mp3quran.net/basit/001-al-fatiha.mp3"
-  },
-  { 
-    id: "rahman", 
-    name: "Surah Ar-Rahman (55)", 
-    arabic: "سورة الرحمن",
-    url: "https://server8.mp3quran.net/basit/055-ar-rahman.mp3"
-  },
-  { 
-    id: "sajdah", 
-    name: "Surah As-Sajdah (32)", 
-    arabic: "سورة السجدة",
-    url: "https://server8.mp3quran.net/basit/032-as-sajdah.mp3"
-  },
-  { 
-    id: "waqiah", 
-    name: "Surah Al-Waqi'ah (56)", 
-    arabic: "سورة الواقعة",
-    url: "https://server8.mp3quran.net/basit/056-al-waqiah.mp3"
-  },
-  { 
-    id: "kahf", 
-    name: "Surah Al-Kahf (18)", 
-    arabic: "سورة الكهف",
-    url: "https://server8.mp3quran.net/basit/018-al-kahf.mp3"
-  },
+  { id: "mulk", name: "Surah Al-Mulk (67)", arabic: "سورة الملك", url: "https://cdn.islamic.network/quran/audio/128/ar.alafasy/067.mp3" },
+  { id: "rahman", name: "Surah Ar-Rahman (55)", arabic: "سورة الرحمن", url: "https://cdn.islamic.network/quran/audio/128/ar.alafasy/055.mp3" },
+  { id: "sajdah", name: "Surah As-Sajdah (32)", arabic: "سورة السجدة", url: "https://cdn.islamic.network/quran/audio/128/ar.alafasy/032.mp3" },
+  { id: "waqiah", name: "Surah Al-Waqi'ah (56)", arabic: "سورة الواقعة", url: "https://cdn.islamic.network/quran/audio/128/ar.alafasy/056.mp3" },
+  { id: "kahf", name: "Surah Al-Kahf (18)", arabic: "سورة الكهف", url: "https://cdn.islamic.network/quran/audio/128/ar.alafasy/018.mp3" },
 ];
 
 const MORNING_DUAS = [
@@ -144,11 +103,11 @@ function calcTahajjud(isha: string, fajr: string): string {
 }
 
 function getDayName(d: number) {
-  return ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][d];
+  return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][d];
 }
 
 function getMonthName(m: number) {
-  return ["January","February","March","April","May","June","July","August","September","October","November","December"][m];
+  return ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"][m];
 }
 
 // ─── Main Component ────────────────────────────────────────────────────────────
@@ -170,8 +129,8 @@ export default function IslamicAlarmPage() {
   const [pickH, setPickH] = useState(5);
   const [pickM, setPickM] = useState(0);
   const [pickAmpm, setPickAmpm] = useState<"AM" | "PM">("AM");
-  const [mbf, setMbf] = useState(0);
-  const [selectedSound, setSelectedSound] = useState("adhan_1");
+  const [mbf, setMbf] = useState(0); // minutes before Fajr
+  const [selectedSound, setSelectedSound] = useState("adhan_makkah");
   const [alarmLabel, setAlarmLabel] = useState("");
 
   // Night player
@@ -186,11 +145,35 @@ export default function IslamicAlarmPage() {
   const [sleepChecked, setSleepChecked] = useState<string[]>([]);
   const [wakeChecked, setWakeChecked] = useState<string[]>([]);
 
-  // Audio refs - CRITICAL for audio control
+  // Audio refs
   const firingAudioRef = useRef<HTMLAudioElement | null>(null);
   const nightAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const nightStateRef = useRef({ idx: 0, rep: 0, playing: false });
+
+  // ─── Audio Unlock (bypass browser autoplay restrictions) ────────────────────
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
+  useEffect(() => {
+    const unlock = () => {
+      if (audioUnlocked) return;
+      // create a silent audio context to unlock audio on iOS/Chrome
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const buffer = audioCtx.createBuffer(1, 1, 22050);
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioCtx.destination);
+      source.start(0);
+      audioCtx.close().then(() => setAudioUnlocked(true));
+      document.removeEventListener("click", unlock);
+      document.removeEventListener("touchstart", unlock);
+    };
+    document.addEventListener("click", unlock);
+    document.addEventListener("touchstart", unlock);
+    return () => {
+      document.removeEventListener("click", unlock);
+      document.removeEventListener("touchstart", unlock);
+    };
+  }, [audioUnlocked]);
 
   // ─── Clock update ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -275,42 +258,22 @@ export default function IslamicAlarmPage() {
     return () => clearInterval(t);
   }, [alarms, alarmFiring]);
 
-  // ─── FIRE ALARM - COMPLETELY REWRITTEN ────────────────────────────────────
+  // ─── FIRE ALARM – Direct audio.src (no fetch/blob) ─────────────────────────
   const fireAlarm = useCallback((alarm: Alarm) => {
-    setFiringAlarm(alarm);
-    setAlarmFiring(true);
-
-    // Stop any existing audio
+    // Stop any currently playing alarm
     if (firingAudioRef.current) {
       firingAudioRef.current.pause();
       firingAudioRef.current = null;
     }
+    setFiringAlarm(alarm);
+    setAlarmFiring(true);
 
     const sound = ADHAN_SOUNDS.find((s) => s.id === alarm.sound) || ADHAN_SOUNDS[0];
-
-    // Create fresh audio element
-    const audio = new Audio();
+    const audio = new Audio(sound.url);
     audio.loop = true;
     audio.volume = 1;
-
-    // Use blob URL approach for better compatibility
-    const playAudio = async () => {
-      try {
-        const response = await fetch(sound.url);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        audio.src = blobUrl;
-        await audio.play();
-        console.log("✓ Alarm playing:", sound.label);
-      } catch (err) {
-        console.error("Alarm error:", err);
-        // Fallback: try direct URL
-        audio.src = sound.url;
-        audio.play().catch(e => console.error("Fallback error:", e));
-      }
-    };
-
-    playAudio();
+    audio.crossOrigin = "anonymous"; // help with CORS
+    audio.play().catch((err) => console.error("Alarm play error:", err));
     firingAudioRef.current = audio;
   }, []);
 
@@ -329,7 +292,9 @@ export default function IslamicAlarmPage() {
   // ─── Alarm form helpers ───────────────────────────────────────────────────
   const getAlarmMin = (): number => {
     if (alarmType === "custom") {
-      const h = pickH % 12 + (pickAmpm === "PM" ? 12 : 0);
+      let h = pickH;
+      if (pickAmpm === "PM" && h !== 12) h += 12;
+      if (pickAmpm === "AM" && h === 12) h = 0;
       return h * 60 + pickM;
     }
     if (alarmType === "fajr" && prayerTimes) return toMin(prayerTimes.Fajr) - mbf;
@@ -366,29 +331,12 @@ export default function IslamicAlarmPage() {
       previewAudioRef.current.pause();
       previewAudioRef.current = null;
     }
-
     const s = ADHAN_SOUNDS.find((x) => x.id === id);
     if (!s) return;
-
-    const audio = new Audio();
-    audio.volume = 0.7;
-
-    const playPreview = async () => {
-      try {
-        const response = await fetch(s.url);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        audio.src = blobUrl;
-        await audio.play();
-        console.log("✓ Preview playing:", s.label);
-      } catch (err) {
-        console.error("Preview error:", err);
-        audio.src = s.url;
-        audio.play().catch(e => console.error("Fallback preview error:", e));
-      }
-    };
-
-    playPreview();
+    const audio = new Audio(s.url);
+    audio.volume = 0.6;
+    audio.crossOrigin = "anonymous";
+    audio.play().catch(console.error);
     previewAudioRef.current = audio;
     setTimeout(() => {
       if (previewAudioRef.current) {
@@ -398,87 +346,50 @@ export default function IslamicAlarmPage() {
     }, 8000);
   };
 
-  // ─── NIGHT PLAYER - COMPLETELY REWRITTEN ──────────────────────────────────
+  // ─── NIGHT PLAYER – Direct audio.src, proper queue management ──────────────
   const playNightIdx = useCallback((idx: number, rep: number, surahs: string[], repeat: number) => {
     const surahId = surahs[idx];
     if (!surahId) {
       setNightPlaying(false);
       return;
     }
-
     const surah = SURAHS.find((s) => s.id === surahId);
     if (!surah) {
       setNightPlaying(false);
       return;
     }
-
     if (nightAudioRef.current) {
       nightAudioRef.current.pause();
       nightAudioRef.current = null;
     }
-
-    const audio = new Audio();
+    const audio = new Audio(surah.url);
+    audio.crossOrigin = "anonymous";
     audio.volume = 1;
     nightAudioRef.current = audio;
-
     setNpTitle(`${surah.name} (${rep + 1}/${repeat})`);
     nightStateRef.current = { idx, rep, playing: true };
 
-    const playNow = async () => {
-      try {
-        const response = await fetch(surah.url);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        audio.src = blobUrl;
-
-        audio.onended = () => {
-          if (!nightStateRef.current.playing) return;
-          const nextRep = rep + 1;
-          if (nextRep < repeat) {
-            playNightIdx(idx, nextRep, surahs, repeat);
-          } else {
-            const nextIdx = idx + 1;
-            if (nextIdx < surahs.length) {
-              playNightIdx(nextIdx, 0, surahs, repeat);
-            } else {
-              setNightPlaying(false);
-              setNpTitle("");
-            }
-          }
-        };
-
-        audio.ontimeupdate = () => {
-          if (audio.duration) {
-            setNightProgress((audio.currentTime / audio.duration) * 100);
-          }
-        };
-
-        await audio.play();
-        console.log("✓ Night player started:", surah.name);
-      } catch (err) {
-        console.error("Night player error:", err);
-        // Try direct URL
-        audio.src = surah.url;
-        audio.onended = () => {
-          if (!nightStateRef.current.playing) return;
-          const nextRep = rep + 1;
-          if (nextRep < repeat) {
-            playNightIdx(idx, nextRep, surahs, repeat);
-          } else {
-            const nextIdx = idx + 1;
-            if (nextIdx < surahs.length) {
-              playNightIdx(nextIdx, 0, surahs, repeat);
-            } else {
-              setNightPlaying(false);
-              setNpTitle("");
-            }
-          }
-        };
-        audio.play().catch(e => console.error("Fallback night error:", e));
+    audio.onended = () => {
+      if (!nightStateRef.current.playing) return;
+      const nextRep = rep + 1;
+      if (nextRep < repeat) {
+        playNightIdx(idx, nextRep, surahs, repeat);
+      } else {
+        const nextIdx = idx + 1;
+        if (nextIdx < surahs.length) {
+          playNightIdx(nextIdx, 0, surahs, repeat);
+        } else {
+          setNightPlaying(false);
+          setNpTitle("");
+        }
       }
     };
-
-    playNow();
+    audio.ontimeupdate = () => {
+      if (audio.duration && !isNaN(audio.duration)) {
+        setNightProgress((audio.currentTime / audio.duration) * 100);
+      }
+    };
+    audio.play().catch((err) => console.error("Night player error:", err));
   }, []);
 
   const startPlayer = () => {
@@ -685,17 +596,42 @@ export default function IslamicAlarmPage() {
                 </div>
               )}
 
+              {alarmType === "fajr" && (
+                <div style={{ marginTop: 14 }}>
+                  <div style={S.fieldLabel}>Minutes before Fajr</div>
+                  <input
+                    type="number"
+                    value={mbf}
+                    onChange={(e) => setMbf(Math.max(0, parseInt(e.target.value) || 0))}
+                    style={{ ...S.numberInput }}
+                  />
+                  <div style={{ fontSize: 12, color: "#555d70", marginTop: 4 }}>Alarm will ring at {fajrPreviewTime || "—"}</div>
+                </div>
+              )}
+
+              {alarmType === "tahajjud" && prayerTimes && (
+                <div style={{ marginTop: 8, fontSize: 13, color: "#f0c060" }}>⏰ {tahajjudTime}</div>
+              )}
+
               <div style={{ marginTop: 14 }}>
                 <div style={S.fieldLabel}>Sound</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {ADHAN_SOUNDS.map((s) => (
                     <div key={s.id} onClick={() => setSelectedSound(s.id)} style={{ ...S.soundOpt, ...(selectedSound === s.id ? S.soundOptActive : {}) }}>
                       <span>{s.label}</span>
-                      <button onClick={() => previewSound(s.id)} style={S.previewBtn}>▶</button>
+                      <button onClick={(e) => { e.stopPropagation(); previewSound(s.id); }} style={S.previewBtn}>▶</button>
                     </div>
                   ))}
                 </div>
               </div>
+
+              <input
+                type="text"
+                placeholder="Label (optional)"
+                value={alarmLabel}
+                onChange={(e) => setAlarmLabel(e.target.value)}
+                style={S.input}
+              />
 
               <button onClick={addAlarm} style={S.btnPrimary}>+ Set Alarm</button>
             </div>
@@ -737,7 +673,7 @@ export default function IslamicAlarmPage() {
               </div>
 
               <div style={{ marginTop: 16 }}>
-                <div style={S.fieldLabel}>Repeat</div>
+                <div style={S.fieldLabel}>Repeat each Surah</div>
                 <div style={S.row}>
                   {[1, 2, 3].map((n) => (
                     <button key={n} onClick={() => setRepeatCount(n)} style={{ ...S.typeBtn, ...(repeatCount === n ? S.typeBtnActive : {}), flex: "none" }}>
@@ -933,4 +869,6 @@ const S: Record<string, React.CSSProperties> = {
   checkItem: { display: "flex", alignItems: "flex-start", gap: 12, padding: 14, background: "#22262f", border: "1px solid #2a2f3d", borderRadius: 12, marginBottom: 8, cursor: "pointer", textAlign: "left", width: "100%", transition: "all 0.2s" },
   checkItemDone: { borderColor: "rgba(52,199,123,0.4)", background: "rgba(52,199,123,0.05)" },
   resetBtn: { background: "none", border: "1px solid #2a2f3d", borderRadius: 8, padding: "8px 14px", color: "#555d70", fontSize: 12, fontWeight: 600, cursor: "pointer", marginTop: 4 },
+  numberInput: { background: "#1a1d24", border: "1px solid #2a2f3d", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 14, width: "100%" },
+  input: { background: "#1a1d24", border: "1px solid #2a2f3d", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 14, width: "100%", marginTop: 12 },
 };
