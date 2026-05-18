@@ -35,7 +35,7 @@ interface CheckItem {
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
-// High-quality, stable URLs with CORS support where possible
+// Using the most reliable URLs found during testing
 const SOUNDS = [
   { id: "adhan_makkah", label: "Adhan – Makkah", url: "https://praytimes.org/audio/sunni/Adhan-Makkah.mp3" },
   { id: "adhan_madinah", label: "Adhan – Madinah", url: "https://praytimes.org/audio/sunni/Adhan-Madinah.mp3" },
@@ -166,12 +166,7 @@ export default function IslamicAlarmPage() {
   const [alarmFiring, setAlarmFiring] = useState(false);
   const [firingAlarm, setFiringAlarm] = useState<Alarm | null>(null);
   const [showAlham, setShowAlham] = useState(false);
-  
-  // Audio Engine Refs
   const firingAudioRef = useRef<HTMLAudioElement | null>(null);
-  const nightAudioRef = useRef<HTMLAudioElement | null>(null);
-  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
-  const nightStateRef = useRef({ idx: 0, rep: 0, playing: false, surahs: [] as string[], repeat: 1 });
 
   // Alarm form
   const [alarmType, setAlarmType] = useState<"custom" | "fajr" | "tahajjud">("custom");
@@ -182,11 +177,13 @@ export default function IslamicAlarmPage() {
   const [selectedSound, setSelectedSound] = useState("adhan_makkah");
   const [alarmLabel, setAlarmLabel] = useState("");
 
-  // Night player state
+  // Night player
   const [selectedSurahs, setSelectedSurahs] = useState<string[]>(["mulk"]);
   const [repeatCount, setRepeatCount] = useState(1);
   const [nightPlaying, setNightPlaying] = useState(false);
   const [npTitle, setNpTitle] = useState("");
+  const nightAudioRef = useRef<HTMLAudioElement | null>(null);
+  const nightStateRef = useRef({ idx: 0, rep: 0, playing: false });
 
   // Dhikr
   const [dhikrCounts, setDhikrCounts] = useState<Record<number, number>>({});
@@ -195,51 +192,8 @@ export default function IslamicAlarmPage() {
   const [sleepChecked, setSleepChecked] = useState<string[]>([]);
   const [wakeChecked, setWakeChecked] = useState<string[]>([]);
 
-  // ─── Robust Audio Playback Function ──────────────────────────────────────────
-  const safePlay = async (audio: HTMLAudioElement, url: string, loop = false) => {
-    try {
-      // 1. Reset and configure
-      audio.pause();
-      audio.src = "";
-      audio.load();
-      
-      audio.src = url;
-      audio.loop = loop;
-      audio.crossOrigin = "anonymous";
-      audio.preload = "auto";
-      
-      // 2. Wait for enough data to play without interruption
-      return new Promise<void>((resolve, reject) => {
-        const onCanPlay = () => {
-          audio.play()
-            .then(() => {
-              audio.removeEventListener("canplaythrough", onCanPlay);
-              audio.removeEventListener("error", onError);
-              resolve();
-            })
-            .catch(reject);
-        };
-        
-        const onError = () => {
-          audio.removeEventListener("canplaythrough", onCanPlay);
-          audio.removeEventListener("error", onError);
-          reject(new Error("Audio load failed"));
-        };
-
-        audio.addEventListener("canplaythrough", onCanPlay);
-        audio.addEventListener("error", onError);
-        
-        // Timeout if it takes too long to load
-        setTimeout(() => {
-          audio.removeEventListener("canplaythrough", onCanPlay);
-          reject(new Error("Audio load timeout"));
-        }, 15000);
-      });
-    } catch (err) {
-      console.error("SafePlay Error:", err);
-      throw err;
-    }
-  };
+  // Preview audio
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // ─── Load from localStorage ──────────────────────────────────────────────────
   useEffect(() => {
@@ -313,26 +267,24 @@ export default function IslamicAlarmPage() {
   }, [alarms, alarmFiring]);
 
   // ─── Fire alarm ──────────────────────────────────────────────────────────────
-  const fireAlarm = useCallback(async (alarm: Alarm) => {
+  const fireAlarm = useCallback((alarm: Alarm) => {
     stopPreview();
     stopPlayer();
     setFiringAlarm(alarm);
     setAlarmFiring(true);
-    
     const sound = SOUNDS.find((s) => s.id === alarm.sound) || SOUNDS[0];
-    const audio = new Audio();
-    firingAudioRef.current = audio;
     
-    try {
-      await safePlay(audio, sound.url, true);
-    } catch (err) {
-      // Fallback if blocked
-      const resume = () => {
-        audio.play();
-        window.removeEventListener("click", resume);
-      };
+    const audio = new Audio();
+    audio.src = sound.url;
+    audio.loop = true;
+    audio.crossOrigin = "anonymous";
+    
+    audio.play().catch(() => {
+      // Fallback for browser blocking
+      const resume = () => { audio.play(); window.removeEventListener("click", resume); };
       window.addEventListener("click", resume);
-    }
+    });
+    firingAudioRef.current = audio;
   }, []);
 
   const dismissAlarm = () => {
@@ -387,26 +339,23 @@ export default function IslamicAlarmPage() {
     }
   };
 
-  const previewSound = async (id: string, e?: React.MouseEvent) => {
+  const previewSound = (id: string, e?: React.MouseEvent) => {
     if (e) { e.stopPropagation(); e.preventDefault(); }
     stopPreview();
     const s = SOUNDS.find((x) => x.id === id);
     if (!s) return;
     
     const audio = new Audio();
+    audio.src = s.url;
+    audio.crossOrigin = "anonymous";
+    audio.play().catch(() => {});
     previewAudioRef.current = audio;
-    try {
-      await safePlay(audio, s.url, false);
-      setTimeout(stopPreview, 10000);
-    } catch (err) {
-      alert("Click anywhere on the page first to enable sound.");
-    }
+    setTimeout(stopPreview, 10000);
   };
 
   // ─── Night player ─────────────────────────────────────────────────────────────
-  const playNightIdx = useCallback(async (idx: number, rep: number) => {
-    const { surahs, repeat, playing } = nightStateRef.current;
-    if (!playing) return;
+  const playNightIdx = useCallback((idx: number, rep: number, surahs: string[], repeat: number) => {
+    if (!nightStateRef.current.playing) return;
     
     const surahId = surahs[idx];
     if (!surahId) { setNightPlaying(false); return; }
@@ -414,41 +363,47 @@ export default function IslamicAlarmPage() {
     const surah = SURAHS.find((s) => s.id === surahId);
     if (!surah) { setNightPlaying(false); return; }
     
-    setNpTitle(surah.name);
+    if (nightAudioRef.current) {
+      nightAudioRef.current.pause();
+      nightAudioRef.current.src = "";
+    }
     
-    const audio = nightAudioRef.current || new Audio();
+    const audio = new Audio();
+    audio.src = surah.url;
+    audio.crossOrigin = "anonymous";
     nightAudioRef.current = audio;
     
+    setNpTitle(surah.name);
+    nightStateRef.current = { idx, rep, playing: true };
+    
     audio.onended = () => {
+      if (!nightStateRef.current.playing) return;
       const nextRep = rep + 1;
       if (nextRep < repeat) {
-        playNightIdx(idx, nextRep);
+        playNightIdx(idx, nextRep, surahs, repeat);
       } else {
         const nextIdx = idx + 1;
         if (nextIdx < surahs.length) {
-          playNightIdx(nextIdx, 0);
+          playNightIdx(nextIdx, 0, surahs, repeat);
         } else {
           setNightPlaying(false);
           nightStateRef.current.playing = false;
         }
       }
     };
-
-    try {
-      await safePlay(audio, surah.url, false);
-    } catch (err) {
-      console.error("Night player error:", err);
+    
+    audio.play().catch(() => {
       setNightPlaying(false);
       nightStateRef.current.playing = false;
-    }
+    });
   }, []);
 
   const startPlayer = () => {
     if (!selectedSurahs.length) return;
     stopPreview();
     setNightPlaying(true);
-    nightStateRef.current = { idx: 0, rep: 0, playing: true, surahs: selectedSurahs, repeat: repeatCount };
-    playNightIdx(0, 0);
+    nightStateRef.current.playing = true;
+    playNightIdx(0, 0, selectedSurahs, repeatCount);
   };
 
   const stopPlayer = () => {
