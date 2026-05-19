@@ -123,16 +123,12 @@ export default function NightPage() {
   const [noteOpen, setNoteOpen] = useState(false);
 
   // ── Single mode
-  const [selectedSurah, setSelectedSurah] = useState(SURAHS[5]);
+  const [selectedSurahId, setSelectedSurahId] = useState<string>("mulk");
   const [singleRepeats, setSingleRepeats] = useState(1);
 
-  // ── Combo mode — which surahs are selected & their order
-  const [comboSelected, setComboSelected] = useState<Set<string>>(
-    new Set(["mulk", "waqia"])
-  );
-  const [comboOrder, setComboOrder] = useState<string[]>(
-    SURAHS.map((s) => s.id)
-  );
+  // ── Combo mode — ordered list of selected surah IDs (order = tap order)
+  // User taps a surah to add it to the end; taps again to remove it.
+  const [comboOrder, setComboOrder] = useState<string[]>([]);
   const [comboRepeats, setComboRepeats] = useState<Record<string, number>>(
     Object.fromEntries(SURAHS.map((s) => [s.id, 1]))
   );
@@ -149,7 +145,7 @@ export default function NightPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
 
-  // ── Stars background (memo-stable)
+  // ── Stars background
   const stars = useRef(
     Array.from({ length: 80 }, (_, i) => ({
       id: i,
@@ -161,31 +157,14 @@ export default function NightPage() {
     }))
   ).current;
 
-  // ── Drag state (combo reorder)
-  const dragId = useRef<string | null>(null);
-  const dragOverId = useRef<string | null>(null);
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-
-  // ─── Helpers ─────────────────────────────────────────────────────────────────
+  // ─── Derived ─────────────────────────────────────────────────────────────────
+  const selectedSurah = SURAHS.find((s) => s.id === selectedSurahId) ?? SURAHS[5];
   const getSurah = (id: string) => SURAHS.find((s) => s.id === id)!;
-
-  const buildQueue = useCallback((): QueueItem[] => {
-    if (mode === "single") {
-      return [{ surahId: selectedSurah.id, repeatLeft: singleRepeats }];
-    }
-    return comboOrder
-      .filter((id) => comboSelected.has(id))
-      .map((id) => ({ surahId: id, repeatLeft: comboRepeats[id] ?? 1 }));
-  }, [mode, selectedSurah, singleRepeats, comboOrder, comboRepeats, comboSelected]);
 
   const activeSurahDisplay =
     queue.length > 0 && status !== "idle" && status !== "done"
       ? getSurah(queue[currentIdx]?.surahId ?? queue[0].surahId)
-      : mode === "single"
-      ? selectedSurah
-      : comboSelected.size > 0
-      ? getSurah(comboOrder.find((id) => comboSelected.has(id)) ?? SURAHS[5].id)
-      : SURAHS[5];
+      : selectedSurah;
 
   // ─── Audio engine ─────────────────────────────────────────────────────────────
   const loadAndPlay = useCallback((url: string, fallback: string) => {
@@ -202,6 +181,28 @@ export default function NightPage() {
     });
   }, []);
 
+  const buildQueue = useCallback((): QueueItem[] => {
+    if (mode === "single") {
+      return [{ surahId: selectedSurahId, repeatLeft: singleRepeats }];
+    }
+    if (comboOrder.length === 0) return [];
+    return comboOrder.map((id) => ({
+      surahId: id,
+      repeatLeft: comboRepeats[id] ?? 1,
+    }));
+  }, [mode, selectedSurahId, singleRepeats, comboOrder, comboRepeats]);
+
+  const stopPlayback = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setStatus("idle");
+    setProgress(0);
+    setQueue([]);
+    setCurrentIdx(0);
+  }, []);
+
   const startPlayback = useCallback(() => {
     const q = buildQueue();
     if (q.length === 0) return;
@@ -215,17 +216,6 @@ export default function NightPage() {
     loadAndPlay(surah.url, surah.fallbackUrl);
   }, [buildQueue, loadAndPlay]);
 
-  const stopPlayback = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-    setStatus("idle");
-    setProgress(0);
-    setQueue([]);
-    setCurrentIdx(0);
-  }, []);
-
   const togglePause = useCallback(() => {
     if (!audioRef.current) return;
     if (status === "playing") {
@@ -237,24 +227,35 @@ export default function NightPage() {
     }
   }, [status]);
 
-  // ── Seek (scrub) on progress bar click/touch
-  const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
-    if (!audioRef.current || duration === 0) return;
-    const bar = progressBarRef.current;
-    if (!bar) return;
-    const rect = bar.getBoundingClientRect();
-    const clientX = "touches" in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
-    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    const newTime = pct * duration;
-    audioRef.current.currentTime = newTime;
-    setProgress(newTime);
-  }, [duration]);
+  // Seek on progress bar click
+  const handleSeek = useCallback(
+    (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+      if (!audioRef.current || duration === 0) return;
+      const bar = progressBarRef.current;
+      if (!bar) return;
+      const rect = bar.getBoundingClientRect();
+      const clientX =
+        "touches" in e
+          ? e.touches[0].clientX
+          : (e as React.MouseEvent).clientX;
+      const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      audioRef.current.currentTime = pct * duration;
+      setProgress(pct * duration);
+    },
+    [duration]
+  );
 
-  // ── Skip ±10s
-  const skip = useCallback((seconds: number) => {
-    if (!audioRef.current || duration === 0) return;
-    audioRef.current.currentTime = Math.max(0, Math.min(duration, audioRef.current.currentTime + seconds));
-  }, [duration]);
+  // Skip ±10s
+  const skip = useCallback(
+    (seconds: number) => {
+      if (!audioRef.current || duration === 0) return;
+      audioRef.current.currentTime = Math.max(
+        0,
+        Math.min(duration, audioRef.current.currentTime + seconds)
+      );
+    },
+    [duration]
+  );
 
   // ─── Audio event listeners ────────────────────────────────────────────────────
   useEffect(() => {
@@ -319,50 +320,25 @@ export default function NightPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── Combo drag reorder ───────────────────────────────────────────────────────
-  const handleDragStart = (e: React.DragEvent, id: string) => {
-    dragId.current = id;
-    setDraggingId(id);
-    e.dataTransfer.effectAllowed = "move";
-  };
-  const handleDragOver = (e: React.DragEvent, id: string) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    dragOverId.current = id;
-  };
-  const handleDrop = (e: React.DragEvent, id: string) => {
-    e.preventDefault();
-    if (!dragId.current || dragId.current === id) return;
-    setComboOrder((prev) => {
-      const from = prev.indexOf(dragId.current!);
-      const to = prev.indexOf(id);
-      if (from === -1 || to === -1) return prev;
-      const next = [...prev];
-      next.splice(from, 1);
-      next.splice(to, 0, dragId.current!);
-      return next;
-    });
-    dragId.current = null;
-    setDraggingId(null);
-  };
-  const handleDragEnd = () => {
-    dragId.current = null;
-    setDraggingId(null);
+  // ─── Single mode: select surah ────────────────────────────────────────────────
+  const handleSelectSingle = (id: string) => {
+    if (selectedSurahId === id) return; // already selected
+    stopPlayback();
+    setSelectedSurahId(id);
   };
 
-  // ── Toggle surah in combo selection
-  const toggleComboSurah = (id: string) => {
-    setComboSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        if (next.size === 1) return prev; // keep at least one
-        next.delete(id);
+  // ─── Combo mode: tap to add/remove in order ───────────────────────────────────
+  const handleToggleCombo = (id: string) => {
+    stopPlayback();
+    setComboOrder((prev) => {
+      if (prev.includes(id)) {
+        // Remove from list
+        return prev.filter((x) => x !== id);
       } else {
-        next.add(id);
+        // Add to end
+        return [...prev, id];
       }
-      return next;
     });
-    if (status !== "idle") stopPlayback();
   };
 
   // ─── Format time ──────────────────────────────────────────────────────────────
@@ -410,24 +386,22 @@ export default function NightPage() {
       <style>{`
         @keyframes twinkle {
           from { opacity: 0.1; transform: scale(0.8); }
-          to { opacity: 0.9; transform: scale(1.2); }
+          to   { opacity: 0.9; transform: scale(1.2); }
         }
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-8px); }
+          50%       { transform: translateY(-8px); }
         }
         @keyframes pulse-ring {
-          0% { transform: scale(1); opacity: 0.6; }
+          0%   { transform: scale(1);   opacity: 0.6; }
           100% { transform: scale(1.5); opacity: 0; }
         }
-        .surah-card { transition: all 0.25s ease; cursor: pointer; }
-        .surah-card:hover { transform: translateY(-2px); }
+        .surah-card   { transition: all 0.2s ease; }
         .btn-glow:hover { filter: brightness(1.15); transform: scale(1.03); }
-        .repeat-pill { transition: all 0.18s ease; cursor: pointer; }
+        .repeat-pill  { transition: all 0.18s ease; cursor: pointer; }
         .repeat-pill:hover { transform: scale(1.08); }
         .skip-btn:hover { background: rgba(255,255,255,0.1) !important; }
         .progress-bar-track { cursor: pointer; }
-        .progress-bar-track:hover .progress-thumb { opacity: 1 !important; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #2d4a3e; border-radius: 2px; }
@@ -444,119 +418,65 @@ export default function NightPage() {
       >
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div style={{ textAlign: "center", marginBottom: "1.75rem" }}>
-          <div
-            style={{
-              fontSize: "3rem",
-              marginBottom: "0.4rem",
-              animation: "float 4s ease-in-out infinite",
-              display: "block",
-            }}
-          >
+          <div style={{ fontSize: "3rem", marginBottom: "0.4rem", animation: "float 4s ease-in-out infinite", display: "block" }}>
             🌙
           </div>
-          <h1
-            style={{
-              fontSize: "clamp(1.5rem, 4vw, 2rem)",
-              fontWeight: 300,
-              letterSpacing: "0.12em",
-              color: "#c9d8e8",
-              margin: 0,
-              textTransform: "uppercase",
-            }}
-          >
+          <h1 style={{ fontSize: "clamp(1.5rem, 4vw, 2rem)", fontWeight: 300, letterSpacing: "0.12em", color: "#c9d8e8", margin: 0, textTransform: "uppercase" }}>
             Night Recitation
           </h1>
-          <p
-            style={{
-              color: "#7a9ab8",
-              fontSize: "0.85rem",
-              marginTop: "0.4rem",
-              letterSpacing: "0.04em",
-              fontStyle: "italic",
-            }}
-          >
+          <p style={{ color: "#7a9ab8", fontSize: "0.85rem", marginTop: "0.4rem", letterSpacing: "0.04em", fontStyle: "italic" }}>
             Sheikh Abdul Rahman Al-Sudais · Imam of the Grand Mosque, Makkah
           </p>
 
-          {/* ── Collapsible purpose note ───────────────────────────── */}
+          {/* Collapsible note */}
           <div style={{ marginTop: "0.75rem" }}>
             <button
               onClick={() => setNoteOpen((v) => !v)}
               style={{
-                background: "none",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: 50,
-                padding: "0.3rem 0.9rem",
-                color: "#4a7a8a",
-                fontFamily: "sans-serif",
-                fontSize: "0.72rem",
-                letterSpacing: "0.06em",
-                cursor: "pointer",
-                transition: "all 0.2s",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.4rem",
+                background: "none", border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 50, padding: "0.3rem 0.9rem", color: "#4a7a8a",
+                fontFamily: "sans-serif", fontSize: "0.72rem", letterSpacing: "0.06em",
+                cursor: "pointer", transition: "all 0.2s",
+                display: "inline-flex", alignItems: "center", gap: "0.4rem",
               }}
             >
               <span>{noteOpen ? "▲" : "▼"}</span>
               <span>About this app</span>
             </button>
             {noteOpen && (
-              <div
-                style={{
-                  marginTop: "0.6rem",
-                  padding: "0.85rem 1rem",
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.07)",
-                  borderRadius: 12,
-                  textAlign: "left",
-                  fontFamily: "sans-serif",
-                  fontSize: "0.78rem",
-                  color: "#5a8a9a",
-                  lineHeight: 1.6,
-                }}
-              >
+              <div style={{
+                marginTop: "0.6rem", padding: "0.85rem 1rem",
+                background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+                borderRadius: 12, textAlign: "left", fontFamily: "sans-serif",
+                fontSize: "0.78rem", color: "#5a8a9a", lineHeight: 1.6,
+              }}>
                 <strong style={{ color: "#7abaca", display: "block", marginBottom: "0.35rem" }}>
                   بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ
                 </strong>
                 A bedtime companion for listening to Quranic recitations before sleep.
-                Play a single surah on repeat, or build a custom combo playlist — then
-                let the audio stop automatically so your device can rest too.
-                Each surah carries its own blessing and purpose, noted in the description.
+                Play a single surah on repeat, or build a custom combo playlist by tapping
+                surahs in your preferred order — then let the audio stop automatically.
               </div>
             )}
           </div>
         </div>
 
         {/* ── Mode Toggle ─────────────────────────────────────────────────── */}
-        <div
-          style={{
-            display: "flex",
-            background: "rgba(255,255,255,0.04)",
-            borderRadius: 50,
-            padding: 4,
-            marginBottom: "1.75rem",
-            border: "1px solid rgba(255,255,255,0.08)",
-          }}
-        >
+        <div style={{
+          display: "flex", background: "rgba(255,255,255,0.04)", borderRadius: 50,
+          padding: 4, marginBottom: "1.75rem", border: "1px solid rgba(255,255,255,0.08)",
+        }}>
           {(["single", "combo"] as PlayMode[]).map((m) => (
             <button
               key={m}
               onClick={() => { setMode(m); stopPlayback(); }}
               style={{
-                flex: 1,
-                padding: "0.55rem 1rem",
-                borderRadius: 50,
-                border: "none",
+                flex: 1, padding: "0.55rem 1rem", borderRadius: 50, border: "none",
                 background: mode === m ? "rgba(100,180,140,0.2)" : "transparent",
                 color: mode === m ? "#7ee8a2" : "#5a7a8a",
-                fontFamily: "sans-serif",
-                fontSize: "0.83rem",
-                fontWeight: mode === m ? 600 : 400,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                cursor: "pointer",
-                transition: "all 0.25s ease",
+                fontFamily: "sans-serif", fontSize: "0.83rem",
+                fontWeight: mode === m ? 600 : 400, letterSpacing: "0.06em",
+                textTransform: "uppercase", cursor: "pointer", transition: "all 0.25s ease",
                 boxShadow: mode === m ? "0 0 12px rgba(100,200,140,0.15)" : "none",
               }}
             >
@@ -569,42 +489,49 @@ export default function NightPage() {
         {mode === "single" && (
           <>
             <div style={{ display: "grid", gap: "0.75rem", marginBottom: "1.5rem" }}>
-              {SURAHS.map((s) => (
-                <div
-                  key={s.id}
-                  className="surah-card"
-                  onClick={() => { setSelectedSurah(s); if (status !== "idle") stopPlayback(); }}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.85rem",
-                    padding: "0.85rem 1.1rem",
-                    borderRadius: 14,
-                    background:
-                      selectedSurah.id === s.id
+              {SURAHS.map((s) => {
+                const isSelected = selectedSurahId === s.id;
+                return (
+                  <div
+                    key={s.id}
+                    className="surah-card"
+                    onClick={() => handleSelectSingle(s.id)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: "0.85rem",
+                      padding: "0.85rem 1.1rem", borderRadius: 14, cursor: "pointer",
+                      background: isSelected
                         ? `linear-gradient(135deg, ${s.color}cc, ${s.color}88)`
                         : "rgba(255,255,255,0.03)",
-                    border: `1.5px solid ${selectedSurah.id === s.id ? s.accent + "55" : "rgba(255,255,255,0.07)"}`,
-                    boxShadow: selectedSurah.id === s.id ? `0 4px 20px ${s.accent}1a` : "none",
-                  }}
-                >
-                  <div style={{ fontSize: "1.4rem", flexShrink: 0 }}>{s.moon}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: "0.95rem", color: selectedSurah.id === s.id ? s.accent : "#c4d4e0" }}>
-                      {s.name}
+                      border: `1.5px solid ${isSelected ? s.accent + "55" : "rgba(255,255,255,0.07)"}`,
+                      boxShadow: isSelected ? `0 4px 20px ${s.accent}1a` : "none",
+                      userSelect: "none",
+                    }}
+                  >
+                    <div style={{ fontSize: "1.4rem", flexShrink: 0 }}>{s.moon}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: "0.95rem", color: isSelected ? s.accent : "#c4d4e0" }}>
+                        {s.name}
+                      </div>
+                      <div style={{ fontSize: "0.72rem", color: "#5a7a90", fontFamily: "sans-serif", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {s.description} · {s.ayahs} ayahs
+                      </div>
                     </div>
-                    <div style={{ fontSize: "0.72rem", color: "#5a7a90", fontFamily: "sans-serif", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {s.description} · {s.ayahs} ayahs
+                    <div style={{ fontFamily: "sans-serif", fontSize: "1.1rem", color: "#2a4a5a", direction: "rtl", flexShrink: 0 }}>
+                      {s.arabic}
+                    </div>
+                    {/* Selected indicator */}
+                    <div style={{
+                      width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
+                      border: `2px solid ${isSelected ? s.accent : "rgba(255,255,255,0.15)"}`,
+                      background: isSelected ? `${s.accent}33` : "transparent",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: "0.75rem", color: s.accent, transition: "all 0.18s",
+                    }}>
+                      {isSelected && "✓"}
                     </div>
                   </div>
-                  <div style={{ fontFamily: "sans-serif", fontSize: "1.1rem", color: "#2a4a5a", direction: "rtl", flexShrink: 0 }}>
-                    {s.arabic}
-                  </div>
-                  {selectedSurah.id === s.id && (
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: s.accent, boxShadow: `0 0 8px ${s.accent}`, flexShrink: 0 }} />
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Repeat selector */}
@@ -619,15 +546,12 @@ export default function NightPage() {
                     className="repeat-pill"
                     onClick={() => setSingleRepeats(r)}
                     style={{
-                      padding: "0.4rem 0.9rem",
-                      borderRadius: 50,
+                      padding: "0.4rem 0.9rem", borderRadius: 50,
                       border: `1.5px solid ${singleRepeats === r ? selectedSurah.accent + "88" : "rgba(255,255,255,0.1)"}`,
                       background: singleRepeats === r ? `${selectedSurah.accent}22` : "rgba(255,255,255,0.03)",
                       color: singleRepeats === r ? selectedSurah.accent : "#6a8a9a",
-                      fontFamily: "sans-serif",
-                      fontWeight: singleRepeats === r ? 700 : 400,
-                      fontSize: "0.85rem",
-                      cursor: "pointer",
+                      fontFamily: "sans-serif", fontWeight: singleRepeats === r ? 700 : 400,
+                      fontSize: "0.85rem", cursor: "pointer",
                     }}
                   >
                     ×{r}
@@ -641,94 +565,84 @@ export default function NightPage() {
         {/* ══ Combo Mode ═══════════════════════════════════════════════════ */}
         {mode === "combo" && (
           <>
-            <p style={{ fontSize: "0.72rem", color: "#4a6a7a", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.6rem", fontFamily: "sans-serif" }}>
-              Tap to select · drag ⠿ to reorder · set repeats
-            </p>
+            {/* Instruction banner */}
+            <div style={{
+              padding: "0.65rem 1rem", borderRadius: 12, marginBottom: "1rem",
+              background: "rgba(100,180,140,0.07)", border: "1px solid rgba(100,180,140,0.15)",
+              fontFamily: "sans-serif", fontSize: "0.76rem", color: "#5a9a7a",
+              display: "flex", alignItems: "center", gap: "0.5rem",
+            }}>
+              <span style={{ fontSize: "1rem" }}>👆</span>
+              <span>Tap a surah to add it to your playlist in order. Tap again to remove. Numbers show playback order.</span>
+            </div>
+
             <div style={{ display: "grid", gap: "0.65rem", marginBottom: "1.75rem" }}>
-              {comboOrder.map((id, index) => {
-                const s = getSurah(id);
-                const isSelected = comboSelected.has(id);
-                const isDragging = draggingId === id;
+              {SURAHS.map((s) => {
+                const orderIndex = comboOrder.indexOf(s.id); // -1 if not selected
+                const isSelected = orderIndex !== -1;
+                const displayNum = orderIndex + 1; // 1-based
+
                 return (
                   <div
-                    key={id}
-                    onDragOver={(e) => handleDragOver(e, id)}
-                    onDrop={(e) => handleDrop(e, id)}
+                    key={s.id}
+                    onClick={() => handleToggleCombo(s.id)}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.75rem",
-                      padding: "0.75rem 1rem",
-                      borderRadius: 13,
+                      display: "flex", alignItems: "center", gap: "0.75rem",
+                      padding: "0.75rem 1rem", borderRadius: 13, cursor: "pointer",
                       background: isSelected
                         ? `linear-gradient(135deg, ${s.color}aa, ${s.color}55)`
                         : "rgba(255,255,255,0.025)",
-                      border: `1.5px solid ${isSelected ? s.accent + "44" : "rgba(255,255,255,0.06)"}`,
-                      opacity: isDragging ? 0.4 : 1,
-                      transition: "all 0.2s ease",
+                      border: `1.5px solid ${isSelected ? s.accent + "55" : "rgba(255,255,255,0.06)"}`,
+                      boxShadow: isSelected ? `0 2px 12px ${s.accent}15` : "none",
+                      transition: "all 0.2s ease", userSelect: "none",
                     }}
                   >
-                    {/* Checkbox-style toggle */}
-                    <div
-                      onClick={() => toggleComboSurah(id)}
-                      style={{
-                        width: 22,
-                        height: 22,
-                        borderRadius: 6,
-                        border: `2px solid ${isSelected ? s.accent : "rgba(255,255,255,0.15)"}`,
-                        background: isSelected ? `${s.accent}33` : "transparent",
-                        flexShrink: 0,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "0.7rem",
-                        color: s.accent,
-                        transition: "all 0.18s",
-                      }}
-                    >
-                      {isSelected && "✓"}
+                    {/* Order number badge */}
+                    <div style={{
+                      width: 30, height: 30, borderRadius: "50%", flexShrink: 0,
+                      border: `2px solid ${isSelected ? s.accent : "rgba(255,255,255,0.12)"}`,
+                      background: isSelected ? `${s.accent}25` : "rgba(255,255,255,0.03)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: isSelected ? "0.8rem" : "0.7rem",
+                      color: isSelected ? s.accent : "#3a5a6a",
+                      fontFamily: "sans-serif", fontWeight: 700,
+                      transition: "all 0.2s",
+                    }}>
+                      {isSelected ? displayNum : "＋"}
                     </div>
 
-                    {/* Order badge (only visible if selected) */}
-                    {isSelected && (
-                      <div style={{
-                        width: 22, height: 22, borderRadius: "50%",
-                        background: `${s.accent}1a`, border: `1px solid ${s.accent}44`,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: "0.65rem", color: s.accent, fontFamily: "sans-serif",
-                        fontWeight: 700, flexShrink: 0,
-                      }}>
-                        {Array.from(comboSelected).indexOf(id) >= 0
-                          ? comboOrder.filter(i => comboSelected.has(i)).indexOf(id) + 1
-                          : ""}
+                    {/* Surah info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: "0.92rem", color: isSelected ? s.accent : "#6a8090" }}>
+                        {s.moon} {s.name}
                       </div>
-                    )}
-
-                    {/* Info */}
-                    <div style={{ flex: 1, minWidth: 0 }} onClick={() => toggleComboSurah(id)}>
-                      <div style={{ fontWeight: 600, fontSize: "0.9rem", color: isSelected ? s.accent : "#6a8090", cursor: "pointer" }}>
-                        {s.name}
-                      </div>
-                      <div style={{ fontSize: "0.7rem", color: "#3a5a6a", fontFamily: "sans-serif" }}>
+                      <div style={{ fontSize: "0.7rem", color: isSelected ? "#5a8a7a" : "#3a5060", fontFamily: "sans-serif", marginTop: 1 }}>
                         {s.meaning} · {s.ayahs} ayahs
                       </div>
                     </div>
 
-                    {/* Inline repeats (only when selected) */}
+                    {/* Arabic name */}
+                    <div style={{ fontFamily: "sans-serif", fontSize: "0.95rem", color: isSelected ? "#4a7a6a" : "#2a3a4a", direction: "rtl", flexShrink: 0 }}>
+                      {s.arabic}
+                    </div>
+
+                    {/* Inline repeat picker — only when selected */}
                     {isSelected && (
-                      <div style={{ display: "flex", gap: "0.28rem" }}>
+                      <div
+                        style={{ display: "flex", gap: "0.28rem", flexShrink: 0 }}
+                        onClick={(e) => e.stopPropagation()} // don't trigger deselect
+                      >
                         {[1, 2, 3].map((r) => (
                           <button
                             key={r}
-                            onClick={() => setComboRepeats((prev) => ({ ...prev, [id]: r }))}
+                            onClick={() => setComboRepeats((prev) => ({ ...prev, [s.id]: r }))}
                             style={{
                               width: 28, height: 28, borderRadius: "50%",
-                              border: `1.5px solid ${comboRepeats[id] === r ? s.accent : "rgba(255,255,255,0.1)"}`,
-                              background: comboRepeats[id] === r ? `${s.accent}28` : "rgba(255,255,255,0.03)",
-                              color: comboRepeats[id] === r ? s.accent : "#5a7a8a",
+                              border: `1.5px solid ${comboRepeats[s.id] === r ? s.accent : "rgba(255,255,255,0.1)"}`,
+                              background: comboRepeats[s.id] === r ? `${s.accent}28` : "rgba(255,255,255,0.03)",
+                              color: comboRepeats[s.id] === r ? s.accent : "#5a7a8a",
                               fontSize: "0.68rem", fontFamily: "sans-serif",
-                              fontWeight: comboRepeats[id] === r ? 700 : 400,
+                              fontWeight: comboRepeats[s.id] === r ? 700 : 400,
                               cursor: "pointer",
                             }}
                           >
@@ -737,50 +651,70 @@ export default function NightPage() {
                         ))}
                       </div>
                     )}
-
-                    {/* Drag handle */}
-                    <div
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, id)}
-                      onDragEnd={handleDragEnd}
-                      style={{
-                        color: isSelected ? "#4a6a7a" : "#2a3a4a",
-                        fontSize: "1.1rem",
-                        cursor: "grab",
-                        padding: "0 0.2rem",
-                        userSelect: "none",
-                        flexShrink: 0,
-                        touchAction: "none",
-                      }}
-                    >
-                      ⠿
-                    </div>
                   </div>
                 );
               })}
             </div>
-            {comboSelected.size === 0 && (
+
+            {/* Combo summary */}
+            {comboOrder.length > 0 ? (
+              <div style={{
+                padding: "0.75rem 1rem", borderRadius: 12, marginBottom: "1.25rem",
+                background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+                fontFamily: "sans-serif",
+              }}>
+                <p style={{ fontSize: "0.68rem", color: "#3a5a6a", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.5rem" }}>
+                  Your playlist ({comboOrder.length} surah{comboOrder.length > 1 ? "s" : ""})
+                </p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                  {comboOrder.map((id, i) => {
+                    const s = getSurah(id);
+                    return (
+                      <div key={id} style={{
+                        display: "flex", alignItems: "center", gap: "0.3rem",
+                        padding: "0.25rem 0.6rem", borderRadius: 50,
+                        background: `${s.accent}18`, border: `1px solid ${s.accent}33`,
+                        fontSize: "0.72rem", color: s.accent,
+                      }}>
+                        <span style={{ fontWeight: 700 }}>{i + 1}.</span>
+                        <span>{s.name}</span>
+                        <span style={{ color: "#3a5a6a" }}>×{comboRepeats[id] ?? 1}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => { setComboOrder([]); stopPlayback(); }}
+                  style={{
+                    marginTop: "0.6rem", background: "none",
+                    border: "1px solid rgba(255,80,80,0.2)", borderRadius: 50,
+                    padding: "0.2rem 0.7rem", color: "#f87171",
+                    fontFamily: "sans-serif", fontSize: "0.68rem", cursor: "pointer",
+                  }}
+                >
+                  Clear all
+                </button>
+              </div>
+            ) : (
               <p style={{ color: "#f87171", fontSize: "0.78rem", fontFamily: "sans-serif", textAlign: "center", marginBottom: "1rem" }}>
-                Select at least one surah to play
+                Tap any surah above to build your playlist
               </p>
             )}
           </>
         )}
 
         {/* ══ Player Controls ═══════════════════════════════════════════════ */}
-        <div
-          style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: 20,
-            padding: "1.25rem 1.25rem 1.4rem",
-          }}
-        >
+        <div style={{
+          background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: 20, padding: "1.25rem 1.25rem 1.4rem",
+        }}>
           {/* Now playing info */}
           <div style={{ textAlign: "center", marginBottom: "1rem" }}>
             {status === "idle" && (
               <p style={{ color: "#3a5a6a", fontFamily: "sans-serif", fontSize: "0.82rem", margin: 0 }}>
-                Choose your surah and press play
+                {mode === "combo" && comboOrder.length === 0
+                  ? "Select surahs above to build your playlist"
+                  : "Choose your surah and press play"}
               </p>
             )}
             {status === "loading" && (
@@ -796,13 +730,9 @@ export default function NightPage() {
                 <div style={{ fontSize: "0.8rem", color: "#6a8a9a", fontFamily: "sans-serif" }}>
                   {activeSurahDisplay.name}
                   {" · "}
-                  <span style={{ color: accent }}>
-                    Repeat {currentRepeat}/{totalRepeats}
-                  </span>
+                  <span style={{ color: accent }}>Repeat {currentRepeat}/{totalRepeats}</span>
                   {mode === "combo" && queue.length > 1 && (
-                    <span style={{ color: "#4a6a7a" }}>
-                      {" · "}{currentIdx + 1}/{queue.length}
-                    </span>
+                    <span style={{ color: "#4a6a7a" }}> · {currentIdx + 1}/{queue.length}</span>
                   )}
                 </div>
               </>
@@ -814,66 +744,42 @@ export default function NightPage() {
             )}
           </div>
 
-          {/* ── Progress bar (seekable) ────────────────────────────── */}
+          {/* Progress bar */}
           <div
             ref={progressBarRef}
             className="progress-bar-track"
             onClick={handleSeek}
             onTouchStart={handleSeek}
             style={{
-              height: 6,
-              background: "rgba(255,255,255,0.07)",
-              borderRadius: 6,
-              overflow: "visible",
-              marginBottom: "0.5rem",
-              position: "relative",
+              height: 6, background: "rgba(255,255,255,0.07)", borderRadius: 6,
+              overflow: "visible", marginBottom: "0.5rem", position: "relative",
             }}
           >
-            <div
-              style={{
-                height: "100%",
-                width: `${progressPct}%`,
-                background: `linear-gradient(90deg, ${accent}88, ${accent})`,
-                borderRadius: 6,
-                transition: "width 0.4s linear",
-                position: "relative",
-              }}
-            >
-              {/* Thumb dot */}
-              <div
-                className="progress-thumb"
-                style={{
-                  position: "absolute",
-                  right: -5,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  width: 12,
-                  height: 12,
-                  borderRadius: "50%",
-                  background: accent,
-                  boxShadow: `0 0 6px ${accent}88`,
-                  opacity: status === "playing" || status === "paused" ? 1 : 0,
-                  transition: "opacity 0.2s",
-                }}
-              />
+            <div style={{
+              height: "100%", width: `${progressPct}%`,
+              background: `linear-gradient(90deg, ${accent}88, ${accent})`,
+              borderRadius: 6, transition: "width 0.4s linear", position: "relative",
+            }}>
+              <div style={{
+                position: "absolute", right: -5, top: "50%", transform: "translateY(-50%)",
+                width: 12, height: 12, borderRadius: "50%", background: accent,
+                boxShadow: `0 0 6px ${accent}88`,
+                opacity: status === "playing" || status === "paused" ? 1 : 0,
+                transition: "opacity 0.2s",
+              }} />
             </div>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              fontSize: "0.68rem",
-              color: "#3a5a6a",
-              fontFamily: "sans-serif",
-              marginBottom: "1rem",
-            }}
-          >
+          <div style={{
+            display: "flex", justifyContent: "space-between",
+            fontSize: "0.68rem", color: "#3a5a6a",
+            fontFamily: "sans-serif", marginBottom: "1rem",
+          }}>
             <span>{fmt(progress)}</span>
             <span>{duration > 0 ? fmt(duration) : "--:--"}</span>
           </div>
 
-          {/* ── Buttons ───────────────────────────────────────────── */}
+          {/* Buttons */}
           <div style={{ display: "flex", gap: "0.6rem", justifyContent: "center", alignItems: "center" }}>
             {/* Stop */}
             <button
@@ -888,16 +794,13 @@ export default function NightPage() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 transition: "all 0.2s",
               }}
-            >
-              ■
-            </button>
+            >■</button>
 
-            {/* Skip back 10s */}
+            {/* Skip -10s */}
             <button
               className="skip-btn"
               onClick={() => skip(-10)}
               disabled={status === "idle" || status === "done"}
-              title="Back 10s"
               style={{
                 width: 38, height: 38, borderRadius: "50%",
                 border: "1px solid rgba(255,255,255,0.08)",
@@ -905,8 +808,8 @@ export default function NightPage() {
                 color: status === "idle" || status === "done" ? "#2a4050" : "#6a9aaa",
                 fontSize: "0.8rem", fontFamily: "sans-serif",
                 cursor: status === "idle" || status === "done" ? "not-allowed" : "pointer",
-                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                gap: 0, transition: "all 0.18s", lineHeight: 1,
+                display: "flex", flexDirection: "column", alignItems: "center",
+                justifyContent: "center", gap: 0, transition: "all 0.18s", lineHeight: 1,
               }}
             >
               <span style={{ fontSize: "1rem" }}>⟨</span>
@@ -917,6 +820,7 @@ export default function NightPage() {
             <button
               className="btn-glow"
               onClick={status === "idle" || status === "done" ? startPlayback : togglePause}
+              disabled={mode === "combo" && comboOrder.length === 0 && status === "idle"}
               style={{
                 width: 68, height: 68, borderRadius: "50%",
                 border: `2px solid ${accent}55`,
@@ -925,6 +829,7 @@ export default function NightPage() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 boxShadow: `0 0 24px ${accent}2a`,
                 transition: "all 0.25s ease", position: "relative",
+                opacity: mode === "combo" && comboOrder.length === 0 && status === "idle" ? 0.4 : 1,
               }}
             >
               {status === "loading" ? (
@@ -939,12 +844,11 @@ export default function NightPage() {
               )}
             </button>
 
-            {/* Skip forward 10s */}
+            {/* Skip +10s */}
             <button
               className="skip-btn"
               onClick={() => skip(10)}
               disabled={status === "idle" || status === "done"}
-              title="Forward 10s"
               style={{
                 width: 38, height: 38, borderRadius: "50%",
                 border: "1px solid rgba(255,255,255,0.08)",
@@ -952,8 +856,8 @@ export default function NightPage() {
                 color: status === "idle" || status === "done" ? "#2a4050" : "#6a9aaa",
                 fontSize: "0.8rem", fontFamily: "sans-serif",
                 cursor: status === "idle" || status === "done" ? "not-allowed" : "pointer",
-                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                gap: 0, transition: "all 0.18s", lineHeight: 1,
+                display: "flex", flexDirection: "column", alignItems: "center",
+                justifyContent: "center", gap: 0, transition: "all 0.18s", lineHeight: 1,
               }}
             >
               <span style={{ fontSize: "1rem" }}>⟩</span>
@@ -972,17 +876,14 @@ export default function NightPage() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 transition: "all 0.2s",
               }}
-            >
-              ↺
-            </button>
+            >↺</button>
           </div>
         </div>
 
         {/* Footer */}
         <p style={{
-          textAlign: "center", color: "#253545",
-          fontSize: "0.68rem", fontFamily: "sans-serif",
-          marginTop: "1.5rem", letterSpacing: "0.05em",
+          textAlign: "center", color: "#253545", fontSize: "0.68rem",
+          fontFamily: "sans-serif", marginTop: "1.5rem", letterSpacing: "0.05em",
         }}>
           Audio stops automatically after chosen repeats · Auto-sleep friendly
         </p>
