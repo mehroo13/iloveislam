@@ -2,105 +2,103 @@
 export const prayerTimesArticle = {
   slug: "islamic-prayer-times-fajr-dhuhr-asr-maghrib-isha",
   title: "Understanding Islamic Prayer Times: Fajr, Dhuhr, Asr, Maghrib & Isha",
-  excerpt: "A complete guide to the five daily prayers — what they are, when they occur, and how to find accurate prayer times for your city anywhere in the world.",
+  excerpt: "A complete guide to the five daily prayers — their virtues, exact time windows, and how to find accurate prayer times for any location in the world.",
   category: "Prayer",
-  emoji: "📖",
-  readTime: "9 min read",
-  date: "2026-06-07",
+  emoji: "🕐",
+  readTime: "14 min read",
+  date: "2026-02-07",
   content: `
-<h2>The Importance of Prayer Times in Islam</h2>
-<p>Salah (prayer) is the second Pillar of Islam, obligatory upon every adult Muslim. Allah commands: <em>"Indeed, prayer has been decreed upon the believers a decree of specified times."</em> (Quran 4:103). The five daily prayers are spaced throughout the day and night to keep the believer constantly connected to their Creator. Each prayer time is defined by the sun’s position, which is why prayer times shift slightly each day and vary by location. Understanding the logic behind these times helps you never miss a prayer, whether at home, travelling, or in a place with no local mosque.</p>
-<p>The Prophet ﷺ said: <em>"The first deed for which a person will be brought to account on the Day of Resurrection is his prayer. If it is sound, then the rest of his deeds will be sound. If it is corrupt, then the rest of his deeds will be corrupt."</em> (At‑Tabarani). This shows why knowing and observing prayer times is not just a routine — it is the foundation of your entire Islamic practice.</p>
+<div class="prose prose-emerald dark:prose-invert max-w-none">
 
-<h2>The 5 Daily Prayers – Detailed Breakdown</h2>
-<p>Each of the five prayers has a specific time window, a number of rak'ahs (units of prayer), and unique virtues. Below is a complete guide.</p>
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-10 mb-6">The Importance of Prayer Times in Islam</h2>
 
-<h3>1. Fajr – The Dawn Prayer</h3>
-<p><strong>Time window:</strong> From the appearance of true dawn (Fajr Sadiq — a horizontal whiteness spreading across the horizon) until the moment of sunrise. This window lasts approximately 1 to 1.5 hours, depending on the season and latitude.</p>
-<p><strong>Rak'ahs:</strong> 2 Sunnah Mu'akkadah (highly emphasised) + 2 Fard (obligatory). The two Sunnah of Fajr are so important that the Prophet ﷺ never missed them, even while travelling. He said: <em>"The two rak'ahs of Fajr are better than the world and everything in it."</em> (Muslim).</p>
-<p><strong>Virtues:</strong> Praying Fajr in congregation is equivalent to standing in prayer the whole night. The angels of the night and the day both witness the Fajr prayer. Whoever prays Fajr is under Allah’s protection until he prays Isha.</p>
-<p><strong>Common mistake:</strong> Some people confuse the false dawn (Fajr Kadhib — a vertical streak of light) with true dawn. The time begins only when the whiteness spreads horizontally across the horizon. Our prayer time tool uses proper astronomical calculations to determine true dawn.</p>
+<p>Salah is the second pillar of Islam and the most important act of worship after Shahada. Allah ﷻ says in the Quran:</p>
+<blockquote>"Indeed, prayer has been decreed upon the believers a decree of specified times." (Quran 4:103)</blockquote>
 
-<h3>2. Dhuhr – The Midday Prayer</h3>
-<p><strong>Time window:</strong> Begins when the sun passes its zenith (the highest point in the sky) and starts to decline towards the west. It continues until the shadow of an object becomes equal to its length (for non‑Hanafi schools) or twice its length (Hanafi school) – this is the start of Asr.</p>
-<p><strong>Rak'ahs:</strong> 4 Sunnah Mu'akkadah before + 4 Fard + 2 Sunnah Mu'akkadah after. On Fridays, the Jumu'ah prayer (2 Fard, with a khutbah) replaces Dhuhr for men who are able to attend the congregation.</p>
-<p><strong>Virtues:</strong> Dhuhr is the first prayer that the Prophet ﷺ prayed during the Night Journey (Isra and Mi'raj). The gates of heaven are opened at this time, and supplications are more likely to be accepted.</p>
-<p><strong>Tip:</strong> In summer, Dhuhr can be very hot, but praying early in its time is more virtuous. The Prophet ﷺ said: <em>"In extreme heat, delay the prayer (Dhuhr) until it becomes cooler, for the intensity of heat is from the breeze of Hell."</em> (Bukhari). This is why many mosques delay Dhuhr on extremely hot days.</p>
+<p>The five daily prayers are not random — they are divinely timed to keep the believer in constant connection with Allah throughout the day and night. The Prophet ﷺ said:</p>
+<blockquote>"The first deed for which a person will be brought to account on the Day of Resurrection is his prayer. If it is sound, then the rest of his deeds will be sound." (At-Tabarani)</blockquote>
 
-<h3>3. Asr – The Afternoon Prayer</h3>
-<p><strong>Time window:</strong> Begins when the shadow of an object equals its length (Shafi'i, Maliki, Hanbali) OR twice its length (Hanafi). It lasts until sunset. However, it is severely disliked to delay Asr until the sun turns pale (about 15‑20 minutes before sunset).</p>
-<p><strong>Rak'ahs:</strong> 4 Fard (obligatory). There are also 4 Sunnah before Asr that are recommended but not as strongly emphasised as the Dhuhr Sunnah.</p>
-<p><strong>Warnings from the Prophet ﷺ:</strong> The Prophet ﷺ said: <em>"Whoever misses the Asr prayer, his deeds are rendered void."</em> (Bukhari). In another narration: <em>"May Allah have mercy on a man who prays Asr before the sun turns pale (i.e., at its earliest time)."</em> Asr is known as the "middle prayer" (Al‑Wusta) mentioned in the Quran: <em>"Guard strictly the prayers, especially the middle prayer."</em> (Quran 2:238).</p>
-<p><strong>Practical note:</strong> Many people are busy with work or school during Asr time. Set a reminder on your phone. Even a quick 5‑minute break is enough to perform the 4 rak'ahs.</p>
+<p>Understanding and praying on time is therefore foundational to a successful Islamic life.</p>
 
-<h3>4. Maghrib – The Sunset Prayer</h3>
-<p><strong>Time window:</strong> Begins immediately after the sun has completely set (the disk disappears below the horizon). It lasts until the red twilight (evening redness) disappears from the sky — approximately 1 to 1.5 hours after sunset.</p>
-<p><strong>Rak'ahs:</strong> 3 Fard + 2 Sunnah Mu'akkadah after. The Maghrib Sunnah should be prayed immediately after the Fard, without a long break, as the Prophet ﷺ rarely delayed them.</p>
-<p><strong>Virtues:</strong> Maghrib is the shortest of the five prayers in terms of rak'ahs, but its time window is also the shortest. The Prophet ﷺ said: <em>"My ummah will remain upon the fitrah (natural state) as long as they hasten to break their fast and pray Maghrib early."</em> Delaying Maghrib without valid reason is strongly disliked.</p>
-<p><strong>Special note:</strong> In Ramadan, Maghrib is the time to break the fast. It is Sunnah to break the fast with fresh dates or water before praying Maghrib, so you can pray early and with energy.</p>
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">The Five Daily Prayers – Complete Breakdown</h2>
 
-<h3>5. Isha – The Night Prayer</h3>
-<p><strong>Time window:</strong> Begins after the red twilight disappears from the horizon (i.e., when the sky becomes completely dark). It lasts until midnight (the midpoint between sunset and dawn) according to the stronger opinion, though some scholars say it lasts until the second dawn (Fajr). However, delaying Isha beyond midnight is disliked, and the best time is before the first third of the night passes.</p>
-<p><strong>Rak'ahs:</strong> 4 Fard + 2 Sunnah Mu'akkadah after + 3 Witr (obligatory according to Hanafi, strongly emphasised in others). The Witr prayer is the closing prayer of the night; it can be prayed at any time after Isha and before Fajr.</p>
-<p><strong>Virtues:</strong> The Prophet ﷺ said: <em>"If people knew what is in the Isha prayer and the Fajr prayer, they would come to them even if they had to crawl."</em> (Bukhari). Isha in congregation carries the reward of praying half the night, and when combined with Fajr in congregation, the reward of the entire night.</p>
+<h3 class="text-2xl font-bold text-emerald-700 dark:text-emerald-400 mt-10 mb-4">1. Fajr (Dawn Prayer)</h3>
+<p><strong>Time:</strong> From true dawn (Fajr Sadiq) until sunrise.</p>
+<p><strong>Rak'ahs:</strong> 2 Sunnah Mu'akkadah + 2 Fard.</p>
+<p>The two rak'ahs of Fajr are extremely virtuous. The Prophet ﷺ said: <em>"The two rak'ahs before Fajr are better than the world and everything in it."</em> (Muslim). Praying Fajr in congregation brings the reward of praying the entire night.</p>
 
-<h2>Why Prayer Times Change Daily</h2>
-<p>Because all prayer times are defined by the sun's position (dawn, noon, afternoon, sunset, dusk), they shift by 1 to 3 minutes each day as the Earth orbits the sun and the tilt of the Earth changes the length of daylight. At the equator, the changes are minimal (a few seconds per day). But at higher latitudes, the changes can be dramatic:</p>
-<ul>
-  <li>In <strong>London (51°N)</strong>, the summer Fajr can be as early as 2:30 AM, while winter Maghrib as early as 3:50 PM.</li>
-  <li>In <strong>Oslo, Norway (60°N)</strong>, summer nights are very short — Isha may not begin until after midnight, and Fajr begins less than an hour later.</li>
-  <li>In <strong>Extreme north (above 66°N)</strong>, there are periods of continuous daylight or darkness. Scholars have special rulings for such regions (using the nearest 45° latitude or Makkah times).</li>
-</ul>
-<p>This is why using a local, accurate prayer time calculator is essential. You cannot rely on a static printed timetable for more than a few weeks — the times drift.</p>
+<h3 class="text-2xl font-bold text-emerald-700 dark:text-emerald-400 mt-10 mb-4">2. Dhuhr (Midday Prayer)</h3>
+<p><strong>Time:</strong> From when the sun passes its zenith until the shadow of an object equals (or twice, according to Hanafi) its length.</p>
+<p><strong>Rak'ahs:</strong> 4 Sunnah + 4 Fard + 2 Sunnah.</p>
+<p>On Fridays, Jumu'ah prayer replaces Dhuhr for men who can attend. In hot weather, it is recommended to delay Dhuhr slightly until it cools down.</p>
 
-<h2>Calculation Methods – Why They Differ</h2>
-<p>Different Islamic organisations calculate prayer times using slightly different angles for the sun's depression below the horizon during dawn (Fajr) and dusk (Isha). The most common methods are:</p>
-<ul>
-  <li><strong>MWL (Muslim World League):</strong> Fajr at 18°, Isha at 17°. Widely used in Europe, US, and many online tools.</li>
-  <li><strong>ISNA (Islamic Society of North America):</strong> Fajr at 15°, Isha at 15°. Common in North America.</li>
-  <li><strong>Karachi / University of Islamic Sciences:</strong> Fajr at 18°, Isha at 18°. Used in South Asia.</li>
-  <li><strong>Umm al‑Qura (Makkah):</strong> Fajr at 18.5°, Isha at 90 minutes after Maghrib. Used in Saudi Arabia.</li>
-  <li><strong>Egyptian General Authority:</strong> Fajr at 19.5°, Isha at 17.5°.</li>
-</ul>
-<p>Our Prayer Times tool lets you select the method recommended for your region. For most users, MWL or ISNA works well. If you follow a specific madhab or local mosque, choose their method.</p>
+<h3 class="text-2xl font-bold text-emerald-700 dark:text-emerald-400 mt-10 mb-4">3. Asr (Afternoon Prayer)</h3>
+<p><strong>Time:</strong> From the end of Dhuhr until sunset. It is highly disliked to delay Asr until the sun begins to turn pale.</p>
+<p><strong>Rak'ahs:</strong> 4 Fard (some pray 4 Sunnah before).</p>
+<p>The Prophet ﷺ gave a strong warning about missing Asr: <em>"Whoever misses the Asr prayer, it is as if he has lost his family and property."</em> (Bukhari)</p>
 
-<h2>How to Find Accurate Prayer Times for Your Location</h2>
-<p>Using our <strong><a href="/prayer-times">Prayer Times tool</a></strong> is simple:</p>
-<ol>
-  <li>Allow location access (or manually enter your city).</li>
-  <li>Select your preferred calculation method (if unsure, start with MWL).</li>
-  <li>The tool displays all five prayer times for today and the coming days.</li>
-  <li>You can also view times for any date in the year.</li>
+<h3 class="text-2xl font-bold text-emerald-700 dark:text-emerald-400 mt-10 mb-4">4. Maghrib (Sunset Prayer)</h3>
+<p><strong>Time:</strong> Immediately after sunset until the red twilight disappears from the sky.</p>
+<p><strong>Rak'ahs:</strong> 3 Fard + 2 Sunnah Mu'akkadah.</p>
+<p>Maghrib should be prayed as early as possible. In Ramadan, it is the time to break the fast.</p>
+
+<h3 class="text-2xl font-bold text-emerald-700 dark:text-emerald-400 mt-10 mb-4">5. Isha (Night Prayer)</h3>
+<p><strong>Time:</strong> After the red twilight disappears until midnight (preferred) or until Fajr.</p>
+<p><strong>Rak'ahs:</strong> 4 Fard + 2 Sunnah + 3 Witr.</p>
+<p>Praying Isha and Fajr in congregation is equivalent to praying the whole night.</p>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Why Prayer Times Change Every Day</h2>
+
+<p>Prayer times are based on the position of the sun, which changes daily due to the Earth’s rotation and tilt. Changes are small near the equator but can be dramatic in higher latitudes (e.g., very early Fajr and late Isha in summer in Northern Europe).</p>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">How to Get Accurate Prayer Times</h2>
+
+<p>The easiest and most reliable way is using our free <a href="/prayer-times" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Prayer Times tool</a>.</p>
+
+<ol class="space-y-4 my-8">
+  <li>Allow location access or enter your city manually</li>
+  <li>Choose your preferred calculation method (MWL, ISNA, Karachi, etc.)</li>
+  <li>Get accurate times for today and the entire month</li>
 </ol>
-<p>All calculations are done locally – no data is sent to our servers. You can even save the page offline as a web app.</p>
 
-<h2>Common Questions About Prayer Times</h2>
-<p><strong>What if I miss a prayer due to sleep or forgetfulness?</strong> The Prophet ﷺ said: <em>"Whoever forgets a prayer or sleeps through it, its expiation is to pray it when he remembers it."</em> (Muslim). There is no expiation other than making it up promptly.</p>
-<p><strong>Can I combine prayers when travelling?</strong> Yes, Islam allows combining Dhuhr with Asr, and Maghrib with Isha, during travel (or due to valid necessity like sickness). The conditions vary by madhab – consult your local scholar.</p>
-<p><strong>What if I live in a place with no mosque or adhan?</strong> Use our prayer times tool or a reliable mobile app. Set an alarm for each prayer. Many Muslims in non‑Muslim countries rely on technology to stay punctual.</p>
-<p><strong>Do I need to pray exactly at the beginning of the time?</strong> Praying early is better (for all prayers except Isha on extremely hot days). But the prayer remains valid until the end of its window. The goal is consistency – pick a time that works for your schedule and stick to it.</p>
+<p class="text-center my-12">
+  <a href="/prayer-times" 
+     class="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg px-10 py-4 rounded-2xl transition-all hover:scale-105">
+    Get Accurate Prayer Times for Your Location →
+  </a>
+</p>
 
-<h2>Related Articles You May Find Useful</h2>
-<ul>
-  <li><a href="/how-to-find-qibla-direction">How to Find the Qibla Direction Anywhere in the World</a> – Essential for praying correctly when you travel.</li>
-  <li><a href="/how-to-perform-wudu">How to Perform Wudu (Ablution): Step‑by‑Step with Duas</a> – Purification before prayer.</li>
-  <li><a href="/how-to-calculate-zakat">How to Calculate Zakat</a> – The third pillar after Salah.</li>
-</ul>
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Common Questions About Prayer Times</h2>
 
-<h2>Try Our Free Islamic Tools – 25+ and Growing</h2>
-<p>We offer a complete suite of Islamic tools, all free, no sign‑up required:</p>
-<ul>
-  <li><a href="/prayer-times">Prayer Times</a> – Accurate salah times for any location.</li>
-  <li><a href="/qibla">Qibla Finder</a> – Find the direction of the Kaaba.</li>
-  <li><a href="/wudu">Wudu Guide</a> – Step‑by‑step ablution with duas.</li>
-  <li><a href="/zakat">Zakat Calculator</a> – Easy annual Zakat calculation.</li>
-  <li><a href="/dhikr">Dhikr Counter</a> – Track your daily remembrances.</li>
-  <li><a href="/dua">Dua Database</a> – Authentic supplications for every need.</li>
-  <li><a href="/eid">Eid Countdown</a> – Prepare for the blessed festivals.</li>
-  <li><a href="/mizan">Mizan Life Blueprint</a> – Discover your spiritual archetype.</li>
-</ul>
-<p><a href="/tools">Explore All Tools →</a></p>
+<p><strong>What if I miss a prayer?</strong><br>
+Pray it as soon as you remember. There is no other expiation except making it up.</p>
 
-<p>May Allah help us all maintain our prayers on time. Ameen.</p>
+<p><strong>Can I combine prayers?</strong><br>
+Yes, during travel or under necessity (Dhuhr+Asr and Maghrib+Isha).</p>
+
+<p><strong>Which calculation method should I follow?</strong><br>
+Most people use MWL or ISNA. Follow your local mosque or scholar if they recommend a specific method.</p>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-8">Essential Prayer Tools</h2>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
+  <a href="/prayer-times" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
+    <span class="text-4xl mb-3 block">🕐</span>
+    <h3 class="font-bold text-xl">Prayer Times</h3>
+    <p class="text-gray-600 dark:text-gray-400">Accurate timings for your city</p>
+  </a>
+  
+  <a href="/qibla" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
+    <span class="text-4xl mb-3 block">🧭</span>
+    <h3 class="font-bold text-xl">Qibla Finder</h3>
+    <p class="text-gray-600 dark:text-gray-400">Find the direction to the Kaaba</p>
+  </a>
+</div>
+
+<p class="text-center text-emerald-700 dark:text-emerald-400 font-medium mt-12">
+  May Allah grant us all the ability to establish the five prayers on time with sincerity. Ameen.
+</p>
+
+</div>
 `
 };

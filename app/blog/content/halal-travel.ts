@@ -1,105 +1,102 @@
 // app/blog/content/halal-travel.ts
 export const halalTravelArticle = {
   slug: "halal-travel-tips-muslim-guide",
-  title: "10 Essential Tips for Halal Travel — A Muslim Traveller's Guide",
-  excerpt: "Travelling as a Muslim comes with unique considerations. From finding halal food to maintaining prayer schedules — here is everything you need to know.",
+  title: "Halal Travel Guide: 10 Essential Tips for Muslim Travellers",
+  excerpt: "Travelling while staying true to your faith is easy with the right preparation. Learn practical halal travel tips — from prayer times and Qibla to halal food, mosques, and traveller’s concessions.",
   category: "Travel",
-  emoji: "📖",
-  readTime: "9 min read",
-  date: "2026-06-15",
+  emoji: "🧳",
+  readTime: "14 min read",
+  date: "2026-05-15",
   content: `
-<h2>Why Halal Travel Matters</h2>
-<p>Travelling as a Muslim presents unique opportunities and challenges. You may be exploring new lands, visiting family, or going for business – but your commitment to Allah and His Messenger ﷺ does not pause at the border. The Prophet ﷺ travelled frequently: for hijra (migration), for umrah and hajj, for military expeditions, and for trade. He taught us that travel can be an act of worship when done with the right intention and preparation. Allah says: <em>"And He has subjected to you the night and the day, the sun and the moon, and the stars are subjected by His command. Indeed in that are signs for people who reason."</em> (Quran 16:12). By maintaining your prayers, halal diet, and Islamic etiquette while travelling, you turn your journey into a spiritual experience. This guide provides ten essential tips to help you travel anywhere in the world while staying true to your values – whether for leisure, business, or visiting family.</p>
+<div class="prose prose-emerald dark:prose-invert max-w-none">
 
-<h2>Tip 1 – Find Prayer Times Before You Go</h2>
-<p>Before you depart, look up prayer times for your destination using our <strong><a href="/prayer-times">Prayer Times tool</a></strong>. Enter your destination city and the dates of your stay. Take a screenshot or write down the times on paper. Why? Because when you land, you may not have internet access immediately, or your phone may be roaming. Having the times saved offline ensures you never miss a prayer. Pay special attention to Fajr (dawn) and Maghrib (sunset) – they shift the most with latitude and season. Also note that prayer times can vary significantly even within the same country; a coastal city may have different Fajr angles than an inland city. Use the calculation method (MWL, ISNA, etc.) that matches your local practice or the recommendation for that country. If you are unsure, default to MWL (Muslim World League) as it is widely used internationally.</p>
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-10 mb-6">Why Halal Travel Matters</h2>
 
-<h2>Tip 2 – Find the Qibla at Your Hotel</h2>
-<p>As soon as you arrive at each new accommodation (hotel, Airbnb, friend's house), use our <strong><a href="/qibla">Qibla Finder</a></strong> to determine the direction of the Kaaba. Most modern smartphones have a built‑in compass that works offline once you have loaded the page. To make it easier for the rest of your stay, mark the Qibla direction in your room: place a piece of tape on the floor, a small sticker on the wall, or simply remember a landmark (e.g., "facing the window"). If you are in a high‑rise building, be aware that the Qibla bearing from the 20th floor is the same as from ground level – the magnetic compass is not affected by altitude. However, large metal structures (steel beams, elevators) can distort the compass reading. Step away from them and recalibrate by moving your phone in a figure‑eight pattern.</p>
+<p>Travel is a blessing from Allah. The Prophet ﷺ travelled extensively — for Hijra, Umrah, Hajj, expeditions, and da’wah. He taught us that a journey can become an act of worship when done with the right intention and proper preparation. Whether you’re exploring new cultures, visiting family, or travelling for business, maintaining your salah, halal diet, and Islamic etiquette turns your trip into a source of reward.</p>
 
-<h2>Tip 3 – Locate Mosques in Advance</h2>
-<p>Use our <strong><a href="/mosque-finder">Mosque Finder</a></strong> to identify mosques (masjids) near your hotel and destination before you travel. Save their addresses offline – you can copy them into a notes app, or use Google Maps offline feature. Why is this important? Knowing the nearest mosque gives you a place for congregational prayers (especially Jumu'ah on Friday), access to Islamic books, and a community to connect with. In non‑Muslim countries, mosques may be far from tourist areas, so knowing their location helps you plan your day around prayer times. Some mosques also provide halal food recommendations, travel advice, and even host iftar during Ramadan. Call or email ahead if you have specific needs (e.g., wheelchair access, women's prayer space).</p>
+<p>This comprehensive guide gives you practical, field-tested tips to travel confidently anywhere in the world while staying true to your deen.</p>
 
-<h2>Tip 4 – Research Halal Food at Your Destination</h2>
-<p>Finding halal food can be the most challenging part of travelling, especially in non‑Muslim countries. However, with proper research, you can enjoy local cuisine without compromising your deen.</p>
-<ul>
-  <li><strong>Use halal food apps:</strong> Zabihah.com (the most comprehensive global directory), HalalTrip, and local halal Facebook groups. These apps list user‑reviewed halal restaurants, shops, and butchers.</li>
-  <li><strong>Understand general rulings:</strong> In non‑Muslim countries, vegetarian and seafood options are generally safe (provided no alcohol is used in cooking). However, be cautious of cross‑contamination with non‑halal meat. Ask the restaurant if they prepare vegetarian food on separate surfaces.</li>
-  <li><strong>Pack emergency halal snacks:</strong> Carry dates, nuts, protein bars, and sealed halal meat products (e.g., tuna pouches, chicken jerky) for long journeys or places where halal food is unavailable.</li>
-  <li><strong>In Muslim‑majority countries:</strong> Most food will be halal by default, but verify that no alcohol is added to sauces (e.g., wine in pasta dishes) and that meat is properly slaughtered according to Islamic law.</li>
-  <li><strong>Ask the right questions:</strong> Learn basic phrases in the local language: "Is this halal?" "No pork, no alcohol." In Europe and the Americas, many restaurants will understand "halal" or "zabihah".</li>
-</ul>
-<p>Remember: if you genuinely cannot find halal food, you are permitted to eat non‑halal meat only in extreme necessity (life‑threatening hunger). Otherwise, stick to permissible options like fish, vegetables, and grains.</p>
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">1. Master Prayer Times Before Departure</h2>
 
-<h2>Tip 5 – Know the Traveller's Prayer (Salat al‑Qasr)</h2>
-<p>Islam provides concessions to ease travel. When you travel a distance of approximately 80 km or more (or what is customarily considered a journey), you may:</p>
-<ul>
-  <li><strong>Shorten (qasr)</strong> Dhuhr, Asr, and Isha from 4 rak'ahs to 2 rak'ahs. Fajr and Maghrib remain unchanged (2 and 3 rak'ahs respectively).</li>
-  <li><strong>Combine (jam')</strong> Dhuhr with Asr, and Maghrib with Isha. You can combine them at the time of the earlier prayer (jam' taqdim) or the later prayer (jam' ta'khir), depending on what is easier for your journey.</li>
-</ul>
-<p>These concessions apply from the moment you leave your city until you return, provided you intend to stay less than 4 days (15 days according to Hanafi) at your destination. If you plan to stay longer, you revert to full prayers. The traveller's prayer is a mercy from Allah – do not neglect it. However, note that if you pray behind a resident imam who is praying 4 rak'ahs, you must follow him and pray the full 4.</p>
+<p>Prayer is the most important act of worship while travelling. Before your trip, use our <a href="/prayer-times" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Prayer Times tool</a> to check accurate Fajr, Maghrib, and other prayer times for your destination cities. Save screenshots or add them to your notes. This prevents missing prayers due to time differences or lack of internet.</p>
 
-<h2>Tip 6 – Carry a Travel Prayer Mat</h2>
-<p>A compact travel prayer mat is a game‑changer. It folds to the size of a large envelope or smaller, weighs almost nothing, and ensures you can pray anywhere with a clean surface – airports, train stations, parks, rest stops, hotel rooms, or even a quiet corner of a museum. Many travel mats come with a built‑in compass (though not always accurate) or a pocket for a small Quran. If you forget your mat, you can pray on any clean surface: a jacket, a scarf, a towel, or even directly on grass. The key is to ensure the place is free from najas (impurity).</p>
+<p>Pro tip: Download the times for the entire duration of your trip. Pay special attention to Fajr and Maghrib as they change significantly with latitude.</p>
 
-<h2>Tip 7 – Recite the Travel Dua (Supplication)</h2>
-<p>The Prophet ﷺ taught specific duas for travel. Before setting off, recite:</p>
-<p style="background:#f0f0f0; padding:10px; border-radius:8px; font-family:monospace;">
-Subḥānalladhī sakhkhara lanā hādhā wa mā kunnā lahū muqrinīn, wa innā ilā rabbinā lamunqalibūn.
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">2. Always Know the Qibla Direction</h2>
+
+<p>Use our <a href="/qibla" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Qibla Finder</a> as soon as you arrive at a new location. Modern phones have built-in compasses that work offline. Mark the direction in your hotel room with tape or a small note for convenience throughout your stay.</p>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">3. Locate Mosques in Advance</h2>
+
+<p>Our <a href="/mosque" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Mosque Finder</a> helps you discover nearby masjids, their prayer schedules, and Jumu’ah timings. Having a mosque nearby provides congregation, community, and peace during your journey.</p>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">4. Plan for Halal Food</h2>
+
+<p>Research halal options before travelling using reliable apps and directories. Pack emergency snacks (dates, nuts, halal protein bars). In non-Muslim countries, vegetarian, seafood, and clearly labelled halal restaurants are your best bet. Always ask about cross-contamination and alcohol in cooking.</p>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">5. Use Traveller’s Concessions (Qasr & Jam’)</h2>
+
+<p>For journeys longer than ~80 km, you may shorten Dhuhr, Asr, and Isha prayers to 2 rak’ahs and combine them. This mercy from Allah makes travel much easier. Learn the rules properly so you can apply them confidently.</p>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">6. Carry a Travel Prayer Mat</h2>
+
+<p>A lightweight, foldable prayer mat is essential. It ensures you can pray in airports, hotels, trains, or any clean space. Many come with a built-in compass pocket.</p>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">7. Recite Travel Duas</h2>
+
+<p>The Prophet ﷺ taught beautiful duas for travelling. Recite them when boarding any vehicle and throughout your journey. Our <a href="/dua" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Dua Generator</a> has a dedicated Travel section with authentic supplications.</p>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">8. Plan Your Itinerary Around Salah</h2>
+
+<p>Schedule flights, tours, and activities around prayer times when possible. This small planning step makes a huge difference in maintaining khushu’ and consistency.</p>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">9. Uphold Islamic Adab (Etiquette)</h2>
+
+<p>Be an ambassador of Islam. Smile, be patient with staff, lower your gaze in tourist areas, avoid gossip, and treat everyone with kindness. Your character is the best da’wah.</p>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">10. Reflect Upon Returning</h2>
+
+<p>When you return home safely, thank Allah, recite the return dua, and reflect on how well you maintained your worship. Use the lessons to improve your daily life.</p>
+
+<p class="text-center my-12">
+  <a href="/travel" 
+     class="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg px-10 py-4 rounded-2xl transition-all hover:scale-105">
+    Start Planning Your Next Halal Trip →
+  </a>
 </p>
-<p><em>Glory be to the One Who has subjected this (vehicle) for us, for we could not have done it ourselves, and indeed to our Lord we will return.</em> (Quran 43:13-14)</p>
-<p>When mounting an animal or boarding a car/plane/train, say: <em>Bismillah, tawakkaltu 'ala Allah, wa la hawla wa la quwwata illa billah.</em> (In the name of Allah, I place my trust in Allah, and there is no power or strength except with Allah). For longer journeys, also recite Ayat al‑Kursi and the four Quls. Find more travel duas in our <strong><a href="/dua-generator">Dua Generator</a></strong> under the "Travel" category.</p>
 
-<h2>Tip 8 – Plan Your Itinerary Around Prayer Times</h2>
-<p>Before booking flights, tours, or activities, check the prayer times for that day. Avoid booking a 3‑hour desert safari that starts exactly at Asr time, or a lunch cruise that runs through Maghrib. Instead, choose tours that respect prayer breaks or that end before the next prayer. Use our <strong><a href="/ramadan-planner">Halal Travel Planner</a></strong> (integrated with prayer times) to build a prayer‑friendly itinerary. Also, consider that Jumu'ah (Friday congregation) requires you to be near a mosque around noon; plan your Friday schedule accordingly.</p>
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-8">Our Recommended Halal Travel Tools</h2>
 
-<h2>Tip 9 – Maintain Islamic Etiquette (Adab) While Travelling</h2>
-<p>Travel is not a license to abandon good manners. The Prophet ﷺ said: <em>"The best of you are the best in character."</em> While travelling:</p>
-<ul>
-  <li><strong>Be kind to service workers:</strong> Hotel staff, taxi drivers, waiters – smile, tip generously, and be patient. You are an ambassador of Islam.</li>
-  <li><strong>Avoid gossip and backbiting:</strong> Travelling often involves group conversations. Refrain from speaking ill of others even if it seems harmless.</li>
-  <li><strong>Lower your gaze:</strong> Tourist areas may have immodest dress; practice lowering your gaze as you would at home.</li>
-  <li><strong>Be honest in business dealings:</strong> If bargaining in markets, be fair and avoid deception.</li>
-  <li><strong>Respect local customs:</strong> In Muslim countries, dress modestly and avoid public eating during Ramadan. In non‑Muslim countries, politely explain your needs (e.g., prayer, halal food) without being confrontational.</li>
-</ul>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
+  <a href="/prayer-times" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
+    <span class="text-4xl mb-3 block">🕐</span>
+    <h3 class="font-bold text-xl">Prayer Times</h3>
+    <p class="text-gray-600 dark:text-gray-400">Accurate times worldwide</p>
+  </a>
+  
+  <a href="/qibla" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
+    <span class="text-4xl mb-3 block">🧭</span>
+    <h3 class="font-bold text-xl">Qibla Finder</h3>
+    <p class="text-gray-600 dark:text-gray-400">Find direction anywhere</p>
+  </a>
+  
+  <a href="/mosque" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
+    <span class="text-4xl mb-3 block">🕌</span>
+    <h3 class="font-bold text-xl">Mosque Finder</h3>
+    <p class="text-gray-600 dark:text-gray-400">Locate masjids near you</p>
+  </a>
+  
+  <a href="/dua" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
+    <span class="text-4xl mb-3 block">🤲</span>
+    <h3 class="font-bold text-xl">Dua Generator</h3>
+    <p class="text-gray-600 dark:text-gray-400">Travel duas & more</p>
+  </a>
+</div>
 
-<h2>Tip 10 – After Returning: Offer the Return Dua and Reflect</h2>
-<p>When you return safely to your home city, recite the return dua as taught by the Prophet ﷺ:</p>
-<p style="background:#f0f0f0; padding:10px; border-radius:8px; font-family:monospace;">
-Āyibūna tā'ibūna 'ābidūna li rabbinā hāmidūn.
+<p class="text-center text-emerald-700 dark:text-emerald-400 font-medium mt-12">
+  May Allah bless your journeys, keep you safe, and accept your travels as acts of worship. Ameen.
 </p>
-<p><em>We return, repenting, worshipping, and praising our Lord.</em> Also, thank Allah for safe travel. Reflect on what you learned spiritually – did you maintain your prayers on time? Did you avoid the haram? Plan how to implement positive changes in your daily life.</p>
 
-<h2>Bonus: Use Our Halal Travel Planner</h2>
-<p>Our <strong><a href="/halal-travel-planner">Halal Travel Planner</a></strong> is a dedicated tool that combines all the above features into one dashboard. Enter your destination and travel dates, and it will:</p>
-<ul>
-  <li>Show daily prayer times for your exact location.</li>
-  <li>Map nearby mosques and halal restaurants.</li>
-  <li>Provide a checklist: travel prayer mat, dua list, Qibla direction.</li>
-  <li>Suggest Muslim‑friendly destinations with ratings.</li>
-</ul>
-<p>Start planning your next halal trip today. Safe travels, and may Allah accept your journey as an act of worship. Ameen.</p>
-
-<h2>Related Articles You May Find Useful</h2>
-<ul>
-  <li><a href="/how-to-find-qibla-direction">How to Find the Qibla Direction Anywhere in the World</a></li>
-  <li><a href="/islamic-prayer-times">Understanding Islamic Prayer Times</a></li>
-  <li><a href="/how-to-prepare-for-ramadan">How to Prepare for Ramadan: A Complete Guide</a> (useful for Ramadan travel)</li>
-  <li><a href="/99-names-of-allah">The 99 Names of Allah – Meanings & Benefits</a></li>
-</ul>
-
-<h2>Try Our Free Islamic Tools – 25+ and Growing</h2>
-<ul>
-  <li><a href="/prayer-times">Prayer Times</a> – Accurate salah times worldwide.</li>
-  <li><a href="/qibla">Qibla Finder</a> – Find the Kaaba direction offline.</li>
-  <li><a href="/mosque-finder">Mosque Finder</a> – Locate mosques near you.</li>
-  <li><a href="/dua-generator">Dua Generator</a> – Authentic supplications for travel and more.</li>
-  <li><a href="/halal-travel-planner">Halal Travel Planner</a> – Build a prayer‑friendly itinerary.</li>
-  <li><a href="/zakat">Zakat Calculator</a> – Calculate your Zakat.</li>
-  <li><a href="/dhikr">Dhikr Counter</a> – Track remembrances on the go.</li>
-</ul>
-<p><a href="/tools">Explore All Tools →</a></p>
-
-<p>May Allah bless your journeys and return you safely to your family. Ameen.</p>
+</div>
 `
 };

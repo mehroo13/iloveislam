@@ -1,87 +1,118 @@
 // app/blog/content/islamic-new-year-muharram.ts
 export const islamicNewYearArticle = {
   slug: "islamic-new-year-muharram",
-  title: "Islamic New Year & Muharram: Significance, Fasting & Ashura",
-  excerpt: "The Islamic New Year begins with Muharram – the first sacred month. Learn about its virtues, the Day of Ashura, fasting, and how to start the Hijri year right.",
+  title: "Islamic New Year & Muharram: Significance, Virtues of Ashura & How to Start the Hijri Year Right",
+  excerpt: "Discover the blessings of Muharram, the first sacred month. Learn about the Hijri New Year, the Day of Ashura, recommended fasting, and practical ways to make this new year spiritually rewarding.",
   category: "Knowledge",
   emoji: "🌙",
-  readTime: "10 min read",
+  readTime: "14 min read",
   date: "2026-01-29",
   content: `
-<h2>The Hijri New Year – A Time for Reflection</h2>
-<p>The Islamic New Year begins on <strong>1st Muharram</strong>, marking the Hijra (migration) of the Prophet ﷺ from Mecca to Medina. While there is no specific celebration (unlike the Gregorian New Year), it is a time for reflection on the Islamic calendar's purpose and the lessons of the Hijra. The Hijri year is named after this event because it was the turning point for the Muslim community – from oppression to freedom, from a small persecuted group to an established state. As we enter a new Hijri year (1448 AH starting around July 2026), this guide explains the virtues of Muharram, the day of Ashura, recommended fasts, and how to set spiritual goals for the year ahead.</p>
+<div class="prose prose-emerald dark:prose-invert max-w-none">
 
-<h2>Muharram – The First Sacred Month</h2>
-<p>Muharram (المحرّم) is one of the four sacred months mentioned in the Quran: <em>"Indeed, the number of months with Allah is twelve months... of which four are sacred."</em> (Quran 9:36). The other three are Rajab, Dhul Qa'dah, and Dhul Hijjah. In sacred months, sins are more severe, but good deeds are also more rewarding. Fighting is prohibited except in self‑defence. The Prophet ﷺ called Muharram "the month of Allah" and encouraged voluntary fasting during it, second only to Ramadan.</p>
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-10 mb-6">The Islamic New Year – A Time for Reflection & Renewal</h2>
 
-<h2>The Day of Ashura – 10th Muharram</h2>
-<p><strong>Ashura</strong> (عاشوراء) is the 10th day of Muharram. Its significance pre‑dates Islam: Allah saved Prophet Musa (Moses) and the Children of Israel from Pharaoh on this day. The Jews of Medina fasted it, and when the Prophet ﷺ arrived, he said: <em>"We are closer to Musa than you."</em> So he fasted it and commanded the Muslims to fast. The reward: <em>"Fasting the day of Ashura expiates the sins of the previous year."</em> (Muslim). However, to differ from the Jews, the Prophet ﷺ also recommended fasting the 9th (Tasu'a) along with the 10th, or the 11th as well. Thus, fast either:</p>
-<ul>
-  <li>9th and 10th, or</li>
-  <li>10th alone (though less recommended), or</li>
-  <li>10th and 11th.</li>
-</ul>
-<p>The 9th of Muharram 1448 AH will correspond approximately to mid‑July 2026 (check local moon sighting).</p>
+<p>The Islamic (Hijri) New Year begins on the **1st of Muharram**, the first of the four sacred months in the lunar calendar. Unlike the Gregorian New Year with parties and fireworks, the Hijri New Year is a quiet, reflective occasion — an opportunity to thank Allah for another year of life and to renew our commitment to Him.</p>
 
-<h2>Fasting in Muharram – Beyond Ashura</h2>
-<p>The Prophet ﷺ said: <em>"The best fasting after Ramadan is the month of Allah, Muharram."</em> (Muslim). While fasting the entire month is not obligatory, it is highly encouraged to fast as many days as possible. You can fast the "white days" (13th, 14th, 15th of each lunar month) – in Muharram they are especially virtuous. Also, Mondays and Thursdays are recommended. The reward of fasting any day in Muharram is multiplied because it is a sacred month.</p>
+<p>This new year commemorates the **Hijra** (migration) of the Prophet Muhammad ﷺ from Makkah to Madinah in 622 CE — a turning point that transformed the Muslim community from persecution to establishment of the first Islamic state. As we welcome **1448 AH** (expected around July 2026), it is the perfect time to reset our intentions and plan for a more spiritually productive year.</p>
 
-<h2>What Not to Do on Ashura – Correcting Misconceptions</h2>
-<p>Some cultures have invented practices on Ashura that have no basis in Islam:</p>
-<ul>
-  <li><strong>Mourning and self‑flagellation</strong> – The martyrdom of Imam Husayn (RA) occurred on Ashura (61 AH), but the Prophet ﷺ did not instruct any mourning rituals. Excessive wailing, striking oneself, or re‑enacting the battle are innovations (bid'ah) and forbidden.</li>
-  <li><strong>Special meals or celebrations</strong> – Ashura is a day of gratitude, not a feast like Eid. Some cultures cook special dishes (like Aashura dessert) – this is permissible as long as one does not consider it a religious obligation.</li>
-  <li><strong>Believing that Ashura brings bad luck</strong> – No, it is a blessed day. Do not avoid marriage, travel, or business because of superstition.</li>
-</ul>
+<p>Our <a href="/hijri" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Hijri Calendar</a> helps you stay in sync with the Islamic dates.</p>
 
-<h2>Lessons from the Hijra – Starting the New Year Right</h2>
-<p>The Hijra teaches us several key lessons:</p>
-<ul>
-  <li><strong>Sacrifice for Allah</strong> – The Prophet ﷺ and his companions left their homes, wealth, and families for the sake of Allah. We should be willing to make sacrifices to uphold our deen.</li>
-  <li><strong>Planning and trust (Tawakkul)</strong> – The Prophet ﷺ meticulously planned the migration (going in the opposite direction, hiding in the cave, hiring a guide). We must take practical steps then trust Allah.</li>
-  <li><strong>Brotherhood (Mu'akhah)</strong> – In Medina, the Prophet ﷺ paired each Muhajir (immigrant) with an Ansari (helper). This spirit of mutual support is needed today.</li>
-  <li><strong>Building a community</strong> – The first act in Medina was building the mosque. Prioritise community worship and education.</li>
-</ul>
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Muharram – One of the Four Sacred Months</h2>
 
-<h2>Setting Spiritual Goals for the New Hijri Year</h2>
-<p>As the new Hijri year begins, make resolutions that align with Islamic values:</p>
-<ul>
-  <li><strong>Quran completion</strong> – Aim to complete one khatm (full reading) over the year (2.5 Juz' per month).</li>
-  <li><strong>Daily adhkar</strong> – Use our <a href="/dhikr">Dhikr Counter</a> to track morning/evening remembrances.</li>
-  <li><strong>Consistent Tahajjud</strong> – Even once a week.</li>
-  <li><strong>Charity budget</strong> – Set aside a percentage of monthly income as Sadaqah.</li>
-  <li><strong>Learn a new Surah or hadith</strong> – Memorise one Surah every two months.</li>
-  <li><strong>Reduce sins</strong> – Identify one bad habit (e.g., backbiting, wasting time on phone) and make a plan to quit.</li>
+<p>Allah says in the Quran: <em>"Indeed, the number of months with Allah is twelve months... of which four are sacred."</em> (Quran 9:36). Muharram is the first of these sacred months (along with Rajab, Dhul Qa’dah, and Dhul Hijjah).</p>
+
+<p>In sacred months, good deeds are rewarded more abundantly and sins carry greater weight. The Prophet ﷺ called Muharram “the month of Allah” and encouraged voluntary fasting more than in any other month outside Ramadan.</p>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">The Day of Ashura – 10th Muharram</h2>
+
+<p><strong>Ashura</strong> is the 10th day of Muharram and one of the most virtuous days in the Islamic calendar. On this day, Allah saved Prophet Musa (AS) and the Children of Israel from Pharaoh. When the Prophet ﷺ arrived in Madinah, he saw the Jews fasting it and said: <em>“We are closer to Musa than you are.”</em> He then fasted Ashura and ordered the Muslims to do the same.</p>
+
+<p>The great reward: <em>"Fasting the day of Ashura expiates the sins of the previous year."</em> (Muslim)</p>
+
+<div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950 dark:to-teal-950 p-8 rounded-3xl border border-emerald-100 dark:border-emerald-800 my-10">
+  <strong>Recommended Way to Fast Ashura:</strong><br><br>
+  • Best: Fast on the **9th and 10th** (Tasu’a and Ashura)<br>
+  • Good: Fast on the **10th and 11th**<br>
+  • Minimum: Fast on the **10th** alone
+</div>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Fasting Throughout Muharram</h2>
+
+<p>The Prophet ﷺ said: <em>"The best fasting after Ramadan is fasting in the month of Allah, Muharram."</em> (Muslim)</p>
+
+<p>Take advantage of this blessed month by fasting as many days as possible — especially:</p>
+<ul class="list-disc pl-6 space-y-2 my-6">
+  <li>The 9th & 10th of Muharram (Ashura)</li>
+  <li>The White Days (13th, 14th, 15th)</li>
+  <li>Mondays and Thursdays</li>
 </ul>
 
-<h2>Practical Steps to Observe the Islamic New Year</h2>
-<ol>
-  <li><strong>Check the date</strong> – Use our <a href="/hijri-calendar-converter">Hijri Calendar Converter</a> to know when 1st Muharram 1448 AH begins (expected July 2026).</li>
-  <li><strong>Fast on Ashura (9th & 10th)</strong> – Mark your calendar.</li>
-  <li><strong>Increase general fasting in Muharram</strong> – Fast Mondays, Thursdays, and the white days (13-15).</li>
-  <li><strong>Reflect on the Hijra</strong> – Read the Seerah of the Prophet's migration. Discuss it with family.</li>
-  <li><strong>Make dua for the new year</strong> – There is no specific "New Year dua" in the Sunnah, but you can ask Allah to make the year a source of goodness and forgiveness.</li>
-  <li><strong>Do not celebrate with parties or fireworks</strong> – The Islamic New Year is a quiet, reflective time – not a cultural festival.</li>
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Important Lessons from the Hijra</h2>
+
+<ul class="list-disc pl-6 space-y-4 my-8 text-lg">
+  <li><strong>Sacrifice for Allah’s sake</strong> — leaving comfort for the pleasure of Allah</li>
+  <li><strong>Complete trust in Allah (Tawakkul)</strong> combined with excellent planning</li>
+  <li><strong>Building strong brotherhood and community</strong></li>
+  <li><strong>Establishing worship as the foundation</strong> (the first thing built in Madinah was the Masjid)</li>
 </ul>
 
-<h2>Common Questions</h2>
-<p><strong>Is it permissible to say "Happy Islamic New Year"?</strong> Scholars differ. If you mean simply acknowledging the date without religious ritual, it is permissible. However, avoid imitating non‑Muslim New Year celebrations (parties, countdowns). Better to greet with "May Allah make this year a year of goodness and forgiveness."</p>
-<p><strong>Can I fast the entire month of Muharram?</strong> Yes, but it is not obligatory. The Prophet ﷺ never fasted an entire month except Ramadan. Fasting many days is excellent, but leave a few days to avoid extremism.</p>
-<p><strong>What if Ashura falls on a Friday?</strong> It is still permissible to fast, and combining Ashura with Friday fast is fine. However, do not single out Friday alone unless you also fast Thursday or Saturday.</p>
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Setting Spiritual Goals for the New Hijri Year</h2>
 
-<h2>Related Articles</h2>
-<ul>
-  <li><a href="/islamic-hijri-calendar-explained">The Islamic Hijri Calendar Explained</a></li>
-  <li><a href="/how-to-prepare-for-ramadan">How to Prepare for Ramadan</a></li>
-  <li><a href="/what-is-kaffarah-types-reasons">What is Kaffarah?</a></li>
+<p>Use the beginning of Muharram to make sincere intentions:</p>
+
+<div class="grid md:grid-cols-2 gap-6 my-10">
+  <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700">
+    <h3 class="font-semibold text-emerald-700 dark:text-emerald-400 mb-3">📖 Quran Goals</h3>
+    <p class="text-sm">Complete one full Khatm • Memorize one new Surah every two months</p>
+  </div>
+  <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700">
+    <h3 class="font-semibold text-emerald-700 dark:text-emerald-400 mb-3">🤲 Worship Goals</h3>
+    <p class="text-sm">Daily morning & evening adhkar • Regular Tahajjud • Consistent voluntary fasts</p>
+  </div>
+</div>
+
+<p class="text-center my-12">
+  <a href="/dhikr" 
+     class="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg px-10 py-4 rounded-2xl transition-all hover:scale-105">
+    Start Your Daily Dhikr Now →
+  </a>
+</p>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Correcting Common Misconceptions About Ashura</h2>
+
+<ul class="list-disc pl-6 space-y-3 my-6">
+  <li>Excessive mourning, self-flagellation, and theatrical re-enactments are bid’ah (innovations) and not from the Sunnah.</li>
+  <li>Ashura is a day of gratitude and fasting — not feasting or superstition.</li>
+  <li>It is a blessed day, not an unlucky one.</li>
 </ul>
 
-<h2>Try Our Free Tools</h2>
-<ul>
-  <li><a href="/hijri-calendar-converter">Hijri Calendar Converter</a> – Convert dates.</li>
-  <li><a href="/dhikr">Dhikr Counter</a> – Track your fasts and adhkar.</li>
-  <li><a href="/prayer-times">Prayer Times</a> – Know Fajr for fasting.</li>
-</ul>
-<p>May Allah make this new Hijri year a year of blessings, forgiveness, and closeness to Him. Ameen.</p>
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-8">Recommended Tools for the New Hijri Year</h2>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
+  <a href="/hijri" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
+    <span class="text-4xl mb-3 block">🌙</span>
+    <h3 class="font-bold text-xl">Hijri Calendar</h3>
+    <p class="text-gray-600 dark:text-gray-400">Convert dates and track sacred months</p>
+  </a>
+  
+  <a href="/dhikr" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
+    <span class="text-4xl mb-3 block">📿</span>
+    <h3 class="font-bold text-xl">Dhikr Counter</h3>
+    <p class="text-gray-600 dark:text-gray-400">Build consistent daily remembrance</p>
+  </a>
+  
+  <a href="/prayer-times" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
+    <span class="text-4xl mb-3 block">🕐</span>
+    <h3 class="font-bold text-xl">Prayer Times</h3>
+    <p class="text-gray-600 dark:text-gray-400">Never miss a prayer in the new year</p>
+  </a>
+</div>
+
+<p class="text-center text-emerald-700 dark:text-emerald-400 font-medium mt-12">
+  May Allah make this new Hijri year (1448 AH) a year of immense blessings, forgiveness, closeness to Him, and acceptance of all our good deeds. Ameen.
+</p>
+
+</div>
 `
 };

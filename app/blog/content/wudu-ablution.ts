@@ -1,150 +1,133 @@
 // app/blog/content/wudu-ablution.ts
 export const wuduArticle = {
   slug: "how-to-perform-wudu-ablution",
-  title: "How to Perform Wudu (Ablution): Step-by-Step with Duas",
-  excerpt: "Wudu is the ritual purification required before Salah. Learn the correct steps, the Fard and Sunnah acts, and the duas to recite throughout.",
+  title: "How to Perform Wudu (Ablution): Complete Step-by-Step Guide with Duas",
+  excerpt: "Master the ritual of Wudu with this detailed guide. Learn the Fard and Sunnah actions, common mistakes to avoid, and the beautiful duas to recite during and after Wudu.",
   category: "Prayer",
-  emoji: "📖",
-  readTime: "9 min read",
-  date: "2026-06-17",
+  emoji: "💧",
+  readTime: "13 min read",
+  date: "2026-05-17",
   content: `
-<h2>What is Wudu?</h2>
-<p>Wudu (وضوء) is the ritual purification (ablution) required before performing Salah (prayer), touching the Quran, and certain other acts of worship. It involves washing specific body parts with clean water in a prescribed manner. The word "wudu" comes from the Arabic root "wa-da-ah", meaning beauty and cleanliness – both physical and spiritual. The Quran commands: <em>"O you who have believed, when you rise to pray, wash your faces and your forearms up to the elbows, wipe over your heads, and wash your feet up to the ankles."</em> (Quran 5:6). The Prophet ﷺ said: <em>"When a Muslim performs wudu, his sins fall from his ears, eyes, hands, and feet."</em> (Muslim). Thus, wudu is not merely a washing routine; it is a spiritual purification that renews your connection with Allah.</p>
+<div class="prose prose-emerald dark:prose-invert max-w-none">
 
-<h2>When is Wudu Required? (Obligatory and Recommended)</h2>
-<p>Wudu is <strong>obligatory (fard)</strong> for:</p>
-<ul>
-  <li>Performing the five daily prayers (Salah).</li>
-  <li>Performing any voluntary (nafl) prayer.</li>
-  <li>Reciting the Quran from a physical mushaf (touching it).</li>
-  <li>Performing Tawaf (circumambulation) around the Kaaba during Hajj or Umrah.</li>
-  <li>Prostrating in recitation (sajdat al‑tilawah) if done as part of prayer.</li>
-</ul>
-<p>It is <strong>recommended (mustahabb)</strong> to be in a state of wudu for:</p>
-<ul>
-  <li>Sleeping (the Prophet ﷺ said: "Purify yourself before sleeping").</li>
-  <li>Before making dua or remembrance (dhikr).</li>
-  <li>Before performing ghusl (full bath).</li>
-  <li>Before each prayer even if already in wudu (to renew rewards).</li>
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-10 mb-6">What is Wudu?</h2>
+
+<p>Wudu (وضوء), also known as ablution, is the ritual washing required before performing Salah (prayer), touching the Quran, and certain other acts of worship. It is both a physical and spiritual purification that prepares the believer to stand before Allah.</p>
+
+<p>Allah ﷻ commands in the Quran:</p>
+<blockquote>"O you who have believed, when you rise to pray, wash your faces and your forearms up to the elbows, wipe over your heads, and wash your feet up to the ankles." (Quran 5:6)</blockquote>
+
+<p>The Prophet ﷺ said: <em>"When a Muslim performs wudu, his sins fall from his body — even from under his nails."</em> (Muslim). Wudu is therefore not just cleanliness, but a powerful act of worship that renews your connection with Allah.</p>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">When is Wudu Required?</h2>
+
+<p><strong>Obligatory (Fard) before:</strong></p>
+<ul class="list-disc pl-6 space-y-2 my-6">
+  <li>All five daily prayers (Salah)</li>
+  <li>Voluntary (Nafl) prayers</li>
+  <li>Touching the physical Quran (mushaf)</li>
+  <li>Circumambulating the Kaaba (Tawaf)</li>
 </ul>
 
-<h2>The Fard (Obligatory) Acts of Wudu – Without Which Wudu is Invalid</h2>
-<p>According to the majority of scholars (Hanafi, Shafi'i, Maliki), there are four fard acts. (Hanbali school counts six, but the differences are minor.) We follow the commonly accepted four:</p>
-<ol>
-  <li><strong>Wash the entire face</strong> – from the hairline to the bottom of the chin, and from ear to ear. This includes rinsing the mouth and nose according to some schools, but for others those are Sunnah. To be safe, include them as Sunnah.</li>
-  <li><strong>Wash both arms up to and including the elbows</strong> – right arm first, then left.</li>
-  <li><strong>Wipe (masah) over the head</strong> – at least a quarter of the head (Hanafi) or the entire head (Shafi'i). The minimum is wiping with wet hands.</li>
-  <li><strong>Wash both feet up to and including the ankles</strong> – right foot first, then left.</li>
+<p><strong>Highly Recommended before:</strong></p>
+<ul class="list-disc pl-6 space-y-2 my-6">
+  <li>Sleeping</li>
+  <li>Reciting Quran from memory</li>
+  <li>Making dua or dhikr</li>
+  <li>Entering the mosque</li>
+</ul>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">The Fard (Obligatory) Acts of Wudu</h2>
+
+<p>These four acts must be performed for wudu to be valid:</p>
+<ol class="space-y-6 my-8">
+  <li><strong>Wash the entire face</strong> — from hairline to chin, and ear to ear</li>
+  <li><strong>Wash both arms</strong> — from fingertips to elbows (right first, then left)</li>
+  <li><strong>Wipe the head</strong> — at least a portion of the head with wet hands</li>
+  <li><strong>Wash both feet</strong> — up to and including the ankles (right first, then left)</li>
 </ol>
-<p>If any of these is missed or incomplete, the wudu is invalid. Also required is the <strong>intention (niyyah)</strong> in the heart – e.g., "I intend to perform wudu for prayer." No verbal utterance is needed.</p>
 
-<h2>The Sunnah Acts of Wudu – Following the Prophet's Example</h2>
-<p>The Sunnah acts greatly increase reward and perfect the wudu. The Prophet ﷺ said: <em>"Whoever perfects his wudu, his sins leave his body even from under his nails."</em> (Muslim). Perform these in order:</p>
-<ul>
-  <li>Say <strong>"Bismillah"</strong> (In the name of Allah) before beginning.</li>
-  <li>Wash both hands up to the wrists <strong>three times</strong> before starting the face.</li>
-  <li>Use a <strong>miswak</strong> (toothstick) or toothbrush before rinsing the mouth.</li>
-  <li><strong>Rinse the mouth (madmadah)</strong> three times – swishing water vigorously.</li>
-  <li><strong>Sniff water into the nose (istinshaq)</strong> three times and blow it out.</li>
-  <li><strong>Wash each part three times</strong> (face, arms, feet) – the Prophet ﷺ washed each thrice.</li>
-  <li><strong>Wipe the entire head once</strong> (from forehead to back and returning).</li>
-  <li><strong>Wipe the ears</strong> – use the index fingers for inside and thumbs for outside, with fresh water.</li>
-  <li><strong>Maintain the order (tartib)</strong> – face, then arms, then head, then feet.</li>
-  <li><strong>Be thorough</strong> – ensure water reaches between fingers and toes, and do not waste water.</li>
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Sunnah Acts of Wudu (Following the Prophet ﷺ)</h2>
+
+<ul class="list-disc pl-6 space-y-3 my-8">
+  <li>Saying <strong>Bismillah</strong> at the beginning</li>
+  <li>Washing hands three times before starting</li>
+  <li>Rinsing the mouth (madmadah) three times</li>
+  <li>Sniffing water into the nose (istinshaq) three times</li>
+  <li>Washing each part three times</li>
+  <li>Wiping the ears properly</li>
+  <li>Maintaining the correct order (tartib)</li>
+  <li>Being economical with water</li>
 </ul>
 
-<h2>Step-by-Step Wudu Guide (with Duas)</h2>
-<p>Here is a complete step-by-step demonstration – you can follow along while performing wudu.</p>
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Step-by-Step Wudu Guide with Duas</h2>
 
-<h3>Step 1: Make Intention (Niyyah)</h3>
-<p>In your heart, intend to perform wudu for the sake of Allah to purify yourself for prayer. No verbal recitation is required, but you may say: <em>"Nawaytu al‑wudu'a li raf'il hadath"</em> (I intend to perform wudu to remove ritual impurity).</p>
+<ol class="space-y-8 my-10">
+  <li><strong>1. Intention (Niyyah)</strong><br>
+  In your heart: "I intend to perform wudu to purify myself for prayer."</li>
+  
+  <li><strong>2. Say Bismillah</strong><br>
+  <strong>"Bismillah ir-Rahman ir-Raheem"</strong></li>
+  
+  <li><strong>3. Wash hands 3 times</strong></li>
+  
+  <li><strong>4. Rinse mouth 3 times</strong></li>
+  
+  <li><strong>5. Sniff water into nose 3 times</strong></li>
+  
+  <li><strong>6. Wash face 3 times</strong></li>
+  
+  <li><strong>7. Wash arms to elbows 3 times</strong> (right then left)</li>
+  
+  <li><strong>8. Wipe head and ears once</strong></li>
+  
+  <li><strong>9. Wash feet to ankles 3 times</strong> (right then left)</li>
+</ol>
 
-<h3>Step 2: Say "Bismillah"</h3>
-<p>Before starting, say: <strong>"Bismillah ir‑Rahman ir‑Raheem"</strong> (In the name of Allah, the Most Merciful, the Most Compassionate). The Prophet ﷺ said: "There is no wudu for one who does not mention Allah's name upon it." (Ahmad, Abu Dawud).</p>
-
-<h3>Step 3: Wash Both Hands Three Times</h3>
-<p>Wash your hands up to the wrists, three times, making sure water goes between fingers. Right hand first, then left.</p>
-
-<h3>Step 4: Rinse Mouth Three Times</h3>
-<p>Take water with your right hand, rinse your mouth thoroughly, and spit it out. Repeat three times. If using a miswak, do so before or after rinsing.</p>
-
-<h3>Step 5: Sniff Water Into Nose Three Times</h3>
-<p>Sniff water into your nostrils (right hand), then blow it out with your left hand. Repeat three times. Be gentle during fasting to avoid swallowing water.</p>
-
-<h3>Step 6: Wash Your Face Three Times</h3>
-<p>Wash your entire face – from the hairline (where hair starts) to the chin, and from ear to ear. Men should ensure water reaches the beard hair; women should wash under the chin. Do this three times.</p>
-
-<h3>Step 7: Wash Arms to Elbows Three Times</h3>
-<p>Start with the right arm: from fingertips to elbow, three times. Then the left arm, same method. Remove any watch or bracelet so water reaches the skin.</p>
-
-<h3>Step 8: Wipe the Head and Ears (Once)</h3>
-<p>Wet both hands, then pass them over your head from front to back and then back to front (once). Then use wet index fingers to wipe the inside of the ears and thumbs for the outside – using fresh water if preferred.</p>
-
-<h3>Step 9: Wash Feet to Ankles Three Times</h3>
-<p>Right foot first: wash from toes to ankle, ensuring water flows between toes (use your pinky finger). Do this three times. Then the left foot three times.</p>
-
-<h3>Step 10: Recite the Dua After Wudu</h3>
-<p>After completing wudu, face the qibla and recite:</p>
-<p style="background:#f0f0f0; padding:10px; border-radius:8px; font-family:monospace;">
-Ashhadu an la ilaha illallahu wahdahu la sharika lah, wa ashhadu anna Muhammadan 'abduhu wa rasuluh.<br>
-Allahummaj'alni minat-tawwabeen waj'alni minal-mutatahhireen.
+<p class="text-center my-12">
+  <a href="/prayer-times" 
+     class="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg px-10 py-4 rounded-2xl transition-all hover:scale-105">
+    Get Accurate Prayer Times →
+  </a>
 </p>
-<p><em>"I bear witness that there is no god but Allah alone, without partner, and I bear witness that Muhammad is His servant and Messenger. O Allah, make me among the repentant and make me among the purified."</em> (Tirmidhi). The Prophet ﷺ said that whoever recites this, the eight gates of Paradise are opened for him.</p>
-<p>Additionally, you may recite <strong>"Subhanakallahumma wa bihamdika, ashhadu an la ilaha illa anta, astaghfiruka wa atubu ilayk"</strong> (Glory and praise be to You, O Allah. I bear witness that there is no god but You. I seek Your forgiveness and repent to You).</p>
 
-<h2>What Breaks Wudu (Invalidates It)?</h2>
-<p>After performing wudu, the following nullify it:</p>
-<ul>
-  <li>Passing wind, urine, or stool.</li>
-  <li>Deep sleep (where you lose awareness).</li>
-  <li>Loss of consciousness (fainting, intoxication, or insanity).</li>
-  <li>Touching one's private parts directly (naked, without barrier) – according to the stronger opinion.</li>
-  <li>Eating camel meat (Hanbali school; others disagree).</li>
-  <li>Vomiting a mouthful (some scholars).</li>
-  <li>Discharge of blood or pus from a wound (minor opinion).</li>
-</ul>
-<p>If any of these occur, you must renew your wudu before the next prayer.</p>
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Duas During and After Wudu</h2>
 
-<h2>Common Mistakes to Avoid</h2>
-<ul>
-  <li><strong>Wasting water:</strong> The Prophet ﷺ prohibited excess even near a river. Do not let the tap run continuously between steps.</li>
-  <li><strong>Missing the ears:</strong> Many forget to wipe the ears – it is a confirmed Sunnah.</li>
-  <li><strong>Washing the right foot before the left foot:</strong> Order is right then left for both arms and feet.</li>
-  <li><strong>Leaving a dry spot on the face or arms:</strong> Check that water reaches every part, including the chin, elbows, and between fingers.</li>
-  <li><strong>Talking about worldly matters during wudu:</strong> While not invalid, it is better to remain silent or make dhikr.</li>
+<p>After finishing wudu, recite:</p>
+<blockquote class="bg-emerald-50 dark:bg-emerald-950 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-800">
+Ashhadu an la ilaha illallahu wahdahu la sharika lah, wa ashhadu anna Muhammadan abduhu wa rasuluh.<br><br>
+Allahummaj'alni minat-tawwabeen waj'alni minal-mutatahhireen.
+</blockquote>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">What Invalidates Wudu?</h2>
+
+<ul class="list-disc pl-6 space-y-3 my-8">
+  <li>Passing wind, urine, or stool</li>
+  <li>Deep sleep</li>
+  <li>Loss of consciousness</li>
+  <li>Direct touching of private parts (according to most scholars)</li>
 </ul>
 
-<h2>When Wudu is Not Enough – You Need Ghusl (Full Bath)</h2>
-<p>Some impurities require a full body bath (ghusl), not just wudu. These include:</p>
-<ul>
-  <li>After sexual intercourse or seminal emission.</li>
-  <li>After finishing menstruation or post‑natal bleeding.</li>
-  <li>After giving birth (one ghusl after bleeding stops).</li>
-</ul>
-<p>In such states, wudu is not sufficient; you must perform ghusl before praying.</p>
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-8">Our Recommended Tools</h2>
 
-<h2>Use Our Interactive Tools to Maintain Purity</h2>
-<p>After completing wudu, ensure you pray on time using our <a href="/prayer-times">Prayer Times tool</a>. Also find the Qibla direction with our <a href="/qibla">Qibla Finder</a> so you can face the Kaaba. For supplications (duas) for every act of worship, including after wudu, visit our <a href="/dua-generator">Dua Generator</a>.</p>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
+  <a href="/prayer-times" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
+    <span class="text-4xl mb-3 block">🕐</span>
+    <h3 class="font-bold text-xl">Prayer Times</h3>
+    <p class="text-gray-600 dark:text-gray-400">Accurate salah timings</p>
+  </a>
+  
+  <a href="/qibla" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
+    <span class="text-4xl mb-3 block">🧭</span>
+    <h3 class="font-bold text-xl">Qibla Finder</h3>
+    <p class="text-gray-600 dark:text-gray-400">Direction to the Kaaba</p>
+  </a>
+</div>
 
-<h2>Related Articles You May Find Useful</h2>
-<ul>
-  <li><a href="/how-to-find-qibla-direction">How to Find the Qibla Direction Anywhere in the World</a></li>
-  <li><a href="/islamic-prayer-times">Understanding Islamic Prayer Times</a></li>
-  <li><a href="/how-to-prepare-for-ramadan">How to Prepare for Ramadan</a></li>
-  <li><a href="/99-names-of-allah">The 99 Names of Allah – Meanings & Benefits</a></li>
-</ul>
+<p class="text-center text-emerald-700 dark:text-emerald-400 font-medium mt-12">
+  May Allah accept our purification and prayers. Ameen.
+</p>
 
-<h2>Try Our Free Islamic Tools – 25+ and Growing</h2>
-<ul>
-  <li><a href="/prayer-times">Prayer Times</a> – Accurate salah times anywhere.</li>
-  <li><a href="/qibla">Qibla Finder</a> – Find the Kaaba direction.</li>
-  <li><a href="/dua-generator">Dua Generator</a> – Authentic supplications for wudu and beyond.</li>
-  <li><a href="/dhikr">Dhikr Counter</a> – Track your daily remembrances.</li>
-  <li><a href="/zakat">Zakat Calculator</a> – Calculate your Zakat.</li>
-  <li><a href="/ramadan-planner">Ramadan Planner</a> – Organise worship.</li>
-</ul>
-<p><a href="/tools">Explore All Tools →</a></p>
-
-<p>May Allah accept our acts of purification and make us among the righteous. Ameen.</p>
+</div>
 `
 };
