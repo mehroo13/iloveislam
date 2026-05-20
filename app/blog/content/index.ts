@@ -1,5 +1,4 @@
 // app/blog/content/index.ts
-// Import all 30 articles
 import { zakatArticle } from './zakat';
 import { mizanArticle } from './mizan';
 import { qiblaArticle } from './qibla';
@@ -31,7 +30,6 @@ import { laylatulQadrArticle } from './laylatul-qadr';
 import { tahajjudArticle } from './tahajjud-prayer';
 import { islamicNewYearArticle } from './islamic-new-year-muharram';
 
-// All articles in an array (used for listing page and interlinking)
 export const allArticles = [
   zakatArticle,
   mizanArticle,
@@ -65,42 +63,7 @@ export const allArticles = [
   islamicNewYearArticle,
 ];
 
-// Map slug -> article object (for dynamic page lookup)
 export const articlesMap: Record<string, any> = {};
 for (const article of allArticles) {
   articlesMap[article.slug] = article;
 }
-
-// Also export individual articles if needed elsewhere
-export {
-  zakatArticle,
-  mizanArticle,
-  qiblaArticle,
-  prayerTimesArticle,
-  hijriCalendarArticle,
-  ninetyNineNamesArticle,
-  ramadanPreparationArticle,
-  halalTravelArticle,
-  wuduArticle,
-  dhikrGuideArticle,
-  duaGuideArticle,
-  quranBeginnersGuideArticle,
-  sadaqahArticle,
-  hajjArticle,
-  umrahArticle,
-  inheritanceArticle,
-  islamicWillArticle,
-  halalFinanceArticle,
-  kaffarahArticle,
-  eidArticle,
-  mosqueFinderArticle,
-  hadithArticle,
-  islamicNamesArticle,
-  teachingChildrenArticle,
-  fivePillarsArticle,
-  mosqueEtiquetteArticle,
-  nightRecitationArticle,
-  laylatulQadrArticle,
-  tahajjudArticle,
-  islamicNewYearArticle,
-};

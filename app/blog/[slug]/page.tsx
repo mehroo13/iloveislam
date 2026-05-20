@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { articlesMap, allArticles } from '../../content';
+import { articlesMap, allArticles } from '../content';
 import RelatedArticles from './RelatedArticles';
 import BackButton from './BackButton';
 
