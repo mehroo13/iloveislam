@@ -1,52 +1,42 @@
-'use client';
-
+// app/blog/[slug]/RelatedArticles.tsx
 import Link from 'next/link';
-import { useState } from 'react';
 
-type ArticleMeta = {
+interface RelatedArticle {
   slug: string;
   title: string;
+  excerpt: string;
   emoji: string;
   readTime: string;
   category: string;
-  excerpt: string;
-  date: string;
-};
-
-export default function RelatedArticles({ articles }: { articles: ArticleMeta[] }) {
-  return (
-    <div style={{ marginBottom: 24 }}>
-      <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0a3d2e', margin: '0 0 12px' }}>Related Articles</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-        {articles.map(r => (
-          <RelatedCard key={r.slug} article={r} />
-        ))}
-      </div>
-    </div>
-  );
 }
 
-function RelatedCard({ article }: { article: ArticleMeta }) {
-  const [hovered, setHovered] = useState(false);
+export default function RelatedArticles({ articles, currentSlug }: { articles: RelatedArticle[], currentSlug: string }) {
+  if (articles.length === 0) return null;
 
   return (
-    <Link href={`/blog/${article.slug}`} style={{ textDecoration: 'none' }}>
-      <div
-        style={{
-          background: '#fff',
-          borderRadius: 12,
-          border: `1px solid ${hovered ? '#0a3d2e' : '#ede9e2'}`,
-          padding: '16px',
-          transition: 'border-color .15s',
-          cursor: 'pointer',
-        }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-      >
-        <div style={{ fontSize: 24, marginBottom: 8 }}>{article.emoji}</div>
-        <p style={{ fontSize: 14, fontWeight: 700, color: '#0a3d2e', margin: '0 0 4px', lineHeight: 1.3 }}>{article.title}</p>
-        <p style={{ fontSize: 11, color: '#bbb', margin: 0 }}>{article.readTime}</p>
+    <section style={{ marginTop: '2rem' }}>
+      <h3 style={{ fontSize: '1.4rem', marginBottom: '1rem' }}>📚 You may also like</h3>
+      <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+        {articles.map((article) => (
+          <Link key={article.slug} href={`/blog/${article.slug}`} style={{ textDecoration: 'none' }}>
+            <div style={{
+              padding: '1rem',
+              border: '1px solid #e0e0e0',
+              borderRadius: '12px',
+              background: '#fafafa',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              height: '100%',
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{article.emoji}</div>
+              <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: '#1a1a1a' }}>{article.title}</h4>
+              <p style={{ fontSize: '0.85rem', color: '#6c757d', marginBottom: '0.5rem' }}>{article.excerpt.substring(0, 80)}...</p>
+              <div style={{ fontSize: '0.75rem', color: '#adb5bd' }}>
+                {article.category} • {article.readTime}
+              </div>
+            </div>
+          </Link>
+        ))}
       </div>
-    </Link>
+    </section>
   );
 }
