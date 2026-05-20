@@ -1,27 +1,16 @@
 'use client';
-
 import { useRouter } from 'next/navigation';
 
 export default function BackButton() {
   const router = useRouter();
+
   return (
     <button
       onClick={() => router.back()}
-      style={{
-        background: 'none',
-        border: 'none',
-        fontSize: '1rem',
-        cursor: 'pointer',
-        color: '#2b8c4a',
-        marginBottom: '1rem',
-        padding: '0.25rem 0.5rem',
-        borderRadius: '20px',
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-      }}
+      className="group inline-flex items-center gap-2 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-all duration-200 text-sm font-medium py-2 px-4 -ml-4 rounded-2xl hover:bg-emerald-50 dark:hover:bg-emerald-950/50 active:scale-95"
     >
-      ← Back to Blog
+      <span className="text-lg transition-transform group-hover:-translate-x-1">←</span>
+      Back to Blog
     </button>
   );
 }

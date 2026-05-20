@@ -30,7 +30,20 @@ import { laylatulQadrArticle } from './laylatul-qadr';
 import { tahajjudArticle } from './tahajjud-prayer';
 import { islamicNewYearArticle } from './islamic-new-year-muharram';
 
-export const allArticles = [
+// ==================== ARTICLE TYPE ====================
+export interface BlogArticle {
+  slug: string;
+  title: string;
+  excerpt: string;
+  category: string;
+  emoji: string;
+  readTime: string;
+  date: string;
+  content: string;
+}
+
+// ==================== ALL ARTICLES ====================
+export const allArticles: BlogArticle[] = [
   zakatArticle,
   mizanArticle,
   qiblaArticle,
@@ -63,7 +76,21 @@ export const allArticles = [
   islamicNewYearArticle,
 ];
 
-export const articlesMap: Record<string, any> = {};
+// ==================== ARTICLE MAP ====================
+export const articlesMap: Record<string, BlogArticle> = {};
+
 for (const article of allArticles) {
   articlesMap[article.slug] = article;
 }
+
+// Optional: Helper function
+export const getArticleBySlug = (slug: string): BlogArticle | undefined => {
+  return articlesMap[slug];
+};
+
+export const getRelatedArticles = (currentSlug: string, limit = 3): BlogArticle[] => {
+  return allArticles
+    .filter(a => a.slug !== currentSlug)
+    .sort(() => 0.5 - Math.random())
+    .slice(0, limit);
+};

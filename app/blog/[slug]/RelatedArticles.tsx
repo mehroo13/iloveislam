@@ -1,5 +1,4 @@
 'use client';
-
 import Link from 'next/link';
 
 interface RelatedArticle {
@@ -11,28 +10,55 @@ interface RelatedArticle {
   category: string;
 }
 
-export default function RelatedArticles({ articles, currentSlug }: { articles: RelatedArticle[], currentSlug: string }) {
+export default function RelatedArticles({ 
+  articles, 
+  currentSlug 
+}: { 
+  articles: RelatedArticle[], 
+  currentSlug: string 
+}) {
   if (articles.length === 0) return null;
 
   return (
-    <section style={{ marginTop: '2rem' }}>
-      <h3 style={{ fontSize: '1.4rem', marginBottom: '1rem' }}>📚 You may also like</h3>
-      <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+    <section className="mt-16">
+      <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-8 flex items-center gap-3">
+        📚 You May Also Like
+      </h3>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {articles.map((article) => (
-          <Link key={article.slug} href={`/blog/${article.slug}`} style={{ textDecoration: 'none' }}>
-            <div style={{
-              padding: '1rem',
-              border: '1px solid #e0e0e0',
-              borderRadius: '12px',
-              background: '#fafafa',
-              transition: 'transform 0.2s, box-shadow 0.2s',
-              height: '100%',
-            }}>
-              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{article.emoji}</div>
-              <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: '#1a1a1a' }}>{article.title}</h4>
-              <p style={{ fontSize: '0.85rem', color: '#6c757d', marginBottom: '0.5rem' }}>{article.excerpt.substring(0, 80)}...</p>
-              <div style={{ fontSize: '0.75rem', color: '#adb5bd' }}>
-                {article.category} • {article.readTime}
+          <Link 
+            key={article.slug} 
+            href={`/blog/${article.slug}`}
+            className="group block"
+          >
+            <div className="h-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-3xl p-7 hover:border-emerald-300 dark:hover:border-emerald-600 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+              
+              {/* Emoji */}
+              <div className="text-5xl mb-5 transition-transform group-hover:scale-110 duration-300">
+                {article.emoji}
+              </div>
+
+              {/* Category & Read Time */}
+              <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-3">
+                <span>{article.category}</span>
+                <span className="text-gray-300 dark:text-gray-600">•</span>
+                <span>{article.readTime}</span>
+              </div>
+
+              {/* Title */}
+              <h4 className="text-xl font-semibold leading-tight text-gray-900 dark:text-white mb-4 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
+                {article.title}
+              </h4>
+
+              {/* Excerpt */}
+              <p className="text-gray-600 dark:text-gray-400 line-clamp-3 text-[15px] leading-relaxed">
+                {article.excerpt}
+              </p>
+
+              <div className="mt-6 text-emerald-600 dark:text-emerald-400 text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
+                Read article 
+                <span className="text-base transition-transform group-hover:translate-x-0.5">→</span>
               </div>
             </div>
           </Link>
