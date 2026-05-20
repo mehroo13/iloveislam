@@ -1,9 +1,7 @@
-// app/blog/page.tsx
 import Link from 'next/link';
 import { allArticles } from './content';
 
 export default function BlogPage() {
-  // Optional: group by category
   const categories = [...new Set(allArticles.map(a => a.category))];
 
   return (

@@ -1,4 +1,3 @@
-// app/blog/[slug]/BackButton.tsx
 'use client';
 
 import { useRouter } from 'next/navigation';

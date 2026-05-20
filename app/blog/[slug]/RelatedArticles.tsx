@@ -1,4 +1,5 @@
-// app/blog/[slug]/RelatedArticles.tsx
+'use client';
+
 import Link from 'next/link';
 
 interface RelatedArticle {

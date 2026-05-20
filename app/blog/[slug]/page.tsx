@@ -1,15 +1,10 @@
-// app/blog/[slug]/page.tsx
 import { notFound } from 'next/navigation';
-import { articlesMap, allArticles } from '../content';
+import { articlesMap, allArticles } from '../../content';
 import RelatedArticles from './RelatedArticles';
 import BackButton from './BackButton';
 
 interface PageProps {
   params: { slug: string };
-}
-
-export async function generateStaticParams() {
-  return allArticles.map((article) => ({ slug: article.slug }));
 }
 
 export default function BlogPostPage({ params }: PageProps) {
@@ -47,24 +42,11 @@ export default function BlogPostPage({ params }: PageProps) {
         <RelatedArticles articles={related} currentSlug={article.slug} />
       </article>
       <style>{`
-        .article-body h2 {
-          margin-top: 2rem;
-          margin-bottom: 1rem;
-        }
-        .article-body p {
-          margin-bottom: 1rem;
-        }
-        .article-body ul, .article-body ol {
-          margin-bottom: 1rem;
-          padding-left: 1.5rem;
-        }
-        .article-body li {
-          margin-bottom: 0.5rem;
-        }
-        .article-body a {
-          color: #2b8c4a;
-          text-decoration: underline;
-        }
+        .article-body h2 { margin-top: 2rem; margin-bottom: 1rem; }
+        .article-body p { margin-bottom: 1rem; }
+        .article-body ul, .article-body ol { margin-bottom: 1rem; padding-left: 1.5rem; }
+        .article-body li { margin-bottom: 0.5rem; }
+        .article-body a { color: #2b8c4a; text-decoration: underline; }
       `}</style>
     </main>
   );
