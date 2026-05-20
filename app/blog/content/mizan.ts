@@ -6,7 +6,7 @@ export const mizanArticle = {
   category: "Self-Discovery",
   emoji: "📖",
   readTime: "9 min read",
-  date: "2025-06-03",
+  date: "2026-03-03",
   content: `
 <h2>What is Mizan?</h2>
 <p>Mizan (ميزان — "the Balance") is our unique Islamic life blueprint tool. It combines the ancient Abjad numerology system, the 99 Beautiful Names of Allah (Asma ul-Husna), and Quranic guidance to generate a personalised Islamic spiritual profile based on your name and date of birth. The word "Mizan" appears in the Quran as a symbol of justice, balance, and divine measure. Allah says: <em>"And We have set up the balance of justice (Mizan) for the Day of Resurrection, so no soul will be wronged in anything."</em> (Quran 21:47). The Mizan tool embodies this concept — helping you find spiritual equilibrium by connecting you with Allah's attributes.</p>

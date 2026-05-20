@@ -1,116 +1,138 @@
 // app/blog/content/islamic-inheritance.ts
 export const inheritanceArticle = {
   slug: "islamic-inheritance-mirath-rules",
-  title: "Islamic Inheritance (Mirath): Rules & How to Calculate Shares",
-  excerpt: "Islam has a detailed and just system of inheritance. Learn the Quranic rules of Mirath, who inherits what, and how to use our free calculator.",
+  title: "Islamic Inheritance (Mirath): Complete Guide to Quranic Rules & Shares",
+  excerpt: "Discover the beautiful justice of Islamic inheritance law (Mirath). Learn the Quranic shares, key rules, and how to easily calculate them using our free tool.",
   category: "Finance",
-  emoji: "📖",
-  readTime: "10 min read",
-  date: "2026-07-01",
+  emoji: "⚖️",
+  readTime: "12 min read",
+  date: "2026-05-01",
   content: `
 <h2>What is Islamic Inheritance (Mirath)?</h2>
-<p>Islamic inheritance law (علم الفرائض – Ilm al‑Farāʼiḍ) is one of the most precisely detailed areas of Islamic jurisprudence, derived directly from the Quran (Surah An‑Nisa, verses 11‑12 and 4:176). The Prophet ﷺ said: <em>"Learn the laws of inheritance and teach them, for they are half of knowledge."</em> (Ibn Majah). This system ensures that wealth is distributed fairly among family members after death, preventing disputes and protecting the rights of the vulnerable – orphans, widows, and daughters. Unlike many pre‑Islamic customs that excluded women and children, Islam mandated fixed shares for them. Allah says: <em>"For men is a share of what the parents and close relatives leave, and for women is a share of what the parents and close relatives leave – be it little or much – an obligatory share."</em> (Quran 4:7). Understanding and implementing Mirath is a collective obligation (fard kifayah) on the Muslim community. This guide explains the basic rules, primary heirs, and how to calculate shares, and directs you to our free <strong><a href="/inheritance-calculator">Inheritance Calculator</a></strong>.</p>
+<p>Islamic inheritance, known as <strong>Mirath</strong> (علم الفرائض), is one of the most detailed and important parts of Islamic jurisprudence. It is derived directly from the Quran — primarily Surah An-Nisa (verses 11, 12, and 176) — and the Sunnah of the Prophet ﷺ.</p>
 
-<h2>Why Every Muslim Should Have an Islamic Inheritance Plan</h2>
-<p>Many Muslims neglect writing a will (wasiyyah) because they find it uncomfortable or assume family will "do the right thing". However, without a legally valid Islamic will, the state (in non‑Muslim countries) will distribute your estate according to its own laws (e.g., probate rules that often give everything to a surviving spouse or divide equally among children, ignoring the Quranic shares). This can lead to:</p>
-<ul>
-  <li><strong>Disputes and family breakdown</strong> – disagreements over who gets what can destroy relationships.</li>
-  <li><strong>Depriving daughters of their proper share</strong> – some cultures give everything to sons, which is a major sin.</li>
-  <li><strong>Delaying distribution</strong> – legal battles can freeze assets for years.</li>
-  <li><strong>Violating Allah's command</strong> – not implementing the Quranic shares is a serious transgression.</li>
+<p>The Prophet ﷺ emphasized its importance saying: <em>"Learn the laws of inheritance and teach them, for they are half of knowledge."</em> (Ibn Majah). This system ensures fair distribution of wealth, protects the rights of women, children, and vulnerable family members, and prevents disputes after death.</p>
+
+<p>Allah ﷻ says: <em>"For men is a share of what the parents and close relatives leave, and for women is a share of what the parents and close relatives leave — be it little or much — an obligatory share."</em> (Quran 4:7).</p>
+
+<p>Our free <a href="/inheritance" class="text-emerald-600 hover:underline font-medium">Inheritance Calculator</a> makes calculating these shares simple and accurate.</p>
+
+<h2>Why Every Muslim Needs an Islamic Inheritance Plan</h2>
+<p>Many Muslims delay or ignore writing a will, assuming their family will “do the right thing.” Unfortunately, in non-Muslim countries, secular laws often override Islamic shares — which can lead to serious injustice.</p>
+
+<p>Without a proper Islamic will, you risk:</p>
+<ul class="list-disc pl-6 space-y-2 my-6">
+  <li>Family disputes and broken relationships</li>
+  <li>Daughters being deprived of their Quranic rights</li>
+  <li>Assets being distributed against Allah’s command</li>
+  <li>Lengthy legal battles and frozen estates</li>
 </ul>
-<p>Thus, every adult Muslim should prepare an Islamic will as part of their estate planning. Our <strong><a href="/islamic-will">Islamic Will tool</a></strong> helps you draft a compliant will that respects both Islamic law and local legal requirements.</p>
 
-<h2>What is Deducted First from the Estate?</h2>
-<p>Before any inheritance shares are calculated, the following must be settled from the deceased's assets in this order:</p>
-<ol>
-  <li><strong>Funeral and burial expenses</strong> – reasonable costs for washing, shrouding, burial, and related services. No extravagance.</li>
-  <li><strong>Outstanding debts</strong> – any loans, mortgages, unpaid bills, or financial obligations. Also debts to Allah: unpaid Zakat, Kaffarah (expiation for broken fast/oath), and missed obligatory prayers if the deceased had willed a payment from the estate.</li>
-  <li><strong>The Wasiyyah (will / bequest)</strong> – after debts, up to one‑third of the remaining estate can be bequeathed to <strong>non‑heirs</strong> (e.g., charities, friends, distant relatives who would not inherit). The Prophet ﷺ said: <em>"One‑third is plenty."</em> (Bukhari). You cannot give more than one‑third without the consent of all legal heirs. Also, you cannot bequeath to an existing heir because Allah has already given them a fixed share; giving them extra via will would be unfair to other heirs.</li>
+<p>That’s why we built the <a href="/will" class="text-emerald-600 hover:underline font-medium">Islamic Will Tool</a> — to help you create a will that complies with both Shariah and local legal requirements.</p>
+
+<h2>What is Deducted Before Distribution?</h2>
+<ol class="list-decimal pl-6 space-y-4 my-6">
+  <li><strong>Funeral & Burial Expenses</strong> – Reasonable costs only (no extravagance).</li>
+  <li><strong>Outstanding Debts</strong> – Loans, unpaid bills, and debts to Allah (missed Zakat, Kaffarah, etc.).</li>
+  <li><strong>Wasiyyah (Bequest)</strong> – Up to <strong>one-third</strong> of the estate can be given to non-heirs (charity, friends, etc.). You cannot bequeath extra to someone who already has a fixed share.</li>
 </ol>
-<p>After these three deductions, the remaining wealth is distributed among the legal heirs according to Quranic shares.</p>
 
-<h2>Primary Heirs and Their Fixed Shares</h2>
-<p>Islamic inheritance law categorises heirs into two groups: <strong>ashab al‑furud</strong> (those with fixed shares) and <strong>asabah</strong> (residuaries – typically male agnates who take whatever remains). Below are the main fixed shares:</p>
+<p>Only after these deductions is the remaining estate distributed among the legal heirs.</p>
+
+<h2>Primary Heirs & Their Fixed Shares (Asbab al-Furud)</h2>
 
 <h3>Spouses</h3>
-<ul>
-  <li><strong>Husband</strong> – receives <strong>1/2</strong> if the wife has no children (or grandchildren through a son). Receives <strong>1/4</strong> if she has children or grandchildren.</li>
-  <li><strong>Wife</strong> (or multiple wives – they share one portion equally) – receives <strong>1/4</strong> if the husband has no children. Receives <strong>1/8</strong> if he has children.</li>
+<ul class="list-disc pl-6 space-y-2 my-5">
+  <li><strong>Husband</strong>: <strong>1/2</strong> (no children) or <strong>1/4</strong> (with children)</li>
+  <li><strong>Wife/Wives</strong>: <strong>1/4</strong> (no children) or <strong>1/8</strong> (with children) — shared equally if multiple wives</li>
 </ul>
 
 <h3>Parents</h3>
-<ul>
-  <li><strong>Father</strong> – receives <strong>1/6</strong> if the deceased has children (or grandchildren through a son). If no children, he becomes a residuary (takes all or remainder).</li>
-  <li><strong>Mother</strong> – receives <strong>1/6</strong> if the deceased has children or multiple siblings. If no children and less than two siblings, she receives <strong>1/3</strong>. If the deceased leaves a spouse and both parents, the mother gets 1/3 of the remainder after the spouse's share (according to the two "Umarayn" rulings – a specific case).</li>
+<ul class="list-disc pl-6 space-y-2 my-5">
+  <li><strong>Father</strong>: <strong>1/6</strong> (with children) or residuary (without children)</li>
+  <li><strong>Mother</strong>: <strong>1/6</strong> or <strong>1/3</strong> depending on other heirs</li>
 </ul>
 
 <h3>Children</h3>
-<ul>
-  <li><strong>Daughter (one)</strong> – receives <strong>1/2</strong>.</li>
-  <li><strong>Two or more daughters</strong> – collectively receive <strong>2/3</strong>, split equally among them.</li>
-  <li><strong>Son</strong> – receives double the share of a daughter (i.e., son gets 2 parts, daughter 1 part) when they inherit together as residuaries (asabah). Example: one son and one daughter: total estate divided into 3 parts – son gets 2, daughter 1.</li>
+<ul class="list-disc pl-6 space-y-2 my-5">
+  <li><strong>One Daughter</strong>: <strong>1/2</strong></li>
+  <li><strong>Two or more Daughters</strong>: <strong>2/3</strong> shared equally</li>
+  <li><strong>Sons & Daughters together</strong>: Son receives <strong>twice</strong> the share of a daughter</li>
 </ul>
 
-<h3>Other Relatives (Under Certain Conditions)</h3>
-<ul>
-  <li><strong>Paternal grandfather</strong> – in the absence of the father, he can inherit as a residuary.</li>
-  <li><strong>Full siblings and half‑siblings</strong> – they inherit when the deceased has no parents or children. Full sister: 1/2 (if one), 2/3 (if two or more). Maternal siblings: 1/6 each (if one), 1/3 collectively (if two or more).</li>
+<p>Other relatives (siblings, grandparents, etc.) inherit under specific conditions.</p>
+
+<h2>How Inheritance Calculation Works – Practical Example</h2>
+<p>Let’s say a man passes away leaving behind: a wife, one son, two daughters, and both parents. Net estate after expenses = $120,000.</p>
+
+<p>Our <a href="/inheritance" class="text-emerald-600 hover:underline font-medium">Inheritance Calculator</a> handles this instantly, but here’s the manual breakdown:</p>
+
+<div class="bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900 p-6 rounded-2xl my-8">
+  <strong>Fixed Shares:</strong><br>
+  Wife: 1/8 → $15,000<br>
+  Mother: 1/6 → $20,000<br>
+  Father: 1/6 → $20,000<br><br>
+  <strong>Remaining (13/24):</strong> $65,000 distributed among children (Son gets 2x each daughter)<br>
+  Son: $32,500<br>
+  Each Daughter: $16,250
+</div>
+
+<h2>Special Rulings: ‘Awl and Radd</h2>
+<p>When fixed shares exceed the total estate, <strong>‘Awl</strong> (proportional reduction) is applied. When there is remainder and no residuary heirs, <strong>Radd</strong> returns the balance to eligible heirs. Our calculator automatically handles both scenarios.</p>
+
+<h2>Common Mistakes to Avoid</h2>
+<ul class="list-disc pl-6 space-y-3 my-6">
+  <li>Giving everything to sons and excluding daughters</li>
+  <li>Thinking a will can override Quranic shares</li>
+  <li>Delaying the writing of an Islamic will</li>
+  <li>Ignoring parents’ rights when children exist</li>
 </ul>
 
-<h2>How to Calculate Shares – A Step‑by‑Step Example</h2>
-<p>Suppose a deceased man leaves behind: wife, 1 son, 2 daughters, and both parents. The estate after funeral, debts, and bequests (up to 1/3) is $120,000.</p>
-<ol>
-  <li><strong>Assign fixed shares:</strong> Wife gets 1/8 (since children exist). Mother gets 1/6. Father gets 1/6. The children are residuaries.</li>
-  <li><strong>Compute fractions:</strong> Common denominator for 1/8, 1/6, 1/6 = 24. Wife: 3/24, Mother: 4/24, Father: 4/24. Total = 11/24. Remaining = 13/24 for the children.</li>
-  <li><strong>Children's distribution:</strong> Son gets twice a daughter's share. Let a daughter's share = 1 unit, son = 2 units. Total units = 2 (son) + 1 + 1 (two daughters) = 4 units. Each unit = (13/24)/4 = 13/96 of estate.</li>
-  <li><strong>Monetary values:</strong> Wife: (3/24)×120,000 = $15,000. Mother: (4/24)×120,000 = $20,000. Father: $20,000. Son: 2 units = (13/96×2)×120,000 = (26/96)×120,000 = $32,500. Each daughter: (13/96)×120,000 = $16,250.</li>
-</ol>
-<p>This is a simplified example. Our <strong><a href="/inheritance-calculator">Inheritance Calculator</a></strong> automates these complex fractions and accounts for many more scenarios, including siblings, grandparents, and grandchildren.</p>
+<h2>Ready to Secure Your Legacy?</h2>
+<p>Don’t leave your family’s future to chance or man-made laws.</p>
 
-<h2>Special Cases – 'Awl (Increase) and Radd (Return)</h2>
-<p>Sometimes the sum of fixed shares exceeds the total estate. This is called <strong>'awl</strong> (increase). For example: a wife (1/8), two daughters (2/3), mother (1/6), father (1/6). Sum = 1/8+2/3+1/6+1/6 = 3/24+16/24+4/24+4/24 = 27/24 > 1. Solution: Reduce each fraction proportionally – denominator becomes 27, so wife gets 3/27, etc. Conversely, if the sum is less than 1 and there is no residuary (asabah), the remaining wealth is returned (<strong>radd</strong>) to the fixed heirs proportionally (excluding the spouse). Both scenarios are handled automatically by our calculator.</p>
+<p>Use these powerful free tools we built for the Ummah:</p>
 
-<h2>Common Mistakes and Misconceptions</h2>
-<ul>
-  <li><strong>Giving all to the eldest son</strong> – this is un‑Islamic and a grave sin. Each son and daughter must receive their prescribed shares.</li>
-  <li><strong>Excluding daughters under cultural pressure</strong> – the Quran explicitly mandates daughters' shares. Denying them is usurping their right.</li>
-  <li><strong>Treating a will as a substitute for proper distribution</strong> – you cannot bequeath to an heir already receiving a fixed share, nor give more than 1/3 to non‑heirs without consent.</li>
-  <li><strong>Ignoring the rights of the mother and father</strong> – parents often get neglected; Islam gives them fixed portions even if the deceased has children.</li>
-  <li><strong>Not writing an Islamic will</strong> – in many non‑Muslim countries, the default probate law will divide your estate in a way that violates Islamic shares. Write a valid will.</li>
+<ul class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-8">
+  <li class="flex items-start gap-3">
+    <span class="text-2xl">⚖️</span>
+    <div>
+      <a href="/inheritance" class="font-semibold text-emerald-600 hover:underline">Inheritance Calculator</a><br>
+      <span class="text-sm text-gray-600 dark:text-gray-400">Instant & accurate share calculation</span>
+    </div>
+  </li>
+  <li class="flex items-start gap-3">
+    <span class="text-2xl">📜</span>
+    <div>
+      <a href="/will" class="font-semibold text-emerald-600 hover:underline">Islamic Will Tool</a><br>
+      <span class="text-sm text-gray-600 dark:text-gray-400">Create a Shariah-compliant will</span>
+    </div>
+  </li>
+  <li class="flex items-start gap-3">
+    <span class="text-2xl">💰</span>
+    <div><a href="/zakat" class="font-semibold text-emerald-600 hover:underline">Zakat Calculator</a></div>
+  </li>
+  <li class="flex items-start gap-3">
+    <span class="text-2xl">🤲</span>
+    <div><a href="/dua" class="font-semibold text-emerald-600 hover:underline">Dua Generator</a></div>
+  </li>
 </ul>
 
-<h2>Using Our Inheritance Calculator and Islamic Will Tool</h2>
-<p>To make Mirath easy and accurate, we offer two free tools:</p>
-<ul>
-  <li><strong><a href="/inheritance-calculator">Inheritance Calculator</a></strong> – Enter the number of heirs (husband, wife, sons, daughters, parents, siblings, etc.) and the net estate. The tool instantly computes each heir's exact share, handles 'awl and radd, and provides a printable breakdown.</li>
-  <li><strong><a href="/islamic-will">Islamic Will Tool</a></strong> – Generate a legally‑compliant Islamic will that specifies funeral arrangements, debt payment, bequests (up to 1/3 to non‑heirs), and distribution of the remainder according to Quranic shares. Works alongside your local legal requirements (UK, US, Canada, etc.).</li>
-</ul>
-<p>Both tools respect your privacy – no data is saved on our servers.</p>
+<p class="text-center mt-10">
+  <a href="/" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3.5 rounded-2xl font-medium transition-all">
+    Explore All 25+ Free Islamic Tools →
+  </a>
+</p>
 
-<h2>Final Advice – Do Not Delay Preparing Your Will</h2>
-<p>The Prophet ﷺ said: <em>"It is not permissible for a Muslim who has something to bequeath to stay for two nights without having his written will with him."</em> (Bukhari). Death can come at any moment. Prepare your Islamic will today, not tomorrow. Use our tools, consult a local scholar if you have complex family situations (e.g., step‑relatives, adopted children – note adoption does not change inheritance rights in Islam, but you can bequeath up to 1/3 to them), and ensure your loved ones are protected. May Allah grant us the tawfiq to fulfil His commands and die in a state of ihsan. Ameen.</p>
-
-<h2>Related Articles You May Find Useful</h2>
-<ul>
-  <li><a href="/how-to-calculate-zakat">How to Calculate Zakat: A Complete Step-by-Step Guide</a></li>
-  <li><a href="/what-is-sadaqah-types-benefits">What is Sadaqah? Types, Benefits & How to Give Charity in Islam</a></li>
-  <li><a href="/how-to-prepare-for-ramadan">How to Prepare for Ramadan</a></li>
-  <li><a href="/hajj-explained-beginners-guide">Hajj Explained: A Beginner's Complete Guide</a></li>
+<h2>Related Articles</h2>
+<ul class="list-disc pl-6 space-y-2">
+  <li><a href="/blog/how-to-calculate-zakat" class="hover:underline">How to Calculate Zakat: A Complete Step-by-Step Guide</a></li>
+  <li><a href="/blog/what-is-sadaqah-types-benefits" class="hover:underline">What is Sadaqah? Types, Benefits & How to Give</a></li>
+  <li><a href="/blog/how-to-prepare-for-ramadan" class="hover:underline">How to Prepare for Ramadan</a></li>
 </ul>
 
-<h2>Try Our Free Islamic Tools – 25+ and Growing</h2>
-<ul>
-  <li><a href="/inheritance-calculator">Inheritance Calculator</a> – Instant shares calculation.</li>
-  <li><a href="/islamic-will">Islamic Will Tool</a> – Draft your compliant will.</li>
-  <li><a href="/zakat">Zakat Calculator</a> – Calculate obligatory charity.</li>
-  <li><a href="/dua-generator">Dua Generator</a> – Supplications for the deceased.</li>
-  <li><a href="/prayer-times">Prayer Times</a> – Accurate salah times for funeral prayer.</li>
-  <li><a href="/qibla">Qibla Finder</a> – Direction for burial.</li>
-  <li><a href="/dhikr">Dhikr Counter</a> – Remembrance for the dying and bereaved.</li>
-</ul>
-<p><a href="/tools">Explore All Tools →</a></p>
-
-<p>May Allah forgive our deceased and grant them Jannah. Ameen.</p>
+<p class="mt-12 text-center text-emerald-700 dark:text-emerald-400 font-medium">
+  May Allah ﷻ grant us the guidance to fulfill His commands and protect our families. Ameen.
+</p>
 `
 };
