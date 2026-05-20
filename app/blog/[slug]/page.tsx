@@ -4,11 +4,12 @@ import RelatedArticles from './RelatedArticles';
 import BackButton from './BackButton';
 
 interface PageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
-export default function BlogPostPage({ params }: PageProps) {
-  const article = articlesMap[params.slug];
+export default async function BlogPostPage({ params }: PageProps) {
+  const { slug } = await params;
+  const article = articlesMap[slug];
 
   if (!article) {
     notFound();
@@ -25,7 +26,12 @@ export default function BlogPostPage({ params }: PageProps) {
       <article>
         <div style={{ marginBottom: '1rem' }}>
           <span style={{ fontSize: '0.85rem', color: '#6c757d' }}>
-            {article.category} • {article.readTime} • {new Date(article.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+            {article.category} • {article.readTime} •{' '}
+            {new Date(article.date).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
           </span>
         </div>
         <h1 style={{ fontSize: '2.2rem', marginBottom: '0.5rem' }}>{article.title}</h1>
@@ -33,7 +39,7 @@ export default function BlogPostPage({ params }: PageProps) {
           <span style={{ fontSize: '2rem' }}>{article.emoji}</span>
           <span style={{ color: '#6c757d', fontSize: '0.9rem' }}>{article.excerpt}</span>
         </div>
-        <div 
+        <div
           className="article-body"
           dangerouslySetInnerHTML={{ __html: article.content }}
           style={{ lineHeight: 1.7, fontSize: '1.05rem' }}
