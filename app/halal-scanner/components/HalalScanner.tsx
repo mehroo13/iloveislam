@@ -31,43 +31,51 @@ export default function HalalScanner() {
   const [result, setResult] = useState<ScanResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
+  const [scannerActive, setScannerActive] = useState(true);
 
-  const confidenceToNumber = (c: "high" | "medium" | "low"): number => {
-    if (c === "high") return 95;
-    if (c === "medium") return 70;
-    return 40;
+  const processAnalysis = (product: any, productName: string, ingredientsText: string) => {
+    const analysis = analyzeIngredients(ingredientsText);
+
+    const scanResult: ScanResult = {
+      productName,
+      verdict: analysis.overallStatus ?? "unknown",
+      confidence: 80,
+      ingredients: analysis.analyzedIngredients.map((ing) => ({
+        name: ing.name,
+        status: ing.status,
+        reason: ing.reason,
+      })),
+      certifications: product?.certifications_tags || [],
+      notes: analysis.analyzedIngredients.length > 0 
+        ? `${analysis.haramCount} haram, ${analysis.mashboohCount} mashbooh detected` 
+        : "No concerning ingredients found",
+      scannedAt: new Date().toISOString(),
+    };
+
+    setResult(scanResult);
+    saveToHistory(scanResult);
   };
 
-  const handleBarcodeScan = async (barcode: string) => {
+  const handleBarcodeResult = async (barcode: string) => {
     setLoading(true);
     setError(null);
     setResult(null);
+    setScannerActive(false);
+
     try {
       const product = await lookupByBarcode(barcode);
-      if (!product || !product.found) {
-        setError("Product not found in database. Try uploading a photo of the label.");
+      
+      if (!product) {
+        setError("Product not found. Try manual search or photo upload.");
         return;
       }
-      const productName = product.product?.product_name || "Unknown Product";
-      const analysis = analyzeIngredients(product.ingredients, []);
-      const scanResult: ScanResult = {
-        productName,
-        verdict: analysis.verdict ?? "unknown",
-        confidence: confidenceToNumber(analysis.confidence),
-        ingredients: analysis.ingredientResults.map((r) => ({
-          name: r.original,
-          status: r.status ?? "unknown",
-          reason: r.matched?.reason,
-        })),
-        certifications: analysis.certifications ?? [],
-        notes: analysis.summary,
-        scannedAt: new Date().toISOString(),
-      };
-      setResult(scanResult);
-      saveToHistory(scanResult);
+
+      const productName = product.product_name || product.product_name_en || "Unknown Product";
+      const ingredientsText = product.ingredients_text || "";
+
+      processAnalysis(product, productName, ingredientsText);
     } catch (err) {
-      setError("Failed to analyse product. Please try again.");
+      setError("Failed to fetch product details.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -78,26 +86,12 @@ export default function HalalScanner() {
     setLoading(true);
     setError(null);
     setResult(null);
+
     try {
-      const ingredientsList = ingredientsText.split(",").map((s) => s.trim()).filter(Boolean);
-      const analysis = analyzeIngredients(ingredientsList, []);
-      const scanResult: ScanResult = {
-        productName: productName || "Scanned Product",
-        verdict: analysis.verdict ?? "unknown",
-        confidence: confidenceToNumber(analysis.confidence),
-        ingredients: analysis.ingredientResults.map((r) => ({
-          name: r.original,
-          status: r.status ?? "unknown",
-          reason: r.matched?.reason,
-        })),
-        notes: analysis.summary,
-        scannedAt: new Date().toISOString(),
-      };
-      setResult(scanResult);
-      saveToHistory(scanResult);
+      const name = productName || "Uploaded Product";
+      processAnalysis(null, name, ingredientsText);
     } catch (err) {
-      setError("Failed to analyse the image. Please try again.");
-      console.error(err);
+      setError("Failed to analyze ingredients.");
     } finally {
       setLoading(false);
     }
@@ -107,26 +101,11 @@ export default function HalalScanner() {
     setLoading(true);
     setError(null);
     setResult(null);
+
     try {
-      const ingredientsList = query.split(",").map((s) => s.trim()).filter(Boolean);
-      const analysis = analyzeIngredients(ingredientsList, []);
-      const scanResult: ScanResult = {
-        productName: query,
-        verdict: analysis.verdict ?? "unknown",
-        confidence: confidenceToNumber(analysis.confidence),
-        ingredients: analysis.ingredientResults.map((r) => ({
-          name: r.original,
-          status: r.status ?? "unknown",
-          reason: r.matched?.reason,
-        })),
-        notes: analysis.summary,
-        scannedAt: new Date().toISOString(),
-      };
-      setResult(scanResult);
-      saveToHistory(scanResult);
+      processAnalysis(null, query, query);
     } catch (err) {
-      setError("Search failed. Please try again.");
-      console.error(err);
+      setError("Manual search failed.");
     } finally {
       setLoading(false);
     }
@@ -137,9 +116,7 @@ export default function HalalScanner() {
       const existing = JSON.parse(localStorage.getItem("halalScanHistory") || "[]");
       const updated = [scanResult, ...existing].slice(0, 50);
       localStorage.setItem("halalScanHistory", JSON.stringify(updated));
-    } catch {
-      // localStorage may not be available
-    }
+    } catch {}
   };
 
   const tabs: { id: ActiveTab; label: string; icon: string }[] = [
@@ -149,10 +126,10 @@ export default function HalalScanner() {
   ];
 
   const verdictBg = {
-    halal: "bg-emerald-50 border-emerald-200",
-    haram: "bg-red-50 border-red-200",
-    mashbooh: "bg-amber-50 border-amber-200",
-    unknown: "bg-slate-50 border-slate-200",
+    halal: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950 dark:border-emerald-800",
+    haram: "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800",
+    mashbooh: "bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800",
+    unknown: "bg-slate-50 border-slate-200 dark:bg-slate-900 dark:border-slate-700",
   };
 
   return (
@@ -189,6 +166,7 @@ export default function HalalScanner() {
                 setActiveTab(tab.id);
                 setResult(null);
                 setError(null);
+                if (tab.id === "barcode") setScannerActive(true);
               }}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                 activeTab === tab.id
@@ -202,10 +180,14 @@ export default function HalalScanner() {
           ))}
         </div>
 
-        {/* Active Scanner Panel */}
+        {/* Scanner Panel */}
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden">
           {activeTab === "barcode" && (
-            <BarcodeScanner onScan={handleBarcodeScan} loading={loading} />
+            <BarcodeScanner 
+              onResult={handleBarcodeResult} 
+              onError={(msg) => setError(msg)}
+              isActive={scannerActive}
+            />
           )}
           {activeTab === "image" && (
             <ImageUploader onScan={handleImageScan} loading={loading} />
@@ -215,24 +197,20 @@ export default function HalalScanner() {
           )}
         </div>
 
-        {/* Loading State */}
+        {/* Loading */}
         {loading && (
           <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 text-center">
             <div className="inline-flex flex-col items-center gap-4">
               <div className="relative w-16 h-16">
                 <div className="absolute inset-0 border-4 border-green-600/20 rounded-full"></div>
                 <div className="absolute inset-0 border-4 border-transparent border-t-green-400 rounded-full animate-spin"></div>
-                <div className="absolute inset-2 border-4 border-transparent border-t-green-600 rounded-full animate-spin animation-delay-150"></div>
               </div>
-              <div>
-                <p className="text-white font-semibold">Analysing Product…</p>
-                <p className="text-green-200/50 text-sm mt-1">Checking halal database & AI analysis</p>
-              </div>
+              <p className="text-white font-semibold">Analysing Product…</p>
             </div>
           </div>
         )}
 
-        {/* Error State */}
+        {/* Error */}
         {error && !loading && (
           <div className="bg-red-900/20 border border-red-500/30 rounded-2xl p-5 flex items-start gap-3">
             <span className="text-2xl">⚠️</span>
@@ -258,38 +236,21 @@ export default function HalalScanner() {
 
             <button
               onClick={() => {
-                const text = `HalalScan Result for "${result.productName}": ${result.verdict.toUpperCase()} — checked on iloveislam.life/halal-scanner`;
-                if (navigator.share) {
-                  navigator.share({ title: "HalalScan Result", text });
-                } else {
-                  navigator.clipboard.writeText(text);
-                  alert("Result copied to clipboard!");
-                }
+                setResult(null);
+                setError(null);
+                setScannerActive(true);
               }}
-              className="w-full py-3 rounded-xl bg-green-700/30 border border-green-600/30 text-green-300 hover:bg-green-700/50 transition-all text-sm font-medium flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-green-700/30 border border-green-600/30 text-green-300 hover:bg-green-700/50 transition-all text-sm font-medium"
             >
-              📤 Share Result
+              🔄 Scan Another Product
             </button>
           </div>
         )}
 
-        {/* History Toggle */}
-        <div>
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-green-200/70 hover:text-green-200 hover:bg-white/10 transition-all text-sm font-medium flex items-center justify-center gap-2"
-          >
-            🕐 {showHistory ? "Hide" : "View"} Scan History
-          </button>
-          {showHistory && (
-            <div className="mt-3">
-              <ScanHistory />
-            </div>
-          )}
-        </div>
+        <ScanHistory />
 
         <p className="text-center text-green-200/30 text-xs px-4">
-          HalalScan uses AI and open food databases for analysis. Always verify with a certified Islamic scholar or halal certification body for critical decisions. Results are for guidance only.
+          HalalScan uses open food databases. Always verify with trusted scholars for important decisions.
         </p>
       </div>
     </div>
