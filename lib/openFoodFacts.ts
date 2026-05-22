@@ -24,6 +24,7 @@ export interface ProductLookupResult {
   product?: OpenFoodFactsProduct;
   ingredients: string[];
   error?: string;
+  fallbackUsed?: boolean;
 }
 
 const BASE_URL = 'https://world.openfoodfacts.org';
@@ -51,6 +52,11 @@ export async function lookupByBarcode(barcode: string): Promise<ProductLookupRes
     const data = await res.json();
 
     if (data.status === 0 || !data.product) {
+      const fallbackProducts = await searchByName(cleanBarcode);
+      const fallbackMatch = fallbackProducts.find((item) => item.found && item.product);
+      if (fallbackMatch) {
+        return { ...fallbackMatch, fallbackUsed: true };
+      }
       return { found: false, ingredients: [], error: 'Product not found in database' };
     }
 
@@ -58,6 +64,16 @@ export async function lookupByBarcode(barcode: string): Promise<ProductLookupRes
     const ingredients = parseIngredients(
       product.ingredients_text_en || product.ingredients_text || ''
     );
+
+    if (ingredients.length === 0 && product.product_name) {
+      const fallbackProducts = await searchByName(product.product_name);
+      const fallbackMatch = fallbackProducts.find(
+        (item) => item.found && item.product && item.ingredients.length > 0
+      );
+      if (fallbackMatch) {
+        return { ...fallbackMatch, fallbackUsed: true };
+      }
+    }
 
     return { found: true, product, ingredients };
   } catch (err) {
@@ -114,8 +130,8 @@ export function parseIngredients(raw: string): string[] {
     .replace(/\(\d+(\.\d+)?%\)/g, '')
     // Remove brackets content that are just quantities
     .replace(/\[\d+[gml%]+\]/gi, '')
-    // Split on comma, semicolon, or bullet
-    .split(/[,;•]+/)
+    // Split on comma, semicolon, slash, or bullet
+    .split(/[,;\/•]+/)
     // Clean each item
     .map((s) =>
       s
@@ -123,8 +139,9 @@ export function parseIngredients(raw: string): string[] {
         .toLowerCase()
         // Remove leading underscores (allergen markers like _milk_)
         .replace(/^_+|_+$/g, '')
-        // Remove parentheses with sub-ingredients indicator
-        .replace(/\([^)]*\)/, '')
+        // Remove all parentheses groups and extra whitespace
+        .replace(/\([^)]*\)/g, '')
+        .replace(/\s{2,}/g, ' ')
         .trim()
     )
     // Filter out very short or empty strings

@@ -8,7 +8,11 @@ import ResultCard from "./ResultCard";
 import IngredientBreakdown from "./IngredientBreakdown";
 import ScanHistory from "./ScanHistory";
 import { analyzeIngredients, type AnalysisResult } from "@/lib/analyzeIngredients";
-import { lookupByBarcode, type OpenFoodFactsProduct } from "@/lib/openFoodFacts";
+import {
+  checkHalalStatusWithApi,
+  lookupProductByBarcode,
+  type OpenFoodFactsProduct,
+} from "@/lib/halalApis";
 
 type ActiveTab = "barcode" | "image" | "manual";
 
@@ -20,18 +24,28 @@ export default function HalalScanner() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scannerActive, setScannerActive] = useState(true);
+  const [lookupNote, setLookupNote] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const processAnalysis = (productName: string, ingredientsText: string, product?: OpenFoodFactsProduct, imgUrl?: string) => {
-    const ingredientsList = ingredientsText
-      ? ingredientsText.split(/[,;]+/).map(i => i.trim()).filter(Boolean)
-      : [];
+  const processAnalysis = (
+    productName: string,
+    ingredientsSource: string | string[],
+    product?: OpenFoodFactsProduct,
+    imgUrl?: string
+  ) => {
+    const ingredientsList = Array.isArray(ingredientsSource)
+      ? ingredientsSource.filter(Boolean)
+      : ingredientsSource
+          .split(/[,;]+/)
+          .map((i) => i.trim())
+          .filter(Boolean);
 
     const analysis = analyzeIngredients(ingredientsList);
     setAnalysisResult(analysis);
     if (product) setProductData(product);
     if (imgUrl) setImageUrl(imgUrl);
     setSaved(false);
+    return analysis;
   };
 
   const handleBarcodeResult = async (barcode: string) => {
@@ -43,15 +57,24 @@ export default function HalalScanner() {
     setScannerActive(false);
 
     try {
-      const lookupResult = await lookupByBarcode(barcode);
+      const lookupResult = await lookupProductByBarcode(barcode);
       if (!lookupResult.found || !lookupResult.product) {
         setError("Product not found in Open Food Facts database.");
         return;
       }
+
       const product = lookupResult.product;
       const productName = product.product_name || product.product_name_en || "Unknown Product";
-      const ingredientsText = product.ingredients_text || "";
-      processAnalysis(productName, ingredientsText, product, product.image_front_url);
+      const analysis = processAnalysis(productName, lookupResult.ingredients, product, product.image_front_url);
+
+      if (lookupResult.fallbackUsed) {
+        setLookupNote('Product found using Open Food Facts fallback search.');
+      } else if (analysis.verdict !== 'halal' || analysis.unknownIngredients.length > 0) {
+        const apiResult = await checkHalalStatusWithApi(lookupResult.ingredients, productName);
+        setLookupNote(apiResult.message);
+      } else {
+        setLookupNote(null);
+      }
     } catch (err) {
       setError("Failed to fetch product details.");
       console.error(err);
@@ -61,6 +84,7 @@ export default function HalalScanner() {
   };
 
   const handleImageIngredients = (ingredients: string[], imageUrl: string) => {
+    setLookupNote(null);
     const ingredientsText = ingredients.join(", ");
     processAnalysis("Uploaded Product", ingredientsText, undefined, imageUrl);
   };
@@ -74,6 +98,7 @@ export default function HalalScanner() {
   };
 
   const handleManualIngredients = (ingredients: string[]) => {
+    setLookupNote(null);
     const ingredientsText = ingredients.join(", ");
     processAnalysis("Manual Entry", ingredientsText);
   };
@@ -83,6 +108,7 @@ export default function HalalScanner() {
     setProductData(null);
     setImageUrl(null);
     setError(null);
+    setLookupNote(null);
     setScannerActive(true);
     setSaved(false);
   };
@@ -197,6 +223,12 @@ export default function HalalScanner() {
               <p className="text-red-300 font-semibold">Could Not Analyse</p>
               <p className="text-red-200/70 text-sm mt-1">{error}</p>
             </div>
+          </div>
+        )}
+
+        {lookupNote && !loading && (
+          <div className="bg-yellow-900/15 border border-amber-500/20 rounded-2xl p-4 text-amber-100 text-sm">
+            {lookupNote}
           </div>
         )}
 

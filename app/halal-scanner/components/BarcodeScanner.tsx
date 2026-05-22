@@ -124,6 +124,24 @@ export default function BarcodeScanner({ onResult, onError, isActive }: BarcodeS
     animFrameRef.current = requestAnimationFrame(scanWithNative);
   }, [ZXing?.native, handleScanResult]);
 
+  const checkTorchSupport = async (track: MediaStreamTrack) => {
+    const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & { torch?: boolean };
+    if (capabilities?.torch) return true;
+    if (typeof ImageCapture !== 'undefined') {
+      try {
+        const imageCapture = new ImageCapture(track as any);
+        const photoCapabilities = (await imageCapture.getPhotoCapabilities()) as any;
+        return Boolean(
+          photoCapabilities.torch ||
+          (Array.isArray(photoCapabilities.fillLightMode) && photoCapabilities.fillLightMode.includes('torch'))
+        );
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  };
+
   const startCamera = useCallback(async () => {
     setStatus('loading');
     setErrorMessage('');
@@ -142,8 +160,8 @@ export default function BarcodeScanner({ onResult, onError, isActive }: BarcodeS
       streamRef.current = stream;
 
       const track = stream.getVideoTracks()[0];
-      const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & { torch?: boolean };
-      setTorchSupported(Boolean(capabilities?.torch));
+      const supported = await checkTorchSupport(track);
+      setTorchSupported(supported);
       setTorchOn(false);
 
       if (videoRef.current) {
@@ -206,18 +224,45 @@ export default function BarcodeScanner({ onResult, onError, isActive }: BarcodeS
     if (!streamRef.current) return;
     const track = streamRef.current.getVideoTracks()[0];
     if (!track) return;
+
     const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & { torch?: boolean };
-    if (!capabilities?.torch) {
+    if (!capabilities?.torch && !torchSupported) {
       setErrorMessage('Flash is not supported on this device.');
       return;
     }
+
+    const newState = !torchOn;
     try {
-      const newState = !torchOn;
       await track.applyConstraints({ advanced: [{ torch: newState } as any] });
       setTorchOn(newState);
+      setErrorMessage('');
+      return;
     } catch {
-      setErrorMessage('Unable to toggle flash on this device.');
+      // Try alternate constraint format for broader browser support
     }
+
+    try {
+      await track.applyConstraints({ torch: newState } as any);
+      setTorchOn(newState);
+      setErrorMessage('');
+      return;
+    } catch {
+      // Fallback for ImageCapture-enabled browsers
+    }
+
+    if (typeof ImageCapture !== 'undefined') {
+      try {
+        const imageCapture = new ImageCapture(track as any);
+        await (imageCapture as any).setOptions({ torch: newState } as any);
+        setTorchOn(newState);
+        setErrorMessage('');
+        return;
+      } catch {
+        // ignore fallback failure
+      }
+    }
+
+    setErrorMessage('Unable to toggle flash on this device.');
   };
 
   if (!isActive) return null;
@@ -290,9 +335,14 @@ export default function BarcodeScanner({ onResult, onError, isActive }: BarcodeS
 
       {/* Instruction */}
       {status === 'scanning' && (
-        <p className="text-center text-sm text-emerald-700 dark:text-emerald-300 mt-3 font-medium">
-          Point your camera at any barcode or QR code
-        </p>
+        <>
+          <p className="text-center text-sm text-emerald-700 dark:text-emerald-300 mt-3 font-medium">
+            Point your camera at any barcode or QR code
+          </p>
+          <p className="text-center text-xs text-slate-300 dark:text-slate-500 mt-1">
+            Flash works only on supported rear cameras. If the button is disabled, use bright ambient light.
+          </p>
+        </>
       )}
 
       {/* CSS for scan line animation */}

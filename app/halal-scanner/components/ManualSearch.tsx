@@ -4,7 +4,7 @@
 // Search by product name or enter ingredients manually – with halal status preview
 
 import { useState, useCallback, useRef } from 'react';
-import { searchByName, type OpenFoodFactsProduct } from '@/lib/openFoodFacts';
+import { searchProductByName, type OpenFoodFactsProduct } from '@/lib/halalApis';
 import { analyzeIngredients } from '@/lib/analyzeIngredients';
 
 interface ManualSearchProps {
@@ -48,7 +48,7 @@ export default function ManualSearch({ onProduct, onManualIngredients, isLoading
     setSearched(false);
 
     try {
-      const res = await searchByName(q.trim());
+      const res = await searchProductByName(q.trim());
       // Filter only valid products and map to our format
       const validResults = res
         .filter((item): item is { found: true; product: OpenFoodFactsProduct; ingredients: string[] } => 

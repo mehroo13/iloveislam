@@ -30,7 +30,7 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
         if (!ctx) return reject('Canvas error');
 
         let { width, height } = img;
-        const maxWidth = 1100;
+        const maxWidth = 900;
         if (width > maxWidth) {
           height = Math.round((height * maxWidth) / width);
           width = maxWidth;
@@ -38,19 +38,20 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
 
         canvas.width = width;
         canvas.height = height;
+        ctx.filter = 'grayscale(100%) contrast(160%) brightness(115%)';
         ctx.drawImage(img, 0, 0, width, height);
 
         const imageData = ctx.getImageData(0, 0, width, height);
         const data = imageData.data;
 
         for (let i = 0; i < data.length; i += 4) {
-          const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-          const contrast = Math.min(255, Math.max(0, (gray - 110) * 1.6 + 110));
-          data[i] = data[i + 1] = data[i + 2] = Math.round(contrast);
+          const gray = data[i];
+          const contrast = Math.min(255, Math.max(0, (gray - 128) * 1.5 + 128));
+          data[i] = data[i + 1] = data[i + 2] = contrast;
         }
 
         ctx.putImageData(imageData, 0, 0);
-        resolve(canvas.toDataURL('image/jpeg', 0.92));
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
       };
       img.onerror = () => reject('Image load failed');
       img.src = URL.createObjectURL(file);
@@ -86,16 +87,16 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
 
   const processImage = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) {
-      setError('Please upload an image file');
+      setError('Please upload a photo of the ingredients list.');
       return;
     }
     if (file.size > 12 * 1024 * 1024) {
-      setError('Image too large (max 12MB)');
+      setError('Image too large (max 12MB). Try a smaller photo.');
       return;
     }
 
     setError(null);
-    setProgress(0);
+    setProgress(5);
     onLoading(true);
 
     const previewUrl = URL.createObjectURL(file);
@@ -104,16 +105,30 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
 
     try {
       const processedUrl = await preprocessImage(file);
+      setProgress(20);
 
-      const { data: { text } } = await Tesseract.recognize(processedUrl, 'eng', {
+      const worker: any = await (Tesseract.createWorker as any)({
         logger: (m: any) => {
+          if (m.status === 'loading language') {
+            setProgress(30);
+          }
           if (m.status === 'recognizing text') {
-            setProgress(Math.round(m.progress * 100));
+            setProgress(Math.min(95, 30 + Math.round(m.progress * 65)));
           }
         },
-        tessedit_ocr_engine_mode: 1,
+      });
+
+      await worker.load();
+      await worker.loadLanguage('eng');
+      await worker.initialize('eng');
+      await worker.setParameters({
+        tessedit_ocr_engine_mode: '1',
         preserve_interword_spaces: '1',
-      } as any);
+      });
+
+      const { data: { text } } = await worker.recognize(processedUrl);
+      await worker.terminate();
+      setProgress(100);
 
       const ingredients = parseIngredientsFromText(text);
 
@@ -124,8 +139,9 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
       onIngredients(ingredients, previewUrl);
     } catch (err) {
       console.error(err);
-      setError('Could not read ingredients clearly. Try manual entry below.');
+      setError('Could not read ingredients clearly. Try another photo or enter ingredients manually.');
       onLoading(false);
+      setProgress(0);
     }
   }, [onIngredients, onLoading]);
 
@@ -279,8 +295,8 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
         <p className="font-semibold mb-1">💡 Tips:</p>
         <ul className="list-disc list-inside space-y-0.5">
           <li>Good lighting and no glare for best OCR results</li>
-          <li>Keep label straight and close to camera</li>
-          <li>Use manual entry if the photo doesn't work</li>
+          <li>Keep the label straight and close to the camera</li>
+          <li>Use manual entry when the text is blurry, curved, or cut off</li>
         </ul>
       </div>
     </div>
