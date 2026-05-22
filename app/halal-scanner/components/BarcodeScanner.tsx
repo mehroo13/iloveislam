@@ -22,6 +22,7 @@ export default function BarcodeScanner({ onResult, onError, isActive }: BarcodeS
   const [status, setStatus] = useState<'idle' | 'loading' | 'scanning' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [torchOn, setTorchOn] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
   const [ZXing, setZXing] = useState<any>(null);
   const [reader, setReader] = useState<any>(null);
 
@@ -67,10 +68,26 @@ export default function BarcodeScanner({ onResult, onError, isActive }: BarcodeS
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
+    setTorchOn(false);
+    setTorchSupported(false);
     if (reader) {
       try { reader.reset(); } catch {}
     }
   }, [reader]);
+
+  const handleScanResult = useCallback(
+    (value: string) => {
+      if (!value || value === lastResultRef.current) return;
+      lastResultRef.current = value;
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        stopCamera();
+        setStatus('idle');
+        onResult(value);
+      }, 300);
+    },
+    [onResult, stopCamera]
+  );
 
   const scanWithNative = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -84,30 +101,28 @@ export default function BarcodeScanner({ onResult, onError, isActive }: BarcodeS
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     try {
       // @ts-ignore
+      if (typeof BarcodeDetector === 'undefined') throw new Error('BarcodeDetector not available');
+      // @ts-ignore
       const detector = new BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code'],
+        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code', 'data_matrix'],
       });
+      // @ts-ignore
       const barcodes = await detector.detect(canvas);
       if (barcodes.length > 0) {
-        const value = barcodes[0].rawValue;
-        if (value && value !== lastResultRef.current) {
-          lastResultRef.current = value;
-          if (debounceRef.current) clearTimeout(debounceRef.current);
-          debounceRef.current = setTimeout(() => {
-            stopCamera();
-            setStatus('idle');
-            onResult(value);
-          }, 300);
-        }
+        handleScanResult(barcodes[0].rawValue);
       }
-    } catch {}
+    } catch {
+      if (ZXing?.native) {
+        setErrorMessage('Native barcode scanning is not supported by this browser.');
+      }
+    }
 
     animFrameRef.current = requestAnimationFrame(scanWithNative);
-  }, [onResult, stopCamera]);
+  }, [ZXing?.native, handleScanResult]);
 
   const startCamera = useCallback(async () => {
     setStatus('loading');
@@ -126,6 +141,11 @@ export default function BarcodeScanner({ onResult, onError, isActive }: BarcodeS
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
 
+      const track = stream.getVideoTracks()[0];
+      const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & { torch?: boolean };
+      setTorchSupported(Boolean(capabilities?.torch));
+      setTorchOn(false);
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
@@ -133,29 +153,30 @@ export default function BarcodeScanner({ onResult, onError, isActive }: BarcodeS
 
       setStatus('scanning');
 
-      // Use ZXing if loaded, otherwise native BarcodeDetector
-      if (reader && ZXing && !ZXing.native) {
+      if (reader && ZXing && !ZXing.native && videoRef.current) {
         try {
-          reader.decodeFromStream(stream, videoRef.current, (result: any, err: any) => {
-            if (result) {
-              const value = result.getText();
-              if (value && value !== lastResultRef.current) {
-                lastResultRef.current = value;
-                if (debounceRef.current) clearTimeout(debounceRef.current);
-                debounceRef.current = setTimeout(() => {
-                  stopCamera();
-                  setStatus('idle');
-                  onResult(value);
-                }, 300);
-              }
-            }
-          });
+          const deviceId = track.getSettings?.()?.deviceId;
+          const callback = (result: any) => {
+            if (!result) return;
+            const value = typeof result.getText === 'function' ? result.getText() : result;
+            handleScanResult(value);
+          };
+
+          if (deviceId && typeof reader.decodeFromVideoDevice === 'function') {
+            reader.decodeFromVideoDevice(deviceId, videoRef.current, callback);
+          } else if (typeof reader.decodeFromVideoElementContinuously === 'function') {
+            reader.decodeFromVideoElementContinuously(videoRef.current, callback);
+          } else if (typeof reader.decodeFromVideoElement === 'function') {
+            reader.decodeFromVideoElement(videoRef.current, callback);
+          } else if (typeof reader.decodeFromStream === 'function') {
+            reader.decodeFromStream(stream, videoRef.current, (result: any) => callback(result));
+          } else {
+            scanWithNative();
+          }
         } catch {
-          // Fallback to native
           scanWithNative();
         }
       } else {
-        // Native BarcodeDetector
         scanWithNative();
       }
     } catch (err: any) {
@@ -169,7 +190,7 @@ export default function BarcodeScanner({ onResult, onError, isActive }: BarcodeS
       setErrorMessage(msg);
       onError?.(msg);
     }
-  }, [reader, ZXing, onResult, onError, scanWithNative, stopCamera]);
+  }, [reader, ZXing, onError, scanWithNative, handleScanResult]);
 
   useEffect(() => {
     if (isActive && (reader || ZXing?.native)) {
@@ -179,19 +200,23 @@ export default function BarcodeScanner({ onResult, onError, isActive }: BarcodeS
       setStatus('idle');
     }
     return () => stopCamera();
-  }, [isActive, reader, ZXing]);
+  }, [isActive, reader, ZXing, startCamera, stopCamera]);
 
   const toggleTorch = async () => {
     if (!streamRef.current) return;
     const track = streamRef.current.getVideoTracks()[0];
     if (!track) return;
+    const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & { torch?: boolean };
+    if (!capabilities?.torch) {
+      setErrorMessage('Flash is not supported on this device.');
+      return;
+    }
     try {
       const newState = !torchOn;
-      // @ts-ignore
-      await track.applyConstraints({ advanced: [{ torch: newState }] });
+      await track.applyConstraints({ advanced: [{ torch: newState } as any] });
       setTorchOn(newState);
     } catch {
-      // Torch not supported
+      setErrorMessage('Unable to toggle flash on this device.');
     }
   };
 
@@ -252,10 +277,11 @@ export default function BarcodeScanner({ onResult, onError, isActive }: BarcodeS
         {status === 'scanning' && (
           <button
             onClick={toggleTorch}
+            disabled={!torchSupported}
             className={`absolute bottom-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
               torchOn ? 'bg-yellow-400 text-black' : 'bg-white/20 text-white hover:bg-white/30'
-            }`}
-            title="Toggle flashlight"
+            } ${!torchSupported ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title={torchSupported ? 'Toggle flashlight' : 'Flash not supported'}
           >
             🔦
           </button>
