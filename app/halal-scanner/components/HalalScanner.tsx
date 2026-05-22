@@ -8,7 +8,7 @@ import ResultCard from "./ResultCard";
 import IngredientBreakdown from "./IngredientBreakdown";
 import ScanHistory from "./ScanHistory";
 import { analyzeIngredients } from "@/lib/analyzeIngredients";
-import { lookupBarcode } from "@/lib/openFoodFacts";
+import { lookupByBarcode } from "@/lib/openFoodFacts";
 
 export type ScanResult = {
   productName: string;
@@ -38,7 +38,7 @@ export default function HalalScanner() {
     setError(null);
     setResult(null);
     try {
-      const product = await lookupBarcode(barcode);
+      const product = await lookupByBarcode(barcode);
       if (!product) {
         setError("Product not found in database. Try uploading a photo of the label.");
         return;
