@@ -87,19 +87,15 @@ export default function HalalScanner() {
     }
   };
 
-  const handleImageScan = async (ingredientsText: string, productName?: string) => {
-    setLoading(true);
-    setError(null);
-    setResult(null);
+  // Updated to match ImageUploaderProps
+  const handleImageIngredients = (ingredients: string[], imageUrl: string) => {
+    const ingredientsText = ingredients.join(", ");
+    const productName = "Uploaded Product";
+    processAnalysis(productName, ingredientsText);
+  };
 
-    try {
-      const name = productName || "Uploaded Product";
-      processAnalysis(name, ingredientsText);
-    } catch {
-      setError("Failed to analyze ingredients.");
-    } finally {
-      setLoading(false);
-    }
+  const handleImageLoading = (isLoading: boolean) => {
+    setLoading(isLoading);
   };
 
   const handleManualSearch = async (query: string) => {
@@ -192,7 +188,11 @@ export default function HalalScanner() {
             />
           )}
           {activeTab === "image" && (
-            <ImageUploader onScan={handleImageScan} loading={loading} />
+            <ImageUploader 
+              onIngredients={handleImageIngredients}
+              onLoading={handleImageLoading}
+              isLoading={loading}
+            />
           )}
           {activeTab === "manual" && (
             <ManualSearch onSearch={handleManualSearch} loading={loading} />
