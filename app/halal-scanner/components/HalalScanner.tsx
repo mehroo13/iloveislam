@@ -39,17 +39,18 @@ export default function HalalScanner() {
     setResult(null);
     try {
       const product = await lookupByBarcode(barcode);
-      if (!product) {
+      if (!product || !product.found) {
         setError("Product not found in database. Try uploading a photo of the label.");
         return;
       }
-      const analysis = await analyzeIngredients(product.ingredients, product.productName);
+      const productName = product.product?.product_name || "Unknown Product";
+      const analysis = await analyzeIngredients(product.ingredients.join(", "), productName);
       const scanResult: ScanResult = {
-        productName: product.productName,
+        productName,
         verdict: analysis.verdict,
         confidence: analysis.confidence,
         ingredients: analysis.ingredients,
-        certifications: product.certifications,
+        certifications: [],
         notes: analysis.notes,
         scannedAt: new Date().toISOString(),
       };
@@ -126,13 +127,6 @@ export default function HalalScanner() {
     { id: "image", label: "Upload Photo", icon: "🖼️" },
     { id: "manual", label: "Search Manually", icon: "🔍" },
   ];
-
-  const verdictColors = {
-    halal: "from-emerald-500 to-green-600",
-    haram: "from-red-500 to-rose-600",
-    mashbooh: "from-amber-400 to-yellow-500",
-    unknown: "from-slate-400 to-gray-500",
-  };
 
   const verdictBg = {
     halal: "bg-emerald-50 border-emerald-200",
@@ -232,23 +226,16 @@ export default function HalalScanner() {
         {/* Result */}
         {result && !loading && (
           <div className="space-y-4">
-            {/* Verdict Banner */}
-            <div
-              className={`rounded-2xl border p-6 ${
-                verdictBg[result.verdict]
-              }`}
-            >
+            <div className={`rounded-2xl border p-6 ${verdictBg[result.verdict]}`}>
               <ResultCard result={result} />
             </div>
 
-            {/* Ingredient Breakdown */}
             {result.ingredients.length > 0 && (
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden">
                 <IngredientBreakdown ingredients={result.ingredients} />
               </div>
             )}
 
-            {/* Share Button */}
             <button
               onClick={() => {
                 const text = `HalalScan Result for "${result.productName}": ${result.verdict.toUpperCase()} — checked on iloveislam.life/halal-scanner`;
@@ -281,7 +268,6 @@ export default function HalalScanner() {
           )}
         </div>
 
-        {/* Disclaimer */}
         <p className="text-center text-green-200/30 text-xs px-4">
           HalalScan uses AI and open food databases for analysis. Always verify with a certified Islamic scholar or halal certification body for critical decisions. Results are for guidance only.
         </p>
