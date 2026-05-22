@@ -211,14 +211,9 @@ export default function HalalScanner() {
           />
         )}
 
-        {/* Simple ingredient breakdown (optional, since ResultCard already shows stats) */}
         {analysisResult && analysisResult.ingredientResults.length > 0 && (
           <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden">
-            <IngredientBreakdown ingredients={analysisResult.ingredientResults.map(ing => ({
-              name: ing.original,
-              status: ing.status,
-              reason: ing.matched?.reason
-            }))} />
+            <IngredientBreakdown results={analysisResult.ingredientResults} />
           </div>
         )}
 
