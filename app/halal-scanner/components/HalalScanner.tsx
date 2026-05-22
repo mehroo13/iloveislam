@@ -42,17 +42,15 @@ export default function HalalScanner() {
 
     const scanResult: ScanResult = {
       productName,
-      verdict: analysis.overallStatus ?? "unknown",
-      confidence: 80,
-      ingredients: analysis.analyzedIngredients.map((ing) => ({
-        name: ing.name,
+      verdict: analysis.verdict,
+      confidence: analysis.confidence === 'high' ? 90 : analysis.confidence === 'medium' ? 65 : 40,
+      ingredients: analysis.ingredientResults.map((ing) => ({
+        name: ing.original,
         status: ing.status,
-        reason: ing.reason,
+        reason: ing.matched?.reason,
       })),
-      certifications: product?.certifications_tags || [],
-      notes: analysis.analyzedIngredients.length > 0 
-        ? `${analysis.haramCount} haram, ${analysis.mashboohCount} mashbooh detected` 
-        : "No concerning ingredients found",
+      certifications: analysis.certifications,
+      notes: analysis.summary,
       scannedAt: new Date().toISOString(),
     };
 
@@ -94,7 +92,7 @@ export default function HalalScanner() {
     try {
       const name = productName || "Uploaded Product";
       processAnalysis(null, name, ingredientsText);
-    } catch (err) {
+    } catch {
       setError("Failed to analyze ingredients.");
     } finally {
       setLoading(false);
@@ -108,7 +106,7 @@ export default function HalalScanner() {
 
     try {
       processAnalysis(null, query, query);
-    } catch (err) {
+    } catch {
       setError("Manual search failed.");
     } finally {
       setLoading(false);
