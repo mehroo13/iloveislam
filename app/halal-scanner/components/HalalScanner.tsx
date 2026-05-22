@@ -9,6 +9,7 @@ import IngredientBreakdown from "./IngredientBreakdown";
 import ScanHistory from "./ScanHistory";
 import { analyzeIngredients } from "@/lib/analyzeIngredients";
 import { lookupByBarcode } from "@/lib/openFoodFacts";
+import type { OpenFoodFactsProduct } from "@/lib/openFoodFacts";
 
 export type ScanResult = {
   productName: string;
@@ -33,6 +34,7 @@ export default function HalalScanner() {
   const [error, setError] = useState<string | null>(null);
   const [scannerActive, setScannerActive] = useState(true);
 
+  // Common function to process ingredients and produce result
   const processAnalysis = (productName: string, ingredientsText: string) => {
     const ingredientsList = ingredientsText
       ? ingredientsText.split(/[,;]+/).map(i => i.trim()).filter(Boolean)
@@ -58,6 +60,7 @@ export default function HalalScanner() {
     saveToHistory(scanResult);
   };
 
+  // Barcode scanning
   const handleBarcodeResult = async (barcode: string) => {
     setLoading(true);
     setError(null);
@@ -87,7 +90,7 @@ export default function HalalScanner() {
     }
   };
 
-  // Updated to match ImageUploaderProps
+  // Image upload handlers (matching ImageUploaderProps)
   const handleImageIngredients = (ingredients: string[], imageUrl: string) => {
     const ingredientsText = ingredients.join(", ");
     const productName = "Uploaded Product";
@@ -98,18 +101,16 @@ export default function HalalScanner() {
     setLoading(isLoading);
   };
 
-  const handleManualSearch = async (query: string) => {
-    setLoading(true);
-    setError(null);
-    setResult(null);
+  // Manual search handlers (matching ManualSearchProps)
+  const handleManualProduct = (product: OpenFoodFactsProduct, ingredients: string[]) => {
+    const productName = product.product_name || "Unknown Product";
+    const ingredientsText = ingredients.join(", ");
+    processAnalysis(productName, ingredientsText);
+  };
 
-    try {
-      processAnalysis(query, query);
-    } catch {
-      setError("Manual search failed.");
-    } finally {
-      setLoading(false);
-    }
+  const handleManualIngredients = (ingredients: string[]) => {
+    const ingredientsText = ingredients.join(", ");
+    processAnalysis("Manual Entry", ingredientsText);
   };
 
   const saveToHistory = (scanResult: ScanResult) => {
@@ -195,7 +196,11 @@ export default function HalalScanner() {
             />
           )}
           {activeTab === "manual" && (
-            <ManualSearch onSearch={handleManualSearch} loading={loading} />
+            <ManualSearch 
+              onProduct={handleManualProduct}
+              onManualIngredients={handleManualIngredients}
+              isLoading={loading}
+            />
           )}
         </div>
 
