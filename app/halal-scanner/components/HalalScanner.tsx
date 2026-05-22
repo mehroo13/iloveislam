@@ -34,7 +34,11 @@ export default function HalalScanner() {
   const [scannerActive, setScannerActive] = useState(true);
 
   const processAnalysis = (product: any, productName: string, ingredientsText: string) => {
-    const analysis = analyzeIngredients(ingredientsText);
+    const ingredientsList = ingredientsText
+      ? ingredientsText.split(/[,;]+/).map(i => i.trim()).filter(Boolean)
+      : [];
+
+    const analysis = analyzeIngredients(ingredientsList);
 
     const scanResult: ScanResult = {
       productName,
@@ -134,7 +138,6 @@ export default function HalalScanner() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a2218] via-[#0d3326] to-[#0a2218] text-white">
-      {/* Header */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-4 left-8 text-8xl font-arabic text-green-300 select-none">بسم</div>
@@ -157,7 +160,6 @@ export default function HalalScanner() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 pb-16 space-y-6">
-        {/* Tab Switcher */}
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-1.5 flex gap-1">
           {tabs.map((tab) => (
             <button
@@ -180,7 +182,6 @@ export default function HalalScanner() {
           ))}
         </div>
 
-        {/* Scanner Panel */}
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden">
           {activeTab === "barcode" && (
             <BarcodeScanner 
@@ -197,7 +198,6 @@ export default function HalalScanner() {
           )}
         </div>
 
-        {/* Loading */}
         {loading && (
           <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 text-center">
             <div className="inline-flex flex-col items-center gap-4">
@@ -210,7 +210,6 @@ export default function HalalScanner() {
           </div>
         )}
 
-        {/* Error */}
         {error && !loading && (
           <div className="bg-red-900/20 border border-red-500/30 rounded-2xl p-5 flex items-start gap-3">
             <span className="text-2xl">⚠️</span>
@@ -221,7 +220,6 @@ export default function HalalScanner() {
           </div>
         )}
 
-        {/* Result */}
         {result && !loading && (
           <div className="space-y-4">
             <div className={`rounded-2xl border p-6 ${verdictBg[result.verdict]}`}>
