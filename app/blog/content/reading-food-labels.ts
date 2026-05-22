@@ -64,5 +64,3 @@ export const readingFoodLabelsArticle = {
 
 </div>
 `};
-
-*** End Patch
