@@ -48,24 +48,24 @@ export default function HalalScanner() {
     return analysis;
   };
 
-  const handleBarcodeResult = async (barcode: string) => {
+  const handleBarcodeResult = async (barcode: string): Promise<boolean> => {
     setLoading(true);
     setError(null);
     setAnalysisResult(null);
     setProductData(null);
     setImageUrl(null);
-    setScannerActive(false);
 
     try {
       const lookupResult = await lookupProductByBarcode(barcode);
       if (!lookupResult.found || !lookupResult.product) {
         setError("Product not found in Open Food Facts database.");
-        return;
+        return false;
       }
 
       const product = lookupResult.product;
       const productName = product.product_name || product.product_name_en || "Unknown Product";
       const analysis = processAnalysis(productName, lookupResult.ingredients, product, product.image_front_url);
+      setScannerActive(false);
 
       if (lookupResult.fallbackUsed) {
         setLookupNote('Product found using Open Food Facts fallback search.');
@@ -75,9 +75,12 @@ export default function HalalScanner() {
       } else {
         setLookupNote(null);
       }
+
+      return true;
     } catch (err) {
       setError("Failed to fetch product details.");
       console.error(err);
+      return false;
     } finally {
       setLoading(false);
     }
@@ -111,6 +114,14 @@ export default function HalalScanner() {
     setLookupNote(null);
     setScannerActive(true);
     setSaved(false);
+  };
+
+  const handleRetryScan = () => {
+    setError(null);
+    setLookupNote(null);
+    if (!scannerActive) {
+      setScannerActive(true);
+    }
   };
 
   const handleSave = () => {
@@ -217,11 +228,27 @@ export default function HalalScanner() {
         )}
 
         {error && !loading && (
-          <div className="bg-red-900/20 border border-red-500/30 rounded-2xl p-5 flex items-start gap-3">
-            <span className="text-2xl">⚠️</span>
-            <div>
-              <p className="text-red-300 font-semibold">Could Not Analyse</p>
-              <p className="text-red-200/70 text-sm mt-1">{error}</p>
+          <div className="bg-red-900/20 border border-red-500/30 rounded-2xl p-5 space-y-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <p className="text-red-300 font-semibold">Could Not Analyse</p>
+                <p className="text-red-200/70 text-sm mt-1">{error}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={handleRetryScan}
+                className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-all"
+              >
+                ↻ Try Again
+              </button>
+              <button
+                onClick={handleReset}
+                className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-semibold transition-all"
+              >
+                ✕ Reset
+              </button>
             </div>
           </div>
         )}

@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 interface BarcodeScannerProps {
-  onResult: (barcode: string) => void;
+  onResult: (barcode: string) => Promise<boolean | void> | boolean | void;
   onError?: (error: string) => void;
   isActive: boolean;
 }
@@ -17,7 +17,7 @@ export default function BarcodeScanner({ onResult, onError, isActive }: BarcodeS
   const streamRef = useRef<MediaStream | null>(null);
   const animFrameRef = useRef<number>(0);
   const lastResultRef = useRef<string>('');
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debounceRef = useRef<number | null>(null);
 
   const [status, setStatus] = useState<'idle' | 'loading' | 'scanning' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -80,10 +80,14 @@ export default function BarcodeScanner({ onResult, onError, isActive }: BarcodeS
       if (!value || value === lastResultRef.current) return;
       lastResultRef.current = value;
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
-        stopCamera();
-        setStatus('idle');
-        onResult(value);
+      debounceRef.current = window.setTimeout(async () => {
+        const accepted = await Promise.resolve(onResult(value));
+        if (accepted !== false) {
+          stopCamera();
+          setStatus('idle');
+        } else {
+          lastResultRef.current = '';
+        }
       }, 300);
     },
     [onResult, stopCamera]
@@ -148,12 +152,19 @@ export default function BarcodeScanner({ onResult, onError, isActive }: BarcodeS
     lastResultRef.current = '';
 
     try {
+      const supportedConstraints = (navigator.mediaDevices?.getSupportedConstraints?.() as any) || {};
+      const videoConstraints: MediaTrackConstraints = {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      };
+
+      if (supportedConstraints.torch) {
+        videoConstraints.advanced = [{ torch: false } as any];
+      }
+
       const constraints: MediaStreamConstraints = {
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
+        video: videoConstraints,
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
