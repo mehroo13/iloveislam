@@ -36,14 +36,13 @@ export async function lookupByBarcode(barcode: string): Promise<ProductLookupRes
   try {
     const cleanBarcode = barcode.trim().replace(/[^0-9]/g, '');
 
-    const res = await fetch(
-      `${BASE_URL}/api/v0/product/${cleanBarcode}.json`,
-      {
-        headers: {
-          'User-Agent': 'HalalScan/1.0 (iloveislam.life)',
-        },
-      }
-    );
+    const headers: Record<string, string> = {};
+    // Browsers disallow setting the User-Agent header; only set it on the server.
+    if (typeof window === 'undefined') {
+      headers['User-Agent'] = 'HalalScan/1.0 (iloveislam.life)';
+    }
+
+    const res = await fetch(`${BASE_URL}/api/v0/product/${cleanBarcode}.json`, { headers });
 
     if (!res.ok) {
       return { found: false, ingredients: [], error: `HTTP ${res.status}` };
@@ -91,14 +90,12 @@ export async function lookupByBarcode(barcode: string): Promise<ProductLookupRes
 export async function searchByName(query: string): Promise<ProductLookupResult[]> {
   try {
     const encoded = encodeURIComponent(query);
-    const res = await fetch(
-      `${BASE_URL}/cgi/search.pl?search_terms=${encoded}&search_simple=1&action=process&json=1&page_size=5`,
-      {
-        headers: {
-          'User-Agent': 'HalalScan/1.0 (iloveislam.life)',
-        },
-      }
-    );
+    const headers: Record<string, string> = {};
+    if (typeof window === 'undefined') {
+      headers['User-Agent'] = 'HalalScan/1.0 (iloveislam.life)';
+    }
+
+    const res = await fetch(`${BASE_URL}/cgi/search.pl?search_terms=${encoded}&search_simple=1&action=process&json=1&page_size=5`, { headers });
 
     if (!res.ok) return [];
 
