@@ -33,7 +33,7 @@ export default function HalalScanner() {
   const [error, setError] = useState<string | null>(null);
   const [scannerActive, setScannerActive] = useState(true);
 
-  const processAnalysis = (productData: any, productName: string, ingredientsText: string) => {
+  const processAnalysis = (productName: string, ingredientsText: string) => {
     const ingredientsList = ingredientsText
       ? ingredientsText.split(/[,;]+/).map(i => i.trim()).filter(Boolean)
       : [];
@@ -76,10 +76,9 @@ export default function HalalScanner() {
       const productName = product.product_name || 
                          product.product_name_en || 
                          "Unknown Product";
-      
       const ingredientsText = product.ingredients_text || "";
 
-      processAnalysis(product, productName, ingredientsText);
+      processAnalysis(productName, ingredientsText);
     } catch (err) {
       setError("Failed to fetch product details.");
       console.error(err);
@@ -95,7 +94,7 @@ export default function HalalScanner() {
 
     try {
       const name = productName || "Uploaded Product";
-      processAnalysis(null, name, ingredientsText);
+      processAnalysis(name, ingredientsText);
     } catch {
       setError("Failed to analyze ingredients.");
     } finally {
@@ -109,7 +108,7 @@ export default function HalalScanner() {
     setResult(null);
 
     try {
-      processAnalysis(null, query, query);
+      processAnalysis(query, query);
     } catch {
       setError("Manual search failed.");
     } finally {
