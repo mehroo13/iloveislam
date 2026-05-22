@@ -32,14 +32,6 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   }
-    return NextResponse.json(
-      {
-        available: false,
-        message: 'No ingredients were supplied for Halal API verification.',
-      },
-      { status: 400 }
-    );
-  }
 
   try {
     const targetUrl = LOCAL_HALAL_SERVICE_URL || RAPIDAPI_URL!;
