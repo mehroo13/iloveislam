@@ -68,9 +68,9 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'About', blog: 'Blog', privacy: 'Privacy', contact: 'Contact', faq: 'FAQ', terms: 'Terms',
     mostUsed: 'Most Used', daily: 'Daily Practice', finance: 'Finance & Giving', travel: 'Travel & Knowledge', kids: '🧒 Kids Corner',
     footerMade: 'Made with ❤️ for the Ummah', footerFree: 'Always Free · No Sign-up',
-    stats: { tools: '25 Free Tools', free: '100% Free', noSignup: 'No Sign-up', mobile: 'Works on Mobile', world: 'Works Worldwide', fast: 'Always Fast' },
+    stats: { tools: '26 Free Tools', free: '100% Free', noSignup: 'No Sign-up', mobile: 'Works on Mobile', world: 'Works Worldwide', fast: 'Always Fast' },
     aboutTitle: 'About I Love Islam Tools',
-    aboutText1: 'I Love Islam is a free collection of Islamic tools for Muslims worldwide — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Hijri Calendar, Kaffarah Calculator, and much more. Everything in one place, completely free.',
+    aboutText1: 'I Love Islam is a free collection of Islamic tools for Muslims worldwide — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Hijri Calendar, Kaffarah Calculator, HalalScan and much more. Everything in one place, completely free.',
     aboutText2: 'Our tools include Dhikr counter, 99 Names of Allah, Halal Travel guide, Mosque Finder, Islamic Inheritance Calculator, Sadaqah Tracker, Eid ul Adha toolkit, Islamic Alarm, Night Recitation player, and our unique Mizan Islamic Life Blueprint.',
     newsletterTitle: 'Weekly Islamic Guidance',
     newsletterSubtitle: 'Spiritual reminders and tool updates.',
@@ -86,7 +86,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'عن الموقع', blog: 'مدونة', privacy: 'الخصوصية', contact: 'تواصل معنا', faq: 'الأسئلة الشائعة', terms: 'الشروط',
     mostUsed: 'الأكثر استخداماً', daily: 'الممارسة اليومية', finance: 'المال والعطاء', travel: 'السفر والمعرفة', kids: '🧒 ركن الأطفال',
     footerMade: 'صُنع بمحبة للأمة الإسلامية', footerFree: 'مجاني دائماً · لا تسجيل',
-    stats: { tools: '٢٥ أداة', free: '١٠٠٪ مجاني', noSignup: 'لا تسجيل', mobile: 'يعمل على الجوال', world: 'يعمل في كل مكان', fast: 'سريع دائماً' },
+    stats: { tools: '٢٦ أداة', free: '١٠٠٪ مجاني', noSignup: 'لا تسجيل', mobile: 'يعمل على الجوال', world: 'يعمل في كل مكان', fast: 'سريع دائماً' },
     aboutTitle: 'عن أدوات أحب الإسلام',
     aboutText1: 'أحب الإسلام مجموعة مجانية من الأدوات الإسلامية للمسلمين في جميع أنحاء العالم.',
     aboutText2: 'تشمل أدواتنا عداد الذكر وأسماء الله الحسنى ودليل السفر الحلال وأدوات عيد الأضحى ومنبه إسلامي وتلاوة ليلية والمزيد.',
@@ -104,7 +104,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'ہمارے بارے میں', blog: 'بلاگ', privacy: 'رازداری', contact: 'رابطہ', faq: 'سوالات', terms: 'شرائط',
     mostUsed: 'سب سے زیادہ', daily: 'روزانہ عبادت', finance: 'مال اور صدقہ', travel: 'سفر اور علم', kids: '🧒 بچوں کا کونا',
     footerMade: 'امت کے لیے محبت سے', footerFree: 'ہمیشہ مفت · کوئی رجسٹریشن نہیں',
-    stats: { tools: '٢٥ مفت ٹولز', free: '١٠٠٪ مفت', noSignup: 'سائن اپ نہیں', mobile: 'موبائل پر', world: 'دنیا بھر میں', fast: 'تیز' },
+    stats: { tools: '٢٦ مفت ٹولز', free: '١٠٠٪ مفت', noSignup: 'سائن اپ نہیں', mobile: 'موبائل پر', world: 'دنیا بھر میں', fast: 'تیز' },
     aboutTitle: 'I Love Islam کے بارے میں',
     aboutText1: 'I Love Islam دنیا بھر کے مسلمانوں کے لیے مفت اسلامی ٹولز کا مجموعہ ہے۔',
     aboutText2: 'ذکر کاؤنٹر، اللہ کے ۹۹ نام، عید الاضحیٰ ٹول کٹ، اسلامی الارم، رات کی تلاوت اور بہت کچھ۔',
@@ -122,7 +122,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'À propos', blog: 'Blog', privacy: 'Confidentialité', contact: 'Contact', faq: 'FAQ', terms: 'Conditions',
     mostUsed: 'Les plus utilisés', daily: 'Pratique quotidienne', finance: 'Finance & Dons', travel: 'Voyage & Savoir', kids: '🧒 Coin des enfants',
     footerMade: 'Fait avec ❤️ pour la Oumma', footerFree: 'Toujours gratuit · Sans inscription',
-    stats: { tools: '25 Outils', free: '100% Gratuit', noSignup: 'Sans inscription', mobile: 'Mobile', world: 'Mondial', fast: 'Rapide' },
+    stats: { tools: '26 Outils', free: '100% Gratuit', noSignup: 'Sans inscription', mobile: 'Mobile', world: 'Mondial', fast: 'Rapide' },
     aboutTitle: 'À propos de I Love Islam',
     aboutText1: 'I Love Islam est une collection gratuite d\'outils islamiques — Zakat, horaires de prière, Qibla, Coran et bien plus.',
     aboutText2: 'Compteur de Dhikr, 99 noms d\'Allah, guide de voyage halal, kit Aïd el-Adha, alarme islamique, récitation nocturne, et notre outil unique Mizan.',
@@ -140,7 +140,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'Hakkında', blog: 'Blog', privacy: 'Gizlilik', contact: 'İletişim', faq: 'SSS', terms: 'Şartlar',
     mostUsed: 'En Çok Kullanılan', daily: 'Günlük İbadet', finance: 'Finans & Sadaka', travel: 'Seyahat & Bilgi', kids: '🧒 Çocuk Köşesi',
     footerMade: 'Ümmet için sevgiyle', footerFree: 'Her zaman ücretsiz',
-    stats: { tools: '25 Araç', free: '%100 Ücretsiz', noSignup: 'Kayıt yok', mobile: 'Mobil', world: 'Dünya geneli', fast: 'Hızlı' },
+    stats: { tools: '26 Araç', free: '%100 Ücretsiz', noSignup: 'Kayıt yok', mobile: 'Mobil', world: 'Dünya geneli', fast: 'Hızlı' },
     aboutTitle: 'I Love Islam Hakkında',
     aboutText1: 'I Love Islam, Müslümanlar için ücretsiz İslami araçlar — Zekat, namaz vakitleri, kıble, Kuran ve daha fazlası.',
     aboutText2: 'Dhikr sayacı, Allah\'ın 99 ismi, helal seyahat rehberi, Kurban Bayramı araç seti, İslami alarm, gece tilaveti ve Mizan aracımız.',
@@ -158,7 +158,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'Tentang', blog: 'Blog', privacy: 'Privasi', contact: 'Kontak', faq: 'FAQ', terms: 'Ketentuan',
     mostUsed: 'Paling Sering', daily: 'Ibadah Harian', finance: 'Keuangan & Sedekah', travel: 'Perjalanan & Ilmu', kids: '🧒 Sudut Anak',
     footerMade: 'Dibuat dengan ❤️ untuk Umat', footerFree: 'Selalu Gratis',
-    stats: { tools: '25 Alat', free: '100% Gratis', noSignup: 'Tanpa Daftar', mobile: 'Mobile', world: 'Seluruh Dunia', fast: 'Cepat' },
+    stats: { tools: '26 Alat', free: '100% Gratis', noSignup: 'Tanpa Daftar', mobile: 'Mobile', world: 'Seluruh Dunia', fast: 'Cepat' },
     aboutTitle: 'Tentang I Love Islam',
     aboutText1: 'I Love Islam adalah kumpulan alat Islam gratis — Kalkulator zakat, waktu shalat, kiblat, Al-Quran dan masih banyak lagi.',
     aboutText2: 'Penghitung dzikir, 99 Nama Allah, panduan halal, kit Idul Adha, alarm Islam, tilawah malam, dan Mizan Blueprint.',
@@ -176,7 +176,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'Tentang', blog: 'Blog', privacy: 'Privasi', contact: 'Hubungi', faq: 'Soalan Lazim', terms: 'Terma',
     mostUsed: 'Paling Kerap', daily: 'Amalan Harian', finance: 'Kewangan & Sedekah', travel: 'Perjalanan & Ilmu', kids: '🧒 Sudut Kanak-kanak',
     footerMade: 'Dibuat dengan ❤️ untuk Umat', footerFree: 'Sentiasa Percuma',
-    stats: { tools: '25 Alat', free: '100% Percuma', noSignup: 'Tanpa Daftar', mobile: 'Mudah alih', world: 'Seluruh Dunia', fast: 'Laju' },
+    stats: { tools: '26 Alat', free: '100% Percuma', noSignup: 'Tanpa Daftar', mobile: 'Mudah alih', world: 'Seluruh Dunia', fast: 'Laju' },
     aboutTitle: 'Tentang I Love Islam',
     aboutText1: 'I Love Islam ialah koleksi alat Islam percuma — kalkulator zakat, waktu solat, kiblat, Al-Quran dan banyak lagi.',
     aboutText2: 'Pembilang zikir, 99 Nama Allah, panduan halal, kit Hari Raya Aidiladha, penggera Islam, bacaan malam dan Mizan Blueprint.',
@@ -194,7 +194,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'সম্পর্কে', blog: 'ব্লগ', privacy: 'গোপনীয়তা', contact: 'যোগাযোগ', faq: 'প্রশ্নোত্তর', terms: 'শর্তাবলী',
     mostUsed: 'সর্বাধিক ব্যবহৃত', daily: 'দৈনিক ইবাদত', finance: 'অর্থ ও দান', travel: 'ভ্রমণ ও জ্ঞান', kids: '🧒 বাচ্চাদের কর্নার',
     footerMade: 'উম্মতের জন্য ভালোবাসায়', footerFree: 'সর্বদা বিনামূল্যে',
-    stats: { tools: '২৫ টুল', free: '১০০% বিনামূল্যে', noSignup: 'নিবন্ধন নেই', mobile: 'মোবাইলে', world: 'বিশ্বজুড়ে', fast: 'দ্রুত' },
+    stats: { tools: '২৬ টুল', free: '১০০% বিনামূল্যে', noSignup: 'নিবন্ধন নেই', mobile: 'মোবাইলে', world: 'বিশ্বজুড়ে', fast: 'দ্রুত' },
     aboutTitle: 'I Love Islam সম্পর্কে',
     aboutText1: 'I Love Islam বিশ্বজুড়ে মুসলিমদের জন্য বিনামূল্যে ইসলামিক টুলের সংগ্রহ।',
     aboutText2: 'ধিকর কাউন্টার, আল্লাহর ৯৯ নাম, হালাল ভ্রমণ গাইড, ঈদুল আযহা টুলকিট, রাতের তিলাওয়াত, ইসলামিক অ্যালার্ম এবং মিযান ব্লুপ্রিন্ট।',
@@ -253,8 +253,11 @@ const DAILY_QUOTES = [
 ];
 
 // ==================== ALL TOOLS FOR FEATURED BANNER ====================
+// ✅ HalalScan added at position 2 (right after Mizan — high visibility)
 const ALL_FEATURED_TOOLS = [
   { href: '/mizan', badge: '✨ Featured', title: 'Mizan — Islamic Life Blueprint', desc: 'Discover your purpose through Islamic numerology', icon: '✦', gradient: 'linear-gradient(135deg, #1a0a00, #3d1f00)', accent: '#c8a96e' },
+  // ✅ NEW — HalalScan
+  { href: '/halal-scanner', badge: '🆕 New Tool', title: 'HalalScan — Halal Food Scanner', desc: 'Scan barcodes & photos to check Halal, Haram or Mashbooh instantly', icon: '📷', gradient: 'linear-gradient(135deg, #071a0d, #0a3d1a)', accent: '#4ade80' },
   { href: '/zakat', badge: '💰 Finance', title: 'Zakat Calculator', desc: 'Calculate your annual Zakat with precision', icon: '💰', gradient: 'linear-gradient(135deg, #0a1f0a, #0d3d1a)', accent: '#4ade80' },
   { href: '/prayer-times', badge: '🕐 Daily', title: 'Prayer Times', desc: 'Accurate salah times for your location', icon: '🕐', gradient: 'linear-gradient(135deg, #0a0a2e, #1a1a5c)', accent: '#818cf8' },
   { href: '/qibla', badge: '🧭 Travel', title: 'Qibla Finder', desc: 'Find the direction of Mecca instantly', icon: '🧭', gradient: 'linear-gradient(135deg, #1a1000, #3d2800)', accent: '#fbbf24' },
@@ -291,6 +294,8 @@ const TOOLS_DATA = (t: TranslationsType) => [
       { name: 'Hijri Calendar', desc: 'Islamic date converter', icon: '🌙', href: '/hijri', color: 'bg-purple-100 text-purple-700' },
       { name: 'Quran Reader', desc: 'Read with translation', icon: '📖', href: '/quran', color: 'bg-green-100 text-green-700' },
       { name: 'Dhikr Counter', desc: 'Digital tasbih', icon: '📿', href: '/dhikr', color: 'bg-teal-100 text-teal-700' },
+      // ✅ NEW — HalalScan added to Most Used
+      { name: 'HalalScan', desc: 'Check if food is Halal', icon: '📷', href: '/halal-scanner', color: 'bg-lime-100 text-lime-700' },
     ],
   },
   {
@@ -323,6 +328,8 @@ const TOOLS_DATA = (t: TranslationsType) => [
       { name: 'Islamic Names', desc: 'Name meanings', icon: '✏️', href: '/names-finder', color: 'bg-violet-100 text-violet-700' },
       { name: 'Islamic Events', desc: 'Eid & Ramadan dates', icon: '🗓️', href: '/eid', color: 'bg-amber-100 text-amber-700' },
       { name: 'Eid ul Adha Toolkit', desc: 'Qurbani, takbeer & more', icon: '🐄', href: '/eid-adha', color: 'bg-lime-100 text-lime-700' },
+      // ✅ NEW — HalalScan also in Travel & Knowledge (food when abroad)
+      { name: 'HalalScan', desc: 'Scan food abroad', icon: '📷', href: '/halal-scanner', color: 'bg-green-100 text-green-700' },
     ],
   },
   {
@@ -851,19 +858,10 @@ export default function Home() {
           <div className="relative z-10 px-4 pt-3 pb-8 max-w-6xl mx-auto">
             {/* ── TOP NAV BAR ── */}
             <div className="flex items-center justify-between mb-6" dir="ltr">
-
               <div className="flex items-center gap-1">
                 <Link href="/" aria-label="I Love Islam — Home" className="flex-shrink-0 mr-1 hover:opacity-80 transition-opacity">
-                  <Image
-                    src="/logo2.png"
-                    alt="I Love Islam"
-                    width={52}
-                    height={52}
-                    className="rounded-xl"
-                    priority
-                  />
+                  <Image src="/logo2.png" alt="I Love Islam" width={52} height={52} className="rounded-xl" priority />
                 </Link>
-
                 {[
                   { href: '/about', label: t.about },
                   { href: '/blog', label: t.blog },
@@ -966,7 +964,7 @@ export default function Home() {
                     {totalResults === 0 ? (
                       <p className="text-white/50 text-xs">
                         No matches for <span className="text-white font-medium">"{search}"</span>
-                        <span className="block text-white/25 text-[10px] mt-0.5">Try: zakat · prayer · quran · qibla · dhikr · kids · eid · night · alarm</span>
+                        <span className="block text-white/25 text-[10px] mt-0.5">Try: zakat · prayer · quran · qibla · dhikr · kids · eid · halal · scanner</span>
                       </p>
                     ) : (
                       <p className="text-white/50 text-xs">
@@ -989,6 +987,28 @@ export default function Home() {
 
               {!isSearching && <QuoteOfTheDay />}
               {!isSearching && <FeaturedBanner />}
+
+              {/* ✅ NEW — HalalScan highlight strip (shows below featured banner) */}
+              {!isSearching && (
+                <Link
+                  href="/halal-scanner"
+                  onClick={() => { trackToolClick('HalalScan Strip'); ScrollManager.save(); }}
+                  className="group flex items-center gap-3 mb-4 rounded-2xl border border-emerald-800/40 bg-gradient-to-r from-emerald-950/60 to-green-950/40 px-4 py-3 hover:border-emerald-500/60 hover:shadow-lg hover:shadow-emerald-900/20 transition-all duration-200"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-emerald-800/40 border border-emerald-600/30 flex items-center justify-center text-lg flex-shrink-0">
+                    📷
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-emerald-300 font-semibold text-sm leading-tight">
+                      🆕 HalalScan is live!
+                    </p>
+                    <p className="text-emerald-200/50 text-xs truncate">
+                      Scan any barcode, QR code or photo — instantly know if it's Halal, Haram or Mashbooh
+                    </p>
+                  </div>
+                  <span className="text-emerald-400 text-sm group-hover:translate-x-1 transition-transform flex-shrink-0">→</span>
+                </Link>
+              )}
 
               {!isSearching && (
                 <CategoryTabs
@@ -1043,7 +1063,7 @@ export default function Home() {
 
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                     {section.items.map(tool => (
-                      <ToolCard key={tool.name} tool={tool} />
+                      <ToolCard key={tool.name + tool.href} tool={tool} />
                     ))}
                   </div>
                 </div>
@@ -1080,6 +1100,7 @@ export default function Home() {
                   <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-3">⭐ Popular Tools</p>
                   <div className="space-y-0.5">
                     {[
+                      { label: '📷 HalalScan', href: '/halal-scanner', desc: 'Halal food checker' },
                       { label: '💰 Zakat Calculator', href: '/zakat', desc: 'Calculate your annual zakat' },
                       { label: '🕐 Prayer Times', href: '/prayer-times', desc: 'Daily salah times' },
                       { label: '🧭 Qibla Finder', href: '/qibla', desc: 'Find Mecca direction' },
@@ -1111,13 +1132,7 @@ export default function Home() {
           <div className="max-w-6xl mx-auto px-4 py-6">
             <div className="text-center mb-4">
               <Link href="/" aria-label="I Love Islam — Home" className="inline-block hover:opacity-80 transition-opacity">
-                <Image
-                  src="/logo.png"
-                  alt="I Love Islam"
-                  width={72}
-                  height={72}
-                  className="rounded-2xl mx-auto"
-                />
+                <Image src="/logo.png" alt="I Love Islam" width={72} height={72} className="rounded-2xl mx-auto" />
               </Link>
               <p className="text-emerald-700 dark:text-emerald-500 text-base mt-2" style={{ fontFamily: 'serif' }}>بسم الله الرحمن الرحيم</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t.footerMade} · {t.footerFree}</p>
@@ -1131,6 +1146,7 @@ export default function Home() {
                 { href: '/privacy', label: t.privacy },
                 { href: '/terms', label: t.terms },
                 { href: '/contact', label: t.contact },
+                { href: '/halal-scanner', label: '📷 HalalScan' },
               ].map(link => (
                 <Link
                   key={link.href}
