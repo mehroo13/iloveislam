@@ -33,7 +33,7 @@ export default function HalalScanner() {
   const [error, setError] = useState<string | null>(null);
   const [scannerActive, setScannerActive] = useState(true);
 
-  const processAnalysis = (product: any, productName: string, ingredientsText: string) => {
+  const processAnalysis = (productData: any, productName: string, ingredientsText: string) => {
     const ingredientsList = ingredientsText
       ? ingredientsText.split(/[,;]+/).map(i => i.trim()).filter(Boolean)
       : [];
@@ -65,14 +65,18 @@ export default function HalalScanner() {
     setScannerActive(false);
 
     try {
-      const product = await lookupByBarcode(barcode);
-      
-      if (!product) {
-        setError("Product not found. Try manual search or photo upload.");
+      const lookupResult = await lookupByBarcode(barcode);
+
+      if (!lookupResult.found || !lookupResult.product) {
+        setError("Product not found in Open Food Facts database.");
         return;
       }
 
-      const productName = product.product_name || product.product_name_en || "Unknown Product";
+      const product = lookupResult.product;
+      const productName = product.product_name || 
+                         product.product_name_en || 
+                         "Unknown Product";
+      
       const ingredientsText = product.ingredients_text || "";
 
       processAnalysis(product, productName, ingredientsText);
