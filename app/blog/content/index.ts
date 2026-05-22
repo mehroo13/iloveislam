@@ -30,6 +30,8 @@ import { laylatulQadrArticle } from './laylatul-qadr';
 import { tahajjudArticle } from './tahajjud-prayer';
 import { islamicNewYearArticle } from './islamic-new-year-muharram';
 import { halalScannerArticle } from './halal-scanner-guide';
+import { readingFoodLabelsArticle } from './reading-food-labels';
+import { halalTravelEssentialsArticle } from './halal-travel-essentials';
 
 // ==================== ARTICLE TYPE ====================
 export interface BlogArticle {
@@ -75,6 +77,8 @@ export const allArticles: BlogArticle[] = [
   laylatulQadrArticle,
   tahajjudArticle,
   islamicNewYearArticle,
+  readingFoodLabelsArticle,
+  halalTravelEssentialsArticle,
   halalScannerArticle,
 ];
 
