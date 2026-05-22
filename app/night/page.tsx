@@ -297,43 +297,28 @@ export default function NightPage() {
   }, []);
 
   // ─── Build queue and start ────────────────────────────────────────────────────
-  const startPlayback = useCallback(
-    (
-      overrideMode?: PlayMode,
-      overrideSurahId?: string,
-      overrideSingleRepeats?: number,
-      overrideComboOrder?: string[],
-      overrideComboRepeats?: Record<string, number>
-    ) => {
-      const m = overrideMode ?? mode;
-      const sid = overrideSurahId ?? selectedSurahId;
-      const sr = overrideSingleRepeats ?? singleRepeats;
-      const co = overrideComboOrder ?? comboOrder;
-      const cr = overrideComboRepeats ?? comboRepeats;
+  const startPlayback = useCallback(() => {
+    let q: QueueItem[];
+    if (mode === "single") {
+      q = [{ surahId: selectedSurahId, totalRepeats: singleRepeats }];
+    } else {
+      if (comboOrder.length === 0) return;
+      q = comboOrder.map((id) => ({ surahId: id, totalRepeats: comboRepeats[id] ?? 1 }));
+    }
 
-      let q: QueueItem[];
-      if (m === "single") {
-        q = [{ surahId: sid, totalRepeats: sr }];
-      } else {
-        if (co.length === 0) return;
-        q = co.map((id) => ({ surahId: id, totalRepeats: cr[id] ?? 1 }));
-      }
+    // Reset all refs first
+    queueRef.current = q;
+    currentIdxRef.current = 0;
+    currentRepeatRef.current = 1;
 
-      // Reset all refs first
-      queueRef.current = q;
-      currentIdxRef.current = 0;
-      currentRepeatRef.current = 1;
+    setCurrentIdx(0);
+    setCurrentRepeat(1);
+    setTotalRepeats(q[0].totalRepeats);
+    setProgress(0);
+    setDuration(0);
 
-      setCurrentIdx(0);
-      setCurrentRepeat(1);
-      setTotalRepeats(q[0].totalRepeats);
-      setProgress(0);
-      setDuration(0);
-
-      loadAndPlayRef.current(q[0].surahId);
-    },
-    [mode, selectedSurahId, singleRepeats, comboOrder, comboRepeats]
-  );
+    loadAndPlayRef.current(q[0].surahId);
+  }, [mode, selectedSurahId, singleRepeats, comboOrder, comboRepeats]);
 
   const stopPlayback = useCallback(() => {
     if (audioRef.current) {
@@ -1228,10 +1213,10 @@ export default function NightPage() {
             {/* Play / Pause */}
             <button
               className="btn-glow"
-              onClick={
+              onClick={() =>
                 status === "idle" || status === "done"
-                  ? startPlayback
-                  : togglePause
+                  ? startPlayback()
+                  : togglePause()
               }
               disabled={
                 mode === "combo" &&
@@ -1325,6 +1310,7 @@ export default function NightPage() {
             {/* Restart */}
             <button
               onClick={() => startPlayback()}
+              // restart always calls with no overrides
               title="Restart"
               style={{
                 width: 42,
