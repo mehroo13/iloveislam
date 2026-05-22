@@ -591,7 +591,7 @@ export default function NightPage() {
 
         {/* ── Back button ──────────────────────────────────────────────────── */}
         <div style={{ marginBottom: "1.25rem" }}>
-          <Link href="/tools" style={{
+          <Link href="/" style={{
             display: "inline-flex", alignItems: "center", gap: "0.4rem",
             color: "#3a6a7a", fontFamily: "sans-serif", fontSize: "0.78rem",
             textDecoration: "none", letterSpacing: "0.04em",
