@@ -1,8 +1,5 @@
 'use client';
 
-// app/halal-scanner/components/ImageUploader.tsx
-// Upload a photo of a product label — uses Tesseract.js (free, local OCR) to extract ingredients
-
 import { useRef, useState, useCallback } from 'react';
 import Tesseract from 'tesseract.js';
 
@@ -17,81 +14,152 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
   const [dragOver, setDragOver] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number>(0);
 
-  const processImage = useCallback(
-    async (file: File) => {
-      if (!file.type.startsWith('image/')) {
-        setError('Please upload an image file (JPG, PNG, WEBP, etc.)');
-        return;
-      }
+  // Preprocess image for better OCR (contrast + grayscale)
+  const preprocessImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
 
-      if (file.size > 10 * 1024 * 1024) {
-        setError('Image too large. Please use an image under 10MB.');
-        return;
-      }
+      img.onload = () => {
+        // Resize for faster OCR while keeping readability
+        const maxWidth = 1200;
+        let { width, height } = img;
 
-      setError(null);
-      onLoading(true);
-
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => setPreview(e.target?.result as string);
-      reader.readAsDataURL(file);
-
-      try {
-        // Use Tesseract.js to extract text from image (runs locally, free)
-        const {
-          data: { text },
-        } = await Tesseract.recognize(file, 'eng', {
-          logger: (m) => console.log(m), // optional, shows progress
-        });
-
-        console.log('Extracted text:', text);
-
-        // Parse extracted text to find ingredients
-        let ingredients: string[] = [];
-        const lowerText = text.toLowerCase();
-
-        // Look for "ingredients:" marker
-        const ingredientsMatch = lowerText.match(/ingredients?:?\s*([^.]+(?:[.][^.]+)*)/i);
-        if (ingredientsMatch) {
-          const ingredientsPart = ingredientsMatch[1];
-          ingredients = ingredientsPart
-            .split(/[,;]+/)
-            .map((i) => i.trim())
-            .filter((i) => i.length > 1 && !i.includes('contains') && !i.includes('allergy'));
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
         }
 
-        // Fallback: split entire text by common separators
-        if (ingredients.length === 0) {
-          ingredients = text
-            .split(/[\n,;]+/)
-            .map((i) => i.trim().toLowerCase())
-            .filter((i) => i.length > 1 && !i.includes('ingredients') && !i.includes('nutrition'));
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Get image data for enhancement
+        const imageData = ctx.getImageData(0, 0, width, height);
+        const data = imageData.data;
+
+        // Enhance contrast + convert to grayscale with sharpening
+        for (let i = 0; i < data.length; i += 4) {
+          const gray = data[i] * 0.3 + data[i + 1] * 0.59 + data[i + 2] * 0.11;
+          const contrast = Math.min(255, Math.max(0, (gray - 128) * 1.4 + 128)); // strong contrast
+
+          data[i] = data[i + 1] = data[i + 2] = contrast;
         }
 
-        // Remove common noise words
-        const noiseWords = ['product', 'information', 'distributed', 'by', 'keep', 'store', 'refrigerate', 'allergy', 'contains', 'may contain', 'net wt', 'net weight', 'serving', 'calories'];
-        ingredients = ingredients.filter(
-          (i) => !noiseWords.some((noise) => i.includes(noise)) && i.length > 1
-        );
+        ctx.putImageData(imageData, 0, 0);
+        resolve(canvas.toDataURL('image/jpeg', 0.95));
+      };
 
-        // If still empty, provide a fallback message
-        if (ingredients.length === 0) {
-          ingredients = ['No ingredients could be extracted. Please check the image clarity or enter ingredients manually.'];
-        }
+      img.src = URL.createObjectURL(file);
+    });
+  };
 
-        const imageUrl = URL.createObjectURL(file);
-        onIngredients(ingredients, imageUrl);
-      } catch (err: any) {
-        console.error(err);
-        setError('Failed to extract text from image. Please try a clearer photo or enter ingredients manually.');
-        onLoading(false);
+  const processImage = useCallback(async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload an image file');
+      return;
+    }
+
+    if (file.size > 12 * 1024 * 1024) {
+      setError('Image too large. Max 12MB recommended.');
+      return;
+    }
+
+    setError(null);
+    setProgress(0);
+    onLoading(true);
+
+    const imageUrl = URL.createObjectURL(file);
+    setPreview(imageUrl);
+
+    try {
+      const processedImageUrl = await preprocessImage(file);
+
+      const result = await Tesseract.recognize(processedImageUrl, 'eng', {
+        logger: (m) => {
+          if (m.status === 'recognizing text') {
+            setProgress(Math.round(m.progress * 100));
+          }
+          console.log(m);
+        },
+        // Optimized settings for product labels
+        tessedit_pageseg_mode: '6',        // Assume uniform block of text
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,:;()/-% ',
+        preserve_interword_spaces: '1',
+      });
+
+      console.log('Raw OCR:', result.data.text);
+
+      const ingredients = parseIngredients(result.data.text);
+
+      onIngredients(ingredients, imageUrl);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to read text. Try a clearer, well-lit photo.');
+      onLoading(false);
+    }
+  }, [onIngredients, onLoading]);
+
+  // Improved parsing logic
+  const parseIngredients = (text: string): string[] => {
+    if (!text || text.trim().length < 10) {
+      return ['Could not extract ingredients. Please try again or enter manually.'];
+    }
+
+    const lowerText = text.toLowerCase();
+    let ingredientsPart = '';
+
+    // Multiple strategies to find ingredients
+    const patterns = [
+      /ingredients[:\s]*(.+?)(?=\n\n|\n[A-Z][A-Z]|nutrition|allergen|contains|storage|directions)/is,
+      /ingr[ée]dients?[:\s]*(.+?)(?=\n\n|\n[A-Z]{3,})/is,
+      /contains[:\s]*(.+?)(?=\n\n|\n[A-Z])/is,
+    ];
+
+    for (const pattern of patterns) {
+      const match = lowerText.match(pattern);
+      if (match && match[1]) {
+        ingredientsPart = match[1];
+        break;
       }
-    },
-    [onIngredients, onLoading]
-  );
+    }
 
+    // Fallback: whole text
+    if (!ingredientsPart) ingredientsPart = text;
+
+    let ingredients = ingredientsPart
+      .split(/[,;•\n]+/)
+      .map((item) => item.trim())
+      .filter((item) => item.length > 2);
+
+    // Clean noise
+    const noise = [
+      'nutrition', 'facts', 'information', 'distributed', 'manufactured',
+      'storage', 'keep', 'refrigerate', 'allergen', 'warning', 'net weight',
+      'serving size', 'calories', 'protein', 'carbohydrate', 'fat', 'sodium'
+    ];
+
+    ingredients = ingredients
+      .filter((item) => {
+        const lower = item.toLowerCase();
+        return !noise.some((n) => lower.includes(n)) && 
+               !/^\d/.test(lower) && // remove lines starting with numbers
+               item.length > 3;
+      })
+      .map((item) => item.replace(/^\W+|\W+$/g, '')); // clean edges
+
+    // Remove duplicates
+    ingredients = [...new Set(ingredients)];
+
+    return ingredients.length > 0 
+      ? ingredients 
+      : ['No ingredients detected. Please try a clearer photo or manual entry.'];
+  };
+
+  // Drag & Drop, Paste, Click handlers (same as before)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) processImage(file);
@@ -120,19 +188,16 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
 
   return (
     <div className="w-full" onPaste={handlePaste}>
-      {/* Drop zone */}
       <div
         onClick={() => !isLoading && fileInputRef.current?.click()}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={() => setDragOver(false)}
         className={`
-          relative w-full rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-200
-          ${dragOver
-            ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
-            : 'border-emerald-200 dark:border-emerald-700 hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10'
-          }
-          ${isLoading ? 'opacity-60 cursor-not-allowed' : ''}
+          relative w-full rounded-3xl border-2 border-dashed cursor-pointer transition-all
+          ${dragOver ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30' : 
+            'border-emerald-200 dark:border-emerald-700 hover:border-emerald-400'}
+          ${isLoading ? 'opacity-75 cursor-not-allowed' : ''}
         `}
       >
         <input
@@ -146,17 +211,17 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
         />
 
         {preview ? (
-          /* Preview state */
           <div className="relative">
             <img
               src={preview}
-              alt="Product label preview"
-              className="w-full max-h-64 object-contain rounded-2xl"
+              alt="Preview"
+              className="w-full max-h-80 object-contain rounded-3xl"
             />
             {isLoading && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 rounded-2xl">
-                <div className="w-10 h-10 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mb-3" />
-                <p className="text-white text-sm font-semibold">Reading ingredients from image...</p>
+              <div className="absolute inset-0 bg-black/60 rounded-3xl flex flex-col items-center justify-center">
+                <div className="w-12 h-12 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mb-4" />
+                <p className="text-white font-medium">Analyzing label...</p>
+                <p className="text-emerald-300 text-sm mt-1">{progress}%</p>
               </div>
             )}
             {!isLoading && (
@@ -164,57 +229,40 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
                 onClick={(e) => {
                   e.stopPropagation();
                   setPreview(null);
+                  setError(null);
                   if (fileInputRef.current) fileInputRef.current.value = '';
                 }}
-                className="absolute top-2 right-2 w-8 h-8 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center text-sm transition-colors"
+                className="absolute top-3 right-3 bg-black/70 hover:bg-black text-white w-9 h-9 rounded-full flex items-center justify-center text-xl"
               >
                 ✕
               </button>
             )}
           </div>
         ) : (
-          /* Upload prompt */
-          <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
-            <div className="text-5xl mb-4">📸</div>
-            <p className="text-emerald-800 dark:text-emerald-200 font-semibold text-lg mb-1">
-              Take a photo or upload an image
+          <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+            <div className="text-6xl mb-6">📸</div>
+            <p className="text-xl font-semibold text-emerald-800 dark:text-emerald-100 mb-2">
+              Scan Product Label
             </p>
-            <p className="text-emerald-600/70 dark:text-emerald-400/70 text-sm mb-4">
-              Point at the ingredients list on the packaging
+            <p className="text-emerald-600 dark:text-emerald-400 mb-6">
+              Take a clear photo of the ingredients list
             </p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-800/40 text-emerald-700 dark:text-emerald-300 text-xs rounded-full font-medium">
-                📱 Camera
-              </span>
-              <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-800/40 text-emerald-700 dark:text-emerald-300 text-xs rounded-full font-medium">
-                🖼️ Gallery
-              </span>
-              <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-800/40 text-emerald-700 dark:text-emerald-300 text-xs rounded-full font-medium">
-                📋 Paste (Ctrl+V)
-              </span>
-              <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-800/40 text-emerald-700 dark:text-emerald-300 text-xs rounded-full font-medium">
-                🖱️ Drag & Drop
-              </span>
-            </div>
           </div>
         )}
       </div>
 
-      {/* Error message */}
       {error && (
-        <div className="mt-3 flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-xl">
-          <span className="text-red-500 text-lg">⚠️</span>
-          <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+        <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl text-red-700 dark:text-red-400">
+          {error}
         </div>
       )}
 
-      {/* Tips */}
-      <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-700/30 rounded-xl">
-        <p className="text-amber-700 dark:text-amber-400 text-xs font-semibold mb-1">📌 Tips for best results:</p>
-        <ul className="text-amber-600 dark:text-amber-500 text-xs space-y-0.5 list-disc list-inside">
-          <li>Make sure the ingredients text is clearly visible and in focus</li>
-          <li>Avoid shadows or glare on the label</li>
-          <li>Include the full ingredients list in the photo</li>
+      <div className="mt-5 text-xs text-amber-600 dark:text-amber-500 space-y-1">
+        <p className="font-semibold">💡 Tips for best results:</p>
+        <ul className="list-disc list-inside space-y-0.5">
+          <li>Use good lighting and avoid glare</li>
+          <li>Keep the ingredients list straight and in focus</li>
+          <li>Fill most of the frame with the label</li>
         </ul>
       </div>
     </div>
