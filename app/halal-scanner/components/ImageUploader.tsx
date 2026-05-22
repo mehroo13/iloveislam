@@ -1,9 +1,10 @@
 'use client';
 
 // app/halal-scanner/components/ImageUploader.tsx
-// Upload a photo of a product label — AI reads ingredients via Claude Vision
+// Upload a photo of a product label — uses Tesseract.js (free, local OCR) to extract ingredients
 
 import { useRef, useState, useCallback } from 'react';
+import Tesseract from 'tesseract.js';
 
 interface ImageUploaderProps {
   onIngredients: (ingredients: string[], imageUrl: string) => void;
@@ -38,32 +39,53 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
       reader.readAsDataURL(file);
 
       try {
-        // Convert to base64 for Claude API
-        const base64 = await fileToBase64(file);
-        const mediaType = file.type as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
-
-        // Call Claude Vision API to extract ingredients
-        const response = await fetch('/api/scan-image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: base64, mediaType }),
+        // Use Tesseract.js to extract text from image (runs locally, free)
+        const {
+          data: { text },
+        } = await Tesseract.recognize(file, 'eng', {
+          logger: (m) => console.log(m), // optional, shows progress
         });
 
-        if (!response.ok) {
-          throw new Error(`API error ${response.status}`);
+        console.log('Extracted text:', text);
+
+        // Parse extracted text to find ingredients
+        let ingredients: string[] = [];
+        const lowerText = text.toLowerCase();
+
+        // Look for "ingredients:" marker
+        const ingredientsMatch = lowerText.match(/ingredients?:?\s*([^.]+(?:[.][^.]+)*)/i);
+        if (ingredientsMatch) {
+          const ingredientsPart = ingredientsMatch[1];
+          ingredients = ingredientsPart
+            .split(/[,;]+/)
+            .map((i) => i.trim())
+            .filter((i) => i.length > 1 && !i.includes('contains') && !i.includes('allergy'));
         }
 
-        const data = await response.json();
-        const ingredients: string[] = data.ingredients || [];
-        const imageUrl = URL.createObjectURL(file);
+        // Fallback: split entire text by common separators
+        if (ingredients.length === 0) {
+          ingredients = text
+            .split(/[\n,;]+/)
+            .map((i) => i.trim().toLowerCase())
+            .filter((i) => i.length > 1 && !i.includes('ingredients') && !i.includes('nutrition'));
+        }
 
+        // Remove common noise words
+        const noiseWords = ['product', 'information', 'distributed', 'by', 'keep', 'store', 'refrigerate', 'allergy', 'contains', 'may contain', 'net wt', 'net weight', 'serving', 'calories'];
+        ingredients = ingredients.filter(
+          (i) => !noiseWords.some((noise) => i.includes(noise)) && i.length > 1
+        );
+
+        // If still empty, provide a fallback message
+        if (ingredients.length === 0) {
+          ingredients = ['No ingredients could be extracted. Please check the image clarity or enter ingredients manually.'];
+        }
+
+        const imageUrl = URL.createObjectURL(file);
         onIngredients(ingredients, imageUrl);
       } catch (err: any) {
-        setError(
-          err.message.includes('API error')
-            ? 'Failed to analyse image. Please try again.'
-            : 'Network error. Check your connection and try again.'
-        );
+        console.error(err);
+        setError('Failed to extract text from image. Please try a clearer photo or enter ingredients manually.');
         onLoading(false);
       }
     },
@@ -134,7 +156,7 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
             {isLoading && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 rounded-2xl">
                 <div className="w-10 h-10 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mb-3" />
-                <p className="text-white text-sm font-semibold">Analysing ingredients with AI...</p>
+                <p className="text-white text-sm font-semibold">Reading ingredients from image...</p>
               </div>
             )}
             {!isLoading && (
@@ -197,17 +219,4 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
       </div>
     </div>
   );
-}
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      // Remove data:image/...;base64, prefix
-      resolve(result.split(',')[1]);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 }
