@@ -44,7 +44,7 @@ export default function HalalScanner() {
         return;
       }
       const productName = product.product?.product_name || "Unknown Product";
-      const analysis = await analyzeIngredients(product.ingredients.join(", "), productName);
+      const analysis = await analyzeIngredients(product.ingredients, productName);
       const scanResult: ScanResult = {
         productName,
         verdict: analysis.verdict,
