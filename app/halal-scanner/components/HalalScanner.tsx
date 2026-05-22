@@ -33,6 +33,12 @@ export default function HalalScanner() {
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
 
+  const confidenceToNumber = (c: "high" | "medium" | "low"): number => {
+    if (c === "high") return 95;
+    if (c === "medium") return 70;
+    return 40;
+  };
+
   const handleBarcodeScan = async (barcode: string) => {
     setLoading(true);
     setError(null);
@@ -44,14 +50,18 @@ export default function HalalScanner() {
         return;
       }
       const productName = product.product?.product_name || "Unknown Product";
-      const analysis = await analyzeIngredients(product.ingredients, productName);
+      const analysis = analyzeIngredients(product.ingredients, []);
       const scanResult: ScanResult = {
         productName,
-        verdict: analysis.verdict,
-        confidence: analysis.confidence,
-        ingredients: analysis.ingredients,
-        certifications: [],
-        notes: analysis.notes,
+        verdict: analysis.verdict ?? "unknown",
+        confidence: confidenceToNumber(analysis.confidence),
+        ingredients: analysis.ingredientResults.map((r) => ({
+          name: r.original,
+          status: r.status ?? "unknown",
+          reason: r.matched?.reason,
+        })),
+        certifications: analysis.certifications ?? [],
+        notes: analysis.summary,
         scannedAt: new Date().toISOString(),
       };
       setResult(scanResult);
@@ -69,13 +79,18 @@ export default function HalalScanner() {
     setError(null);
     setResult(null);
     try {
-      const analysis = await analyzeIngredients(ingredientsText, productName || "Scanned Product");
+      const ingredientsList = ingredientsText.split(",").map((s) => s.trim()).filter(Boolean);
+      const analysis = analyzeIngredients(ingredientsList, []);
       const scanResult: ScanResult = {
         productName: productName || "Scanned Product",
-        verdict: analysis.verdict,
-        confidence: analysis.confidence,
-        ingredients: analysis.ingredients,
-        notes: analysis.notes,
+        verdict: analysis.verdict ?? "unknown",
+        confidence: confidenceToNumber(analysis.confidence),
+        ingredients: analysis.ingredientResults.map((r) => ({
+          name: r.original,
+          status: r.status ?? "unknown",
+          reason: r.matched?.reason,
+        })),
+        notes: analysis.summary,
         scannedAt: new Date().toISOString(),
       };
       setResult(scanResult);
@@ -93,13 +108,18 @@ export default function HalalScanner() {
     setError(null);
     setResult(null);
     try {
-      const analysis = await analyzeIngredients(query, query);
+      const ingredientsList = query.split(",").map((s) => s.trim()).filter(Boolean);
+      const analysis = analyzeIngredients(ingredientsList, []);
       const scanResult: ScanResult = {
         productName: query,
-        verdict: analysis.verdict,
-        confidence: analysis.confidence,
-        ingredients: analysis.ingredients,
-        notes: analysis.notes,
+        verdict: analysis.verdict ?? "unknown",
+        confidence: confidenceToNumber(analysis.confidence),
+        ingredients: analysis.ingredientResults.map((r) => ({
+          name: r.original,
+          status: r.status ?? "unknown",
+          reason: r.matched?.reason,
+        })),
+        notes: analysis.summary,
         scannedAt: new Date().toISOString(),
       };
       setResult(scanResult);
@@ -152,7 +172,7 @@ export default function HalalScanner() {
             Halal<span className="text-green-400">Scan</span>
           </h1>
           <p className="text-green-200/70 text-lg max-w-xl mx-auto">
-            Scan any product — know instantly if it's <span className="text-emerald-400 font-semibold">Halal</span>,{" "}
+            Scan any product — know instantly if it&apos;s <span className="text-emerald-400 font-semibold">Halal</span>,{" "}
             <span className="text-red-400 font-semibold">Haram</span>, or{" "}
             <span className="text-amber-400 font-semibold">Mashbooh</span>
           </p>
