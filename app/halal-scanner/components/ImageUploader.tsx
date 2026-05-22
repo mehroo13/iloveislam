@@ -20,7 +20,7 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualText, setManualText] = useState('');
 
-  // Preprocessing (best version)
+  // Preprocessing
   const preprocessImage = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -61,9 +61,13 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
     if (!rawText?.trim()) return [];
 
     let text = rawText.toLowerCase();
-    const match = text.match(/ingredients?[:\s]*(.+?)(?=nutrition|allergen|contains|storage|directions|net weight|\n\n|$)/is);
+
+    // Fixed regex - compatible with older TypeScript targets
+    const match = text.match(/ingredients?[:\s]*([\s\S]+?)(?=nutrition|allergen|contains|storage|directions|net weight|\n\n|$)/i);
     
-    if (match?.[1]) text = match[1];
+    if (match?.[1]) {
+      text = match[1];
+    }
 
     const items = text
       .split(/[,;•\n]+/)
@@ -125,17 +129,16 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
     }
   }, [onIngredients, onLoading]);
 
-  // Manual Submit Handler
   const handleManualSubmit = () => {
     if (!manualText.trim()) {
-      setError('Please enter ingredients');
+      setError('Please enter some ingredients');
       return;
     }
 
     const ingredients = parseIngredientsFromText(manualText);
     
     if (ingredients.length === 0) {
-      setError('No valid ingredients detected. Please check your input.');
+      setError('No valid ingredients found. Please check your input.');
       return;
     }
 
@@ -145,7 +148,6 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
     setError(null);
   };
 
-  // File handlers
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) processImage(file);
@@ -173,7 +175,6 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
 
   return (
     <div className="w-full" onPaste={handlePaste}>
-      {/* Main Upload Area */}
       {!showManualInput && (
         <div
           onClick={() => !isLoading && fileInputRef.current?.click()}
@@ -235,14 +236,14 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
         </div>
       )}
 
-      {/* Manual Input Mode */}
+      {/* Manual Input */}
       {showManualInput && (
         <div className="bg-white dark:bg-zinc-900 border border-emerald-200 dark:border-emerald-700 rounded-3xl p-6">
           <h3 className="font-semibold text-lg mb-4">Enter Ingredients Manually</h3>
           <textarea
             value={manualText}
             onChange={(e) => setManualText(e.target.value)}
-            placeholder="Paste or type ingredients here...&#10;Example: Water, Sugar, Palm Oil, Salt, Flavours..."
+            placeholder="Paste or type ingredients here...&#10;Example: Water, Sugar, Palm Oil, Salt, Natural Flavours..."
             className="w-full h-48 p-4 border border-gray-300 dark:border-zinc-700 rounded-2xl resize-y focus:outline-none focus:border-emerald-500 font-mono text-sm"
           />
           
@@ -278,8 +279,8 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
         <p className="font-semibold mb-1">💡 Tips:</p>
         <ul className="list-disc list-inside space-y-0.5">
           <li>Good lighting and no glare for best OCR results</li>
-          <li>Keep the label straight and fill the frame</li>
-          <li>Use manual entry if OCR fails</li>
+          <li>Keep label straight and close to camera</li>
+          <li>Use manual entry if the photo doesn't work</li>
         </ul>
       </div>
     </div>
