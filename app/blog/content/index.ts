@@ -29,6 +29,7 @@ import { nightRecitationArticle } from './night-recitation-tool';
 import { laylatulQadrArticle } from './laylatul-qadr';
 import { tahajjudArticle } from './tahajjud-prayer';
 import { islamicNewYearArticle } from './islamic-new-year-muharram';
+import { halalScannerArticle } from './halal-scanner-guide';
 
 // ==================== ARTICLE TYPE ====================
 export interface BlogArticle {
@@ -74,6 +75,7 @@ export const allArticles: BlogArticle[] = [
   laylatulQadrArticle,
   tahajjudArticle,
   islamicNewYearArticle,
+  halalScannerArticle,
 ];
 
 // ==================== ARTICLE MAP ====================
