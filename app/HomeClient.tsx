@@ -669,7 +669,7 @@ export default function HomeClient() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300" dir={isRTL ? 'rtl' : 'ltr'}>
 
         {/* ==================== HEADER ==================== */}
-        <header className="relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #071e14 0%, #0a3d2e 60%, #0d5238 100%)' }}>
+        <header className="relative overflow-visible" style={{ background: 'linear-gradient(160deg, #071e14 0%, #0a3d2e 60%, #0d5238 100%)' }}>
           <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
             <div className="absolute top-0 left-0 w-48 h-48 rounded-full opacity-[0.04]" style={{ background: 'radial-gradient(circle, #c8a96e 0%, transparent 70%)', transform: 'translate(-30%, -30%)' }} />
             <div className="absolute bottom-0 right-0 w-64 h-64 rounded-full opacity-[0.04]" style={{ background: 'radial-gradient(circle, #c8a96e 0%, transparent 70%)', transform: 'translate(30%, 30%)' }} />
@@ -706,7 +706,7 @@ export default function HomeClient() {
                     <span className="text-white/35 text-[10px]">▾</span>
                   </button>
                   {showLangMenu && (
-                    <div ref={langMenuRef} className="absolute top-10 right-0 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 w-44 py-1" style={{ maxHeight: 280, overflowY: 'auto' }}>
+                    <div ref={langMenuRef} className="absolute top-10 right-0 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-[999] w-44 py-1" style={{ maxHeight: 320, overflowY: 'auto' }}>
                       {LANGUAGES.map(l => (
                         <button key={l.code} onClick={() => switchLang(l.code)} className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition hover:bg-gray-50 dark:hover:bg-gray-700 ${lang === l.code ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>
                           <span>{l.flag}</span>
