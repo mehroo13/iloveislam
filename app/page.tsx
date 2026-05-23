@@ -225,7 +225,7 @@ const DAILY_QUOTES = [
   { text: "So remember Me; I will remember you.", source: "Quran 2:152", arabic: "فَاذْكُرُونِي أَذْكُرْكُمْ" },
   { text: "Allah does not burden a soul beyond that it can bear.", source: "Quran 2:286", arabic: "لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا" },
   { text: "Verily, the most honoured of you in the sight of Allah is the most righteous.", source: "Quran 49:13", arabic: "إِنَّ أَكْرَمَكُمْ عِندَ اللَّهِ أَتْقَاكُمْ" },
-  { text: "And put your trust in Allah if you are believers.", source: "Quran 5:23", arabic: "وَعَلَى اللَّهِ فَتَوَكَّلُوا إِن كُنتُم مُّؤْمِنِينَ" },
+  { text: "And put your trust in Allah if you are believers.", source: "Quran 5:23", arabic: "وَعَلَى اللَّهِ فَتَوَكَّلُوا إِن كُنتُم مُّؤْمِنِينَ" },
   { text: "The strong person is one who controls himself when angry.", source: "Bukhari & Muslim", arabic: "لَيْسَ الشَّدِيدُ بِالصُّرَعَةِ" },
   { text: "Make things easy and do not make them difficult.", source: "Bukhari", arabic: "يَسِّرُوا وَلَا تُعَسِّرُوا" },
   { text: "The best of people are those who are most beneficial to others.", source: "Al-Mu'jam al-Awsat", arabic: "خَيْرُ النَّاسِ أَنْفَعُهُمْ لِلنَّاسِ" },
@@ -337,9 +337,11 @@ const THEME_KEY = 'iloveislam_theme';
 const LANG_KEY = 'iloveislam_lang';
 const TOOL_CLICKS_KEY = 'iloveislam_tool_clicks';
 
+// ==================== DARK MODE HOOK ====================
 function useDarkMode() {
   const [dark, setDark] = useState(false);
   const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
     setMounted(true);
     const saved = localStorage.getItem(THEME_KEY);
@@ -348,144 +350,806 @@ function useDarkMode() {
     setDark(isDark);
     document.documentElement.classList.toggle('dark', isDark);
   }, []);
+
   const toggle = useCallback(() => {
-    setDark(prev => { const next = !prev; document.documentElement.classList.toggle('dark', next); localStorage.setItem(THEME_KEY, next ? 'dark' : 'light'); return next; });
+    setDark(prev => {
+      const next = !prev;
+      document.documentElement.classList.toggle('dark', next);
+      localStorage.setItem(THEME_KEY, next ? 'dark' : 'light');
+      return next;
+    });
   }, []);
+
   return { dark, toggle, mounted };
 }
 
+// ==================== TRACK TOOL CLICKS ====================
 function trackToolClick(toolName: string) {
   try {
     const clicks = JSON.parse(localStorage.getItem(TOOL_CLICKS_KEY) || '{}');
     clicks[toolName] = (clicks[toolName] || 0) + 1;
     localStorage.setItem(TOOL_CLICKS_KEY, JSON.stringify(clicks));
-    if ((window as any).gtag) {
-      (window as any).gtag('event', 'tool_click', { event_category: 'engagement', event_label: toolName, value: clicks[toolName] });
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', 'tool_click', {
+        event_category: 'engagement',
+        event_label: toolName,
+        value: clicks[toolName],
+      });
     }
   } catch {}
 }
 
-function ScrollManager() { return { save: () => { try { const key = 'scroll_' + window.location.pathname; sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch {} } }; }
+// ==================== SCROLL MANAGER ====================
+const ScrollManager = {
+  save() {
+    try {
+      const key = 'scroll_' + window.location.pathname;
+      sessionStorage.setItem(key, String(Math.round(window.scrollY)));
+    } catch {}
+  },
+};
 
+// ==================== LIVE BAR ====================
 function LiveBar() {
   const [time, setTime] = useState('');
-  useEffect(() => { const tick = () => { const now = new Date(); setTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })); }; tick(); const timer = setInterval(tick, 1000); return () => clearInterval(timer); }, []);
-  return (<div className="flex items-center justify-center gap-3 flex-wrap text-white/45 text-xs mb-4"><span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />{time}</span></div>);
+  const [hijri, setHijri] = useState('');
+  const [gregorian, setGregorian] = useState('');
+
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      setTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      setGregorian(now.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }));
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const fetchHijri = async () => {
+      try {
+        const today = new Date();
+        const res = await fetch(`https://api.aladhan.com/v1/gToH/${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`);
+        const data = await res.json();
+        if (data.code === 200) {
+          const h = data.data.hijri;
+          setHijri(`${h.day} ${h.month.en} ${h.year} AH`);
+        }
+      } catch {}
+    };
+    fetchHijri();
+  }, []);
+
+  return (
+    <div className="flex items-center justify-center gap-3 flex-wrap text-white/45 text-xs mb-4">
+      {time && (
+        <span className="flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+          {time}
+        </span>
+      )}
+      {gregorian && <span>{gregorian}</span>}
+      {hijri && <span className="text-amber-300/70">{hijri}</span>}
+    </div>
+  );
 }
 
-function ToolCard({ tool }: { tool: Tool }) {
-  const handleClick = () => { trackToolClick(tool.name); try { const key = 'scroll_' + window.location.pathname; sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch {} };
+// ==================== QUOTE OF THE DAY ====================
+function QuoteOfTheDay() {
+  const quote = useMemo(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 0);
+    const dayOfYear = Math.floor((now.getTime() - start.getTime()) / 86400000);
+    return DAILY_QUOTES[dayOfYear % DAILY_QUOTES.length];
+  }, []);
+
   return (
-    <Link href={tool.href} onClick={handleClick} className="group bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col items-center text-center active:scale-95">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-2 transition-transform duration-200 group-hover:scale-110 ${tool.color}`}>{tool.icon}</div>
+    <div
+      className="rounded-2xl p-4 mb-5 border relative overflow-hidden"
+      style={{ background: 'linear-gradient(135deg, #071510 0%, #0d2818 100%)', borderColor: 'rgba(200,169,110,0.2)' }}
+    >
+      <div className="absolute -top-4 -right-4 text-[80px] opacity-[0.04] select-none pointer-events-none leading-none">✦</div>
+      <p className="text-[9px] font-bold tracking-[0.2em] uppercase mb-2.5" style={{ color: '#c8a96e' }}>
+        ✨ Verse / Hadith of the Day
+      </p>
+      {quote.arabic && (
+        <p className="text-right text-sm leading-loose mb-2.5 font-medium" style={{ color: '#d4aa6e', direction: 'rtl', fontFamily: 'serif' }}>
+          {quote.arabic}
+        </p>
+      )}
+      <p className="text-white/75 text-[13px] leading-relaxed italic mb-2">"{quote.text}"</p>
+      <p className="text-white/30 text-[10px]">— {quote.source}</p>
+    </div>
+  );
+}
+
+// ==================== NEWSLETTER ====================
+function Newsletter({ t }: { t: TranslationsType }) {
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    setStatus('loading');
+    try {
+      const res = await fetch('https://formspree.io/f/xpqbybvq', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ email, _subject: 'Newsletter Subscription — I Love Islam' }),
+      });
+      if (res.ok) {
+        setStatus('success');
+        setEmail('');
+        setTimeout(() => setStatus('idle'), 4000);
+        if (typeof window !== 'undefined' && (window as any).gtag) {
+          (window as any).gtag('event', 'newsletter_signup', { event_category: 'engagement', event_label: email });
+        }
+      } else {
+        setStatus('error');
+        setTimeout(() => setStatus('idle'), 3000);
+      }
+    } catch {
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 3000);
+    }
+  };
+
+  return (
+    <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/50">
+      <div className="flex items-center gap-2 mb-1">
+        <span>📧</span>
+        <h3 className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{t.newsletterTitle}</h3>
+      </div>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{t.newsletterSubtitle}</p>
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <input
+          type="email" value={email} onChange={e => setEmail(e.target.value)}
+          placeholder={t.newsletterPlaceholder} required
+          className="flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-white text-sm outline-none focus:ring-2 focus:ring-emerald-400"
+        />
+        <button
+          type="submit" disabled={status === 'loading'}
+          className="px-4 py-2 rounded-xl text-white text-sm font-medium disabled:opacity-50 transition-all hover:opacity-90 active:scale-95"
+          style={{ background: '#0a3d2e' }}
+        >
+          {status === 'loading' ? '...' : t.newsletterButton}
+        </button>
+      </form>
+      {status === 'success' && <p className="text-emerald-600 dark:text-emerald-400 text-xs mt-2">✓ JazakAllah Khayran! You're subscribed.</p>}
+      {status === 'error' && <p className="text-red-500 text-xs mt-2">Something went wrong. Please try again.</p>}
+    </div>
+  );
+}
+
+// ==================== TOOL CARD ====================
+function ToolCard({ tool }: { tool: Tool }) {
+  const handleClick = () => {
+    trackToolClick(tool.name);
+    ScrollManager.save();
+  };
+
+  return (
+    <Link
+      href={tool.href}
+      onClick={handleClick}
+      className="group bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col items-center text-center active:scale-95"
+    >
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-2 transition-transform duration-200 group-hover:scale-110 ${tool.color}`}>
+        {tool.icon}
+      </div>
       <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 leading-tight mb-0.5">{tool.name}</p>
       <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-tight">{tool.desc}</p>
     </Link>
   );
 }
 
+// ==================== BACK TO TOP ====================
+function BackToTop() {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > 400);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  if (!visible) return null;
+  return (
+    <button
+      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      className="fixed bottom-6 right-4 z-50 w-10 h-10 rounded-full text-white shadow-xl flex items-center justify-center text-base transition-all hover:scale-110 active:scale-95"
+      style={{ background: 'linear-gradient(135deg, #0a3d2e, #0d5238)' }}
+      aria-label="Back to top"
+    >
+      ↑
+    </button>
+  );
+}
+
+// ==================== DYNAMIC FEATURED BANNER ====================
+function FeaturedBanner() {
+  const dayIndex = useMemo(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 0);
+    return Math.floor((now.getTime() - start.getTime()) / 86400000);
+  }, []);
+
+  const [offset, setOffset] = useState(0);
+  const [animating, setAnimating] = useState(false);
+  const [direction, setDirection] = useState<'left' | 'right'>('left');
+
+  const total = ALL_FEATURED_TOOLS.length;
+  const currentIdx = (dayIndex + offset) % total;
+  const tool = ALL_FEATURED_TOOLS[currentIdx];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      advance('left');
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [offset]);
+
+  const advance = (dir: 'left' | 'right') => {
+    if (animating) return;
+    setDirection(dir);
+    setAnimating(true);
+    setTimeout(() => {
+      setOffset(prev => dir === 'left' ? prev + 1 : prev - 1 + total);
+      setAnimating(false);
+    }, 220);
+  };
+
+  const handleClick = () => {
+    trackToolClick(tool.title);
+    ScrollManager.save();
+  };
+
+  const dotsCount = Math.min(total, 7);
+  const activeDot = currentIdx % dotsCount;
+
+  return (
+    <div className="mb-5 relative">
+      <div
+        className="rounded-2xl overflow-hidden transition-all duration-300"
+        style={{ background: tool.gradient }}
+      >
+        <Link href={tool.href} onClick={handleClick} className="block p-4 group">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 transition-transform duration-300 group-hover:scale-105"
+              style={{ background: `${tool.accent}18`, border: `1px solid ${tool.accent}30` }}
+            >
+              {tool.icon}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[9px] font-bold tracking-[0.18em] uppercase mb-0.5" style={{ color: tool.accent }}>
+                {tool.badge}
+              </p>
+              <p className="text-white font-semibold text-sm leading-tight mb-0.5 truncate">{tool.title}</p>
+              <p className="text-white/40 text-xs leading-tight truncate">{tool.desc}</p>
+            </div>
+            <div
+              className="flex-shrink-0 text-sm transition-transform duration-200 group-hover:translate-x-1"
+              style={{ color: tool.accent }}
+            >
+              →
+            </div>
+          </div>
+        </Link>
+
+        <div className="px-4 pb-3 flex items-center justify-between">
+          <div className="flex gap-1">
+            {Array.from({ length: dotsCount }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-full transition-all duration-300"
+                style={{
+                  width: i === activeDot ? 16 : 6,
+                  height: 6,
+                  background: i === activeDot ? tool.accent : `${tool.accent}30`,
+                }}
+              />
+            ))}
+          </div>
+          <div className="flex gap-1">
+            <button
+              onClick={() => advance('right')}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-xs transition-all active:scale-90"
+              style={{ background: `${tool.accent}20`, color: tool.accent }}
+              aria-label="Previous tool"
+            >
+              ‹
+            </button>
+            <button
+              onClick={() => advance('left')}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-xs transition-all active:scale-90"
+              style={{ background: `${tool.accent}20`, color: tool.accent }}
+              aria-label="Next tool"
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        className="absolute -top-2 -right-1 text-[9px] font-bold px-2 py-0.5 rounded-full"
+        style={{ background: tool.accent, color: '#000' }}
+      >
+        {currentIdx + 1}/{total}
+      </div>
+    </div>
+  );
+}
+
+// ==================== CATEGORY TABS ====================
+interface CategoryTabsProps {
+  categories: { category: string; emoji: string }[];
+  activeTab: string;
+  onSelect: (tab: string) => void;
+}
+
+function CategoryTabs({ categories, activeTab, onSelect }: CategoryTabsProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!scrollRef.current) return;
+    const active = scrollRef.current.querySelector('[data-active="true"]') as HTMLElement | null;
+    if (active) {
+      active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [activeTab]);
+
+  return (
+    <div
+      ref={scrollRef}
+      className="flex gap-1.5 overflow-x-auto pb-1 mb-4 no-scrollbar"
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+    >
+      <button
+        data-active={activeTab === 'all'}
+        onClick={() => onSelect('all')}
+        className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all duration-150 whitespace-nowrap ${
+          activeTab === 'all'
+            ? 'text-white shadow-sm'
+            : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-700'
+        }`}
+        style={activeTab === 'all' ? { background: '#0a3d2e' } : {}}
+      >
+        🌟 All
+      </button>
+
+      {categories.map(({ category, emoji }) => (
+        <button
+          key={category}
+          data-active={activeTab === category}
+          onClick={() => onSelect(category)}
+          className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all duration-150 whitespace-nowrap ${
+            activeTab === category
+              ? 'text-white shadow-sm'
+              : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-700'
+          }`}
+          style={activeTab === category ? { background: '#0a3d2e' } : {}}
+        >
+          {emoji} {category}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ==================== MAIN PAGE ====================
 export default function Home() {
   const [search, setSearch] = useState('');
   const [lang, setLang] = useState('en');
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
   const { dark, toggle: toggleDark, mounted: darkMounted } = useDarkMode();
+  const langMenuRef = useRef<HTMLDivElement>(null);
+  const langButtonRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => { setMounted(true); const savedLang = localStorage.getItem(LANG_KEY); if (savedLang && TRANSLATIONS[savedLang]) setLang(savedLang); }, []);
 
   const t = TRANSLATIONS[lang] || TRANSLATIONS['en'];
   const isRTL = RTL_LANGS.includes(lang);
-  const tools = TOOLS_DATA(t);
+
+  const tools = useMemo(() => TOOLS_DATA(t), [t]);
+
+  const isSearching = search.trim().length > 0;
+
+  useEffect(() => {
+    if (activeTab !== 'all' && !tools.find(s => s.category === activeTab)) {
+      setActiveTab('all');
+    }
+  }, [tools, activeTab]);
+
+  useEffect(() => {
+    setMounted(true);
+    const savedLang = localStorage.getItem(LANG_KEY);
+    if (savedLang && TRANSLATIONS[savedLang]) setLang(savedLang);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        showLangMenu &&
+        langMenuRef.current && !langMenuRef.current.contains(e.target as Node) &&
+        langButtonRef.current && !langButtonRef.current.contains(e.target as Node)
+      ) setShowLangMenu(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showLangMenu]);
+
+  const switchLang = useCallback((code: string) => {
+    setLang(code);
+    localStorage.setItem(LANG_KEY, code);
+    setShowLangMenu(false);
+  }, []);
 
   const filteredTools = useMemo(() => {
-    if (!search.trim()) return tools;
-    const q = search.toLowerCase();
-    return tools
-      .map(section => ({
-        ...section,
-        items: section.items.filter(item => `${item.name} ${item.desc}`.toLowerCase().includes(q)),
-      }))
-      .filter(section => section.items.length > 0);
-  }, [search, tools]);
+    if (isSearching) {
+      const q = search.toLowerCase();
+      return tools
+        .map(section => ({
+          ...section,
+          items: section.items.filter(item =>
+            item.name.toLowerCase().includes(q) ||
+            item.desc.toLowerCase().includes(q) ||
+            section.category.toLowerCase().includes(q)
+          ),
+        }))
+        .filter(s => s.items.length > 0);
+    }
+
+    if (activeTab === 'all') return tools;
+
+    return tools.filter(s => s.category === activeTab);
+  }, [search, tools, activeTab, isSearching]);
 
   const totalResults = filteredTools.reduce((acc, s) => acc + s.items.length, 0);
   const currentLang = LANGUAGES.find(l => l.code === lang);
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (showLangMenu && !(e.target as Element).closest('.lang-menu')) setShowLangMenu(false);
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [showLangMenu]);
-
-  const switchLang = useCallback((code: string) => { setLang(code); localStorage.setItem(LANG_KEY, code); setShowLangMenu(false); }, []);
-
-  const statsValues = t.stats ? Object.values(t.stats) : [];
+  const categoryList = useMemo(() => tools.map(({ category, emoji }) => ({ category, emoji })), [tools]);
 
   if (!mounted || !darkMounted) {
-    return <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center"><div className="animate-pulse text-emerald-700 dark:text-emerald-400">Loading...</div></div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#f7f6f2' }}>
+        <div className="flex flex-col items-center gap-3">
+          <div className="text-3xl" style={{ color: '#c8a96e' }}>♡</div>
+          <div className="text-emerald-700 text-xs tracking-widest uppercase animate-pulse">Loading…</div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors" dir={isRTL ? 'rtl' : 'ltr'}>
+    <>
       <Script strategy="lazyOnload" src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} />
-      <Script id="google-analytics" strategy="lazyOnload" dangerouslySetInnerHTML={{ __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}',{page_path:window.location.pathname,send_page_view:true,transport_type:'beacon'});` }} />
+      <Script
+        id="google-analytics"
+        strategy="lazyOnload"
+        dangerouslySetInnerHTML={{
+          __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}',{page_path:window.location.pathname,send_page_view:true,transport_type:'beacon'});`,
+        }}
+      />
 
-      <header className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0a3d2e 0%, #0d5238 100%)' }}>
-        <div className="absolute inset-0 pointer-events-none"><div className="absolute top-4 left-8 text-white/5 text-7xl">☽</div><div className="absolute bottom-4 right-8 text-white/5 text-6xl">✦</div></div>
-        <div className="relative z-10 px-4 pt-4 pb-8 max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-6" dir="ltr">
-            <div className="flex gap-4">
-              <Link href="/about" className="text-white/50 hover:text-white/80 text-xs transition">About</Link>
-              <Link href="/blog" className="text-white/50 hover:text-white/80 text-xs transition">Blog</Link>
-              <Link href="/contact" className="text-white/50 hover:text-white/80 text-xs transition hidden sm:inline">Contact</Link>
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={toggleDark} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition" aria-label="Toggle theme">{dark ? '☀️' : '🌙'}</button>
-              <div className="relative lang-menu">
-                <button onClick={() => setShowLangMenu(!showLangMenu)} className="flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-xl px-2.5 py-1.5 text-white/70 text-xs hover:bg-white/20 transition">
-                  <span>{currentLang?.flag}</span><span className="hidden sm:inline">{currentLang?.label}</span><span>▾</span>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300" dir={isRTL ? 'rtl' : 'ltr'}>
+
+        {/* ==================== HEADER ==================== */}
+        <header className="relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #071e14 0%, #0a3d2e 60%, #0d5238 100%)' }}>
+          <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
+            <div className="absolute top-0 left-0 w-48 h-48 rounded-full opacity-[0.04]"
+              style={{ background: 'radial-gradient(circle, #c8a96e 0%, transparent 70%)', transform: 'translate(-30%, -30%)' }} />
+            <div className="absolute bottom-0 right-0 w-64 h-64 rounded-full opacity-[0.04]"
+              style={{ background: 'radial-gradient(circle, #c8a96e 0%, transparent 70%)', transform: 'translate(30%, 30%)' }} />
+            <div className="absolute top-6 right-12 text-white/[0.03] text-7xl select-none">☽</div>
+            <div className="absolute bottom-4 left-10 text-white/[0.03] text-5xl select-none">✦</div>
+          </div>
+
+          <div className="relative z-10 px-4 pt-3 pb-8 max-w-6xl mx-auto">
+            {/* ── TOP NAV BAR ── */}
+            <div className="flex items-center justify-between mb-6" dir="ltr">
+
+              <div className="flex items-center gap-1">
+                <Link href="/" aria-label="I Love Islam — Home" className="flex-shrink-0 mr-1 hover:opacity-80 transition-opacity">
+                  <Image
+                    src="/logo2.png"
+                    alt="I Love Islam"
+                    width={52}
+                    height={52}
+                    className="rounded-xl"
+                    priority
+                  />
+                </Link>
+
+                {[
+                  { href: '/about', label: t.about },
+                  { href: '/blog', label: t.blog },
+                  { href: '/faq', label: t.faq, hidden: true },
+                  { href: '/contact', label: t.contact, hidden: true },
+                ].map(link => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`text-white/45 hover:text-white/80 text-xs transition-colors px-2.5 py-1.5 rounded-lg hover:bg-white/8 ${link.hidden ? 'hidden sm:inline-flex' : ''}`}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleDark}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/18 transition-all active:scale-90 text-base"
+                  aria-label="Toggle dark mode"
+                >
+                  {dark ? '☀️' : '🌙'}
                 </button>
-                {showLangMenu && <div className="absolute top-8 right-0 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden z-50 w-32">{LANGUAGES.map(l => (<button key={l.code} onClick={() => switchLang(l.code)} className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 text-left ${lang === l.code ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-300'}`}><span>{l.flag}</span><span>{l.label}</span></button>))}</div>}
+
+                <div className="relative">
+                  <button
+                    ref={langButtonRef}
+                    onClick={() => setShowLangMenu(v => !v)}
+                    className="flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-xl px-2.5 py-1.5 text-white/65 text-xs hover:bg-white/18 transition-all"
+                  >
+                    <span>{currentLang?.flag}</span>
+                    <span className="hidden sm:inline">{currentLang?.label}</span>
+                    <span className="text-white/35 text-[10px]">▾</span>
+                  </button>
+                  {showLangMenu && (
+                    <div
+                      ref={langMenuRef}
+                      className="absolute top-10 right-0 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 w-44 py-1"
+                      style={{ maxHeight: 280, overflowY: 'auto' }}
+                    >
+                      {LANGUAGES.map(l => (
+                        <button
+                          key={l.code}
+                          onClick={() => switchLang(l.code)}
+                          className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition hover:bg-gray-50 dark:hover:bg-gray-700 ${lang === l.code ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}
+                        >
+                          <span>{l.flag}</span>
+                          <span className="flex-1">{l.label}</span>
+                          {lang === l.code && <span className="text-emerald-500 text-xs">✓</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Logo + tagline */}
+            <div className="text-center">
+              <Link
+                href="/"
+                className="inline-block text-5xl md:text-6xl mb-1.5 hover:opacity-80 transition-opacity cursor-pointer tracking-tight"
+                style={{ color: '#c8a96e', fontFamily: 'serif' }}
+                aria-label="I Love Islam — Home"
+              >
+                ♡ I Love Islam
+              </Link>
+              <p className="text-white/45 text-xs mb-4 tracking-wide">{t.tagline}</p>
+
+              <LiveBar />
+
+              {/* Search bar */}
+              <div className="max-w-md mx-auto">
+                <div className="flex items-center gap-3 rounded-2xl px-4 py-3 focus-within:border-white/35 transition-all duration-200"
+                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                  <span className="text-white/35 text-base flex-shrink-0">🔍</span>
+                  <input
+                    ref={searchRef}
+                    type="text"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder={t.search}
+                    className="bg-transparent text-white placeholder-white/25 text-sm outline-none flex-1 min-w-0"
+                    aria-label="Search Islamic tools"
+                  />
+                  {search && (
+                    <button
+                      onClick={() => { setSearch(''); searchRef.current?.focus(); }}
+                      className="text-white/35 hover:text-white/70 text-lg leading-none transition-colors flex-shrink-0"
+                      aria-label="Clear search"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {search && (
+                  <div className="mt-2 text-center">
+                    {totalResults === 0 ? (
+                      <p className="text-white/50 text-xs">
+                        No matches for <span className="text-white font-medium">"{search}"</span>
+                        <span className="block text-white/25 text-[10px] mt-0.5">Try: zakat · prayer · quran · qibla · dhikr · kids · eid · night · alarm</span>
+                      </p>
+                    ) : (
+                      <p className="text-white/50 text-xs">
+                        <span className="text-white font-semibold">{totalResults}</span> {totalResults === 1 ? 'tool' : 'tools'} found
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
-          <div className="text-center">
-            <h1 className="font-arabic text-5xl md:text-6xl mb-2" style={{ color: '#c8a96e' }}>♡ I Love Islam</h1>
-            <p className="text-white/50 text-sm mb-4">{t.tagline}</p>
-            <LiveBar />
-            <div className="max-w-md mx-auto flex items-center gap-3 bg-white/10 border border-white/20 rounded-2xl px-4 py-2.5 focus-within:border-white/40 transition">
-              <span className="text-white/40">🔍</span>
-              <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={t.search} className="bg-transparent text-white placeholder-white/30 text-sm outline-none flex-1" />
-              {search && <button onClick={() => setSearch('')} className="text-white/40 hover:text-white">✕</button>}
+        </header>
+
+        {/* ==================== MAIN ==================== */}
+        <main className="max-w-6xl mx-auto px-4 py-5">
+          <div className="flex flex-col lg:flex-row gap-6">
+
+            {/* ---- Content column ---- */}
+            <div className="flex-1 min-w-0">
+
+              {!isSearching && <QuoteOfTheDay />}
+              {!isSearching && <FeaturedBanner />}
+
+              {!isSearching && (
+                <CategoryTabs
+                  categories={categoryList}
+                  activeTab={activeTab}
+                  onSelect={setActiveTab}
+                />
+              )}
+
+              {filteredTools.length === 0 && (
+                <div className="bg-white dark:bg-gray-800 rounded-2xl p-10 text-center border border-gray-100 dark:border-gray-700">
+                  <p className="text-4xl mb-3">🔍</p>
+                  <p className="text-gray-700 dark:text-gray-300 font-semibold mb-1">{t.noTools} "{search}"</p>
+                  <p className="text-gray-400 text-sm mb-4">{t.noToolsSub}</p>
+                  <button
+                    onClick={() => setSearch('')}
+                    className="px-5 py-2 rounded-xl text-white text-sm transition hover:opacity-90 active:scale-95"
+                    style={{ background: '#0a3d2e' }}
+                  >
+                    {t.clear}
+                  </button>
+                </div>
+              )}
+
+              {filteredTools.map(section => (
+                <div key={section.category} className="mb-6">
+                  {(activeTab === 'all' || isSearching) && (
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-base">{section.emoji}</span>
+                      <h2 className="text-[10px] font-bold tracking-[0.16em] uppercase text-gray-400 dark:text-gray-500">
+                        {section.category}
+                      </h2>
+                      <div className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent dark:from-gray-700" />
+                      <span className="text-[9px] text-gray-300 dark:text-gray-600 tabular-nums">
+                        {section.items.length} tools
+                      </span>
+                    </div>
+                  )}
+
+                  {activeTab !== 'all' && !isSearching && (
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-base">{section.emoji}</span>
+                      <h2 className="text-[10px] font-bold tracking-[0.16em] uppercase text-gray-400 dark:text-gray-500">
+                        {section.category}
+                      </h2>
+                      <div className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent dark:from-gray-700" />
+                      <span className="text-[9px] text-gray-300 dark:text-gray-600 tabular-nums">
+                        {section.items.length} tools
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                    {section.items.map(tool => (
+                      <ToolCard key={tool.name} tool={tool} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {!isSearching && activeTab === 'all' && (
+                <>
+                  <div className="flex flex-wrap justify-center gap-2 my-5">
+                    {Object.values(t.stats).map(label => (
+                      <span
+                        key={label}
+                        className="text-[10px] text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-100 dark:border-gray-700"
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
+                    <h2 className="font-semibold text-gray-800 dark:text-gray-200 text-sm mb-2">{t.aboutTitle}</h2>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed mb-2">{t.aboutText1}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">{t.aboutText2}</p>
+                  </div>
+                </>
+              )}
             </div>
-            {search && <p className="text-white/40 text-xs mt-2">{t.found} <span className="text-white">{totalResults}</span> {t.results}{totalResults !== 1 ? 's' : ''}</p>}
-          </div>
-        </div>
-      </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          <div className="flex-1">
-            {!search && (<Link href="/mizan" className="block mb-6"><div className="bg-gradient-to-r from-amber-900 to-amber-800 rounded-xl p-3 flex items-center gap-3 hover:shadow-lg transition"><div className="w-10 h-10 rounded-xl bg-amber-700/50 flex items-center justify-center text-xl">✦</div><div className="flex-1"><p className="text-amber-300 text-[10px] font-bold">✨ FEATURED</p><p className="text-white text-sm font-semibold">Mizan — Islamic Life Blueprint</p></div><div className="text-amber-400 text-lg">→</div></div></Link>)}
-            {filteredTools.length === 0 && (<div className="bg-white dark:bg-gray-800 rounded-2xl p-12 text-center"><p className="text-5xl mb-3">🔍</p><p className="text-gray-700 dark:text-gray-300 font-semibold mb-1">{t.noTools} "{search}"</p><p className="text-gray-400 text-sm">{t.noToolsSub}</p><button onClick={() => setSearch('')} className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm">Clear</button></div>)}
-            {filteredTools.map(section => (<div key={section.category} className="mb-8"><div className="flex items-center gap-2 mb-3"><span>{section.emoji}</span><h2 className="text-[10px] font-bold tracking-wider uppercase text-gray-400">{section.category}</h2><div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" /></div><div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">{section.items.map(tool => (<ToolCard key={tool.name} tool={tool} />))}</div></div>))}
-            {!search && statsValues.length > 0 && (<div className="flex flex-wrap justify-center gap-2 my-6">{statsValues.map(label => (<span key={label} className="text-[10px] text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-100 dark:border-gray-700">{label}</span>))}</div>)}
-          </div>
-          <div className="lg:w-72"><Newsletter t={t} /></div>
-        </div>
-        {!search && (<div className="mt-8 bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700"><h2 className="font-semibold text-gray-800 dark:text-gray-200 text-sm mb-2">{t.aboutTitle}</h2><p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{t.aboutText1}</p></div>)}
-      </main>
+            {/* ---- Sidebar ---- */}
+            {!isSearching && activeTab === 'all' && (
+              <div className="lg:w-64 xl:w-72 flex-shrink-0 space-y-4">
+                <Newsletter t={t} />
 
-      <footer className="border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 mt-8">
-        <div className="max-w-6xl mx-auto px-4 py-6 text-center">
-          <p className="text-xs text-gray-400">{t.footerMade} · {t.footerFree}</p>
-          <div className="flex flex-wrap justify-center gap-4 mt-3"><Link href="/about" className="text-xs text-gray-400 hover:text-gray-600">About</Link><Link href="/privacy" className="text-xs text-gray-400 hover:text-gray-600">Privacy</Link><Link href="/terms" className="text-xs text-gray-400 hover:text-gray-600">Terms</Link><Link href="/contact" className="text-xs text-gray-400 hover:text-gray-600">Contact</Link></div>
-        </div>
-      </footer>
-      <BackToTop />
-    </div>
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4">
+                  <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-3">⭐ Popular Tools</p>
+                  <div className="space-y-0.5">
+                    {[
+                      { label: '💰 Zakat Calculator', href: '/zakat', desc: 'Calculate your annual zakat' },
+                      { label: '🕐 Prayer Times', href: '/prayer-times', desc: 'Daily salah times' },
+                      { label: '🧭 Qibla Finder', href: '/qibla', desc: 'Find Mecca direction' },
+                      { label: '📿 Dhikr Counter', href: '/dhikr', desc: 'Digital tasbih' },
+                      { label: '📖 Quran Reader', href: '/quran', desc: 'Read with translation' },
+                      { label: '🌙 Night Recitation', href: '/night', desc: 'Sleep with Quran' },
+                      { label: '🐄 Eid ul Adha', href: '/eid-adha', desc: 'Qurbani toolkit' },
+                      { label: '🎮 Kids Games', href: '/kids', desc: 'Fun Islamic games' },
+                    ].map(link => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => { trackToolClick(link.label); ScrollManager.save(); }}
+                        className="flex items-center justify-between px-3 py-2 rounded-xl text-xs text-gray-600 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-700 dark:hover:text-emerald-400 transition-all group"
+                      >
+                        <span>{link.label}</span>
+                        <span className="text-gray-300 dark:text-gray-600 group-hover:translate-x-0.5 transition-transform">→</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+
+        {/* ==================== FOOTER ==================== */}
+        <footer className="mt-8 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <div className="max-w-6xl mx-auto px-4 py-6">
+            <div className="text-center mb-4">
+              <Link href="/" aria-label="I Love Islam — Home" className="inline-block hover:opacity-80 transition-opacity">
+                <Image
+                  src="/logo.png"
+                  alt="I Love Islam"
+                  width={72}
+                  height={72}
+                  className="rounded-2xl mx-auto"
+                />
+              </Link>
+              <p className="text-emerald-700 dark:text-emerald-500 text-base mt-2" style={{ fontFamily: 'serif' }}>بسم الله الرحمن الرحيم</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t.footerMade} · {t.footerFree}</p>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-3 md:gap-5 mb-4">
+              {[
+                { href: '/about', label: t.about },
+                { href: '/blog', label: t.blog },
+                { href: '/faq', label: t.faq },
+                { href: '/privacy', label: t.privacy },
+                { href: '/terms', label: t.terms },
+                { href: '/contact', label: t.contact },
+              ].map(link => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+
+            <p className="text-center text-[10px] text-gray-300 dark:text-gray-600">
+              © {new Date().getFullYear()} iloveislam.life · All tools are free for the Ummah
+            </p>
+          </div>
+        </footer>
+
+        <BackToTop />
+      </div>
+    </>
   );
 }
