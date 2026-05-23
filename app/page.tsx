@@ -68,9 +68,9 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'About', blog: 'Blog', privacy: 'Privacy', contact: 'Contact', faq: 'FAQ', terms: 'Terms',
     mostUsed: 'Most Used', daily: 'Daily Practice', finance: 'Finance & Giving', travel: 'Travel & Knowledge', kids: '🧒 Kids Corner',
     footerMade: 'Made with ❤️ for the Ummah', footerFree: 'Always Free · No Sign-up',
-    stats: { tools: '25 Free Tools', free: '100% Free', noSignup: 'No Sign-up', mobile: 'Works on Mobile', world: 'Works Worldwide', fast: 'Always Fast' },
+    stats: { tools: '26 Free Tools', free: '100% Free', noSignup: 'No Sign-up', mobile: 'Works on Mobile', world: 'Works Worldwide', fast: 'Always Fast' },
     aboutTitle: 'About I Love Islam Tools',
-    aboutText1: 'I Love Islam is a free collection of Islamic tools for Muslims worldwide — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Hijri Calendar, Kaffarah Calculator, and much more. Everything in one place, completely free.',
+    aboutText1: 'I Love Islam is a free collection of Islamic tools for Muslims worldwide — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Hijri Calendar, Kaffarah Calculator, HalalScan and much more. Everything in one place, completely free.',
     aboutText2: 'Our tools include Dhikr counter, 99 Names of Allah, Halal Travel guide, Mosque Finder, Islamic Inheritance Calculator, Sadaqah Tracker, Eid ul Adha toolkit, Islamic Alarm, Night Recitation player, and our unique Mizan Islamic Life Blueprint.',
     newsletterTitle: 'Weekly Islamic Guidance',
     newsletterSubtitle: 'Spiritual reminders and tool updates.',
@@ -86,7 +86,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'عن الموقع', blog: 'مدونة', privacy: 'الخصوصية', contact: 'تواصل معنا', faq: 'الأسئلة الشائعة', terms: 'الشروط',
     mostUsed: 'الأكثر استخداماً', daily: 'الممارسة اليومية', finance: 'المال والعطاء', travel: 'السفر والمعرفة', kids: '🧒 ركن الأطفال',
     footerMade: 'صُنع بمحبة للأمة الإسلامية', footerFree: 'مجاني دائماً · لا تسجيل',
-    stats: { tools: '٢٥ أداة', free: '١٠٠٪ مجاني', noSignup: 'لا تسجيل', mobile: 'يعمل على الجوال', world: 'يعمل في كل مكان', fast: 'سريع دائماً' },
+    stats: { tools: '٢٦ أداة', free: '١٠٠٪ مجاني', noSignup: 'لا تسجيل', mobile: 'يعمل على الجوال', world: 'يعمل في كل مكان', fast: 'سريع دائماً' },
     aboutTitle: 'عن أدوات أحب الإسلام',
     aboutText1: 'أحب الإسلام مجموعة مجانية من الأدوات الإسلامية للمسلمين في جميع أنحاء العالم.',
     aboutText2: 'تشمل أدواتنا عداد الذكر وأسماء الله الحسنى ودليل السفر الحلال وأدوات عيد الأضحى ومنبه إسلامي وتلاوة ليلية والمزيد.',
@@ -104,7 +104,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'ہمارے بارے میں', blog: 'بلاگ', privacy: 'رازداری', contact: 'رابطہ', faq: 'سوالات', terms: 'شرائط',
     mostUsed: 'سب سے زیادہ', daily: 'روزانہ عبادت', finance: 'مال اور صدقہ', travel: 'سفر اور علم', kids: '🧒 بچوں کا کونا',
     footerMade: 'امت کے لیے محبت سے', footerFree: 'ہمیشہ مفت · کوئی رجسٹریشن نہیں',
-    stats: { tools: '٢٥ مفت ٹولز', free: '١٠٠٪ مفت', noSignup: 'سائن اپ نہیں', mobile: 'موبائل پر', world: 'دنیا بھر میں', fast: 'تیز' },
+    stats: { tools: '٢٦ مفت ٹولز', free: '١٠٠٪ مفت', noSignup: 'سائن اپ نہیں', mobile: 'موبائل پر', world: 'دنیا بھر میں', fast: 'تیز' },
     aboutTitle: 'I Love Islam کے بارے میں',
     aboutText1: 'I Love Islam دنیا بھر کے مسلمانوں کے لیے مفت اسلامی ٹولز کا مجموعہ ہے۔',
     aboutText2: 'ذکر کاؤنٹر، اللہ کے ۹۹ نام، عید الاضحیٰ ٹول کٹ، اسلامی الارم، رات کی تلاوت اور بہت کچھ۔',
@@ -122,7 +122,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'À propos', blog: 'Blog', privacy: 'Confidentialité', contact: 'Contact', faq: 'FAQ', terms: 'Conditions',
     mostUsed: 'Les plus utilisés', daily: 'Pratique quotidienne', finance: 'Finance & Dons', travel: 'Voyage & Savoir', kids: '🧒 Coin des enfants',
     footerMade: 'Fait avec ❤️ pour la Oumma', footerFree: 'Toujours gratuit · Sans inscription',
-    stats: { tools: '25 Outils', free: '100% Gratuit', noSignup: 'Sans inscription', mobile: 'Mobile', world: 'Mondial', fast: 'Rapide' },
+    stats: { tools: '26 Outils', free: '100% Gratuit', noSignup: 'Sans inscription', mobile: 'Mobile', world: 'Mondial', fast: 'Rapide' },
     aboutTitle: 'À propos de I Love Islam',
     aboutText1: 'I Love Islam est une collection gratuite d\'outils islamiques — Zakat, horaires de prière, Qibla, Coran et bien plus.',
     aboutText2: 'Compteur de Dhikr, 99 noms d\'Allah, guide de voyage halal, kit Aïd el-Adha, alarme islamique, récitation nocturne, et notre outil unique Mizan.',
@@ -140,7 +140,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'Hakkında', blog: 'Blog', privacy: 'Gizlilik', contact: 'İletişim', faq: 'SSS', terms: 'Şartlar',
     mostUsed: 'En Çok Kullanılan', daily: 'Günlük İbadet', finance: 'Finans & Sadaka', travel: 'Seyahat & Bilgi', kids: '🧒 Çocuk Köşesi',
     footerMade: 'Ümmet için sevgiyle', footerFree: 'Her zaman ücretsiz',
-    stats: { tools: '25 Araç', free: '%100 Ücretsiz', noSignup: 'Kayıt yok', mobile: 'Mobil', world: 'Dünya geneli', fast: 'Hızlı' },
+    stats: { tools: '26 Araç', free: '%100 Ücretsiz', noSignup: 'Kayıt yok', mobile: 'Mobil', world: 'Dünya geneli', fast: 'Hızlı' },
     aboutTitle: 'I Love Islam Hakkında',
     aboutText1: 'I Love Islam, Müslümanlar için ücretsiz İslami araçlar — Zekat, namaz vakitleri, kıble, Kuran ve daha fazlası.',
     aboutText2: 'Dhikr sayacı, Allah\'ın 99 ismi, helal seyahat rehberi, Kurban Bayramı araç seti, İslami alarm, gece tilaveti ve Mizan aracımız.',
@@ -158,7 +158,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'Tentang', blog: 'Blog', privacy: 'Privasi', contact: 'Kontak', faq: 'FAQ', terms: 'Ketentuan',
     mostUsed: 'Paling Sering', daily: 'Ibadah Harian', finance: 'Keuangan & Sedekah', travel: 'Perjalanan & Ilmu', kids: '🧒 Sudut Anak',
     footerMade: 'Dibuat dengan ❤️ untuk Umat', footerFree: 'Selalu Gratis',
-    stats: { tools: '25 Alat', free: '100% Gratis', noSignup: 'Tanpa Daftar', mobile: 'Mobile', world: 'Seluruh Dunia', fast: 'Cepat' },
+    stats: { tools: '26 Alat', free: '100% Gratis', noSignup: 'Tanpa Daftar', mobile: 'Mobile', world: 'Seluruh Dunia', fast: 'Cepat' },
     aboutTitle: 'Tentang I Love Islam',
     aboutText1: 'I Love Islam adalah kumpulan alat Islam gratis — Kalkulator zakat, waktu shalat, kiblat, Al-Quran dan masih banyak lagi.',
     aboutText2: 'Penghitung dzikir, 99 Nama Allah, panduan halal, kit Idul Adha, alarm Islam, tilawah malam, dan Mizan Blueprint.',
@@ -176,7 +176,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'Tentang', blog: 'Blog', privacy: 'Privasi', contact: 'Hubungi', faq: 'Soalan Lazim', terms: 'Terma',
     mostUsed: 'Paling Kerap', daily: 'Amalan Harian', finance: 'Kewangan & Sedekah', travel: 'Perjalanan & Ilmu', kids: '🧒 Sudut Kanak-kanak',
     footerMade: 'Dibuat dengan ❤️ untuk Umat', footerFree: 'Sentiasa Percuma',
-    stats: { tools: '25 Alat', free: '100% Percuma', noSignup: 'Tanpa Daftar', mobile: 'Mudah alih', world: 'Seluruh Dunia', fast: 'Laju' },
+    stats: { tools: '26 Alat', free: '100% Percuma', noSignup: 'Tanpa Daftar', mobile: 'Mudah alih', world: 'Seluruh Dunia', fast: 'Laju' },
     aboutTitle: 'Tentang I Love Islam',
     aboutText1: 'I Love Islam ialah koleksi alat Islam percuma — kalkulator zakat, waktu solat, kiblat, Al-Quran dan banyak lagi.',
     aboutText2: 'Pembilang zikir, 99 Nama Allah, panduan halal, kit Hari Raya Aidiladha, penggera Islam, bacaan malam dan Mizan Blueprint.',
@@ -194,7 +194,7 @@ const TRANSLATIONS: Record<string, TranslationsType> = {
     about: 'সম্পর্কে', blog: 'ব্লগ', privacy: 'গোপনীয়তা', contact: 'যোগাযোগ', faq: 'প্রশ্নোত্তর', terms: 'শর্তাবলী',
     mostUsed: 'সর্বাধিক ব্যবহৃত', daily: 'দৈনিক ইবাদত', finance: 'অর্থ ও দান', travel: 'ভ্রমণ ও জ্ঞান', kids: '🧒 বাচ্চাদের কর্নার',
     footerMade: 'উম্মতের জন্য ভালোবাসায়', footerFree: 'সর্বদা বিনামূল্যে',
-    stats: { tools: '২৫ টুল', free: '১০০% বিনামূল্যে', noSignup: 'নিবন্ধন নেই', mobile: 'মোবাইলে', world: 'বিশ্বজুড়ে', fast: 'দ্রুত' },
+    stats: { tools: '২৬ টুল', free: '১০০% বিনামূল্যে', noSignup: 'নিবন্ধন নেই', mobile: 'মোবাইলে', world: 'বিশ্বজুড়ে', fast: 'দ্রুত' },
     aboutTitle: 'I Love Islam সম্পর্কে',
     aboutText1: 'I Love Islam বিশ্বজুড়ে মুসলিমদের জন্য বিনামূল্যে ইসলামিক টুলের সংগ্রহ।',
     aboutText2: 'ধিকর কাউন্টার, আল্লাহর ৯৯ নাম, হালাল ভ্রমণ গাইড, ঈদুল আযহা টুলকিট, রাতের তিলাওয়াত, ইসলামিক অ্যালার্ম এবং মিযান ব্লুপ্রিন্ট।',
@@ -253,8 +253,10 @@ const DAILY_QUOTES = [
 ];
 
 // ==================== ALL TOOLS FOR FEATURED BANNER ====================
+// ✅ HalalScan added at position 2 (right after Mizan for maximum visibility)
 const ALL_FEATURED_TOOLS = [
   { href: '/mizan', badge: '✨ Featured', title: 'Mizan — Islamic Life Blueprint', desc: 'Discover your purpose through Islamic numerology', icon: '✦', gradient: 'linear-gradient(135deg, #1a0a00, #3d1f00)', accent: '#c8a96e' },
+  { href: '/halal-scanner', badge: '🆕 New Tool', title: 'HalalScan — Halal Food Scanner', desc: 'Scan barcodes & photos — instantly know if it\'s Halal, Haram or Mashbooh', icon: '📷', gradient: 'linear-gradient(135deg, #071a0d, #0a3d1a)', accent: '#4ade80' },
   { href: '/zakat', badge: '💰 Finance', title: 'Zakat Calculator', desc: 'Calculate your annual Zakat with precision', icon: '💰', gradient: 'linear-gradient(135deg, #0a1f0a, #0d3d1a)', accent: '#4ade80' },
   { href: '/prayer-times', badge: '🕐 Daily', title: 'Prayer Times', desc: 'Accurate salah times for your location', icon: '🕐', gradient: 'linear-gradient(135deg, #0a0a2e, #1a1a5c)', accent: '#818cf8' },
   { href: '/qibla', badge: '🧭 Travel', title: 'Qibla Finder', desc: 'Find the direction of Mecca instantly', icon: '🧭', gradient: 'linear-gradient(135deg, #1a1000, #3d2800)', accent: '#fbbf24' },
@@ -285,6 +287,8 @@ const TOOLS_DATA = (t: TranslationsType) => [
   {
     category: t.mostUsed, emoji: '⭐',
     items: [
+      // ✅ HalalScan is first — highest visibility slot
+      { name: 'HalalScan', desc: 'Scan food — Halal or Haram?', icon: '📷', href: '/halal-scanner', color: 'bg-lime-100 text-lime-700' },
       { name: 'Zakat Calculator', desc: 'Calculate your annual zakat', icon: '💰', href: '/zakat', color: 'bg-emerald-100 text-emerald-700' },
       { name: 'Prayer Times', desc: 'Daily salah times', icon: '🕐', href: '/prayer-times', color: 'bg-blue-100 text-blue-700' },
       { name: 'Qibla Finder', desc: 'Find Mecca direction', icon: '🧭', href: '/qibla', color: 'bg-amber-100 text-amber-700' },
@@ -323,6 +327,8 @@ const TOOLS_DATA = (t: TranslationsType) => [
       { name: 'Islamic Names', desc: 'Name meanings', icon: '✏️', href: '/names-finder', color: 'bg-violet-100 text-violet-700' },
       { name: 'Islamic Events', desc: 'Eid & Ramadan dates', icon: '🗓️', href: '/eid', color: 'bg-amber-100 text-amber-700' },
       { name: 'Eid ul Adha Toolkit', desc: 'Qurbani, takbeer & more', icon: '🐄', href: '/eid-adha', color: 'bg-lime-100 text-lime-700' },
+      // ✅ Also in Travel — great for Muslims abroad checking food
+      { name: 'HalalScan', desc: 'Scan food abroad', icon: '📷', href: '/halal-scanner', color: 'bg-green-100 text-green-700' },
     ],
   },
   {
@@ -464,6 +470,37 @@ function QuoteOfTheDay() {
   );
 }
 
+// ==================== HALALSAN PROMO STRIP ====================
+// ✅ NEW: eye-catching announcement banner for HalalScan
+function HalalScanPromo() {
+  return (
+    <Link
+      href="/halal-scanner"
+      onClick={() => { trackToolClick('HalalScan Promo Strip'); ScrollManager.save(); }}
+      className="group flex items-center gap-3 mb-5 rounded-2xl border border-emerald-700/40 px-4 py-3 hover:border-emerald-500/60 hover:shadow-lg hover:shadow-emerald-900/20 transition-all duration-200 overflow-hidden relative"
+      style={{ background: 'linear-gradient(135deg, #071a0d, #0a2e14)' }}
+    >
+      {/* subtle glow */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse at left, rgba(74,222,128,0.08) 0%, transparent 70%)' }} />
+
+      <div className="w-10 h-10 rounded-xl bg-emerald-800/50 border border-emerald-600/30 flex items-center justify-center text-xl flex-shrink-0">
+        📷
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="text-[9px] font-bold tracking-widest uppercase text-emerald-400">🆕 New Tool</span>
+        </div>
+        <p className="text-white font-semibold text-sm leading-tight truncate">HalalScan is live!</p>
+        <p className="text-emerald-200/50 text-xs truncate">
+          Scan any barcode, QR code or photo — instantly check Halal, Haram or Mashbooh
+        </p>
+      </div>
+      <span className="text-emerald-400 text-base group-hover:translate-x-1 transition-transform flex-shrink-0">→</span>
+    </Link>
+  );
+}
+
 // ==================== NEWSLETTER ====================
 function Newsletter({ t }: { t: TranslationsType }) {
   const [email, setEmail] = useState('');
@@ -534,8 +571,14 @@ function ToolCard({ tool }: { tool: Tool }) {
     <Link
       href={tool.href}
       onClick={handleClick}
-      className="group bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col items-center text-center active:scale-95"
+      className="group bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col items-center text-center active:scale-95 relative"
     >
+      {/* ✅ NEW badge on HalalScan cards */}
+      {tool.href === '/halal-scanner' && (
+        <span className="absolute -top-1.5 -right-1.5 bg-emerald-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+          NEW
+        </span>
+      )}
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-2 transition-transform duration-200 group-hover:scale-110 ${tool.color}`}>
         {tool.icon}
       </div>
@@ -584,9 +627,7 @@ function FeaturedBanner() {
   const tool = ALL_FEATURED_TOOLS[currentIdx];
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      advance('left');
-    }, 5000);
+    const timer = setInterval(() => { advance('left'); }, 5000);
     return () => clearInterval(timer);
   }, [offset]);
 
@@ -600,20 +641,14 @@ function FeaturedBanner() {
     }, 220);
   };
 
-  const handleClick = () => {
-    trackToolClick(tool.title);
-    ScrollManager.save();
-  };
+  const handleClick = () => { trackToolClick(tool.title); ScrollManager.save(); };
 
   const dotsCount = Math.min(total, 7);
   const activeDot = currentIdx % dotsCount;
 
   return (
     <div className="mb-5 relative">
-      <div
-        className="rounded-2xl overflow-hidden transition-all duration-300"
-        style={{ background: tool.gradient }}
-      >
+      <div className="rounded-2xl overflow-hidden transition-all duration-300" style={{ background: tool.gradient }}>
         <Link href={tool.href} onClick={handleClick} className="block p-4 group">
           <div className="flex items-center gap-3">
             <div
@@ -623,60 +658,27 @@ function FeaturedBanner() {
               {tool.icon}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[9px] font-bold tracking-[0.18em] uppercase mb-0.5" style={{ color: tool.accent }}>
-                {tool.badge}
-              </p>
+              <p className="text-[9px] font-bold tracking-[0.18em] uppercase mb-0.5" style={{ color: tool.accent }}>{tool.badge}</p>
               <p className="text-white font-semibold text-sm leading-tight mb-0.5 truncate">{tool.title}</p>
               <p className="text-white/40 text-xs leading-tight truncate">{tool.desc}</p>
             </div>
-            <div
-              className="flex-shrink-0 text-sm transition-transform duration-200 group-hover:translate-x-1"
-              style={{ color: tool.accent }}
-            >
-              →
-            </div>
+            <div className="flex-shrink-0 text-sm transition-transform duration-200 group-hover:translate-x-1" style={{ color: tool.accent }}>→</div>
           </div>
         </Link>
-
         <div className="px-4 pb-3 flex items-center justify-between">
           <div className="flex gap-1">
             {Array.from({ length: dotsCount }).map((_, i) => (
-              <div
-                key={i}
-                className="rounded-full transition-all duration-300"
-                style={{
-                  width: i === activeDot ? 16 : 6,
-                  height: 6,
-                  background: i === activeDot ? tool.accent : `${tool.accent}30`,
-                }}
-              />
+              <div key={i} className="rounded-full transition-all duration-300"
+                style={{ width: i === activeDot ? 16 : 6, height: 6, background: i === activeDot ? tool.accent : `${tool.accent}30` }} />
             ))}
           </div>
           <div className="flex gap-1">
-            <button
-              onClick={() => advance('right')}
-              className="w-7 h-7 rounded-full flex items-center justify-center text-xs transition-all active:scale-90"
-              style={{ background: `${tool.accent}20`, color: tool.accent }}
-              aria-label="Previous tool"
-            >
-              ‹
-            </button>
-            <button
-              onClick={() => advance('left')}
-              className="w-7 h-7 rounded-full flex items-center justify-center text-xs transition-all active:scale-90"
-              style={{ background: `${tool.accent}20`, color: tool.accent }}
-              aria-label="Next tool"
-            >
-              ›
-            </button>
+            <button onClick={() => advance('right')} className="w-7 h-7 rounded-full flex items-center justify-center text-xs transition-all active:scale-90" style={{ background: `${tool.accent}20`, color: tool.accent }} aria-label="Previous tool">‹</button>
+            <button onClick={() => advance('left')} className="w-7 h-7 rounded-full flex items-center justify-center text-xs transition-all active:scale-90" style={{ background: `${tool.accent}20`, color: tool.accent }} aria-label="Next tool">›</button>
           </div>
         </div>
       </div>
-
-      <div
-        className="absolute -top-2 -right-1 text-[9px] font-bold px-2 py-0.5 rounded-full"
-        style={{ background: tool.accent, color: '#000' }}
-      >
+      <div className="absolute -top-2 -right-1 text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: tool.accent, color: '#000' }}>
         {currentIdx + 1}/{total}
       </div>
     </div>
@@ -696,40 +698,22 @@ function CategoryTabs({ categories, activeTab, onSelect }: CategoryTabsProps) {
   useEffect(() => {
     if (!scrollRef.current) return;
     const active = scrollRef.current.querySelector('[data-active="true"]') as HTMLElement | null;
-    if (active) {
-      active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }
+    if (active) active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }, [activeTab]);
 
   return (
-    <div
-      ref={scrollRef}
-      className="flex gap-1.5 overflow-x-auto pb-1 mb-4 no-scrollbar"
-      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-    >
+    <div ref={scrollRef} className="flex gap-1.5 overflow-x-auto pb-1 mb-4 no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
       <button
-        data-active={activeTab === 'all'}
-        onClick={() => onSelect('all')}
-        className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all duration-150 whitespace-nowrap ${
-          activeTab === 'all'
-            ? 'text-white shadow-sm'
-            : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-700'
-        }`}
+        data-active={activeTab === 'all'} onClick={() => onSelect('all')}
+        className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all duration-150 whitespace-nowrap ${activeTab === 'all' ? 'text-white shadow-sm' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-700'}`}
         style={activeTab === 'all' ? { background: '#0a3d2e' } : {}}
       >
         🌟 All
       </button>
-
       {categories.map(({ category, emoji }) => (
         <button
-          key={category}
-          data-active={activeTab === category}
-          onClick={() => onSelect(category)}
-          className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all duration-150 whitespace-nowrap ${
-            activeTab === category
-              ? 'text-white shadow-sm'
-              : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-700'
-          }`}
+          key={category} data-active={activeTab === category} onClick={() => onSelect(category)}
+          className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all duration-150 whitespace-nowrap ${activeTab === category ? 'text-white shadow-sm' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-700'}`}
           style={activeTab === category ? { background: '#0a3d2e' } : {}}
         >
           {emoji} {category}
@@ -753,15 +737,11 @@ export default function Home() {
 
   const t = TRANSLATIONS[lang] || TRANSLATIONS['en'];
   const isRTL = RTL_LANGS.includes(lang);
-
   const tools = useMemo(() => TOOLS_DATA(t), [t]);
-
   const isSearching = search.trim().length > 0;
 
   useEffect(() => {
-    if (activeTab !== 'all' && !tools.find(s => s.category === activeTab)) {
-      setActiveTab('all');
-    }
+    if (activeTab !== 'all' && !tools.find(s => s.category === activeTab)) setActiveTab('all');
   }, [tools, activeTab]);
 
   useEffect(() => {
@@ -772,45 +752,25 @@ export default function Home() {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (
-        showLangMenu &&
-        langMenuRef.current && !langMenuRef.current.contains(e.target as Node) &&
-        langButtonRef.current && !langButtonRef.current.contains(e.target as Node)
-      ) setShowLangMenu(false);
+      if (showLangMenu && langMenuRef.current && !langMenuRef.current.contains(e.target as Node) && langButtonRef.current && !langButtonRef.current.contains(e.target as Node)) setShowLangMenu(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showLangMenu]);
 
-  const switchLang = useCallback((code: string) => {
-    setLang(code);
-    localStorage.setItem(LANG_KEY, code);
-    setShowLangMenu(false);
-  }, []);
+  const switchLang = useCallback((code: string) => { setLang(code); localStorage.setItem(LANG_KEY, code); setShowLangMenu(false); }, []);
 
   const filteredTools = useMemo(() => {
     if (isSearching) {
       const q = search.toLowerCase();
-      return tools
-        .map(section => ({
-          ...section,
-          items: section.items.filter(item =>
-            item.name.toLowerCase().includes(q) ||
-            item.desc.toLowerCase().includes(q) ||
-            section.category.toLowerCase().includes(q)
-          ),
-        }))
-        .filter(s => s.items.length > 0);
+      return tools.map(section => ({ ...section, items: section.items.filter(item => item.name.toLowerCase().includes(q) || item.desc.toLowerCase().includes(q) || section.category.toLowerCase().includes(q)) })).filter(s => s.items.length > 0);
     }
-
     if (activeTab === 'all') return tools;
-
     return tools.filter(s => s.category === activeTab);
   }, [search, tools, activeTab, isSearching]);
 
   const totalResults = filteredTools.reduce((acc, s) => acc + s.items.length, 0);
   const currentLang = LANGUAGES.find(l => l.code === lang);
-
   const categoryList = useMemo(() => tools.map(({ category, emoji }) => ({ category, emoji })), [tools]);
 
   if (!mounted || !darkMounted) {
@@ -827,90 +787,50 @@ export default function Home() {
   return (
     <>
       <Script strategy="lazyOnload" src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} />
-      <Script
-        id="google-analytics"
-        strategy="lazyOnload"
-        dangerouslySetInnerHTML={{
-          __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}',{page_path:window.location.pathname,send_page_view:true,transport_type:'beacon'});`,
-        }}
-      />
+      <Script id="google-analytics" strategy="lazyOnload" dangerouslySetInnerHTML={{ __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}',{page_path:window.location.pathname,send_page_view:true,transport_type:'beacon'});` }} />
 
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300" dir={isRTL ? 'rtl' : 'ltr'}>
 
         {/* ==================== HEADER ==================== */}
         <header className="relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #071e14 0%, #0a3d2e 60%, #0d5238 100%)' }}>
           <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
-            <div className="absolute top-0 left-0 w-48 h-48 rounded-full opacity-[0.04]"
-              style={{ background: 'radial-gradient(circle, #c8a96e 0%, transparent 70%)', transform: 'translate(-30%, -30%)' }} />
-            <div className="absolute bottom-0 right-0 w-64 h-64 rounded-full opacity-[0.04]"
-              style={{ background: 'radial-gradient(circle, #c8a96e 0%, transparent 70%)', transform: 'translate(30%, 30%)' }} />
+            <div className="absolute top-0 left-0 w-48 h-48 rounded-full opacity-[0.04]" style={{ background: 'radial-gradient(circle, #c8a96e 0%, transparent 70%)', transform: 'translate(-30%, -30%)' }} />
+            <div className="absolute bottom-0 right-0 w-64 h-64 rounded-full opacity-[0.04]" style={{ background: 'radial-gradient(circle, #c8a96e 0%, transparent 70%)', transform: 'translate(30%, 30%)' }} />
             <div className="absolute top-6 right-12 text-white/[0.03] text-7xl select-none">☽</div>
             <div className="absolute bottom-4 left-10 text-white/[0.03] text-5xl select-none">✦</div>
           </div>
 
           <div className="relative z-10 px-4 pt-3 pb-8 max-w-6xl mx-auto">
-            {/* ── TOP NAV BAR ── */}
             <div className="flex items-center justify-between mb-6" dir="ltr">
-
               <div className="flex items-center gap-1">
                 <Link href="/" aria-label="I Love Islam — Home" className="flex-shrink-0 mr-1 hover:opacity-80 transition-opacity">
-                  <Image
-                    src="/logo2.png"
-                    alt="I Love Islam"
-                    width={52}
-                    height={52}
-                    className="rounded-xl"
-                    priority
-                  />
+                  <Image src="/logo2.png" alt="I Love Islam" width={52} height={52} className="rounded-xl" priority />
                 </Link>
-
                 {[
                   { href: '/about', label: t.about },
                   { href: '/blog', label: t.blog },
                   { href: '/faq', label: t.faq, hidden: true },
                   { href: '/contact', label: t.contact, hidden: true },
                 ].map(link => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`text-white/45 hover:text-white/80 text-xs transition-colors px-2.5 py-1.5 rounded-lg hover:bg-white/8 ${link.hidden ? 'hidden sm:inline-flex' : ''}`}
-                  >
+                  <Link key={link.href} href={link.href} className={`text-white/45 hover:text-white/80 text-xs transition-colors px-2.5 py-1.5 rounded-lg hover:bg-white/8 ${link.hidden ? 'hidden sm:inline-flex' : ''}`}>
                     {link.label}
                   </Link>
                 ))}
               </div>
-
               <div className="flex items-center gap-2">
-                <button
-                  onClick={toggleDark}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/18 transition-all active:scale-90 text-base"
-                  aria-label="Toggle dark mode"
-                >
+                <button onClick={toggleDark} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/18 transition-all active:scale-90 text-base" aria-label="Toggle dark mode">
                   {dark ? '☀️' : '🌙'}
                 </button>
-
                 <div className="relative">
-                  <button
-                    ref={langButtonRef}
-                    onClick={() => setShowLangMenu(v => !v)}
-                    className="flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-xl px-2.5 py-1.5 text-white/65 text-xs hover:bg-white/18 transition-all"
-                  >
+                  <button ref={langButtonRef} onClick={() => setShowLangMenu(v => !v)} className="flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-xl px-2.5 py-1.5 text-white/65 text-xs hover:bg-white/18 transition-all">
                     <span>{currentLang?.flag}</span>
                     <span className="hidden sm:inline">{currentLang?.label}</span>
                     <span className="text-white/35 text-[10px]">▾</span>
                   </button>
                   {showLangMenu && (
-                    <div
-                      ref={langMenuRef}
-                      className="absolute top-10 right-0 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 w-44 py-1"
-                      style={{ maxHeight: 280, overflowY: 'auto' }}
-                    >
+                    <div ref={langMenuRef} className="absolute top-10 right-0 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 w-44 py-1" style={{ maxHeight: 280, overflowY: 'auto' }}>
                       {LANGUAGES.map(l => (
-                        <button
-                          key={l.code}
-                          onClick={() => switchLang(l.code)}
-                          className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition hover:bg-gray-50 dark:hover:bg-gray-700 ${lang === l.code ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}
-                        >
+                        <button key={l.code} onClick={() => switchLang(l.code)} className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition hover:bg-gray-50 dark:hover:bg-gray-700 ${lang === l.code ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>
                           <span>{l.flag}</span>
                           <span className="flex-1">{l.label}</span>
                           {lang === l.code && <span className="text-emerald-500 text-xs">✓</span>}
@@ -922,56 +842,29 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Logo + tagline */}
             <div className="text-center">
-              <Link
-                href="/"
-                className="inline-block text-5xl md:text-6xl mb-1.5 hover:opacity-80 transition-opacity cursor-pointer tracking-tight"
-                style={{ color: '#c8a96e', fontFamily: 'serif' }}
-                aria-label="I Love Islam — Home"
-              >
+              <Link href="/" className="inline-block text-5xl md:text-6xl mb-1.5 hover:opacity-80 transition-opacity cursor-pointer tracking-tight" style={{ color: '#c8a96e', fontFamily: 'serif' }} aria-label="I Love Islam — Home">
                 ♡ I Love Islam
               </Link>
               <p className="text-white/45 text-xs mb-4 tracking-wide">{t.tagline}</p>
-
               <LiveBar />
-
-              {/* Search bar */}
               <div className="max-w-md mx-auto">
-                <div className="flex items-center gap-3 rounded-2xl px-4 py-3 focus-within:border-white/35 transition-all duration-200"
-                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                <div className="flex items-center gap-3 rounded-2xl px-4 py-3 focus-within:border-white/35 transition-all duration-200" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
                   <span className="text-white/35 text-base flex-shrink-0">🔍</span>
-                  <input
-                    ref={searchRef}
-                    type="text"
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    placeholder={t.search}
-                    className="bg-transparent text-white placeholder-white/25 text-sm outline-none flex-1 min-w-0"
-                    aria-label="Search Islamic tools"
-                  />
+                  <input ref={searchRef} type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={t.search} className="bg-transparent text-white placeholder-white/25 text-sm outline-none flex-1 min-w-0" aria-label="Search Islamic tools" />
                   {search && (
-                    <button
-                      onClick={() => { setSearch(''); searchRef.current?.focus(); }}
-                      className="text-white/35 hover:text-white/70 text-lg leading-none transition-colors flex-shrink-0"
-                      aria-label="Clear search"
-                    >
-                      ✕
-                    </button>
+                    <button onClick={() => { setSearch(''); searchRef.current?.focus(); }} className="text-white/35 hover:text-white/70 text-lg leading-none transition-colors flex-shrink-0" aria-label="Clear search">✕</button>
                   )}
                 </div>
-
                 {search && (
                   <div className="mt-2 text-center">
                     {totalResults === 0 ? (
                       <p className="text-white/50 text-xs">
                         No matches for <span className="text-white font-medium">"{search}"</span>
-                        <span className="block text-white/25 text-[10px] mt-0.5">Try: zakat · prayer · quran · qibla · dhikr · kids · eid · night · alarm</span>
+                        <span className="block text-white/25 text-[10px] mt-0.5">Try: zakat · prayer · quran · qibla · dhikr · halal · scanner · kids · eid</span>
                       </p>
                     ) : (
-                      <p className="text-white/50 text-xs">
-                        <span className="text-white font-semibold">{totalResults}</span> {totalResults === 1 ? 'tool' : 'tools'} found
-                      </p>
+                      <p className="text-white/50 text-xs"><span className="text-white font-semibold">{totalResults}</span> {totalResults === 1 ? 'tool' : 'tools'} found</p>
                     )}
                   </div>
                 )}
@@ -983,67 +876,34 @@ export default function Home() {
         {/* ==================== MAIN ==================== */}
         <main className="max-w-6xl mx-auto px-4 py-5">
           <div className="flex flex-col lg:flex-row gap-6">
-
-            {/* ---- Content column ---- */}
             <div className="flex-1 min-w-0">
 
               {!isSearching && <QuoteOfTheDay />}
+              {/* ✅ HalalScan promo strip — right below quote, above featured banner */}
+              {!isSearching && <HalalScanPromo />}
               {!isSearching && <FeaturedBanner />}
-
-              {!isSearching && (
-                <CategoryTabs
-                  categories={categoryList}
-                  activeTab={activeTab}
-                  onSelect={setActiveTab}
-                />
-              )}
+              {!isSearching && <CategoryTabs categories={categoryList} activeTab={activeTab} onSelect={setActiveTab} />}
 
               {filteredTools.length === 0 && (
                 <div className="bg-white dark:bg-gray-800 rounded-2xl p-10 text-center border border-gray-100 dark:border-gray-700">
                   <p className="text-4xl mb-3">🔍</p>
                   <p className="text-gray-700 dark:text-gray-300 font-semibold mb-1">{t.noTools} "{search}"</p>
                   <p className="text-gray-400 text-sm mb-4">{t.noToolsSub}</p>
-                  <button
-                    onClick={() => setSearch('')}
-                    className="px-5 py-2 rounded-xl text-white text-sm transition hover:opacity-90 active:scale-95"
-                    style={{ background: '#0a3d2e' }}
-                  >
-                    {t.clear}
-                  </button>
+                  <button onClick={() => setSearch('')} className="px-5 py-2 rounded-xl text-white text-sm transition hover:opacity-90 active:scale-95" style={{ background: '#0a3d2e' }}>{t.clear}</button>
                 </div>
               )}
 
               {filteredTools.map(section => (
                 <div key={section.category} className="mb-6">
-                  {(activeTab === 'all' || isSearching) && (
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-base">{section.emoji}</span>
-                      <h2 className="text-[10px] font-bold tracking-[0.16em] uppercase text-gray-400 dark:text-gray-500">
-                        {section.category}
-                      </h2>
-                      <div className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent dark:from-gray-700" />
-                      <span className="text-[9px] text-gray-300 dark:text-gray-600 tabular-nums">
-                        {section.items.length} tools
-                      </span>
-                    </div>
-                  )}
-
-                  {activeTab !== 'all' && !isSearching && (
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-base">{section.emoji}</span>
-                      <h2 className="text-[10px] font-bold tracking-[0.16em] uppercase text-gray-400 dark:text-gray-500">
-                        {section.category}
-                      </h2>
-                      <div className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent dark:from-gray-700" />
-                      <span className="text-[9px] text-gray-300 dark:text-gray-600 tabular-nums">
-                        {section.items.length} tools
-                      </span>
-                    </div>
-                  )}
-
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-base">{section.emoji}</span>
+                    <h2 className="text-[10px] font-bold tracking-[0.16em] uppercase text-gray-400 dark:text-gray-500">{section.category}</h2>
+                    <div className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent dark:from-gray-700" />
+                    <span className="text-[9px] text-gray-300 dark:text-gray-600 tabular-nums">{section.items.length} tools</span>
+                  </div>
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                     {section.items.map(tool => (
-                      <ToolCard key={tool.name} tool={tool} />
+                      <ToolCard key={tool.name + tool.href} tool={tool} />
                     ))}
                   </div>
                 </div>
@@ -1053,15 +913,9 @@ export default function Home() {
                 <>
                   <div className="flex flex-wrap justify-center gap-2 my-5">
                     {Object.values(t.stats).map(label => (
-                      <span
-                        key={label}
-                        className="text-[10px] text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-100 dark:border-gray-700"
-                      >
-                        {label}
-                      </span>
+                      <span key={label} className="text-[10px] text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-100 dark:border-gray-700">{label}</span>
                     ))}
                   </div>
-
                   <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
                     <h2 className="font-semibold text-gray-800 dark:text-gray-200 text-sm mb-2">{t.aboutTitle}</h2>
                     <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed mb-2">{t.aboutText1}</p>
@@ -1076,10 +930,29 @@ export default function Home() {
               <div className="lg:w-64 xl:w-72 flex-shrink-0 space-y-4">
                 <Newsletter t={t} />
 
+                {/* ✅ HalalScan highlighted card in sidebar */}
+                <Link
+                  href="/halal-scanner"
+                  onClick={() => { trackToolClick('HalalScan Sidebar Card'); ScrollManager.save(); }}
+                  className="group flex flex-col gap-2 rounded-2xl border border-emerald-700/40 p-4 hover:border-emerald-500/60 hover:shadow-lg transition-all duration-200 overflow-hidden relative"
+                  style={{ background: 'linear-gradient(135deg, #071a0d, #0a2e14)' }}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-800/50 border border-emerald-600/30 flex items-center justify-center text-lg flex-shrink-0">📷</div>
+                    <div>
+                      <p className="text-[9px] font-bold tracking-widest uppercase text-emerald-400">🆕 New</p>
+                      <p className="text-white font-semibold text-sm leading-tight">HalalScan</p>
+                    </div>
+                  </div>
+                  <p className="text-emerald-200/50 text-xs leading-relaxed">Scan any product barcode or photo — instantly check if it's Halal, Haram or Mashbooh. 100% free.</p>
+                  <span className="text-emerald-400 text-xs font-semibold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">Try it now →</span>
+                </Link>
+
                 <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4">
                   <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-3">⭐ Popular Tools</p>
                   <div className="space-y-0.5">
                     {[
+                      { label: '📷 HalalScan', href: '/halal-scanner', desc: 'Halal food checker' },
                       { label: '💰 Zakat Calculator', href: '/zakat', desc: 'Calculate your annual zakat' },
                       { label: '🕐 Prayer Times', href: '/prayer-times', desc: 'Daily salah times' },
                       { label: '🧭 Qibla Finder', href: '/qibla', desc: 'Find Mecca direction' },
@@ -1089,12 +962,8 @@ export default function Home() {
                       { label: '🐄 Eid ul Adha', href: '/eid-adha', desc: 'Qurbani toolkit' },
                       { label: '🎮 Kids Games', href: '/kids', desc: 'Fun Islamic games' },
                     ].map(link => (
-                      <Link
-                        key={link.href}
-                        href={link.href}
-                        onClick={() => { trackToolClick(link.label); ScrollManager.save(); }}
-                        className="flex items-center justify-between px-3 py-2 rounded-xl text-xs text-gray-600 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-700 dark:hover:text-emerald-400 transition-all group"
-                      >
+                      <Link key={link.href} href={link.href} onClick={() => { trackToolClick(link.label); ScrollManager.save(); }}
+                        className="flex items-center justify-between px-3 py-2 rounded-xl text-xs text-gray-600 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-700 dark:hover:text-emerald-400 transition-all group">
                         <span>{link.label}</span>
                         <span className="text-gray-300 dark:text-gray-600 group-hover:translate-x-0.5 transition-transform">→</span>
                       </Link>
@@ -1111,18 +980,11 @@ export default function Home() {
           <div className="max-w-6xl mx-auto px-4 py-6">
             <div className="text-center mb-4">
               <Link href="/" aria-label="I Love Islam — Home" className="inline-block hover:opacity-80 transition-opacity">
-                <Image
-                  src="/logo.png"
-                  alt="I Love Islam"
-                  width={72}
-                  height={72}
-                  className="rounded-2xl mx-auto"
-                />
+                <Image src="/logo.png" alt="I Love Islam" width={72} height={72} className="rounded-2xl mx-auto" />
               </Link>
               <p className="text-emerald-700 dark:text-emerald-500 text-base mt-2" style={{ fontFamily: 'serif' }}>بسم الله الرحمن الرحيم</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t.footerMade} · {t.footerFree}</p>
             </div>
-
             <div className="flex flex-wrap justify-center gap-3 md:gap-5 mb-4">
               {[
                 { href: '/about', label: t.about },
@@ -1131,17 +993,11 @@ export default function Home() {
                 { href: '/privacy', label: t.privacy },
                 { href: '/terms', label: t.terms },
                 { href: '/contact', label: t.contact },
+                { href: '/halal-scanner', label: '📷 HalalScan' },
               ].map(link => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                >
-                  {link.label}
-                </Link>
+                <Link key={link.href} href={link.href} className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{link.label}</Link>
               ))}
             </div>
-
             <p className="text-center text-[10px] text-gray-300 dark:text-gray-600">
               © {new Date().getFullYear()} iloveislam.life · All tools are free for the Ummah
             </p>
