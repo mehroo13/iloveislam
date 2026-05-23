@@ -108,9 +108,6 @@ export default function MemoryMatchGame() {
   if (gameComplete) {
     return (
       <>
-        <Script strategy="lazyOnload" src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} />
-        <Script id="google-analytics" strategy="lazyOnload" dangerouslySetInnerHTML={{ __html: `window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', '${GA_MEASUREMENT_ID}');` }} />
-        
         <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
           <div className="text-center max-w-md">
             <div className="text-7xl mb-4 animate-bounce">🎉🌟🕋</div>
@@ -132,9 +129,6 @@ export default function MemoryMatchGame() {
 
   return (
     <>
-      <Script strategy="lazyOnload" src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} />
-      <Script id="google-analytics" strategy="lazyOnload" dangerouslySetInnerHTML={{ __html: `window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', '${GA_MEASUREMENT_ID}');` }} />
-
       <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
         <header className="bg-gradient-to-r from-pink-600 to-purple-700 text-white px-4 py-3 sticky top-0 z-10">
           <div className="max-w-2xl mx-auto flex items-center justify-between">

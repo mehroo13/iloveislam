@@ -75,9 +75,6 @@ export default function PrayerGuide() {
   if (completed) {
     return (
       <>
-        <Script strategy="lazyOnload" src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} />
-        <Script id="google-analytics" strategy="lazyOnload" dangerouslySetInnerHTML={{ __html: `window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', '${GA_MEASUREMENT_ID}');` }} />
-        
         <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
           <div className="text-center max-w-md">
             <div className="text-7xl mb-4 animate-bounce">🕌</div>
@@ -98,9 +95,6 @@ export default function PrayerGuide() {
 
   return (
     <>
-      <Script strategy="lazyOnload" src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} />
-      <Script id="google-analytics" strategy="lazyOnload" dangerouslySetInnerHTML={{ __html: `window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', '${GA_MEASUREMENT_ID}');` }} />
-
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-gray-900 dark:to-gray-800">
         <header className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white px-4 py-3 sticky top-0 z-10">
           <div className="max-w-2xl mx-auto flex items-center justify-between">

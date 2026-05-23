@@ -1,7 +1,6 @@
 'use client';
 
 import { useRef, useState, useCallback } from 'react';
-import Tesseract from 'tesseract.js';
 
 interface ImageUploaderProps {
   onIngredients: (ingredients: string[], imageUrl: string) => void;
@@ -107,7 +106,25 @@ export default function ImageUploader({ onIngredients, onLoading, isLoading }: I
       const processedUrl = await preprocessImage(file);
       setProgress(20);
 
-      const worker: any = await (Tesseract.createWorker as any)({
+      // Load Tesseract at runtime from CDN to avoid bundling the library
+      const CDN_BASE = 'https://cdn.jsdelivr.net/npm/tesseract.js@v7.0.0/dist';
+
+      // If a global Tesseract is not already present, inject the CDN script
+      const ensureTesseract = () => new Promise<void>((resolve, reject) => {
+        if ((window as any).Tesseract) return resolve();
+        const s = document.createElement('script');
+        s.src = `${CDN_BASE}/tesseract.min.js`;
+        s.async = true;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('Failed to load Tesseract from CDN'));
+        document.head.appendChild(s);
+      });
+
+      await ensureTesseract();
+      const TesseractLib: any = (window as any).Tesseract;
+
+      const worker: any = await TesseractLib.createWorker({
+        workerPath: `${CDN_BASE}/worker.min.js`,
         logger: (m: any) => {
           if (m.status === 'loading language') {
             setProgress(30);

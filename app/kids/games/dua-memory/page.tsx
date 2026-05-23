@@ -55,9 +55,6 @@ export default function DuaMemoryGame() {
   if (completed) {
     return (
       <>
-        <Script strategy="lazyOnload" src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} />
-        <Script id="google-analytics" strategy="lazyOnload" dangerouslySetInnerHTML={{ __html: `window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', '${GA_MEASUREMENT_ID}');` }} />
-        
         <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-50 flex items-center justify-center p-4">
           <div className="text-center max-w-md">
             <div className="text-7xl mb-4 animate-bounce">🎉🤲🌟</div>
@@ -78,9 +75,6 @@ export default function DuaMemoryGame() {
 
   return (
     <>
-      <Script strategy="lazyOnload" src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} />
-      <Script id="google-analytics" strategy="lazyOnload" dangerouslySetInnerHTML={{ __html: `window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', '${GA_MEASUREMENT_ID}');` }} />
-
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-50">
         <header className="bg-gradient-to-r from-purple-600 to-indigo-700 text-white px-4 py-3">
           <div className="max-w-2xl mx-auto flex items-center justify-between">

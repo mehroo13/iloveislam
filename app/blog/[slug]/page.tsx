@@ -1,7 +1,35 @@
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
+import Link from 'next/link';
 import { articlesMap, allArticles } from '../content';
 import RelatedArticles from './RelatedArticles';
 import BackButton from './BackButton';
+import Breadcrumbs from '../../components/Breadcrumbs';
+import { processAnchors } from '../../lib/linkUtils';
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const article = articlesMap[params.slug];
+  if (!article) return {} as Metadata;
+  const url = `https://www.iloveislam.life/blog/${article.slug}`;
+  return {
+    title: article.title,
+    description: article.excerpt,
+    alternates: { canonical: url },
+    openGraph: {
+      title: article.title,
+      description: article.excerpt,
+      url,
+      type: 'article',
+      images: [{ url: '/og-image.png', alt: article.title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: article.title,
+      description: article.excerpt,
+      images: ['/og-image.png'],
+    },
+  } as Metadata;
+}
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -15,13 +43,54 @@ export default async function BlogPostPage({ params }: PageProps) {
     notFound();
   }
 
+  const url = `https://www.iloveislam.life/blog/${article.slug}`;
+
   const related = allArticles
     .filter((a) => a.slug !== article.slug)
     .sort(() => 0.5 - Math.random())
     .slice(0, 3);
 
+  const processed = processAnchors(article.content);
+
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-20">
+    <main id="main-content" className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-20">
+      {/* Article structured data (JSON-LD) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Article",
+            "mainEntityOfPage": { "@type": "WebPage", "@id": url },
+            "headline": article.title,
+            "description": article.excerpt,
+            "datePublished": article.date,
+            "author": { "@type": "Organization", "name": "I Love Islam" },
+            "publisher": {
+              "@type": "Organization",
+              "name": "I Love Islam",
+              "logo": { "@type": "ImageObject", "url": "https://www.iloveislam.life/icon-512.png" }
+            }
+          }),
+        }}
+      />
+      {/* BreadcrumbList structured data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.iloveislam.life/" },
+              { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://www.iloveislam.life/blog" },
+              { "@type": "ListItem", "position": 3, "name": article.title, "item": `https://www.iloveislam.life/blog/${article.slug}` }
+            ]
+          })
+        }}
+      />
+
+      <Breadcrumbs items={[{ name: 'Home', href: '/' }, { name: 'Blog', href: '/blog' }, { name: article.title }]} />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-8">
         
         <BackButton />
@@ -66,7 +135,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                        prose-a:text-emerald-600 dark:prose-a:text-emerald-400 prose-a:font-medium
                        prose-blockquote:border-l-emerald-500 prose-blockquote:bg-emerald-50 dark:prose-blockquote:bg-emerald-950/50
                        prose-li:marker:text-emerald-600"
-            dangerouslySetInnerHTML={{ __html: article.content }}
+            dangerouslySetInnerHTML={{ __html: processed }}
           />
 
           {/* Call to Action Box */}

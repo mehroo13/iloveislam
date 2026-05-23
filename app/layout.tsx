@@ -1,213 +1,99 @@
-import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
-import "./globals.css";
-import ScrollRestorer from "./ScrollRestorer";
+import type { Metadata } from 'next';
+import Script from 'next/script';
+import { Geist } from 'next/font/google';
+import CMPConsent from './components/CMPConsent';
+import './globals.css';
+import ScrollRestorer from './ScrollRestorer';
 
-const geist = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 5,
-  viewportFit: "cover",
-  themeColor: "#0a3d2e",
-};
+const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: {
-    default: "I Love Islam — Free Islamic Tools | Zakat, Prayer Times, Quran & More",
-    template: "%s | I Love Islam",
-  },
+  title: 'I Love Islam — Free Islamic Tools & Kids Games',
   description:
-    "Free Islamic tools for every Muslim. Calculate Zakat, find Prayer Times, locate Qibla, read the Quran, convert Hijri dates, use Dhikr counter and 25+ more free tools including Kids Islamic Games. No sign-up needed.",
-  keywords: [
-    "zakat calculator", "prayer times", "qibla finder", "quran reader online",
-    "hijri calendar converter", "dhikr counter", "99 names of allah",
-    "islamic tools", "free muslim tools", "salah times", "islamic date today",
-    "halal food finder", "mosque finder", "ramadan planner",
-    "islamic inheritance calculator", "kaffarah calculator",
-    "mizan islamic destiny", "islamic will", "sadaqah tracker",
-    "halal finance", "islamic name finder", "dua generator",
-    "kids islamic games", "islamic games for children", "learn to pray kids",
-    "arabic letters for kids", "dua for kids", "pillars of islam quiz",
-    "زكاة", "أوقات الصلاة", "القرآن الكريم", "ألعاب إسلامية للأطفال",
-    "زکوٰۃ کیلکولیٹر", "نماز کے اوقات", "بچوں کے لیے اسلامی کھیل",
-  ],
-  authors: [{ name: "I Love Islam", url: "https://www.iloveislam.life" }],
-  creator: "I Love Islam",
-  publisher: "I Love Islam",
-  metadataBase: new URL("https://www.iloveislam.life"),
-  alternates: {
-    canonical: "/",
-    languages: {
-      en: "/",
-      ar: "/ar",
-      ur: "/ur",
-      fr: "/fr",
-      tr: "/tr",
-      id: "/id",
-      ms: "/ms",
-      bn: "/bn",
-    },
-  },
+    'Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kids Islamic Games, and 25+ more free Islamic tools.',
   openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: "https://www.iloveislam.life",
-    siteName: "I Love Islam",
-    title: "I Love Islam — Free Islamic Tools & Kids Games for Every Muslim",
-    description:
-      "Calculate Zakat, find Prayer Times, locate Qibla, read Quran, convert Hijri dates, play Islamic games for kids, and 25+ more free Islamic tools. No sign-up needed.",
     images: [
       {
-        url: "/og-image.png",
+        url: '/optimized/og-image.webp',
         width: 1200,
         height: 630,
-        alt: "I Love Islam — Free Islamic Tools & Kids Games",
+        alt: 'I Love Islam — Free Islamic Tools & Kids Games',
       },
     ],
   },
   twitter: {
-    card: "summary_large_image",
-    title: "I Love Islam — Free Islamic Tools & Kids Games for Every Muslim",
-    description:
-      "Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kids Islamic Games, and 25+ more free Islamic tools.",
-    images: ["/og-image.png"],
+    card: 'summary_large_image',
+    images: ['/optimized/og-image.webp'],
   },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
-  },
-  verification: {
-    google: "S6Q7IIFvzrp0iRkQqkMmJm7EV4IPTZlrAAMmd66qN1I",
-  },
+  metadataBase: new URL('https://www.iloveislam.life'),
   icons: {
-    icon: [
-      { url: "/favicon.png",  type: "image/png", sizes: "32x32"   },
-      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
-      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
-    ],
-    apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
-    ],
-    shortcut: "/favicon.png",
+    icon: '/favicon.png',
+    apple: '/apple-touch-icon.png',
   },
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    title: "I Love Islam",
-    statusBarStyle: "black-translucent",
-  },
-  formatDetection: { telephone: false },
+  manifest: '/manifest.json',
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${geist.variable} h-full antialiased`}>
       <head>
-        {/* Google AdSense */}
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2264561932019289"
-          crossOrigin="anonymous"
-        />
+        {/* Removed GTM preconnect and immediate GTM preload; analytics load is gated by CMPConsent */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preload" href="/optimized/og-image.webp" as="image" />
 
-        <link rel="canonical" href="https://www.iloveislam.life" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#0a3d2e" />
 
-        {/* PWA */}
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="I Love Islam" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="application-name" content="I Love Islam" />
-        <meta name="msapplication-TileColor" content="#0a3d2e" />
+        {/* Hreflang alternates */}
+        <link rel="alternate" hrefLang="en" href="https://www.iloveislam.life/" />
+        <link rel="alternate" hrefLang="x-default" href="https://www.iloveislam.life/" />
 
-        {/* Icons */}
-        <link rel="icon" href="/favicon.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="manifest" href="/manifest.json?v=2" />
+        {/* Google Analytics is loaded only after user consent via CMPConsent (client-side). */}
 
-        {/* WebSite Schema */}
+        {/* Structured data for site & organization */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "WebSite",
-              name: "I Love Islam",
-              url: "https://www.iloveislam.life",
+              '@context': 'https://schema.org',
+              '@type': 'WebSite',
+              name: 'I Love Islam',
+              url: 'https://www.iloveislam.life',
               description:
-                "Free Islamic tools for every Muslim — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kids Islamic Games, and 25+ more tools.",
-              potentialAction: {
-                "@type": "SearchAction",
-                target: "https://www.iloveislam.life/?search={search_term_string}",
-                "query-input": "required name=search_term_string",
-              },
+                'Free Islamic tools for every Muslim — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kids Islamic Games, and more.',
             }),
           }}
         />
-
-        {/* Organization Schema */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "Organization",
-              name: "I Love Islam",
-              url: "https://www.iloveislam.life",
-              logo: "https://www.iloveislam.life/icon-512.png",
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              name: 'I Love Islam',
+              url: 'https://www.iloveislam.life',
+              logo: 'https://www.iloveislam.life/icon-512.png',
               sameAs: [
-                "https://www.facebook.com/iloveislam.life",
-                "https://twitter.com/iloveislam_life",
-                "https://www.instagram.com/iloveislam.life",
+                'https://www.facebook.com/iloveislam.life',
+                'https://twitter.com/iloveislam_life',
+                'https://www.instagram.com/iloveislam.life',
               ],
               contactPoint: {
-                "@type": "ContactPoint",
-                contactType: "customer support",
-                url: "https://www.iloveislam.life/contact",
-                email: "contact@iloveislam.life",
+                '@type': 'ContactPoint',
+                contactType: 'customer support',
+                url: 'https://www.iloveislam.life/contact',
+                email: 'contact@iloveislam.life',
               },
-            }),
-          }}
-        />
-
-        {/* Kids Games Schema */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "ItemList",
-              name: "Islamic Games for Kids",
-              description: "Fun and educational Islamic games for children",
-              numberOfItems: 5,
-              itemListElement: [
-                { "@type": "ListItem", position: 1, name: "Memory Match Game",       url: "https://www.iloveislam.life/kids/games/memory-match"   },
-                { "@type": "ListItem", position: 2, name: "Learn to Pray",           url: "https://www.iloveislam.life/kids/games/prayer-guide"    },
-                { "@type": "ListItem", position: 3, name: "Arabic Letters",          url: "https://www.iloveislam.life/kids/games/arabic-letters"  },
-                { "@type": "ListItem", position: 4, name: "Dua Memory",              url: "https://www.iloveislam.life/kids/games/dua-memory"      },
-                { "@type": "ListItem", position: 5, name: "5 Pillars of Islam Quiz", url: "https://www.iloveislam.life/kids/games/pillars-quiz"    },
-              ],
             }),
           }}
         />
       </head>
 
       <body className="min-h-full flex flex-col bg-gray-50 dark:bg-gray-900">
+        <a href="#main-content" className="sr-only-focusable absolute top-2 left-2 z-50 bg-white text-sm px-3 py-2 rounded-md shadow" aria-label="Skip to main content">Skip to content</a>
         <ScrollRestorer />
+        <CMPConsent />
         {children}
       </body>
     </html>

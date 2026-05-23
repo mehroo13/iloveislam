@@ -22,3 +22,22 @@ body {
 .font-arabic {
   font-family: 'Amiri', serif;
 }
+
+/* Visible skip link when focused */
+.sr-only-focusable {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.sr-only-focusable:focus {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  z-index: 9999;
+}
