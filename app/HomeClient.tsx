@@ -12,6 +12,7 @@
 //  ✅ Lazy loading for Newsletter, BackToTop, FeaturedBanner
 //  ✅ Proper <main>, <header>, <footer> landmarks
 //  ✅ h1 on site title, h2 on sections
+//  ✅ DailyStrip tabbed component — Featured Tool + Verse/Hadith at top, no extra space on mobile
 
 import Link from 'next/link';
 import Image from 'next/image';
@@ -446,7 +447,7 @@ function LiveBar() {
 }
 
 // ==================== QUOTE OF THE DAY ====================
-// ✅ Compact on mobile — hidden arabic on very small screens
+// ✅ No outer wrapper — DailyStrip provides the container
 function QuoteOfTheDay() {
   const quote = useMemo(() => {
     const now = new Date();
@@ -456,10 +457,7 @@ function QuoteOfTheDay() {
   }, []);
 
   return (
-    <div
-      className="rounded-2xl p-3 sm:p-4 mb-3 sm:mb-4 border relative overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, #071510 0%, #0d2818 100%)', borderColor: 'rgba(200,169,110,0.2)' }}
-    >
+    <div className="p-3 sm:p-4 relative overflow-hidden">
       <div className="absolute -top-4 -right-4 text-[80px] opacity-[0.04] select-none pointer-events-none leading-none">✦</div>
       <p className="text-[9px] font-bold tracking-[0.2em] uppercase mb-2" style={{ color: '#c8a96e' }}>
         ✨ Verse / Hadith of the Day
@@ -471,6 +469,68 @@ function QuoteOfTheDay() {
       )}
       <p className="text-white/75 text-[12px] sm:text-[13px] leading-relaxed italic mb-1.5">"{quote.text}"</p>
       <p className="text-white/30 text-[10px]">— {quote.source}</p>
+    </div>
+  );
+}
+
+// ==================== DAILY STRIP (tabbed) ====================
+// ✅ Sits between search bar and category tabs
+// ✅ Two tabs: Featured Tool | Verse/Hadith
+// ✅ Takes ~90px on mobile — no extra scrolling
+interface DailyStripProps {
+  allTools: typeof ALL_FEATURED_TOOLS;
+  onToolClick: (title: string) => void;
+}
+
+function DailyStrip({ allTools, onToolClick }: DailyStripProps) {
+  const [activeStripTab, setActiveStripTab] = useState<'featured' | 'verse'>('featured');
+
+  return (
+    <div className="mb-3 sm:mb-4">
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, #071510 0%, #0d2818 100%)',
+          border: '1px solid rgba(200,169,110,0.2)',
+        }}
+      >
+        {/* Tab bar */}
+        <div className="flex" style={{ borderBottom: '1px solid rgba(200,169,110,0.1)' }}>
+          <button
+            onClick={() => setActiveStripTab('featured')}
+            className="flex-1 py-2 text-[10px] font-bold tracking-[0.12em] uppercase transition-all duration-200"
+            style={{
+              background: activeStripTab === 'featured' ? 'rgba(200,169,110,0.12)' : 'transparent',
+              color: activeStripTab === 'featured' ? '#c8a96e' : 'rgba(255,255,255,0.3)',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            ✨ Featured Tool
+          </button>
+          <div style={{ width: '1px', background: 'rgba(200,169,110,0.1)', flexShrink: 0 }} />
+          <button
+            onClick={() => setActiveStripTab('verse')}
+            className="flex-1 py-2 text-[10px] font-bold tracking-[0.12em] uppercase transition-all duration-200"
+            style={{
+              background: activeStripTab === 'verse' ? 'rgba(200,169,110,0.12)' : 'transparent',
+              color: activeStripTab === 'verse' ? '#c8a96e' : 'rgba(255,255,255,0.3)',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            📖 Verse / Hadith
+          </button>
+        </div>
+
+        {/* Panels */}
+        {activeStripTab === 'featured' && (
+          <FeaturedBanner allTools={allTools} onToolClick={onToolClick} />
+        )}
+        {activeStripTab === 'verse' && (
+          <QuoteOfTheDay />
+        )}
+      </div>
     </div>
   );
 }
@@ -660,7 +720,7 @@ export default function HomeClient() {
               </div>
             </div>
 
-            {/* Hero — tighter on mobile */}
+            {/* Hero */}
             <div className="text-center">
               <h1 className="inline-block text-4xl sm:text-5xl md:text-6xl mb-1 hover:opacity-80 transition-opacity cursor-pointer tracking-tight" style={{ color: '#c8a96e', fontFamily: 'serif' }}>
                 <Link href="/" aria-label="I Love Islam — Home">♡ I Love Islam</Link>
@@ -700,26 +760,26 @@ export default function HomeClient() {
         </header>
 
         {/* ==================== MAIN ==================== */}
-        {/*
-          ✅ MOBILE LAYOUT CHANGE:
-          On mobile: Tools come FIRST (above the fold), then quote/banner below.
-          On desktop (lg+): Side-by-side layout — left=tools, right=sidebar.
-          This means users see tools immediately when they open the app on mobile.
-        */}
         <main className="max-w-6xl mx-auto px-3 sm:px-4 py-3 sm:py-5">
-
-          {/* ── MOBILE: Tools first, extras below ── */}
           <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
 
             {/* LEFT COLUMN — Main content */}
             <div className="flex-1 min-w-0">
 
-              {/* ✅ On mobile: category tabs + tools grid shown FIRST */}
+              {/* ✅ DailyStrip — tabbed Featured Tool + Verse/Hadith — ABOVE category tabs, only on "all" tab */}
+              {!isSearching && activeTab === 'all' && (
+                <DailyStrip
+                  allTools={ALL_FEATURED_TOOLS}
+                  onToolClick={(title: string) => { trackToolClick(title); ScrollManager.save(); }}
+                />
+              )}
+
+              {/* Category tabs */}
               {!isSearching && (
                 <CategoryTabs categories={categoryList} activeTab={activeTab} onSelect={setActiveTab} />
               )}
 
-              {/* Tools grid — always first on mobile */}
+              {/* Tools grid */}
               {filteredTools.length === 0 ? (
                 <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 sm:p-10 text-center border border-gray-100 dark:border-gray-700 mb-4">
                   <p className="text-4xl mb-3">🔍</p>
@@ -736,7 +796,6 @@ export default function HomeClient() {
                       <div className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent dark:from-gray-700" />
                       <span className="text-[9px] text-gray-300 dark:text-gray-600 tabular-nums">{section.items.length}</span>
                     </div>
-                    {/* ✅ Always 3 cols on mobile, more on larger screens */}
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1.5 sm:gap-2">
                       {section.items.map(tool => (
                         <ToolCard key={tool.name + tool.href} tool={tool} />
@@ -744,18 +803,6 @@ export default function HomeClient() {
                     </div>
                   </div>
                 ))
-              )}
-
-              {/* ✅ Quote + Featured Banner BELOW tools on mobile, above on desktop via order */}
-              {!isSearching && activeTab === 'all' && (
-                <div className="mt-1 sm:mt-0">
-                  <QuoteOfTheDay />
-                  {/* Lazy-loaded featured banner */}
-                  <FeaturedBanner
-                    allTools={ALL_FEATURED_TOOLS}
-                    onToolClick={(title: string) => { trackToolClick(title); ScrollManager.save(); }}
-                  />
-                </div>
               )}
 
               {/* Stats + About — bottom of left column */}
@@ -775,7 +822,7 @@ export default function HomeClient() {
               )}
             </div>
 
-            {/* RIGHT COLUMN — Sidebar (desktop only via lg:block) */}
+            {/* RIGHT COLUMN — Sidebar (desktop only) */}
             {!isSearching && activeTab === 'all' && (
               <div className="hidden lg:block lg:w-64 xl:w-72 flex-shrink-0 space-y-4">
                 <Newsletter t={t} />
@@ -803,7 +850,7 @@ export default function HomeClient() {
                   <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-3">⭐ Popular Tools</p>
                   <div className="space-y-0.5">
                     {[
-                      { label: '📷 HalalScan', href: '/halal-scanner', },
+                      { label: '📷 HalalScan', href: '/halal-scanner' },
                       { label: '💰 Zakat Calculator', href: '/zakat' },
                       { label: '🕐 Prayer Times', href: '/prayer-times' },
                       { label: '🧭 Qibla Finder', href: '/qibla' },
@@ -827,7 +874,6 @@ export default function HomeClient() {
         </main>
 
         {/* ==================== FOOTER ==================== */}
-        {/* ✅ HalalScan removed from footer links */}
         <footer className="mt-6 sm:mt-8 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
           <div className="max-w-6xl mx-auto px-3 sm:px-4 py-5 sm:py-6">
             <div className="text-center mb-3 sm:mb-4">
@@ -846,7 +892,6 @@ export default function HomeClient() {
                   { href: '/privacy', label: t.privacy },
                   { href: '/terms', label: t.terms },
                   { href: '/contact', label: t.contact },
-                  // ✅ HalalScan removed from footer
                 ].map(link => (
                   <Link key={link.href} href={link.href} className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{link.label}</Link>
                 ))}
