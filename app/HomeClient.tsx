@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 // app/HomeClient.tsx — All interactive logic lives here
 // Changes from original page.tsx:
@@ -18,11 +18,10 @@ import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import Script from 'next/script';
-import type FeaturedBannerType from './components/FeaturedBanner';
 
 // Lazy-load below-fold components
 const Newsletter = dynamic(() => import('./components/Newsletter'), { ssr: false });
-const FeaturedBanner = dynamic(() => import('./components/FeaturedBanner'), { ssr: false }) as typeof FeaturedBannerType;
+const FeaturedBanner = dynamic(() => import('./components/FeaturedBanner'), { ssr: false });
 const BackToTop = dynamic(() => import('./components/BackToTop'), { ssr: false });
 
 // ==================== TYPES ====================
