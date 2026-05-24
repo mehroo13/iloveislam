@@ -433,7 +433,7 @@ function LiveBar() {
   }, []);
 
   return (
-    <div className="flex items-center justify-center gap-3 flex-wrap text-white/45 text-xs mb-3">
+    <div className="flex items-center justify-center gap-3 flex-wrap text-white/60 text-xs mb-3">
       {time && (
         <span className="flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
@@ -498,7 +498,7 @@ function DailyStrip({ allTools, onToolClick }: DailyStripProps) {
         <div className="flex" style={{ borderBottom: '1px solid rgba(200,169,110,0.1)' }}>
           <button
             onClick={() => setActiveStripTab('featured')}
-            className="flex-1 py-2 text-[10px] font-bold tracking-[0.12em] uppercase transition-all duration-200"
+            className="flex-1 py-2.5 sm:py-3 text-[11px] sm:text-[12px] font-bold tracking-[0.12em] uppercase transition-all duration-200"
             style={{
               background: activeStripTab === 'featured' ? 'rgba(200,169,110,0.12)' : 'transparent',
               color: activeStripTab === 'featured' ? '#c8a96e' : 'rgba(255,255,255,0.3)',
@@ -511,7 +511,7 @@ function DailyStrip({ allTools, onToolClick }: DailyStripProps) {
           <div style={{ width: '1px', background: 'rgba(200,169,110,0.1)', flexShrink: 0 }} />
           <button
             onClick={() => setActiveStripTab('verse')}
-            className="flex-1 py-2 text-[10px] font-bold tracking-[0.12em] uppercase transition-all duration-200"
+            className="flex-1 py-2.5 sm:py-3 text-[11px] sm:text-[12px] font-bold tracking-[0.12em] uppercase transition-all duration-200"
             style={{
               background: activeStripTab === 'verse' ? 'rgba(200,169,110,0.12)' : 'transparent',
               color: activeStripTab === 'verse' ? '#c8a96e' : 'rgba(255,255,255,0.3)',
@@ -553,8 +553,8 @@ function ToolCard({ tool }: { tool: Tool }) {
       <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-lg sm:text-xl mb-1.5 sm:mb-2 transition-transform duration-200 group-hover:scale-110 ${tool.color}`}>
         {tool.icon}
       </div>
-      <p className="text-[10px] sm:text-xs font-semibold text-gray-800 dark:text-gray-200 leading-tight mb-0.5 line-clamp-1">{tool.name}</p>
-      <p className="text-[9px] sm:text-[10px] text-gray-400 dark:text-gray-500 leading-tight line-clamp-2 hidden xs:block">{tool.desc}</p>
+      <p className="text-[11px] sm:text-xs font-semibold text-gray-800 dark:text-gray-200 leading-tight mb-0.5 line-clamp-1">{tool.name}</p>
+      <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 leading-tight line-clamp-2 hidden xs:block">{tool.desc}</p>
     </Link>
   );
 }
@@ -577,7 +577,7 @@ function CategoryTabs({ categories, activeTab, onSelect }: CategoryTabsProps) {
   return (
     <div
       ref={scrollRef}
-      className="flex gap-1.5 overflow-x-auto pb-1 mb-3 sm:mb-4"
+      className="flex gap-1.5 overflow-x-auto pb-1 mb-3 sm:mb-4 relative"
       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
     >
       <button
@@ -682,7 +682,7 @@ export default function HomeClient() {
             <div className="flex items-center justify-between mb-3 sm:mb-6" dir="ltr">
               <div className="flex items-center gap-0.5 sm:gap-1">
                 <Link href="/" aria-label="I Love Islam — Home" className="flex-shrink-0 mr-0.5 sm:mr-1 hover:opacity-80 transition-opacity">
-                  <Image src="/logo2.png" alt="I Love Islam" width={44} height={44} className="rounded-xl sm:w-[52px] sm:h-[52px]" priority />
+                  <Image src="/logo2.png" alt="I Love Islam" width={40} height={40} className="rounded-xl w-10 h-10 sm:w-11 sm:h-11 md:w-[44px] md:h-[44px]" priority />
                 </Link>
                 {[
                   { href: '/about', label: t.about },
@@ -725,12 +725,12 @@ export default function HomeClient() {
               <h1 className="inline-block text-4xl sm:text-5xl md:text-6xl mb-1 hover:opacity-80 transition-opacity cursor-pointer tracking-tight" style={{ color: '#c8a96e', fontFamily: 'serif' }}>
                 <Link href="/" aria-label="I Love Islam — Home">♡ I Love Islam</Link>
               </h1>
-              <p className="text-white/45 text-[11px] sm:text-xs mb-2 sm:mb-4 tracking-wide">{t.tagline}</p>
+              <p className="text-white/55 text-[12px] sm:text-xs mb-2 sm:mb-4 tracking-wide">{t.tagline}</p>
               <LiveBar />
 
               {/* Search bar */}
               <div className="max-w-md mx-auto">
-                <div className="flex items-center gap-2 sm:gap-3 rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 focus-within:border-white/35 transition-all duration-200" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                <div className="flex items-center gap-2 sm:gap-3 rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 focus-within:border-white/50 focus-within:bg-white/12 transition-all duration-200" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
                   <span className="text-white/35 text-base flex-shrink-0">🔍</span>
                   <input
                     ref={searchRef} type="text" value={search} onChange={e => setSearch(e.target.value)}
@@ -796,7 +796,7 @@ export default function HomeClient() {
                       <div className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent dark:from-gray-700" />
                       <span className="text-[9px] text-gray-300 dark:text-gray-600 tabular-nums">{section.items.length}</span>
                     </div>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1.5 sm:gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 sm:gap-2">
                       {section.items.map(tool => (
                         <ToolCard key={tool.name + tool.href} tool={tool} />
                       ))}
@@ -824,7 +824,7 @@ export default function HomeClient() {
 
             {/* RIGHT COLUMN — Sidebar (desktop only) */}
             {!isSearching && activeTab === 'all' && (
-              <div className="hidden lg:block lg:w-64 xl:w-72 flex-shrink-0 space-y-4">
+              <div className="hidden md:block md:w-56 lg:w-64 xl:w-72 flex-shrink-0 space-y-4">
                 <Newsletter t={t} />
 
                 {/* HalalScan sidebar card */}
@@ -884,7 +884,7 @@ export default function HomeClient() {
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t.footerMade} · {t.footerFree}</p>
             </div>
             <nav aria-label="Footer navigation">
-              <div className="flex flex-wrap justify-center gap-2 sm:gap-3 md:gap-5 mb-3 sm:mb-4">
+              <div className="flex flex-wrap justify-center gap-3 sm:gap-4 md:gap-5 mb-3 sm:mb-4">
                 {[
                   { href: '/about', label: t.about },
                   { href: '/blog', label: t.blog },
@@ -893,7 +893,7 @@ export default function HomeClient() {
                   { href: '/terms', label: t.terms },
                   { href: '/contact', label: t.contact },
                 ].map(link => (
-                  <Link key={link.href} href={link.href} className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{link.label}</Link>
+                  <Link key={link.href} href={link.href} className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">{link.label}</Link>
                 ))}
               </div>
             </nav>
