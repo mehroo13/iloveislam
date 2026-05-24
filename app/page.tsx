@@ -8,8 +8,18 @@ export const metadata: Metadata = {
   title: 'I Love Islam — Free Islamic Tools for Every Muslim',
   description:
     'Free Islamic tools: Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, HalalScan, Dhikr Counter, Hijri Calendar, Hadith Search and 26+ more. No sign-up. Works worldwide.',
+  metadataBase: new URL('https://www.iloveislam.life'),
   keywords:
     'islamic tools, zakat calculator, prayer times, qibla finder, quran reader, halal scanner, dhikr counter, hijri calendar, halal haram checker, free muslim app',
+  authors: [{ name: 'I Love Islam', url: 'https://www.iloveislam.life' }],
+  robots: { index: true, follow: true },
+  alternates: {
+    canonical: 'https://www.iloveislam.life',
+    languages: {
+      'en-US': 'https://www.iloveislam.life',
+      'x-default': 'https://www.iloveislam.life',
+    },
+  },
   openGraph: {
     title: 'I Love Islam — Free Islamic Tools',
     description: 'The complete free toolkit for every Muslim. 26+ tools, no sign-up.',
@@ -25,8 +35,6 @@ export const metadata: Metadata = {
     description: '26+ free Islamic tools. No sign-up required.',
     images: ['https://www.iloveislam.life/og-image.png'],
   },
-  alternates: { canonical: 'https://www.iloveislam.life' },
-  robots: { index: true, follow: true },
 };
 
 // JSON-LD structured data — server-rendered, great for SEO

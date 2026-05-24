@@ -23,6 +23,7 @@ import { mosqueFinderArticle } from './mosque-finder-guide';
 import { hadithArticle } from './hadith-guide';
 import { islamicNamesArticle } from './islamic-names-guide';
 import { teachingChildrenArticle } from './teaching-children-islam';
+import { rightsOfParentsArticle } from './rights-of-parents';
 import { fivePillarsArticle } from './five-pillars-of-islam';
 import { mosqueEtiquetteArticle } from './mosque-etiquette';
 import { nightRecitationArticle } from './night-recitation-tool';
@@ -71,6 +72,7 @@ export const allArticles: BlogArticle[] = [
   hadithArticle,
   islamicNamesArticle,
   teachingChildrenArticle,
+  rightsOfParentsArticle,
   fivePillarsArticle,
   mosqueEtiquetteArticle,
   nightRecitationArticle,

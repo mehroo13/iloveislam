@@ -11,7 +11,35 @@ export const metadata: Metadata = {
   title: 'I Love Islam — Free Islamic Tools & Kids Games',
   description:
     'Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kids Islamic Games, and 25+ more free Islamic tools.',
+  metadataBase: new URL('https://www.iloveislam.life'),
+  keywords: [
+    'Islamic tools',
+    'Muslim tools',
+    'Qibla finder',
+    'Prayer times',
+    'Zakat calculator',
+    'Quran reader',
+    'Halal scanner',
+    'Islamic kids games',
+    'Hijri calendar',
+  ],
+  authors: [{ name: 'I Love Islam', url: 'https://www.iloveislam.life' }],
+  robots: { index: true, follow: true },
+  alternates: {
+    canonical: 'https://www.iloveislam.life',
+    languages: {
+      'en-US': 'https://www.iloveislam.life',
+      'x-default': 'https://www.iloveislam.life',
+    },
+  },
   openGraph: {
+    title: 'I Love Islam — Free Islamic Tools & Kids Games',
+    description:
+      'Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kids Islamic Games, and 25+ more free Islamic tools.',
+    url: 'https://www.iloveislam.life',
+    siteName: 'I Love Islam',
+    locale: 'en_US',
+    type: 'website',
     images: [
       {
         url: '/optimized/og-image.webp',
@@ -23,9 +51,12 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
+    title: 'I Love Islam — Free Islamic Tools & Kids Games',
+    description:
+      'Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kids Islamic Games, and 25+ more free Islamic tools.',
     images: ['/optimized/og-image.webp'],
+    creator: '@iloveislam_life',
   },
-  metadataBase: new URL('https://www.iloveislam.life'),
   icons: {
     icon: '/favicon.png',
     apple: '/apple-touch-icon.png',
