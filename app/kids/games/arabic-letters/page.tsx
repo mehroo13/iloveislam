@@ -1,204 +1,164 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import Script from 'next/script';
 
-/* ✅ FULL LETTER SET */
-const LETTERS = [
-  { letter: 'ا', name: 'Alif' },
-  { letter: 'ب', name: 'Ba' },
-  { letter: 'ت', name: 'Ta' },
-  { letter: 'ث', name: 'Tha' },
-  { letter: 'ج', name: 'Jeem' },
-  { letter: 'ح', name: 'Ha' },
-  { letter: 'خ', name: 'Kha' },
-  { letter: 'د', name: 'Dal' },
-  { letter: 'ذ', name: 'Dhal' },
-  { letter: 'ر', name: 'Ra' },
-  { letter: 'ز', name: 'Zay' },
-  { letter: 'س', name: 'Seen' },
-  { letter: 'ش', name: 'Sheen' },
-  { letter: 'ص', name: 'Sad' },
-  { letter: 'ض', name: 'Dad' },
-  { letter: 'ط', name: 'Taa' },
-  { letter: 'ظ', name: 'Dha' },
-  { letter: 'ع', name: 'Ain' },
-  { letter: 'غ', name: 'Ghain' },
-  { letter: 'ف', name: 'Fa' },
-  { letter: 'ق', name: 'Qaf' },
-  { letter: 'ك', name: 'Kaf' },
-  { letter: 'ل', name: 'Lam' },
-  { letter: 'م', name: 'Meem' },
-  { letter: 'ن', name: 'Noon' },
-  { letter: 'ه', name: 'Ha2' },
-  { letter: 'و', name: 'Waw' },
-  { letter: 'ي', name: 'Ya' },
+const GA_MEASUREMENT_ID = 'G-4BDTXNC58M';
+
+const ARABIC_LETTERS = [
+  { letter: 'ا', name: 'Alif', example: 'Apple', image: '🍎' },
+  { letter: 'ب', name: 'Ba', example: 'House', image: '🏠' },
+  { letter: 'ت', name: 'Ta', example: 'Tiger', image: '🐯' },
+  { letter: 'ث', name: 'Tha', example: 'Three', image: '3️⃣' },
+  { letter: 'ج', name: 'Jeem', example: 'Camel', image: '🐪' },
+  { letter: 'ح', name: 'Ha', example: 'Hen', image: '🐔' },
+  { letter: 'خ', name: 'Kha', example: 'Bread', image: '🍞' },
+  { letter: 'د', name: 'Dal', example: 'Drum', image: '🥁' },
+  { letter: 'ذ', name: 'Dhal', example: 'Gold', image: '🥇' },
+  { letter: 'ر', name: 'Ra', example: 'Rose', image: '🌹' },
+  { letter: 'ز', name: 'Zay', example: 'Zebra', image: '🦓' },
+  { letter: 'س', name: 'Seen', example: 'Fish', image: '🐟' },
+  { letter: 'ش', name: 'Sheen', example: 'Sun', image: '☀️' },
+  { letter: 'ص', name: 'Sad', example: 'Soap', image: '🧼' },
+  { letter: 'ض', name: 'Dad', example: 'Frog', image: '🐸' },
+  { letter: 'ط', name: 'Taa', example: 'Plane', image: '✈️' },
+  { letter: 'ظ', name: 'Dha', example: 'Deer', image: '🦌' },
+  { letter: 'ع', name: 'Ain', example: 'Eye', image: '👁️' },
+  { letter: 'غ', name: 'Ghain', example: 'Cloud', image: '☁️' },
+  { letter: 'ف', name: 'Fa', example: 'Butterfly', image: '🦋' },
+  { letter: 'ق', name: 'Qaf', example: 'Moon', image: '🌙' },
+  { letter: 'ك', name: 'Kaf', example: 'Dog', image: '🐶' },
+  { letter: 'ل', name: 'Lam', example: 'Lemon', image: '🍋' },
+  { letter: 'م', name: 'Meem', example: 'Water', image: '💧' },
+  { letter: 'ن', name: 'Noon', example: 'Star', image: '⭐' },
+  { letter: 'ه', name: 'Ha2', example: 'Air', image: '🌬️' },
+  { letter: 'و', name: 'Waw', example: 'Rose', image: '🌺' },
+  { letter: 'ي', name: 'Ya', example: 'Hand', image: '✋' },
 ];
 
-export default function ArabicLettersUltimate() {
-  const [mode, setMode] = useState<'learn' | 'quiz' | 'challenge'>('learn');
-  const [index, setIndex] = useState(0);
+export default function ArabicLettersGame() {
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
-  const [stars, setStars] = useState(0);
-  const [timer, setTimer] = useState(10);
+  const [completed, setCompleted] = useState(false);
   const [options, setOptions] = useState<string[]>([]);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
 
-  const current = LETTERS[index];
-  const intervalRef = useRef<any>(null);
+  useEffect(() => {
+    generateOptions();
+  }, [currentIndex]);
 
-  /* ✅ GENERATE OPTIONS */
   const generateOptions = () => {
-    const wrong = LETTERS
-      .filter(l => l.name !== current.name)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 3)
-      .map(l => l.name);
-
-    setOptions([...wrong, current.name].sort(() => Math.random() - 0.5));
+    const current = ARABIC_LETTERS[currentIndex];
+    const otherNames = ARABIC_LETTERS.filter(l => l.name !== current.name).map(l => l.name);
+    const shuffled = [...otherNames.slice(0, 3), current.name].sort(() => Math.random() - 0.5);
+    setOptions(shuffled);
   };
 
-  useEffect(() => {
-    if (mode !== 'learn') generateOptions();
-  }, [index, mode]);
-
-  /* 🎯 TIMER MODE */
-  useEffect(() => {
-    if (mode === 'challenge') {
-      intervalRef.current = setInterval(() => {
-        setTimer(t => {
-          if (t <= 1) {
-            next();
-            return 10;
-          }
-          return t - 1;
-        });
-      }, 1000);
+  const handleAnswer = (selected: string) => {
+    setSelectedOption(selected);
+    const isCorrect = selected === ARABIC_LETTERS[currentIndex].name;
+    
+    if (isCorrect) {
+      setScore(score + 1);
     }
-    return () => clearInterval(intervalRef.current);
-  }, [mode]);
-
-  const next = () => {
-    setSelected(null);
-    if (index + 1 < LETTERS.length) {
-      setIndex(i => i + 1);
-    } else {
-      if (mode === 'learn') {
-        setMode('quiz');
-        setIndex(0);
-      } else if (mode === 'quiz') {
-        setMode('challenge');
-        setIndex(0);
-        setStars(0);
+    
+    setTimeout(() => {
+      if (currentIndex + 1 < ARABIC_LETTERS.length) {
+        setCurrentIndex(currentIndex + 1);
+        setSelectedOption(null);
       } else {
-        alert("🏆 You finished everything!");
+        setCompleted(true);
+        setShowCelebration(true);
+        
+        // Save completion
+        const saved = localStorage.getItem('kids_completed_games');
+        let completedGames = saved ? JSON.parse(saved) : [];
+        if (!completedGames.includes('arabic-letters')) {
+          completedGames.push('arabic-letters');
+          localStorage.setItem('kids_completed_games', JSON.stringify(completedGames));
+        }
+        
+        setTimeout(() => setShowCelebration(false), 5000);
       }
-    }
+    }, 1000);
   };
 
-  const answer = (opt: string) => {
-    setSelected(opt);
+  if (completed) {
+    return (
+      <>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center p-4">
+          <div className="text-center max-w-md">
+            <div className="text-7xl mb-4 animate-bounce">🎉📖🌟</div>
+            <h1 className="text-3xl font-bold text-blue-600 mb-2">Masha'Allah!</h1>
+            <p className="text-gray-600 mb-2">You learned {ARABIC_LETTERS.length} Arabic letters!</p>
+            <div className="bg-white rounded-xl p-4 mb-4">
+              <p className="text-lg font-bold text-emerald-600">+100 Points</p>
+              <p className="text-sm text-gray-500">Arabic Letters Completed</p>
+            </div>
+            <Link href="/kids" className="inline-block px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition">
+              Back to Games 🎮
+            </Link>
+          </div>
+        </div>
+      </>
+    );
+  }
 
-    if (opt === current.name) {
-      setScore(s => s + 1);
-      setStars(s => s + 1);
-    }
-
-    setTimeout(next, 700);
-  };
-
-  /* 🧩 DRAG MATCH */
-  const handleDrop = (letterName: string) => {
-    if (letterName === current.name) {
-      next();
-    }
-  };
+  const current = ARABIC_LETTERS[currentIndex];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-100 to-blue-200">
-
-      {/* HEADER */}
-      <div className="flex justify-between p-4 bg-white shadow">
-        <Link href="/kids">← Back</Link>
-        <div>⭐ {stars} | 🧠 {score}</div>
-      </div>
-
-      <div className="p-6 text-center">
-
-        <h1 className="text-2xl font-bold mb-4">
-          {mode === 'learn' && "Learn Mode 📘"}
-          {mode === 'quiz' && "Quiz Mode 🎯"}
-          {mode === 'challenge' && `Challenge ⏳ ${timer}`}
-        </h1>
-
-        <motion.div
-          key={current.letter}
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          className="text-8xl mb-6 cursor-pointer"
-        >
-          {current.letter}
-        </motion.div>
-
-        {/* LEARN */}
-        {mode === 'learn' && (
-          <button onClick={next} className="bg-green-500 px-6 py-3 rounded-xl text-white">
-            Next →
-          </button>
-        )}
-
-        {/* QUIZ / CHALLENGE */}
-        {(mode === 'quiz' || mode === 'challenge') && (
-          <div className="grid grid-cols-2 gap-4">
-            {options.map(opt => (
-              <button
-                key={opt}
-                onClick={() => answer(opt)}
-                className={`p-4 rounded-xl font-bold ${
-                  selected === null
-                    ? 'bg-white'
-                    : opt === current.name
-                      ? 'bg-green-500 text-white'
-                      : opt === selected
-                        ? 'bg-red-500 text-white'
-                        : 'bg-gray-200'
-                }`}
-              >
-                {opt}
-              </button>
-            ))}
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
+        <header className="bg-gradient-to-r from-blue-600 to-cyan-700 text-white px-4 py-3">
+          <div className="max-w-2xl mx-auto flex items-center justify-between">
+            <Link href="/kids" className="text-white/80 hover:text-white text-sm">← Back</Link>
+            <h1 className="font-bold">🔤 Arabic Letters</h1>
+            <div className="text-sm">⭐ {score}/{ARABIC_LETTERS.length}</div>
           </div>
-        )}
+        </header>
 
-        {/* 🧩 DRAG GAME */}
-        {mode === 'challenge' && (
-          <div className="mt-10">
-            <p className="mb-2">Drag correct name here 👇</p>
-            <div
-              onDragOver={e => e.preventDefault()}
-              onDrop={e => handleDrop(e.dataTransfer.getData('text'))}
-              className="h-20 border-4 border-dashed rounded-xl flex items-center justify-center"
-            >
-              Drop Here
-            </div>
-
-            <div className="flex gap-3 justify-center mt-4">
-              {options.map(opt => (
-                <div
-                  key={opt}
-                  draggable
-                  onDragStart={e => e.dataTransfer.setData('text', opt)}
-                  className="bg-white px-4 py-2 rounded shadow cursor-grab"
+        <main className="max-w-2xl mx-auto px-4 py-8">
+          <div className="bg-white rounded-2xl p-8 shadow-lg text-center">
+            <div className="text-8xl mb-4 font-arabic">{current.letter}</div>
+            <p className="text-gray-500 mb-2">What is this letter?</p>
+            
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              {options.map((option) => (
+                <button
+                  key={option}
+                  onClick={() => handleAnswer(option)}
+                  disabled={selectedOption !== null}
+                  className={`p-4 rounded-xl font-semibold transition-all ${
+                    selectedOption === null
+                      ? 'bg-blue-100 hover:bg-blue-200 text-blue-800'
+                      : selectedOption === option
+                        ? option === current.name
+                          ? 'bg-green-500 text-white'
+                          : 'bg-red-500 text-white'
+                        : option === current.name && selectedOption !== null
+                          ? 'bg-green-500 text-white'
+                          : 'bg-gray-100 opacity-50'
+                  }`}
                 >
-                  {opt}
-                </div>
+                  {option}
+                </button>
               ))}
             </div>
           </div>
-        )}
+        </main>
 
+        {showCelebration && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+            <div className="bg-white/95 rounded-2xl p-6 text-center shadow-2xl animate-bounce pointer-events-auto">
+              <div className="text-6xl mb-3">🎉📖🌟</div>
+              <h3 className="text-2xl font-bold text-blue-600">Masha'Allah!</h3>
+              <p>You completed Arabic Letters!</p>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </>
   );
 }
