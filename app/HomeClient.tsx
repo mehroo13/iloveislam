@@ -875,29 +875,50 @@ export default function HomeClient() {
 
         {/* ==================== FOOTER ==================== */}
         <footer className="mt-6 sm:mt-8 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-          <div className="max-w-6xl mx-auto px-3 sm:px-4 py-5 sm:py-6">
-            <div className="text-center mb-3 sm:mb-4">
-              <Link href="/" aria-label="I Love Islam — Home" className="inline-block hover:opacity-80 transition-opacity">
-                <Image src="/logo.png" alt="I Love Islam" width={64} height={64} className="rounded-2xl mx-auto sm:w-[72px] sm:h-[72px]" />
-              </Link>
-              <p className="text-emerald-700 dark:text-emerald-500 text-base mt-2" style={{ fontFamily: 'serif' }}>بسم الله الرحمن الرحيم</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t.footerMade} · {t.footerFree}</p>
-            </div>
-            <nav aria-label="Footer navigation">
-              <div className="flex flex-wrap justify-center gap-3 sm:gap-4 md:gap-5 mb-3 sm:mb-4">
-                {[
-                  { href: '/about', label: t.about },
-                  { href: '/blog', label: t.blog },
-                  { href: '/faq', label: t.faq },
-                  { href: '/privacy', label: t.privacy },
-                  { href: '/terms', label: t.terms },
-                  { href: '/contact', label: t.contact },
-                ].map(link => (
-                  <Link key={link.href} href={link.href} className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">{link.label}</Link>
-                ))}
+          <div className="max-w-6xl mx-auto px-3 sm:px-4 py-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+              <div className="text-center md:text-left">
+                <Link href="/" aria-label="I Love Islam — Home" className="inline-block hover:opacity-80 transition-opacity">
+                  <Image src="/logo.png" alt="I Love Islam" width={64} height={64} className="rounded-2xl mx-auto md:mx-0 sm:w-[72px] sm:h-[72px]" />
+                </Link>
+                <p className="text-emerald-700 dark:text-emerald-500 text-base mt-2" style={{ fontFamily: 'serif' }}>بسم الله الرحمن الرحيم</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t.footerMade} · {t.footerFree}</p>
               </div>
-            </nav>
-            <p className="text-center text-[10px] text-gray-300 dark:text-gray-600">
+
+              <div className="flex justify-center md:justify-start">
+                <div className="grid grid-cols-2 gap-4 text-center md:text-left">
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Explore</h4>
+                    <nav aria-label="Explore links" className="flex flex-col gap-2">
+                      <Link href="/contact" className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.contact}</Link>
+                      <Link href="/about" className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.about}</Link>
+                      <Link href="/blog" className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.blog}</Link>
+                    </nav>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Help & Legal</h4>
+                    <nav aria-label="Legal links" className="flex flex-col gap-2">
+                      <Link href="/faq" className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.faq}</Link>
+                      <Link href="/privacy" className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.privacy}</Link>
+                      <Link href="/terms" className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.terms}</Link>
+                      <Link href="/sitemap.xml" className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">Sitemap</Link>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+
+              <div className="md:pl-4">
+                <div className="md:hidden mb-4">
+                  {/* show newsletter on small screens above copyright */}
+                  <Newsletter t={t as any} />
+                </div>
+                <div className="hidden md:block">
+                  <Newsletter t={t as any} />
+                </div>
+              </div>
+            </div>
+
+            <p className="text-center text-[10px] text-gray-300 dark:text-gray-600 mt-4">
               © {new Date().getFullYear()} iloveislam.life · All tools are free for the Ummah
             </p>
           </div>
