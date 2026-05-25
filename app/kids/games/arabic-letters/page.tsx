@@ -46,7 +46,7 @@ export default function ArabicLettersUltimate() {
   const [selected, setSelected] = useState<string | null>(null);
 
   const current = LETTERS[index];
-  const intervalRef = useRef<any>();
+  const intervalRef = useRef<any>(null);
 
   /* ✅ GENERATE OPTIONS */
   const generateOptions = () => {
