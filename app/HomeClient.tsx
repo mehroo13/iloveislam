@@ -13,6 +13,8 @@
 //  ✅ Proper <main>, <header>, <footer> landmarks
 //  ✅ h1 on site title, h2 on sections
 //  ✅ DailyStrip tabbed component — Featured Tool + Verse/Hadith at top, no extra space on mobile
+//  ✅ Newsletter removed from sidebar — only shown once in footer
+//  ✅ Footer links on one line with | separators, sitemap removed
 
 import Link from 'next/link';
 import Image from 'next/image';
@@ -270,7 +272,6 @@ const DAILY_QUOTES = [
   { text: "None of you will enter Paradise by his deeds alone — except by the Mercy of Allah.", source: "Bukhari", arabic: "" },
 ];
 
-// ✅ HalalScan stays in featured banner (position 2) — only removed from promo strip, travel, footer
 const ALL_FEATURED_TOOLS = [
   { href: '/mizan', badge: '✨ Featured', title: 'Mizan — Islamic Life Blueprint', desc: 'Discover your purpose through Islamic numerology', icon: '✦', gradient: 'linear-gradient(135deg, #1a0a00, #3d1f00)', accent: '#c8a96e' },
   { href: '/halal-scanner', badge: '🆕 New Tool', title: 'HalalScan — Halal Food Scanner', desc: "Scan barcodes & photos — instantly know if it's Halal, Haram or Mashbooh", icon: '📷', gradient: 'linear-gradient(135deg, #071a0d, #0a3d1a)', accent: '#4ade80' },
@@ -300,7 +301,6 @@ const ALL_FEATURED_TOOLS = [
 ];
 
 // ==================== TOOLS DATA ====================
-// ✅ HalalScan removed from Travel section
 const TOOLS_DATA = (t: TranslationsType) => [
   {
     category: t.mostUsed, emoji: '⭐',
@@ -338,7 +338,6 @@ const TOOLS_DATA = (t: TranslationsType) => [
   {
     category: t.travel, emoji: '📚',
     items: [
-      // ✅ HalalScan removed from here
       { name: 'Halal Travel', desc: 'Plan your journey', icon: '🌍', href: '/travel', color: 'bg-blue-100 text-blue-700' },
       { name: 'Hajj Checklist', desc: 'Pilgrimage guide', icon: '🕋', href: '/hajj', color: 'bg-stone-100 text-stone-700' },
       { name: 'Mosque Finder', desc: 'Nearest masjid', icon: '🕌', href: '/mosque', color: 'bg-emerald-100 text-emerald-700' },
@@ -447,7 +446,6 @@ function LiveBar() {
 }
 
 // ==================== QUOTE OF THE DAY ====================
-// ✅ No outer wrapper — DailyStrip provides the container
 function QuoteOfTheDay() {
   const quote = useMemo(() => {
     const now = new Date();
@@ -474,9 +472,6 @@ function QuoteOfTheDay() {
 }
 
 // ==================== DAILY STRIP (tabbed) ====================
-// ✅ Sits between search bar and category tabs
-// ✅ Two tabs: Featured Tool | Verse/Hadith
-// ✅ Takes ~90px on mobile — no extra scrolling
 interface DailyStripProps {
   allTools: typeof ALL_FEATURED_TOOLS;
   onToolClick: (title: string) => void;
@@ -536,7 +531,6 @@ function DailyStrip({ allTools, onToolClick }: DailyStripProps) {
 }
 
 // ==================== TOOL CARD ====================
-// ✅ 3-col on mobile maintained, tighter padding on mobile
 function ToolCard({ tool }: { tool: Tool }) {
   const handleClick = () => { trackToolClick(tool.name); ScrollManager.save(); };
   return (
@@ -766,7 +760,7 @@ export default function HomeClient() {
             {/* LEFT COLUMN — Main content */}
             <div className="flex-1 min-w-0">
 
-              {/* ✅ DailyStrip — tabbed Featured Tool + Verse/Hadith — ABOVE category tabs, only on "all" tab */}
+              {/* DailyStrip — tabbed Featured Tool + Verse/Hadith */}
               {!isSearching && activeTab === 'all' && (
                 <DailyStrip
                   allTools={ALL_FEATURED_TOOLS}
@@ -822,10 +816,9 @@ export default function HomeClient() {
               )}
             </div>
 
-            {/* RIGHT COLUMN — Sidebar (desktop only) */}
+            {/* ✅ RIGHT COLUMN — Sidebar (desktop only) — Newsletter REMOVED from here */}
             {!isSearching && activeTab === 'all' && (
               <div className="hidden md:block md:w-56 lg:w-64 xl:w-72 flex-shrink-0 space-y-4">
-                <Newsletter t={t} />
 
                 {/* HalalScan sidebar card */}
                 <Link
@@ -876,51 +869,47 @@ export default function HomeClient() {
         {/* ==================== FOOTER ==================== */}
         <footer className="mt-6 sm:mt-8 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
           <div className="max-w-6xl mx-auto px-3 sm:px-4 py-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-              <div className="text-center md:text-left">
+
+            {/* Top row: logo + newsletter */}
+            <div className="flex flex-col md:flex-row md:items-start gap-5">
+              {/* Logo + tagline */}
+              <div className="flex flex-col items-center md:items-start flex-shrink-0">
                 <Link href="/" aria-label="I Love Islam — Home" className="inline-block hover:opacity-80 transition-opacity">
-                  <Image src="/logo.png" alt="I Love Islam" width={64} height={64} className="rounded-2xl mx-auto md:mx-0 sm:w-[72px] sm:h-[72px]" />
+                  <Image src="/logo.png" alt="I Love Islam" width={64} height={64} className="rounded-2xl sm:w-[72px] sm:h-[72px]" />
                 </Link>
                 <p className="text-emerald-700 dark:text-emerald-500 text-base mt-2" style={{ fontFamily: 'serif' }}>بسم الله الرحمن الرحيم</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t.footerMade} · {t.footerFree}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 text-center md:text-left">{t.footerMade} · {t.footerFree}</p>
               </div>
 
-              <div className="flex justify-center md:justify-start">
-                <div className="grid grid-cols-2 gap-4 text-center md:text-left">
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Explore</h4>
-                    <nav aria-label="Explore links" className="flex flex-col gap-2">
-                      <Link href="/contact" className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.contact}</Link>
-                      <Link href="/about" className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.about}</Link>
-                      <Link href="/blog" className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.blog}</Link>
-                    </nav>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Help & Legal</h4>
-                    <nav aria-label="Legal links" className="flex flex-col gap-2">
-                      <Link href="/faq" className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.faq}</Link>
-                      <Link href="/privacy" className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.privacy}</Link>
-                      <Link href="/terms" className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.terms}</Link>
-                      <Link href="/sitemap.xml" className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">Sitemap</Link>
-                    </nav>
-                  </div>
-                </div>
-              </div>
+              {/* Spacer pushes newsletter to the right on desktop */}
+              <div className="flex-1" />
 
-              <div className="md:pl-4">
-                <div className="md:hidden mb-4">
-                  {/* show newsletter on small screens above copyright */}
-                  <Newsletter t={t as any} />
-                </div>
-                <div className="hidden md:block">
-                  <Newsletter t={t as any} />
-                </div>
+              {/* ✅ Newsletter — shown once here only (removed from sidebar) */}
+              <div className="w-full md:w-auto md:min-w-[220px] lg:min-w-[260px]">
+                <Newsletter t={t as any} />
               </div>
             </div>
 
-            <p className="text-center text-[10px] text-gray-300 dark:text-gray-600 mt-4">
-              © {new Date().getFullYear()} iloveislam.life · All tools are free for the Ummah
-            </p>
+            {/* ✅ Footer nav — single line with | separators, sitemap removed */}
+            <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-col items-center gap-2">
+              <nav aria-label="Footer links" className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-gray-400 dark:text-gray-500">
+                <Link href="/about" className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.about}</Link>
+                <span className="text-gray-200 dark:text-gray-700 select-none">|</span>
+                <Link href="/blog" className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.blog}</Link>
+                <span className="text-gray-200 dark:text-gray-700 select-none">|</span>
+                <Link href="/contact" className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.contact}</Link>
+                <span className="text-gray-200 dark:text-gray-700 select-none">|</span>
+                <Link href="/faq" className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.faq}</Link>
+                <span className="text-gray-200 dark:text-gray-700 select-none">|</span>
+                <Link href="/privacy" className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.privacy}</Link>
+                <span className="text-gray-200 dark:text-gray-700 select-none">|</span>
+                <Link href="/terms" className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.terms}</Link>
+              </nav>
+              <p className="text-[10px] text-gray-300 dark:text-gray-600">
+                © {new Date().getFullYear()} iloveislam.life · All tools are free for the Ummah
+              </p>
+            </div>
+
           </div>
         </footer>
 
