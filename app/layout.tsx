@@ -88,34 +88,61 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               '@context': 'https://schema.org',
-              '@type': 'WebSite',
-              name: 'I Love Islam',
-              url: 'https://www.iloveislam.life',
-              description:
-                'Free Islamic tools for every Muslim — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kids Islamic Games, and more.',
-            }),
-          }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'Organization',
-              name: 'I Love Islam',
-              url: 'https://www.iloveislam.life',
-              logo: 'https://www.iloveislam.life/icon-512.png',
-              sameAs: [
-                'https://www.facebook.com/iloveislam.life',
-                'https://twitter.com/iloveislam_life',
-                'https://www.instagram.com/iloveislam.life',
+              '@graph': [
+                {
+                  '@type': 'WebSite',
+                  name: 'I Love Islam',
+                  url: 'https://www.iloveislam.life',
+                  description: 'Free Islamic tools for every Muslim — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kids Islamic Games, and more.',
+                  publisher: { '@id': '#organization' },
+                  potentialAction: {
+                    '@type': 'SearchAction',
+                    target: 'https://www.iloveislam.life/search?q={search_term_string}',
+                    'query-input': 'required name=search_term_string',
+                  },
+                },
+                {
+                  '@type': 'Organization',
+                  '@id': '#organization',
+                  name: 'I Love Islam',
+                  url: 'https://www.iloveislam.life',
+                  logo: {
+                    '@type': 'ImageObject',
+                    url: 'https://www.iloveislam.life/icon-512.png',
+                    width: 512,
+                    height: 512,
+                  },
+                  sameAs: [
+                    'https://www.facebook.com/iloveislam.life',
+                    'https://twitter.com/iloveislam_life',
+                    'https://www.instagram.com/iloveislam.life',
+                  ],
+                  contactPoint: {
+                    '@type': 'ContactPoint',
+                    contactType: 'customer support',
+                    url: 'https://www.iloveislam.life/contact',
+                    email: 'contact@iloveislam.life',
+                  },
+                },
+                {
+                  '@type': 'WebApplication',
+                  name: 'I Love Islam — Islamic Tools Suite',
+                  description: 'Free comprehensive suite of Islamic tools including Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Halal Scanner, Kids Games, and 25+ more tools.',
+                  url: 'https://www.iloveislam.life',
+                  applicationCategory: 'LifestyleApplication',
+                  operatingSystem: 'Web',
+                  browserRequirements: 'Requires JavaScript',
+                  offers: {
+                    '@type': 'Offer',
+                    price: '0',
+                    priceCurrency: 'USD',
+                  },
+                  featureList: 'Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Halal Scanner, Kids Islamic Games, Hijri Calendar, Dhikr Counter, Dua Library, Names of Allah, and more',
+                  screenshot: 'https://www.iloveislam.life/optimized/og-image.webp',
+                  author: { '@id': '#organization' },
+                  publisher: { '@id': '#organization' },
+                },
               ],
-              contactPoint: {
-                '@type': 'ContactPoint',
-                contactType: 'customer support',
-                url: 'https://www.iloveislam.life/contact',
-                email: 'contact@iloveislam.life',
-              },
             }),
           }}
         />

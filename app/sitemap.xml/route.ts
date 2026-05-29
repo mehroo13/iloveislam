@@ -25,6 +25,22 @@ export async function GET() {
     '/travel',
     '/names-finder',
     '/will',
+    '/halal-scanner',
+    '/night',
+    '/kids',
+    '/kids/games/prayer-guide',
+    '/kids/games/memory-match',
+    '/kids/games/pillars-quiz',
+    '/kids/games/arabic-letters',
+    '/kids/games/dua-memory',
+    '/eid',
+    '/eid-adha',
+    '/about',
+    '/contact',
+    '/faq',
+    '/privacy',
+    '/terms',
+    '/blog',
   ];
 
   const blogUrls = allArticles.map(a => `/blog/${a.slug}`);
