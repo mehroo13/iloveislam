@@ -140,10 +140,20 @@ export default function QiblaFinder() {
     const handleOrientation = (event: DeviceOrientationEvent) => {
       let rawHeading: number | null = null;
 
+      // iOS Safari — webkitCompassHeading gives degrees from magnetic north (clockwise)
+      // This is the direction the TOP of the device is pointing
       if ((event as any).webkitCompassHeading !== undefined) {
         rawHeading = (event as any).webkitCompassHeading;
-      } else if (event.absolute === true && event.alpha !== null) {
-        rawHeading = event.alpha;
+      } else if (event.alpha !== null) {
+        // Android — alpha is rotation around z-axis
+        // For deviceorientationabsolute: alpha=0 means pointing north
+        // alpha increases counter-clockwise, so heading = (360 - alpha)
+        if (event.absolute) {
+          rawHeading = (360 - event.alpha) % 360;
+        } else {
+          // Non-absolute fallback — less reliable
+          rawHeading = (360 - event.alpha) % 360;
+        }
       }
 
       if (rawHeading !== null) {
@@ -159,7 +169,10 @@ export default function QiblaFinder() {
 
     const absoluteHandler = (event: DeviceOrientationEvent) => {
       if (event.alpha !== null) {
-        const filtered = lowPassFilter(event.alpha, filterRef.current, 0.15);
+        // deviceorientationabsolute: alpha is degrees from north (counter-clockwise)
+        // So the device is pointing at (360 - alpha) degrees from north
+        const heading = (360 - event.alpha) % 360;
+        const filtered = lowPassFilter(heading, filterRef.current, 0.15);
         filterRef.current = filtered;
         setCompassHeading(Math.round(filtered * 10) / 10);
         setCompassEnabled(true);
