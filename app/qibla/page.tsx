@@ -61,6 +61,8 @@ function lowPassFilter(newValue: number, oldValue: number, smoothing = 0.15): nu
   return (oldValue + adjustedDiff * smoothing + 360) % 360;
 }
 
+const QIBLA_STORAGE_KEY = 'iloveislam_qibla_location';
+
 interface LocationInfo {
   lat: number;
   lng: number;
@@ -103,12 +105,30 @@ export default function QiblaFinder() {
   };
 
   const updateLocation = useCallback(async (lat: number, lng: number, name: string, country: string = '', countryCode: string = '') => {
-    setLocation({ lat, lng, name, country, flag: getFlagEmoji(countryCode) });
+    const locInfo = { lat, lng, name, country, flag: getFlagEmoji(countryCode) };
+    setLocation(locInfo);
     const qibla = calculateQibla(lat, lng);
     const dist = calculateDistance(lat, lng);
     setQiblaDirection(qibla);
     setDistance(dist);
     setLoading(false);
+    // Save to localStorage
+    try { localStorage.setItem(QIBLA_STORAGE_KEY, JSON.stringify({ lat, lng, name, country, countryCode })); } catch {}
+  }, []);
+
+  // Auto-load saved location or auto-detect on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(QIBLA_STORAGE_KEY);
+      if (saved) {
+        const { lat, lng, name, country, countryCode } = JSON.parse(saved);
+        updateLocation(lat, lng, name, country, countryCode);
+        return;
+      }
+    } catch {}
+    // No saved location — auto-detect
+    getCurrentLocation();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startCompass = useCallback(() => {
@@ -469,9 +489,21 @@ export default function QiblaFinder() {
               <div className="bg-white/10 rounded-2xl p-4 border border-white/20 text-center">
                 <p className="text-white/50 text-xs mb-1">Distance to Kaaba</p>
                 <p className="text-white text-2xl font-bold">{distance?.toLocaleString()}</p>
-                <p className="text-white/50 text-xs">km (~{(distance! * 0.621371).toFixed(0)} mi)</p>
+                <p className="text-white/50 text-xs">km (~{(distance! * 0.621371).toFixed(0)} miles)</p>
               </div>
             </div>
+
+            {/* Share button */}
+            <button
+              onClick={() => {
+                const text = `🕋 Qibla Direction from ${location.name}:\n${qiblaDirection.toFixed(1)}° ${getCardinalDirection(qiblaDirection)} (${getDirectionEmoji(qiblaDirection)})\nDistance to Kaaba: ${distance?.toLocaleString()} km\n\nFound using iloveislam.life/qibla`;
+                if (navigator.share) { navigator.share({ title: 'Qibla Direction', text }); }
+                else { navigator.clipboard.writeText(text); }
+              }}
+              className="w-full bg-white/5 hover:bg-white/10 text-white/70 font-medium py-2.5 rounded-xl border border-white/10 text-sm flex items-center justify-center gap-2"
+            >
+              📤 Share Qibla Direction
+            </button>
 
             {compassPermission === 'prompt' && (
               <button
