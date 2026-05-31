@@ -73,6 +73,68 @@ export default function HalalScannerPage() {
             <li>• For specific dietary rulings, consult a qualified Islamic scholar familiar with food science</li>
           </ul>
         </div>
+
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+          <h3 className="text-lg font-bold text-gray-800 mb-3">Common Hidden Haram Ingredients</h3>
+          <p className="text-gray-600 text-sm leading-relaxed mb-4">
+            Many processed foods contain ingredients derived from non-Halal sources that are not immediately obvious from their names. Here are the most common ones to watch for:
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <div className="bg-red-50 border border-red-100 rounded-xl p-3">
+              <p className="font-bold text-red-700 mb-1">❌ Gelatin (E441)</p>
+              <p className="text-red-600 text-xs">Usually from pork skin/bones. Look for &quot;halal gelatin&quot; or plant alternatives like agar (E406) or pectin (E440).</p>
+            </div>
+            <div className="bg-red-50 border border-red-100 rounded-xl p-3">
+              <p className="font-bold text-red-700 mb-1">❌ Carmine (E120)</p>
+              <p className="text-red-600 text-xs">Red dye from crushed insects. Found in sweets, yoghurts, and cosmetics. Alternative: beetroot red (E162).</p>
+            </div>
+            <div className="bg-red-50 border border-red-100 rounded-xl p-3">
+              <p className="font-bold text-red-700 mb-1">❌ L-Cysteine (E920)</p>
+              <p className="text-red-600 text-xs">Often from human hair or pig bristles. Used in bread. Synthetic versions exist but source must be verified.</p>
+            </div>
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+              <p className="font-bold text-amber-700 mb-1">⚠️ E471 (Mono/Diglycerides)</p>
+              <p className="text-amber-600 text-xs">Can be from animal fat or vegetable oil. Very common in bread, cakes, and margarine. Always verify source.</p>
+            </div>
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+              <p className="font-bold text-amber-700 mb-1">⚠️ Whey / Rennet</p>
+              <p className="text-amber-600 text-xs">Rennet in cheese can be from calf stomach (mashbooh) or microbial (halal). Check if vegetarian rennet is used.</p>
+            </div>
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+              <p className="font-bold text-amber-700 mb-1">⚠️ Natural Flavours</p>
+              <p className="text-amber-600 text-xs">Can be from any source including animal. Impossible to verify without contacting manufacturer.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+          <h3 className="text-lg font-bold text-gray-800 mb-4">Frequently Asked Questions</h3>
+          <div className="space-y-4">
+            {[
+              { q: 'Is this tool a replacement for Halal certification?', a: 'No. HalalScan is an educational screening tool that helps you identify potentially problematic ingredients. For definitive rulings, always look for official Halal certification from recognized bodies (JAKIM, IFANCA, HMC, etc.) and consult qualified scholars.' },
+              { q: 'How accurate is the barcode scanner?', a: 'The barcode scanner looks up products in the Open Food Facts database, which contains millions of products worldwide. If a product is in the database, we analyze its full ingredient list. Accuracy depends on the completeness of the database entry.' },
+              { q: 'What does "Mashbooh" mean exactly?', a: 'Mashbooh means "doubtful" or "suspicious." It applies to ingredients that could be from either Halal or Haram sources, but the exact origin is unclear. The Prophet (ﷺ) advised avoiding doubtful matters: "Leave that which makes you doubt for that which does not make you doubt" (Tirmidhi).' },
+              { q: 'Is E471 always Haram?', a: 'Not necessarily. E471 (mono and diglycerides of fatty acids) can be derived from vegetable oil (halal) or animal fat (potentially haram). Without knowing the specific source, it is classified as Mashbooh. Products with halal certification that contain E471 have verified it comes from plant sources.' },
+              { q: 'Are all E-numbers bad?', a: 'No! Most E-numbers are perfectly halal. E-numbers are simply a European classification system for food additives. Many are plant-derived or synthetic (like E330 citric acid, E300 vitamin C). Only a small number are problematic — mainly those derived from animals or alcohol.' },
+              { q: 'Can I use this for medicine and cosmetics?', a: 'Yes! Our database includes ingredients commonly found in medicines, supplements, cosmetics, and skincare products. The same principles apply — check for animal-derived ingredients like gelatin capsules, stearic acid, and carmine in lipsticks.' },
+              { q: 'Is vanilla extract Haram?', a: 'Pure vanilla extract contains alcohol as a solvent (typically 35%). Scholars differ on this: some consider trace amounts in food permissible (as it evaporates during cooking), while others recommend avoiding it. Vanilla flavouring (without alcohol) or vanilla powder are safer alternatives.' },
+              { q: 'What about enzymes in cheese?', a: 'Animal rennet (from calf stomach) is Mashbooh unless from a halal-slaughtered animal. Microbial rennet and vegetarian rennet are halal. Look for "suitable for vegetarians" on cheese labels as a quick indicator.' },
+              { q: 'Does the tool work offline?', a: 'The manual ingredient entry and E-number checker work offline once the page is loaded. Barcode scanning and product search require an internet connection to look up product databases.' },
+              { q: 'Is my data private?', a: 'Yes, completely. All analysis happens in your browser. No images, ingredients, or scan results are sent to our servers. Your scan history is stored only in your browser\'s local storage.' },
+              { q: 'What madhab does this tool follow?', a: 'Our database reflects the majority scholarly position across all four Sunni madhabs (Hanafi, Maliki, Shafi\'i, Hanbali). Where there are differences of opinion (like on shellac E904 or vanilla extract), we note the different positions and classify the ingredient as Mashbooh.' },
+            ].map((faq, i) => (
+              <details key={i} className="group border border-gray-100 rounded-xl overflow-hidden">
+                <summary className="flex items-center justify-between cursor-pointer p-4 hover:bg-gray-50 transition-colors">
+                  <span className="font-semibold text-gray-800 text-sm pr-4">{faq.q}</span>
+                  <span className="text-gray-400 group-open:rotate-180 transition-transform flex-shrink-0">▾</span>
+                </summary>
+                <div className="px-4 pb-4 pt-0">
+                  <p className="text-gray-600 text-sm leading-relaxed">{faq.a}</p>
+                </div>
+              </details>
+            ))}
+          </div>
+        </div>
       </section>
     </>
   );

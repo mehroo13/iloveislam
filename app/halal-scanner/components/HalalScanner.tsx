@@ -7,6 +7,7 @@ import ManualSearch from "./ManualSearch";
 import ResultCard from "./ResultCard";
 import IngredientBreakdown from "./IngredientBreakdown";
 import ScanHistory from "./ScanHistory";
+import ENumberChecker from "./ENumberChecker";
 import { analyzeIngredients, type AnalysisResult } from "@/lib/analyzeIngredients";
 import {
   checkHalalStatusWithApi,
@@ -14,7 +15,7 @@ import {
   type OpenFoodFactsProduct,
 } from "@/lib/halalApis";
 
-type ActiveTab = "barcode" | "image" | "manual";
+type ActiveTab = "barcode" | "image" | "manual" | "enumbers";
 
 export default function HalalScanner() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("barcode");
@@ -142,9 +143,10 @@ export default function HalalScanner() {
   };
 
   const tabs: { id: ActiveTab; label: string; icon: string }[] = [
-    { id: "barcode", label: "Scan Barcode / QR", icon: "📷" },
+    { id: "barcode", label: "Scan Barcode", icon: "📷" },
     { id: "image", label: "Upload Photo", icon: "🖼️" },
-    { id: "manual", label: "Search Manually", icon: "🔍" },
+    { id: "manual", label: "Search / Paste", icon: "🔍" },
+    { id: "enumbers", label: "E-Numbers", icon: "🔢" },
   ];
 
   return (
@@ -154,19 +156,27 @@ export default function HalalScanner() {
           <div className="absolute top-4 left-8 text-8xl font-arabic text-green-300 select-none">بسم</div>
           <div className="absolute top-2 right-8 text-6xl font-arabic text-green-300 select-none">الله</div>
         </div>
-        <div className="relative z-10 text-center py-10 px-4">
-          <div className="inline-flex items-center gap-2 bg-green-800/30 border border-green-600/40 rounded-full px-4 py-1 text-green-300 text-sm mb-4 backdrop-blur-sm">
+        <div className="relative z-10 text-center py-8 sm:py-10 px-4">
+          <div className="inline-flex items-center gap-2 bg-green-800/30 border border-green-600/40 rounded-full px-4 py-1 text-green-300 text-sm mb-3 backdrop-blur-sm">
             <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
             100% Free · No Login Required
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">
             Halal<span className="text-green-400">Scan</span>
           </h1>
-          <p className="text-green-200/70 text-lg max-w-xl mx-auto">
+          <p className="text-green-200/70 text-base sm:text-lg max-w-xl mx-auto mb-4">
             Scan any product — know instantly if it&apos;s <span className="text-emerald-400 font-semibold">Halal</span>,{" "}
             <span className="text-red-400 font-semibold">Haram</span>, or{" "}
             <span className="text-amber-400 font-semibold">Mashbooh</span>
           </p>
+          {/* Product categories supported */}
+          <div className="flex flex-wrap justify-center gap-2 max-w-md mx-auto">
+            {['🍔 Food', '💊 Medicine', '💄 Cosmetics', '🧴 Skincare', '🍼 Baby', '🥩 Meat'].map(cat => (
+              <span key={cat} className="text-[10px] sm:text-xs bg-white/10 border border-white/15 rounded-full px-2.5 py-1 text-white/60">
+                {cat}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -212,6 +222,9 @@ export default function HalalScanner() {
               onManualIngredients={handleManualIngredients}
               isLoading={loading}
             />
+          )}
+          {activeTab === "enumbers" && (
+            <ENumberChecker />
           )}
         </div>
 

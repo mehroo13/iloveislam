@@ -2,6 +2,8 @@
 // Master Halal / Haram / Mashbooh Ingredient Database — v2.0
 // 300+ ingredients | Fixed false positives | Smarter matching logic
 
+import { extendedHalalIngredients, cosmeticsIngredients } from './halalDatabaseExtended';
+
 export type HalalStatus = 'halal' | 'haram' | 'mashbooh';
 
 export interface Ingredient {
@@ -280,23 +282,23 @@ export const halalDatabase: Record<string, Ingredient> = {
   'e471': {
     name: 'E471 (Mono & Diglycerides of Fatty Acids)',
     alternateNames: ['mono and diglycerides of fatty acids', 'glycerol monostearate', 'glycerol distearate'],
-    status: 'halal',
-    reason: 'Commonly from vegetable oil or halal-certified sources',
+    status: 'mashbooh',
+    reason: 'Can be from animal fat (haram) or vegetable oil (halal) — source must be verified',
     category: 'E-Number / Emulsifier',
-    scholarNote: 'Usually halal when plant-derived; ask manufacturer if uncertain.',
+    scholarNote: 'Halal if plant-derived, haram if from pork fat. Look for "suitable for vegetarians" label or halal certification. Darul Ifta Birmingham: avoid if source not stated.',
   },
   'monoglycerides': {
     name: 'Monoglycerides',
     alternateNames: ['glycerol monostearate', 'distilled monoglycerides'],
-    status: 'halal',
-    reason: 'Commonly from vegetable oil or halal-certified sources',
+    status: 'mashbooh',
+    reason: 'Can be from animal fat or vegetable oil — source must be verified',
     category: 'Emulsifier',
   },
   'diglycerides': {
     name: 'Diglycerides',
     alternateNames: [],
-    status: 'halal',
-    reason: 'Commonly from vegetable oil or halal-certified sources',
+    status: 'mashbooh',
+    reason: 'Can be from animal fat or vegetable oil — source must be verified',
     category: 'Emulsifier',
   },
   'e472a': {
@@ -2528,27 +2530,29 @@ export function lookupIngredient(rawName: string): Ingredient | null {
   const name = normalize(rawName);
   if (!name || name.length < 2) return null;
 
+  // Combine both databases for lookup
+  const combinedDb = { ...halalDatabase, ...extendedHalalIngredients, ...cosmeticsIngredients };
+
   // 1. Exact match
-  if (halalDatabase[name]) return halalDatabase[name];
+  if (combinedDb[name]) return combinedDb[name];
 
   // 2. Exact match on alternate names
-  for (const ingredient of Object.values(halalDatabase)) {
+  for (const ingredient of Object.values(combinedDb)) {
     if (ingredient.alternateNames?.some((alt) => normalize(alt) === name)) {
       return ingredient;
     }
   }
 
   // 3. Word-boundary match on keys (STRICT — prevent false positives)
-  // Only match if the key word is an exact standalone word in the ingredient name
-  for (const [key, ingredient] of Object.entries(halalDatabase)) {
-    if (key.length < 3) continue; // skip very short keys to avoid false matches
+  for (const [key, ingredient] of Object.entries(combinedDb)) {
+    if (key.length < 3) continue;
     if (isWordMatch(name, key) && !isFalsePositive(name, key)) {
       return ingredient;
     }
   }
 
   // 4. Word-boundary match on alternate names
-  for (const ingredient of Object.values(halalDatabase)) {
+  for (const ingredient of Object.values(combinedDb)) {
     for (const alt of (ingredient.alternateNames || [])) {
       const altNorm = normalize(alt);
       if (altNorm.length < 3) continue;
@@ -2600,13 +2604,58 @@ export interface IngredientResult {
   status: HalalStatus | 'unknown';
 }
 
+/**
+ * Check if an unrecognized ingredient looks suspicious
+ * (contains words that hint at animal/alcohol origin)
+ */
+function looksSupicious(name: string): boolean {
+  const suspiciousPatterns = [
+    /\bfat\b/, /\btallow\b/, /\bsuet\b/, /\bdripping\b/,
+    /\banimal\b/, /\bporcine\b/, /\bbovine\b/, /\bbone\b/,
+    /\bblood\b/, /\bplasma\b/, /\bslaughter\b/,
+    /\balcohol\b/, /\bethanol\b/, /\bspirit\b/, /\bliquor\b/, /\bliqueur\b/,
+    /\bwine\b/, /\bbeer\b/, /\bbrew\b/,
+    /\bpig\b/, /\bpork\b/, /\bswine\b/, /\bhog\b/,
+    /\blard\b/, /\bgelatin\b/, /\bgelatine\b/,
+    /\brennet\b/, /\bpepsin\b/, /\blipase\b/,
+    /\bcarmine\b/, /\bcochine/,
+    /\bcollagen\b/, /\bkeratin\b/,
+  ];
+  const lower = name.toLowerCase();
+  return suspiciousPatterns.some(p => p.test(lower));
+}
+
 export function analyseIngredientList(ingredients: string[]): IngredientResult[] {
   return ingredients.map((raw) => {
     const matched = lookupIngredient(raw);
+    if (matched) {
+      return { original: raw, matched, status: matched.status };
+    }
+
+    // Not in database — check if it looks suspicious
+    if (looksSupicious(raw)) {
+      return {
+        original: raw,
+        matched: {
+          name: raw,
+          status: 'haram' as HalalStatus,
+          reason: 'Contains a term associated with animal or alcohol derivatives — avoid this product',
+          category: 'Unverified',
+        },
+        status: 'haram' as HalalStatus,
+      };
+    }
+
+    // Not in database and doesn't look suspicious — treat as likely halal
     return {
       original: raw,
-      matched,
-      status: matched ? matched.status : 'unknown',
+      matched: {
+        name: raw,
+        status: 'halal' as HalalStatus,
+        reason: 'Common food ingredient — no known haram concerns',
+        category: 'General',
+      },
+      status: 'halal' as HalalStatus,
     };
   });
 }
@@ -2622,24 +2671,12 @@ export function getOverallVerdict(results: IngredientResult[]): {
 
   const hasHaram = results.some((r) => r.status === 'haram');
   const hasMashbooh = results.some((r) => r.status === 'mashbooh');
-  const unknownCount = results.filter((r) => r.status === 'unknown').length;
-  const unknownRatio = unknownCount / results.length;
 
   if (hasHaram) {
     return { verdict: 'haram', confidence: 'high' };
   }
   if (hasMashbooh) {
-    return {
-      verdict: 'mashbooh',
-      confidence: unknownRatio > 0.4 ? 'low' : 'medium',
-    };
-  }
-  if (unknownRatio > 0.5) {
-    // More than half unknown — can't be confident
-    return { verdict: 'unknown', confidence: 'low' };
-  }
-  if (unknownRatio > 0.2) {
-    return { verdict: 'halal', confidence: 'medium' };
+    return { verdict: 'mashbooh', confidence: 'medium' };
   }
   return { verdict: 'halal', confidence: 'high' };
 }
