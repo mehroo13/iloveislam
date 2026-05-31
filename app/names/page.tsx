@@ -264,7 +264,31 @@ export default function NamesOfAllah() {
               )}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
+            <button
+              onClick={() => {
+                const text = `${selected.arabic}\n${selected.transliteration}\n"${selected.meaning}"\n\n${selected.benefit}\n\niloveislam.life/names`;
+                navigator.clipboard?.writeText(text);
+              }}
+              className="bg-white border border-gray-200 rounded-xl py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all">
+              📋 Copy
+            </button>
+            <button
+              onClick={() => {
+                const text = `${selected.arabic}\n${selected.transliteration} — ${selected.meaning}\n\niloveislam.life/names`;
+                if (navigator.share) navigator.share({ title: selected.transliteration, text });
+                else navigator.clipboard?.writeText(text);
+              }}
+              className="bg-white border border-gray-200 rounded-xl py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all">
+              📤 Share
+            </button>
+            <button
+              onClick={() => setSelected(null)}
+              className="bg-[#0a3d2e] rounded-xl py-3 text-sm font-medium text-white hover:opacity-90 transition-all">
+              ✕ Close
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mt-3">
             <button
               onClick={() => {
                 const idx = currentList.findIndex(n => n.number === selected.number);
@@ -320,7 +344,7 @@ export default function NamesOfAllah() {
         </div>
 
         {/* Banner */}
-        <div className="bg-gradient-to-r from-[#0a3d2e] to-[#1a6b4a] rounded-2xl p-6 mb-6 text-center text-white shadow-lg">
+        <div className="bg-gradient-to-r from-[#0a3d2e] to-[#1a6b4a] rounded-2xl p-6 mb-4 text-center text-white shadow-lg">
           <p className="text-3xl font-arabic mb-2 text-emerald-200">
             {viewMode === 'allah' ? 'أَسْمَاءُ اللَّهِ الْحُسْنَى' : 'أَسْمَاءُ النَّبِيِّ ﷺ'}
           </p>
@@ -331,6 +355,19 @@ export default function NamesOfAllah() {
           </p>
           <p className="text-white/50 text-xs mt-2">Tap any name to see details</p>
         </div>
+
+        {/* Name of the Day */}
+        {(() => {
+          const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+          const dailyName = currentList[dayOfYear % currentList.length];
+          return (
+            <button onClick={() => setSelected(dailyName)} className="w-full bg-white border border-emerald-200 rounded-2xl p-4 mb-4 text-center hover:shadow-md transition-all">
+              <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1">✨ Name of the Day</p>
+              <p className="text-3xl font-arabic text-gray-800 mb-1">{dailyName.arabic}</p>
+              <p className="text-sm font-semibold text-gray-700">{dailyName.transliteration} — {dailyName.meaning}</p>
+            </button>
+          );
+        })()}
 
         {/* Search & layout toggle */}
         <div className="flex gap-2 mb-4">
