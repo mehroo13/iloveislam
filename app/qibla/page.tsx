@@ -145,15 +145,10 @@ export default function QiblaFinder() {
       if ((event as any).webkitCompassHeading !== undefined) {
         rawHeading = (event as any).webkitCompassHeading;
       } else if (event.alpha !== null) {
-        // Android — alpha is rotation around z-axis
-        // For deviceorientationabsolute: alpha=0 means pointing north
-        // alpha increases counter-clockwise, so heading = (360 - alpha)
-        if (event.absolute) {
-          rawHeading = (360 - event.alpha) % 360;
-        } else {
-          // Non-absolute fallback — less reliable
-          rawHeading = (360 - event.alpha) % 360;
-        }
+        // Standard non-absolute fallback
+        // alpha = 0 when first initialized, not reliable for compass
+        // Use (360 - alpha) as best guess
+        rawHeading = (360 - event.alpha) % 360;
       }
 
       if (rawHeading !== null) {
@@ -169,8 +164,10 @@ export default function QiblaFinder() {
 
     const absoluteHandler = (event: DeviceOrientationEvent) => {
       if (event.alpha !== null) {
-        // deviceorientationabsolute: alpha is degrees from north (counter-clockwise)
-        // So the device is pointing at (360 - alpha) degrees from north
+        // deviceorientationabsolute on Chrome Android:
+        // alpha = 0 means device pointing north
+        // alpha increases as device rotates counter-clockwise
+        // So heading (clockwise from north) = (360 - alpha) % 360
         const heading = (360 - event.alpha) % 360;
         const filtered = lowPassFilter(heading, filterRef.current, 0.15);
         filterRef.current = filtered;
@@ -546,7 +543,7 @@ export default function QiblaFinder() {
             )}
 
             <p className="text-white/30 text-xs text-center">
-              For best accuracy: keep phone flat, away from magnets. If the live compass doesn't match, use the static bearing with any compass app.
+              For best accuracy: keep phone flat, away from magnets. If the live compass doesn&apos;t match, use the static bearing ({qiblaDirection.toFixed(1)}° {getCardinalDirection(qiblaDirection)}) with any compass app on your phone. The mathematical direction is always correct.
             </p>
 
             <button
