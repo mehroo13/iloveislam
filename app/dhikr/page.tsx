@@ -183,6 +183,66 @@ const PRESETS: Preset[] = [
     category: 'free',
     hadith: '"The example of one who remembers Allah and one who does not is like the living and the dead." — Sahih Bukhari',
   },
+  {
+    name: 'Sayyidul Istighfar',
+    arabic: 'اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ',
+    transliteration: 'Allāhumma anta Rabbī lā ilāha illā ant',
+    meaning: 'Master supplication for forgiveness',
+    target: 3,
+    color: 'rose',
+    category: 'istighfar',
+    hadith: '"Whoever says this with certainty in the morning and dies before evening enters Paradise." — Sahih Bukhari',
+  },
+  {
+    name: 'SubhanAllah wal Hamdulillah',
+    arabic: 'سُبْحَانَ اللَّهِ وَالْحَمْدُ لِلَّهِ وَلَا إِلَهَ إِلَّا اللَّهُ وَاللَّهُ أَكْبَرُ',
+    transliteration: 'Subḥānallāhi wal-ḥamdulillāhi wa lā ilāha illallāhu wallāhu akbar',
+    meaning: 'Glory, praise, no god but Allah, Allah is Greatest',
+    target: 33,
+    color: 'emerald',
+    category: 'tasbih',
+    hadith: '"These are more beloved to me than all that the sun rises over." — Sahih Muslim',
+  },
+  {
+    name: 'Ya Hayyu Ya Qayyum',
+    arabic: 'يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ',
+    transliteration: 'Yā Ḥayyu yā Qayyūmu bi-raḥmatika astaghīth',
+    meaning: 'O Living, O Sustainer, by Your mercy I seek help',
+    target: 33,
+    color: 'teal',
+    category: 'dua',
+    hadith: '"Whoever persists in this dua, Allah will give him a way out of every difficulty." — Al-Hakim (Sahih)',
+  },
+  {
+    name: 'Tasbih Fatimi',
+    arabic: 'سُبْحَانَ اللَّهِ ٣٣ + الْحَمْدُ لِلَّهِ ٣٣ + اللَّهُ أَكْبَرُ ٣٤',
+    transliteration: 'Subḥānallāh 33 + Alḥamdulillāh 33 + Allāhu Akbar 34',
+    meaning: 'Post-prayer Tasbih of Fatimah (RA)',
+    target: 100,
+    color: 'gold',
+    category: 'tasbih',
+    hadith: '"The Prophet ﷺ taught Fatimah to say SubhanAllah 33, Alhamdulillah 33, Allahu Akbar 34 before sleeping." — Sahih Bukhari & Muslim',
+  },
+  {
+    name: 'Rabbi Zidni Ilma',
+    arabic: 'رَبِّ زِدْنِي عِلْمًا',
+    transliteration: 'Rabbi zidnī ʿilmā',
+    meaning: 'My Lord, increase me in knowledge',
+    target: 33,
+    color: 'indigo',
+    category: 'dua',
+    hadith: 'Quran 20:114 — Allah commanded the Prophet ﷺ to make this dua.',
+  },
+  {
+    name: 'Allahumma Ajirni Minan Naar',
+    arabic: 'اللَّهُمَّ أَجِرْنِي مِنَ النَّارِ',
+    transliteration: 'Allāhumma ajirnī minan-nār',
+    meaning: 'O Allah, save me from the Fire',
+    target: 7,
+    color: 'orange',
+    category: 'dua',
+    hadith: '"Whoever asks Allah for Paradise 3 times, Paradise says: O Allah admit him. Whoever seeks protection from Fire 3 times, the Fire says: O Allah protect him." — Tirmidhi (Sahih)',
+  },
 ];
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
@@ -301,14 +361,22 @@ export default function DhikrCounter() {
   const [vibOn, setVibOn]             = useState(() => loadData('dhikr_vib', true));
   const [customTarget, setCustomTarget] = useState<string>('');
   const [editingTarget, setEditingTarget] = useState(false);
-  const [showNiyyah, setShowNiyyah]   = useState(true);
-  const [niyyahDone, setNiyyahDone]   = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [history, setHistory]         = useState<DhikrHistoryEntry[]>(() => loadData('dhikr_history', []));
   const [perDhikrCounts, setPerDhikrCounts] = useState<Record<string, number>>(() => loadData('dhikr_per', {}));
   const [displayMode, setDisplayMode] = useState<'ring' | 'beads'>('beads');
   const [timerActive, setTimerActive] = useState(false);
+  const [fullScreen, setFullScreen] = useState(false);
+  const [wakeLock, setWakeLock] = useState<any>(null);
   const { seconds, fmt: timerFmt, reset: resetTimer } = useSessionTimer(timerActive);
+
+  // Wake Lock — keep screen on while counting
+  useEffect(() => {
+    if (timerActive && 'wakeLock' in navigator) {
+      (navigator as any).wakeLock.request('screen').then((lock: any) => setWakeLock(lock)).catch(() => {});
+    }
+    return () => { if (wakeLock) { wakeLock.release(); setWakeLock(null); } };
+  }, [timerActive]);
 
   const preset = PRESETS[selected];
   const color  = COLORS[preset.color] || COLORS.emerald;
@@ -316,6 +384,15 @@ export default function DhikrCounter() {
   const isFreeMode = preset.target === null && !customTarget;
   const progress = isFreeMode ? 0 : Math.min((count / effectiveTarget) * 100, 100);
   const circumference = 2 * Math.PI * 44;
+
+  // Undo last count
+  const undoCount = useCallback(() => {
+    if (count > 0) {
+      setCount(c => c - 1);
+      setTotalAll((t: number) => Math.max(0, t - 1));
+      setPerDhikrCounts(prev => ({ ...prev, [preset.name]: Math.max(0, (prev[preset.name] || 0) - 1) }));
+    }
+  }, [count, preset.name]);
 
   // Dark mode palette
   const dm = darkMode;
@@ -357,7 +434,6 @@ export default function DhikrCounter() {
   }, [soundOn]);
 
   const handleCount = useCallback((e?: React.MouseEvent<HTMLButtonElement>) => {
-    if (showNiyyah && !niyyahDone) return;
 
     if (e) {
       const rect = e.currentTarget.getBoundingClientRect();
@@ -411,7 +487,7 @@ export default function DhikrCounter() {
         saveData('dhikr_last_day', today);
       }
     }
-  }, [count, effectiveTarget, streakDay, rippleId, isFreeMode, soundOn, vibOn, preset.name, seconds, niyyahDone, showNiyyah, playClick, sessions]);
+  }, [count, effectiveTarget, streakDay, rippleId, isFreeMode, soundOn, vibOn, preset.name, seconds, playClick, sessions]);
 
   // Keyboard
   useEffect(() => {
@@ -461,6 +537,30 @@ export default function DhikrCounter() {
 
   return (
     <div style={{ minHeight: '100vh', background: pageBg, fontFamily: "'Georgia', serif", transition: 'background 0.4s ease', color: textMain }}>
+
+      {/* FULL SCREEN TAP MODE */}
+      {fullScreen && (
+        <div
+          onClick={() => handleCount()}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: dm ? '#0a0f1a' : color.grad,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', userSelect: 'none', touchAction: 'manipulation',
+          }}
+        >
+          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, margin: '0 0 8px' }}>{preset.arabic}</p>
+          <p style={{ color: '#fff', fontSize: 120, fontWeight: 800, margin: 0, lineHeight: 1, fontFamily: 'Georgia, serif' }}>{count}</p>
+          {!isFreeMode && <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 16, margin: '8px 0 0' }}>of {effectiveTarget} · Round {sessions + 1}</p>}
+          <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, marginTop: 24 }}>Tap anywhere to count</p>
+          <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: 8 }}>
+            <button onClick={(e) => { e.stopPropagation(); undoCount(); }} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 20, padding: '8px 14px', color: '#fff', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}>↩ Undo</button>
+            <button onClick={(e) => { e.stopPropagation(); setFullScreen(false); }} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 20, padding: '8px 14px', color: '#fff', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}>✕ Exit</button>
+          </div>
+          {celebrated && <p style={{ position: 'absolute', bottom: 60, color: '#fff', fontSize: 16, fontWeight: 700, animation: 'popIn 0.4s ease' }}>{celebMsg}</p>}
+        </div>
+      )}
+
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&family=Lora:ital,wght@0,400;0,700;1,400&display=swap');
         @keyframes ripple    { 0% { transform:scale(0);opacity:.4; } 100% { transform:scale(4);opacity:0; } }
@@ -499,6 +599,11 @@ export default function DhikrCounter() {
               <button onClick={() => setSoundOn(!soundOn)} className="icon-btn"
                 style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 20, padding: '5px 10px', cursor: 'pointer', fontSize: 14, color: '#fff' }}>
                 {soundOn ? '🔊' : '🔇'}
+              </button>
+              {/* Full screen */}
+              <button onClick={() => setFullScreen(true)} className="icon-btn"
+                style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 20, padding: '5px 10px', cursor: 'pointer', fontSize: 14, color: '#fff' }}>
+                ⛶
               </button>
             </div>
           </div>
@@ -539,30 +644,6 @@ export default function DhikrCounter() {
             </button>
           ))}
         </div>
-
-        {/* ════════════════════════════════════════════
-            NIYYAH PROMPT
-        ════════════════════════════════════════════ */}
-        {tab === 'counter' && showNiyyah && !niyyahDone && (
-          <div style={{ background: dm ? '#1a2410' : '#f0fdf4', border: `1px solid ${dm ? '#2d4a20' : '#86efac'}`, borderRadius: 18, padding: '20px 18px', marginBottom: 12, animation: 'slideUp 0.3s ease', textAlign: 'center' }}>
-            <p style={{ fontSize: 20, margin: '0 0 8px' }}>🤲</p>
-            <p style={{ fontSize: 15, fontWeight: 700, color: dm ? '#86efac' : '#166534', margin: '0 0 6px', fontFamily: 'Lora, Georgia, serif' }}>Set Your Intention (Niyyah)</p>
-            <p style={{ fontSize: 12, color: dm ? '#4ade80' : '#16a34a', lineHeight: 1.7, margin: '0 0 16px', fontStyle: 'italic' }}>
-              "I intend to remember Allah sincerely, seeking His pleasure and closeness."
-            </p>
-            <p style={{ fontFamily: "'Scheherazade New', serif", fontSize: 20, color: dm ? '#4ade80' : '#15803d', margin: '0 0 16px', direction: 'rtl', lineHeight: 2 }}>
-              نَوَيْتُ أَنْ أَذْكُرَ اللَّهَ خَالِصًا لِوَجْهِهِ الْكَرِيمِ
-            </p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => { setNiyyahDone(true); }} style={{ flex: 1, padding: '11px 0', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
-                ✅ I have set my intention
-              </button>
-              <button onClick={() => { setShowNiyyah(false); setNiyyahDone(true); }} style={{ padding: '11px 14px', background: 'transparent', color: textMuted, border: `1px solid ${borderC}`, borderRadius: 12, fontSize: 12, cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
-                Skip
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* ════════════════════════════════════════════
             COUNTER TAB
@@ -720,20 +801,19 @@ export default function DhikrCounter() {
               {/* TAP BUTTON */}
               <button
                 onClick={handleCount}
-                disabled={showNiyyah && !niyyahDone}
                 className="dhikr-btn"
                 style={{
                   width: '100%', padding: '22px 0', borderRadius: 20,
-                  background: (showNiyyah && !niyyahDone) ? (dm ? '#1a2236' : '#e8dcc8') : (flash ? color.ring : color.grad),
-                  color: (showNiyyah && !niyyahDone) ? textMuted : '#fff',
+                  background: flash ? color.ring : color.grad,
+                  color: '#fff',
                   fontSize: 20, fontWeight: 700,
-                  border: 'none', cursor: (showNiyyah && !niyyahDone) ? 'not-allowed' : 'pointer',
-                  boxShadow: (showNiyyah && !niyyahDone) ? 'none' : `0 8px 32px ${color.ring}40`,
+                  border: 'none', cursor: 'pointer',
+                  boxShadow: `0 8px 32px ${color.ring}40`,
                   transform: flash ? 'scale(0.975)' : 'scale(1)',
                   transition: 'transform 0.08s ease, box-shadow 0.3s ease, background 0.1s ease',
                   fontFamily: 'Georgia, serif', letterSpacing: 0.5,
                   position: 'relative', overflow: 'hidden',
-                  animation: (!showNiyyah || niyyahDone) ? 'glow 3s ease infinite' : 'none',
+                  animation: 'glow 3s ease infinite',
                 }}
               >
                 {ripples.map(r => (
@@ -753,6 +833,10 @@ export default function DhikrCounter() {
 
               {/* Action buttons */}
               <div style={{ display: 'flex', gap: 7, marginTop: 14 }}>
+                <button onClick={undoCount} disabled={count === 0}
+                  style={{ padding: 11, border: `1.5px solid ${borderC}`, borderRadius: 13, fontSize: 12, color: count === 0 ? '#ccc' : textMuted, background: cardBg2, cursor: count === 0 ? 'default' : 'pointer', fontFamily: 'Georgia, serif', opacity: count === 0 ? 0.5 : 1 }}>
+                  ↩
+                </button>
                 <button onClick={reset}
                   style={{ flex: 1, padding: 11, border: `1.5px solid ${borderC}`, borderRadius: 13, fontSize: 12, color: textMuted, background: cardBg2, cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'background .2s' }}>
                   🔄 Reset
