@@ -471,26 +471,12 @@ export default function QiblaFinder() {
               </div>
 
               {/* Facing Qibla feedback */}
-              {compassEnabled && (
+              {compassEnabled && isFacingQibla && (
                 <div className="w-full mt-4 max-w-xs">
-                  {isFacingQibla ? (
-                    <div className="bg-emerald-500/20 border border-emerald-400/40 rounded-2xl p-4 text-center">
-                      <p className="text-emerald-300 text-lg font-bold">✅ Facing Qibla!</p>
-                      <p className="text-emerald-400/60 text-xs mt-1">You are aligned with the Kaaba</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full transition-all duration-200"
-                          style={{ width: `${Math.max(5, 100 - alignmentAccuracy / 1.8)}%` }}
-                        />
-                      </div>
-                      <p className="text-white/40 text-xs text-center">
-                        {alignmentAccuracy <= 10 ? '🎯 Almost there!' : alignmentAccuracy <= 30 ? 'Getting closer…' : 'Rotate slowly toward Qibla'}
-                      </p>
-                    </div>
-                  )}
+                  <div className="bg-emerald-500/20 border border-emerald-400/40 rounded-2xl p-4 text-center">
+                    <p className="text-emerald-300 text-lg font-bold">✅ Facing Qibla!</p>
+                    <p className="text-emerald-400/60 text-xs mt-1">You are aligned with the Kaaba</p>
+                  </div>
                 </div>
               )}
             </div>
