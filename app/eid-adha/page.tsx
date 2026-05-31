@@ -107,7 +107,11 @@ const SUNNAH_TIMELINE = [
 const GREETINGS = [
   { lang: 'Arabic',  text: 'عِيدُ الأَضْحَى مُبَارَك',                                 transliteration: 'Eid ul Adha Mubarak',        meaning: 'Blessed Eid ul Adha' },
   { lang: 'Arabic',  text: 'تَقَبَّلَ اللَّهُ مِنَّا وَمِنكُم',                          transliteration: "Taqabbalallahu minna wa minkum", meaning: 'May Allah accept from us and from you' },
+  { lang: 'Arabic',  text: 'كُلُّ عَامٍ وَأَنتُم بِخَيْر',                              transliteration: "Kullu 'aam wa antum bi-khayr", meaning: 'May you be well every year' },
   { lang: 'Urdu',    text: 'عید الاضحیٰ مبارک ہو',                                      transliteration: 'Eid ul Adha Mubarak Ho',      meaning: 'Blessed Eid ul Adha (Urdu)' },
+  { lang: 'Turkish', text: 'Kurban Bayramınız mübarek olsun',                            transliteration: '',                            meaning: 'May your Eid of Sacrifice be blessed' },
+  { lang: 'Malay',   text: 'Selamat Hari Raya Haji',                                    transliteration: '',                            meaning: 'Happy Hajj Celebration Day' },
+  { lang: 'Bengali', text: 'ঈদুল আযহা মোবারক',                                          transliteration: 'Eidul Azha Mubarak',          meaning: 'Blessed Eid ul Adha (Bengali)' },
   { lang: 'English', text: 'May Allah accept your Qurbani and all your good deeds. Eid Mubarak! 🐄🌙', transliteration: '', meaning: 'English Eid greeting' },
   { lang: 'WhatsApp',text: '🌙🐄 *Eid ul Adha Mubarak!* 🐄🌙\n\n"Taqabbalallahu minna wa minkum"\nMay Allah accept from us and from you.\n\nMay your Qurbani be accepted, your duas answered, and your family blessed. 💚\n\n#EidMubarak #EidulAdha', transliteration: '', meaning: 'WhatsApp message' },
   { lang: 'Instagram', text: '✨ Eid ul Adha Mubarak to all! ✨\n\nMay Allah accept our Qurbani, forgive our sins, and fill our homes with barakah 🌙\n\nTaqabbalallahu minna wa minkum 🤍\n\n#EidulAdha #EidMubarak #Qurbani #Alhamdulillah #Muslim', transliteration: '', meaning: 'Instagram caption' },
@@ -365,7 +369,7 @@ export default function EidulAdha() {
       <div className="tab-scroll" style={{ background: C.bgCard, borderBottom: `1px solid ${C.border}`, overflowX: 'auto', position: 'sticky', top: countdown.passed ? 60 : 112, zIndex: 40 }}>
         <div style={{ display: 'flex', padding: '8px 12px', gap: 6, minWidth: 'max-content', maxWidth: 800, margin: '0 auto' }}>
           {TABS.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
+            <button key={t.id} onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
               style={{
                 padding: '7px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
                 background: tab === t.id ? C.gold : 'transparent',
