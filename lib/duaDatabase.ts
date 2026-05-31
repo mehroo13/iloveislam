@@ -2,6 +2,11 @@
 // Comprehensive Dua Database — Authentic duas from Quran and Sunnah
 // Sources: Hisnul Muslim, Sahih Bukhari, Sahih Muslim, Quran
 
+import { DUAS_EXTENDED } from './duaDatabase2';
+import { DUAS_BATCH3 } from './duaDatabase3';
+import { DUAS_BATCH4 } from './duaDatabase4';
+import { DUAS_BATCH5 } from './duaDatabase5';
+
 export interface Dua {
   id: number;
   arabic: string;
@@ -149,18 +154,10 @@ export const DUAS: Dua[] = [
   { id: 50, arabic: 'اللَّهُمَّ أَهِلَّهُ عَلَيْنَا بِالْأَمْنِ وَالْإِيمَانِ وَالسَّلَامَةِ وَالْإِسْلَامِ رَبِّي وَرَبُّكَ اللَّهُ', transliteration: 'Allahumma ahillahu alayna bil-amni wal-iman was-salamati wal-Islam Rabbi wa Rabbukallah', translation: 'O Allah, let this moon appear on us with security and faith, with safety and Islam. My Lord and your Lord is Allah.', reference: 'Tirmidhi 5/504 (Hasan)', category: 'events', occasion: 'When seeing the new crescent moon (start of new month)', tags: ['events', 'moon', 'new month', 'ramadan'] },
 ];
 
+// Merge all batches into main array
+DUAS.push(...DUAS_EXTENDED, ...DUAS_BATCH3, ...DUAS_BATCH4, ...DUAS_BATCH5);
+
 // Update category counts
-import { DUAS_EXTENDED } from './duaDatabase2';
-import { DUAS_BATCH3 } from './duaDatabase3';
-import { DUAS_BATCH4 } from './duaDatabase4';
-import { DUAS_BATCH5 } from './duaDatabase5';
-
-// Merge extended duas into main array
-DUAS.push(...DUAS_EXTENDED);
-DUAS.push(...DUAS_BATCH3);
-DUAS.push(...DUAS_BATCH4);
-DUAS.push(...DUAS_BATCH5);
-
 DUA_CATEGORIES.forEach(cat => {
   cat.count = DUAS.filter(d => d.category === cat.id).length;
 });

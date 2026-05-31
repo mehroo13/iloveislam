@@ -30,6 +30,8 @@ export default function DuaGenerator() {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [fontSize, setFontSize] = useState(1); // 0=S, 1=M, 2=L, 3=XL
   const [copied, setCopied] = useState<number | null>(null);
+  const [showCategories, setShowCategories] = useState(true);
+  const resultsRef = typeof window !== 'undefined' ? { current: null as HTMLDivElement | null } : { current: null };
 
   useEffect(() => { setFavorites(loadFavorites()); }, []);
 
@@ -82,7 +84,21 @@ export default function DuaGenerator() {
     else copyDua(dua);
   };
 
-  const clearFilters = () => { setActiveCategory(null); setActiveMood(null); setShowFavoritesOnly(false); setSearch(''); };
+  const clearFilters = () => { setActiveCategory(null); setActiveMood(null); setShowFavoritesOnly(false); setSearch(''); setShowCategories(true); };
+
+  const selectCategory = (catId: string) => {
+    setActiveCategory(activeCategory === catId ? null : catId);
+    setActiveMood(null);
+    setShowCategories(false);
+    setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  };
+
+  const selectMood = (moodId: string) => {
+    setActiveMood(activeMood === moodId ? null : moodId);
+    setActiveCategory(null);
+    setShowCategories(false);
+    setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  };
 
   const arabicSizes = ['text-xl', 'text-2xl', 'text-3xl', 'text-4xl'];
   const transSizes = ['text-xs', 'text-sm', 'text-base', 'text-lg'];
@@ -135,7 +151,7 @@ export default function DuaGenerator() {
             {MOODS.map(mood => (
               <button
                 key={mood.id}
-                onClick={() => { setActiveMood(activeMood === mood.id ? null : mood.id); setActiveCategory(null); }}
+                onClick={() => selectMood(mood.id)}
                 className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                   activeMood === mood.id
                     ? 'bg-emerald-600 text-white shadow'
@@ -152,7 +168,9 @@ export default function DuaGenerator() {
         {/* Categories */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Categories</p>
+            <button onClick={() => setShowCategories(!showCategories)} className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider flex items-center gap-1">
+              Categories {showCategories ? '▾' : '▸'}
+            </button>
             <button
               onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
               className={`text-xs font-semibold px-3 py-1 rounded-full transition-all ${
@@ -162,31 +180,45 @@ export default function DuaGenerator() {
               ❤️ Favorites ({favorites.length})
             </button>
           </div>
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-            {DUA_CATEGORIES.map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => { setActiveCategory(activeCategory === cat.id ? null : cat.id); setActiveMood(null); }}
-                className={`flex flex-col items-center gap-1 p-2.5 rounded-xl text-center transition-all ${
-                  activeCategory === cat.id
-                    ? 'bg-emerald-600 text-white shadow'
-                    : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:border-emerald-300'
-                }`}
-              >
-                <span className="text-lg">{cat.icon}</span>
-                <span className="text-[10px] font-medium leading-tight">{cat.name}</span>
-                <span className="text-[9px] opacity-60">{cat.count}</span>
-              </button>
-            ))}
-          </div>
+          {showCategories && (
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+              {DUA_CATEGORIES.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => selectCategory(cat.id)}
+                  className={`flex flex-col items-center gap-1 p-2.5 rounded-xl text-center transition-all ${
+                    activeCategory === cat.id
+                      ? 'bg-emerald-600 text-white shadow'
+                      : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:border-emerald-300'
+                  }`}
+                >
+                  <span className="text-lg">{cat.icon}</span>
+                  <span className="text-[10px] font-medium leading-tight">{cat.name}</span>
+                  <span className="text-[9px] opacity-60">{cat.count}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {/* Active filter badge */}
+          {(activeCategory || activeMood) && (
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                {activeCategory ? `📂 ${DUA_CATEGORIES.find(c => c.id === activeCategory)?.name}` : ''}
+                {activeMood ? `${MOODS.find(m => m.id === activeMood)?.emoji} ${MOODS.find(m => m.id === activeMood)?.label}` : ''}
+              </span>
+              <button onClick={clearFilters} className="text-xs text-red-500 font-medium">✕ Clear</button>
+            </div>
+          )}
         </div>
 
         {/* Results count */}
-        <p className="text-xs text-gray-400 dark:text-gray-500">
-          Showing {filtered.length} dua{filtered.length !== 1 ? 's' : ''}
-          {activeCategory && ` in ${DUA_CATEGORIES.find(c => c.id === activeCategory)?.name}`}
-          {activeMood && ` for "${MOODS.find(m => m.id === activeMood)?.label}"`}
-        </p>
+        <div ref={(el) => { resultsRef.current = el; }}>
+          <p className="text-xs text-gray-400 dark:text-gray-500">
+            Showing {filtered.length} dua{filtered.length !== 1 ? 's' : ''}
+            {activeCategory && ` in ${DUA_CATEGORIES.find(c => c.id === activeCategory)?.name}`}
+            {activeMood && ` for "${MOODS.find(m => m.id === activeMood)?.label}"`}
+          </p>
+        </div>
 
         {/* Dua Cards */}
         <div className="space-y-4">
