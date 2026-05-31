@@ -281,7 +281,7 @@ export default function HadithSearch() {
           {/* Book filter pills */}
           <div className="flex gap-2 overflow-x-auto pb-1">
             <button
-              onClick={() => setSelectedBook('')}
+              onClick={() => { setSelectedBook(''); if (query.trim()) search(query, ''); }}
               className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold ${
                 !selectedBook ? 'bg-amber-500 text-white' : 'bg-white/20 text-white/80'
               }`}
@@ -291,7 +291,7 @@ export default function HadithSearch() {
             {BOOKS.map(b => (
               <button
                 key={b.id}
-                onClick={() => setSelectedBook(b.apiName)}
+                onClick={() => { setSelectedBook(b.apiName); if (query.trim()) search(query, b.apiName); }}
                 className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold ${
                   selectedBook === b.apiName ? 'bg-amber-500 text-white' : 'bg-white/20 text-white/80'
                 }`}
@@ -345,8 +345,9 @@ export default function HadithSearch() {
                     {TOPICS.map(topic => (
                       <button
                         key={topic}
-                        onClick={() => { setQuery(topic); search(topic); }}
-                        className="px-4 py-2 bg-amber-50 border border-amber-200 rounded-full text-xs text-amber-800 hover:bg-amber-100 font-medium"
+                        onClick={() => { setQuery(topic); search(topic); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                        style={{ background: dark ? '#1e293b' : '#fffbeb', border: `1px solid ${dark ? '#334155' : '#fde68a'}`, color: dark ? '#fcd34d' : '#92400e' }}
+                        className="px-4 py-2 rounded-full text-xs font-medium"
                       >
                         {topic}
                       </button>
@@ -354,17 +355,19 @@ export default function HadithSearch() {
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                  <h3 className="text-sm font-bold text-gray-800 mb-3">📖 Available Books</h3>
+                <div style={{ background: dark ? '#1e293b' : '#fff', border: `1px solid ${dark ? '#334155' : '#f1f5f9'}` }} className="rounded-2xl p-5 shadow-sm">
+                  <h3 style={{ color: dark ? '#e2e8f0' : '#1f2937' }} className="text-sm font-bold mb-3">📖 Browse by Book</h3>
+                  <p style={{ color: dark ? '#94a3b8' : '#6b7280' }} className="text-xs mb-3">Select a book then search for any topic</p>
                   <div className="space-y-2">
                     {BOOKS.map(b => (
                       <button
                         key={b.id}
-                        onClick={() => { setQuery('faith'); setSelectedBook(b.apiName); search('faith', b.apiName); }}
-                        className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 text-left"
+                        onClick={() => { setSelectedBook(b.apiName); }}
+                        style={{ background: selectedBook === b.apiName ? (dark ? '#064e3b' : '#ecfdf5') : (dark ? '#334155' : '#f9fafb'), border: `1px solid ${selectedBook === b.apiName ? '#059669' : (dark ? '#475569' : '#e5e7eb')}` }}
+                        className="w-full flex items-center justify-between p-3 rounded-xl text-left transition-all"
                       >
-                        <span className="text-sm font-medium text-gray-700">{b.label}</span>
-                        <span className="text-xs text-gray-400">Browse →</span>
+                        <span style={{ color: dark ? '#e2e8f0' : '#374151' }} className="text-sm font-medium">{b.label}</span>
+                        {selectedBook === b.apiName && <span className="text-xs text-emerald-600 font-bold">✓ Selected</span>}
                       </button>
                     ))}
                   </div>
