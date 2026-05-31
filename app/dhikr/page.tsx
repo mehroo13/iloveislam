@@ -368,6 +368,7 @@ export default function DhikrCounter() {
   const [timerActive, setTimerActive] = useState(false);
   const [fullScreen, setFullScreen] = useState(false);
   const [wakeLock, setWakeLock] = useState<any>(null);
+  const counterRef = useRef<HTMLDivElement>(null);
   const { seconds, fmt: timerFmt, reset: resetTimer } = useSessionTimer(timerActive);
 
   // Wake Lock — keep screen on while counting
@@ -673,7 +674,7 @@ export default function DhikrCounter() {
                 const c2 = COLORS[p.color] || COLORS.emerald;
                 const isActive = selected === idx;
                 return (
-                  <button key={p.name} onClick={() => setSelected(idx)} className="preset-chip"
+                  <button key={p.name} onClick={() => { setSelected(idx); setTimeout(() => counterRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} className="preset-chip"
                     style={{
                       textAlign: 'left', padding: '11px 13px', borderRadius: 14,
                       border: `2px solid ${isActive ? c2.ring : borderC}`,
@@ -692,7 +693,7 @@ export default function DhikrCounter() {
             </div>
 
             {/* Main Counter Card */}
-            <div style={{ background: cardBg, borderRadius: 24, border: `1px solid ${borderC}`, padding: '22px 18px', textAlign: 'center', marginBottom: 10, boxShadow: dm ? '0 8px 40px rgba(0,0,0,0.4)' : '0 4px 24px rgba(0,0,0,0.06)', animation: 'slideUp 0.3s ease' }}>
+            <div ref={counterRef} style={{ background: cardBg, borderRadius: 24, border: `1px solid ${borderC}`, padding: '22px 18px', textAlign: 'center', marginBottom: 10, boxShadow: dm ? '0 8px 40px rgba(0,0,0,0.4)' : '0 4px 24px rgba(0,0,0,0.06)', animation: 'slideUp 0.3s ease' }}>
 
               {/* Arabic display */}
               <div style={{ background: dm ? `${color.bg}18` : color.light, borderRadius: 16, padding: '16px 12px', marginBottom: 18, border: `1px solid ${dm ? color.bg + '44' : color.border}` }}>

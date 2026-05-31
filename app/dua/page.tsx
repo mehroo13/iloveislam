@@ -105,7 +105,7 @@ export default function DuaGenerator() {
   const transSizes = ['text-xs', 'text-sm', 'text-base', 'text-lg'];
 
   return (
-    <div className={`min-h-screen ${dark ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
+    <div style={{ minHeight: '100vh', background: dark ? '#0f172a' : '#f9fafb' }}>
       {/* Header */}
       <header style={{ background: 'linear-gradient(135deg, #071e14, #0a3d2e)' }} className="px-4 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
@@ -241,6 +241,7 @@ export default function DuaGenerator() {
               copied={copied === dua.id}
               arabicSize={arabicSizes[fontSize]}
               transSize={transSizes[fontSize]}
+              isDark={dark}
             />
           ))}
         </div>
@@ -262,61 +263,61 @@ export default function DuaGenerator() {
 }
 
 // ── Dua Card Component ──
-function DuaCard({ dua, isFavorite, onToggleFavorite, onCopy, onShare, copied, arabicSize, transSize }: {
+function DuaCard({ dua, isFavorite, onToggleFavorite, onCopy, onShare, copied, arabicSize, transSize, isDark }: {
   dua: Dua; isFavorite: boolean; onToggleFavorite: () => void;
   onCopy: () => void; onShare: () => void; copied: boolean;
-  arabicSize: string; transSize: string;
+  arabicSize: string; transSize: string; isDark: boolean;
 }) {
   return (
-    <div className="bg-white dark:bg-gray-800/90 rounded-2xl border border-gray-100 dark:border-gray-600 overflow-hidden shadow-sm">
+    <div style={{ background: isDark ? '#1e293b' : '#fff', border: `1px solid ${isDark ? '#475569' : '#f1f5f9'}` }} className="rounded-2xl overflow-hidden shadow-sm">
       {/* Arabic text */}
       <div className="p-5 pb-3">
-        <p className={`${arabicSize} text-gray-800 dark:text-white text-right leading-[2.4] font-bold`} dir="rtl" style={{ fontFamily: '"Scheherazade New", "Amiri", "Noto Naskh Arabic", serif' }}>
+        <p className={`${arabicSize} text-right leading-[2.4] font-bold`} dir="rtl" style={{ fontFamily: '"Scheherazade New", "Amiri", "Noto Naskh Arabic", serif', color: isDark ? '#ffffff' : '#1f2937' }}>
           {dua.arabic}
         </p>
       </div>
 
       {/* Transliteration */}
       <div className="px-5 pb-2">
-        <p className="text-sm text-blue-600 dark:text-blue-300 italic leading-relaxed">
+        <p className="text-sm italic leading-relaxed" style={{ color: isDark ? '#93c5fd' : '#2563eb' }}>
           {dua.transliteration}
         </p>
       </div>
 
       {/* Translation */}
       <div className="px-5 pb-3">
-        <p className={`${transSize} text-gray-600 dark:text-gray-200 leading-relaxed`}>
+        <p className={`${transSize} leading-relaxed`} style={{ color: isDark ? '#e2e8f0' : '#4b5563' }}>
           {dua.translation}
         </p>
       </div>
 
       {/* Meta info */}
       <div className="px-5 pb-3 flex flex-wrap gap-2">
-        <span className="text-[10px] bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-medium">
+        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: isDark ? '#064e3b' : '#ecfdf5', color: isDark ? '#6ee7b7' : '#047857' }}>
           {dua.reference}
         </span>
-        <span className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 px-2 py-0.5 rounded-full">
+        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: isDark ? '#374151' : '#f3f4f6', color: isDark ? '#d1d5db' : '#6b7280' }}>
           {dua.occasion}
         </span>
         {dua.virtue && (
-          <span className="text-[10px] bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full">
+          <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: isDark ? '#451a03' : '#fffbeb', color: isDark ? '#fcd34d' : '#b45309' }}>
             {dua.virtue.substring(0, 60)}{dua.virtue.length > 60 ? '...' : ''}
           </span>
         )}
       </div>
 
       {/* Actions */}
-      <div className="px-5 py-3 border-t border-gray-50 dark:border-gray-600 flex items-center gap-2">
-        <button onClick={onToggleFavorite} className={`text-lg ${isFavorite ? 'text-red-500' : 'text-gray-300 dark:text-gray-500'}`} title="Favorite">
+      <div className="px-5 py-3 flex items-center gap-2" style={{ borderTop: `1px solid ${isDark ? '#475569' : '#f9fafb'}` }}>
+        <button onClick={onToggleFavorite} className="text-lg" style={{ color: isFavorite ? '#ef4444' : (isDark ? '#6b7280' : '#d1d5db') }} title="Favorite">
           {isFavorite ? '❤️' : '🤍'}
         </button>
-        <button onClick={onCopy} className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+        <button onClick={onCopy} className="text-xs px-3 py-1.5 rounded-lg font-medium" style={{ background: isDark ? '#374151' : '#f3f4f6', color: isDark ? '#e2e8f0' : '#4b5563' }}>
           {copied ? '✅ Copied' : '📋 Copy'}
         </button>
-        <button onClick={onShare} className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+        <button onClick={onShare} className="text-xs px-3 py-1.5 rounded-lg font-medium" style={{ background: isDark ? '#374151' : '#f3f4f6', color: isDark ? '#e2e8f0' : '#4b5563' }}>
           📤 Share
         </button>
-        <span className="ml-auto text-[9px] text-gray-300 dark:text-gray-600">#{dua.id}</span>
+        <span className="ml-auto text-[9px]" style={{ color: isDark ? '#4b5563' : '#d1d5db' }}>#{dua.id}</span>
       </div>
     </div>
   );
