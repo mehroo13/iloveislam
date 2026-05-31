@@ -123,6 +123,18 @@ const EVENT_TEMPLATES: IslamicEventTemplate[] = [
     bgGradient: 'linear-gradient(135deg, #1a1400 0%, #4a3a00 50%, #1a1400 100%)',
     description: "The Night of Forgiveness — seek Allah's mercy and pardon", importance: 'Night of Worship',
   },
+  {
+    name: "First of Dhul Hijjah", arabicName: 'أَوَّلُ ذِي الحِجَّة', hijriMonth: 12, hijriDay: 1,
+    emoji: '🕋', color: '#f97316',
+    bgGradient: 'linear-gradient(135deg, #1a0800 0%, #3d1a00 50%, #1a0800 100%)',
+    description: "The best 10 days of the year begin — increase worship, fasting, and charity", importance: 'Best Days of the Year',
+  },
+  {
+    name: "27th Rajab (Isra Mi'raj)", arabicName: 'لَيْلَةُ الإِسْرَاء', hijriMonth: 7, hijriDay: 27,
+    emoji: '🌠', color: '#f0abfc',
+    bgGradient: 'linear-gradient(135deg, #1a001a 0%, #4a004a 50%, #1a001a 100%)',
+    description: "The miraculous night journey and ascension of the Prophet ﷺ", importance: 'Significant Night',
+  },
 ];
 
 /* ── Starfield Particle System ── */
@@ -408,9 +420,26 @@ function EventCard({
         </div>
       </div>
 
-      {/* Hijri date footer */}
-      <div className="px-5 pb-3">
+      {/* Hijri date footer + actions */}
+      <div className="px-5 pb-3 flex items-center justify-between">
         <p className="text-[10px] text-white/20 border-t border-white/5 pt-2">🌙 {event.hijriDate}</p>
+        {!isPast && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const text = `${event.emoji} ${event.name}\n📅 ${formatDate(event.gregorianDate)}\n🌙 ${event.hijriDate}\n${event.description}`;
+              if (navigator.share) {
+                navigator.share({ title: event.name, text }).catch(() => {});
+              } else {
+                navigator.clipboard?.writeText(text);
+              }
+            }}
+            className="text-[10px] text-white/20 hover:text-white/50 transition-colors border-t border-white/5 pt-2"
+            title="Share this event"
+          >
+            📤 Share
+          </button>
+        )}
       </div>
     </div>
   );
@@ -608,8 +637,29 @@ export default function IslamicEventsPage() {
           {/* Disclaimer */}
           <div className="mt-8 p-4 rounded-2xl border border-white/5 bg-white/[0.02] text-center">
             <p className="text-white/25 text-xs leading-relaxed">
-              ⚠️ Dates are calculated algorithmically and may vary ±1 day depending on moon sighting in your region. Always confirm with your local mosque.
+              ⚠️ Dates are calculated algorithmically and may vary ±1–2 days depending on moon sighting in your region. Always confirm with your local mosque.
             </p>
+          </div>
+
+          {/* Related tools */}
+          <div className="mt-6 p-5 rounded-2xl border border-white/5 bg-white/[0.02]">
+            <p className="text-white/40 text-xs font-bold tracking-wider uppercase mb-3">🔗 Related Tools</p>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { href: '/zakat', icon: '💰', label: 'Zakat Calculator' },
+                { href: '/hajj', icon: '🕋', label: 'Hajj Checklist' },
+                { href: '/eid-adha', icon: '🐑', label: 'Eid ul-Adha Kit' },
+                { href: '/ramadan', icon: '🌙', label: 'Ramadan Planner' },
+                { href: '/dhikr', icon: '📿', label: 'Dhikr Counter' },
+                { href: '/hijri', icon: '📅', label: 'Hijri Calendar' },
+              ].map(tool => (
+                <Link key={tool.href} href={tool.href}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-white/5 hover:border-white/15 bg-white/[0.02] hover:bg-white/[0.05] transition-all text-white/50 hover:text-white/80 text-xs">
+                  <span>{tool.icon}</span>
+                  <span>{tool.label}</span>
+                </Link>
+              ))}
+            </div>
           </div>
 
           {/* Footer link */}
