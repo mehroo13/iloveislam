@@ -31,6 +31,7 @@ export default function DuaGenerator() {
   const [fontSize, setFontSize] = useState(1); // 0=S, 1=M, 2=L, 3=XL
   const [copied, setCopied] = useState<number | null>(null);
   const [showCategories, setShowCategories] = useState(true);
+  const [dark, setDark] = useState(false);
   const resultsRef = typeof window !== 'undefined' ? { current: null as HTMLDivElement | null } : { current: null };
 
   useEffect(() => { setFavorites(loadFavorites()); }, []);
@@ -104,16 +105,15 @@ export default function DuaGenerator() {
   const transSizes = ['text-xs', 'text-sm', 'text-base', 'text-lg'];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className={`min-h-screen ${dark ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
       {/* Header */}
       <header style={{ background: 'linear-gradient(135deg, #071e14, #0a3d2e)' }} className="px-4 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <Link href="/" className="text-white/50 hover:text-white text-sm">← Home</Link>
           <h1 className="text-white font-bold text-base">🤲 Dua Collection</h1>
-          <div className="flex gap-2">
-            <button onClick={() => setFontSize(f => Math.min(3, f + 1))} className="text-white/50 hover:text-white text-sm">A+</button>
-            <button onClick={() => setFontSize(f => Math.max(0, f - 1))} className="text-white/50 hover:text-white text-sm">A-</button>
-          </div>
+          <button onClick={() => setDark(!dark)} className="text-white/60 hover:text-white text-lg">
+            {dark ? '☀️' : '🌙'}
+          </button>
         </div>
       </header>
 
@@ -134,7 +134,15 @@ export default function DuaGenerator() {
           <input
             type="text"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => {
+              setSearch(e.target.value);
+              if (e.target.value.trim().length >= 2) {
+                setShowCategories(false);
+                setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+              } else if (e.target.value.trim().length === 0) {
+                setShowCategories(true);
+              }
+            }}
             placeholder="Search duas (e.g. anxiety, forgiveness, morning)..."
             className="w-full px-4 py-3 pl-10 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
           />
