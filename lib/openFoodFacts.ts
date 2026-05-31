@@ -51,11 +51,7 @@ export async function lookupByBarcode(barcode: string): Promise<ProductLookupRes
     const data = await res.json();
 
     if (data.status === 0 || !data.product) {
-      const fallbackProducts = await searchByName(cleanBarcode);
-      const fallbackMatch = fallbackProducts.find((item) => item.found && item.product);
-      if (fallbackMatch) {
-        return { ...fallbackMatch, fallbackUsed: true };
-      }
+      // Product not found — do NOT fallback search (it returns wrong products)
       return { found: false, ingredients: [], error: 'Product not found in database' };
     }
 
@@ -63,16 +59,6 @@ export async function lookupByBarcode(barcode: string): Promise<ProductLookupRes
     const ingredients = parseIngredients(
       product.ingredients_text_en || product.ingredients_text || ''
     );
-
-    if (ingredients.length === 0 && product.product_name) {
-      const fallbackProducts = await searchByName(product.product_name);
-      const fallbackMatch = fallbackProducts.find(
-        (item) => item.found && item.product && item.ingredients.length > 0
-      );
-      if (fallbackMatch) {
-        return { ...fallbackMatch, fallbackUsed: true };
-      }
-    }
 
     return { found: true, product, ingredients };
   } catch (err) {

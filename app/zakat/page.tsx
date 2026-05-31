@@ -13,23 +13,35 @@ const CURRENCIES: Record<string, { symbol: string; goldDefault: number; silverDe
   GBP: { symbol: '£', goldDefault: 78, silverDefault: 0.87 },
   EUR: { symbol: '€', goldDefault: 91, silverDefault: 1.02 },
   AUD: { symbol: 'A$', goldDefault: 150, silverDefault: 1.68 },
+  CAD: { symbol: 'C$', goldDefault: 135, silverDefault: 1.52 },
+  INR: { symbol: '₹', goldDefault: 8200, silverDefault: 92 },
   PKR: { symbol: '₨', goldDefault: 27300, silverDefault: 307 },
   SAR: { symbol: 'ر.س', goldDefault: 368, silverDefault: 4.13 },
   AED: { symbol: 'د.إ', goldDefault: 360, silverDefault: 4.04 },
+  QAR: { symbol: 'ر.ق', goldDefault: 357, silverDefault: 4.01 },
+  KWD: { symbol: 'د.ك', goldDefault: 30, silverDefault: 0.34 },
+  OMR: { symbol: 'ر.ع', goldDefault: 38, silverDefault: 0.42 },
+  BHD: { symbol: 'د.ب', goldDefault: 37, silverDefault: 0.41 },
+  EGP: { symbol: 'ج.م', goldDefault: 4800, silverDefault: 54 },
   MYR: { symbol: 'RM', goldDefault: 459, silverDefault: 5.15 },
   IDR: { symbol: 'Rp', goldDefault: 1540000, silverDefault: 17300 },
   BDT: { symbol: '৳', goldDefault: 10800, silverDefault: 121 },
   TRY: { symbol: '₺', goldDefault: 3100, silverDefault: 35 },
+  NGN: { symbol: '₦', goldDefault: 155000, silverDefault: 1740 },
+  ZAR: { symbol: 'R', goldDefault: 1780, silverDefault: 20 },
+  SGD: { symbol: 'S$', goldDefault: 132, silverDefault: 1.48 },
 };
 
 const CURRENCY_KEYS = Object.keys(CURRENCIES);
 
 const ASSET_FIELDS = [
-  { key: 'gold', label: 'Gold owned', icon: '🥇', tip: 'All gold jewellery, coins, bars (excluding personal use jewellery in Hanafi)' },
+  { key: 'gold', label: 'Gold owned', icon: '🥇', tip: 'All gold jewellery, coins, bars (Hanafi: includes personal jewellery. Shafi\'i: excludes personal use jewellery)' },
   { key: 'silver', label: 'Silver owned', icon: '🥈', tip: 'Silver coins, bars, or silver held as savings' },
   { key: 'cash', label: 'Cash in hand', icon: '💵', tip: 'Physical cash at home or on your person' },
   { key: 'savings', label: 'Bank savings', icon: '🏦', tip: 'All bank accounts — current, savings, fixed deposit' },
-  { key: 'investments', label: 'Investments', icon: '📈', tip: 'Stocks, mutual funds, crypto, bonds — use current market value' },
+  { key: 'investments', label: 'Stocks & funds', icon: '📈', tip: 'Stocks, mutual funds, ETFs, bonds — use current market value' },
+  { key: 'crypto', label: 'Cryptocurrency', icon: '₿', tip: 'Bitcoin, Ethereum, and all crypto holdings at current market value' },
+  { key: 'rental', label: 'Rental income saved', icon: '🏠', tip: 'Accumulated rental income not yet spent (not the property value itself)' },
   { key: 'business', label: 'Business assets', icon: '🏢', tip: 'Inventory, trade goods, receivables — not fixed assets like machinery' },
   { key: 'loans', label: 'Loans given out', icon: '🤝', tip: 'Money you have lent to others that you expect back' },
   { key: 'other', label: 'Other assets', icon: '💎', tip: 'Any other wealth subject to zakat not listed above' },
@@ -52,6 +64,44 @@ interface Result {
   debts: number;
 }
 
+// ── Zakat History Component ──
+function ZakatHistory({ sym }: { sym: string }) {
+  const [history, setHistory] = useState<any[]>([]);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('zakatHistory') || '[]');
+      setHistory(saved);
+    } catch {}
+  }, []);
+
+  if (history.length === 0) {
+    return <p style={{ fontSize: 12, color: '#aaa', padding: '8px 0' }}>No past calculations yet.</p>;
+  }
+
+  return (
+    <div style={{ marginTop: 8, background: '#fff', borderRadius: 14, border: '1px solid #e8e0cc', overflow: 'hidden' }}>
+      {history.map((entry: any, i: number) => (
+        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: i < history.length - 1 ? '1px solid #f0ece4' : 'none' }}>
+          <div>
+            <p style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a', margin: 0 }}>
+              {entry.meetsNisab ? '✅' : '❌'} {entry.currency} — {new Date(entry.date).toLocaleDateString()}
+            </p>
+            <p style={{ fontSize: 10, color: '#888', margin: '2px 0 0' }}>
+              Zakatable: {sym}{Number(entry.zakatable).toLocaleString('en', { maximumFractionDigits: 0 })}
+            </p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: entry.meetsNisab ? '#0a3d2e' : '#888', margin: 0 }}>
+              {entry.meetsNisab ? `${sym}${Number(entry.zakatDue).toLocaleString('en', { maximumFractionDigits: 0 })}` : 'No zakat'}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function ZakatCalculator() {
   // State
   const [currency, setCurrency] = useState('USD');
@@ -67,6 +117,8 @@ export default function ZakatCalculator() {
     cash: '',
     savings: '',
     investments: '',
+    crypto: '',
+    rental: '',
     business: '',
     loans: '',
     other: '',
@@ -77,9 +129,11 @@ export default function ZakatCalculator() {
   const [silverUnit, setSilverUnit] = useState<'grams' | 'tola'>('grams');
   const [debts, setDebts] = useState('');
   const [nisabMethod, setNisabMethod] = useState<'silver' | 'gold'>('silver');
+  const [madhab, setMadhab] = useState<'hanafi' | 'shafii'>('hanafi');
   const [result, setResult] = useState<Result | null>(null);
   const [copied, setCopied] = useState(false);
   const [fetchingPrices, setFetchingPrices] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
 
   const sym = CURRENCIES[currency]?.symbol || '$';
@@ -188,12 +242,14 @@ export default function ZakatCalculator() {
     const cashVal = parseFloat(assets.cash) || 0;
     const savingsVal = parseFloat(assets.savings) || 0;
     const investVal = parseFloat(assets.investments) || 0;
+    const cryptoVal = parseFloat(assets.crypto) || 0;
+    const rentalVal = parseFloat(assets.rental) || 0;
     const bizVal = parseFloat(assets.business) || 0;
     const loansVal = parseFloat(assets.loans) || 0;
     const otherVal = parseFloat(assets.other) || 0;
     const debtsVal = parseFloat(debts) || 0;
 
-    const total = goldVal + silverVal + cashVal + savingsVal + investVal + bizVal + loansVal + otherVal;
+    const total = goldVal + silverVal + cashVal + savingsVal + investVal + cryptoVal + rentalVal + bizVal + loansVal + otherVal;
     const zakatable = Math.max(0, total - debtsVal);
 
     const goldNisab = GOLD_NISAB_GRAMS * goldPrice;
@@ -203,7 +259,7 @@ export default function ZakatCalculator() {
     const meets = zakatable >= chosenNisab;
     const due = meets ? zakatable * 0.025 : 0;
 
-    setResult({
+    const newResult: Result = {
       totalAssets: total,
       goldValue: goldVal,
       silverValue: silverVal,
@@ -215,7 +271,25 @@ export default function ZakatCalculator() {
       meetsNisab: meets,
       zakatDue: due,
       debts: debtsVal,
-    });
+    };
+
+    setResult(newResult);
+
+    // Save to history
+    try {
+      const history = JSON.parse(localStorage.getItem('zakatHistory') || '[]');
+      const entry = {
+        date: new Date().toISOString(),
+        currency,
+        totalAssets: total,
+        zakatable,
+        zakatDue: due,
+        meetsNisab: meets,
+        madhab,
+      };
+      const updated = [entry, ...history].slice(0, 10);
+      localStorage.setItem('zakatHistory', JSON.stringify(updated));
+    } catch {}
 
     setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   }
@@ -225,7 +299,7 @@ export default function ZakatCalculator() {
     setSilverInput('');
     setGoldUnit('grams');
     setSilverUnit('grams');
-    setAssets({ gold: '', silver: '', cash: '', savings: '', investments: '', business: '', loans: '', other: '' });
+    setAssets({ gold: '', silver: '', cash: '', savings: '', investments: '', crypto: '', rental: '', business: '', loans: '', other: '' });
     setDebts('');
     setResult(null);
     setUseLivePrices(false);
@@ -446,6 +520,40 @@ export default function ZakatCalculator() {
               ))}
             </div>
           </div>
+
+          {/* Madhab selection */}
+          <div style={{ marginTop: 14 }}>
+            <label style={{ fontSize: 11, color: '#888', display: 'block', marginBottom: 8 }}>Madhab (school of thought)</label>
+            <div style={{ display: 'flex', gap: 10 }}>
+              {(
+                [
+                  ['hanafi', '📗 Hanafi', 'Gold/silver jewellery IS zakatable'],
+                  ['shafii', '📘 Shafi\'i / Maliki / Hanbali', 'Personal jewellery excluded'],
+                ] as const
+              ).map(([val, label, sub]) => (
+                <button
+                  key={val}
+                  onClick={() => setMadhab(val as 'hanafi' | 'shafii')}
+                  style={{
+                    flex: 1,
+                    padding: '10px 12px',
+                    borderRadius: 12,
+                    border: `1.5px solid ${madhab === val ? '#0a3d2e' : '#e0d8c8'}`,
+                    background: madhab === val ? '#f0faf5' : '#fafaf7',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <p style={{ fontSize: 12, fontWeight: 600, color: madhab === val ? '#0a3d2e' : '#555', margin: 0 }}>
+                    {label}
+                  </p>
+                  <p style={{ fontSize: 10, color: madhab === val ? '#0a3d2e99' : '#aaa', margin: '2px 0 0' }}>
+                    {sub}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* ── ASSETS CARD (same as before) ── */}
@@ -556,6 +664,42 @@ export default function ZakatCalculator() {
             style={{ padding: '14px 20px', borderRadius: 14, border: '1px solid #e0d8c8', background: '#fff', color: '#888', fontSize: 13, cursor: 'pointer' }}>
             Reset
           </button>
+        </div>
+
+        {/* ── QUICK MODE (for simple cases) ── */}
+        {!result && (
+          <div className="no-print" style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8e0cc', padding: '14px 18px', marginBottom: 14 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: '#aaa', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 10px' }}>⚡ Quick Calculate</p>
+            <p style={{ fontSize: 12, color: '#666', margin: '0 0 10px' }}>Just have cash savings? Enter the amount and tap calculate:</p>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ fontSize: 13, color: '#888' }}>{sym}</span>
+              <input
+                type="number"
+                placeholder="Enter total savings..."
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setAssets(prev => ({ ...prev, savings: val }));
+                }}
+                value={assets.savings}
+                style={{ flex: 1, border: '1px solid #e0d8c8', borderRadius: 10, padding: '10px 12px', fontSize: 14, background: '#fafaf7' }}
+              />
+              <button onClick={calculate}
+                style={{ padding: '10px 16px', borderRadius: 10, border: 'none', background: '#0a3d2e', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                Calculate →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── HISTORY ── */}
+        <div className="no-print" style={{ marginBottom: 14 }}>
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            style={{ fontSize: 12, color: '#0a3d2e', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: '4px 0' }}
+          >
+            📋 {showHistory ? 'Hide' : 'View'} Past Calculations
+          </button>
+          {showHistory && <ZakatHistory sym={sym} />}
         </div>
 
         {/* ── RESULT (same as before) ── */}

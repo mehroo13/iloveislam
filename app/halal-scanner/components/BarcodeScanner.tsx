@@ -77,8 +77,13 @@ export default function BarcodeScanner({ onResult, onError, isActive }: BarcodeS
 
   const handleScanResult = useCallback(
     (value: string) => {
-      if (!value || value === lastResultRef.current) return;
-      lastResultRef.current = value;
+      if (!value) return;
+      // Require same barcode to be read twice to prevent misreads
+      if (value !== lastResultRef.current) {
+        lastResultRef.current = value;
+        return; // First read — wait for confirmation
+      }
+      // Second consecutive read of same barcode — accept it
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = window.setTimeout(async () => {
         const accepted = await Promise.resolve(onResult(value));
@@ -88,7 +93,7 @@ export default function BarcodeScanner({ onResult, onError, isActive }: BarcodeS
         } else {
           lastResultRef.current = '';
         }
-      }, 300);
+      }, 200);
     },
     [onResult, stopCamera]
   );
