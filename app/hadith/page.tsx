@@ -183,43 +183,43 @@ export default function HadithSearch() {
     const grade = h.grade || '';
     const displayText = language === 'eng' ? h.textEn : h.textUr;
     return (
-      <div style={{ background: dark ? '#1e293b' : '#fff', border: `1px solid ${dark ? '#334155' : '#f1f5f9'}` }} className="rounded-2xl shadow-sm overflow-hidden">
-        <div style={{ background: dark ? '#334155' : '#f9fafb' }} className="px-4 py-2.5 flex items-center gap-2 flex-wrap">
-          <span className="bg-emerald-900 text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full">
+      <div style={{ background: dark ? '#1e293b' : '#fff', borderLeft: `4px solid ${saved_ ? '#f59e0b' : '#059669'}` }} className="rounded-2xl shadow-sm overflow-hidden">
+        {/* Header */}
+        <div style={{ background: dark ? '#0f172a' : '#f8fafc' }} className="px-4 py-3 flex items-center gap-2 flex-wrap">
+          <span className="bg-emerald-700 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg tracking-wide">
             {getBookLabel(h.bookSlug)}
           </span>
-          {h.hadithNumber && (
-            <span style={{ background: dark ? '#475569' : '#e5e7eb', color: dark ? '#cbd5e1' : '#6b7280' }} className="text-[10px] px-2 py-0.5 rounded-full">
-              #{h.hadithNumber}
-            </span>
-          )}
+          <span style={{ background: dark ? '#334155' : '#e2e8f0', color: dark ? '#e2e8f0' : '#475569' }} className="text-xs font-bold px-2.5 py-1 rounded-lg">
+            #{h.hadithNumber}
+          </span>
           {grade && (
-            <span
-              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                grade.toLowerCase().includes('sahih') ? 'bg-green-100 text-green-700' :
-                grade.toLowerCase().includes('hasan') ? 'bg-blue-100 text-blue-700' :
-                'bg-gray-100 text-gray-600'
-              }`}
-            >
+            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${
+              grade.toLowerCase().includes('sahih') ? 'bg-green-100 text-green-800' :
+              grade.toLowerCase().includes('hasan') ? 'bg-blue-100 text-blue-800' :
+              'bg-gray-100 text-gray-600'
+            }`}>
               {grade}
             </span>
           )}
-          <div className="ml-auto flex items-center gap-2">
-            <button onClick={() => copyHadith(h)} className="text-sm" style={{ color: dark ? '#94a3b8' : '#9ca3af' }}>
+          <div className="ml-auto flex items-center gap-3">
+            <button onClick={() => copyHadith(h)} title="Copy" className="hover:scale-110 transition-transform" style={{ color: dark ? '#94a3b8' : '#64748b' }}>
               {copiedId === h._id ? '✅' : '📋'}
             </button>
             <button onClick={() => {
-              const text = `${displayText}\n\n— ${getBookLabel(h.bookSlug)}, #${h.hadithNumber}\n\niloveislam.life/hadith`;
+              const text = `${displayText}\n\n— ${getBookLabel(h.bookSlug)}, Hadith #${h.hadithNumber}\n\niloveislam.life/hadith`;
               if (navigator.share) navigator.share({ title: 'Hadith', text });
               else navigator.clipboard?.writeText(text);
-            }} className="text-sm" style={{ color: dark ? '#94a3b8' : '#9ca3af' }}>📤</button>
-            <button onClick={() => handleSave(h)} className={`text-lg ${saved_ ? 'text-amber-500' : ''}`} style={{ color: saved_ ? undefined : (dark ? '#475569' : '#d1d5db') }}>
-              🔖
+            }} title="Share" className="hover:scale-110 transition-transform" style={{ color: dark ? '#94a3b8' : '#64748b' }}>📤</button>
+            <button onClick={() => handleSave(h)} title={saved_ ? 'Unsave' : 'Save'} className="hover:scale-110 transition-transform text-lg">
+              {saved_ ? '⭐' : '☆'}
             </button>
           </div>
         </div>
-        <div className="p-4">
-          <p style={{ color: dark ? '#e2e8f0' : '#374151' }} className="text-sm leading-relaxed">{displayText}</p>
+        {/* Body */}
+        <div className="px-5 py-4">
+          <p style={{ color: dark ? '#f1f5f9' : '#1e293b', direction: language === 'urd' ? 'rtl' : 'ltr' }} className="text-sm leading-[1.9] font-medium">
+            {displayText}
+          </p>
         </div>
       </div>
     );
@@ -331,16 +331,33 @@ export default function HadithSearch() {
           <>
             {!results && !loading && !error && (
               <>
-                <div className="bg-gradient-to-r from-emerald-900 to-emerald-700 text-white rounded-2xl p-6 text-center shadow">
-                  <p className="text-2xl font-arabic mb-2">طَلَبُ الْعِلْمِ فَرِيضَةٌ</p>
-                  <p className="text-white/80 text-sm italic mb-1">
-                    "Seeking knowledge is an obligation upon every Muslim"
-                  </p>
-                  <p className="text-white/50 text-xs">— Ibn Majah</p>
+                <div className="bg-gradient-to-r from-emerald-900 to-emerald-700 text-white rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
+                  <div className="absolute inset-0 opacity-5">
+                    <div className="absolute top-2 right-6 text-6xl select-none">☽</div>
+                    <div className="absolute bottom-2 left-6 text-4xl select-none">✦</div>
+                  </div>
+                  <div className="relative z-10">
+                    <p className="text-3xl font-arabic mb-2" style={{ fontFamily: '"Scheherazade New", serif' }}>طَلَبُ الْعِلْمِ فَرِيضَةٌ</p>
+                    <p className="text-white/80 text-sm italic mb-1">
+                      &ldquo;Seeking knowledge is an obligation upon every Muslim&rdquo;
+                    </p>
+                    <p className="text-white/50 text-xs mb-4">— Ibn Majah</p>
+                    <button
+                      onClick={() => {
+                        const randomTopics = ['mercy', 'patience', 'prayer', 'charity', 'knowledge', 'forgiveness', 'kindness', 'faith', 'gratitude', 'trust'];
+                        const topic = randomTopics[Math.floor(Math.random() * randomTopics.length)];
+                        setQuery(topic);
+                        search(topic);
+                      }}
+                      className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-all border border-white/20"
+                    >
+                      🎲 Random Hadith
+                    </button>
+                  </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                  <h3 className="text-sm font-bold text-gray-800 mb-3">Quick Topic Search</h3>
+                <div style={{ background: dark ? '#1e293b' : '#fff', border: `1px solid ${dark ? '#334155' : '#f1f5f9'}` }} className="rounded-2xl p-5 shadow-sm">
+                  <h3 style={{ color: dark ? '#e2e8f0' : '#1f2937' }} className="text-sm font-bold mb-3">⚡ Quick Topic Search</h3>
                   <div className="flex flex-wrap gap-2">
                     {TOPICS.map(topic => (
                       <button
@@ -413,11 +430,23 @@ export default function HadithSearch() {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {results.map((h, i) => (
-                      <HadithCard key={h._id || i} h={h} />
-                    ))}
-                  </div>
+                  <>
+                    {/* Results header */}
+                    <div className="flex items-center justify-between mb-3">
+                      <p style={{ color: dark ? '#94a3b8' : '#64748b' }} className="text-xs font-medium">
+                        {results.length} hadith{results.length !== 1 ? 's' : ''} found for &ldquo;{searched}&rdquo;
+                        {selectedBook && ` in ${getBookLabel(selectedBook)}`}
+                      </p>
+                      <button onClick={() => { setResults(null); setQuery(''); }} style={{ color: dark ? '#f87171' : '#ef4444' }} className="text-xs font-semibold">
+                        ✕ Clear
+                      </button>
+                    </div>
+                    <div className="space-y-4">
+                      {results.map((h, i) => (
+                        <HadithCard key={h._id || i} h={h} />
+                      ))}
+                    </div>
+                  </>
                 )}
               </>
             )}
