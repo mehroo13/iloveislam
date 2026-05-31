@@ -106,6 +106,7 @@ export default function HadithSearch() {
   const [searched, setSearched] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [langWarning, setLangWarning] = useState('');
+  const [dark, setDark] = useState(false);
 
   // Load saved
   useEffect(() => {
@@ -182,13 +183,13 @@ export default function HadithSearch() {
     const grade = h.grade || '';
     const displayText = language === 'eng' ? h.textEn : h.textUr;
     return (
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="bg-gray-50 px-4 py-2.5 flex items-center gap-2 flex-wrap">
+      <div style={{ background: dark ? '#1e293b' : '#fff', border: `1px solid ${dark ? '#334155' : '#f1f5f9'}` }} className="rounded-2xl shadow-sm overflow-hidden">
+        <div style={{ background: dark ? '#334155' : '#f9fafb' }} className="px-4 py-2.5 flex items-center gap-2 flex-wrap">
           <span className="bg-emerald-900 text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full">
             {getBookLabel(h.bookSlug)}
           </span>
           {h.hadithNumber && (
-            <span className="text-[10px] text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
+            <span style={{ background: dark ? '#475569' : '#e5e7eb', color: dark ? '#cbd5e1' : '#6b7280' }} className="text-[10px] px-2 py-0.5 rounded-full">
               #{h.hadithNumber}
             </span>
           )}
@@ -204,23 +205,28 @@ export default function HadithSearch() {
             </span>
           )}
           <div className="ml-auto flex items-center gap-2">
-            <button onClick={() => copyHadith(h)} className="text-gray-400 hover:text-gray-600 text-sm">
+            <button onClick={() => copyHadith(h)} className="text-sm" style={{ color: dark ? '#94a3b8' : '#9ca3af' }}>
               {copiedId === h._id ? '✅' : '📋'}
             </button>
-            <button onClick={() => handleSave(h)} className={`text-lg ${saved_ ? 'text-amber-500' : 'text-gray-300 hover:text-gray-500'}`}>
+            <button onClick={() => {
+              const text = `${displayText}\n\n— ${getBookLabel(h.bookSlug)}, #${h.hadithNumber}\n\niloveislam.life/hadith`;
+              if (navigator.share) navigator.share({ title: 'Hadith', text });
+              else navigator.clipboard?.writeText(text);
+            }} className="text-sm" style={{ color: dark ? '#94a3b8' : '#9ca3af' }}>📤</button>
+            <button onClick={() => handleSave(h)} className={`text-lg ${saved_ ? 'text-amber-500' : ''}`} style={{ color: saved_ ? undefined : (dark ? '#475569' : '#d1d5db') }}>
               🔖
             </button>
           </div>
         </div>
         <div className="p-4">
-          <p className="text-sm text-gray-700 leading-relaxed">{displayText}</p>
+          <p style={{ color: dark ? '#e2e8f0' : '#374151' }} className="text-sm leading-relaxed">{displayText}</p>
         </div>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-50/50 to-white font-serif">
+    <div style={{ minHeight: '100vh', background: dark ? '#0f172a' : undefined }} className={dark ? '' : 'bg-gradient-to-b from-amber-50/50 to-white font-serif'}>
       {/* Header */}
       <header className="bg-gradient-to-r from-emerald-900 to-emerald-700 text-white px-4 py-5 shadow-lg">
         <div className="max-w-2xl mx-auto space-y-3">
@@ -240,6 +246,7 @@ export default function HadithSearch() {
                 </option>
               ))}
             </select>
+            <button onClick={() => setDark(!dark)} className="text-white/60 hover:text-white text-lg ml-2">{dark ? '☀️' : '🌙'}</button>
           </div>
           <p className="text-white/60 text-xs text-center">
             Search in English or Urdu – results switch instantly
