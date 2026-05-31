@@ -34,12 +34,12 @@ interface PrayerData {
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const TABS: { id: TabId; label: string; icon: string }[] = [
+const TABS: { id: TabId; label: string; icon: string; href?: string }[] = [
   { id: 'food',   label: 'Halal Food',   icon: '🍱' },
-  { id: 'mosque', label: 'Mosques',      icon: '🕌' },
+  { id: 'mosque', label: 'Mosques',      icon: '🕌', href: '/mosque' },
   { id: 'hotel',  label: 'Hotels',       icon: '🏨' },
-  { id: 'prayer', label: 'Prayer Times', icon: '🕐' },
-  { id: 'qibla',  label: 'Qibla',        icon: '🧭' },
+  { id: 'prayer', label: 'Prayer Times', icon: '🕐', href: '/prayer-times' },
+  { id: 'qibla',  label: 'Qibla',        icon: '🧭', href: '/qibla' },
   { id: 'tips',   label: 'Travel Tips',  icon: '💡' },
   { id: 'dua',    label: 'Journey Duas', icon: '🤲' },
 ];
@@ -735,10 +735,17 @@ export default function HalalTravel() {
       <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 60, zIndex: 20, overflowX: 'auto', boxShadow: '0 2px 8px rgba(26,71,49,0.06)' }}>
         <div style={{ maxWidth: 700, margin: '0 auto', display: 'flex', padding: '8px 12px', gap: 6, minWidth: 'max-content' }}>
           {TABS.map(tab => (
-            <button key={tab.id} onClick={() => { setActiveTab(tab.id); setResults([]); setError(''); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-              style={{ padding: '8px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', background: activeTab === tab.id ? C.green : 'transparent', color: activeTab === tab.id ? C.white : C.muted, fontSize: 12, fontWeight: activeTab === tab.id ? 700 : 500, fontFamily: 'Georgia, serif', whiteSpace: 'nowrap', transition: 'all 0.2s', boxShadow: activeTab === tab.id ? '0 2px 8px rgba(26,71,49,0.25)' : 'none' }}>
-              {tab.icon} {tab.label}
-            </button>
+            tab.href ? (
+              <Link key={tab.id} href={tab.href}
+                style={{ padding: '8px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', background: 'transparent', color: C.muted, fontSize: 12, fontWeight: 500, fontFamily: 'Georgia, serif', whiteSpace: 'nowrap', transition: 'all 0.2s', textDecoration: 'none', display: 'inline-block' }}>
+                {tab.icon} {tab.label}
+              </Link>
+            ) : (
+              <button key={tab.id} onClick={() => { setActiveTab(tab.id); setResults([]); setError(''); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                style={{ padding: '8px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', background: activeTab === tab.id ? C.green : 'transparent', color: activeTab === tab.id ? C.white : C.muted, fontSize: 12, fontWeight: activeTab === tab.id ? 700 : 500, fontFamily: 'Georgia, serif', whiteSpace: 'nowrap', transition: 'all 0.2s', boxShadow: activeTab === tab.id ? '0 2px 8px rgba(26,71,49,0.25)' : 'none' }}>
+                {tab.icon} {tab.label}
+              </button>
+            )
           ))}
         </div>
       </div>
