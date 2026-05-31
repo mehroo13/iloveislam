@@ -147,6 +147,8 @@ export default function KaffarahCalculator() {
   const [filterCategory, setFilterCategory] = useState<'all' | 'kaffarah' | 'fidyah'>('all');
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+
   const curr = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0];
   const sym = curr.sym;
   const defaultMeal = curr.meal;
@@ -194,11 +196,24 @@ export default function KaffarahCalculator() {
             <Link href="/" className="text-white/60 hover:text-white text-sm transition-colors">← Home</Link>
           )}
           <h1 className="text-lg font-bold">🕊️ Kaffarah & Fidyah Calculator</h1>
-          <button onClick={() => setCurrency(CURRENCIES[(CURRENCIES.findIndex(c => c.code === currency) + 1) % CURRENCIES.length].code)}
+          <button onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
             className="bg-white/15 text-white text-xs rounded-full px-3 py-1.5 border border-white/20 hover:bg-white/25 transition-all">
             {sym} {currency}
           </button>
         </div>
+        {/* Currency picker dropdown */}
+        {showCurrencyPicker && (
+          <div className="max-w-3xl mx-auto mt-2 relative">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-2 grid grid-cols-3 sm:grid-cols-4 gap-1 animate-slideDown">
+              {CURRENCIES.map(c => (
+                <button key={c.code} onClick={() => { setCurrency(c.code); setShowCurrencyPicker(false); setMealCost(''); setClothCost(''); }}
+                  className={`px-2 py-2.5 rounded-lg text-xs font-medium transition-all ${currency === c.code ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 ring-1 ring-emerald-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                  {c.sym} {c.code}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {selected && (
           <div className="max-w-3xl mx-auto mt-3 text-center">
             <p className="text-xl text-white/80" style={{ fontFamily: "'Amiri', serif" }}>{selected.arabic}</p>
@@ -488,6 +503,11 @@ export default function KaffarahCalculator() {
           </>
         )}
       </main>
+
+      <style jsx>{`
+        .animate-slideDown { animation: slideDown 0.2s ease-out; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
     </div>
   );
 }
