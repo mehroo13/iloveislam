@@ -55,6 +55,10 @@ const TIPS = [
   { icon: '💬', cat: 'Communication', title: 'Language & Local Phrases',   desc: '"Salam" and "Shukran" go a long way in Muslim-majority countries. Download Google Translate offline for areas with poor connectivity.' },
   { icon: '💰', cat: 'Finance',       title: 'Money & Islamic Finance',    desc: 'Consider Takaful travel insurance. Carry local currency and small bills. Notify your bank before travelling to avoid card blocks.' },
   { icon: '✈️', cat: 'Flights',       title: 'Halal Meals on Flights',     desc: 'Always request a Halal meal (MOML) when booking. Confirm 24–48 hours before departure.' },
+  { icon: '🏨', cat: 'Hotels',        title: 'Muslim-Friendly Hotels',     desc: 'Look for hotels with prayer mats, Quran in rooms, qibla direction stickers, and halal breakfast. HalalBooking.com specializes in this.' },
+  { icon: '🚿', cat: 'Hygiene',       title: 'Wudu & Bathroom Facilities', desc: 'Carry a portable bidet/lota. Airport prayer rooms usually have wudu facilities. In non-Muslim countries, use the disabled toilet for more space.' },
+  { icon: '🗺️', cat: 'Planning',      title: 'Top Muslim-Friendly Destinations', desc: 'Turkey, Malaysia, UAE, Morocco, Indonesia, Jordan, Oman, Bosnia, and Uzbekistan are excellent for Muslim travellers with abundant halal food and mosques.' },
+  { icon: '⚠️', cat: 'Safety',        title: 'Travelling as a Visibly Muslim', desc: 'Research the political climate. Register with your embassy. Keep emergency contacts accessible. Travel in groups when possible in unfamiliar areas.' },
 ];
 
 const DUAS = [
@@ -64,6 +68,9 @@ const DUAS = [
   { arabic: 'اللَّهُمَّ أَنْتَ الصَّاحِبُ فِي السَّفَرِ وَالْخَلِيفَةُ فِي الْأَهْلِ', transliteration: 'Allāhumma antas-ṣāḥibu fis-safar, wal-khalīfatu fil-ahl.', meaning: 'O Allah, be my Companion in travel and Guardian of my family', reference: 'Muslim' },
   { arabic: 'رَبِّ أَنزِلْنِي مُنزَلًا مُّبَارَكًا وَأَنتَ خَيْرُ الْمُنزِلِينَ', transliteration: "Rabbi anzilnī munzalan mubārakan wa anta khayrul munzilīn.", meaning: 'Dua upon arriving at a destination', reference: 'Quran 23:29' },
   { arabic: 'اللَّهُمَّ هَوِّنْ عَلَيْنَا سَفَرَنَا هَٰذَا وَاطْوِ عَنَّا بُعْدَهُ', transliteration: "Allāhumma hawwin 'alaynā safaranā hādhā waṭwi 'annā bu'dah.", meaning: 'O Allah, make this journey easy and shorten its distance', reference: 'Muslim' },
+  { arabic: 'أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ', transliteration: "A'ūdhu bikalimātillāhit-tāmmāti min sharri mā khalaq.", meaning: 'Protection when stopping at a place', reference: 'Muslim' },
+  { arabic: 'اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنْ وَعْثَاءِ السَّفَرِ وَكَآبَةِ الْمَنْظَرِ', transliteration: "Allāhumma innī a'ūdhu bika min wa'thā'is-safar wa ka'ābatil-manẓar.", meaning: 'Protection from hardship of travel and sad sights', reference: 'Muslim' },
+  { arabic: 'آيِبُونَ تَائِبُونَ عَابِدُونَ لِرَبِّنَا حَامِدُونَ', transliteration: "Ā'ibūna tā'ibūna 'ābidūna li-rabbinā ḥāmidūn.", meaning: 'Returning from a journey', reference: 'Bukhari & Muslim' },
 ];
 
 const PRAYER_ICONS: Record<string, string> = { Fajr: '🌅', Sunrise: '🌤️', Dhuhr: '☀️', Asr: '🌥️', Maghrib: '🌇', Isha: '🌙' };
@@ -728,7 +735,7 @@ export default function HalalTravel() {
       <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 60, zIndex: 20, overflowX: 'auto', boxShadow: '0 2px 8px rgba(26,71,49,0.06)' }}>
         <div style={{ maxWidth: 700, margin: '0 auto', display: 'flex', padding: '8px 12px', gap: 6, minWidth: 'max-content' }}>
           {TABS.map(tab => (
-            <button key={tab.id} onClick={() => { setActiveTab(tab.id); setResults([]); setError(''); }}
+            <button key={tab.id} onClick={() => { setActiveTab(tab.id); setResults([]); setError(''); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
               style={{ padding: '8px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', background: activeTab === tab.id ? C.green : 'transparent', color: activeTab === tab.id ? C.white : C.muted, fontSize: 12, fontWeight: activeTab === tab.id ? 700 : 500, fontFamily: 'Georgia, serif', whiteSpace: 'nowrap', transition: 'all 0.2s', boxShadow: activeTab === tab.id ? '0 2px 8px rgba(26,71,49,0.25)' : 'none' }}>
               {tab.icon} {tab.label}
             </button>
