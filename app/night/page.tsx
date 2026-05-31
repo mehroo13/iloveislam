@@ -5,11 +5,10 @@ import Link from "next/link";
 
 // ─── Reciters ─────────────────────────────────────────────────────────────────
 const RECITERS = [
-  { id: "sudais", name: "Sheikh Al-Sudais", arabic: "الشيخ السديس", prefix: "" },
-  // Ready for future reciters - just add audio files like "/audio/mishary/036 Yasin.mp3"
-  // { id: "mishary", name: "Mishary Rashid", arabic: "مشاري راشد", prefix: "mishary/" },
-  // { id: "basit", name: "Abdul Basit", arabic: "عبد الباسط", prefix: "basit/" },
-  // { id: "maher", name: "Maher Al-Muaiqly", arabic: "ماهر المعيقلي", prefix: "maher/" },
+  { id: "sudais", name: "Sheikh Al-Sudais", arabic: "الشيخ السديس", prefix: "", useFullName: true },
+  { id: "mishary", name: "Mishary Rashid Alafasy", arabic: "مشاري راشد العفاسي", prefix: "mishary/", useFullName: false },
+  { id: "maher", name: "Maher Al-Muaiqly", arabic: "ماهر المعيقلي", prefix: "maher/", useFullName: false },
+  { id: "hani", name: "Hani Ar-Rifai", arabic: "هاني الرفاعي", prefix: "hani/", useFullName: false },
 ];
 
 // ─── Surahs ───────────────────────────────────────────────────────────────────
@@ -240,7 +239,13 @@ export default function NightPage() {
   const getAudioUrl = useCallback((surahId: string) => {
     const surah = getSurah(surahId);
     const reciter = RECITERS.find(r => r.id === selectedReciter) ?? RECITERS[0];
-    return `/audio/${reciter.prefix}${surah.file}`;
+    if (reciter.useFullName) {
+      // Original Al-Sudais files use full names like "018 Kahf.mp3"
+      return `/audio/${surah.file}`;
+    }
+    // New reciters use number-only format like "018.mp3"
+    const num = String(surah.number).padStart(3, "0");
+    return `/audio/${reciter.prefix}${num}.mp3`;
   }, [getSurah, selectedReciter]);
 
   // ─── Restore state ────────────────────────────────────────────────────────
@@ -1665,16 +1670,37 @@ export default function NightPage() {
           </div>
         )}
 
-        {/* ── Reciter info ─────────────────────────────────────────────────── */}
+        {/* ── Reciter selector ──────────────────────────────────────────────── */}
         <div style={{
-          marginTop: "1.25rem", padding: "0.75rem 1rem", borderRadius: 14,
-          background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)",
-          textAlign: "center",
+          marginTop: "1.25rem", padding: "0.9rem 1rem", borderRadius: 16,
+          background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
         }}>
-          <p style={{ fontSize: "0.7rem", color: "#3a5a6a", fontFamily: "sans-serif", margin: 0 }}>
-            Reciter: <span style={{ color: "#7abaca" }}>{RECITERS.find(r => r.id === selectedReciter)?.name}</span>
-            {" · "}<span style={{ color: "#4a6a7a" }}>{RECITERS.find(r => r.id === selectedReciter)?.arabic}</span>
+          <p style={{ fontSize: "0.72rem", color: "#4a6a7a", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.6rem", fontFamily: "sans-serif" }}>
+            🎙️ Reciter
           </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }} role="radiogroup" aria-label="Select reciter">
+            {RECITERS.map((r) => (
+              <button
+                key={r.id}
+                role="radio"
+                aria-checked={selectedReciter === r.id}
+                className="control-chip"
+                onClick={() => { setSelectedReciter(r.id); if (isActive) stopPlayback(); }}
+                style={{
+                  padding: "0.6rem 0.75rem", borderRadius: 12, textAlign: "left",
+                  border: `1.5px solid ${selectedReciter === r.id ? "#34d39966" : "rgba(255,255,255,0.08)"}`,
+                  background: selectedReciter === r.id ? "rgba(52,211,153,0.1)" : "rgba(255,255,255,0.02)",
+                  cursor: "pointer",
+                }}>
+                <div style={{ fontSize: "0.78rem", fontWeight: selectedReciter === r.id ? 600 : 400, color: selectedReciter === r.id ? "#34d399" : "#7a9aaa", fontFamily: "sans-serif" }}>
+                  {r.name}
+                </div>
+                <div style={{ fontSize: "0.68rem", color: selectedReciter === r.id ? "#2a7a5a" : "#3a5a6a", marginTop: 2 }}>
+                  {r.arabic}
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Footer */}
