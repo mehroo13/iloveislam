@@ -18,6 +18,7 @@ interface Verse {
   number: number;
   arabic: string;
   translation: string;
+  transliteration?: string;
   audio?: string;
 }
 
@@ -526,10 +527,12 @@ function VerseView({
   isPaused,
   dark,
   showTranslation,
+  showTransliteration,
   lang,
   onPlayAudio,
   onToggleBookmark,
   isBookmarked,
+  onShareVerse,
 }: {
   surah: Surah;
   verses: Verse[];
@@ -538,10 +541,12 @@ function VerseView({
   isPaused: boolean;
   dark: boolean;
   showTranslation: boolean;
+  showTransliteration: boolean;
   lang: 'en' | 'ur';
   onPlayAudio: (v: Verse, continuous: boolean) => void;
   onToggleBookmark: (v: number) => void;
   isBookmarked: (v: number) => boolean;
+  onShareVerse: (v: Verse) => void;
 }) {
   const pageBg = dark ? '#1a1000' : COLORS.mushafPage;
   const pageText = dark ? '#f0e6cc' : COLORS.mushafText;
@@ -580,6 +585,11 @@ function VerseView({
               }}>
                 {playingAudio === v.number && !isPaused ? '⏸️' : '▶️'}
               </button>
+              <button onClick={() => onShareVerse(v)} style={{
+                background: 'none', border: 'none', cursor: 'pointer', fontSize: 16,
+              }} title="Share this verse">
+                📤
+              </button>
               <button onClick={() => onToggleBookmark(v.number)} style={{
                 background: 'none', border: 'none', cursor: 'pointer', fontSize: 16,
                 color: isBookmarked(v.number) ? goldColor : pageText,
@@ -600,6 +610,15 @@ function VerseView({
           }}>
             {v.arabic}
           </p>
+
+          {showTransliteration && v.transliteration && (
+            <p style={{
+              marginTop: 6, color: dark ? '#a0c4ff' : '#1565c0',
+              fontSize: '13px', lineHeight: 1.7, margin: '6px 0 0', fontStyle: 'italic',
+            }}>
+              {v.transliteration}
+            </p>
+          )}
 
           {showTranslation && v.translation && (
             <div style={{
@@ -644,8 +663,56 @@ export default function QuranReader() {
   const [playingAudio, setPlayingAudio] = useState<number | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [continuousAudio, setContinuousAudio] = useState(false);
+  const [browseMode, setBrowseMode] = useState<'surah' | 'juz' | 'search'>('surah');
+  const [reciter, setReciter] = useState<'alafasy' | 'sudais' | 'husary' | 'minshawi'>('alafasy');
+  const [verseSearch, setVerseSearch] = useState('');
+  const [verseSearchResults, setVerseSearchResults] = useState<{ surah: number; surahName: string; verse: number; text: string }[]>([]);
+  const [verseSearchLoading, setVerseSearchLoading] = useState(false);
+  const [showTransliteration, setShowTransliteration] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
+
+  // Reciter audio paths
+  const RECITERS: Record<string, { name: string; folder: string }> = {
+    alafasy: { name: 'Mishary Alafasy', folder: 'ar.alafasy' },
+    sudais: { name: 'Abdurrahman Sudais', folder: 'ar.abdurrahmaansudais' },
+    husary: { name: 'Mahmoud Husary', folder: 'ar.husary' },
+    minshawi: { name: 'Mohamed Minshawi', folder: 'ar.minshawi' },
+  };
+
+  // Juz to Surah mapping (which surahs start in each juz)
+  const JUZ_DATA = [
+    { juz: 1, start: 'Al-Fatihah 1:1', surahs: [1, 2] },
+    { juz: 2, start: 'Al-Baqarah 2:142', surahs: [2] },
+    { juz: 3, start: 'Al-Baqarah 2:253', surahs: [2, 3] },
+    { juz: 4, start: 'Ali Imran 3:93', surahs: [3, 4] },
+    { juz: 5, start: 'An-Nisa 4:24', surahs: [4] },
+    { juz: 6, start: 'An-Nisa 4:148', surahs: [4, 5] },
+    { juz: 7, start: 'Al-Maidah 5:83', surahs: [5, 6] },
+    { juz: 8, start: 'Al-Anam 6:111', surahs: [6, 7] },
+    { juz: 9, start: 'Al-Araf 7:88', surahs: [7, 8] },
+    { juz: 10, start: 'Al-Anfal 8:41', surahs: [8, 9] },
+    { juz: 11, start: 'At-Tawbah 9:93', surahs: [9, 10, 11] },
+    { juz: 12, start: 'Hud 11:6', surahs: [11, 12] },
+    { juz: 13, start: 'Yusuf 12:53', surahs: [12, 13, 14] },
+    { juz: 14, start: 'Al-Hijr 15:1', surahs: [15, 16] },
+    { juz: 15, start: 'Al-Isra 17:1', surahs: [17, 18] },
+    { juz: 16, start: 'Al-Kahf 18:75', surahs: [18, 19, 20] },
+    { juz: 17, start: 'Al-Anbiya 21:1', surahs: [21, 22] },
+    { juz: 18, start: 'Al-Muminun 23:1', surahs: [23, 24, 25] },
+    { juz: 19, start: 'Al-Furqan 25:21', surahs: [25, 26, 27] },
+    { juz: 20, start: 'Al-Qasas 28:1', surahs: [27, 28, 29] },
+    { juz: 21, start: 'Al-Ankabut 29:46', surahs: [29, 30, 31, 32, 33] },
+    { juz: 22, start: 'Al-Ahzab 33:31', surahs: [33, 34, 35, 36] },
+    { juz: 23, start: 'Ya-Sin 36:28', surahs: [36, 37, 38, 39] },
+    { juz: 24, start: 'Az-Zumar 39:32', surahs: [39, 40, 41] },
+    { juz: 25, start: 'Fussilat 41:47', surahs: [41, 42, 43, 44, 45] },
+    { juz: 26, start: 'Al-Ahqaf 46:1', surahs: [46, 47, 48, 49, 50, 51] },
+    { juz: 27, start: 'Adh-Dhariyat 51:31', surahs: [51, 52, 53, 54, 55, 56, 57] },
+    { juz: 28, start: 'Al-Mujadila 58:1', surahs: [58, 59, 60, 61, 62, 63, 64, 65, 66] },
+    { juz: 29, start: 'Al-Mulk 67:1', surahs: [67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77] },
+    { juz: 30, start: 'An-Naba 78:1', surahs: [78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114] },
+  ];
 
   useEffect(() => {
     try {
@@ -695,14 +762,17 @@ export default function QuranReader() {
     try {
       const arabicEdition = 'quran-indopak';
       const translationEdition = lang === 'en' ? 'en.asad' : 'ur.jalandhry';
+      const transliterationEdition = 'en.transliteration';
 
-      const [arabicRes, transRes] = await Promise.all([
+      const [arabicRes, transRes, translitRes] = await Promise.all([
         fetch(`https://api.alquran.cloud/v1/surah/${surah.number}/${arabicEdition}`),
         fetch(`https://api.alquran.cloud/v1/surah/${surah.number}/${translationEdition}`),
+        fetch(`https://api.alquran.cloud/v1/surah/${surah.number}/${transliterationEdition}`),
       ]);
 
       const arabicData = await arabicRes.json();
       const transData = await transRes.json();
+      const translitData = await translitRes.json();
 
       if (arabicData.code === 200 && transData.code === 200) {
         const versesData: Verse[] = arabicData.data.ayahs.map((ayah: any, idx: number) => {
@@ -714,7 +784,8 @@ export default function QuranReader() {
             number: ayah.numberInSurah,
             arabic: arabicText,
             translation: transData.data?.ayahs?.[idx]?.text || '',
-            audio: `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${ayah.number}.mp3`
+            transliteration: translitData.code === 200 ? (translitData.data?.ayahs?.[idx]?.text || '') : '',
+            audio: `https://cdn.islamic.network/quran/audio/128/${RECITERS[reciter].folder}/${ayah.number}.mp3`
           };
         });
         setVerses(versesData);
@@ -795,6 +866,39 @@ export default function QuranReader() {
       setPlayingAudio(null);
       setIsPaused(false);
       setContinuousAudio(false);
+    }
+  };
+
+  // ── Verse Search (across all translations) ──
+  const searchVerses = useCallback(async (query: string) => {
+    if (!query || query.trim().length < 3) { setVerseSearchResults([]); return; }
+    setVerseSearchLoading(true);
+    try {
+      const edition = lang === 'en' ? 'en.asad' : 'ur.jalandhry';
+      const res = await fetch(`https://api.alquran.cloud/v1/search/${encodeURIComponent(query.trim())}/${edition}`);
+      const data = await res.json();
+      if (data.code === 200 && data.data?.matches) {
+        const results = data.data.matches.slice(0, 20).map((m: any) => ({
+          surah: m.surah.number,
+          surahName: m.surah.englishName,
+          verse: m.numberInSurah,
+          text: m.text,
+        }));
+        setVerseSearchResults(results);
+      } else {
+        setVerseSearchResults([]);
+      }
+    } catch { setVerseSearchResults([]); }
+    setVerseSearchLoading(false);
+  }, [lang]);
+
+  // ── Share Verse ──
+  const shareVerse = (verse: Verse, surah: Surah) => {
+    const text = `${verse.arabic}\n\n"${verse.translation}"\n\n— Surah ${surah.name} (${surah.number}:${verse.number})\n\niloveislam.life/quran`;
+    if (navigator.share) {
+      navigator.share({ title: `Quran ${surah.number}:${verse.number}`, text });
+    } else {
+      navigator.clipboard.writeText(text);
     }
   };
 
@@ -899,7 +1003,7 @@ export default function QuranReader() {
             <div style={{ marginTop: 24, position: 'relative', maxWidth: 500, margin: '24px auto 0' }}>
               <input
                 type="text"
-                placeholder="Search Surah by name or number..."
+                placeholder={browseMode === 'surah' ? "Search Surah by name or number..." : "Search Juz..."}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 style={{
@@ -910,6 +1014,40 @@ export default function QuranReader() {
                   fontFamily: 'system-ui, sans-serif',
                 }}
               />
+            </div>
+
+            {/* Browse mode toggle: Surah / Juz / Search */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16 }}>
+              <button onClick={() => setBrowseMode('surah')} style={{
+                padding: '8px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                background: browseMode === 'surah' ? COLORS.mushafGold : (dark ? '#2a1800' : '#fff8e8'),
+                color: browseMode === 'surah' ? '#fff' : textCol,
+                border: `1.5px solid ${browseMode === 'surah' ? COLORS.mushafGold : borderCol}`,
+              }}>📖 Surah</button>
+              <button onClick={() => setBrowseMode('juz')} style={{
+                padding: '8px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                background: browseMode === 'juz' ? COLORS.mushafGold : (dark ? '#2a1800' : '#fff8e8'),
+                color: browseMode === 'juz' ? '#fff' : textCol,
+                border: `1.5px solid ${browseMode === 'juz' ? COLORS.mushafGold : borderCol}`,
+              }}>📚 Juz</button>
+              <button onClick={() => setBrowseMode('search')} style={{
+                padding: '8px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                background: browseMode === 'search' ? COLORS.mushafGold : (dark ? '#2a1800' : '#fff8e8'),
+                color: browseMode === 'search' ? '#fff' : textCol,
+                border: `1.5px solid ${browseMode === 'search' ? COLORS.mushafGold : borderCol}`,
+              }}>🔍 Search Verses</button>
+            </div>
+
+            {/* Reciter selector */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
+              <select value={reciter} onChange={(e) => setReciter(e.target.value as any)} style={{
+                padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                border: `1.5px solid ${borderCol}`, background: cardBg, color: textCol, cursor: 'pointer',
+              }}>
+                {Object.entries(RECITERS).map(([key, val]) => (
+                  <option key={key} value={key}>🎙️ {val.name}</option>
+                ))}
+              </select>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
@@ -947,6 +1085,108 @@ export default function QuranReader() {
           </header>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+            {browseMode === 'search' ? (
+              // VERSE SEARCH VIEW
+              <div style={{ gridColumn: '1 / -1' }}>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                  <input
+                    type="text"
+                    placeholder="Search verses (e.g. patience, mercy, forgiveness)..."
+                    value={verseSearch}
+                    onChange={(e) => setVerseSearch(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && searchVerses(verseSearch)}
+                    style={{
+                      flex: 1, padding: '12px 18px', borderRadius: 8,
+                      border: `1.5px solid ${borderCol}`, fontSize: 14, outline: 'none',
+                      background: cardBg, color: textCol,
+                    }}
+                  />
+                  <button onClick={() => searchVerses(verseSearch)} style={{
+                    padding: '12px 20px', borderRadius: 8, background: COLORS.mushafGold,
+                    color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13,
+                  }}>
+                    {verseSearchLoading ? '...' : '🔍'}
+                  </button>
+                </div>
+                {verseSearchResults.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <p style={{ fontSize: 12, color: dark ? '#c8a96e' : '#888', margin: 0 }}>
+                      {verseSearchResults.length} result{verseSearchResults.length > 1 ? 's' : ''} found
+                    </p>
+                    {verseSearchResults.map((r, i) => (
+                      <div key={i} onClick={() => { const s = SURAHS[r.surah - 1]; if (s) loadSurah(s, r.verse); }}
+                        style={{
+                          background: cardBg, padding: '14px 16px', borderRadius: 8,
+                          border: `1px solid ${borderCol}`, cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = COLORS.mushafGold; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = borderCol; }}
+                      >
+                        <p style={{ fontSize: 11, color: dark ? '#c8a96e' : COLORS.mushafGold, margin: '0 0 4px', fontWeight: 700 }}>
+                          {r.surahName} ({r.surah}:{r.verse})
+                        </p>
+                        <p style={{ fontSize: 13, color: textCol, margin: 0, lineHeight: 1.6 }}>
+                          {r.text.length > 200 ? r.text.substring(0, 200) + '...' : r.text}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {verseSearchResults.length === 0 && verseSearch.trim().length >= 3 && !verseSearchLoading && (
+                  <p style={{ textAlign: 'center', color: dark ? '#666' : '#999', fontSize: 13, padding: '20px 0' }}>
+                    No verses found. Try a different keyword.
+                  </p>
+                )}
+                {verseSearch.trim().length < 3 && (
+                  <p style={{ textAlign: 'center', color: dark ? '#666' : '#999', fontSize: 13, padding: '20px 0' }}>
+                    Type at least 3 characters and press Enter or 🔍 to search across all verses.
+                  </p>
+                )}
+              </div>
+            ) : browseMode === 'juz' ? (
+              // JUZ VIEW
+              <>
+                {JUZ_DATA.filter(j => !search.trim() || j.juz.toString().includes(search) || j.start.toLowerCase().includes(search.toLowerCase())).map(j => (
+                  <div
+                    key={j.juz}
+                    onClick={() => { const firstSurah = SURAHS[j.surahs[0] - 1]; if (firstSurah) loadSurah(firstSurah); }}
+                    style={{
+                      background: cardBg, padding: '14px 16px', borderRadius: 8,
+                      border: `1px solid ${borderCol}`, cursor: 'pointer',
+                      transition: 'all 0.2s ease', display: 'flex', alignItems: 'center',
+                      gap: 14, boxShadow: '0 2px 6px rgba(139,105,20,0.06)',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = COLORS.mushafGold; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = borderCol; }}
+                  >
+                    <div style={{
+                      width: 40, height: 40, borderRadius: '50%',
+                      border: `2px solid ${dark ? '#8B6914' : COLORS.mushafGold}`,
+                      background: dark ? '#2a1800' : '#fff8e8',
+                      color: dark ? '#d4a843' : COLORS.mushafBorder,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontWeight: 800, fontSize: 14, flexShrink: 0,
+                    }}>
+                      {j.juz}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: textCol }}>Juz {j.juz}</h3>
+                      <p style={{ margin: '2px 0 0', fontSize: 11, color: dark ? '#c8a96e' : COLORS.mushafGold }}>
+                        Starts: {j.start}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <p style={{ margin: 0, fontSize: 11, color: dark ? '#8B6914' : '#a08030' }}>
+                        {j.surahs.length} surah{j.surahs.length > 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </>
+            ) : (
+              // SURAH VIEW (existing)
+              <>
             {filtered.map(s => (
               <div
                 key={s.number}
@@ -998,6 +1238,8 @@ export default function QuranReader() {
                 </div>
               </div>
             ))}
+              </>
+            )}
           </div>
         </div>
 
@@ -1082,6 +1324,20 @@ export default function QuranReader() {
                 </button>
               )}
 
+              {/* Transliteration toggle */}
+              <button
+                onClick={() => setShowTransliteration(!showTransliteration)}
+                style={{
+                  padding: '4px 9px', borderRadius: 5,
+                  border: `1px solid ${dark ? '#8B6914' : COLORS.mushafBorder}`,
+                  background: showTransliteration ? '#6366f1' : (dark ? '#2a1800' : '#fff8e8'),
+                  color: showTransliteration ? '#fff' : (dark ? '#f0e6cc' : COLORS.mushafText),
+                  fontWeight: 700, fontSize: 11, cursor: 'pointer',
+                }}
+              >
+                {showTransliteration ? 'Hide Translit.' : 'Transliteration'}
+              </button>
+
               <button
                 onClick={() => setLang(lang === 'en' ? 'ur' : 'en')}
                 style={{
@@ -1155,10 +1411,12 @@ export default function QuranReader() {
                   isPaused={isPaused}
                   dark={dark}
                   showTranslation={showTranslation}
+                  showTransliteration={showTransliteration}
                   lang={lang}
                   onPlayAudio={playAudio}
                   onToggleBookmark={(v) => toggleBookmark(selectedSurah, v)}
                   isBookmarked={(v) => isBookmarked(selectedSurah.number, v)}
+                  onShareVerse={(v) => shareVerse(v, selectedSurah)}
                 />
               )}
 
