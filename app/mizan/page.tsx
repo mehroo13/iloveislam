@@ -643,7 +643,7 @@ export default function Mizan() {
 
             <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 22, padding: 24 }}>
               <div style={{ marginBottom: 18 }}>
-                <label style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Your Name (optional)</label>
+                <label style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Your Full Name</label>
                 <input type="text" value={name} onChange={e => setName(e.target.value)}
                   placeholder="e.g. Ahmed, Fatima, Muhammad..."
                   style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '12px 16px', color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
@@ -993,9 +993,18 @@ export default function Mizan() {
             )}
 
             <ShariaDisclaimer color={arch.color} />
-            <button onClick={clearAllData} style={{ marginTop: 20, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '6px 16px', color: 'rgba(255,255,255,0.3)', fontSize: 11, cursor: 'pointer', display: 'block', margin: '20px auto 0' }}>
-              🗑 Clear My Data
-            </button>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 20, flexWrap: 'wrap' }}>
+              <button onClick={() => {
+                const text = `🌟 My Islamic Archetype: ${arch.title} (${arch.arabic})\n\n"${arch.purpose}"\n\n🔮 Divine Name: ${arch.divineName} (${arch.divineArabic})\n📿 Dhikr: ${arch.dhikr}\n\nDiscover yours free at iloveislam.life/mizan`;
+                if (navigator.share) navigator.share({ title: `Mizan: ${arch.title}`, text });
+                else navigator.clipboard?.writeText(text);
+              }} style={{ background: `linear-gradient(135deg, ${arch.color}, #a07840)`, color: '#0a0800', border: 'none', borderRadius: 30, padding: '10px 24px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                📤 Share My Archetype
+              </button>
+              <button onClick={clearAllData} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 30, padding: '10px 20px', color: 'rgba(255,255,255,0.3)', fontSize: 12, cursor: 'pointer' }}>
+                🗑 Clear Data
+              </button>
+            </div>
             <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.08)', fontSize: 11, marginTop: 20 }}>
               Mizan is for self-reflection only. All guidance should be sought from Allah ﷻ and qualified Islamic scholars.
             </p>
