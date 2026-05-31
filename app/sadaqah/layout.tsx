@@ -89,6 +89,32 @@ export default function SadaqahTrackerLayout({ children }: { children: React.Rea
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       {children}
+      <section className="max-w-3xl mx-auto px-4 py-10 pb-16 space-y-6">
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">The Virtue of Sadaqah in Islam</h2>
+          <p className="text-gray-600 text-sm leading-relaxed mb-3">
+            Sadaqah (voluntary charity) is one of the most beloved deeds to Allah and one of the most effective ways to purify wealth, earn reward, and help those in need. Unlike Zakat which is obligatory, Sadaqah is voluntary and can be given in any amount, at any time, to anyone in need. The Prophet Muhammad (peace be upon him) said: &quot;Charity does not decrease wealth&quot; (Muslim) and &quot;Give charity without delay, for it stands in the way of calamity&quot; (Tirmidhi).
+          </p>
+          <p className="text-gray-600 text-sm leading-relaxed mb-3">
+            Sadaqah is not limited to monetary donations. The Prophet (peace be upon him) taught that every good deed is charity — a smile, removing harm from the road, speaking a kind word, helping someone in need, and even a morsel of food placed in your spouse&apos;s mouth are all forms of Sadaqah. However, financial charity holds special significance as it directly alleviates poverty and suffering.
+          </p>
+          <p className="text-gray-600 text-sm leading-relaxed">
+            Our Sadaqah Tracker helps you maintain a consistent habit of giving by logging every donation, tracking daily streaks, categorizing your charity, and inspiring you with Quranic verses about the rewards of generosity. All data is stored privately in your browser.
+          </p>
+        </div>
+
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6">
+          <h3 className="text-lg font-bold text-emerald-800 mb-3">Types of Sadaqah You Can Track</h3>
+          <ul className="space-y-2 text-sm text-emerald-700 leading-relaxed">
+            <li>• <strong>Monetary donations</strong> to the poor, orphans, or Islamic causes</li>
+            <li>• <strong>Sadaqah Jariyah</strong> (ongoing charity) like building wells, sponsoring education, or planting trees</li>
+            <li>• <strong>Food donations</strong> to food banks, neighbours, or the homeless</li>
+            <li>• <strong>Clothing and goods</strong> given to those in need</li>
+            <li>• <strong>Time and skills</strong> volunteered for community service</li>
+            <li>• <strong>Knowledge sharing</strong> — teaching others beneficial knowledge</li>
+          </ul>
+        </div>
+      </section>
     </>
   );
 }

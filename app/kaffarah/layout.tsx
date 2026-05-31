@@ -89,6 +89,27 @@ export default function KaffarahCalculatorLayout({ children }: { children: React
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       {children}
+      <section className="max-w-3xl mx-auto px-4 py-10 pb-16 space-y-6">
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Understanding Kaffarah in Islamic Law</h2>
+          <p className="text-gray-600 text-sm leading-relaxed mb-3">
+            Kaffarah (expiation) is a mandatory act of atonement prescribed in Islamic law for certain sins and violations. It serves as both a means of seeking Allah&apos;s forgiveness and a practical way to benefit the community through feeding or clothing the poor. The concept of Kaffarah demonstrates Islam&apos;s balanced approach to sin — acknowledging human weakness while providing a clear path to redemption through specific acts of worship and charity.
+          </p>
+          <p className="text-gray-600 text-sm leading-relaxed mb-3">
+            There are four main types of Kaffarah in Islamic jurisprudence: expiation for broken oaths (Quran 5:89), Zihar (a pre-Islamic form of divorce, Quran 58:3-4), accidental killing (Quran 4:92), and intentionally breaking a Ramadan fast without valid excuse. Each type has specific requirements that typically involve freeing a slave (no longer applicable), fasting for a specified number of consecutive days, or feeding/clothing a set number of poor people.
+          </p>
+          <p className="text-gray-600 text-sm leading-relaxed">
+            Our Kaffarah Calculator helps you determine the exact requirement for your situation, including the monetary equivalent based on local meal and clothing costs. You can customize the per-unit costs to match prices in your area and calculate for multiple occurrences.
+          </p>
+        </div>
+
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
+          <h3 className="text-lg font-bold text-amber-800 mb-3">Important Reminder</h3>
+          <p className="text-amber-700 text-sm leading-relaxed">
+            Kaffarah is a serious religious obligation. This calculator provides general guidance based on majority scholarly positions, but your specific situation may have nuances that require scholarly consultation. If you are unsure whether Kaffarah applies to your situation, or which type is required, please consult a qualified Islamic scholar (mufti) who can assess your individual circumstances.
+          </p>
+        </div>
+      </section>
     </>
   );
 }

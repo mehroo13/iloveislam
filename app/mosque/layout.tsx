@@ -89,6 +89,30 @@ export default function MosqueFinderLayout({ children }: { children: React.React
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       {children}
+      <section className="max-w-3xl mx-auto px-4 py-10 pb-16 space-y-6">
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Finding Your Nearest Mosque</h2>
+          <p className="text-gray-600 text-sm leading-relaxed mb-3">
+            The mosque (masjid) holds a central place in Muslim community life. It is not merely a place of prayer but a hub for education, social connection, community support, and spiritual growth. The Prophet Muhammad (peace be upon him) said: &quot;The most beloved places to Allah are the mosques&quot; (Muslim). Praying in congregation at the mosque carries 27 times more reward than praying alone (Bukhari and Muslim).
+          </p>
+          <p className="text-gray-600 text-sm leading-relaxed mb-3">
+            Our Mosque Finder tool helps you locate mosques near your current location or in any city worldwide. Using OpenStreetMap data, it identifies nearby masjids and displays their distance, direction, and — uniquely — live prayer times calculated for each mosque&apos;s exact coordinates. This is especially useful when travelling or when you have moved to a new area.
+          </p>
+          <p className="text-gray-600 text-sm leading-relaxed">
+            Simply allow GPS access or search for a city, and the tool will show you all nearby mosques sorted by distance. Tap on any mosque to see its full prayer timetable for today, and use the directions button to navigate there using your preferred maps application.
+          </p>
+        </div>
+
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6">
+          <h3 className="text-lg font-bold text-emerald-800 mb-3">The Importance of Congregational Prayer</h3>
+          <p className="text-emerald-700 text-sm leading-relaxed mb-3">
+            Islam places great emphasis on praying in congregation (jama&apos;ah) at the mosque. The Prophet (peace be upon him) said: &quot;Prayer in congregation is twenty-seven times superior to prayer offered individually&quot; (Bukhari). For men, attending the mosque for the five daily prayers is strongly encouraged (and considered obligatory by some scholars), while for women it is optional but rewarded.
+          </p>
+          <p className="text-emerald-700 text-sm leading-relaxed">
+            Beyond the spiritual reward, regular mosque attendance builds community bonds, provides access to Islamic education, and creates a support network. Many mosques also offer Quran classes, youth programs, marriage services, funeral arrangements, and charitable activities. Finding and connecting with your local mosque is one of the most important steps in maintaining an active Islamic life.
+          </p>
+        </div>
+      </section>
     </>
   );
 }

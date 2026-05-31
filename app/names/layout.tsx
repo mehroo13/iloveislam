@@ -89,6 +89,42 @@ export default function NamesOfAllahLayout({ children }: { children: React.React
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       {children}
+      <section className="max-w-3xl mx-auto px-4 py-10 pb-16 space-y-6">
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">The 99 Names of Allah (Asma ul Husna)</h2>
+          <p className="text-gray-600 text-sm leading-relaxed mb-3">
+            The 99 Names of Allah, known as Asma ul Husna (the Most Beautiful Names), are the divine attributes and qualities of Allah mentioned throughout the Quran and authentic hadith. Each name reveals a different aspect of Allah&apos;s nature — His mercy, power, knowledge, justice, generosity, and love. Allah says: &quot;And to Allah belong the most beautiful names, so invoke Him by them&quot; (Quran 7:180).
+          </p>
+          <p className="text-gray-600 text-sm leading-relaxed mb-3">
+            The Prophet Muhammad (peace be upon him) said: &quot;Allah has ninety-nine names — one hundred minus one — and whoever memorizes them (ahsaha) will enter Paradise&quot; (Bukhari and Muslim). Scholars explain that &quot;ahsaha&quot; means more than mere memorization — it includes understanding their meanings, believing in them, acting upon them, and calling upon Allah by them in supplication.
+          </p>
+          <p className="text-gray-600 text-sm leading-relaxed">
+            Our tool presents all 99 names with their Arabic calligraphy, transliteration, English meaning, and a brief explanation of each name&apos;s significance. You can also explore the blessed names and titles of Prophet Muhammad (peace be upon him), learning about the qualities that earned him each title.
+          </p>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+          <h3 className="text-lg font-bold text-gray-800 mb-3">Categories of Divine Names</h3>
+          <div className="space-y-3 text-sm text-gray-600 leading-relaxed">
+            <p><strong className="text-gray-800">Names of Mercy and Compassion:</strong> Ar-Rahman (The Most Gracious), Ar-Raheem (The Most Merciful), Al-Ghaffar (The Repeatedly Forgiving), Al-Wadud (The Most Loving), Al-Latif (The Subtle/Kind). These names remind us of Allah&apos;s infinite mercy that encompasses all creation.</p>
+            <p><strong className="text-gray-800">Names of Power and Majesty:</strong> Al-Aziz (The Almighty), Al-Jabbar (The Compeller), Al-Qahhar (The Subduer), Al-Qadir (The All-Powerful). These names inspire awe and remind us of Allah&apos;s absolute sovereignty over all things.</p>
+            <p><strong className="text-gray-800">Names of Knowledge and Wisdom:</strong> Al-Alim (The All-Knowing), Al-Hakeem (The All-Wise), Al-Khabir (The All-Aware), As-Sami (The All-Hearing), Al-Basir (The All-Seeing). Nothing escapes Allah&apos;s knowledge.</p>
+            <p><strong className="text-gray-800">Names of Provision and Generosity:</strong> Ar-Razzaq (The Provider), Al-Wahhab (The Bestower), Al-Karim (The Most Generous), Al-Mughni (The Enricher). Allah provides for all creation without limit.</p>
+          </div>
+        </div>
+
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6">
+          <h3 className="text-lg font-bold text-emerald-800 mb-3">Benefits of Learning Allah&apos;s Names</h3>
+          <ul className="space-y-2 text-sm text-emerald-700 leading-relaxed">
+            <li>• Deepens your relationship with Allah by understanding His attributes</li>
+            <li>• Enhances your dua by calling upon Allah with the most appropriate name for your need</li>
+            <li>• Increases faith (iman) and consciousness of Allah (taqwa) in daily life</li>
+            <li>• Provides comfort during hardship by remembering Allah&apos;s mercy and wisdom</li>
+            <li>• The Prophet promised Paradise for those who truly learn and internalize these names</li>
+            <li>• Helps develop good character by striving to embody divine qualities like mercy and patience</li>
+          </ul>
+        </div>
+      </section>
     </>
   );
 }

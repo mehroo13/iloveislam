@@ -89,6 +89,41 @@ export default function QuranReaderLayout({ children }: { children: React.ReactN
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       {children}
+      <section className="max-w-3xl mx-auto px-4 py-10 pb-16 space-y-6">
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Read the Holy Quran Online — Free Quran Reader</h2>
+          <p className="text-gray-600 text-sm leading-relaxed mb-3">
+            The Holy Quran is the final revelation from Allah to humanity, revealed to Prophet Muhammad (peace be upon him) over a period of 23 years through the Angel Jibreel (Gabriel). It is the primary source of guidance for over 1.8 billion Muslims worldwide, containing 114 surahs (chapters) and over 6,200 verses covering all aspects of faith, worship, morality, law, and human conduct. Allah describes it as: &quot;A guidance for mankind and clear proofs of guidance and the criterion between right and wrong&quot; (Quran 2:185).
+          </p>
+          <p className="text-gray-600 text-sm leading-relaxed mb-3">
+            Our Quran Reader provides a beautiful, distraction-free reading experience with the complete Arabic text alongside translations in English and Urdu. You can browse by surah, search for specific verses, listen to professional recitations, and bookmark your favourite ayahs for easy reference. The tool remembers your last reading position so you can continue where you left off.
+          </p>
+          <p className="text-gray-600 text-sm leading-relaxed">
+            Whether you are reading your daily portion (wird), studying a specific topic, memorizing verses, or simply seeking spiritual comfort, our Quran Reader is designed to make your interaction with the Book of Allah as smooth and meaningful as possible. The interface works beautifully on all devices, from large desktop screens to mobile phones.
+          </p>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+          <h3 className="text-lg font-bold text-gray-800 mb-3">Features of Our Quran Reader</h3>
+          <div className="space-y-3 text-sm text-gray-600 leading-relaxed">
+            <p><strong className="text-gray-800">Complete Arabic Text:</strong> The full Quran in clear, readable Arabic script with proper tajweed markings. Choose between Indo-Pak Mushaf style or verse-by-verse display.</p>
+            <p><strong className="text-gray-800">Multiple Translations:</strong> Toggle between English and Urdu translations displayed alongside the Arabic text. Translations are sourced from respected scholars.</p>
+            <p><strong className="text-gray-800">Audio Recitation:</strong> Listen to beautiful recitations by renowned Qaris. Tap any verse to hear it recited, or enable continuous playback for the entire surah.</p>
+            <p><strong className="text-gray-800">Bookmarks and Progress:</strong> Double-tap any verse to bookmark it. Your reading position and bookmarks are saved locally in your browser for easy access.</p>
+            <p><strong className="text-gray-800">Search Functionality:</strong> Search for specific words or phrases across the entire Quran to find relevant verses on any topic.</p>
+          </div>
+        </div>
+
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6">
+          <h3 className="text-lg font-bold text-emerald-800 mb-3">The Virtues of Reading Quran</h3>
+          <p className="text-emerald-700 text-sm leading-relaxed mb-3">
+            The Prophet Muhammad (peace be upon him) said: &quot;Read the Quran, for it will come as an intercessor for its companions on the Day of Resurrection&quot; (Muslim). He also said: &quot;The one who is proficient in the recitation of the Quran will be with the honourable and obedient scribes (angels), and the one who recites the Quran and finds it difficult, stumbling through its verses, will have a double reward&quot; (Bukhari and Muslim).
+          </p>
+          <p className="text-emerald-700 text-sm leading-relaxed">
+            Every letter of the Quran you read earns you reward (hasanah), and each hasanah is multiplied by ten. Reading even a small portion daily builds a powerful spiritual habit that brings peace, guidance, and barakah (blessing) into your life. We encourage you to establish a daily reading routine, even if it is just a few verses.
+          </p>
+        </div>
+      </section>
     </>
   );
 }
