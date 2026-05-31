@@ -311,6 +311,7 @@ const TOOLS_DATA = (t: TranslationsType) => [
       { name: 'Qibla Finder', desc: 'Find Mecca direction', icon: '🧭', href: '/qibla', color: 'bg-amber-100 text-amber-700' },
       { name: 'Hijri Calendar', desc: 'Islamic date converter', icon: '🌙', href: '/hijri', color: 'bg-purple-100 text-purple-700' },
       { name: 'Quran Reader', desc: 'Read with translation', icon: '📖', href: '/quran', color: 'bg-green-100 text-green-700' },
+      { name: 'Night Recitation', desc: 'Sleep with Quran', icon: '🌙', href: '/night', color: 'bg-indigo-100 text-indigo-700' },
       { name: 'Dhikr Counter', desc: 'Digital tasbih', icon: '📿', href: '/dhikr', color: 'bg-teal-100 text-teal-700' },
     ],
   },
@@ -322,7 +323,6 @@ const TOOLS_DATA = (t: TranslationsType) => [
       { name: 'Ramadan Planner', desc: 'Suhoor & iftar tracker', icon: '🌙', href: '/ramadan', color: 'bg-indigo-100 text-indigo-700' },
       { name: 'Hadith Search', desc: 'Search hadith books', icon: '🔍', href: '/hadith', color: 'bg-cyan-100 text-cyan-700' },
       { name: 'Mizan Blueprint', desc: 'Islamic life purpose', icon: '✦', href: '/mizan', color: 'bg-amber-100 text-amber-700' },
-      { name: 'Night Recitation', desc: 'Sleep with Quran recitation', icon: '🌙', href: '/night', color: 'bg-blue-100 text-blue-700' },
     ],
   },
   {

@@ -149,6 +149,7 @@ export default function NightPage() {
   const [selectedReciter, setSelectedReciter] = useState("sudais");
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showSpeedControl, setShowSpeedControl] = useState(false);
+  const [showReciterPanel, setShowReciterPanel] = useState(false);
 
   // ── Single mode
   const [selectedSurahId, setSelectedSurahId] = useState<string>("mulk");
@@ -1055,6 +1056,71 @@ export default function NightPage() {
           </div>
         </div>
 
+        {/* ── Reciter Selector (collapsible, above mode toggle) ─────────── */}
+        <div style={{
+          marginBottom: "1rem", borderRadius: 16,
+          background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+          overflow: "hidden",
+        }}>
+          <button
+            onClick={() => setShowReciterPanel(!showReciterPanel)}
+            aria-expanded={showReciterPanel}
+            aria-label="Select reciter"
+            style={{
+              width: "100%", padding: "0.75rem 1rem",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              background: "none", border: "none", cursor: "pointer",
+            }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+              <span style={{ fontSize: "1.1rem" }}>🎙️</span>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#34d399", fontFamily: "sans-serif" }}>
+                  {RECITERS.find(r => r.id === selectedReciter)?.name}
+                </div>
+                <div style={{ fontSize: "0.68rem", color: "#4a7a6a", marginTop: 1 }}>
+                  {RECITERS.find(r => r.id === selectedReciter)?.arabic}
+                </div>
+              </div>
+            </div>
+            <div style={{
+              display: "flex", alignItems: "center", gap: "0.4rem",
+              color: "#4a6a7a", fontFamily: "sans-serif", fontSize: "0.7rem",
+            }}>
+              <span>Change</span>
+              <span style={{ fontSize: "0.6rem", transition: "transform 0.2s", transform: showReciterPanel ? "rotate(180deg)" : "rotate(0)" }}>▼</span>
+            </div>
+          </button>
+          {showReciterPanel && (
+            <div style={{
+              padding: "0 1rem 0.85rem", animation: "slide-up 0.2s ease",
+            }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }} role="radiogroup" aria-label="Select reciter">
+                {RECITERS.map((r) => (
+                  <button
+                    key={r.id}
+                    role="radio"
+                    aria-checked={selectedReciter === r.id}
+                    className="control-chip"
+                    onClick={() => { setSelectedReciter(r.id); setShowReciterPanel(false); if (isActive) stopPlayback(); }}
+                    style={{
+                      padding: "0.6rem 0.75rem", borderRadius: 12, textAlign: "left",
+                      border: `1.5px solid ${selectedReciter === r.id ? "#34d39966" : "rgba(255,255,255,0.08)"}`,
+                      background: selectedReciter === r.id ? "rgba(52,211,153,0.1)" : "rgba(255,255,255,0.02)",
+                      cursor: "pointer",
+                    }}>
+                    <div style={{ fontSize: "0.78rem", fontWeight: selectedReciter === r.id ? 600 : 400, color: selectedReciter === r.id ? "#34d399" : "#7a9aaa", fontFamily: "sans-serif" }}>
+                      {r.name}
+                    </div>
+                    <div style={{ fontSize: "0.68rem", color: selectedReciter === r.id ? "#2a7a5a" : "#3a5a6a", marginTop: 2 }}>
+                      {r.arabic}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* ── Mode Toggle ──────────────────────────────────────────────────── */}
         <div style={{
           display: "flex", background: "rgba(255,255,255,0.04)", borderRadius: 50,
@@ -1670,38 +1736,7 @@ export default function NightPage() {
           </div>
         )}
 
-        {/* ── Reciter selector ──────────────────────────────────────────────── */}
-        <div style={{
-          marginTop: "1.25rem", padding: "0.9rem 1rem", borderRadius: 16,
-          background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
-        }}>
-          <p style={{ fontSize: "0.72rem", color: "#4a6a7a", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.6rem", fontFamily: "sans-serif" }}>
-            🎙️ Reciter
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }} role="radiogroup" aria-label="Select reciter">
-            {RECITERS.map((r) => (
-              <button
-                key={r.id}
-                role="radio"
-                aria-checked={selectedReciter === r.id}
-                className="control-chip"
-                onClick={() => { setSelectedReciter(r.id); if (isActive) stopPlayback(); }}
-                style={{
-                  padding: "0.6rem 0.75rem", borderRadius: 12, textAlign: "left",
-                  border: `1.5px solid ${selectedReciter === r.id ? "#34d39966" : "rgba(255,255,255,0.08)"}`,
-                  background: selectedReciter === r.id ? "rgba(52,211,153,0.1)" : "rgba(255,255,255,0.02)",
-                  cursor: "pointer",
-                }}>
-                <div style={{ fontSize: "0.78rem", fontWeight: selectedReciter === r.id ? 600 : 400, color: selectedReciter === r.id ? "#34d399" : "#7a9aaa", fontFamily: "sans-serif" }}>
-                  {r.name}
-                </div>
-                <div style={{ fontSize: "0.68rem", color: selectedReciter === r.id ? "#2a7a5a" : "#3a5a6a", marginTop: 2 }}>
-                  {r.arabic}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Reciter selector moved above mode toggle */}
 
         {/* Footer */}
         <div style={{ textAlign: "center", marginTop: "1.5rem" }}>
