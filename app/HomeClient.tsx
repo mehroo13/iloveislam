@@ -537,19 +537,73 @@ function ToolCard({ tool }: { tool: Tool }) {
     <Link
       href={tool.href}
       onClick={handleClick}
-      className="group bg-white dark:bg-gray-800 rounded-xl p-2 sm:p-3 border border-gray-100 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col items-center text-center active:scale-95 relative"
+      className="group bg-white dark:bg-gray-800 rounded-xl p-2 sm:p-3 border border-gray-100 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col items-center text-center active:scale-[0.92] active:shadow-inner relative"
     >
       {tool.href === '/halal-scanner' && (
         <span className="absolute -top-1.5 -right-1.5 bg-emerald-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full leading-none z-10">
           NEW
         </span>
       )}
-      <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-lg sm:text-xl mb-1.5 sm:mb-2 transition-transform duration-200 group-hover:scale-110 ${tool.color}`}>
+      <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-lg sm:text-xl mb-1 sm:mb-2 transition-transform duration-200 group-hover:scale-110 group-active:scale-95 ${tool.color}`}>
         {tool.icon}
       </div>
-      <p className="text-[11px] sm:text-xs font-semibold text-gray-800 dark:text-gray-200 leading-tight mb-0.5 line-clamp-1">{tool.name}</p>
-      <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 leading-tight line-clamp-2 hidden xs:block">{tool.desc}</p>
+      <p className="text-[10px] sm:text-xs font-semibold text-gray-800 dark:text-gray-200 leading-tight mb-0.5 line-clamp-1">{tool.name}</p>
+      <p className="text-[9px] sm:text-[11px] text-gray-400 dark:text-gray-500 leading-tight line-clamp-1 sm:line-clamp-2">{tool.desc}</p>
     </Link>
+  );
+}
+
+// ==================== RECENTLY USED ====================
+function RecentlyUsed({ onToolClick }: { onToolClick: (name: string) => void }) {
+  const [recentTools, setRecentTools] = useState<{ name: string; icon: string; href: string; color: string }[]>([]);
+
+  useEffect(() => {
+    try {
+      const clicks = JSON.parse(localStorage.getItem(TOOL_CLICKS_KEY) || '{}');
+      if (Object.keys(clicks).length === 0) return;
+
+      // Get all tools flat
+      const allTools = ALL_FEATURED_TOOLS.map(t => ({ name: t.title.split(' — ')[0].split(' ')[0] === 'HalalScan' ? 'HalalScan' : t.title, icon: t.icon, href: t.href, color: '' }));
+      // Map from TOOLS_DATA for colors
+      const dummyT = TRANSLATIONS['en'];
+      const toolSections = TOOLS_DATA(dummyT);
+      const flatTools = toolSections.flatMap(s => s.items);
+
+      // Sort by click count, take top 4
+      const sorted = Object.entries(clicks)
+        .sort(([, a], [, b]) => (b as number) - (a as number))
+        .slice(0, 4);
+
+      const recent = sorted
+        .map(([name]) => flatTools.find(t => t.name === name || name.includes(t.name)))
+        .filter(Boolean) as typeof flatTools;
+
+      if (recent.length > 0) setRecentTools(recent);
+    } catch {}
+  }, []);
+
+  if (recentTools.length === 0) return null;
+
+  return (
+    <div className="mb-3 sm:mb-4">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-xs">⚡</span>
+        <p className="text-[10px] font-bold tracking-[0.14em] uppercase text-gray-400 dark:text-gray-500">Quick Access</p>
+      </div>
+      <div className="flex gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+        {recentTools.map(tool => (
+          <Link
+            key={tool.href}
+            href={tool.href}
+            onClick={() => { onToolClick(tool.name); ScrollManager.save(); }}
+            className="flex-shrink-0 flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl px-3 py-2 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-md transition-all active:scale-95"
+          >
+            <span className="text-base">{tool.icon}</span>
+            <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{tool.name}</span>
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -671,7 +725,7 @@ export default function HomeClient() {
             <div className="absolute bottom-4 left-10 text-white/[0.03] text-5xl select-none">✦</div>
           </div>
 
-          <div className="relative z-10 px-3 sm:px-4 pt-2.5 sm:pt-3 pb-5 sm:pb-8 max-w-6xl mx-auto">
+          <div className="relative z-10 px-3 sm:px-4 pt-2.5 sm:pt-3 pb-3 sm:pb-8 max-w-6xl mx-auto">
             {/* Top nav row */}
             <div className="flex items-center justify-between mb-3 sm:mb-6" dir="ltr">
               <div className="flex items-center gap-0.5 sm:gap-1">
@@ -716,11 +770,11 @@ export default function HomeClient() {
 
             {/* Hero */}
             <div className="text-center">
-              <h1 className="inline-block text-4xl sm:text-5xl md:text-6xl mb-1 hover:opacity-80 transition-opacity cursor-pointer tracking-tight" style={{ color: '#c8a96e', fontFamily: 'serif' }}>
+              <h1 className="inline-block text-3xl sm:text-5xl md:text-6xl mb-0.5 sm:mb-1 hover:opacity-80 transition-opacity cursor-pointer tracking-tight" style={{ color: '#c8a96e', fontFamily: 'serif' }}>
                 <Link href="/" aria-label="I Love Islam — Home">♡ I Love Islam</Link>
               </h1>
-              <p className="text-white/55 text-[12px] sm:text-xs mb-2 sm:mb-4 tracking-wide">{t.tagline}</p>
-              <LiveBar />
+              <p className="text-white/55 text-[11px] sm:text-xs mb-1.5 sm:mb-4 tracking-wide">{t.tagline}</p>
+              <div className="hidden sm:block"><LiveBar /></div>
 
               {/* Search bar */}
               <div className="max-w-md mx-auto">
@@ -760,12 +814,19 @@ export default function HomeClient() {
             {/* LEFT COLUMN — Main content */}
             <div className="flex-1 min-w-0">
 
-              {/* DailyStrip — tabbed Featured Tool + Verse/Hadith */}
+              {/* Recently Used — quick access for returning users */}
               {!isSearching && activeTab === 'all' && (
-                <DailyStrip
-                  allTools={ALL_FEATURED_TOOLS}
-                  onToolClick={(title: string) => { trackToolClick(title); ScrollManager.save(); }}
-                />
+                <RecentlyUsed onToolClick={trackToolClick} />
+              )}
+
+              {/* DailyStrip — hidden on mobile, shown on sm+ above grid */}
+              {!isSearching && activeTab === 'all' && (
+                <div className="hidden sm:block">
+                  <DailyStrip
+                    allTools={ALL_FEATURED_TOOLS}
+                    onToolClick={(title: string) => { trackToolClick(title); ScrollManager.save(); }}
+                  />
+                </div>
               )}
 
               {/* Category tabs */}
@@ -773,11 +834,11 @@ export default function HomeClient() {
                 <CategoryTabs categories={categoryList} activeTab={activeTab} onSelect={setActiveTab} />
               )}
 
-              {/* Tools grid */}
+              {/* Tools grid — 3 cols on mobile, 3 on sm, 4 on md, 5 on lg */}
               {filteredTools.length === 0 ? (
                 <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 sm:p-10 text-center border border-gray-100 dark:border-gray-700 mb-4">
                   <p className="text-4xl mb-3">🔍</p>
-                  <p className="text-gray-700 dark:text-gray-300 font-semibold mb-1">{t.noTools} "{search}"</p>
+                  <p className="text-gray-700 dark:text-gray-300 font-semibold mb-1">{t.noTools} &ldquo;{search}&rdquo;</p>
                   <p className="text-gray-400 text-sm mb-4">{t.noToolsSub}</p>
                   <button onClick={() => setSearch('')} className="px-5 py-2 rounded-xl text-white text-sm transition hover:opacity-90 active:scale-95" style={{ background: '#0a3d2e' }}>{t.clear}</button>
                 </div>
@@ -790,13 +851,23 @@ export default function HomeClient() {
                       <div className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent dark:from-gray-700" />
                       <span className="text-[9px] text-gray-300 dark:text-gray-600 tabular-nums">{section.items.length}</span>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 sm:gap-2">
+                    <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 sm:gap-2">
                       {section.items.map(tool => (
                         <ToolCard key={tool.name + tool.href} tool={tool} />
                       ))}
                     </div>
                   </div>
                 ))
+              )}
+
+              {/* DailyStrip — shown on mobile BELOW the grid */}
+              {!isSearching && activeTab === 'all' && (
+                <div className="sm:hidden mb-4">
+                  <DailyStrip
+                    allTools={ALL_FEATURED_TOOLS}
+                    onToolClick={(title: string) => { trackToolClick(title); ScrollManager.save(); }}
+                  />
+                </div>
               )}
 
               {/* Stats + About — bottom of left column */}
