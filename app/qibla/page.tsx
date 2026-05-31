@@ -292,9 +292,10 @@ export default function QiblaFinder() {
     stopCompass();
   };
 
-  const arrowRotation = qiblaDirection !== null && compassEnabled
-    ? (qiblaDirection - compassHeading + 360) % 360
-    : qiblaDirection || 0;
+  const arrowRotation = qiblaDirection || 0;
+  // When compass is live: compass rose rotates to match real world, arrow stays at fixed Qibla bearing
+  // When compass is off: everything is static, arrow points at Qibla bearing from top (North)
+  const compassRoseRotation = compassEnabled ? -compassHeading : 0;
 
   const testCities = [
     { name: 'New York', lat: 40.7128, lng: -74.0060, expected: '58° NE' },
@@ -406,8 +407,11 @@ export default function QiblaFinder() {
             {/* Compass card */}
             <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10 flex flex-col items-center">
               <div className="relative w-72 h-72 sm:w-80 sm:h-80">
-                {/* Compass rose */}
-                <div className="absolute inset-0 rounded-full bg-emerald-900/50 border-4 border-white/20 shadow-inner">
+                {/* Compass rose — rotates with device when live compass is active */}
+                <div
+                  className="absolute inset-0 rounded-full bg-emerald-900/50 border-4 border-white/20 shadow-inner transition-transform duration-200 ease-out"
+                  style={{ transform: `rotate(${compassRoseRotation}deg)` }}
+                >
                   <div className="absolute top-2 left-1/2 -translate-x-1/2 text-red-400 text-xs font-bold">N</div>
                   <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-white/40 text-xs font-bold">S</div>
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 text-xs font-bold">E</div>
@@ -432,10 +436,10 @@ export default function QiblaFinder() {
                   })}
                 </div>
 
-                {/* Qibla arrow */}
+                {/* Qibla arrow — rotates with compass rose (stays pointing at Kaaba) */}
                 <div
-                  className="absolute inset-0 transition-transform duration-300 ease-out"
-                  style={{ transform: `rotate(${arrowRotation}deg)` }}
+                  className="absolute inset-0 transition-transform duration-200 ease-out"
+                  style={{ transform: `rotate(${arrowRotation + compassRoseRotation}deg)` }}
                 >
                   <div className="absolute top-3 left-1/2 -translate-x-1/2 flex flex-col items-center">
                     <div className="w-0 h-0 border-l-[14px] border-r-[14px] border-b-[60px] border-l-transparent border-r-transparent border-b-emerald-400 drop-shadow-lg" />
