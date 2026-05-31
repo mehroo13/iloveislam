@@ -51,18 +51,22 @@ const TOPICS = [
   { emoji: '☀️', label: 'Sun',      term: 'sun'      },
 ];
 
-const PAGE_SIZE = 18;
+const PAGE_SIZE = 24;
 
-function filterNames(all: NameEntry[], query: string, gender: string): NameEntry[] {
+const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+function filterNames(all: NameEntry[], query: string, gender: string, letter?: string): NameEntry[] {
   const q = query.trim().toLowerCase();
-  if (!q) return [];
   return all.filter(n => {
-    const hit =
+    const gok = gender === 'all' || n.gender === gender;
+    if (!gok) return false;
+    if (letter) return n.name.charAt(0).toUpperCase() === letter;
+    if (!q) return false;
+    return (
       n.name.toLowerCase().includes(q) ||
       n.meaning.toLowerCase().includes(q) ||
-      n.arabic.includes(query);
-    const gok = gender === 'all' || n.gender === gender;
-    return hit && gok;
+      n.arabic.includes(query)
+    );
   });
 }
 
@@ -252,16 +256,36 @@ export default function IslamicNamesFinder() {
 
   const [saved, setSaved] = useState<string[]>([]);
   const [savedNames, setSavedNames] = useState<NameEntry[]>([]);
-
+  const [activeLetter, setActiveLetter] = useState<string | null>(null);
+  const [nameOfDay, setNameOfDay] = useState<NameEntry | null>(null);
   const loaderRef = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLInputElement>(null);
 
   // Load dataset once
   useEffect(() => {
     loadDataset()
-      .then(data => { setAllNames(data); setDatasetReady(true); })
+      .then(data => {
+        setAllNames(data);
+        setDatasetReady(true);
+        // Name of the Day — deterministic based on date
+        const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+        setNameOfDay(data[dayOfYear % data.length]);
+      })
       .catch(() => setDatasetError('Could not load names. Please refresh.'));
   }, []);
+
+  // Load saved from localStorage
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem('islamic_names_saved');
+      if (s) setSaved(JSON.parse(s));
+    } catch {}
+  }, []);
+
+  // Persist saved
+  useEffect(() => {
+    try { localStorage.setItem('islamic_names_saved', JSON.stringify(saved)); } catch {}
+  }, [saved]);
 
   // Infinite scroll observer
   const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
@@ -291,11 +315,12 @@ export default function IslamicNamesFinder() {
     });
   }, [saved, allNames]);
 
-  function runSearch(q: string, g: string) {
-    if (!q.trim() || !datasetReady) return;
+  function runSearch(q: string, g: string, letter?: string) {
+    if ((!q.trim() && !letter) || !datasetReady) return;
     setSearching(true);
+    setActiveLetter(letter || null);
     setTimeout(() => {
-      const f = filterNames(allNames, q, g);
+      const f = filterNames(allNames, q, g, letter);
       setFiltered(f);
       setDisplayed(f.slice(0, PAGE_SIZE));
       setPage(1);
@@ -306,18 +331,40 @@ export default function IslamicNamesFinder() {
 
   function handleSearch() {
     if (!query.trim()) return;
+    setActiveLetter(null);
     runSearch(query, gender);
   }
 
   function handleGender(g: 'all' | 'boy' | 'girl') {
     setGender(g);
     if (hasSearched && query.trim()) runSearch(query, g);
+    else if (activeLetter) runSearch('', g, activeLetter);
   }
 
   function handleTopic(term: string) {
     setQuery(term);
+    setActiveLetter(null);
     runSearch(term, gender);
     inputRef.current?.focus();
+  }
+
+  function handleLetter(letter: string) {
+    setQuery('');
+    setActiveLetter(letter);
+    runSearch('', gender, letter);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function handleRandom() {
+    if (!datasetReady || allNames.length === 0) return;
+    const genderFiltered = gender === 'all' ? allNames : allNames.filter(n => n.gender === gender);
+    const randomNames = Array.from({ length: PAGE_SIZE }, () => genderFiltered[Math.floor(Math.random() * genderFiltered.length)]);
+    setFiltered(randomNames);
+    setDisplayed(randomNames);
+    setPage(1);
+    setHasSearched(true);
+    setQuery('');
+    setActiveLetter(null);
   }
 
   function toggleSave(name: string) {
@@ -664,6 +711,47 @@ export default function IslamicNamesFinder() {
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* Alphabet browser */}
+                <div style={{ marginTop: 16 }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: '#b0a89a', margin: '0 0 8px', letterSpacing: '0.15em', fontFamily: "'DM Sans', sans-serif" }}>BROWSE BY LETTER</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {ALPHABET.map(letter => (
+                      <button key={letter} onClick={() => handleLetter(letter)}
+                        style={{
+                          width: 32, height: 32, borderRadius: 8,
+                          border: activeLetter === letter ? `2px solid ${GREEN_DARK}` : '1.5px solid #ede8e0',
+                          background: activeLetter === letter ? GREEN_DARK : '#f7f4ef',
+                          color: activeLetter === letter ? '#fff' : GREEN_DARK,
+                          fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                          fontFamily: "'DM Sans', sans-serif",
+                          transition: 'all 0.15s',
+                        }}>
+                        {letter}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Random & Name of Day */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                  <button onClick={handleRandom} style={{
+                    flex: 1, background: GOLD, color: GREEN_DARK, border: 'none', borderRadius: 14,
+                    padding: '12px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                    fontFamily: "'DM Sans', sans-serif",
+                  }}>
+                    🎲 Random Names
+                  </button>
+                  {nameOfDay && (
+                    <button onClick={() => { setQuery(nameOfDay.name); runSearch(nameOfDay.name, gender); }} style={{
+                      flex: 1, background: '#f0ede8', color: GREEN_DARK, border: '1.5px solid #ede8e0', borderRadius: 14,
+                      padding: '12px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}>
+                      ⭐ Today: {nameOfDay.name}
+                    </button>
+                  )}
                 </div>
 
                 {/* Stats strip */}
