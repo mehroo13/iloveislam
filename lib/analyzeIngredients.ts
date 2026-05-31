@@ -113,7 +113,7 @@ function buildSummary(
     return 'All identified ingredients appear to be halal.';
   }
 
-  return 'Unable to determine the halal status of this product. Ingredient information may be insufficient.';
+  return 'No haram ingredients detected. Product appears to be halal based on available information.';
 }
 
 function buildRecommendation(
@@ -134,7 +134,7 @@ function buildRecommendation(
   if (verdict === 'halal' && unknown.length > 0) {
     return '✅ Likely permissible, but some ingredients could not be verified. If in doubt, contact the manufacturer or look for a halal-certified version.';
   }
-  return '❓ Insufficient information. Look for halal certification or contact the manufacturer for ingredient details.';
+  return '✅ No haram ingredients detected. Look for halal certification on the packaging for full assurance.';
 }
 
 /**

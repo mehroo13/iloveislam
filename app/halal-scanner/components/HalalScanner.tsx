@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import BarcodeScanner from "./BarcodeScanner";
-import ImageUploader from "./ImageUploader";
 import ManualSearch from "./ManualSearch";
 import ResultCard from "./ResultCard";
 import IngredientBreakdown from "./IngredientBreakdown";
@@ -15,7 +14,7 @@ import {
   type OpenFoodFactsProduct,
 } from "@/lib/halalApis";
 
-type ActiveTab = "barcode" | "image" | "manual" | "enumbers";
+type ActiveTab = "barcode" | "manual" | "enumbers";
 
 export default function HalalScanner() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("barcode");
@@ -87,14 +86,6 @@ export default function HalalScanner() {
     }
   };
 
-  const handleImageIngredients = (ingredients: string[], imageUrl: string) => {
-    setLookupNote(null);
-    const ingredientsText = ingredients.join(", ");
-    processAnalysis("Uploaded Product", ingredientsText, undefined, imageUrl);
-  };
-
-  const handleImageLoading = (isLoading: boolean) => setLoading(isLoading);
-
   const handleManualProduct = (product: OpenFoodFactsProduct, ingredients: string[]) => {
     const productName = product.product_name || "Unknown Product";
     const ingredientsText = ingredients.join(", ");
@@ -144,7 +135,6 @@ export default function HalalScanner() {
 
   const tabs: { id: ActiveTab; label: string; icon: string }[] = [
     { id: "barcode", label: "Scan Barcode", icon: "📷" },
-    { id: "image", label: "Upload Photo", icon: "🖼️" },
     { id: "manual", label: "Search / Paste", icon: "🔍" },
     { id: "enumbers", label: "E-Numbers", icon: "🔢" },
   ];
@@ -207,13 +197,6 @@ export default function HalalScanner() {
               onResult={handleBarcodeResult} 
               onError={(msg) => setError(msg)}
               isActive={scannerActive}
-            />
-          )}
-          {activeTab === "image" && (
-            <ImageUploader 
-              onIngredients={handleImageIngredients}
-              onLoading={handleImageLoading}
-              isLoading={loading}
             />
           )}
           {activeTab === "manual" && (
@@ -286,6 +269,19 @@ export default function HalalScanner() {
         {analysisResult && analysisResult.ingredientResults.length > 0 && (
           <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden">
             <IngredientBreakdown results={analysisResult.ingredientResults} />
+          </div>
+        )}
+
+        {/* Scan New Product — prominent button after results */}
+        {analysisResult && !loading && (
+          <div className="sticky bottom-4 z-20 flex justify-center">
+            <button
+              onClick={handleReset}
+              className="flex items-center gap-2 px-6 py-3.5 bg-green-600 hover:bg-green-500 text-white font-bold rounded-full shadow-lg shadow-green-900/40 transition-all active:scale-95 text-sm"
+            >
+              <span className="text-lg">📷</span>
+              Scan New Product
+            </button>
           </div>
         )}
 

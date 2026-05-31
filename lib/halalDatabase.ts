@@ -2667,7 +2667,7 @@ export function getOverallVerdict(results: IngredientResult[]): {
   verdict: HalalStatus | 'unknown';
   confidence: 'high' | 'medium' | 'low';
 } {
-  if (results.length === 0) return { verdict: 'unknown', confidence: 'low' };
+  if (results.length === 0) return { verdict: 'halal', confidence: 'low' };
 
   const hasHaram = results.some((r) => r.status === 'haram');
   const hasMashbooh = results.some((r) => r.status === 'mashbooh');
