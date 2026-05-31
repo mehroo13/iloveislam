@@ -268,46 +268,46 @@ function DuaCard({ dua, isFavorite, onToggleFavorite, onCopy, onShare, copied, a
   arabicSize: string; transSize: string;
 }) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800/90 rounded-2xl border border-gray-100 dark:border-gray-600 overflow-hidden shadow-sm">
       {/* Arabic text */}
       <div className="p-5 pb-3">
-        <p className={`${arabicSize} text-gray-800 dark:text-gray-100 text-right leading-[2.4] font-bold`} dir="rtl" style={{ fontFamily: '"Scheherazade New", "Amiri", "Noto Naskh Arabic", serif' }}>
+        <p className={`${arabicSize} text-gray-800 dark:text-white text-right leading-[2.4] font-bold`} dir="rtl" style={{ fontFamily: '"Scheherazade New", "Amiri", "Noto Naskh Arabic", serif' }}>
           {dua.arabic}
         </p>
       </div>
 
       {/* Transliteration */}
       <div className="px-5 pb-2">
-        <p className="text-sm text-blue-600 dark:text-blue-400 italic leading-relaxed">
+        <p className="text-sm text-blue-600 dark:text-blue-300 italic leading-relaxed">
           {dua.transliteration}
         </p>
       </div>
 
       {/* Translation */}
       <div className="px-5 pb-3">
-        <p className={`${transSize} text-gray-600 dark:text-gray-300 leading-relaxed`}>
+        <p className={`${transSize} text-gray-600 dark:text-gray-200 leading-relaxed`}>
           {dua.translation}
         </p>
       </div>
 
       {/* Meta info */}
       <div className="px-5 pb-3 flex flex-wrap gap-2">
-        <span className="text-[10px] bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full font-medium">
+        <span className="text-[10px] bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-medium">
           {dua.reference}
         </span>
-        <span className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full">
+        <span className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 px-2 py-0.5 rounded-full">
           {dua.occasion}
         </span>
         {dua.virtue && (
-          <span className="text-[10px] bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full">
+          <span className="text-[10px] bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full">
             {dua.virtue.substring(0, 60)}{dua.virtue.length > 60 ? '...' : ''}
           </span>
         )}
       </div>
 
       {/* Actions */}
-      <div className="px-5 py-3 border-t border-gray-50 dark:border-gray-700 flex items-center gap-2">
-        <button onClick={onToggleFavorite} className={`text-lg ${isFavorite ? 'text-red-500' : 'text-gray-300 dark:text-gray-600'}`} title="Favorite">
+      <div className="px-5 py-3 border-t border-gray-50 dark:border-gray-600 flex items-center gap-2">
+        <button onClick={onToggleFavorite} className={`text-lg ${isFavorite ? 'text-red-500' : 'text-gray-300 dark:text-gray-500'}`} title="Favorite">
           {isFavorite ? '❤️' : '🤍'}
         </button>
         <button onClick={onCopy} className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
