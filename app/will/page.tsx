@@ -164,8 +164,8 @@ export default function IslamicWill() {
   const removeAsset = (index: number) => setForm({ ...form, assets: form.assets.filter((_, i) => i !== index) });
 
   const resetForm = () => { setForm(DEFAULT_FORM); localStorage.removeItem(LS_KEY); setStep(1); };
-  const nextStep = () => setStep(prev => Math.min(prev + 1, 9));
-  const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
+  const nextStep = () => { setStep(prev => Math.min(prev + 1, 9)); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const prevStep = () => { setStep(prev => Math.max(prev - 1, 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
   const completionPercent = Math.round(
     ([form.fullName, form.executor, form.heirs[0]?.name, form.date].filter(Boolean).length / 4) * 100

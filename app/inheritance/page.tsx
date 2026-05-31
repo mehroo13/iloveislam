@@ -290,6 +290,7 @@ export default function InheritanceCalculator() {
     const maxWasiyyah = ((parseFloat(estate) || 0) - (parseFloat(funeral) || 0) - (parseFloat(debts) || 0)) / 3;
     if ((parseFloat(wasiyyah) || 0) > maxWasiyyah + 0.01) { setError(`Wasiyyah cannot exceed ⅓ of estate after debts (${sym}${maxWasiyyah.toFixed(2)})`); return; }
     setError(''); setStep(2);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const calcResult = useMemo(() => {
@@ -455,7 +456,7 @@ export default function InheritanceCalculator() {
 
             <div className="flex gap-3 pt-2">
               <button onClick={() => setStep(1)} className="flex-1 py-3.5 rounded-2xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">← Back</button>
-              <button onClick={() => setStep(3)} disabled={!hasAnyHeir}
+              <button onClick={() => { setStep(3); window.scrollTo({ top: 0, behavior: 'smooth' }); }} disabled={!hasAnyHeir}
                 className="flex-1 py-3.5 rounded-2xl bg-emerald-800 text-white font-semibold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg active:scale-[0.98]">
                 Calculate ⚖️
               </button>

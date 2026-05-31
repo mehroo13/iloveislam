@@ -178,6 +178,7 @@ export default function HalalFinanceCheck() {
 
   const selectDeal = (type: DealType) => {
     setDealType(type); setAnswers({}); setResult(null); setStep('questions');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const answer = (id: string, val: boolean) => setAnswers(prev => ({ ...prev, [id]: val }));
@@ -207,6 +208,7 @@ export default function HalalFinanceCheck() {
 
     const res = { pct, verdict, color, emoji, bg, redFlags, greenPoints, riskScore, maxScore };
     setResult(res); setStep('result');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     saveToHistory({ id: Date.now(), dealType: dealType.label, verdict, pct, date: new Date().toISOString().split('T')[0] });
   };
 
@@ -222,7 +224,7 @@ export default function HalalFinanceCheck() {
       <header className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white px-5 py-4 shadow-xl sticky top-0 z-20">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           {step !== 'select' ? (
-            <button onClick={() => { setStep(step === 'result' ? 'questions' : 'select'); setResult(null); }} className="text-white/60 hover:text-white text-sm transition-colors">← Back</button>
+            <button onClick={() => { setStep(step === 'result' ? 'questions' : 'select'); setResult(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="text-white/60 hover:text-white text-sm transition-colors">← Back</button>
           ) : (
             <Link href="/" className="text-white/60 hover:text-white text-sm transition-colors">← Home</Link>
           )}
