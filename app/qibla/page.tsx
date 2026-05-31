@@ -515,12 +515,6 @@ export default function QiblaFinder() {
               </button>
             </div>
 
-            {compassPermission === 'granted' && compassEnabled && (
-              <div className="flex items-center justify-center gap-2 text-xs text-emerald-300/60">
-                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-                <span>Compass live • {Math.round(compassHeading)}°</span>
-              </div>
-            )}
             {compassPermission === 'denied' && (
               <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-center">
                 <p className="text-amber-200 text-xs">Compass not available. Use the bearing ({qiblaDirection.toFixed(1)}°) with any compass app.</p>
