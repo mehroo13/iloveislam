@@ -45,7 +45,9 @@ export default function RamadanPlanner() {
   const [days, setDays] = useState<Record<string, DayData>>({});
   const [notes, setNotes] = useState<string>('');
   const [mood, setMood] = useState<string>('');
-
+  const [juzCompleted, setJuzCompleted] = useState<boolean[]>(() => {
+    try { const s = localStorage.getItem('ramadan_juz'); return s ? JSON.parse(s) : Array(30).fill(false); } catch { return Array(30).fill(false); }
+  });
   // Load all data from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -69,6 +71,10 @@ export default function RamadanPlanner() {
   useEffect(() => {
     localStorage.setItem('ramadan_notes_v2', notes);
   }, [notes]);
+
+  useEffect(() => {
+    localStorage.setItem('ramadan_juz', JSON.stringify(juzCompleted));
+  }, [juzCompleted]);
 
   // Mood persistence
   const todayKey = `day-${ramadanDay}`; // unique key per ramadan day
@@ -122,10 +128,17 @@ export default function RamadanPlanner() {
 
   const totalIbadah = Object.values(days).reduce((sum, d) => sum + (d.ibadah?.length || 0), 0);
 
-  const card = 'bg-white rounded-2xl border border-gray-100 p-5 shadow-sm';
+  const [dark, setDark] = useState(false);
+
+  // Countdown to next Ramadan (approx 9 Feb 2027)
+  const nextRamadan = new Date('2027-02-09T00:00:00');
+  const now = new Date();
+  const daysToRamadan = Math.max(0, Math.ceil((nextRamadan.getTime() - now.getTime()) / 86400000));
+
+  const card = dark ? 'bg-gray-800 rounded-2xl border border-gray-700 p-5 shadow-sm' : 'bg-white rounded-2xl border border-gray-100 p-5 shadow-sm';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-amber-50/30">
+    <div style={{ minHeight: '100vh', background: dark ? '#0f172a' : undefined }} className={dark ? '' : 'bg-gradient-to-b from-emerald-50 via-white to-amber-50/30'}>
       {/* Header */}
       <header className="bg-gradient-to-r from-[#0a3d2e] to-[#1a6b4a] text-white px-4 py-4 shadow-lg sticky top-0 z-10">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
@@ -133,25 +146,28 @@ export default function RamadanPlanner() {
             <span>←</span> Back
           </Link>
           <h1 className="text-xl font-bold tracking-wide">🌙 Ramadan Planner</h1>
-          {/* Day selector */}
-          <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1">
-            <button
-              onClick={() => changeDay(-1)}
-              disabled={ramadanDay <= 1}
-              className="text-white hover:text-amber-300 disabled:opacity-40 text-lg leading-none"
-            >
-              ‹
-            </button>
-            <span className="text-sm font-semibold min-w-[4rem] text-center">
-              Day {ramadanDay}/30
-            </span>
-            <button
-              onClick={() => changeDay(1)}
-              disabled={ramadanDay >= 30}
-              className="text-white hover:text-amber-300 disabled:opacity-40 text-lg leading-none"
-            >
-              ›
-            </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setDark(!dark)} className="text-white/60 hover:text-white text-lg">{dark ? '☀️' : '🌙'}</button>
+            {/* Day selector */}
+            <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1">
+              <button
+                onClick={() => changeDay(-1)}
+                disabled={ramadanDay <= 1}
+                className="text-white hover:text-amber-300 disabled:opacity-40 text-lg leading-none"
+              >
+                ‹
+              </button>
+              <span className="text-sm font-semibold min-w-[4rem] text-center">
+                Day {ramadanDay}/30
+              </span>
+              <button
+                onClick={() => changeDay(1)}
+                disabled={ramadanDay >= 30}
+                className="text-white hover:text-amber-300 disabled:opacity-40 text-lg leading-none"
+              >
+                ›
+              </button>
+            </div>
           </div>
         </div>
 
@@ -190,9 +206,10 @@ export default function RamadanPlanner() {
 
       {/* Tabs */}
       <div className="max-w-2xl mx-auto px-4 pt-4">
-        <div className="flex bg-white rounded-2xl border border-gray-100 p-1.5 gap-1 shadow-sm">
+        <div style={{ background: dark ? '#1e293b' : '#fff', border: `1px solid ${dark ? '#334155' : '#f1f5f9'}` }} className="flex rounded-2xl p-1.5 gap-1 shadow-sm">
           {[
             { id: 'tracker', label: '📅 Today' },
+            { id: 'quran', label: '📖 Quran' },
             { id: 'goals', label: '🎯 Goals' },
             { id: 'duas', label: '🤲 Duas' },
             { id: 'notes', label: '📝 Journal' },
@@ -203,11 +220,11 @@ export default function RamadanPlanner() {
               className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${
                 activeTab === tab.id
                   ? 'bg-[#0a3d2e] text-white shadow'
-                  : 'text-gray-500 hover:bg-gray-50'
+                  : dark ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-50'
               }`}
             >
               <span className="hidden sm:inline">{tab.label}</span>
-              <span className="sm:hidden">{tab.label.split(' ')[1]}</span>
+              <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
             </button>
           ))}
         </div>
@@ -301,6 +318,73 @@ export default function RamadanPlanner() {
                 <p className="text-xs text-gray-400 mt-4 text-center">
                   {todayData.ibadah.length} of {IBADAH_OPTIONS.length} completed — MashaAllah! ✨
                 </p>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* QURAN TAB */}
+        {activeTab === 'quran' && (
+          <>
+            <div className={card}>
+              <h3 style={{ color: dark ? '#e2e8f0' : '#1a1a1a' }} className="font-bold text-base mb-3">📖 Quran Khatmah Tracker</h3>
+              <p style={{ color: dark ? '#94a3b8' : '#6b7280' }} className="text-xs mb-4">Tap each Juz when completed. Goal: finish the entire Quran in Ramadan.</p>
+              
+              {/* Progress */}
+              <div className="mb-4">
+                <div className="flex justify-between text-xs mb-1">
+                  <span style={{ color: dark ? '#94a3b8' : '#6b7280' }}>{juzCompleted.filter(Boolean).length} of 30 Juz completed</span>
+                  <span style={{ color: '#059669' }} className="font-bold">{Math.round((juzCompleted.filter(Boolean).length / 30) * 100)}%</span>
+                </div>
+                <div style={{ background: dark ? '#1e293b' : '#f1f5f9' }} className="h-3 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${(juzCompleted.filter(Boolean).length / 30) * 100}%` }} />
+                </div>
+              </div>
+
+              {/* Juz Grid */}
+              <div className="grid grid-cols-6 gap-2">
+                {juzCompleted.map((done, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      const updated = [...juzCompleted];
+                      updated[i] = !updated[i];
+                      setJuzCompleted(updated);
+                    }}
+                    style={{
+                      background: done ? '#059669' : (dark ? '#1e293b' : '#f9fafb'),
+                      border: `1.5px solid ${done ? '#059669' : (dark ? '#334155' : '#e5e7eb')}`,
+                      color: done ? '#fff' : (dark ? '#94a3b8' : '#6b7280'),
+                    }}
+                    className="aspect-square rounded-xl flex items-center justify-center text-xs font-bold transition-all active:scale-90"
+                  >
+                    {done ? '✓' : i + 1}
+                  </button>
+                ))}
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-3 mt-4">
+                <div style={{ background: dark ? '#1e293b' : '#f0fdf4', border: `1px solid ${dark ? '#334155' : '#d1fae5'}` }} className="rounded-xl p-3 text-center">
+                  <p style={{ color: dark ? '#6ee7b7' : '#059669' }} className="text-lg font-bold">{juzCompleted.filter(Boolean).length}</p>
+                  <p style={{ color: dark ? '#94a3b8' : '#6b7280' }} className="text-[10px]">Completed</p>
+                </div>
+                <div style={{ background: dark ? '#1e293b' : '#fef3c7', border: `1px solid ${dark ? '#334155' : '#fde68a'}` }} className="rounded-xl p-3 text-center">
+                  <p style={{ color: dark ? '#fcd34d' : '#d97706' }} className="text-lg font-bold">{30 - juzCompleted.filter(Boolean).length}</p>
+                  <p style={{ color: dark ? '#94a3b8' : '#6b7280' }} className="text-[10px]">Remaining</p>
+                </div>
+                <div style={{ background: dark ? '#1e293b' : '#eff6ff', border: `1px solid ${dark ? '#334155' : '#bfdbfe'}` }} className="rounded-xl p-3 text-center">
+                  <p style={{ color: dark ? '#93c5fd' : '#2563eb' }} className="text-lg font-bold">{ramadanDay > 0 ? Math.ceil((30 - juzCompleted.filter(Boolean).length) / Math.max(1, 30 - ramadanDay)) : 1}</p>
+                  <p style={{ color: dark ? '#94a3b8' : '#6b7280' }} className="text-[10px]">Juz/day needed</p>
+                </div>
+              </div>
+
+              {juzCompleted.filter(Boolean).length === 30 && (
+                <div className="mt-4 bg-emerald-500 rounded-xl p-4 text-center text-white">
+                  <p className="text-2xl mb-1">🎉</p>
+                  <p className="font-bold">MashAllah! Quran Khatmah Complete!</p>
+                  <p className="text-xs text-emerald-100 mt-1">May Allah accept your recitation</p>
+                </div>
               )}
             </div>
           </>
