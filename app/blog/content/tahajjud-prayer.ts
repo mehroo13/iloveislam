@@ -9,6 +9,8 @@ export const tahajjudArticle = {
   date: "2026-01-27",
   content: `
 <div class="prose prose-emerald dark:prose-invert max-w-none">
+<img src="/blog/tahajjud-prayer.jpg" alt="tahajjud prayer" class="w-full rounded-2xl mb-8 shadow-lg" width="1200" height="630" loading="lazy" />
+
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-10 mb-6">What is Tahajjud Prayer?</h2>
 

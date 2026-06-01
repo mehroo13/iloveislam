@@ -33,6 +33,26 @@ import { islamicNewYearArticle } from './islamic-new-year-muharram';
 import { halalScannerArticle } from './halal-scanner-guide';
 import { readingFoodLabelsArticle } from './reading-food-labels';
 import { halalTravelEssentialsArticle } from './halal-travel-essentials';
+import { ninetyNineNamesComplete } from './99-names-of-allah-complete';
+import { islamicDuasCollection } from './islamic-duas-collection';
+import { halalFoodIngredientsGuide } from './halal-food-ingredients-guide';
+import { hijriCalendar2026 } from './hijri-calendar-2026';
+import { ramadan2027Dates } from './ramadan-2027-dates';
+import { islamicGamesForKids } from './islamic-games-for-kids';
+import { prayerTimesGuide } from './prayer-times-guide';
+import { zakatNisab2026 } from './zakat-nisab-2026';
+import { whatIsHalal } from './what-is-halal';
+import { morningDuaGuide } from './morning-dua';
+import { duaBeforeSleeping } from './dua-before-sleeping';
+import { islamicNewYear2026 } from './islamic-new-year-2026';
+import { halalENumbersList } from './halal-e-numbers-list';
+import { howToPerformHajj } from './how-to-perform-hajj';
+import { zakatOnGold } from './zakat-on-gold';
+import { laylatulQadr2027 } from './laylatul-qadr-2027';
+import { islamicBabyNames } from './islamic-baby-names';
+import { duaForAnxiety } from './dua-for-anxiety';
+import { howToCalculateZakatGuide } from './how-to-calculate-zakat-guide';
+import { qiblaDirectionGuide } from './qibla-direction-guide';
 
 // ==================== ARTICLE TYPE ====================
 export interface BlogArticle {
@@ -82,6 +102,26 @@ export const allArticles: BlogArticle[] = [
   readingFoodLabelsArticle,
   halalTravelEssentialsArticle,
   halalScannerArticle,
+  ninetyNineNamesComplete,
+  islamicDuasCollection,
+  halalFoodIngredientsGuide,
+  hijriCalendar2026,
+  ramadan2027Dates,
+  islamicGamesForKids,
+  prayerTimesGuide,
+  zakatNisab2026,
+  whatIsHalal,
+  morningDuaGuide,
+  duaBeforeSleeping,
+  islamicNewYear2026,
+  halalENumbersList,
+  howToPerformHajj,
+  zakatOnGold,
+  laylatulQadr2027,
+  islamicBabyNames,
+  duaForAnxiety,
+  howToCalculateZakatGuide,
+  qiblaDirectionGuide,
 ];
 
 // ==================== ARTICLE MAP ====================

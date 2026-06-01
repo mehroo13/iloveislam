@@ -9,6 +9,8 @@ export const ninetyNineNamesArticle = {
   date: "2026-05-11",
   content: `
 <div class="prose prose-emerald dark:prose-invert max-w-none">
+<img src="/blog/99-names-allah.jpg" alt="99 names allah" class="w-full rounded-2xl mb-8 shadow-lg" width="1200" height="630" loading="lazy" />
+
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-10 mb-6">What are the 99 Names of Allah (Asma ul Husna)?</h2>
 

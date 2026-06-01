@@ -9,6 +9,8 @@ export const teachingChildrenArticle = {
   date: "2026-02-17",
   content: `
 <div class="prose prose-emerald dark:prose-invert max-w-none">
+<img src="/blog/teaching-children-islam.jpg" alt="teaching children islam" class="w-full rounded-2xl mb-8 shadow-lg" width="1200" height="630" loading="lazy" />
+
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-10 mb-6">The Sacred Responsibility of Raising Muslim Children</h2>
 

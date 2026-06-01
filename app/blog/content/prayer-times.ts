@@ -9,6 +9,8 @@ export const prayerTimesArticle = {
   date: "2026-02-07",
   content: `
 <div class="prose prose-emerald dark:prose-invert max-w-none">
+<img src="/blog/prayer-times.jpg" alt="prayer times" class="w-full rounded-2xl mb-8 shadow-lg" width="1200" height="630" loading="lazy" />
+
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-10 mb-6">The Importance of Prayer Times in Islam</h2>
 

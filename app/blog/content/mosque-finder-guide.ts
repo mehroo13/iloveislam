@@ -9,6 +9,8 @@ export const mosqueFinderArticle = {
   date: "2026-03-11",
   content: `
 <div class="prose prose-emerald dark:prose-invert max-w-none">
+<img src="/blog/mosque-finder-guide.jpg" alt="mosque finder guide" class="w-full rounded-2xl mb-8 shadow-lg" width="1200" height="630" loading="lazy" />
+
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-10 mb-6">Why Finding a Mosque Matters</h2>
 
