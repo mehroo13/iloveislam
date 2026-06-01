@@ -26,7 +26,6 @@ import Script from 'next/script';
 const Newsletter = dynamic(() => import('./components/Newsletter'), { ssr: false });
 const FeaturedBanner = dynamic(() => import('./components/FeaturedBanner'), { ssr: false });
 const BackToTop = dynamic(() => import('./components/BackToTop'), { ssr: false });
-const OfflineBadge = dynamic(() => import('./components/OfflineBadge'), { ssr: false });
 
 // ==================== TYPES ====================
 interface Tool {
@@ -545,7 +544,7 @@ function ToolCard({ tool }: { tool: Tool }) {
           NEW
         </span>
       )}
-      <OfflineBadge href={tool.href} compact />
+
       <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-lg sm:text-xl mb-1 sm:mb-2 transition-transform duration-200 group-hover:scale-110 group-active:scale-95 ${tool.color}`}>
         {tool.icon}
       </div>

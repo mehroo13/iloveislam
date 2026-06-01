@@ -168,20 +168,7 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
     <PWAContext.Provider value={{ isOnline, isInstalled, canInstall, installApp, getToolOfflineStatus }}>
       {children}
 
-      {/* Online/Offline Status Badge — fixed in header area */}
-      <div className="fixed top-2 right-2 z-[9999] flex flex-col items-end gap-2 pointer-events-none">
-        {/* Connection status badge */}
-        <div
-          className={`pointer-events-auto flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold shadow-lg backdrop-blur-sm transition-all duration-300 ${
-            isOnline
-              ? 'bg-emerald-500/90 text-white'
-              : 'bg-red-500/90 text-white animate-pulse'
-          }`}
-        >
-          <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-white' : 'bg-white animate-ping'}`} />
-          {isOnline ? 'Online' : 'Offline'}
-        </div>
-      </div>
+
 
       {/* Offline Toast */}
       {showOfflineToast && (
