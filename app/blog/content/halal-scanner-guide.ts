@@ -5,7 +5,7 @@ export const halalScannerArticle = {
   excerpt: "A practical, in-depth guide to using HalalScan: how barcode and OCR scanning work, understanding ingredient flags (E‑numbers), making accurate decisions, privacy considerations, and tips for the most reliable results.",
   category: "Halal Scanner",
   emoji: "🔎",
-  readTime: "10-14 min read",
+  readTime: "15-20 min read",
   date: "2026-05-23",
   content: `
 <div class="prose prose-emerald dark:prose-invert max-w-none">
@@ -15,6 +15,12 @@ export const halalScannerArticle = {
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-10 mb-6">Why HalalScan Exists</h2>
 
 <p>When you pick up a packaged food item from the shelf, the ingredient list and tiny E‑numbers can feel like a foreign language. HalalScan was created to bridge that gap — to give Muslims a fast, reliable, and free tool to check whether a product is likely halal, haram, or doubtful (mashbooh) based on its publicly listed ingredients and recognised certification labels. This guide explains how the scanner works, what the results mean, and how to get the best, most repeatable outcomes when scanning products.</p>
+
+<p>Every year, new additives and technical ingredient names make packaged foods harder to understand. That is why HalalScan focuses on practical scanning, label analysis, and clear verdicts — not just raw data. The app is built for busy families who need quick, trustworthy guidance at the supermarket or while travelling.</p>
+
+<p class="text-center my-8">
+  <img src="/blog/reading-food-labels.jpg" alt="Reading halal food labels" class="w-full rounded-2xl shadow-lg" width="1200" height="630" loading="lazy" />
+</p>
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">How the Scanner Works — A Hybrid Approach</h2>
 
@@ -47,6 +53,10 @@ export const halalScannerArticle = {
 
 <p>When an ingredient appears in a product as a less common name (for example, <em>polysorbate</em> vs. <em>tween</em>), the scanner attempts word‑boundary matches and synonym lookups so it avoids false positives from partial matches. The result includes a short reason and, when applicable, a scholar note explaining the typical ruling and what to verify.</p>
 
+<p class="text-center my-8">
+  <img src="/blog/halal-e-numbers-list.jpg" alt="Halal E-numbers guide" class="w-full rounded-2xl shadow-lg" width="1200" height="630" loading="lazy" />
+</p>
+
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Scanner UX: Barcodes, OCR & Retry Behavior</h2>
 
 <p>Practical scanning tips for reliable results:</p>
@@ -59,6 +69,23 @@ export const halalScannerArticle = {
 </ul>
 
 <p>Under the hood the scanner keeps running while you retry, preventing flicker and reducing scan time in real store conditions.</p>
+
+<h3 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mt-10 mb-4">When the result is mixed</h3>
+
+<p>Some products contain a mix of clearly halal ingredients and doubtful additives. In that case, HalalScan surfaces the strongest concern first and includes a short explanation so you can decide whether to keep shopping or ask the manufacturer. This is especially useful for sauces, snacks, dietary supplements, and processed ready meals.</p>
+
+<h3 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mt-10 mb-4">Best product categories for scanning</h3>
+
+<p>The scanner is most valuable when shopping for packaged and imported goods. Fresh produce, plain grains, and unseasoned meats are already easy to check, but products with long ingredient lists are where HalalScan really saves time and avoids mistakes.</p>
+
+<ul>
+  <li><strong>Snacks and confectionery:</strong> These often contain emulsifiers, colours, and hidden flavourings.</li>
+  <li><strong>Ready meals and frozen foods:</strong> They may include stabilisers, thickening agents, or enzyme blends.</li>
+  <li><strong>Beverages and dairy alternatives:</strong> Look for preservatives and vitamin carriers that can be doubtful.</li>
+  <li><strong>Supplements and vitamins:</strong> Capsules and coating agents are common sources of confusion.</li>
+</ul>
+
+<p>For each of these categories, HalalScan acts as a fast second opinion: the app highlights the exact ingredients that need further review while you are still in the store.</p>
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Accuracy: Expectations & How to Improve Confidence</h2>
 
@@ -113,6 +140,23 @@ export const halalScannerArticle = {
 </ul>
 
 <p>From these items, the scanner may return <em>mashbooh</em> because of the mono‑ and diglycerides unless the manufacturer confirms the plant source.</p>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">What to Do After a Scan Result</h2>
+
+<p>When HalalScan gives you a result, use it as an informed next step rather than a final ruling. The app is designed to make your shopping decisions faster, but the safest approach is still a short follow-up process.</p>
+
+<ul>
+  <li><strong>HALAL:</strong> You may feel confident to choose the product, especially if the label also includes recognised halal certification.</li>
+  <li><strong>HARAM:</strong> Stop and select a different item. This result usually means the product contains a clearly prohibited ingredient such as pork, alcohol, or non-zabiha animal derivatives.</li>
+  <li><strong>MASHBOOH:</strong> Treat it as a prompt to investigate further. Look for alternate brands, contact the manufacturer, or choose a simpler product with fewer ingredients.</li>
+  <li><strong>UNKNOWN:</strong> Try scanning again, check the ingredient list manually, or compare with another product that has clearer labelling.</li>
+</ul>
+
+<p>For mashbooh and unknown outcomes, a fast second check is the best habit. Compare the ingredients with another brand, search the product name online, or consult a trusted halal reference list. Over time, you will recognise the most common doubtful additives and make faster choices.</p>
+
+<p>HalalScan is most useful when you are buying something new or imported. For familiar products that you already know are halal, the tool acts as confirmation. For new products, it reduces the time you spend wondering whether a label is safe.</p>
+
+<p>Ultimately, the goal is to build a reliable shopping habit: use the scanner for any product with a long ingredient list, note the most common questionable additives, and choose the clearest label whenever possible. This makes halal shopping easier, safer, and less stressful.</p>
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Future Roadmap</h2>
 

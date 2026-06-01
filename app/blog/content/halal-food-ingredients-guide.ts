@@ -5,7 +5,7 @@ export const halalFoodIngredientsGuide = {
   excerpt: "Complete guide to halal food ingredients including E-numbers, additives, and common ingredients. Know what's halal, haram, and mashbooh instantly.",
   category: "Halal",
   emoji: "🥗",
-  readTime: "17 min read",
+  readTime: "20-25 min read",
   date: "2026-02-10",
   content: `
 <div class="prose prose-emerald dark:prose-invert max-w-none">
@@ -22,6 +22,12 @@ export const halalFoodIngredientsGuide = {
 
 <p>Allah commands us to eat what is both halal (lawful) and tayyib (pure/good). This means Muslims must be vigilant about halal food ingredients in everything they consume. Use our <a href="/halal-scanner" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Halal Ingredient Scanner</a> to instantly check any ingredient.</p>
 
+<p>In modern food markets, a single packet of snack food can contain dozens of ingredients, many written in technical names. That is why a good halal food guide combines both rules and an easy decision process so you can shop confidently and without stress.</p>
+
+<p class="text-center my-8">
+  <img src="/blog/what-is-halal.jpg" alt="What is halal food" class="w-full rounded-2xl shadow-lg" width="1200" height="630" loading="lazy" />
+</p>
+
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Categories of Halal Food Ingredients</h2>
 
 <p>Islamic scholars classify food ingredients into three categories:</p>
@@ -33,6 +39,12 @@ export const halalFoodIngredientsGuide = {
 </ul>
 
 <blockquote>"That which is lawful is clear and that which is unlawful is clear, and between the two of them are doubtful matters about which many people do not know. Thus he who avoids doubtful matters clears himself in regard to his religion and his honor." (Sahih al-Bukhari, Sahih Muslim)</blockquote>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Halal is more than permission — it should also be tayyib</h2>
+
+<p>In Islam, halal means lawful and tayyib means pure, wholesome, and beneficial. A truly good food choice combines both. That is why the most responsible halal shoppers look for products that are not only free of prohibited ingredients, but also clean, transparent, and minimally processed.</p>
+
+<p>Whenever you compare two similar products, choose the one with the shorter ingredient list, clearer origin statements, and halal certification. This approach reduces doubt and makes your diet easier to maintain over time.</p>
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Clearly Halal Food Ingredients</h2>
 
@@ -188,6 +200,20 @@ export const halalFoodIngredientsGuide = {
   <li><strong>Step 5:</strong> When in doubt, contact the manufacturer or use our <a href="/halal-scanner" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Halal Scanner Tool</a></li>
 </ul>
 
+<p class="text-center my-8">
+  <img src="/blog/reading-food-labels.jpg" alt="Reading food labels" class="w-full rounded-2xl shadow-lg" width="1200" height="630" loading="lazy" />
+</p>
+
+<p>When you are in the store, use the label checklist like a short audit. First confirm certification, then scan for obvious haram ingredients, then identify any doubtful additives. The more you practice, the faster the process becomes.</p>
+
+<ul class="list-disc pl-6 space-y-2 my-4">
+  <li><strong>Check the first 10 ingredients:</strong> These usually make up the majority of the product.</li>
+  <li><strong>Watch for multiple animal-derived words:</strong> Gelatin, pepsin, rennet, and collagen are red flags.</li>
+  <li><strong>Pay attention to E-numbers:</strong> Some are safe, some are doubtful, and a few are clearly haram.</li>
+  <li><strong>Read allergen declarations:</strong> They can reveal hidden sources like milk, egg, or soy.</li>
+  <li><strong>Prefer transparent labels:</strong> Labels that say “beef gelatin”, “soy lecithin”, or “microbial rennet” are easier to verify.</li>
+</ul>
+
 <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 mt-8 mb-4">Hidden Names for Pork Ingredients</h3>
 
 <p>Manufacturers sometimes use technical names that disguise pork-derived halal food ingredients:</p>
@@ -243,6 +269,29 @@ export const halalFoodIngredientsGuide = {
   <summary class="font-semibold cursor-pointer">Are vitamins and supplements halal?</summary>
   <p class="mt-2 text-gray-600 dark:text-gray-400">Many vitamins use gelatin capsules (often pork-based) or contain stearic acid from animal sources. Look for halal-certified supplements, vegetarian capsules (HPMC), or tablet forms. Vitamin D3 is often derived from lanolin (sheep wool) which most scholars consider halal, but some is from pig skin — check the source.</p>
 </details>
+
+<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-16 mb-6">A Practical Label Review Process</h2>
+
+<p>Make label reading a simple routine by following the same process every time you shop. This turns complex ingredient lists into a repeatable checklist and builds confidence quickly.</p>
+
+<ol class="list-decimal pl-6 space-y-3 my-4">
+  <li><strong>Start with certification:</strong> If the product carries a trusted halal logo, that is your first sign of reliable labelling.</li>
+  <li><strong>Read the ingredient list:</strong> Look for obvious haram items first, then identify any hairsplitting additives or E-numbers.</li>
+  <li><strong>Check for hidden animal derivatives:</strong> Review the allergen statement and the ingredient groupings that often hide problematic sources.</li>
+  <li><strong>Compare similar products:</strong> If one brand is clearer than another, choose the clearer label even if both are technically halal.</li>
+  <li><strong>When in doubt, switch:</strong> A different product with fewer unknown ingredients is usually the safer choice.</li>
+</ol>
+
+<p>Some common myths can make shopping harder than it needs to be. Here are a few examples:</p>
+
+<ul class="list-disc pl-6 space-y-2 my-4">
+  <li><strong>"Natural flavours are always halal"</strong> — not always. Natural flavours may include animal-derived extracts or alcohol carriers.</li>
+  <li><strong>"All cheese is halal"</strong> — not if it uses non-zabiha animal rennet.</li>
+  <li><strong>"E-numbers are bad"</strong> — most are perfectly halal; only a small subset are haram or doubtful.</li>
+  <li><strong>"If a product is vegetarian, it is automatically halal"</strong> — not always, because some vegetarian items may still contain prohibited alcohol or cross-contamination from haram sources.</li>
+</ul>
+
+<p>When you use a consistent review process, these myths become easier to spot. You can then focus your attention on the actual doubtful ingredients instead of worrying about every label detail.</p>
 
 <p class="text-center my-8">
   <a href="/halal-scanner" class="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg px-10 py-4 rounded-2xl transition-all hover:scale-105">
