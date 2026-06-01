@@ -1,17 +1,17 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Prayer Times — Accurate Daily Salah Times Worldwide | I Love Islam',
+  title: 'Prayer Times — Accurate Salah Times for Any City | I Love Islam',
   description:
-    'Get precise prayer times for any city. Choose calculation methods (ISNA, MWL, Umm al‑Qura) and see live countdown to the next prayer. Free, no sign‑up.',
+    'Find prayer times with exact Fajr, Dhuhr, Asr, Maghrib, and Isha schedules for your location. Choose from multiple calculation methods and see a live countdown. Free, no sign-up.',
   keywords: [
     'prayer times', 'salah times', 'namaz times', 'fajr time', 'dhuhr time', 'asr time', 'maghrib time', 'isha time',
     'islamic prayer times today', 'muslim prayer times', 'azan time', 'qibla time', 'prayer timetable',
   ],
   openGraph: {
-    title: 'Prayer Times — Accurate Salah Times Worldwide | I Love Islam',
+    title: 'Prayer Times — Accurate Salah Times for Any City | I Love Islam',
     description:
-      'Get precise prayer times for any city. Choose calculation methods and see a live countdown to the next prayer.',
+      'Find prayer times with exact Fajr, Dhuhr, Asr, Maghrib, and Isha schedules for your location. Choose from multiple calculation methods and see a live countdown. Free, no sign-up.',
     url: 'https://www.iloveislam.life/prayer-times',
     siteName: 'I Love Islam',
     locale: 'en_US',
@@ -20,8 +20,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Prayer Times | I Love Islam',
-    description: 'Accurate daily prayer times for any city. Free.',
+    title: 'Prayer Times — Accurate Salah Times for Any City | I Love Islam',
+    description: 'Find prayer times with exact Fajr, Dhuhr, Asr, Maghrib, and Isha schedules for your location. Choose from multiple calculation methods and see a live countdown. Free, no sign-up.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/prayer-times' },
   robots: {
@@ -48,7 +48,8 @@ const jsonLd = {
       '@type': 'BreadcrumbList',
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Prayer Times', item: 'https://www.iloveislam.life/prayer-times' },
+        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 3, name: 'Prayer Times', item: 'https://www.iloveislam.life/prayer-times' },
       ],
     },
     {

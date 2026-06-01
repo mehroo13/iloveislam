@@ -3,14 +3,14 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Halal Scanner — Check if Food is Halal or Haram | I Love Islam',
   description:
-    'Scan any product barcode, QR code, or upload a photo to instantly check if it is Halal, Haram, or Mashbooh. Free ingredient-by-ingredient analysis with no sign-up.',
+    'Scan any food product barcode, QR code, or ingredient list to instantly learn whether it is Halal, Haram, or Mashbooh. Free, no sign-up. Detailed ingredient analysis for Muslim shoppers.',
   keywords: [
     'halal scanner', 'halal food checker', 'haram ingredients', 'halal barcode scanner',
     'is it halal', 'mashbooh', 'E numbers halal', 'halal product checker', 'Islamic food guide',
   ],
   openGraph: {
-    title: 'Halal Scanner — Check if Food is Halal or Haram',
-    description: 'Scan barcodes, QR codes, or upload product photos to instantly check Halal status. Free.',
+    title: 'Halal Scanner — Check if Food is Halal or Haram | I Love Islam',
+    description: 'Scan any food product barcode, QR code, or ingredient list to instantly learn whether it is Halal, Haram, or Mashbooh. Free, no sign-up. Detailed ingredient analysis for Muslim shoppers.',
     url: 'https://www.iloveislam.life/halal-scanner',
     siteName: 'I Love Islam',
     locale: 'en_US',
@@ -48,7 +48,8 @@ const jsonLd = {
       '@type': 'BreadcrumbList',
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Halal Scanner', item: 'https://www.iloveislam.life/halal-scanner' },
+        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 3, name: 'Halal Scanner', item: 'https://www.iloveislam.life/halal-scanner' },
       ],
     },
     {

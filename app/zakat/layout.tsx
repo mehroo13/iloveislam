@@ -3,14 +3,14 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Zakat Calculator 2026 — Free Online Zakat Calculator | I Love Islam',
   description:
-    'Calculate your Zakat accurately. Enter gold, silver, cash, investments & debts. Supports any currency, live gold prices, and tola/grams. Free, no sign‑up.',
+    'Calculate your Zakat accurately. Enter gold, silver, cash, investments, and debts. Supports any currency, live gold prices, and tola/grams. Free, no sign-up.',
   keywords: [
     'zakat calculator', 'calculate zakat', 'zakat on gold', 'zakat on silver', 'nisab', 'islamic tax',
     'zakat money', 'zakat percentage', 'zakah', 'how much zakat', 'zakat due date',
   ],
   openGraph: {
-    title: 'Zakat Calculator — Easy & Accurate Zakat Calculation | I Love Islam',
-    description: 'Calculate your Zakat with live gold prices, custom currency, and a detailed breakdown.',
+    title: 'Zakat Calculator 2026 — Free Online Zakat Calculator | I Love Islam',
+    description: 'Calculate your Zakat accurately. Enter gold, silver, cash, investments, and debts. Supports any currency, live gold prices, and tola/grams. Free, no sign-up.',
     url: 'https://www.iloveislam.life/zakat',
     siteName: 'I Love Islam',
     locale: 'en_US',
@@ -19,8 +19,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Zakat Calculator | I Love Islam',
-    description: 'Free, accurate Zakat calculator with live gold prices.',
+    title: 'Zakat Calculator 2026 — Free Online Zakat Calculator | I Love Islam',
+    description: 'Calculate your Zakat accurately. Enter gold, silver, cash, investments, and debts. Supports any currency, live gold prices, and tola/grams. Free, no sign-up.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/zakat' },
   robots: {
@@ -47,7 +47,8 @@ const jsonLd = {
       '@type': 'BreadcrumbList',
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Zakat Calculator', item: 'https://www.iloveislam.life/zakat' },
+        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 3, name: 'Zakat Calculator', item: 'https://www.iloveislam.life/zakat' },
       ],
     },
     {

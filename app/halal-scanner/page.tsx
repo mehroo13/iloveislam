@@ -1,8 +1,20 @@
+import Link from 'next/link';
 import HalalScanner from "./components/HalalScanner";
 
 export default function HalalScannerPage() {
   return (
     <>
+      <nav aria-label="Breadcrumb" className="max-w-3xl mx-auto px-4 py-3 text-sm text-gray-600">
+        <Link href="/" className="hover:underline">Home</Link>
+        <span className="mx-2">›</span>
+        <Link href="/" className="hover:underline">Tools</Link>
+        <span className="mx-2">›</span>
+        <span className="font-semibold text-gray-900">Halal Scanner</span>
+      </nav>
+      <div className="sr-only">
+        <p>Halal Scanner checks whether food products are Halal, Haram, or Mashbooh by analyzing barcodes, QR codes, and ingredient lists. It highlights problematic additives and helps Muslim shoppers avoid doubtful food items.</p>
+        <p>The tool is free, works without registration, and makes it faster to evaluate product labels using a trusted Halal ingredient database. It is designed for everyday groceries, medicines, cosmetics, and ingredients that may contain hidden Haram sources.</p>
+      </div>
       <HalalScanner />
       <section className="max-w-3xl mx-auto px-4 py-10 pb-16 space-y-6">
         <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
@@ -107,6 +119,16 @@ export default function HalalScannerPage() {
                 </div>
               </details>
             ))}
+          </div>
+        </div>
+      </section>
+      <section className="max-w-3xl mx-auto px-4 pb-16">
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+          <h3 className="text-lg font-bold text-gray-800 mb-3">Related Tools for Muslim Daily Life</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+            <Link href="/prayer-times" className="rounded-xl border border-gray-200 bg-slate-50 px-4 py-3 text-slate-900 hover:bg-slate-100">Prayer Times</Link>
+            <Link href="/zakat" className="rounded-xl border border-gray-200 bg-slate-50 px-4 py-3 text-slate-900 hover:bg-slate-100">Zakat Calculator</Link>
+            <Link href="/dua" className="rounded-xl border border-gray-200 bg-slate-50 px-4 py-3 text-slate-900 hover:bg-slate-100">Dua Guide</Link>
           </div>
         </div>
       </section>

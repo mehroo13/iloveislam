@@ -18,9 +18,9 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Free Islamic Tools & Resources | I Love Islam',
+  title: 'I Love Islam — Free Islamic Tools for Every Muslim',
   description:
-    'Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kids Islamic Games, and 25+ more free Islamic tools. No sign-up required.',
+    'The complete library of free Islamic tools for every Muslim. 26+ tools including Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Halal Scanner, Dua Guide, and more. No sign-up.',
   metadataBase: new URL('https://www.iloveislam.life'),
   keywords: [
     'Islamic tools',
@@ -43,9 +43,9 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'I Love Islam — Free Islamic Tools & Kids Games',
+    title: 'I Love Islam — Free Islamic Tools for Every Muslim',
     description:
-      'Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kids Islamic Games, and 25+ more free Islamic tools.',
+      'The complete library of free Islamic tools for every Muslim. 26+ tools including Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Halal Scanner, Dua Guide, and more. No sign-up.',
     url: 'https://www.iloveislam.life',
     siteName: 'I Love Islam',
     locale: 'en_US',
@@ -61,9 +61,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'I Love Islam — Free Islamic Tools & Kids Games',
+    title: 'I Love Islam — Free Islamic Tools for Every Muslim',
     description:
-      'Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kids Islamic Games, and 25+ more free Islamic tools.',
+      'The complete library of free Islamic tools for every Muslim. 26+ tools including Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Halal Scanner, Dua Guide, and more. No sign-up.',
     images: ['/optimized/og-image.webp'],
     creator: '@iloveislam_life',
   },
@@ -106,7 +106,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   '@type': 'WebSite',
                   name: 'I Love Islam',
                   url: 'https://www.iloveislam.life',
-                  description: 'Free Islamic tools for every Muslim — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kids Islamic Games, and more.',
+                  description: 'The complete library of free Islamic tools for every Muslim. 26+ tools including Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Halal Scanner, Dua Guide, and more. No sign-up.',
                   publisher: { '@id': '#organization' },
                   potentialAction: {
                     '@type': 'SearchAction',
@@ -140,7 +140,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {
                   '@type': 'WebApplication',
                   name: 'I Love Islam — Islamic Tools Suite',
-                  description: 'Free comprehensive suite of Islamic tools including Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Halal Scanner, Kids Games, and 25+ more tools.',
+                  description: 'The complete library of free Islamic tools for every Muslim. 26+ tools including Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Halal Scanner, Dua Guide, and more. No sign-up.',
                   url: 'https://www.iloveislam.life',
                   applicationCategory: 'LifestyleApplication',
                   operatingSystem: 'Web',

@@ -3,14 +3,14 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Qibla Finder — Find Accurate Qibla Direction from Anywhere | I Love Islam',
   description:
-    'Find the exact Qibla direction from your location. Use GPS or search a city. Includes a live compass and distance to Kaaba. Free, no sign‑up.',
+    'Find the exact Qibla direction from your location or any city. Use GPS or search by city, view the live compass bearing, and see distance to the Kaaba. Free, no sign-up.',
   keywords: [
     'qibla finder', 'qibla direction', 'find qibla', 'kaaba direction', 'mecca direction', 'prayer direction',
     'qibla compass', 'online qibla', 'qibla locator', 'muslim qibla',
   ],
   openGraph: {
-    title: 'Qibla Finder — Find Qibla Direction from Anywhere | I Love Islam',
-    description: 'Find the exact direction to the Kaaba from your current location or any city.',
+    title: 'Qibla Finder — Find Accurate Qibla Direction from Anywhere | I Love Islam',
+    description: 'Find the exact Qibla direction from your location or any city. Use GPS, search a city, and view the live compass bearing to the Kaaba. Free, no sign-up.',
     url: 'https://www.iloveislam.life/qibla',
     siteName: 'I Love Islam',
     locale: 'en_US',
@@ -19,8 +19,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Qibla Finder | I Love Islam',
-    description: 'Free Qibla compass with live direction.',
+    title: 'Qibla Finder — Find Accurate Qibla Direction from Anywhere | I Love Islam',
+    description: 'Find the exact Qibla direction from your location or any city. Use GPS, search a city, and view the live compass bearing to the Kaaba. Free, no sign-up.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/qibla' },
   robots: {
@@ -47,7 +47,8 @@ const jsonLd = {
       '@type': 'BreadcrumbList',
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Qibla Finder', item: 'https://www.iloveislam.life/qibla' },
+        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 3, name: 'Qibla Finder', item: 'https://www.iloveislam.life/qibla' },
       ],
     },
     {

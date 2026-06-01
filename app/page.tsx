@@ -7,7 +7,7 @@ export const revalidate = 3600; // ISR: revalidate every hour
 export const metadata: Metadata = {
   title: 'I Love Islam — Free Islamic Tools for Every Muslim',
   description:
-    'Free Islamic tools: Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, HalalScan, Dhikr Counter, Hijri Calendar, Hadith Search and 26+ more. No sign-up. Works worldwide.',
+    'The complete library of free Islamic tools for every Muslim. 26+ tools including Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Halal Scanner, Dua Guide, and more. No sign-up.',
   metadataBase: new URL('https://www.iloveislam.life'),
   keywords:
     'islamic tools, zakat calculator, prayer times, qibla finder, quran reader, halal scanner, dhikr counter, hijri calendar, halal haram checker, free muslim app',
@@ -21,8 +21,8 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'I Love Islam — Free Islamic Tools',
-    description: 'The complete free toolkit for every Muslim. 26+ tools, no sign-up.',
+    title: 'I Love Islam — Free Islamic Tools for Every Muslim',
+    description: 'The complete library of free Islamic tools for every Muslim. 26+ tools including Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Halal Scanner, Dua Guide, and more. No sign-up.',
     url: 'https://www.iloveislam.life',
     siteName: 'I Love Islam',
     images: [{ url: 'https://www.iloveislam.life/og-image.png', width: 1200, height: 630 }],
@@ -31,8 +31,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'I Love Islam — Free Islamic Tools',
-    description: '26+ free Islamic tools. No sign-up required.',
+    title: 'I Love Islam — Free Islamic Tools for Every Muslim',
+    description: 'The complete library of free Islamic tools for every Muslim. 26+ tools including Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Halal Scanner, Dua Guide, and more. No sign-up.',
     images: ['https://www.iloveislam.life/og-image.png'],
   },
 };
