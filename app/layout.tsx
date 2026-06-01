@@ -1,11 +1,21 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import { Geist } from 'next/font/google';
 import CMPConsent from './components/CMPConsent';
+import PWAProvider from './components/PWAProvider';
+import InstallPrompt from './components/InstallPrompt';
 import './globals.css';
 import ScrollRestorer from './ScrollRestorer';
 
 const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#0a3d2e',
+};
 
 export const metadata: Metadata = {
   title: 'I Love Islam — Free Islamic Tools & Kids Games',
@@ -73,8 +83,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preload" href="/optimized/og-image.webp" as="image" />
 
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#0a3d2e" />
+        {/* Apple PWA meta tags */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="I Love Islam" />
+        <meta name="mobile-web-app-capable" content="yes" />
 
         {/* Hreflang alternates */}
         <link rel="alternate" hrefLang="en" href="https://www.iloveislam.life/" />
@@ -152,7 +165,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <a href="#main-content" className="sr-only-focusable absolute top-2 left-2 z-50 bg-white text-sm px-3 py-2 rounded-md shadow" aria-label="Skip to main content">Skip to content</a>
         <ScrollRestorer />
         <CMPConsent />
-        {children}
+        <PWAProvider>
+          {children}
+          <InstallPrompt />
+        </PWAProvider>
       </body>
     </html>
   );

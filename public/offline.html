@@ -5,11 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Offline - I Love Islam</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
       background: linear-gradient(135deg, #0a3d2e 0%, #0d5238 50%, #0a3d2e 100%);
@@ -19,48 +15,57 @@
       justify-content: center;
       padding: 20px;
     }
-    .container {
-      text-align: center;
-      max-width: 400px;
-    }
-    .icon {
-      font-size: 80px;
-      margin-bottom: 20px;
-    }
-    h1 {
-      color: #c8a96e;
-      font-size: 28px;
-      margin-bottom: 12px;
-    }
-    p {
-      color: rgba(255,255,255,0.6);
-      font-size: 14px;
-      line-height: 1.6;
-      margin-bottom: 24px;
-    }
-    button {
-      background: #c8a96e;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 30px;
-      font-size: 14px;
-      font-weight: 600;
-      color: #0a3d2e;
-      cursor: pointer;
+    .container { text-align: center; max-width: 420px; width: 100%; }
+    .icon { font-size: 64px; margin-bottom: 16px; }
+    h1 { color: #c8a96e; font-size: 24px; margin-bottom: 8px; }
+    .subtitle { color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.5; margin-bottom: 24px; }
+    .tools-section { text-align: left; margin-bottom: 24px; }
+    .tools-title { color: rgba(255,255,255,0.8); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+    .tools-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .tool-link {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; padding: 10px 12px;
+      color: rgba(255,255,255,0.7); font-size: 12px; text-decoration: none;
       transition: all 0.2s;
     }
-    button:hover {
-      transform: scale(1.02);
-      background: #d4b97a;
+    .tool-link:hover { background: rgba(255,255,255,0.12); color: white; }
+    .tool-icon { font-size: 16px; }
+    .badge { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; }
+    .badge-green { background: #34d399; }
+    .badge-yellow { background: #fbbf24; }
+    .retry-btn {
+      background: #c8a96e; border: none; padding: 14px 28px;
+      border-radius: 30px; font-size: 14px; font-weight: 600;
+      color: #0a3d2e; cursor: pointer; transition: all 0.2s;
+      display: inline-block; margin-top: 8px;
     }
+    .retry-btn:hover { transform: scale(1.02); background: #d4b97a; }
+    .note { color: rgba(255,255,255,0.35); font-size: 11px; margin-top: 16px; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="icon">📡</div>
     <h1>You're Offline</h1>
-    <p>Please check your internet connection and try again. Once you're back online, all tools will work normally.</p>
-    <button onclick="window.location.reload()">Retry Connection</button>
+    <p class="subtitle">No internet connection detected. These cached tools still work:</p>
+
+    <div class="tools-section">
+      <p class="tools-title">🟢 Available Offline</p>
+      <div class="tools-grid">
+        <a href="/dhikr" class="tool-link"><span class="tool-icon">📿</span> Dhikr Counter</a>
+        <a href="/zakat" class="tool-link"><span class="tool-icon">💰</span> Zakat Calc</a>
+        <a href="/names" class="tool-link"><span class="tool-icon">⭐</span> 99 Names</a>
+        <a href="/hijri" class="tool-link"><span class="tool-icon">🌙</span> Hijri Calendar</a>
+        <a href="/dua" class="tool-link"><span class="tool-icon">🤲</span> Dua Generator</a>
+        <a href="/kids" class="tool-link"><span class="tool-icon">🎮</span> Kids Games</a>
+        <a href="/ramadan" class="tool-link"><span class="tool-icon">🌙</span> Ramadan Planner</a>
+        <a href="/sadaqah" class="tool-link"><span class="tool-icon">❤️</span> Sadaqah Tracker</a>
+      </div>
+    </div>
+
+    <button class="retry-btn" onclick="window.location.reload()">🔄 Retry Connection</button>
+    <p class="note">Once you're back online, all tools will work normally.</p>
   </div>
 </body>
 </html>

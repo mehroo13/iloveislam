@@ -6,7 +6,7 @@
   "display": "standalone",
   "background_color": "#0a3d2e",
   "theme_color": "#0a3d2e",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
   "scope": "/",
   "id": "/",
   "lang": "en",
@@ -55,27 +55,86 @@
       "name": "Prayer Times",
       "short_name": "Prayer",
       "description": "Check today's prayer times for your location",
-      "url": "/prayer-times"
+      "url": "/prayer-times",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Qibla Finder",
       "short_name": "Qibla",
       "description": "Find the direction of the Holy Kaaba",
-      "url": "/qibla"
+      "url": "/qibla",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Zakat Calculator",
       "short_name": "Zakat",
       "description": "Calculate your annual Zakat",
-      "url": "/zakat"
+      "url": "/zakat",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Quran Reader",
       "short_name": "Quran",
       "description": "Read the Holy Quran with translation",
-      "url": "/quran"
+      "url": "/quran",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dhikr Counter",
+      "short_name": "Dhikr",
+      "description": "Digital tasbih for daily remembrance",
+      "url": "/dhikr",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Halal Scanner",
+      "short_name": "HalalScan",
+      "description": "Scan food products for halal status",
+      "url": "/halal-scanner",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "99 Names of Allah",
+      "short_name": "99 Names",
+      "description": "Explore Asma ul Husna",
+      "url": "/names",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dua Generator",
+      "short_name": "Duas",
+      "description": "Supplications for every moment",
+      "url": "/dua",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Hijri Calendar",
+      "short_name": "Hijri",
+      "description": "Islamic date converter",
+      "url": "/hijri",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Kids Islamic Games",
+      "short_name": "Kids",
+      "description": "Fun educational Islamic games",
+      "url": "/kids",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/optimized/og-image.webp",
+      "sizes": "1200x630",
+      "type": "image/webp",
+      "form_factor": "wide",
+      "label": "I Love Islam - Islamic Tools Suite"
     }
   ],
   "related_applications": [],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
 }

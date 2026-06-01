@@ -1,25 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
-
+// DEPRECATED: Service worker registration is now handled by PWAProvider.
+// This file is kept for backward compatibility but does nothing.
 export default function ServiceWorkerRegistration() {
-  useEffect(() => {
-    // Only register service worker in production and if supported
-    if (typeof window !== 'undefined' && 
-        'serviceWorker' in navigator && 
-        process.env.NODE_ENV === 'production') {
-      
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then((registration) => {
-            console.log('Service Worker registered successfully:', registration);
-          })
-          .catch((error) => {
-            console.log('Service Worker registration failed:', error);
-          });
-      });
-    }
-  }, []);
-
   return null;
 }
