@@ -282,7 +282,7 @@ const ALL_FEATURED_TOOLS = [
   { href: '/dhikr', badge: '📿 Worship', title: 'Dhikr Counter', desc: 'Your digital tasbih for daily remembrance', icon: '📿', gradient: 'linear-gradient(135deg, #1a0a1a, #2d1040)', accent: '#c084fc' },
   { href: '/hijri', badge: '🌙 Calendar', title: 'Hijri Calendar', desc: 'Convert Islamic and Gregorian dates', icon: '🌙', gradient: 'linear-gradient(135deg, #0a0f1a, #101a3d)', accent: '#7dd3fc' },
   { href: '/night', badge: '🌙 Sleep', title: 'Night Recitation', desc: 'Sleep with Al-Sudais — Mulk, Ya-Sin & more', icon: '🌙', gradient: 'linear-gradient(135deg, #050d14, #0d1f2d)', accent: '#60a5fa' },
-  { href: '/kids', badge: '🎮 Kids!', title: 'Islamic Games Hub', desc: '11 fun educational games for children', icon: '🧒', gradient: 'linear-gradient(135deg, #1a0a14, #3d1028)', accent: '#f9a8d4' },
+  { href: '/kids', badge: '🎮 Kids!', title: 'Islamic Games Hub', desc: '17 fun educational games for children', icon: '🧒', gradient: 'linear-gradient(135deg, #1a0a14, #3d1028)', accent: '#f9a8d4' },
   { href: '/names', badge: '⭐ Asma', title: '99 Names of Allah', desc: 'Explore and reflect on Asma ul Husna', icon: '⭐', gradient: 'linear-gradient(135deg, #1a0800, #3d1400)', accent: '#fb923c' },
   { href: '/ramadan', badge: '🌙 Ramadan', title: 'Ramadan Planner', desc: 'Suhoor, Iftar & worship tracker', icon: '🌙', gradient: 'linear-gradient(135deg, #080a1a, #101840)', accent: '#a5b4fc' },
   { href: '/hadith', badge: '🔍 Knowledge', title: 'Hadith Search', desc: 'Search authenticated hadith collections', icon: '🔍', gradient: 'linear-gradient(135deg, #0a1010, #103030)', accent: '#67e8f9' },
@@ -349,7 +349,7 @@ const TOOLS_DATA = (t: TranslationsType) => [
   {
     category: t.kids, emoji: '🧒',
     items: [
-      { name: 'Islamic Games Hub', desc: '11 fun Islamic games for kids', icon: '🎮', href: '/kids', color: 'bg-pink-100 text-pink-700' },
+      { name: 'Islamic Games Hub', desc: '17 fun Islamic games for kids', icon: '🎮', href: '/kids', color: 'bg-pink-100 text-pink-700' },
     ],
   },
 ];
