@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Dhikr Counter — Free Islamic Tasbeeh & Zikr Tracker | I Love Islam',
+  title: 'Dhikr Counter — Free Online Tasbeeh Counter | I Love Islam',
   description:
     'Count daily dhikr with beautiful presets: Subhanallah, Alhamdulillah, Allahu Akbar, Salawat, Istighfar. Track streaks, history, and per‑dhikr statistics. Free, no sign‑up.',
   keywords: [
@@ -11,17 +11,18 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Dhikr Counter — Tasbeeh & Zikr Tracker | I Love Islam',
     description: 'Count your daily dhikr with beautiful presets, track streaks, and see your history.',
-    url: 'https://iloveislam.life/dhikr-counter',
+    url: 'https://www.iloveislam.life/dhikr-counter',
     siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Dhikr Counter | I Love Islam',
     description: 'Free Islamic tasbeeh counter with progress tracking.',
   },
-  alternates: { canonical: 'https://iloveislam.life/dhikr-counter' },
+  alternates: { canonical: 'https://www.iloveislam.life/dhikr-counter' },
   robots: {
     index: true, follow: true,
     googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
@@ -39,14 +40,14 @@ const jsonLd = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
         'A digital Islamic tasbeeh counter with preset dhikr, target tracking, session streaks, and detailed per‑dhikr statistics — all stored locally in your browser.',
-      url: 'https://iloveislam.life/dhikr-counter',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
+      url: 'https://www.iloveislam.life/dhikr-counter',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Dhikr Counter', item: 'https://iloveislam.life/dhikr-counter' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Dhikr Counter', item: 'https://www.iloveislam.life/dhikr-counter' },
       ],
     },
     {

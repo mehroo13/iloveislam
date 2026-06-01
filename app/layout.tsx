@@ -18,9 +18,9 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'I Love Islam — Free Islamic Tools & Kids Games',
+  title: 'Free Islamic Tools & Resources | I Love Islam',
   description:
-    'Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kids Islamic Games, and 25+ more free Islamic tools.',
+    'Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Kids Islamic Games, and 25+ more free Islamic tools. No sign-up required.',
   metadataBase: new URL('https://www.iloveislam.life'),
   keywords: [
     'Islamic tools',

@@ -517,7 +517,7 @@ export default function DhikrCounter() {
 
   const handleShare = async () => {
     if (navigator.share) {
-      try { await navigator.share({ title: 'Dhikr Counter — I Love Islam', text: shareText, url: 'https://iloveislam.life/dhikr' }); return; } catch {}
+      try { await navigator.share({ title: 'Dhikr Counter — I Love Islam', text: shareText, url: 'https://www.iloveislam.life/dhikr' }); return; } catch {}
     }
     setShowShare(true);
   };
@@ -1024,7 +1024,7 @@ export default function DhikrCounter() {
                 style={{ display: 'block', padding: 14, background: '#25d366', color: '#fff', borderRadius: 14, fontSize: 14, fontWeight: 700, textDecoration: 'none', textAlign: 'center', fontFamily: 'Georgia, serif' }}>
                 💬 Share on WhatsApp
               </a>
-              <a href={`https://t.me/share/url?url=https://iloveislam.life/dhikr&text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer"
+              <a href={`https://t.me/share/url?url=https://www.iloveislam.life/dhikr&text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer"
                 style={{ display: 'block', padding: 14, background: '#0088cc', color: '#fff', borderRadius: 14, fontSize: 14, fontWeight: 700, textDecoration: 'none', textAlign: 'center', fontFamily: 'Georgia, serif' }}>
                 ✈️ Share on Telegram
               </a>

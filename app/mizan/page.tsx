@@ -472,7 +472,7 @@ export default function Mizan() {
     const arch = result.archetype;
     const text = `✦ My Islamic Blueprint ✦\n\nI am "${result.subTitle}"\nArchetype: ${arch.title} — ${arch.name}\n${arch.arabic}\n\nMy Divine Name: ${arch.divineName} ${arch.divineArabic}\nLife ${result.life} · Soul ${result.soul} · Destiny ${result.destiny}\n\n"${arch.verse}"\n— ${arch.verseRef}\n\n🌿 Discover YOUR Islamic Blueprint free:\niloveislam.life/mizan\n\n#ILoveIslam #IslamicBlueprint #Mizan`;
     if (navigator.share && /Mobi|Android/i.test(navigator.userAgent)) {
-      navigator.share({ title: 'My Islamic Blueprint — Mizan', text, url: 'https://iloveislam.life/mizan' }).catch(() => {});
+      navigator.share({ title: 'My Islamic Blueprint — Mizan', text, url: 'https://www.iloveislam.life/mizan' }).catch(() => {});
     } else {
       navigator.clipboard?.writeText(text).catch(() => {
         const el = document.createElement('textarea');

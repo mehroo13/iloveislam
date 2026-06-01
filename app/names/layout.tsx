@@ -11,17 +11,18 @@ export const metadata: Metadata = {
   openGraph: {
     title: '99 Names of Allah & Prophet Muhammad ﷺ | I Love Islam',
     description: 'Learn the 99 beautiful names of Allah and the blessed names of Prophet Muhammad ﷺ.',
-    url: 'https://iloveislam.life/names-of-allah',
+    url: 'https://www.iloveislam.life/names-of-allah',
     siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: '99 Names of Allah & Prophet | I Love Islam',
     description: 'Free interactive guide to divine names.',
   },
-  alternates: { canonical: 'https://iloveislam.life/names-of-allah' },
+  alternates: { canonical: 'https://www.iloveislam.life/names-of-allah' },
   robots: {
     index: true, follow: true,
     googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
@@ -39,14 +40,14 @@ const jsonLd = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
         'Browse and learn the 99 names of Allah (Asma ul Husna) and the blessed names of Prophet Muhammad ﷺ, each with Arabic, transliteration, meaning, and benefits.',
-      url: 'https://iloveislam.life/names-of-allah',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
+      url: 'https://www.iloveislam.life/names-of-allah',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Names of Allah & Prophet', item: 'https://iloveislam.life/names-of-allah' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Names of Allah & Prophet', item: 'https://www.iloveislam.life/names-of-allah' },
       ],
     },
     {

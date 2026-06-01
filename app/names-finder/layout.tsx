@@ -21,10 +21,11 @@ export const metadata: Metadata = {
     title: 'Islamic Name Finder — 14,000+ Muslim Baby Names | I Love Islam',
     description:
       'Search 14,585+ Islamic names for boys and girls with Arabic script, full meanings, and origins. Free and instant.',
-    url: 'https://iloveislam.life/names',
+    url: 'https://www.iloveislam.life/names',
     siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
@@ -33,7 +34,7 @@ export const metadata: Metadata = {
       'Search 14,585+ Islamic baby names with Arabic script, meanings, and origins. Free, instant search.',
   },
   alternates: {
-    canonical: 'https://iloveislam.life/names',
+    canonical: 'https://www.iloveislam.life/names',
   },
   robots: {
     index: true,
@@ -53,14 +54,14 @@ const jsonLd = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
         'Search 14,585+ Islamic baby names for boys and girls with Arabic script, full meanings, and origins. Filter by Quranic names, Prophets, Sahaba, and more.',
-      url: 'https://iloveislam.life/names',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
+      url: 'https://www.iloveislam.life/names',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home',              item: 'https://iloveislam.life'       },
-        { '@type': 'ListItem', position: 2, name: 'Islamic Name Finder', item: 'https://iloveislam.life/names' },
+        { '@type': 'ListItem', position: 1, name: 'Home',              item: 'https://www.iloveislam.life'       },
+        { '@type': 'ListItem', position: 2, name: 'Islamic Name Finder', item: 'https://www.iloveislam.life/names' },
       ],
     },
     {

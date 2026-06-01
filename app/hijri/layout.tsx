@@ -11,17 +11,18 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Hijri Calendar Converter | I Love Islam',
     description: 'Convert dates between Gregorian and Hijri, see today’s Islamic date, and browse all Hijri months.',
-    url: 'https://iloveislam.life/hijri-calendar',
+    url: 'https://www.iloveislam.life/hijri-calendar',
     siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Hijri Calendar Converter | I Love Islam',
     description: 'Free Hijri to Gregorian date converter with Islamic events.',
   },
-  alternates: { canonical: 'https://iloveislam.life/hijri-calendar' },
+  alternates: { canonical: 'https://www.iloveislam.life/hijri-calendar' },
   robots: {
     index: true, follow: true,
     googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
@@ -39,14 +40,14 @@ const jsonLd = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
         'Convert dates between the Gregorian and Hijri calendars, view today’s Islamic date, and explore all Hijri months with their Islamic significance.',
-      url: 'https://iloveislam.life/hijri-calendar',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
+      url: 'https://www.iloveislam.life/hijri-calendar',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Hijri Calendar', item: 'https://iloveislam.life/hijri-calendar' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Hijri Calendar', item: 'https://www.iloveislam.life/hijri-calendar' },
       ],
     },
     {

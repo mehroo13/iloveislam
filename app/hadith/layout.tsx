@@ -11,17 +11,18 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Hadith Search — Authentic Hadiths in English & Urdu | I Love Islam',
     description: 'Search thousands of hadiths from six authentic collections. Bookmark and copy easily.',
-    url: 'https://iloveislam.life/hadith-search',
+    url: 'https://www.iloveislam.life/hadith-search',
     siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Hadith Search | I Love Islam',
     description: 'Free hadith search across six major collections.',
   },
-  alternates: { canonical: 'https://iloveislam.life/hadith-search' },
+  alternates: { canonical: 'https://www.iloveislam.life/hadith-search' },
   robots: {
     index: true, follow: true,
     googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
@@ -39,14 +40,14 @@ const jsonLd = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
         'Search authentic hadiths from Sahih Bukhari, Sahih Muslim, Abu Dawud, Tirmidhi, Nasa’i, and Ibn Majah. Supports English and Urdu translations with bookmarking.',
-      url: 'https://iloveislam.life/hadith-search',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
+      url: 'https://www.iloveislam.life/hadith-search',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Hadith Search', item: 'https://iloveislam.life/hadith-search' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Hadith Search', item: 'https://www.iloveislam.life/hadith-search' },
       ],
     },
     {

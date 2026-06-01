@@ -11,17 +11,18 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Mizan — Islamic Archetype & Life Purpose | I Love Islam',
     description: 'Uncover your spiritual blueprint with personalised Quranic guidance.',
-    url: 'https://iloveislam.life/mizan',
+    url: 'https://www.iloveislam.life/mizan',
     siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Mizan | I Love Islam',
     description: 'Discover your Islamic archetype and divine purpose.',
   },
-  alternates: { canonical: 'https://iloveislam.life/mizan' },
+  alternates: { canonical: 'https://www.iloveislam.life/mizan' },
   robots: {
     index: true, follow: true,
     googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
@@ -39,14 +40,14 @@ const jsonLd = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
         'A spiritual self‑reflection tool that maps your birth date to an Islamic archetype linked to a Divine Name, Quranic verse, daily verses, and life purpose.',
-      url: 'https://iloveislam.life/mizan',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
+      url: 'https://www.iloveislam.life/mizan',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Mizan', item: 'https://iloveislam.life/mizan' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Mizan', item: 'https://www.iloveislam.life/mizan' },
       ],
     },
     {

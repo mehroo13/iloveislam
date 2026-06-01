@@ -9,19 +9,20 @@ export const metadata: Metadata = {
     'hotels near mosque', 'halal travel guide', 'muslim travel', 'halal trip planner',
   ],
   openGraph: {
-    title: 'Halal Travel — Mosques, Halal Food & Prayer Times | I Love Islam',
+    title: 'Muslim Travel Guide — Halal Food & Mosque Finder | I Love Islam',
     description: 'Find everything you need for a blessed journey: halal food, mosques, hotels, and prayer times.',
-    url: 'https://iloveislam.life/halal-travel',
+    url: 'https://www.iloveislam.life/halal-travel',
     siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Halal Travel | I Love Islam',
     description: 'Free halal travel assistant with mosque and restaurant finder.',
   },
-  alternates: { canonical: 'https://iloveislam.life/halal-travel' },
+  alternates: { canonical: 'https://www.iloveislam.life/halal-travel' },
   robots: {
     index: true, follow: true,
     googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
@@ -39,14 +40,14 @@ const jsonLd = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
         'A complete halal travel companion: find halal restaurants, mosques, and hotels near any location or city, plus get prayer times for your destination.',
-      url: 'https://iloveislam.life/halal-travel',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
+      url: 'https://www.iloveislam.life/halal-travel',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Halal Travel', item: 'https://iloveislam.life/halal-travel' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Halal Travel', item: 'https://www.iloveislam.life/halal-travel' },
       ],
     },
     {

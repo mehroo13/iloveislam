@@ -8,7 +8,8 @@ export const metadata: Metadata = {
     title: 'Contact Us — I Love Islam',
     description: 'Reach out to the I Love Islam team. We’re here to help.',
     type: 'website',
-    url: 'https://iloveislam.life/contact',
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
+    url: 'https://www.iloveislam.life/contact',
     siteName: 'I Love Islam',
     locale: 'en_US',
   },
@@ -17,13 +18,36 @@ export const metadata: Metadata = {
     title: 'Contact Us — I Love Islam',
     description: 'Report bugs, suggest tools, or just say salam.',
   },
-  alternates: { canonical: 'https://iloveislam.life/contact' },
+  alternates: { canonical: 'https://www.iloveislam.life/contact' },
   robots: { index: true, follow: true },
+};
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'ContactPage',
+      name: 'Contact I Love Islam',
+      description: 'Get in touch with the I Love Islam team. Report bugs, suggest new tools, or ask questions.',
+      url: 'https://www.iloveislam.life/contact',
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Contact', item: 'https://www.iloveislam.life/contact' },
+      ],
+    },
+  ],
 };
 
 export default function ContactLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {children}
       <section className="max-w-xl mx-auto px-4 py-8 pb-16 space-y-6">
         <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">

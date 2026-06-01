@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Dua Generator — Authentic Duas from Quran & Sunnah | I Love Islam',
+  title: '500+ Islamic Duas — Dua for Every Occasion | I Love Islam',
   description:
     'Browse authentic duas with Arabic, transliteration, translation (English & Urdu), and references. Free, no sign‑up. Includes daily dua, search, and categories.',
   keywords: [
@@ -9,19 +9,20 @@ export const metadata: Metadata = {
     'authentic duas', 'supplication', 'islamic prayer', 'free dua app',
   ],
   openGraph: {
-    title: 'Dua Generator — Authentic Duas from Quran & Sunnah | I Love Islam',
+    title: '500+ Islamic Duas — Dua for Every Occasion | I Love Islam',
     description: 'Browse a large collection of authentic duas with translations and references.',
-    url: 'https://iloveislam.life/dua-generator',
+    url: 'https://www.iloveislam.life/dua-generator',
     siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Dua Generator | I Love Islam',
     description: 'Free authentic dua collection with English and Urdu translations.',
   },
-  alternates: { canonical: 'https://iloveislam.life/dua-generator' },
+  alternates: { canonical: 'https://www.iloveislam.life/dua-generator' },
   robots: {
     index: true, follow: true,
     googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
@@ -39,14 +40,14 @@ const jsonLd = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
         'A curated collection of authentic duas from the Quran and Sahih hadith. Browse by category, search by keyword, and toggle between English and Urdu translations.',
-      url: 'https://iloveislam.life/dua-generator',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
+      url: 'https://www.iloveislam.life/dua-generator',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Dua Generator', item: 'https://iloveislam.life/dua-generator' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Dua Generator', item: 'https://www.iloveislam.life/dua-generator' },
       ],
     },
     {

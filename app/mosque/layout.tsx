@@ -11,17 +11,18 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Mosque Finder — Nearest Masjid & Prayer Times | I Love Islam',
     description: 'Locate mosques nearby with live prayer times and directions.',
-    url: 'https://iloveislam.life/mosque-finder',
+    url: 'https://www.iloveislam.life/mosque-finder',
     siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Mosque Finder | I Love Islam',
     description: 'Free mosque locator with live prayer times.',
   },
-  alternates: { canonical: 'https://iloveislam.life/mosque-finder' },
+  alternates: { canonical: 'https://www.iloveislam.life/mosque-finder' },
   robots: {
     index: true, follow: true,
     googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
@@ -39,14 +40,14 @@ const jsonLd = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
         'Find mosques (masjids) near your current location or any city using OpenStreetMap data. Each mosque shows live daily prayer times calculated from the Aladhan API.',
-      url: 'https://iloveislam.life/mosque-finder',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
+      url: 'https://www.iloveislam.life/mosque-finder',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Mosque Finder', item: 'https://iloveislam.life/mosque-finder' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Mosque Finder', item: 'https://www.iloveislam.life/mosque-finder' },
       ],
     },
     {

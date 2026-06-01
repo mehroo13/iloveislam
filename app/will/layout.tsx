@@ -11,17 +11,18 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Islamic Will Generator — Free Wasiyyah Draft | I Love Islam',
     description: 'Create a basic Islamic will according to Shariah guidelines in minutes.',
-    url: 'https://iloveislam.life/islamic-will',
+    url: 'https://www.iloveislam.life/islamic-will',
     siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Islamic Will Generator | I Love Islam',
     description: 'Free Islamic will draft maker.',
   },
-  alternates: { canonical: 'https://iloveislam.life/islamic-will' },
+  alternates: { canonical: 'https://www.iloveislam.life/islamic-will' },
   robots: {
     index: true, follow: true,
     googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
@@ -39,14 +40,14 @@ const jsonLd = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
         'Create a basic Islamic will (Wasiyyah) according to Shariah. Enter your details, executor, charitable bequests, and generate a printable draft.',
-      url: 'https://iloveislam.life/islamic-will',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
+      url: 'https://www.iloveislam.life/islamic-will',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Islamic Will', item: 'https://iloveislam.life/islamic-will' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Islamic Will', item: 'https://www.iloveislam.life/islamic-will' },
       ],
     },
     {

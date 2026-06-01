@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Kids Islamic Games — Fun & Educational | I Love Islam",
+  title: "Free Islamic Games for Kids — Learn Islam Through Play | I Love Islam",
   description:
     "Free Islamic games for kids! Memory match, prayer guide, Arabic letters, dua learning, and 5 pillars quiz. 100% free, no ads, no sign-up. Help your children learn about Islam through play.",
   keywords: [
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     "children Islamic education",
   ],
   openGraph: {
-    title: "Kids Islamic Games — Fun & Educational | I Love Islam",
+    title: "Free Islamic Games for Kids — Learn Islam Through Play | I Love Islam",
     description:
       "Free Islamic games for kids! Memory match, prayer guide, Arabic letters, and more. 100% free, no ads.",
     url: "https://www.iloveislam.life/kids",
@@ -25,9 +25,61 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kids Islamic Games — Fun & Educational | I Love Islam",
+    title: "Free Islamic Games for Kids — Learn Islam Through Play | I Love Islam",
     description: "Free Islamic games for kids! Memory match, prayer guide, Arabic letters, and more.",
+    images: ['/optimized/og-image.webp'],
   },
+  alternates: { canonical: "https://www.iloveislam.life/kids" },
+  robots: {
+    index: true, follow: true,
+    googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
+  },
+};
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Kids Islamic Games Hub',
+      applicationCategory: 'GameApplication',
+      operatingSystem: 'Web',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      description:
+        'Free Islamic educational games for kids: memory match, prayer guide, Arabic letters, dua learning, 5 pillars quiz, and 12 more games. No ads, no sign-up.',
+      url: 'https://www.iloveislam.life/kids',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
+      audience: { '@type': 'Audience', audienceType: 'Children' },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Kids Islamic Games', item: 'https://www.iloveislam.life/kids' },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'Are these Islamic games safe for children?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Yes, all games are ad-free, require no registration, collect no personal data, and are reviewed for Islamic accuracy and age-appropriateness.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'What age group are these games for?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'The games are designed for children ages 4-12, with varying difficulty levels suitable for different age groups.',
+          },
+        },
+      ],
+    },
+  ],
 };
 
 export default function KidsLayout({
@@ -37,6 +89,10 @@ export default function KidsLayout({
 }) {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {children}
       <section className="max-w-3xl mx-auto px-4 py-10 pb-16 space-y-6">
         <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">

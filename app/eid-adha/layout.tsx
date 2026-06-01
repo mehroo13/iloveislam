@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Eid ul Adha Calculator 2025 | Qurbani Calculator, Takbeer Counter & More',
+  title: 'Eid ul Adha Calculator 2026 | Qurbani Calculator, Takbeer Counter & More',
   description:
     'Complete Eid ul Adha Islamic toolkit: Qurbani calculator with share splitting, meat distribution calculator, Takbeer counter, Eid checklist, Sunnah guide, Eid prayer finder, greetings generator, and traditional Eid recipes. Free Islamic tool for Muslims worldwide.',
 
@@ -12,8 +12,8 @@ export const metadata: Metadata = {
     'cow share calculator eid',
     'qurbani distribution calculator',
     'meat distribution eid ul adha',
-    'eid ul adha 2025',
-    'qurbani 2025',
+    'eid ul adha 2026',
+    'qurbani 2026',
     'takbeer counter eid',
     'eid checklist',
     'qurbani rules',
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     'eid mubarak greeting',
     'qurbani price per share',
     'dhul hijjah tracker',
-    'day of arafah 2025',
+    'day of arafah 2026',
     'eid ul adha recipes',
     'halal recipes eid',
     'islamic eid calculator',
@@ -31,20 +31,20 @@ export const metadata: Metadata = {
     'eid adha islamische rechner',
   ].join(', '),
 
-  authors: [{ name: 'iLoveIslam', url: 'https://iloveislam.life' }],
+  authors: [{ name: 'iLoveIslam', url: 'https://www.iloveislam.life' }],
   creator: 'iLoveIslam',
   publisher: 'iLoveIslam',
 
-  metadataBase: new URL('https://iloveislam.life'),
+  metadataBase: new URL('https://www.iloveislam.life'),
 
   alternates: {
-    canonical: 'https://iloveislam.life/eid-ul-adha',
+    canonical: 'https://www.iloveislam.life/eid-ul-adha',
   },
 
   openGraph: {
     type: 'website',
-    url: 'https://iloveislam.life/eid-ul-adha',
-    title: 'Eid ul Adha Calculator 2025 | Complete Islamic Toolkit',
+    url: 'https://www.iloveislam.life/eid-ul-adha',
+    title: 'Eid ul Adha Calculator 2026 | Complete Islamic Toolkit',
     description:
       'Qurbani calculator, share splitter, meat distribution, Takbeer counter, Eid checklist, Sunnah guide & more. The most complete Eid ul Adha tool for Muslims.',
     siteName: 'iLoveIslam',
@@ -61,7 +61,7 @@ export const metadata: Metadata = {
 
   twitter: {
     card: 'summary_large_image',
-    title: 'Eid ul Adha Calculator 2025 | Qurbani Share Calculator',
+    title: 'Eid ul Adha Calculator 2026 | Qurbani Share Calculator',
     description:
       'Free Islamic tool: Qurbani calculator, meat distribution, Takbeer counter, Eid checklist & more.',
     images: ['/og-eid-ul-adha.jpg'],
@@ -95,22 +95,22 @@ const jsonLd = {
   '@graph': [
     {
       '@type': 'WebPage',
-      '@id': 'https://iloveislam.life/eid-ul-adha',
-      url: 'https://iloveislam.life/eid-ul-adha',
-      name: 'Eid ul Adha Calculator 2025 | Complete Islamic Toolkit',
+      '@id': 'https://www.iloveislam.life/eid-ul-adha',
+      url: 'https://www.iloveislam.life/eid-ul-adha',
+      name: 'Eid ul Adha Calculator 2026 | Complete Islamic Toolkit',
       description: 'Free Qurbani calculator, share splitter, meat distribution calculator, Takbeer counter, Eid ul Adha checklist and Sunnah guide.',
       inLanguage: 'en',
       isPartOf: {
         '@type': 'WebSite',
-        '@id': 'https://iloveislam.life/#website',
-        url: 'https://iloveislam.life',
+        '@id': 'https://www.iloveislam.life/#website',
+        url: 'https://www.iloveislam.life',
         name: 'iLoveIslam',
       },
     },
     {
       '@type': 'SoftwareApplication',
       name: 'Qurbani Calculator & Eid ul Adha Toolkit',
-      url: 'https://iloveislam.life/eid-ul-adha',
+      url: 'https://www.iloveislam.life/eid-ul-adha',
       applicationCategory: 'LifestyleApplication',
       operatingSystem: 'Any',
       offers: {
@@ -122,7 +122,7 @@ const jsonLd = {
       author: {
         '@type': 'Organization',
         name: 'iLoveIslam',
-        url: 'https://iloveislam.life',
+        url: 'https://www.iloveislam.life',
       },
       featureList: [
         'Qurbani share calculator',
@@ -157,10 +157,10 @@ const jsonLd = {
         },
         {
           '@type': 'Question',
-          name: 'When is Eid ul Adha 2025?',
+          name: 'When is Eid ul Adha 2026?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Eid ul Adha 2025 is expected to fall on June 6–7, 2025 (subject to moon sighting), corresponding to the 10th of Dhul Hijjah 1446 AH.',
+            text: 'Eid ul Adha 2026 is expected to fall on June 6–7, 2026 (subject to moon sighting), corresponding to the 10th of Dhul Hijjah 1446 AH.',
           },
         },
         {

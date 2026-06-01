@@ -11,17 +11,18 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Kaffarah Calculator — Islamic Expiation Guide | I Love Islam',
     description: 'Find out what Kaffarah is required for broken oaths, Zihar, and more. Customize costs and see the total.',
-    url: 'https://iloveislam.life/kaffarah-calculator',
+    url: 'https://www.iloveislam.life/kaffarah-calculator',
     siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Kaffarah Calculator | I Love Islam',
     description: 'Free tool to calculate Islamic expiations.',
   },
-  alternates: { canonical: 'https://iloveislam.life/kaffarah-calculator' },
+  alternates: { canonical: 'https://www.iloveislam.life/kaffarah-calculator' },
   robots: {
     index: true, follow: true,
     googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
@@ -39,14 +40,14 @@ const jsonLd = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
         'Calculate the Kaffarah (expiation) for broken oaths, Zihar, accidental killing, and intentionally broken Ramadan fasts. Shows monetary equivalent based on local costs.',
-      url: 'https://iloveislam.life/kaffarah-calculator',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
+      url: 'https://www.iloveislam.life/kaffarah-calculator',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Kaffarah Calculator', item: 'https://iloveislam.life/kaffarah-calculator' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Kaffarah Calculator', item: 'https://www.iloveislam.life/kaffarah-calculator' },
       ],
     },
     {

@@ -11,17 +11,18 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Quran Reader — Holy Quran with Translation & Audio | I Love Islam',
     description: 'Read the Quran in Arabic with English/Urdu translation, audio recitation, and bookmarking.',
-    url: 'https://iloveislam.life/quran-reader',
+    url: 'https://www.iloveislam.life/quran-reader',
     siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Quran Reader | I Love Islam',
     description: 'Read, listen, and bookmark the Quran. Free forever.',
   },
-  alternates: { canonical: 'https://iloveislam.life/quran-reader' },
+  alternates: { canonical: 'https://www.iloveislam.life/quran-reader' },
   robots: {
     index: true, follow: true,
     googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
@@ -39,14 +40,14 @@ const jsonLd = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
         'Read the Holy Quran in Arabic with Indo‑Pak Mushaf or verse‑by‑verse, listen to recitations, bookmark verses, and toggle English or Urdu translations.',
-      url: 'https://iloveislam.life/quran-reader',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
+      url: 'https://www.iloveislam.life/quran-reader',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Quran Reader', item: 'https://iloveislam.life/quran-reader' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Quran Reader', item: 'https://www.iloveislam.life/quran-reader' },
       ],
     },
     {

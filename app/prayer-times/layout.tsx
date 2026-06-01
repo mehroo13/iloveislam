@@ -12,17 +12,18 @@ export const metadata: Metadata = {
     title: 'Prayer Times — Accurate Salah Times Worldwide | I Love Islam',
     description:
       'Get precise prayer times for any city. Choose calculation methods and see a live countdown to the next prayer.',
-    url: 'https://iloveislam.life/prayer-times',
+    url: 'https://www.iloveislam.life/prayer-times',
     siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Prayer Times | I Love Islam',
     description: 'Accurate daily prayer times for any city. Free.',
   },
-  alternates: { canonical: 'https://iloveislam.life/prayer-times' },
+  alternates: { canonical: 'https://www.iloveislam.life/prayer-times' },
   robots: {
     index: true, follow: true,
     googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
@@ -40,14 +41,14 @@ const jsonLd = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
         'Accurate Islamic prayer times for any location worldwide, with multiple calculation methods and live next-prayer countdown.',
-      url: 'https://iloveislam.life/prayer-times',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
+      url: 'https://www.iloveislam.life/prayer-times',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Prayer Times', item: 'https://iloveislam.life/prayer-times' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Prayer Times', item: 'https://www.iloveislam.life/prayer-times' },
       ],
     },
     {

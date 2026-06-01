@@ -11,17 +11,18 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Hajj Checklist — Complete Step‑by‑Step Guide | I Love Islam',
     description: 'A comprehensive checklist for every day of Hajj. Track your progress and never miss a rite.',
-    url: 'https://iloveislam.life/hajj-checklist',
+    url: 'https://www.iloveislam.life/hajj-checklist',
     siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Hajj Checklist | I Love Islam',
     description: 'Free Hajj planner and checklist.',
   },
-  alternates: { canonical: 'https://iloveislam.life/hajj-checklist' },
+  alternates: { canonical: 'https://www.iloveislam.life/hajj-checklist' },
   robots: {
     index: true, follow: true,
     googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
@@ -39,14 +40,14 @@ const jsonLd = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
         'A complete step‑by‑step Hajj checklist covering every day from Ihram to Tawaf al‑Wada. Track your progress with checkboxes and get essential duas.',
-      url: 'https://iloveislam.life/hajj-checklist',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
+      url: 'https://www.iloveislam.life/hajj-checklist',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Hajj Checklist', item: 'https://iloveislam.life/hajj-checklist' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Hajj Checklist', item: 'https://www.iloveislam.life/hajj-checklist' },
       ],
     },
     {

@@ -12,21 +12,31 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   if (!article) return {} as Metadata;
   const url = `https://www.iloveislam.life/blog/${article.slug}`;
   return {
-    title: article.title,
+    title: `${article.title} | I Love Islam Blog`,
     description: article.excerpt,
+    keywords: [article.category, 'islamic guide', 'muslim tips', article.slug.replace(/-/g, ' ')],
     alternates: { canonical: url },
+    robots: {
+      index: true, follow: true,
+      googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
+    },
     openGraph: {
       title: article.title,
       description: article.excerpt,
       url,
       type: 'article',
-      images: [{ url: '/og-image.png', alt: article.title }],
+      siteName: 'I Love Islam',
+      locale: 'en_US',
+      publishedTime: article.date,
+      authors: ['I Love Islam'],
+      images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: article.title }],
     },
     twitter: {
       card: 'summary_large_image',
       title: article.title,
       description: article.excerpt,
-      images: ['/og-image.png'],
+      images: ['/optimized/og-image.webp'],
+      creator: '@iloveislam_life',
     },
   } as Metadata;
 }

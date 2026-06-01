@@ -1,3 +1,14 @@
+# robots.txt for iloveislam.life
 User-agent: *
 Allow: /
+
+# Disallow API and internal routes
+Disallow: /api/
+Disallow: /_next/
+Disallow: /admin/
+
+# Sitemap
 Sitemap: https://www.iloveislam.life/sitemap.xml
+
+# Crawl-delay (optional, for polite crawling)
+Crawl-delay: 1

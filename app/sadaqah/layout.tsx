@@ -11,17 +11,18 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Sadaqah Tracker — Log Your Charity & Earn Rewards | I Love Islam',
     description: 'Keep a beautiful log of your sadaqah, track streaks, and see category breakdowns.',
-    url: 'https://iloveislam.life/sadaqah-tracker',
+    url: 'https://www.iloveislam.life/sadaqah-tracker',
     siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Sadaqah Tracker | I Love Islam',
     description: 'Free charity tracker with streaks and breakdowns.',
   },
-  alternates: { canonical: 'https://iloveislam.life/sadaqah-tracker' },
+  alternates: { canonical: 'https://www.iloveislam.life/sadaqah-tracker' },
   robots: {
     index: true, follow: true,
     googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
@@ -39,14 +40,14 @@ const jsonLd = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
         'Log every sadaqah (charity) you give, track daily streaks, view category breakdowns, and get inspired by Quranic verses. All data saved locally in your browser.',
-      url: 'https://iloveislam.life/sadaqah-tracker',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
+      url: 'https://www.iloveislam.life/sadaqah-tracker',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Sadaqah Tracker', item: 'https://iloveislam.life/sadaqah-tracker' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Sadaqah Tracker', item: 'https://www.iloveislam.life/sadaqah-tracker' },
       ],
     },
     {

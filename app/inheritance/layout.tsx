@@ -11,17 +11,18 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Islamic Inheritance Calculator — Fara\'id Distribution | I Love Islam',
     description: 'Distribute an estate according to Islamic inheritance law. See shares for each heir.',
-    url: 'https://iloveislam.life/inheritance-calculator',
+    url: 'https://www.iloveislam.life/inheritance-calculator',
     siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Inheritance Calculator | I Love Islam',
     description: 'Free Islamic inheritance calculator with step‑by‑step results.',
   },
-  alternates: { canonical: 'https://iloveislam.life/inheritance-calculator' },
+  alternates: { canonical: 'https://www.iloveislam.life/inheritance-calculator' },
   robots: {
     index: true, follow: true,
     googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
@@ -39,14 +40,14 @@ const jsonLd = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
         'Calculate inheritance shares (Fara\'id) according to the Hanafi school. Input estate value, deductions, and living heirs to get precise monetary shares.',
-      url: 'https://iloveislam.life/inheritance-calculator',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
+      url: 'https://www.iloveislam.life/inheritance-calculator',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Inheritance Calculator', item: 'https://iloveislam.life/inheritance-calculator' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Inheritance Calculator', item: 'https://www.iloveislam.life/inheritance-calculator' },
       ],
     },
     {

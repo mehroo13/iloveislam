@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Zakat Calculator — Easy & Accurate Zakat on Wealth | I Love Islam',
+  title: 'Zakat Calculator 2026 — Free Online Zakat Calculator | I Love Islam',
   description:
     'Calculate your Zakat accurately. Enter gold, silver, cash, investments & debts. Supports any currency, live gold prices, and tola/grams. Free, no sign‑up.',
   keywords: [
@@ -11,17 +11,18 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Zakat Calculator — Easy & Accurate Zakat Calculation | I Love Islam',
     description: 'Calculate your Zakat with live gold prices, custom currency, and a detailed breakdown.',
-    url: 'https://iloveislam.life/zakat',
+    url: 'https://www.iloveislam.life/zakat',
     siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Zakat Calculator | I Love Islam',
     description: 'Free, accurate Zakat calculator with live gold prices.',
   },
-  alternates: { canonical: 'https://iloveislam.life/zakat' },
+  alternates: { canonical: 'https://www.iloveislam.life/zakat' },
   robots: {
     index: true, follow: true,
     googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
@@ -39,14 +40,14 @@ const jsonLd = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
         'Calculate your annual Zakat obligation based on gold, silver, cash, investments, and debts. Supports any currency and live metal prices.',
-      url: 'https://iloveislam.life/zakat',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
+      url: 'https://www.iloveislam.life/zakat',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Zakat Calculator', item: 'https://iloveislam.life/zakat' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Zakat Calculator', item: 'https://www.iloveislam.life/zakat' },
       ],
     },
     {

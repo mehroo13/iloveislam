@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Ramadan Planner — Daily Fasting, Ibadah & Goal Tracker | I Love Islam',
+  title: 'Ramadan Planner 2027 — Complete Ramadan Tracker | I Love Islam',
   description:
     'Plan and track your Ramadan: daily fasts, ibadah checklist, mood, goals (Quran, Tarawih, Sadaqah), duas, and personal journal. Free, no sign‑up.',
   keywords: [
@@ -11,17 +11,18 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Ramadan Planner — Daily Fasting & Ibadah Tracker | I Love Islam',
     description: 'Make the most of Ramadan with a daily tracker, goals, duas, and a personal journal.',
-    url: 'https://iloveislam.life/ramadan-planner',
+    url: 'https://www.iloveislam.life/ramadan-planner',
     siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Ramadan Planner | I Love Islam',
     description: 'Free Ramadan tracker with daily checklists and goals.',
   },
-  alternates: { canonical: 'https://iloveislam.life/ramadan-planner' },
+  alternates: { canonical: 'https://www.iloveislam.life/ramadan-planner' },
   robots: {
     index: true, follow: true,
     googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
@@ -39,14 +40,14 @@ const jsonLd = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
         'A comprehensive Ramadan companion: track daily fasts, ibadah, set 30‑day goals, read duas, and maintain a personal journal. All data saved locally.',
-      url: 'https://iloveislam.life/ramadan-planner',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://iloveislam.life' },
+      url: 'https://www.iloveislam.life/ramadan-planner',
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Ramadan Planner', item: 'https://iloveislam.life/ramadan-planner' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
+        { '@type': 'ListItem', position: 2, name: 'Ramadan Planner', item: 'https://www.iloveislam.life/ramadan-planner' },
       ],
     },
     {
