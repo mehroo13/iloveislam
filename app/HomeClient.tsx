@@ -563,21 +563,44 @@ function RecentlyUsed({ onToolClick }: { onToolClick: (name: string) => void }) 
       const clicks = JSON.parse(localStorage.getItem(TOOL_CLICKS_KEY) || '{}');
       if (Object.keys(clicks).length === 0) return;
 
-      // Get all tools flat
-      const allTools = ALL_FEATURED_TOOLS.map(t => ({ name: t.title.split(' — ')[0].split(' ')[0] === 'HalalScan' ? 'HalalScan' : t.title, icon: t.icon, href: t.href, color: '' }));
-      // Map from TOOLS_DATA for colors
+      // Build a flat lookup of all tools by name AND href
       const dummyT = TRANSLATIONS['en'];
       const toolSections = TOOLS_DATA(dummyT);
       const flatTools = toolSections.flatMap(s => s.items);
 
-      // Sort by click count, take top 4
-      const sorted = Object.entries(clicks)
-        .sort(([, a], [, b]) => (b as number) - (a as number))
-        .slice(0, 4);
+      // Create a map: tool name (lowercase) → tool data
+      const toolMap = new Map<string, typeof flatTools[0]>();
+      for (const t of flatTools) {
+        toolMap.set(t.name.toLowerCase(), t);
+      }
 
-      const recent = sorted
-        .map(([name]) => flatTools.find(t => t.name === name || name.includes(t.name)))
-        .filter(Boolean) as typeof flatTools;
+      // Sort clicks by count descending
+      const sorted = Object.entries(clicks)
+        .sort(([, a], [, b]) => (b as number) - (a as number));
+
+      // Match clicked names to actual tools, deduplicate by href
+      const seen = new Set<string>();
+      const recent: typeof flatTools = [];
+
+      for (const [clickedName] of sorted) {
+        if (recent.length >= 6) break;
+        const key = clickedName.toLowerCase();
+        // Try exact match first
+        let match = toolMap.get(key);
+        // Try partial match if no exact
+        if (!match) {
+          for (const [mapKey, tool] of toolMap) {
+            if (key.includes(mapKey) || mapKey.includes(key)) {
+              match = tool;
+              break;
+            }
+          }
+        }
+        if (match && !seen.has(match.href)) {
+          seen.add(match.href);
+          recent.push(match);
+        }
+      }
 
       if (recent.length > 0) setRecentTools(recent);
     } catch {}
