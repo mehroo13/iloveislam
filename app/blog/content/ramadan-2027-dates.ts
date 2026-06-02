@@ -9,10 +9,8 @@ export const ramadan2027Dates = {
   date: "2026-03-01",
   content: `
 <div class="prose prose-emerald dark:prose-invert max-w-none">
-<img src="/blog/ramadan-2027-dates.jpg" alt="ramadan 2027 dates" class="w-full rounded-2xl mb-8 shadow-lg" width="1200" height="630" loading="lazy" />
 
-
-<h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Ramadan 2027 Dates: When Does Ramadan Start?</h2>
+<h2 class="text-3xl font-bold text-emerald-700 dark:prose-invert mt-12 mb-6">Ramadan 2027 Dates: When Does Ramadan Start?</h2>
 
 <p>Muslims around the world are already planning for <strong>Ramadan 2027 dates</strong> to prepare spiritually, physically, and practically for the most blessed month of the Islamic calendar. Based on astronomical calculations, Ramadan 2027 is expected to begin on approximately <strong>March 17, 2027</strong> (1 Ramadan 1448 AH) and end on approximately <strong>April 15, 2027</strong> (29 or 30 Ramadan 1448 AH), with Eid al-Fitr expected on April 16, 2027.</p>
 

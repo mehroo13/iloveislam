@@ -5,8 +5,8 @@ export const metadata: Metadata = {
   description:
     'Read the Quran with Indo‑Pak Mushaf or verse‑by‑verse, listen to recitations, bookmark ayahs, and switch between English & Urdu translations. Free, no sign‑up.',
   keywords: [
-    'quran reader', 'read quran online', 'quran with translation', 'quran audio', 'quran bookmarks',
-    'quran english', 'quran urdu', 'al quran', 'free quran app', 'online quran recitation',
+    'quran reader', 'quran with translation', 'quran audio', 'quran bookmarks',
+    'quran english', 'quran urdu', 'al quran', 'free quran app', 'quran recitation',
   ],
   openGraph: {
     title: 'Quran Reader — Holy Quran with Translation & Audio | I Love Islam',
@@ -92,7 +92,7 @@ export default function QuranReaderLayout({ children }: { children: React.ReactN
       {children}
       <section className="max-w-3xl mx-auto px-4 py-10 pb-16 space-y-6">
         <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Read the Holy Quran Online — Free Quran Reader</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Read the Holy Quran — Free Quran Reader</h2>
           <p className="text-gray-600 text-sm leading-relaxed mb-3">
             The Holy Quran is the final revelation from Allah to humanity, revealed to Prophet Muhammad (peace be upon him) over a period of 23 years through the Angel Jibreel (Gabriel). It is the primary source of guidance for over 1.8 billion Muslims worldwide, containing 114 surahs (chapters) and over 6,200 verses covering all aspects of faith, worship, morality, law, and human conduct. Allah describes it as: &quot;A guidance for mankind and clear proofs of guidance and the criterion between right and wrong&quot; (Quran 2:185).
           </p>

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Dhikr Counter — Free Online Tasbeeh Counter | I Love Islam',
+  title: 'Dhikr Counter — Free Tasbeeh Counter | I Love Islam',
   description:
     'Count daily dhikr with beautiful presets: Subhanallah, Alhamdulillah, Allahu Akbar, Salawat, Istighfar. Track streaks, history, and per‑dhikr statistics. Free, no sign‑up.',
   keywords: [

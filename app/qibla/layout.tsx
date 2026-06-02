@@ -6,7 +6,7 @@ export const metadata: Metadata = {
     'Find the exact Qibla direction from your location or any city. Use GPS or search by city, view the live compass bearing, and see distance to the Kaaba. Free, no sign-up.',
   keywords: [
     'qibla finder', 'qibla direction', 'find qibla', 'kaaba direction', 'mecca direction', 'prayer direction',
-    'qibla compass', 'online qibla', 'qibla locator', 'muslim qibla',
+    'qibla compass', 'qibla locator', 'muslim qibla',
   ],
   openGraph: {
     title: 'Qibla Finder — Find Accurate Qibla Direction from Anywhere | I Love Islam',

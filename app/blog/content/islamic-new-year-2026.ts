@@ -9,8 +9,6 @@ export const islamicNewYear2026 = {
   date: "2026-03-05",
   content: `
 <div class="prose prose-emerald dark:prose-invert max-w-none">
-<img src="/blog/islamic-new-year-2026.jpg" alt="islamic new year 2026" class="w-full rounded-2xl mb-8 shadow-lg" width="1200" height="630" loading="lazy" />
-
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Islamic New Year 2026: When is 1 Muharram 1448 AH?</h2>
 
