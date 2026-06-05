@@ -418,7 +418,6 @@ export const islamWorldReligionsComparisonToolArticle = {
       Share on WhatsApp
     </a>
   </div>
-</div>
 
 <p class="text-center text-emerald-700 dark:text-emerald-400 font-medium mt-12">
   May Allah guide us all to the straight path and make this tool a means of guidance for countless souls. Ameen.
@@ -429,5 +428,5 @@ export const islamWorldReligionsComparisonToolArticle = {
 </p>
 
 </div>
-`;
+`
 };
