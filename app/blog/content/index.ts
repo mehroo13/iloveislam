@@ -28,6 +28,7 @@ import { fivePillarsArticle } from './five-pillars-of-islam';
 import { mosqueEtiquetteArticle } from './mosque-etiquette';
 import { nightRecitationArticle } from './night-recitation-tool';
 import { laylatulQadrArticle } from './laylatul-qadr';
+import { islamWorldReligionsComparisonToolArticle } from './islam-world-religions-comparison-tool';
 import { tahajjudArticle } from './tahajjud-prayer';
 import { islamicNewYearArticle } from './islamic-new-year-muharram';
 import { halalScannerArticle } from './halal-scanner-guide';
@@ -97,6 +98,7 @@ export const allArticles: BlogArticle[] = [
   mosqueEtiquetteArticle,
   nightRecitationArticle,
   laylatulQadrArticle,
+  islamWorldReligionsComparisonToolArticle,
   tahajjudArticle,
   islamicNewYearArticle,
   readingFoodLabelsArticle,

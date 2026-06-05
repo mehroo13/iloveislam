@@ -158,11 +158,8 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
     <PWAContext.Provider value={{ isOnline, isInstalled, canInstall, installApp, getToolOfflineStatus }}>
       {children}
 
-
-
-
-      {/* Update Available Toast */}
-      {showUpdateToast && (
+      {/* Update Available Toast - DISABLED - User reported blocking functionality */}
+      {false && showUpdateToast && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] animate-slide-up">
           <div className="bg-blue-800 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 max-w-sm">
             <span className="text-lg">🔄</span>

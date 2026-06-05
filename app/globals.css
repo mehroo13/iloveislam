@@ -7,6 +7,15 @@
   --green-dark: #0a3d2e;
   --green-mid: #1a5c44;
   --gold: #c8a96e;
+  
+  /* Compare Religions Tool Variables */
+  --bg-page: #f8f9f5;
+  --card-bg: #ffffff;
+  --border-color: #e4ebe4;
+  --text-body: #2a3a2c;
+  --text-muted: #5a6b5c;
+  --islam-green: #0a3d2e;
+  --islam-green-light: #f0f7f3;
 }
 
 * {

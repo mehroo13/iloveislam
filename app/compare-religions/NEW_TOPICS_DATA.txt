@@ -1,0 +1,89 @@
+⚠️ IMPORTANT: Add these 5 new topics to each religion in religions.ts
+
+Add after the "salvation" section for EACH religion (christianity, judaism, hinduism, buddhism, sikhism, atheism):
+
+-------------------------------------------------------------------
+FOR CHRISTIANITY (add after salvation):
+-------------------------------------------------------------------
+
+    charity: {
+      islam: "Zakat (2.5% annual wealth tax) is obligatory—one of the Five Pillars. Sadaqah (voluntary charity) is highly encouraged. Islam institutionalized wealth redistribution 1,400 years ago.",
+      islamEvidence: "Surah At-Tawbah 9:60 — Zakat categories are precisely defined.",
+      other: "Christianity emphasizes tithing (10% of income) and generosity. Charity is voluntary—no mandatory requirement. Many churches and organizations practice systematic giving.",
+      islamInsight: "Zakat is not 'charity'—it's a divine obligation. It's calculated wealth tax that purifies wealth and ensures economic circulation. Islam was the first civilization to mandate institutional wealth redistribution.",
+    },
+    fasting: {
+      islam: "Ramadan fasting—complete abstinence from food, drink, and intimate relations from dawn to sunset for 30 days. Obligatory on every sane, healthy adult Muslim.",
+      islamEvidence: "Surah Al-Baqarah 2:183",
+      other: "Lent fasting—40 days, typically involves giving up a food item (meat, sweets) or habit. Varies widely by denomination. Not as strictly observed in modern practice.",
+      islamInsight: "Ramadan unites 1.8 billion Muslims in simultaneous fasting. It's physical, spiritual, and social—building empathy for the poor, self-discipline, and God-consciousness. Its universality and strictness are unmatched.",
+    },
+    marriage: {
+      islam: "Marriage (Nikah) is half of faith—a sacred contract with clear rights and responsibilities. Polygyny allowed (up to 4 wives with justice). Divorce permitted but discouraged.",
+      islamEvidence: "Surah An-Nisa 4:3",
+      other: "Marriage is a sacrament (Catholics) or covenant (Protestants). Traditionally monogamous. Divorce views vary—forbidden (Catholicism), allowed (Protestantity after reforms).",
+      islamInsight: "Islam's marriage contract gives women the right to stipulate conditions—financial security, education, work. The mahr (dowry) goes TO the woman, not her family—revolutionary 1,400 years ago.",
+    },
+    morality: {
+      islam: "Morality comes from Allah's commands—objective, revealed, unchanging. Halal (permitted) and Haram (forbidden) are clearly defined. Humans cannot legislate morality.",
+      islamEvidence: "Surah Al-Ma'idah 5:3",
+      other: "Christian morality rooted in Biblical commandments and Jesus's teachings ('Love thy neighbor'). Interpretation varies by denomination. Some modernizing on social issues.",
+      islamInsight: "Islam's moral framework is comprehensive—covering personal, social, economic, and political life. The Quran addresses details modern law still grapples with. Its consistency across 1,400 years proves its divine origin.",
+    },
+    purpose_of_life: {
+      islam: "To worship Allah alone and be His vicegerent (Khalifah) on earth—to live morally, spread justice, and prepare for eternal life.",
+      islamEvidence: "Surah Adh-Dhariyat 51:56 — 'I did not create jinn and mankind except to worship Me.'",
+      other: "To know God, love Jesus, serve others, and attain salvation. Purpose is found in relationship with Christ and following His example.",
+      islamInsight: "Islam's purpose is clear, singular, and attainable by anyone—rich or poor, educated or illiterate. You don't need priests, sacraments, or special access. Just you and Allah.",
+    },
+
+-------------------------------------------------------------------
+FOR JUDAISM (add after salvation):
+-------------------------------------------------------------------
+
+    charity: {
+      islam: "Zakat is obligatory—2.5% of wealth annually. It's not optional kindness; it's a right the poor have over the rich's wealth.",
+      islamEvidence: "Surah At-Tawbah 9:60",
+      other: "Tzedakah (charity/justice) is a core mitzvah. Maimonides outlined 8 levels of charity. Highly emphasized, but no fixed percentage in modern practice.",
+      islamInsight: "Both Islam and Judaism see charity as justice, not generosity. The word 'Zakat' means 'purification'—giving purifies wealth. Both traditions reject the notion that wealth is purely personal.",
+    },
+    fasting: {
+      islam: "Ramadan—30 days, complete fast from dawn to sunset. Obligatory. Builds taqwa (God-consciousness) and empathy.",
+      islamEvidence: "Surah Al-Baqarah 2:183",
+      other: "Yom Kippur (Day of Atonement)—25-hour complete fast. Also Tisha B'Av and other minor fasts. More focused on atonement than spiritual training.",
+      islamInsight: "Ramadan's month-long duration creates sustained spiritual transformation—not just a single day of atonement. The communal aspect (entire Ummah fasting together) is unmatched.",
+    },
+    marriage: {
+      islam: "Marriage is highly encouraged—'half of faith.' Clear rights and responsibilities. Polygyny allowed under conditions. Divorce is halal but disliked.",
+      islamEvidence: "Hadith: 'When a man marries, he has fulfilled half of his religion.'",
+      other: "Marriage (Kiddushin) is sacred—a mitzvah. Traditionally monogamous. Divorce allowed (Get) but complex. Strong emphasis on family continuity.",
+      islamInsight: "Islam's marriage laws—mahr (gift to bride), wife's financial independence, clear divorce rights—gave women protections 1,400 years before Western law caught up.",
+    },
+    morality: {
+      islam: "Divine morality—Halal and Haram defined by Allah. Humans cannot change or vote on morality. Shariah provides comprehensive guidance.",
+      islamEvidence: "Surah Al-Ma'idah 5:3",
+      other: "Morality rooted in Torah (613 mitzvot) and Talmudic interpretation. Halakha (Jewish law) governs ethical life. Rabbinical authorities interpret and apply.",
+      islamInsight: "Both Islam and Judaism reject moral relativism. However, Islam's Quran remains unchanged—no need for layers of commentary to access divine law.",
+    },
+    purpose_of_life: {
+      islam: "To worship Allah alone—through prayer, morality, justice, and submission to His will.",
+      islamEvidence: "Surah Adh-Dhariyat 51:56",
+      other: "To serve God, follow the Torah, repair the world (Tikkun Olam), and uphold the covenant. Focus more on this life than the next.",
+      islamInsight: "Islam balances this life and the next perfectly—'Work for this life as if you'll live forever; work for the next as if you'll die tomorrow.' Purpose is clear, universal, and accessible.",
+    },
+
+-------------------------------------------------------------------
+FOR HINDUISM, BUDDHISM, SIKHISM, ATHEISM:
+-------------------------------------------------------------------
+
+Use similar structures—compare:
+- Charity: Zakat vs Dana (Hinduism), Dana (Buddhism), Dasvandh (Sikhism), Secular philanthropy (Atheism)
+- Fasting: Ramadan vs Vrat/Upvas (Hinduism), Uposatha (Buddhism), Vaisakhi fasts (Sikhism), Intermittent fasting for health (Atheism)
+- Marriage: Nikah vs Vivaha (Hinduism), Monastic celibacy vs lay marriage (Buddhism), Anand Karaj (Sikhism), Civil contract (Atheism)
+- Morality: Divine law vs Dharma (Hinduism), Eightfold Path (Buddhism), Guru's teachings (Sikhism), Secular ethics (Atheism)
+- Purpose: Worship Allah vs Moksha (Hinduism), Nirvana (Buddhism), Union with God (Sikhism), Self-defined meaning (Atheism)
+
+⚠️ After adding these, the tool will have:
+✅ 6 religions × 15 topics = 90 comprehensive comparisons
+✅ Complete coverage of beliefs, practices, ethics, and purpose
+✅ World-class comparative religion resource

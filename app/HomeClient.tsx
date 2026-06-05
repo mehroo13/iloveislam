@@ -273,6 +273,7 @@ const DAILY_QUOTES = [
 ];
 
 const ALL_FEATURED_TOOLS = [
+  { href: '/compare-religions', badge: '🆕 New Tool', title: 'Islam & World Religions', desc: 'Interactive comparison tool with 6 religions & 10 topics', icon: '⚖️', gradient: 'linear-gradient(135deg, #1a0a14, #3d1028)', accent: '#c8a96e' },
   { href: '/mizan', badge: '✨ Featured', title: 'Mizan — Islamic Life Blueprint', desc: 'Discover your purpose through Islamic numerology', icon: '✦', gradient: 'linear-gradient(135deg, #1a0a00, #3d1f00)', accent: '#c8a96e' },
   { href: '/halal-scanner', badge: '🆕 New Tool', title: 'HalalScan — Halal Food Scanner', desc: "Scan barcodes & photos — instantly know if it's Halal, Haram or Mashbooh", icon: '📷', gradient: 'linear-gradient(135deg, #071a0d, #0a3d1a)', accent: '#4ade80' },
   { href: '/zakat', badge: '💰 Finance', title: 'Zakat Calculator', desc: 'Calculate your annual Zakat with precision', icon: '💰', gradient: 'linear-gradient(135deg, #0a1f0a, #0d3d1a)', accent: '#4ade80' },
@@ -338,6 +339,7 @@ const TOOLS_DATA = (t: TranslationsType) => [
   {
     category: t.travel, emoji: '📚',
     items: [
+      { name: 'Islam vs Religions', desc: 'Compare Islam & other faiths', icon: '⚖️', href: '/compare-religions', color: 'bg-purple-100 text-purple-700' },
       { name: 'Halal Travel', desc: 'Plan your journey', icon: '🌍', href: '/travel', color: 'bg-blue-100 text-blue-700' },
       { name: 'Hajj Checklist', desc: 'Pilgrimage guide', icon: '🕋', href: '/hajj', color: 'bg-stone-100 text-stone-700' },
       { name: 'Mosque Finder', desc: 'Nearest masjid', icon: '🕌', href: '/mosque', color: 'bg-emerald-100 text-emerald-700' },
