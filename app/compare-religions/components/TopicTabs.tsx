@@ -33,7 +33,15 @@ export default function TopicTabs({
     <div className="topic-tabs-wrapper">
       <div className="tabs-header">
         <p className="tabs-label">Choose topics:</p>
-        <p className="tabs-hint">Select multiple to compare</p>
+        <div className="tabs-actions">
+          <p className="tabs-hint">Select multiple to compare</p>
+          {selected.length > 1 && (
+            <button className="clear-all-btn" onClick={() => onSelect([selected[0]])}>
+              <i className="ti ti-x" aria-hidden="true" />
+              Clear All
+            </button>
+          )}
+        </div>
       </div>
       <div className="tabs-scroll">
         <div className="tabs-inner">
@@ -79,6 +87,12 @@ export default function TopicTabs({
           margin: 0;
         }
 
+        .tabs-actions {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
         .tabs-hint {
           font-size: 0.7rem;
           color: #c9a227;
@@ -87,6 +101,31 @@ export default function TopicTabs({
           background: rgba(201, 162, 39, 0.1);
           padding: 0.25rem 0.6rem;
           border-radius: 100px;
+        }
+
+        .clear-all-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.3rem;
+          padding: 0.25rem 0.7rem;
+          background: #dc2626;
+          color: white;
+          border: none;
+          border-radius: 100px;
+          font-size: 0.7rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-family: inherit;
+        }
+
+        .clear-all-btn:hover {
+          background: #b91c1c;
+          transform: translateY(-1px);
+        }
+
+        .clear-all-btn i {
+          font-size: 0.75rem;
         }
 
         .tabs-scroll {

@@ -125,25 +125,11 @@ export default function CompareReligionsClient() {
               </h2>
               {selectedTopics.map((topic) => {
                 const currentData = COMPARISON_DATA[religion][topic];
-                if (!currentData) {
-                  // Show placeholder for topics without data yet
-                  return (
-                    <div key={`${religion}-${topic}`} className="placeholder-card">
-                      <div className="placeholder-header">
-                        <i className={`ti ${TOPIC_ICONS[topic]}`} aria-hidden="true" />
-                        <span>{TOPIC_LABELS[topic]}</span>
-                      </div>
-                      <p className="placeholder-text">
-                        Content for this topic is being prepared. Check back soon!
-                      </p>
-                    </div>
-                  );
-                }
                 const religionMeta = RELIGION_META[religion];
                 return (
                   <ComparisonCard
                     key={`${religion}-${topic}`}
-                    data={currentData}
+                    data={currentData!}
                     religion={religion}
                     topic={topic}
                     religionMeta={religionMeta}

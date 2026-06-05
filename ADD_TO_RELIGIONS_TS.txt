@@ -1,0 +1,226 @@
+// INSTRUCTIONS: Add these 35 topics to EACH religion in religions.ts
+// Find "purpose_of_life: {...}," and add these AFTER it (before the closing brace)
+// Do this for: christianity, judaism, hinduism, buddhism, sikhism, atheism
+
+// ============ FOR CHRISTIANITY ============
+sin_and_forgiveness: {
+  islam: "Every human sins, but Allah loves those who repent. Sincere Tawbah (repentance) erases sin completely. Direct forgiveness from Allah—no intermediary needed.",
+  islamEvidence: "Surah Az-Zumar 39:53",
+  other: "Original sin inherited from Adam. Salvation through Jesus's sacrifice. Confession to priests (Catholics) or direct prayer (Protestants).",
+  islamInsight: "Islam rejects inherited sin—everyone is born pure (Fitrah). Forgiveness is direct, instant, and requires no sacrifice or intermediary.",
+},
+miracles: {
+  islam: "Miracles are signs from Allah, not proof of divinity. The Quran itself is the greatest miracle—linguistically perfect, scientifically accurate, unchanged for 1,400 years.",
+  islamEvidence: "Surah Al-Isra 17:88",
+  other: "Jesus performed miracles (healing, raising dead) as proof of divinity. The resurrection is the ultimate miracle proving he is God.",
+  islamInsight: "The Quran challenges: 'Produce one chapter like it.' No one has succeeded in 1,400 years. This linguistic miracle surpasses physical miracles.",
+},
+angels: {
+  islam: "Angels created from light, obey Allah perfectly. Jibreel (revelation), Mika'il (sustenance), Israfil (trumpet). Jinn are separate beings with free will.",
+  islamEvidence: "Surah Al-Baqarah 2:97-98",
+  other: "Angels are spiritual beings. Some traditions have archangels (Michael, Gabriel). Fallen angels (demons) rebelled against God.",
+  islamInsight: "Islam provides detailed hierarchy and functions—not vague 'spirits' but organized beings with specific duties.",
+},
+satan_and_evil: {
+  islam: "Iblis (Satan) was a jinn who refused to bow to Adam. He has free will and tempts humans. Evil exists as a test, not because God is weak.",
+  islamEvidence: "Surah Al-A'raf 7:11-18",
+  other: "Satan is a fallen angel who rebelled. The problem of evil is debated—why does God allow suffering if He is all-good and all-powerful?",
+  islamInsight: "Islam explains evil without compromising God's omnipotence. Satan cannot force anyone to sin—only whisper.",
+},
+dietary_laws: {
+  islam: "Halal and Haram clearly defined. Pork forbidden, alcohol forbidden, meat must be slaughtered humanely with Bismillah.",
+  islamEvidence: "Surah Al-Ma'idah 5:3",
+  other: "Most Christians have no dietary restrictions. Some avoid pork (historical), but New Testament declares all foods clean (Mark 7:19).",
+  islamInsight: "Islamic dietary laws are consistent and scientifically rational. Modern studies confirm health risks of pork and alcohol.",
+},
+alcohol_and_intoxicants: {
+  islam: "All intoxicants strictly forbidden. They impair judgment, harm the body, and distance one from Allah.",
+  islamEvidence: "Surah Al-Ma'idah 5:90-91",
+  other: "Wine used in communion (Eucharist). Drinking permitted in moderation. Drunkenness condemned, but alcohol itself not forbidden.",
+  islamInsight: "Islam's prohibition is absolute—no 'moderate drinking.' The Prophet ﷺ said: 'Whatever intoxicates in large amounts is forbidden in small amounts.'",
+},
+modesty_and_dress: {
+  islam: "Both men and women must dress modestly. Hijab for women is worship and protection. Modesty extends to behavior and gaze.",
+  islamEvidence: "Surah An-Nur 24:30-31",
+  other: "Varies widely. Traditional denominations encourage modest dress. Modern Western Christianity largely adopts secular fashion norms.",
+  islamInsight: "Islamic modesty is holistic—dignity, respect, and spiritual focus, not oppression.",
+},
+music_and_entertainment: {
+  islam: "Entertainment permissible if it doesn't lead to sin. Music debated—some permit without immoral lyrics, others prohibit. Avoid obscenity.",
+  islamEvidence: "Hadith on musical instruments (debated authenticity)",
+  other: "Most Christians embrace music—Christian rock, gospel, hymns. Some conservative groups restrict certain genres or worldly entertainment.",
+  islamInsight: "Islam prioritizes spiritual focus over worldly distraction. Entertainment shouldn't replace worship.",
+},
+worship_places: {
+  islam: "Mosques are for prayer, community, learning. Most sacred: Masjid al-Haram (Makkah), Masjid an-Nabawi (Madinah), Masjid al-Aqsa (Jerusalem).",
+  islamEvidence: "Hadith: 'Do not travel except to three mosques.'",
+  other: "Churches—sites of worship. Cathedrals, basilicas. Vatican (Catholics), Jerusalem (pilgrimage site).",
+  islamInsight: "Mosques are not sacred in themselves—no altars, no idols. They're community spaces for worship of Allah alone.",
+},
+religious_authority: {
+  islam: "No clergy, no priests, no pope. Scholars provide guidance, but every Muslim has direct access to Allah.",
+  islamEvidence: "Hadith: 'All of you are shepherds.'",
+  other: "Hierarchical—Pope (Catholics), bishops, priests. Protestants reject papal authority but have pastors/ministers.",
+  islamInsight: "Islam's decentralized authority prevents corruption and ensures personal accountability. No human can forgive sins.",
+},
+scripture_preservation: {
+  islam: "Quran perfectly preserved in original language. Memorized by millions across every generation.",
+  islamEvidence: "Surah Al-Hijr 15:9",
+  other: "Bible compiled centuries after Jesus. Original manuscripts lost. Thousands of variant readings exist across manuscripts.",
+  islamInsight: "Quran's preservation is a living miracle. Even if every written copy disappeared, it could be restored from memory.",
+},
+conversion: {
+  islam: "Islam welcomes reverts. Shahada is simple—no baptism, no rituals. All past sins forgiven upon sincere declaration.",
+  islamEvidence: "Hadith: 'Islam wipes out what came before it.'",
+  other: "Baptism required. Catechism classes (Catholics). Public profession of faith. Process can take months.",
+  islamInsight: "Islam's conversion is immediate and merciful—just sincere declaration of faith.",
+},
+apostasy: {
+  islam: "Leaving Islam is grave. Classical law prescribed capital punishment for public apostasy with treason. Modern application debated.",
+  islamEvidence: "Hadith on apostasy (context: treason in Islamic state)",
+  other: "Historically, apostasy punished severely. Modern Christianity generally accepts freedom of conscience, though some consider it damning.",
+  islamInsight: "Apostasy ruling historically applied to public treason, not private disbelief. Modern application heavily debated.",
+},
+religious_tolerance: {
+  islam: "Islam protects religious minorities. 'No compulsion in religion' (2:256). Muslims must be just to all.",
+  islamEvidence: "Surah Al-Baqarah 2:256",
+  other: "Modern tolerance prevalent. Historically, Inquisition, Crusades, forced conversions occurred.",
+  islamInsight: "Islamic history shows centuries of coexistence—Jews and Christians thrived under Muslim rule.",
+},
+violence_and_warfare: {
+  islam: "War permitted only in self-defense. Strict rules: no killing civilians, women, children, elderly. No destroying crops.",
+  islamEvidence: "Surah Al-Baqarah 2:190",
+  other: "Just War theory (Augustine, Aquinas). Defensive war permitted. Crusades and colonial wars had religious justifications.",
+  islamInsight: "Islam's rules of warfare are among history's most humane—1,400 years before Geneva Convention.",
+},
+social_justice: {
+  islam: "Economic justice mandated—Zakat, prohibition of interest, fair treatment of workers and poor.",
+  islamEvidence: "Surah An-Nisa 4:135",
+  other: "Social justice emphasized (Catholic social teaching, liberation theology). Charity encouraged but not legally mandated.",
+  islamInsight: "Islamic economic justice is comprehensive—wealth redistribution and ethical trade are religious obligations.",
+},
+slavery: {
+  islam: "Islam inherited slavery but systematically worked to abolish it. Freeing slaves is among the highest acts of worship.",
+  islamEvidence: "Surah Al-Balad 90:12-13",
+  other: "Bible doesn't explicitly condemn slavery. Historical Christian societies practiced slavery. Abolition came through secular movements.",
+  islamInsight: "Islam's gradual abolition worked—many companions were freed slaves who became leaders (Bilal RA).",
+},
+interest_and_usury: {
+  islam: "All interest (Riba) strictly forbidden. Wealth comes from labor and trade, not exploitation.",
+  islamEvidence: "Surah Al-Baqarah 2:275-279",
+  other: "Historically condemned usury. Modern Christianity generally accepts interest and banking systems.",
+  islamInsight: "Islamic finance prohibits interest, ensuring wealth doesn't concentrate in lenders' hands.",
+},
+inheritance: {
+  islam: "Detailed Quranic laws. Men and women both inherit, with shares determined by relationships and responsibilities.",
+  islamEvidence: "Surah An-Nisa 4:11-12",
+  other: "Varied by culture and time. Historically, primogeniture favored eldest son. Modern laws secular.",
+  islamInsight: "Islamic inheritance gave women property rights 1,400 years before Western law recognized women's ownership.",
+},
+polygamy: {
+  islam: "Man may marry up to four wives if he can treat them justly. Strict conditions. Monogamy is norm.",
+  islamEvidence: "Surah An-Nisa 4:3",
+  other: "Strictly monogamous. Polygamy condemned. Bible patriarchs were polygamous, but Christianity adopted monogamy.",
+  islamInsight: "Polygamy in Islam is regulated—not unlimited. Served social functions (caring for widows, orphans).",
+},
+divorce: {
+  islam: "Divorce permitted but disliked. Women can initiate (Khul'). Iddah allows reconciliation. Clear rights exist.",
+  islamEvidence: "Hadith: 'Most hated of permissible things is divorce.'",
+  other: "Catholics: marriage indissoluble (annulment possible). Protestants: generally allow divorce, especially for adultery/abandonment.",
+  islamInsight: "Islamic divorce protects women—financial support during Iddah, custody of young children, clear legal processes.",
+},
+homosexuality: {
+  islam: "Homosexual acts explicitly forbidden. Attraction itself not sinful—acting on it is. Chastity commanded.",
+  islamEvidence: "Surah Al-A'raf 7:80-81",
+  other: "Traditional: condemned as sin. Progressive: increasingly accepting same-sex relationships and marriage.",
+  islamInsight: "Islam distinguishes desire (test) from action (sin). The test is obedience to Allah over inclination.",
+},
+abortion: {
+  islam: "Generally prohibited after 120 days (ensoulment). Before 120 days, permitted in cases of necessity (mother's life).",
+  islamEvidence: "Hadith on ensoulment at 120 days",
+  other: "Catholics: prohibited in all cases. Protestants: varied—some allow in cases of rape/incest/mother's life.",
+  islamInsight: "Islam balances sanctity of life with medical realities—mother's life takes precedence when necessary.",
+},
+euthanasia: {
+  islam: "Forbidden. Life is trust from Allah—only He can take it. Passive euthanasia debated.",
+  islamEvidence: "Surah An-Nisa 4:29",
+  other: "Catholics: opposed. Some Protestant groups allow passive euthanasia. Increasingly debated in secular contexts.",
+  islamInsight: "Islam affirms life's value until natural death. Pain management encouraged—killing is not mercy.",
+},
+death_rituals: {
+  islam: "Body washed, shrouded, prayed over (Janazah), buried ASAP—ideally within 24 hours. Cremation forbidden.",
+  islamEvidence: "Hadith: 'Hasten the funeral.'",
+  other: "Varied—burial or cremation. Funeral mass/service. Viewing common. No strict timeline.",
+  islamInsight: "Islamic rituals honor the body, affirm accountability, and provide closure with speed and simplicity.",
+},
+funeral_practices: {
+  islam: "Burial facing Qibla. Simple grave. Three days mourning (40 for widows). No wailing or excessive grief.",
+  islamEvidence: "Hadith on mourning limits",
+  other: "Elaborate funerals common. Caskets, flowers, eulogies. Mourning periods vary culturally.",
+  islamInsight: "Islamic funerals are egalitarian—rich and poor buried the same. Focus on soul's journey.",
+},
+pilgrimage: {
+  islam: "Hajj to Makkah obligatory once if able. Fifth Pillar. Performed during Dhul-Hijjah. Umrah is voluntary.",
+  islamEvidence: "Surah Ali 'Imran 3:97",
+  other: "Pilgrimage not obligatory. Holy Land (Jerusalem), Rome (Catholics), Santiago de Compostela popular.",
+  islamInsight: "Hajj unites Muslims of every race and nation—2-3 million circling Kaaba together. Unmatched.",
+},
+religious_festivals: {
+  islam: "Two Eids: Eid al-Fitr (after Ramadan), Eid al-Adha (during Hajj). Prayer, charity, feasting, community.",
+  islamEvidence: "Hadith: 'These are our two days.'",
+  other: "Christmas (birth of Jesus), Easter (resurrection), Lent, Advent. Varied observance.",
+  islamInsight: "Islamic festivals balance worship, charity, and joy—holistic celebration.",
+},
+sacred_months: {
+  islam: "Four sacred months: Dhul-Qa'dah, Dhul-Hijjah, Muharram, Rajab. Fighting historically prohibited. Ramadan holiest.",
+  islamEvidence: "Surah At-Tawbah 9:36",
+  other: "Advent, Lent, Holy Week. Liturgical calendar structures year.",
+  islamInsight: "Sacred months structure Islamic year—times of increased worship, reflection, peace.",
+},
+coming_end_times: {
+  islam: "Detailed signs: minor (moral decay, tall buildings) and major (Dajjal, return of Isa ﷺ, Gog and Magog).",
+  islamEvidence: "Sahih Muslim, Kitab al-Fitan",
+  other: "Second Coming of Christ, Rapture (some), Final Judgment, resurrection of dead. Book of Revelation.",
+  islamInsight: "Islamic eschatology most detailed—clear signs to watch for and prepare for.",
+},
+messiah_concept: {
+  islam: "Isa ﷺ will return as Messiah to defeat Dajjal, establish justice, break the cross. Will affirm Islam, not bring new religion.",
+  islamEvidence: "Hadith: 'The Hour will not be established until the son of Mary descends as a just ruler.'",
+  other: "Jesus IS the Messiah who already came. Second Coming will establish God's kingdom permanently.",
+  islamInsight: "Islam's Messiah is Jesus ﷺ—but as prophet, not God. He will unite believers in Tawheed.",
+},
+prophecy_fulfillment: {
+  islam: "Muhammad ﷺ prophesied conquest of Persia/Rome, Bedouins competing in tall buildings, spread of Islam, moral decay.",
+  islamEvidence: "Hadith on barefoot shepherds building tall buildings",
+  other: "Old Testament prophecies fulfilled in Jesus (Christians claim). Awaiting Second Coming prophecies.",
+  islamInsight: "The Prophet's ﷺ predictions continue—skyscrapers in Dubai, global spread, moral confusion. Signs of truthfulness.",
+},
+religious_symbols: {
+  islam: "Crescent and star are cultural, not religious. Islam has no official symbol. Kaaba, Allah's name in Arabic, green color associated.",
+  islamEvidence: "No Quranic mandate for symbols",
+  other: "Cross—central symbol of Christianity. Crucifix (Catholics). Ichthys (fish). Alpha and Omega.",
+  islamInsight: "Islam rejects idolatry and iconography—even religious symbols not worshipped or mandatory.",
+},
+sacred_sites: {
+  islam: "Masjid al-Haram (Makkah)—most sacred. Masjid an-Nabawi (Madinah)—second. Masjid al-Aqsa (Jerusalem)—third.",
+  islamEvidence: "Hadith: 'Do not travel except to three mosques.'",
+  other: "Jerusalem (Holy Sepulchre), Bethlehem, Nazareth, Vatican, pilgrimage sites (Lourdes, Fatima).",
+  islamInsight: "Islam's sacred sites limited and clearly defined—preventing shrine/saint-worship proliferation.",
+},
+environmental_ethics: {
+  islam: "Humans are khalifah (stewards). Wasting resources, polluting, harming animals without cause are sins. Planting trees is charity.",
+  islamEvidence: "Hadith: 'The world is green and beautiful, Allah appointed you stewards.'",
+  other: "Stewardship theology—care for creation. Growing environmental awareness. Some denominations more active than others.",
+  islamInsight: "Islam taught environmental ethics 1,400 years ago—sustainable living, animal welfare, resource conservation are duties.",
+},
+
+// ============ FOR JUDAISM, HINDUISM, BUDDHISM, SIKHISM, ATHEISM ============
+// Copy the same structure above and customize the "other" field for each religion
+// Judaism example:
+// other: "Jewish view on [topic]..."
+// Hinduism example:
+// other: "Hindu view on [topic]..."
+// etc.
+
+// Note: The islam, islamEvidence, and islamInsight fields remain THE SAME for all religions
+// Only customize the "other" field to reflect that specific religion's view

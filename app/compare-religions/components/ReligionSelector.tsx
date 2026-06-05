@@ -33,7 +33,15 @@ export default function ReligionSelector({ selected, onSelect }: Props) {
     <div className="religion-selector">
       <div className="selector-header">
         <p className="selector-label">Compare Islam with:</p>
-        <p className="selector-hint">Select multiple religions to compare</p>
+        <div className="selector-actions">
+          <p className="selector-hint">Select multiple religions to compare</p>
+          {selected.length > 1 && (
+            <button className="clear-all-btn" onClick={() => onSelect([selected[0]])}>
+              <i className="ti ti-x" aria-hidden="true" />
+              Clear All
+            </button>
+          )}
+        </div>
       </div>
       <div className="religion-grid">
         {RELIGION_ORDER.map((religion) => {
@@ -104,6 +112,12 @@ export default function ReligionSelector({ selected, onSelect }: Props) {
           margin: 0;
         }
 
+        .selector-actions {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
         .selector-hint {
           font-size: 0.7rem;
           color: #c9a227;
@@ -112,6 +126,31 @@ export default function ReligionSelector({ selected, onSelect }: Props) {
           background: rgba(201, 162, 39, 0.1);
           padding: 0.25rem 0.6rem;
           border-radius: 100px;
+        }
+
+        .clear-all-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.3rem;
+          padding: 0.25rem 0.7rem;
+          background: #dc2626;
+          color: white;
+          border: none;
+          border-radius: 100px;
+          font-size: 0.7rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-family: inherit;
+        }
+
+        .clear-all-btn:hover {
+          background: #b91c1c;
+          transform: translateY(-1px);
+        }
+
+        .clear-all-btn i {
+          font-size: 0.75rem;
         }
 
         .religion-grid {
