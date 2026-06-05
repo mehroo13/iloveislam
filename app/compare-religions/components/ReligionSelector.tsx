@@ -3,8 +3,8 @@
 import { RELIGION_META, type Religion } from "../../lib/religions";
 
 interface Props {
-  selected: Religion;
-  onSelect: (r: Religion) => void;
+  selected: Religion[];
+  onSelect: (r: Religion[]) => void;
 }
 
 const RELIGION_ORDER: Religion[] = [
@@ -17,18 +17,33 @@ const RELIGION_ORDER: Religion[] = [
 ];
 
 export default function ReligionSelector({ selected, onSelect }: Props) {
+  const toggleReligion = (religion: Religion) => {
+    if (selected.includes(religion)) {
+      // Remove if already selected (but keep at least one)
+      if (selected.length > 1) {
+        onSelect(selected.filter(r => r !== religion));
+      }
+    } else {
+      // Add to selection
+      onSelect([...selected, religion]);
+    }
+  };
+
   return (
     <div className="religion-selector">
-      <p className="selector-label">Compare Islam with:</p>
+      <div className="selector-header">
+        <p className="selector-label">Compare Islam with:</p>
+        <p className="selector-hint">Select multiple religions to compare</p>
+      </div>
       <div className="religion-grid">
         {RELIGION_ORDER.map((religion) => {
           const meta = RELIGION_META[religion];
-          const isSelected = selected === religion;
+          const isSelected = selected.includes(religion);
           return (
             <button
               key={religion}
               className={`religion-card ${isSelected ? "selected" : ""}`}
-              onClick={() => onSelect(religion)}
+              onClick={() => toggleReligion(religion)}
               aria-pressed={isSelected}
               title={meta.description}
             >
@@ -44,29 +59,40 @@ export default function ReligionSelector({ selected, onSelect }: Props) {
         })}
       </div>
 
-      {/* Religion quick info bar */}
-      <div className="religion-info">
-        <div className="info-pill">
-          <i className="ti ti-users" aria-hidden="true" />
-          {RELIGION_META[selected].followers} followers
+      {/* Religion quick info bar - show for first selected */}
+      {selected.length > 0 && (
+        <div className="religion-info">
+          <div className="info-pill">
+            <i className="ti ti-users" aria-hidden="true" />
+            {RELIGION_META[selected[0]].followers} followers
+          </div>
+          <div className="info-pill">
+            <i className="ti ti-calendar" aria-hidden="true" />
+            Founded: {RELIGION_META[selected[0]].founded}
+          </div>
+          <div className="info-pill">
+            <i className="ti ti-map-pin" aria-hidden="true" />
+            {RELIGION_META[selected[0]].origin}
+          </div>
+          <div className="info-pill">
+            <i className="ti ti-book" aria-hidden="true" />
+            {RELIGION_META[selected[0]].holyBook}
+          </div>
         </div>
-        <div className="info-pill">
-          <i className="ti ti-calendar" aria-hidden="true" />
-          Founded: {RELIGION_META[selected].founded}
-        </div>
-        <div className="info-pill">
-          <i className="ti ti-map-pin" aria-hidden="true" />
-          {RELIGION_META[selected].origin}
-        </div>
-        <div className="info-pill">
-          <i className="ti ti-book" aria-hidden="true" />
-          {RELIGION_META[selected].holyBook}
-        </div>
-      </div>
+      )}
 
       <style jsx>{`
         .religion-selector {
           margin-top: 2rem;
+        }
+
+        .selector-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.75rem;
+          flex-wrap: wrap;
+          gap: 0.5rem;
         }
 
         .selector-label {
@@ -75,7 +101,17 @@ export default function ReligionSelector({ selected, onSelect }: Props) {
           color: #8a9b8c;
           text-transform: uppercase;
           letter-spacing: 0.08em;
-          margin-bottom: 0.75rem;
+          margin: 0;
+        }
+
+        .selector-hint {
+          font-size: 0.7rem;
+          color: #c9a227;
+          font-weight: 600;
+          margin: 0;
+          background: rgba(201, 162, 39, 0.1);
+          padding: 0.25rem 0.6rem;
+          border-radius: 100px;
         }
 
         .religion-grid {

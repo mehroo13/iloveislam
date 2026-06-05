@@ -17,29 +17,26 @@ import HeroHeader from "./HeroHeader";
 import SearchBar from "./SearchBar";
 import QuickFilters, { FILTERS } from "./QuickFilters";
 import ProgressTracker from "./ProgressTracker";
-import PrintButton from "./PrintButton";
-import ResourceLinks from "./ResourceLinks";
+import ShareButton from "./ShareButton";
 
 export default function CompareReligionsClient() {
-  const [selectedReligion, setSelectedReligion] =
-    useState<Religion>("christianity");
-  const [selectedTopic, setSelectedTopic] =
-    useState<Topic>("concept_of_god");
+  const [selectedReligions, setSelectedReligions] = useState<Religion[]>(["christianity"]);
+  const [selectedTopics, setSelectedTopics] = useState<Topic[]>(["concept_of_god"]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [viewedTopics, setViewedTopics] = useState<Set<string>>(new Set());
-
-  const currentData =
-    COMPARISON_DATA[selectedReligion][selectedTopic];
-  const religionMeta = RELIGION_META[selectedReligion];
 
   const allTopics = Object.keys(TOPIC_LABELS) as Topic[];
 
   // Track viewed topics for progress
   useEffect(() => {
-    const key = `${selectedReligion}-${selectedTopic}`;
-    setViewedTopics((prev) => new Set([...prev, key]));
-  }, [selectedReligion, selectedTopic]);
+    selectedReligions.forEach(religion => {
+      selectedTopics.forEach(topic => {
+        const key = `${religion}-${topic}`;
+        setViewedTopics((prev) => new Set([...prev, key]));
+      });
+    });
+  }, [selectedReligions, selectedTopics]);
 
   // Filter topics based on search and active filter
   const filteredTopics = useMemo(() => {
@@ -57,18 +54,24 @@ export default function CompareReligionsClient() {
     if (searchQuery) {
       topics = topics.filter((topic) => {
         const label = TOPIC_LABELS[topic].toLowerCase();
-        const data = COMPARISON_DATA[selectedReligion][topic];
-        return (
-          label.includes(searchQuery) ||
-          data.islam.toLowerCase().includes(searchQuery) ||
-          data.other.toLowerCase().includes(searchQuery) ||
-          data.islamInsight.toLowerCase().includes(searchQuery)
-        );
+        // Check if topic label matches
+        if (label.includes(searchQuery)) return true;
+        
+        // Check if any selected religion's data matches
+        return selectedReligions.some(religion => {
+          const data = COMPARISON_DATA[religion][topic];
+          if (!data) return false; // Skip if data doesn't exist yet
+          return (
+            data.islam.toLowerCase().includes(searchQuery) ||
+            data.other.toLowerCase().includes(searchQuery) ||
+            data.islamInsight.toLowerCase().includes(searchQuery)
+          );
+        });
       });
     }
 
     return topics;
-  }, [activeFilter, searchQuery, selectedReligion, allTopics]);
+  }, [activeFilter, searchQuery, selectedReligions, allTopics]);
 
   return (
     <div className="compare-religions-page">
@@ -76,11 +79,15 @@ export default function CompareReligionsClient() {
       <StatsBar />
 
       <div className="compare-container">
+        {/* Back button */}
+        <a href="/" className="back-button">
+          <i className="ti ti-arrow-left" aria-hidden="true" />
+          <span>Back to Home</span>
+        </a>
+
         <ReligionSelector
-          selected={selectedReligion}
-          onSelect={(r: Religion) => {
-            setSelectedReligion(r);
-          }}
+          selected={selectedReligions}
+          onSelect={setSelectedReligions}
         />
 
         <SearchBar onSearch={setSearchQuery} />
@@ -99,28 +106,57 @@ export default function CompareReligionsClient() {
         )}
 
         <TopicTabs
-          selected={selectedTopic}
-          onSelect={setSelectedTopic}
+          selected={selectedTopics}
+          onSelect={setSelectedTopics}
           topicLabels={TOPIC_LABELS}
           topicIcons={TOPIC_ICONS}
         />
 
         <div className="comparison-actions">
-          <PrintButton />
+          <ShareButton religions={selectedReligions} topics={selectedTopics} />
         </div>
 
-        <ComparisonCard
-          data={currentData}
-          religion={selectedReligion}
-          topic={selectedTopic}
-          religionMeta={religionMeta}
-          topicLabel={TOPIC_LABELS[selectedTopic]}
-        />
-
-        <ResourceLinks religion={selectedReligion} />
+        {/* Render comparison cards for each selected religion and topic */}
+        <div className="comparison-grid">
+          {selectedReligions.map((religion) => (
+            <div key={religion} className="religion-section">
+              <h2 className="religion-section-title">
+                {RELIGION_META[religion].emoji} Islam vs {RELIGION_META[religion].label}
+              </h2>
+              {selectedTopics.map((topic) => {
+                const currentData = COMPARISON_DATA[religion][topic];
+                if (!currentData) {
+                  // Show placeholder for topics without data yet
+                  return (
+                    <div key={`${religion}-${topic}`} className="placeholder-card">
+                      <div className="placeholder-header">
+                        <i className={`ti ${TOPIC_ICONS[topic]}`} aria-hidden="true" />
+                        <span>{TOPIC_LABELS[topic]}</span>
+                      </div>
+                      <p className="placeholder-text">
+                        Content for this topic is being prepared. Check back soon!
+                      </p>
+                    </div>
+                  );
+                }
+                const religionMeta = RELIGION_META[religion];
+                return (
+                  <ComparisonCard
+                    key={`${religion}-${topic}`}
+                    data={currentData}
+                    religion={religion}
+                    topic={topic}
+                    religionMeta={religionMeta}
+                    topicLabel={TOPIC_LABELS[topic]}
+                  />
+                );
+              })}
+            </div>
+          ))}
+        </div>
 
         <ProgressTracker
-          religion={selectedReligion}
+          religion={selectedReligions[0]}
           viewedTopics={viewedTopics}
           totalTopics={allTopics.length}
         />
@@ -128,7 +164,7 @@ export default function CompareReligionsClient() {
         {/* Navigate all topics strip */}
         <div className="all-topics-nav">
           <p className="all-topics-label">
-            Explore all topics with {religionMeta.label}:
+            Explore all topics:
             {filteredTopics.length < allTopics.length && (
               <span className="filtered-count">
                 ({filteredTopics.length} of {allTopics.length} shown)
@@ -136,29 +172,43 @@ export default function CompareReligionsClient() {
             )}
           </p>
           <div className="all-topics-grid">
-            {filteredTopics.map((topic) => (
-              <button
-                key={topic}
-                className={`topic-pill ${selectedTopic === topic ? "active" : ""} ${
-                  viewedTopics.has(`${selectedReligion}-${topic}`) ? "viewed" : ""
-                }`}
-                onClick={() => setSelectedTopic(topic)}
-              >
-                <i className={`ti ${TOPIC_ICONS[topic]}`} aria-hidden="true" />
-                {TOPIC_LABELS[topic]}
-                {viewedTopics.has(`${selectedReligion}-${topic}`) && (
-                  <i className="ti ti-check check-mark" aria-hidden="true" />
-                )}
-              </button>
-            ))}
+            {filteredTopics.map((topic) => {
+              const isSelected = selectedTopics.includes(topic);
+              const isViewed = selectedReligions.some(r => 
+                viewedTopics.has(`${r}-${topic}`)
+              );
+              return (
+                <button
+                  key={topic}
+                  className={`topic-pill ${isSelected ? "active" : ""} ${
+                    isViewed ? "viewed" : ""
+                  }`}
+                  onClick={() => {
+                    if (isSelected) {
+                      if (selectedTopics.length > 1) {
+                        setSelectedTopics(selectedTopics.filter(t => t !== topic));
+                      }
+                    } else {
+                      setSelectedTopics([...selectedTopics, topic]);
+                    }
+                  }}
+                >
+                  <i className={`ti ${TOPIC_ICONS[topic]}`} aria-hidden="true" />
+                  {TOPIC_LABELS[topic]}
+                  {isViewed && (
+                    <i className="ti ti-check check-mark" aria-hidden="true" />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* Did you know section */}
-        <DidYouKnow religion={selectedReligion} />
+        <DidYouKnow religion={selectedReligions[0]} />
 
         {/* Common Misconceptions */}
-        <CommonMisconceptions religion={selectedReligion} />
+        <CommonMisconceptions religion={selectedReligions[0]} />
 
         {/* CTA */}
         <CallToAction />
@@ -175,6 +225,32 @@ export default function CompareReligionsClient() {
           max-width: 900px;
           margin: 0 auto;
           padding: 0 1rem 4rem;
+        }
+
+        .back-button {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.6rem 1.2rem;
+          margin: 1.5rem 0 1rem;
+          border-radius: 100px;
+          border: 1.5px solid #e4ebe4;
+          background: white;
+          color: #5a6b5c;
+          font-size: 0.85rem;
+          font-weight: 600;
+          text-decoration: none;
+          transition: all 0.2s ease;
+        }
+
+        .back-button:hover {
+          border-color: #0a3d2e;
+          color: #0a3d2e;
+          transform: translateX(-3px);
+        }
+
+        .back-button i {
+          font-size: 1rem;
         }
 
         .search-results-banner {
@@ -201,6 +277,60 @@ export default function CompareReligionsClient() {
           margin-top: 1.5rem;
           display: flex;
           justify-content: flex-end;
+          gap: 0.5rem;
+        }
+
+        .comparison-grid {
+          margin-top: 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
+        }
+
+        .religion-section {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .religion-section-title {
+          font-size: 1.3rem;
+          font-weight: 700;
+          color: #0a3d2e;
+          margin: 0;
+          padding: 1rem 0 0.5rem;
+          border-bottom: 2px solid #e8ede4;
+        }
+
+        .placeholder-card {
+          margin-top: 1.5rem;
+          padding: 2rem;
+          background: linear-gradient(135deg, #f8f9f5, #ffffff);
+          border: 2px dashed #e4ebe4;
+          border-radius: 16px;
+          text-align: center;
+        }
+
+        .placeholder-header {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: #5a6b5c;
+          margin-bottom: 0.75rem;
+        }
+
+        .placeholder-header i {
+          font-size: 1.3rem;
+          color: #c9a227;
+        }
+
+        .placeholder-text {
+          color: #8a9b8c;
+          font-size: 0.9rem;
+          margin: 0;
         }
 
         .all-topics-nav {

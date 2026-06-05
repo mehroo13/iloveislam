@@ -23,12 +23,12 @@ export default function HeroHeader() {
           </div>
           <div className="hero-divider" />
           <div className="hero-stat">
-            <span className="hero-stat-num">15</span>
+            <span className="hero-stat-num">50</span>
             <span className="hero-stat-label">Topics</span>
           </div>
           <div className="hero-divider" />
           <div className="hero-stat">
-            <span className="hero-stat-num">90+</span>
+            <span className="hero-stat-num">300+</span>
             <span className="hero-stat-label">Comparisons</span>
           </div>
         </div>

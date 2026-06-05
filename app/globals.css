@@ -107,3 +107,86 @@ body {
     transform: translateY(0);
   }
 }
+
+
+/* Print Styles for PDF Export */
+@media print {
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+
+  body {
+    background: white;
+    font-size: 11pt;
+  }
+
+  /* Hide elements that shouldn't be printed */
+  nav,
+  header,
+  footer,
+  .print-btn,
+  .share-btn,
+  .share-button-wrapper,
+  .comparison-actions,
+  .search-results-banner,
+  .all-topics-nav,
+  button,
+  [role="button"] {
+    display: none !important;
+  }
+
+  /* Optimize comparison cards for print */
+  .comparison-wrapper {
+    page-break-inside: avoid;
+    margin-bottom: 2rem;
+  }
+
+  .religion-section {
+    page-break-before: always;
+  }
+
+  .religion-section:first-child {
+    page-break-before: auto;
+  }
+
+  .comparison-grid {
+    display: block;
+  }
+
+  .comp-card {
+    margin-bottom: 1rem;
+    page-break-inside: avoid;
+    border: 1px solid #333 !important;
+  }
+
+  .insight-box {
+    page-break-inside: avoid;
+    background: #f9f9f9 !important;
+    border: 1px solid #666 !important;
+  }
+
+  /* Ensure text is readable */
+  .card-text,
+  .insight-text {
+    color: #000 !important;
+  }
+
+  /* Show section titles */
+  .religion-section-title {
+    font-size: 16pt;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    color: #000 !important;
+  }
+
+  .comparison-topic-tag {
+    background: #333 !important;
+    color: white !important;
+  }
+
+  /* Hide share sections in cards */
+  .share-section {
+    display: none !important;
+  }
+}

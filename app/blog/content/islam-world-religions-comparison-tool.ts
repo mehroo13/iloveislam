@@ -9,7 +9,6 @@ export const islamWorldReligionsComparisonToolArticle = {
   date: "2026-06-05",
   content: `
 <div class="prose prose-emerald dark:prose-invert max-w-none">
-<img src="/blog/islam-comparison-tool.jpg" alt="islam vs world religions comparison" class="w-full rounded-2xl mb-8 shadow-lg" width="1200" height="630" loading="lazy" />
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-10 mb-6">Why Compare Islam With Other Religions?</h2>
 

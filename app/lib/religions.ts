@@ -15,7 +15,42 @@ export type Topic =
   | "fasting"
   | "marriage"
   | "morality"
-  | "purpose_of_life";
+  | "purpose_of_life"
+  | "sin_and_forgiveness"
+  | "miracles"
+  | "angels"
+  | "satan_and_evil"
+  | "dietary_laws"
+  | "alcohol_and_intoxicants"
+  | "modesty_and_dress"
+  | "music_and_entertainment"
+  | "worship_places"
+  | "religious_authority"
+  | "scripture_preservation"
+  | "conversion"
+  | "apostasy"
+  | "religious_tolerance"
+  | "violence_and_warfare"
+  | "social_justice"
+  | "slavery"
+  | "interest_and_usury"
+  | "inheritance"
+  | "polygamy"
+  | "divorce"
+  | "homosexuality"
+  | "abortion"
+  | "euthanasia"
+  | "death_rituals"
+  | "funeral_practices"
+  | "pilgrimage"
+  | "religious_festivals"
+  | "sacred_months"
+  | "coming_end_times"
+  | "messiah_concept"
+  | "prophecy_fulfillment"
+  | "religious_symbols"
+  | "sacred_sites"
+  | "environmental_ethics";
 
 export interface ComparisonPoint {
   islam: string;
@@ -114,6 +149,41 @@ export const TOPIC_LABELS: Record<Topic, string> = {
   marriage: "Marriage & Family",
   morality: "Moral Framework",
   purpose_of_life: "Purpose of Life",
+  sin_and_forgiveness: "Sin & Forgiveness",
+  miracles: "Miracles",
+  angels: "Angels & Jinn",
+  satan_and_evil: "Satan & Evil",
+  dietary_laws: "Dietary Laws",
+  alcohol_and_intoxicants: "Alcohol & Intoxicants",
+  modesty_and_dress: "Modesty & Dress",
+  music_and_entertainment: "Music & Entertainment",
+  worship_places: "Places of Worship",
+  religious_authority: "Religious Authority",
+  scripture_preservation: "Scripture Preservation",
+  conversion: "Conversion",
+  apostasy: "Apostasy",
+  religious_tolerance: "Religious Tolerance",
+  violence_and_warfare: "Violence & Warfare",
+  social_justice: "Social Justice",
+  slavery: "Slavery",
+  interest_and_usury: "Interest & Usury",
+  inheritance: "Inheritance Laws",
+  polygamy: "Polygamy",
+  divorce: "Divorce",
+  homosexuality: "Homosexuality",
+  abortion: "Abortion",
+  euthanasia: "Euthanasia",
+  death_rituals: "Death Rituals",
+  funeral_practices: "Funeral Practices",
+  pilgrimage: "Pilgrimage",
+  religious_festivals: "Religious Festivals",
+  sacred_months: "Sacred Months",
+  coming_end_times: "End Times",
+  messiah_concept: "Messiah Concept",
+  prophecy_fulfillment: "Prophecy Fulfillment",
+  religious_symbols: "Religious Symbols",
+  sacred_sites: "Sacred Sites",
+  environmental_ethics: "Environmental Ethics",
 };
 
 export const TOPIC_ICONS: Record<Topic, string> = {
@@ -132,9 +202,44 @@ export const TOPIC_ICONS: Record<Topic, string> = {
   marriage: "ti-heart-handshake",
   morality: "ti-scale",
   purpose_of_life: "ti-compass",
+  sin_and_forgiveness: "ti-refresh",
+  miracles: "ti-sparkles",
+  angels: "ti-feather",
+  satan_and_evil: "ti-flame",
+  dietary_laws: "ti-apple",
+  alcohol_and_intoxicants: "ti-glass-off",
+  modesty_and_dress: "ti-shirt",
+  music_and_entertainment: "ti-music",
+  worship_places: "ti-mosque",
+  religious_authority: "ti-crown",
+  scripture_preservation: "ti-lock",
+  conversion: "ti-arrows-exchange",
+  apostasy: "ti-arrow-back",
+  religious_tolerance: "ti-peace",
+  violence_and_warfare: "ti-swords",
+  social_justice: "ti-gavel",
+  slavery: "ti-chain",
+  interest_and_usury: "ti-percentage",
+  inheritance: "ti-file-dollar",
+  polygamy: "ti-hearts",
+  divorce: "ti-heart-broken",
+  homosexuality: "ti-gender-bigender",
+  abortion: "ti-baby-carriage",
+  euthanasia: "ti-file-x",
+  death_rituals: "ti-candle",
+  funeral_practices: "ti-flower",
+  pilgrimage: "ti-map-pin",
+  religious_festivals: "ti-calendar-event",
+  sacred_months: "ti-calendar-star",
+  coming_end_times: "ti-hourglass-empty",
+  messiah_concept: "ti-user-star",
+  prophecy_fulfillment: "ti-crystal-ball",
+  religious_symbols: "ti-hexagon",
+  sacred_sites: "ti-building-monument",
+  environmental_ethics: "ti-plant",
 };
 
-type ComparisonData = Record<Religion, Record<Topic, ComparisonPoint>>;
+type ComparisonData = Record<Religion, Partial<Record<Topic, ComparisonPoint>>>;
 
 export const COMPARISON_DATA: ComparisonData = {
   christianity: {
