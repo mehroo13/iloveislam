@@ -190,3 +190,25 @@ body {
     display: none !important;
   }
 }
+
+
+/* ===== Hide Browser/PWA Online/Offline Status Indicators ===== */
+/* Hide any browser-generated connection status indicators that may appear in PWA mode */
+[aria-label*="online"],
+[aria-label*="offline"],
+[aria-label*="Online"],
+[aria-label*="Offline"],
+[class*="online-status"],
+[class*="offline-status"],
+[class*="connection-status"],
+[class*="network-status"],
+.pwa-status-badge,
+.connection-badge,
+.online-indicator,
+.offline-indicator {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
+}
