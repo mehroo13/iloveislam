@@ -9,7 +9,7 @@ export async function generateStaticParams() {
 }
 
 export const metadata: Metadata = {
-  title: 'Juz 30 — Memorise Juz Amma | Hifz',
+  title: 'Juz 30 — Memorise Juz Amma | I Love Islam',
   description:
     'Juz 30 (Juz Amma) — all 37 short surahs with the recitation coach and a 90-day hifz plan. Free, no sign-up.',
 };

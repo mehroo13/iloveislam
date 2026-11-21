@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Islamic Inheritance Calculator — Distribute Estate According to Fara\'id | Hifz',
+  title: 'Islamic Inheritance Calculator — Distribute Estate According to Fara\'id | I Love Islam',
   description:
     'Calculate Islamic inheritance shares based on Hanafi fiqh. Enter estate, deductions, and heirs to see exact shares for each family member. Free, no sign‑up.',
   keywords: [
@@ -9,17 +9,17 @@ export const metadata: Metadata = {
     'faraid calculator', 'muslim inheritance law', 'shariah inheritance',
   ],
   openGraph: {
-    title: 'Islamic Inheritance Calculator — Fara\'id Distribution | Hifz',
+    title: 'Islamic Inheritance Calculator — Fara\'id Distribution | I Love Islam',
     description: 'Distribute an estate according to Islamic inheritance law. See shares for each heir.',
     url: 'https://www.iloveislam.life/inheritance-calculator',
-    siteName: 'Hifz',
+    siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Inheritance Calculator | Hifz',
+    title: 'Inheritance Calculator | I Love Islam',
     description: 'Free Islamic inheritance calculator with step‑by‑step results.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/inheritance-calculator' },
@@ -41,7 +41,7 @@ const jsonLd = {
       description:
         'Calculate inheritance shares (Fara\'id) according to the Hanafi school. Input estate value, deductions, and living heirs to get precise monetary shares.',
       url: 'https://www.iloveislam.life/inheritance-calculator',
-      provider: { '@type': 'Organization', name: 'Hifz', url: 'https://www.iloveislam.life' },
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',

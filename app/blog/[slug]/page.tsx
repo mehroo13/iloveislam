@@ -23,9 +23,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const description = seo?.description ?? article.excerpt;
   const url = `https://www.iloveislam.life/blog/${article.slug}`;
   return {
-    // `absolute` bypasses the blog layout's '%s | Hifz' template:
+    // `absolute` bypasses the blog layout's '%s | I Love Islam' template:
     // the tabled titles already carry the suffix where they have one, so
-    // without this they would render doubled ("… | Hifz | Hifz").
+    // without this they would render doubled ("… | I Love Islam | I Love Islam").
     title: { absolute: title },
     description,
     keywords: [article.category, 'islamic guide', 'muslim tips', article.slug.replace(/-/g, ' ')],
@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description,
       url,
       type: 'article',
-      siteName: 'Hifz',
+      siteName: 'I Love Islam',
       locale: 'en_US',
       publishedTime: article.date,
       authors: ['Hifz'],

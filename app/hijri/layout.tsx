@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Hijri Calendar Converter — Gregorian to Hijri & Islamic Date Today | Hifz',
+  title: 'Hijri Calendar Converter — Gregorian to Hijri & Islamic Date Today | I Love Islam',
   description:
     'Convert any date between Gregorian and Hijri calendars. See today’s Islamic date, upcoming events, and all Hijri months. Free, no sign‑up.',
   keywords: [
@@ -9,17 +9,17 @@ export const metadata: Metadata = {
     'islamic calendar 1446', 'hijri months', 'today hijri date', 'hijri converter',
   ],
   openGraph: {
-    title: 'Hijri Calendar Converter | Hifz',
+    title: 'Hijri Calendar Converter | I Love Islam',
     description: 'Convert dates between Gregorian and Hijri, see today’s Islamic date, and browse all Hijri months.',
     url: 'https://www.iloveislam.life/hijri-calendar',
-    siteName: 'Hifz',
+    siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Hijri Calendar Converter | Hifz',
+    title: 'Hijri Calendar Converter | I Love Islam',
     description: 'Free Hijri to Gregorian date converter with Islamic events.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/hijri-calendar' },
@@ -41,7 +41,7 @@ const jsonLd = {
       description:
         'Convert dates between the Gregorian and Hijri calendars, view today’s Islamic date, and explore all Hijri months with their Islamic significance.',
       url: 'https://www.iloveislam.life/hijri-calendar',
-      provider: { '@type': 'Organization', name: 'Hifz', url: 'https://www.iloveislam.life' },
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',

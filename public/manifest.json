@@ -1,6 +1,6 @@
 {
-  "name": "Hifz — Memorise the Quran with AI",
-  "short_name": "Hifz",
+  "name": "I Love Islam — Memorise the Quran with AI",
+  "short_name": "I Love Islam",
   "description": "Memorise the Quran with an AI recitation coach: live word-by-word mistake detection, hifz plans, Test Mode, Voice Search, streaks and mistake review. Free, no sign-up.",
   "start_url": "/",
   "display": "standalone",
@@ -107,7 +107,7 @@
       "sizes": "1200x630",
       "type": "image/webp",
       "form_factor": "wide",
-      "label": "Hifz - Memorise the Quran with AI"
+      "label": "I Love Islam - Memorise the Quran with AI"
     }
   ],
   "related_applications": [],

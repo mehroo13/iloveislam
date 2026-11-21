@@ -11,16 +11,16 @@ import { Breadcrumb, Attribution, PremiumSection } from '../components/HifzShare
 import { SITE_URL } from '../lib/fetch';
 
 export const metadata: Metadata = {
-  title: 'Juz Amma (Juz 30) — Memorise the Short Surahs | Hifz',
+  title: 'Juz Amma (Juz 30) — Memorise the Short Surahs | I Love Islam',
   description:
     'Memorise Juz Amma — all 37 short surahs (78–114) with the recitation coach, word-by-word and a 90-day plan. Free, no sign-up.',
   alternates: { canonical: `${SITE_URL}/hifz/juz-amma` },
   openGraph: {
-    title: 'Juz Amma (Juz 30) — Memorise the Short Surahs | Hifz',
+    title: 'Juz Amma (Juz 30) — Memorise the Short Surahs | I Love Islam',
     description:
       'Memorise Juz Amma — all 37 short surahs with the recitation coach and a 90-day plan. Free, no sign-up.',
     url: `${SITE_URL}/hifz/juz-amma`,
-    siteName: 'Hifz',
+    siteName: 'I Love Islam',
     type: 'website',
   },
 };

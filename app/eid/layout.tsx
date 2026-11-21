@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Islamic Events & Countdowns 2026 — Ramadan, Eid, Ashura | Hifz',
+  title: 'Islamic Events & Countdowns 2026 — Ramadan, Eid, Ashura | I Love Islam',
   description:
     'Live countdowns to Ramadan, Eid ul-Fitr, Eid ul-Adha, Day of Arafah, Ashura, Mawlid, and all major Islamic events. Dates calculated automatically for any year. Pin your favourites.',
   keywords: [
@@ -20,18 +20,18 @@ export const metadata: Metadata = {
     'laylatul qadr 2026',
   ],
   openGraph: {
-    title: 'Islamic Events & Countdowns 2026 | Hifz',
+    title: 'Islamic Events & Countdowns 2026 | I Love Islam',
     description:
       'Live countdowns to Ramadan, Eid, Arafah, Ashura & all major Islamic events. Pin your favourites. Free forever.',
     url: 'https://www.iloveislam.life/events',
-    siteName: 'Hifz',
+    siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Islamic Events & Countdowns 2026 | Hifz',
+    title: 'Islamic Events & Countdowns 2026 | I Love Islam',
     description: 'Live countdowns to Ramadan, Eid, Arafah & all major Islamic events. Free.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/events' },
@@ -53,7 +53,7 @@ const jsonLd = {
       description:
         'Live countdowns to all major Islamic events including Ramadan, Eid ul-Fitr, Eid ul-Adha, Day of Arafah, Ashura, Mawlid, and more. Dates calculated dynamically for any year using the Kuwaiti Hijri algorithm.',
       url: 'https://www.iloveislam.life/events',
-      provider: { '@type': 'Organization', name: 'Hifz', url: 'https://www.iloveislam.life' },
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',

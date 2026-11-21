@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Night Recitation — Sleep with Quran (Mulk, Rahman, Ya-Sin) | Hifz",
+  title: "Night Recitation — Sleep with Quran (Mulk, Rahman, Ya-Sin) | I Love Islam",
   description:
     "Sleep peacefully with soothing Quran recitation by Al-Sudais. Play Surah Mulk, Rahman, Ya-Sin, and Ad-Duha with auto-repeat. Free Islamic sleep aid, no sign-up.",
   keywords: [
@@ -16,18 +16,18 @@ export const metadata: Metadata = {
     "Al-Sudais recitation",
   ],
   openGraph: {
-    title: "Night Recitation — Sleep with Quran | Hifz",
+    title: "Night Recitation — Sleep with Quran | I Love Islam",
     description:
       "Let the Quran bring peace to your night. Play Surah Mulk, Rahman, Ya-Sin or Duha with auto-stop after your chosen repeats.",
     url: "https://www.iloveislam.life/night",
-    siteName: "Hifz",
+    siteName: "I Love Islam",
     locale: "en_US",
     type: "website",
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Night Recitation — Hifz' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Night Recitation — I Love Islam' }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Night Recitation — Sleep with Quran | Hifz",
+    title: "Night Recitation — Sleep with Quran | I Love Islam",
     description: "Sleep peacefully with Surah Mulk, Rahman, Ya-Sin recitation. Free.",
     images: ['/optimized/og-image.webp'],
   },
@@ -50,7 +50,7 @@ const jsonLd = {
       description:
         'Sleep with the soothing recitation of Surah Mulk, Rahman, Ya-Sin, and Ad-Duha by Sheikh Al-Sudais. Set repeat count and drift into peaceful rest.',
       url: 'https://www.iloveislam.life/night',
-      provider: { '@type': 'Organization', name: 'Hifz', url: 'https://www.iloveislam.life' },
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',

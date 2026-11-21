@@ -1,6 +1,6 @@
 import { LAUNCH_SURAHS, AYAT_AL_KURSI } from '../hifz/surahs';
 
-// app/sitemap.xml/route.ts — Hifz-only sitemap (single-purpose refocus,
+// app/sitemap.xml/route.ts — I Love Islam-only sitemap (single-purpose refocus,
 // 2026-11-21). The old tool pages, blog, about/contact/faq/install and the
 // legal pages are NOT listed: the tools redirect to /hifz, and the legal
 // pages are kept live but unlinked from the nav. Interactive tool pages

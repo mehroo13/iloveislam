@@ -148,8 +148,8 @@ export function surahJsonLd(surah: LaunchSurah, description: string) {
       headline: `Surah ${surah.name} — Read, Listen & Memorise`,
       description,
       inLanguage: ['ar', 'en'],
-      author: { '@type': 'Organization', name: 'Hifz', url: SITE_URL },
-      publisher: { '@type': 'Organization', name: 'Hifz', url: SITE_URL },
+      author: { '@type': 'Organization', name: 'I Love Islam', url: SITE_URL },
+      publisher: { '@type': 'Organization', name: 'I Love Islam', url: SITE_URL },
       mainEntityOfPage: `${SITE_URL}/hifz/${surah.slug}`,
     },
     breadcrumbJsonLd([
@@ -175,8 +175,8 @@ export function ayahJsonLd(opts: {
       headline: `Surah ${surah.name} Ayah ${ayah} (${key})`,
       description,
       inLanguage: ['ar', 'en'],
-      author: { '@type': 'Organization', name: 'Hifz', url: SITE_URL },
-      publisher: { '@type': 'Organization', name: 'Hifz', url: SITE_URL },
+      author: { '@type': 'Organization', name: 'I Love Islam', url: SITE_URL },
+      publisher: { '@type': 'Organization', name: 'I Love Islam', url: SITE_URL },
       mainEntityOfPage: `${SITE_URL}/hifz/${surah.slug}/${surah.id}-${ayah}`,
     },
     {

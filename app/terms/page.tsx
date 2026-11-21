@@ -7,7 +7,7 @@ const sections = [
     icon: '',
     title: '1. Acceptance of Terms',
     content:
-      'By accessing and using Hifz (iloveislam.life), you accept and agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use this website. We reserve the right to update these terms at any time, and continued use of the site constitutes acceptance of any changes.',
+      'By accessing and using I Love Islam (iloveislam.life), you accept and agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use this website. We reserve the right to update these terms at any time, and continued use of the site constitutes acceptance of any changes.',
   },
   {
     icon: '',
@@ -31,7 +31,7 @@ const sections = [
     icon: '',
     title: '5. Intellectual Property',
     content:
-      'The content, design, and code on Hifz are owned by Hifz unless otherwise stated. The Quran text displayed is the divine word of Allah ﷻ and is used for the purpose of enabling Muslims to read and learn. Arabic calligraphy and Islamic content is used with respect and for educational purposes.\n\nYou may share links to our app freely. You may not copy, reproduce, or redistribute our code or website content without permission.',
+      'The content, design, and code on I Love Islam are owned by I Love Islam unless otherwise stated. The Quran text displayed is the divine word of Allah ﷻ and is used for the purpose of enabling Muslims to read and learn. Arabic calligraphy and Islamic content is used with respect and for educational purposes.\n\nYou may share links to our app freely. You may not copy, reproduce, or redistribute our code or website content without permission.',
   },
   {
     icon: '',
@@ -43,7 +43,7 @@ const sections = [
     icon: '',
     title: '7. Accuracy and Reliability',
     content:
-      'While we strive to provide accurate and reliable feedback, Hifz makes no warranties or representations about the accuracy, completeness, or suitability of the information provided. The recitation coach is provided "as is" — it checks word accuracy only, never tajweed, and may occasionally mishear. We are not liable for any decisions made based on the output of the coach. Always verify important religious matters with qualified scholars and teachers.',
+      'While we strive to provide accurate and reliable feedback, I Love Islam makes no warranties or representations about the accuracy, completeness, or suitability of the information provided. The recitation coach is provided "as is" — it checks word accuracy only, never tajweed, and may occasionally mishear. We are not liable for any decisions made based on the output of the coach. Always verify important religious matters with qualified scholars and teachers.',
   },
   {
     icon: '',
@@ -55,13 +55,13 @@ const sections = [
     icon: '',
     title: '9. Advertisements',
     content:
-      'Hifz may display advertisements through Google AdSense or similar advertising networks to help cover hosting and development costs. These ads are served by third parties and their content is not controlled by us. We strive to ensure advertisements are appropriate for a Muslim audience, but we cannot guarantee the content of all third-party ads.',
+      'I Love Islam may display advertisements through Google AdSense or similar advertising networks to help cover hosting and development costs. These ads are served by third parties and their content is not controlled by us. We strive to ensure advertisements are appropriate for a Muslim audience, but we cannot guarantee the content of all third-party ads.',
   },
   {
     icon: '',
     title: '10. Limitation of Liability',
     content:
-      'To the maximum extent permitted by law, Hifz shall not be liable for any direct, indirect, incidental, special, or consequential damages resulting from your use of or inability to use the service, including but not limited to damages resulting from reliance on any information obtained from the website.',
+      'To the maximum extent permitted by law, I Love Islam shall not be liable for any direct, indirect, incidental, special, or consequential damages resulting from your use of or inability to use the service, including but not limited to damages resulting from reliance on any information obtained from the website.',
   },
   {
     icon: '',

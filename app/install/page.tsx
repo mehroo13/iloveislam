@@ -223,7 +223,7 @@ export default function InstallPage() {
               onClick={installApp}
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-10 py-4 rounded-2xl text-base transition-all active:scale-95 shadow-xl"
             >
-               Install Hifz — Free
+               Install I Love Islam — Free
             </button>
           ) : isInstalled ? (
             <div className="space-y-3">

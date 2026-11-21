@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Qibla Finder — Find Accurate Qibla Direction from Anywhere | Hifz',
+  title: 'Qibla Finder — Find Accurate Qibla Direction from Anywhere | I Love Islam',
   description:
     'Find the exact Qibla direction from your location or any city. Use GPS or search by city, view the live compass bearing, and see distance to the Kaaba. Free, no sign-up.',
   keywords: [
@@ -9,17 +9,17 @@ export const metadata: Metadata = {
     'qibla compass', 'qibla locator', 'muslim qibla',
   ],
   openGraph: {
-    title: 'Qibla Finder — Find Accurate Qibla Direction from Anywhere | Hifz',
+    title: 'Qibla Finder — Find Accurate Qibla Direction from Anywhere | I Love Islam',
     description: 'Find the exact Qibla direction from your location or any city. Use GPS, search a city, and view the live compass bearing to the Kaaba. Free, no sign-up.',
     url: 'https://www.iloveislam.life/qibla',
-    siteName: 'Hifz',
+    siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Qibla Finder — Find Accurate Qibla Direction from Anywhere | Hifz',
+    title: 'Qibla Finder — Find Accurate Qibla Direction from Anywhere | I Love Islam',
     description: 'Find the exact Qibla direction from your location or any city. Use GPS, search a city, and view the live compass bearing to the Kaaba. Free, no sign-up.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/qibla' },
@@ -41,7 +41,7 @@ const jsonLd = {
       description:
         'Find the exact Qibla direction (towards the Kaaba in Mecca) from any location using GPS or city search, with a live compass and distance display.',
       url: 'https://www.iloveislam.life/qibla',
-      provider: { '@type': 'Organization', name: 'Hifz', url: 'https://www.iloveislam.life' },
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Prayer Times — Accurate Salah Times for Any City | Hifz',
+  title: 'Prayer Times — Accurate Salah Times for Any City | I Love Islam',
   description:
     'Find prayer times with exact Fajr, Dhuhr, Asr, Maghrib, and Isha schedules for your location. Choose from multiple calculation methods and see a live countdown. Free, no sign-up.',
   keywords: [
@@ -9,18 +9,18 @@ export const metadata: Metadata = {
     'islamic prayer times today', 'muslim prayer times', 'azan time', 'qibla time', 'prayer timetable',
   ],
   openGraph: {
-    title: 'Prayer Times — Accurate Salah Times for Any City | Hifz',
+    title: 'Prayer Times — Accurate Salah Times for Any City | I Love Islam',
     description:
       'Find prayer times with exact Fajr, Dhuhr, Asr, Maghrib, and Isha schedules for your location. Choose from multiple calculation methods and see a live countdown. Free, no sign-up.',
     url: 'https://www.iloveislam.life/prayer-times',
-    siteName: 'Hifz',
+    siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Prayer Times — Accurate Salah Times for Any City | Hifz',
+    title: 'Prayer Times — Accurate Salah Times for Any City | I Love Islam',
     description: 'Find prayer times with exact Fajr, Dhuhr, Asr, Maghrib, and Isha schedules for your location. Choose from multiple calculation methods and see a live countdown. Free, no sign-up.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/prayer-times' },
@@ -42,7 +42,7 @@ const jsonLd = {
       description:
         'Accurate Islamic prayer times for any location worldwide, with multiple calculation methods and live next-prayer countdown.',
       url: 'https://www.iloveislam.life/prayer-times',
-      provider: { '@type': 'Organization', name: 'Hifz', url: 'https://www.iloveislam.life' },
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',

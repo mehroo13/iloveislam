@@ -2,22 +2,22 @@
 // Unique SEO titles + meta descriptions for all 55 blog posts.
 // Source of truth: workspace/projects/iloveislam-website/blog-seo-titles.md
 // (blog SEO fix, 2026-11-21). Titles are applied with `absolute` in
-// app/blog/[slug]/page.tsx so the blog layout's '%s | Hifz'
+// app/blog/[slug]/page.tsx so the blog layout's '%s | I Love Islam'
 // template does not append a second suffix.
 
 export const blogSeo: Record<string, { title: string; description: string }> = {
-  "how-to-calculate-zakat": { title: "How to Calculate Zakat: Step-by-Step Guide | Hifz", description: "Master Zakat calculation: Nisab, zakatable assets, gold, silver and cash — with a free calculator to get your exact amount." },
-  "mizan-islamic-life-blueprint": { title: "What Is the Mizan Islamic Life Blueprint? | Hifz", description: "Discover your spiritual profile with the Abjad system, the 99 Names of Allah and Quranic wisdom — find balance and purpose." },
-  "how-to-find-qibla-direction": { title: "How to Find the Qibla Direction Anywhere | Hifz", description: "Why the Qibla changes by location and how to find it accurately — with our free Qibla Finder or traditional methods." },
+  "how-to-calculate-zakat": { title: "How to Calculate Zakat: Step-by-Step Guide | I Love Islam", description: "Master Zakat calculation: Nisab, zakatable assets, gold, silver and cash — with a free calculator to get your exact amount." },
+  "mizan-islamic-life-blueprint": { title: "What Is the Mizan Islamic Life Blueprint? | I Love Islam", description: "Discover your spiritual profile with the Abjad system, the 99 Names of Allah and Quranic wisdom — find balance and purpose." },
+  "how-to-find-qibla-direction": { title: "How to Find the Qibla Direction Anywhere | I Love Islam", description: "Why the Qibla changes by location and how to find it accurately — with our free Qibla Finder or traditional methods." },
   "islamic-prayer-times-fajr-dhuhr-asr-maghrib-isha": { title: "Islamic Prayer Times: Fajr, Dhuhr, Asr, Maghrib & Isha", description: "A complete guide to the five daily prayers — their virtues, exact time windows and accurate times for any location." },
-  "islamic-hijri-calendar-explained": { title: "The Islamic Hijri Calendar Explained | Hifz", description: "How the Hijri lunar calendar works: its 12 months, sacred months, history and easy Hijri–Gregorian conversion." },
-  "99-names-of-allah-asma-ul-husna": { title: "The 99 Names of Allah: Meanings, Benefits & Use | Hifz", description: "Learn the meanings and spiritual benefits of Asma ul Husna, and how to call upon Allah by His names in daily dua." },
-  "how-to-prepare-for-ramadan": { title: "How to Prepare for Ramadan: Complete Guide | Hifz", description: "Prepare your heart, body and schedule for Ramadan — spiritual, physical and practical steps to gain its full reward." },
+  "islamic-hijri-calendar-explained": { title: "The Islamic Hijri Calendar Explained | I Love Islam", description: "How the Hijri lunar calendar works: its 12 months, sacred months, history and easy Hijri–Gregorian conversion." },
+  "99-names-of-allah-asma-ul-husna": { title: "The 99 Names of Allah: Meanings, Benefits & Use | I Love Islam", description: "Learn the meanings and spiritual benefits of Asma ul Husna, and how to call upon Allah by His names in daily dua." },
+  "how-to-prepare-for-ramadan": { title: "How to Prepare for Ramadan: Complete Guide | I Love Islam", description: "Prepare your heart, body and schedule for Ramadan — spiritual, physical and practical steps to gain its full reward." },
   "halal-travel-tips-muslim-guide": { title: "Halal Travel Guide: 10 Essential Tips for Muslims", description: "Travel true to your faith: prayer times, Qibla, halal food, mosques and traveller's concessions — 10 practical tips." },
   "how-to-perform-wudu-ablution": { title: "How to Perform Wudu: Step-by-Step Guide with Duas", description: "Master Wudu: Fard and Sunnah actions, common mistakes to avoid, and the duas to recite during and after ablution." },
   "complete-guide-to-dhikr": { title: "The Complete Guide to Dhikr: Remembrance of Allah", description: "The most powerful adhkar, their immense virtues, and how to build a consistent daily remembrance habit." },
   "how-to-make-dua-islamic-guide": { title: "How to Make Dua: The Complete Islamic Guide", description: "Dua etiquette, best times, conditions for acceptance, and powerful duas taught by the Prophet ﷺ." },
-  "beginners-guide-to-reading-quran": { title: "Beginner's Guide to Reading the Quran | Hifz", description: "Where to start with the Quran: best Surahs for beginners, tajweed basics and how to build a daily reading habit." },
+  "beginners-guide-to-reading-quran": { title: "Beginner's Guide to Reading the Quran | I Love Islam", description: "Where to start with the Quran: best Surahs for beginners, tajweed basics and how to build a daily reading habit." },
   "what-is-sadaqah-types-benefits": { title: "What Is Sadaqah? Types, Benefits & How to Give", description: "Discover Sadaqah in Islam — its types, immense rewards, and why even a smile counts as charity." },
   "hajj-explained-beginners-guide": { title: "Hajj Explained: A Beginner's Guide to the Fifth Pillar", description: "The journey of a lifetime: Hajj rituals step by step, spiritual significance, pillars and practical preparation." },
   "how-to-perform-umrah": { title: "How to Perform Umrah: Step-by-Step Beginner's Guide", description: "Umrah's four pillars — Ihram, Tawaf, Sa'i and Halq/Taqsir — with practical tips and authentic duas." },
@@ -25,12 +25,12 @@ export const blogSeo: Record<string, { title: string; description: string }> = {
   "why-every-muslim-needs-a-will": { title: "Why Every Muslim Needs a Will — And How to Write One", description: "Writing a Wasiyyah is an Islamic obligation. Learn the rules, what to include, and create yours with our free tool." },
   "halal-finance-riba-how-to-avoid": { title: "Halal Finance: What Is Riba and How to Avoid It", description: "What Riba really is, its types, why it is strictly forbidden, and how to keep your finances fully halal." },
   "what-is-kaffarah-types-reasons": { title: "What Is Kaffarah? Types, Reasons & How to Calculate It", description: "Kaffarah explained: when expiation applies, the different types, and how to fulfil it correctly." },
-  "eid-al-fitr-eid-al-adha-guide": { title: "Eid al-Fitr & Eid al-Adha: Complete Guide | Hifz", description: "Celebrate Eid the Sunnah way: significance, Eid prayer, Zakat al-Fitr, Qurbani and making your Eid meaningful." },
+  "eid-al-fitr-eid-al-adha-guide": { title: "Eid al-Fitr & Eid al-Adha: Complete Guide | I Love Islam", description: "Celebrate Eid the Sunnah way: significance, Eid prayer, Zakat al-Fitr, Qurbani and making your Eid meaningful." },
   "how-to-find-mosque-near-you": { title: "How to Find a Mosque Near You — Anywhere in the World", description: "Find nearby mosques with our free Mosque Finder, plus mosque etiquette and Jumu'ah timings." },
   "what-is-hadith-major-collections": { title: "What Is Hadith? The 6 Major Collections Explained", description: "Hadith: their importance, how they are authenticated, and the six canonical collections (Kutub al-Sittah)." },
   "how-to-choose-islamic-name": { title: "How to Choose an Islamic Name: Rules & Meanings", description: "Islamic naming guidelines, recommended names, names to avoid, and how to find the perfect meaningful name." },
   "teaching-children-about-islam-guide": { title: "Teaching Children About Islam: A Practical Parent's Guide", description: "Age-appropriate ways to teach Salah, Quran, dua and character — raising righteous children from an early age." },
-  "rights-of-parents-in-islam": { title: "Rights of Parents on Children in Islam | Hifz", description: "Respect, care and gratitude: a complete guide to parents' rights, rooted in Quran, Sunnah and everyday life." },
+  "rights-of-parents-in-islam": { title: "Rights of Parents on Children in Islam | I Love Islam", description: "Respect, care and gratitude: a complete guide to parents' rights, rooted in Quran, Sunnah and everyday life." },
   "five-pillars-of-islam": { title: "The Five Pillars of Islam: Foundation of Muslim Life", description: "Shahada, Salah, Zakat, Sawm and Hajj — their meanings, rulings and how to fulfil each pillar properly." },
   "mosque-etiquette-rules-manners": { title: "Mosque Etiquette: Rules & Manners for Visiting a Masjid", description: "Proper etiquette for entering, praying and behaving in the masjid — for regulars and first-time visitors." },
   "night-recitation-quran-before-sleep": { title: "Night Recitation: Quranic Surahs to Listen to Before Sleep", description: "Quran before bed brings barakah and tranquillity — the best Surahs to listen to, with our Night Recitation tool." },

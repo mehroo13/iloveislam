@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'FAQ — Islamic Tools Help & Answers | Hifz',
+  title: 'FAQ — Islamic Tools Help & Answers | I Love Islam',
   description:
     'Find answers to frequently asked questions about our free Islamic tools — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Dhikr Counter, and more.',
   keywords: [
@@ -9,17 +9,17 @@ export const metadata: Metadata = {
     'qibla finder help', 'islamic app questions',
   ],
   openGraph: {
-    title: 'FAQ — Islamic Tools Help & Answers | Hifz',
+    title: 'FAQ — Islamic Tools Help & Answers | I Love Islam',
     description: 'Answers to common questions about our 20+ free Islamic tools. Privacy, accuracy, and usage explained.',
     type: 'website',
     url: 'https://www.iloveislam.life/faq',
-    siteName: 'Hifz',
+    siteName: 'I Love Islam',
     locale: 'en_US',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'FAQ — Hifz' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'FAQ — I Love Islam' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'FAQ — Hifz',
+    title: 'FAQ — I Love Islam',
     description: 'Answers to common questions about our free Islamic tools.',
     images: ['/optimized/og-image.webp'],
   },

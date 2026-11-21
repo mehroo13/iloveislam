@@ -24,8 +24,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const surah = getSurahBySlug(slug);
-  if (!surah) return { title: 'Surah not found | Hifz' };
-  const title = `Surah ${surah.name} — Read, Listen & Memorise | Hifz`;
+  if (!surah) return { title: 'Surah not found | I Love Islam' };
+  const title = `Surah ${surah.name} — Read, Listen & Memorise | I Love Islam`;
   const description = `Memorise Surah ${surah.name} (${surah.id}) — Arabic, translation, audio and a 30-day hifz plan. Recite aloud and get word-by-word feedback.`;
   return {
     title,
@@ -35,7 +35,7 @@ export async function generateMetadata({
       title,
       description,
       url: `${SITE_URL}/hifz/${surah.slug}`,
-      siteName: 'Hifz',
+      siteName: 'I Love Islam',
       type: 'article',
     },
   };

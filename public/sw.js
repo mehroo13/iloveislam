@@ -1,4 +1,4 @@
-// Hifz — Advanced Service Worker v3.0.0
+// I Love Islam — Advanced Service Worker v3.0.0
 // Offline-first PWA for the single-purpose Hifz app (rebrand 2026-11-21).
 //
 // Offline coach (§15.10): the coach model (Tilawa, hosted on tilawa.dev,
@@ -19,7 +19,7 @@ const MODEL_CACHE = 'hifz-model-v3';
 const OFFLINE_URL = '/offline.html';
 
 // ==================== CACHE STRATEGIES FOR THE HIFZ APP ====================
-// Network First — Hifz pages are dynamic (Quran text comes from the API).
+// Network First — I Love Islam pages are dynamic (Quran text comes from the API).
 const NETWORK_FIRST_ROUTES = [
   '/hifz',
   '/hifz/recite',
@@ -378,7 +378,7 @@ self.addEventListener('push', (event) => {
   try {
     data = event.data.json();
   } catch (e) {
-    data = { title: 'Hifz', body: event.data.text() };
+    data = { title: 'I Love Islam', body: event.data.text() };
   }
 
   const options = {
@@ -396,7 +396,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Hifz', options)
+    self.registration.showNotification(data.title || 'I Love Islam', options)
   );
 });
 

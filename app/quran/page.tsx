@@ -10,18 +10,18 @@ import { UPSTREAM_API, VOTD_KEYS, dayOfYear, type Chapter, type Verse } from './
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: 'Quran Reader — Read the Quran in Indo-Pak Script | Hifz',
+  title: 'Quran Reader — Read the Quran in Indo-Pak Script | I Love Islam',
   description:
     'Read the Holy Quran in the Indo-Pak script with English translation, audio recitation and tafsir. Browse all 114 surahs, read by Juz, search, bookmark verses and follow a 30-day reading plan.',
   keywords:
     'quran reader, read quran online, indo-pak quran, quran translation, quran audio, tafsir ibn kathir, quran surahs, juz, reading plan',
   alternates: { canonical: 'https://www.iloveislam.life/quran' },
   openGraph: {
-    title: 'Quran Reader — Read the Quran in Indo-Pak Script | Hifz',
+    title: 'Quran Reader — Read the Quran in Indo-Pak Script | I Love Islam',
     description:
       'Read the Holy Quran in the Indo-Pak script with translation, audio recitation and tafsir.',
     url: 'https://www.iloveislam.life/quran',
-    siteName: 'Hifz',
+    siteName: 'I Love Islam',
     type: 'website',
   },
 };

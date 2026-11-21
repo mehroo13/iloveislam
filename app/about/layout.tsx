@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'About Us — Hifz | Free Islamic Tools for Every Muslim',
+  title: 'About Us — I Love Islam | Free Islamic Tools for Every Muslim',
   description:
     'Learn about Hifz – a free collection of 20+ Islamic tools built for Muslims worldwide. Discover our mission, values, methodology, sources, and commitment to serving the global Ummah with accurate, private, and accessible Islamic tools.',
   keywords: [
@@ -9,17 +9,17 @@ export const metadata: Metadata = {
     'muslim website', 'islamic technology', 'ummah tools', 'halal tools',
   ],
   openGraph: {
-    title: 'About Hifz — Free Islamic Tools for the Ummah',
+    title: 'About I Love Islam — Free Islamic Tools for the Ummah',
     description: 'Discover why we built 20+ free Islamic tools for the global Muslim community. Our mission, values, and commitment to accuracy and privacy.',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
     url: 'https://www.iloveislam.life/about',
-    siteName: 'Hifz',
+    siteName: 'I Love Islam',
     locale: 'en_US',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'About Hifz',
+    title: 'About I Love Islam',
     description: '20+ free Islamic tools for every Muslim. Learn about our mission and values.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/about' },
@@ -34,12 +34,12 @@ const jsonLd = {
   '@graph': [
     {
       '@type': 'AboutPage',
-      name: 'About Hifz',
-      description: 'Learn about Hifz — a free collection of 20+ Islamic tools built for Muslims worldwide.',
+      name: 'About I Love Islam',
+      description: 'Learn about I Love Islam — a free collection of 20+ Islamic tools built for Muslims worldwide.',
       url: 'https://www.iloveislam.life/about',
       mainEntity: {
         '@type': 'Organization',
-        name: 'Hifz',
+        name: 'I Love Islam',
         url: 'https://www.iloveislam.life',
         description: 'Free Islamic tools for every Muslim — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, and more.',
       },

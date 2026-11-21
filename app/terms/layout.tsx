@@ -1,21 +1,21 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service — Hifz | Free Islamic Tools',
+  title: 'Terms of Service — I Love Islam | Free Islamic Tools',
   description:
-    'Read the terms of service for Hifz free Islamic tools. All tools are free forever, provided as-is for educational and personal use.',
+    'Read the terms of service for I Love Islam. All tools are free forever, provided as-is for educational and personal use.',
   openGraph: {
-    title: 'Terms of Service — Hifz',
+    title: 'Terms of Service — I Love Islam',
     description: 'Free Islamic tools terms of service. All tools are provided as-is for educational use.',
     type: 'website',
     url: 'https://www.iloveislam.life/terms',
-    siteName: 'Hifz',
+    siteName: 'I Love Islam',
     locale: 'en_US',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Terms of Service — Hifz' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Terms of Service — I Love Islam' }],
   },
   twitter: {
     card: 'summary',
-    title: 'Terms of Service — Hifz',
+    title: 'Terms of Service — I Love Islam',
     description: 'Free Islamic tools terms of service.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/terms' },

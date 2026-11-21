@@ -1,5 +1,5 @@
 'use client';
-// app/components/Header.tsx — sticky site header, Hifz identity (emerald + gold).
+// app/components/Header.tsx — sticky site header, I Love Islam identity (emerald + gold).
 // Tarteel-simple: five links, no more — everything else lives on the Hifz hub.
 import { useState } from 'react';
 import Link from 'next/link';
@@ -29,10 +29,10 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 bg-[#0B3D2E] text-white shadow-md">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-3 sm:px-4">
-        <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label="Hifz — home">
-          <Image src="/logo.svg" alt="Hifz logo" width={36} height={36} priority />
+        <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label="I Love Islam — home">
+          <Image src="/logo.svg" alt="I Love Islam logo" width={36} height={36} priority />
           <span className="text-lg font-bold leading-none tracking-tight">
-            Hifz
+            I Love Islam
           </span>
         </Link>
 

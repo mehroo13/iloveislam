@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Mizan — Islamic Numerology & Life Purpose Blueprint | Hifz',
+  title: 'Mizan — Islamic Numerology & Life Purpose Blueprint | I Love Islam',
   description:
     'Discover your Islamic archetype, divine name, and life purpose based on your birth date. Personalised Quranic verses, rizq path, dhikr, and prophetic mirror. Free, no sign‑up.',
   keywords: [
@@ -9,17 +9,17 @@ export const metadata: Metadata = {
     'life purpose islam', 'spiritual blueprint', 'free mizan report',
   ],
   openGraph: {
-    title: 'Mizan — Islamic Archetype & Life Purpose | Hifz',
+    title: 'Mizan — Islamic Archetype & Life Purpose | I Love Islam',
     description: 'Uncover your spiritual blueprint with personalised Quranic guidance.',
     url: 'https://www.iloveislam.life/mizan',
-    siteName: 'Hifz',
+    siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Mizan | Hifz',
+    title: 'Mizan | I Love Islam',
     description: 'Discover your Islamic archetype and divine purpose.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/mizan' },
@@ -41,7 +41,7 @@ const jsonLd = {
       description:
         'A spiritual self‑reflection tool that maps your birth date to an Islamic archetype linked to a Divine Name, Quranic verse, daily verses, and life purpose.',
       url: 'https://www.iloveislam.life/mizan',
-      provider: { '@type': 'Organization', name: 'Hifz', url: 'https://www.iloveislam.life' },
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',

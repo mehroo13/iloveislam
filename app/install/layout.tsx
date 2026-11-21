@@ -1,22 +1,22 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Install Hifz App — Free Offline Islamic Tools',
+  title: 'Install I Love Islam App — Free Offline Islamic Tools',
   description: 'Install Hifz on your phone or computer for instant offline access to Prayer Times, Dhikr Counter, Quran Reader, and 25+ Islamic tools. No app store needed.',
   keywords: ['install islamic app', 'offline islamic tools', 'pwa islamic', 'add to home screen islam'],
   alternates: { canonical: 'https://www.iloveislam.life/install' },
   openGraph: {
-    title: 'Install Hifz App — Free Offline Islamic Tools',
+    title: 'Install I Love Islam App — Free Offline Islamic Tools',
     description: 'Install Hifz on your phone or computer for instant offline access to 25+ Islamic tools.',
     url: 'https://www.iloveislam.life/install',
-    siteName: 'Hifz',
+    siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Install Hifz App' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Install I Love Islam App' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Install Hifz App — Free Offline Islamic Tools',
+    title: 'Install I Love Islam App — Free Offline Islamic Tools',
     description: 'Get instant offline access to 25+ Islamic tools from your home screen.',
     images: ['/optimized/og-image.webp'],
   },
@@ -31,7 +31,7 @@ const jsonLd = {
   '@graph': [
     {
       '@type': 'WebPage',
-      name: 'Install Hifz App',
+      name: 'Install I Love Islam App',
       description: 'Step-by-step guide to install Hifz as a Progressive Web App on iPhone, Android, Windows, and Mac.',
       url: 'https://www.iloveislam.life/install',
     },

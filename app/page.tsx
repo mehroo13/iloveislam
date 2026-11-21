@@ -9,13 +9,13 @@ import HomeClient from './HomeClient';
 export const revalidate = 3600; // ISR: revalidate every hour
 
 export const metadata: Metadata = {
-  title: 'Hifz — Memorise the Quran with AI',
+  title: 'I Love Islam — Memorise the Quran with AI',
   description:
     'Recite Quran aloud and get instant word-by-word feedback. Memorise Surah Al-Mulk, Ya-Sin, Al-Kahf and Juz Amma with 7-day and 30-day hifz plans. Free, no sign-up, your audio never leaves your device.',
   metadataBase: new URL('https://www.iloveislam.life'),
   keywords:
     'memorise quran, hifz, quran memorisation, recitation coach, surah al-mulk, surah ya-sin, surah al-kahf, juz amma, ayat al-kursi, learn quran, quran test mode, voice search quran',
-  authors: [{ name: 'Hifz', url: 'https://www.iloveislam.life' }],
+  authors: [{ name: 'I Love Islam', url: 'https://www.iloveislam.life' }],
   robots: { index: true, follow: true },
   alternates: {
     canonical: 'https://www.iloveislam.life',
@@ -25,18 +25,18 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'Hifz — Memorise the Quran with AI',
+    title: 'I Love Islam — Memorise the Quran with AI',
     description:
       'Recite Quran aloud and get instant word-by-word feedback. Memorise Surah Al-Mulk, Ya-Sin, Al-Kahf and Juz Amma with 7-day and 30-day hifz plans. Free, no sign-up.',
     url: 'https://www.iloveislam.life',
-    siteName: 'Hifz',
+    siteName: 'I Love Islam',
     images: [{ url: 'https://www.iloveislam.life/og-image.png', width: 1200, height: 630 }],
     locale: 'en_US',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Hifz — Memorise the Quran with AI',
+    title: 'I Love Islam — Memorise the Quran with AI',
     description:
       'Recite Quran aloud and get instant word-by-word feedback. Memorise Surah Al-Mulk, Ya-Sin, Al-Kahf and Juz Amma with 7-day and 30-day hifz plans. Free, no sign-up.',
     images: ['https://www.iloveislam.life/og-image.png'],
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
-  name: 'Hifz',
+  name: 'I Love Islam',
   url: 'https://www.iloveislam.life',
   description:
     'Memorise the Quran with an AI recitation coach: recite aloud and get instant word-by-word feedback, with 7-day and 30-day hifz plans for Surah Al-Mulk, Ya-Sin, Al-Kahf and Juz Amma. Free, no sign-up.',

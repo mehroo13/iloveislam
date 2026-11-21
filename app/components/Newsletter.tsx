@@ -21,7 +21,7 @@ export default function Newsletter({ t }: { t: TranslationsType }) {
       const res = await fetch('https://formspree.io/f/xpqbybvq', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ email, _subject: 'Newsletter Subscription — Hifz' }),
+        body: JSON.stringify({ email, _subject: 'Newsletter Subscription — I Love Islam' }),
       });
       if (res.ok) {
         setStatus('success');

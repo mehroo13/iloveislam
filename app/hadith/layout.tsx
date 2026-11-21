@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Hadith Search — Authentic Hadiths from Bukhari, Muslim & More | Hifz',
+  title: 'Hadith Search — Authentic Hadiths from Bukhari, Muslim & More | I Love Islam',
   description:
     'Search authentic hadiths across Bukhari, Muslim, Abu Dawud, Tirmidhi, Nasa’i, Ibn Majah. Read in English or Urdu, bookmark, and copy. Free, no sign‑up.',
   keywords: [
@@ -9,17 +9,17 @@ export const metadata: Metadata = {
     'hadith in urdu', 'authentic hadith', 'hadith database', 'free hadith search',
   ],
   openGraph: {
-    title: 'Hadith Search — Authentic Hadiths in English & Urdu | Hifz',
+    title: 'Hadith Search — Authentic Hadiths in English & Urdu | I Love Islam',
     description: 'Search thousands of hadiths from six authentic collections. Bookmark and copy easily.',
     url: 'https://www.iloveislam.life/hadith-search',
-    siteName: 'Hifz',
+    siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Hadith Search | Hifz',
+    title: 'Hadith Search | I Love Islam',
     description: 'Free hadith search across six major collections.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/hadith-search' },
@@ -41,7 +41,7 @@ const jsonLd = {
       description:
         'Search authentic hadiths from Sahih Bukhari, Sahih Muslim, Abu Dawud, Tirmidhi, Nasa’i, and Ibn Majah. Supports English and Urdu translations with bookmarking.',
       url: 'https://www.iloveislam.life/hadith-search',
-      provider: { '@type': 'Organization', name: 'Hifz', url: 'https://www.iloveislam.life' },
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',

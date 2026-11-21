@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Hajj Checklist — Complete Step‑by‑Step Guide & Tracker | Hifz',
+  title: 'Hajj Checklist — Complete Step‑by‑Step Guide & Tracker | I Love Islam',
   description:
     'Prepare for Hajj with a complete checklist: from Ihram to Tawaf al‑Wada. Track your progress, save your completion, and get inspired with duas. Free, no sign‑up.',
   keywords: [
@@ -9,17 +9,17 @@ export const metadata: Metadata = {
     'hajj 2025', 'hajj planner', 'free hajj checklist', 'hajj rituals',
   ],
   openGraph: {
-    title: 'Hajj Checklist — Complete Step‑by‑Step Guide | Hifz',
+    title: 'Hajj Checklist — Complete Step‑by‑Step Guide | I Love Islam',
     description: 'A comprehensive checklist for every day of Hajj. Track your progress and never miss a rite.',
     url: 'https://www.iloveislam.life/hajj-checklist',
-    siteName: 'Hifz',
+    siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Hajj Checklist | Hifz',
+    title: 'Hajj Checklist | I Love Islam',
     description: 'Free Hajj planner and checklist.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/hajj-checklist' },
@@ -41,7 +41,7 @@ const jsonLd = {
       description:
         'A complete step‑by‑step Hajj checklist covering every day from Ihram to Tawaf al‑Wada. Track your progress with checkboxes and get essential duas.',
       url: 'https://www.iloveislam.life/hajj-checklist',
-      provider: { '@type': 'Organization', name: 'Hifz', url: 'https://www.iloveislam.life' },
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',

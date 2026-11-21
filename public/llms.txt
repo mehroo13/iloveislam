@@ -1,6 +1,6 @@
-# Hifz — llms.txt
+# I Love Islam — llms.txt
 
-> Hifz (iloveislam.life) helps visitors memorise the Quran by reciting
+> I Love Islam (iloveislam.life) helps visitors memorise the Quran by reciting
 > aloud and getting word-by-word feedback. Free, no sign-up, no account.
 > Quran text, translations and tafsir are sourced from Quran.com; audio is
 > from named reciters. This tool checks which words were recited — it does

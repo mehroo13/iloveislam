@@ -43,10 +43,10 @@ export async function generateMetadata({
       ? AL_BAQARAH
       : getSurahBySlug(slug);
   if (!parsed || !surah || parsed.surahId !== surah.id) {
-    return { title: 'Ayah not found | Hifz' };
+    return { title: 'Ayah not found | I Love Islam' };
   }
   const key = `${surah.id}:${parsed.ayah}`;
-  const title = `Surah ${surah.name} Ayah ${parsed.ayah} (${key}) | Hifz`;
+  const title = `Surah ${surah.name} Ayah ${parsed.ayah} (${key}) | I Love Islam`;
   const description = `Read Surah ${surah.name} verse ${parsed.ayah} with Indo-Pak Arabic, Saheeh International translation, word-by-word, audio and tafsir.`;
   return {
     title,
@@ -56,7 +56,7 @@ export async function generateMetadata({
       title,
       description,
       url: `${SITE_URL}/hifz/${surah.slug}/${surah.id}-${parsed.ayah}`,
-      siteName: 'Hifz',
+      siteName: 'I Love Islam',
       type: 'article',
     },
   };

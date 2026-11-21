@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Islam vs Other Religions — Interactive Comparison Tool | Hifz',
+  title: 'Islam vs Other Religions — Interactive Comparison Tool | I Love Islam',
   description:
     'Compare Islam with Christianity, Judaism, Hinduism, Buddhism, Sikhism and Atheism. Explore concepts of God, prophethood, holy books, afterlife, prayer, science and more — with Quran references and dawah insights.',
   keywords: [
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Islam vs Other Religions Comparison' }],
     url: 'https://www.iloveislam.life/compare-religions',
-    siteName: 'Hifz',
+    siteName: 'I Love Islam',
     locale: 'en_US',
   },
   twitter: {

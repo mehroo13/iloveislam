@@ -1,21 +1,21 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Contact Us — Hifz | Free Islamic Tools',
+  title: 'Contact Us — I Love Islam | Free Islamic Tools',
   description:
     'Get in touch with the Hifz team. Report bugs, suggest new tools, ask Islamic questions, or discuss partnerships. We reply within 48 hours inshaAllah.',
   openGraph: {
-    title: 'Contact Us — Hifz',
+    title: 'Contact Us — I Love Islam',
     description: 'Reach out to the Hifz team. We’re here to help.',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
     url: 'https://www.iloveislam.life/contact',
-    siteName: 'Hifz',
+    siteName: 'I Love Islam',
     locale: 'en_US',
   },
   twitter: {
     card: 'summary',
-    title: 'Contact Us — Hifz',
+    title: 'Contact Us — I Love Islam',
     description: 'Report bugs, suggest tools, or just say salam.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/contact' },
@@ -27,7 +27,7 @@ const jsonLd = {
   '@graph': [
     {
       '@type': 'ContactPage',
-      name: 'Contact Hifz',
+      name: 'Contact I Love Islam',
       description: 'Get in touch with the Hifz team. Report bugs, suggest new tools, or ask questions.',
       url: 'https://www.iloveislam.life/contact',
     },

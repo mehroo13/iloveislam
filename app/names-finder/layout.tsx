@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Islamic Name Finder — 14,000+ Muslim Baby Names with Meanings | Hifz',
+  title: 'Islamic Name Finder — 14,000+ Muslim Baby Names with Meanings | I Love Islam',
   description:
     'Search 14,585+ Islamic baby names for boys and girls. See Arabic script, full meanings, and origins. Filter by Quranic, Prophets, Sahaba, and more. Free, instant search.',
   keywords: [
@@ -18,18 +18,18 @@ export const metadata: Metadata = {
     'best muslim baby names',
   ],
   openGraph: {
-    title: 'Islamic Name Finder — 14,000+ Muslim Baby Names | Hifz',
+    title: 'Islamic Name Finder — 14,000+ Muslim Baby Names | I Love Islam',
     description:
       'Search 14,585+ Islamic names for boys and girls with Arabic script, full meanings, and origins. Free and instant.',
     url: 'https://www.iloveislam.life/names',
-    siteName: 'Hifz',
+    siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Islamic Name Finder — 14,000+ Muslim Names | Hifz',
+    title: 'Islamic Name Finder — 14,000+ Muslim Names | I Love Islam',
     description:
       'Search 14,585+ Islamic baby names with Arabic script, meanings, and origins. Free, instant search.',
   },
@@ -55,7 +55,7 @@ const jsonLd = {
       description:
         'Search 14,585+ Islamic baby names for boys and girls with Arabic script, full meanings, and origins. Filter by Quranic names, Prophets, Sahaba, and more.',
       url: 'https://www.iloveislam.life/names',
-      provider: { '@type': 'Organization', name: 'Hifz', url: 'https://www.iloveislam.life' },
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',

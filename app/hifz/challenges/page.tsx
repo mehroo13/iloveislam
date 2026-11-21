@@ -6,7 +6,7 @@ import { Breadcrumb, Attribution } from '../components/HifzShared';
 import { SITE_URL } from '../lib/fetch';
 
 export const metadata: Metadata = {
-  title: 'Group Challenges — Memorise Together | Hifz',
+  title: 'Group Challenges — Memorise Together | I Love Islam',
   description:
     'Start a memorisation challenge with family or friends — share a code, track group progress. No accounts, no sign-up.',
   alternates: { canonical: `${SITE_URL}/hifz/challenges` },

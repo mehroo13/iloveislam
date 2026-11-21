@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Kaffarah Calculator — Calculate Expiation for Oaths, Fasts & More | Hifz',
+  title: 'Kaffarah Calculator — Calculate Expiation for Oaths, Fasts & More | I Love Islam',
   description:
     'Calculate the monetary equivalent or fasting days for Kaffarah of broken oaths, Zihar, accidental killing, or broken Ramadan fasts. Free, no sign‑up.',
   keywords: [
@@ -9,17 +9,17 @@ export const metadata: Metadata = {
     'accidental killing kaffarah', 'ramadan fast kaffarah', 'islamic expiation', 'kaffarah amount',
   ],
   openGraph: {
-    title: 'Kaffarah Calculator — Islamic Expiation Guide | Hifz',
+    title: 'Kaffarah Calculator — Islamic Expiation Guide | I Love Islam',
     description: 'Find out what Kaffarah is required for broken oaths, Zihar, and more. Customize costs and see the total.',
     url: 'https://www.iloveislam.life/kaffarah-calculator',
-    siteName: 'Hifz',
+    siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Kaffarah Calculator | Hifz',
+    title: 'Kaffarah Calculator | I Love Islam',
     description: 'Free tool to calculate Islamic expiations.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/kaffarah-calculator' },
@@ -41,7 +41,7 @@ const jsonLd = {
       description:
         'Calculate the Kaffarah (expiation) for broken oaths, Zihar, accidental killing, and intentionally broken Ramadan fasts. Shows monetary equivalent based on local costs.',
       url: 'https://www.iloveislam.life/kaffarah-calculator',
-      provider: { '@type': 'Organization', name: 'Hifz', url: 'https://www.iloveislam.life' },
+      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',

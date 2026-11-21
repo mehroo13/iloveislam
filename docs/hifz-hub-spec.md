@@ -1256,3 +1256,32 @@ surah with search + progress + Recite), and a single "More" link list.
 The header has five links (Surahs, Recite, Test, Challenges, My Progress).
 Max content width on home/hub is now `max-w-3xl`, matching Tarteel's
 single-column reading feel.
+
+## 17. Site name reverted to "I Love Islam" (2026-11-21)
+
+Mehran does not want to pay for a new domain, so the site stays at
+iloveislam.life and the site name goes back to **I Love Islam**. The
+Hifz app inside is unchanged — same Tarteel-simple UI, same AI coach,
+same features. This supersedes §16.1's name removal only; the new brand
+mark (emerald rounded square + gold eight-point star + white open book)
+stays as the favicon, PWA icons, og image and header logo, and the UI
+simplification in §16.2 stays.
+
+What changed: site title is now "I Love Islam — Memorise the Quran
+with AI" (root metadata, homepage metadata, manifest `name` /
+`short_name`, llms.txt / llms-full.txt, sitemap-adjacent surfaces).
+The header and footer show "I Love Islam" with the new mark; the footer
+reads "© 2026 I Love Islam. Memorise the Quran with AI." Every page
+title suffix is now "| I Love Islam"; every `siteName` and every
+JSON-LD WebSite/Organization/author/publisher name is "I Love Islam"
+(including the surah/ayah JSON-LD in `app/hifz/lib/fetch.ts`). Privacy
+and Terms name "I Love Islam" as the site operator. The offline page
+title and the push-notification default title are "I Love Islam".
+
+What did NOT change: "Hifz" remains the name of the app/product inside
+the site — "Hifz Hub", "My Hifz Progress", "Hifz Plans", "Hifz is a
+free AI companion for memorising the Quran", the coach, the /hifz
+routes, the breadcrumb label "Hifz" for the hub, and the localStorage
+keys (`ili_hifz_*`, deliberately not renamed so existing users keep
+their progress). No domain was bought and no DNS or Vercel domain
+setting was changed; the domain stays iloveislam.life.
