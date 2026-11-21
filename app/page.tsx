@@ -11,7 +11,7 @@ export const revalidate = 3600; // ISR: revalidate every hour
 export const metadata: Metadata = {
   title: 'I Love Islam — Memorise the Quran with AI',
   description:
-    'Recite Quran aloud and get instant word-by-word feedback. Memorise the whole Quran — all 114 surahs and all 30 juz — with 7-day and 30-day hifz plans. Free, no sign-up, your audio never leaves your device.',
+    'Recite Quran aloud and get instant word-by-word feedback. Memorise all 114 surahs and 30 juz with hifz plans. Free, no sign-up.',
   metadataBase: new URL('https://www.iloveislam.life'),
   keywords:
     'memorise quran, hifz, quran memorisation, recitation coach, surah al-mulk, surah ya-sin, surah al-kahf, juz amma, ayat al-kursi, learn quran, quran test mode, voice search quran',
@@ -43,30 +43,14 @@ export const metadata: Metadata = {
   },
 };
 
-// JSON-LD structured data — server-rendered, great for SEO
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: 'I Love Islam',
-  url: 'https://www.iloveislam.life',
-  description:
-    'Memorise the Quran with an AI recitation coach: recite aloud and get instant word-by-word feedback, with 7-day and 30-day hifz plans for all 114 surahs and all 30 juz. Free, no sign-up.',
-  featureList:
-    'AI Recitation Coach with live word-by-word mistake detection, Memorisation Mode, Test Mode, Voice Search, Hifz Plans, Streaks and Mistake Review, Juz Amma, Tafsir and Translations',
-  potentialAction: {
-    '@type': 'SearchAction',
-    target: 'https://www.iloveislam.life/?q={search_term_string}',
-    'query-input': 'required name=search_term_string',
-  },
-};
+// NOTE (2026-11-21 SEO fix): the site-wide WebSite/Organization/WebApplication
+// JSON-LD lives in app/layout.tsx. A second WebSite block used to live here
+// with a SearchAction pointing at /?q= — removed, because the search page
+// does not exist and duplicate WebSite entities confuse rich-result parsers.
 
 export default function Page() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
       {/* Hero — server-rendered, one primary action (spec §2.1.1). */}
       <section className="relative overflow-hidden bg-[#0B3D2E] text-white">
         <div

@@ -18,10 +18,8 @@ const nextConfig: NextConfig = {
   // URL can ever be served again — redirects run before routing.
   async redirects() {
     const retired = [
-      'about',
       'blog',
       'compare-religions',
-      'contact',
       'dhikr',
       'dua',
       'dua-for-this-moment',

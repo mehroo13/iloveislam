@@ -13,7 +13,7 @@ import { NextResponse } from 'next/server';
 const UPSTREAM = 'https://api.quran.com/api/v4';
 
 /* Paths the reader actually uses. Anything else gets a 404. */
-const ALLOWED_PATH = /^(?:verses\/(?:by_chapter\/\d+|by_juz\/\d+|by_key\/\d+:\d+)|chapters|search|tafsirs\/\d+\/by_ayah\/\d+:\d+)$/;
+const ALLOWED_PATH = /^(?:verses\/(?:by_chapter\/\d+|by_juz\/\d+|by_page\/\d+|by_key\/\d+:\d+)|chapters|search|tafsirs\/\d+\/by_ayah\/\d+:\d+)$/;
 
 const TIMEOUT_MS = 12000;
 const STATIC_REVALIDATE = 86400; // Quran text, chapters, tafsir never change

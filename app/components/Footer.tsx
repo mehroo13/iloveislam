@@ -9,6 +9,7 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
     links: [
       { href: '/hifz', label: 'Hifz Hub' },
       { href: '/hifz/recite', label: 'Recite with the Coach' },
+      { href: '/hifz/mushaf/1', label: 'Read the Mushaf' },
       { href: '/hifz/test', label: 'Test Mode' },
       { href: '/hifz/voice-search', label: 'Voice Search' },
       { href: '/hifz/challenges', label: 'Group Challenges' },
@@ -30,6 +31,8 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
 ];
 
 const LEGAL_LINKS = [
+  { href: '/about', label: 'About' },
+  { href: '/contact', label: 'Contact' },
   { href: '/privacy', label: 'Privacy' },
   { href: '/terms', label: 'Terms' },
 ];

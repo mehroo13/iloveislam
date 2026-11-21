@@ -1,13 +1,14 @@
 import { ALL_SURAHS } from '../hifz/surahs';
 import { JUZ_PAGES } from '../hifz/juz';
+import { MUSHAF_TOTAL_PAGES } from '../hifz/mushaf';
 
 // app/sitemap.xml/route.ts — I Love Islam-only sitemap (single-purpose refocus,
-// 2026-11-21). The old tool pages, blog, about/contact/faq/install and the
-// legal pages are NOT listed: the tools redirect to /hifz, and the legal
-// pages are kept live but unlinked from the nav. Interactive tool pages
-// (/hifz/recite, /hifz/test, /hifz/voice-search) are noindex by their own
-// metadata, so they are not listed either. /hifz/my-progress stays listed
-// (low priority) as it was.
+// 2026-11-21). The old tool pages and blog redirect to /hifz and are NOT
+// listed. The legal pages, About and Contact ARE listed (2026-11-21 SEO /
+// AdSense fix — AdSense reviewers look for About, Contact, Privacy and
+// Terms). Interactive tool pages (/hifz/recite, /hifz/test, /hifz/voice-search)
+// are noindex by their own metadata, so they are not listed either.
+// /hifz/my-progress stays listed (low priority) as it was.
 export async function GET() {
   const base = 'https://www.iloveislam.life';
   const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
@@ -34,6 +35,12 @@ export async function GET() {
     { loc: '/hifz/my-progress', lastmod: REFOCUS_DATE, changefreq: 'monthly', priority: '0.3' },
     // Group challenges (spec §15.9) — same low priority as my-progress.
     { loc: '/hifz/challenges', lastmod: '2026-11-21', changefreq: 'monthly', priority: '0.3' },
+    // Trust pages — About, Contact, Privacy, Terms (AdSense reviewers look
+    // for these; all four are live pages).
+    { loc: '/about', lastmod: '2026-11-21', changefreq: 'monthly', priority: '0.5' },
+    { loc: '/contact', lastmod: '2026-11-21', changefreq: 'monthly', priority: '0.5' },
+    { loc: '/privacy', lastmod: '2026-11-21', changefreq: 'monthly', priority: '0.3' },
+    { loc: '/terms', lastmod: '2026-11-21', changefreq: 'monthly', priority: '0.3' },
   ];
 
   // Hifz hub URLs, generated from the full-Quran slug table so the sitemap
@@ -64,6 +71,15 @@ export async function GET() {
       lastmod: REFOCUS_DATE,
       changefreq: 'monthly',
       priority: '0.7',
+    });
+  }
+  // Mushaf pages 1–604 (spec §21) — one URL per printed-mushaf page.
+  for (let p = 1; p <= MUSHAF_TOTAL_PAGES; p++) {
+    hifzEntries.push({
+      loc: `/hifz/mushaf/${p}`,
+      lastmod: REFOCUS_DATE,
+      changefreq: 'monthly',
+      priority: '0.5',
     });
   }
 

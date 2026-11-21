@@ -6,7 +6,7 @@ import Link from 'next/link';
 const SUBJECTS = [
   'General Question',
   'Bug Report',
-  'Tool Suggestion',
+  'Feature Suggestion',
   'Islamic Question',
   'Partnership / Collaboration',
   'AdSense / Business',
@@ -155,7 +155,6 @@ export default function Contact() {
           <div className="flex justify-center gap-4 mt-3">
             <Link href="/" className="text-xs text-gray-400 hover:text-gray-600">Home</Link>
             <Link href="/about" className="text-xs text-gray-400 hover:text-gray-600">About</Link>
-            <Link href="/faq" className="text-xs text-gray-400 hover:text-gray-600">FAQ</Link>
             <Link href="/privacy" className="text-xs text-gray-400 hover:text-gray-600">Privacy</Link>
           </div>
         </div>

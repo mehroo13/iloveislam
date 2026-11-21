@@ -101,6 +101,31 @@ export function pairWords(indopakText: string, words: WordInfo[]): { arabic: str
   });
 }
 
+/** One Madani mushaf page (verses/by_page) with word positions — for the
+ *  Mushaf reading mode. Words carry text_uthmani, line_number and
+ *  char_type_name ('word' | 'end' for the ayah-end marker). */
+export interface MushafWord {
+  text_uthmani: string;
+  line_number: number;
+  page_number: number;
+  position: number;
+  char_type_name: string;
+}
+
+export interface MushafVerse {
+  verse_key: string;
+  juz_number: number;
+  words: MushafWord[];
+}
+
+export async function fetchMushafPage(page: number): Promise<MushafVerse[]> {
+  const data = await fetchJson(
+    `${UPSTREAM_API}/verses/by_page/${page}?words=true&word_fields=text_uthmani,line_number,page_number,position,char_type_name&fields=text_uthmani`,
+  );
+  const verses = (data as { verses?: MushafVerse[] } | null)?.verses;
+  return Array.isArray(verses) ? verses : [];
+}
+
 /** Tafsir (Ibn Kathir Abridged, id 169) for one ayah — server-side, for the ayah page. */
 export async function fetchTafsir(key: string): Promise<string> {
   const data = await fetchJson(`${UPSTREAM_API}/tafsirs/169/by_ayah/${key}`);
@@ -132,7 +157,7 @@ export function surahJsonLd(surah: HifzSurah, description: string) {
     {
       '@context': 'https://schema.org',
       '@type': 'Article',
-      headline: `Surah ${surah.name} — Read, Listen & Memorise`,
+      headline: `Surah ${surah.name} (${surah.meaning}) — Read, Listen & Memorise`,
       description,
       inLanguage: ['ar', 'en'],
       author: { '@type': 'Organization', name: 'I Love Islam', url: SITE_URL },

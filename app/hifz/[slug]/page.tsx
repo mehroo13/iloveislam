@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ALL_SURAHS, getSurahBySlug } from '../surahs';
+import { SURAH_FIRST_PAGE } from '../mushaf';
 import { getPlan } from '../plans';
 import { fetchSurahVerses, surahJsonLd, prevNextSurah, SITE_URL } from '../lib/fetch';
 import SurahClient from '../components/SurahClient';
@@ -24,8 +25,8 @@ export async function generateMetadata({
   const { slug } = await params;
   const surah = getSurahBySlug(slug);
   if (!surah) return { title: 'Surah not found | I Love Islam' };
-  const title = `Surah ${surah.name} — Read, Listen & Memorise | I Love Islam`;
-  const description = `Memorise Surah ${surah.name} (${surah.id}) — Arabic, translation, audio and a 30-day hifz plan. Recite aloud and get word-by-word feedback.`;
+  const title = `Surah ${surah.name} (${surah.meaning}) — Read, Listen & Memorise | I Love Islam`;
+  const description = `Memorise Surah ${surah.name} — ${surah.meaning} (${surah.id}): Arabic, translation, audio and a 30-day hifz plan. Recite aloud and get word-by-word feedback.`;
   return {
     title,
     description,
@@ -53,7 +54,7 @@ export default async function SurahPage({
   const plan7 = getPlan(surah.slug, 7);
   const plan30 = getPlan(surah.slug, 30);
   const { prev, next } = prevNextSurah(ALL_SURAHS, surah.id);
-  const description = `Memorise Surah ${surah.name} (${surah.id}) — Arabic, translation, audio and a 30-day hifz plan. Recite aloud and get word-by-word feedback.`;
+  const description = `Memorise Surah ${surah.name} — ${surah.meaning} (${surah.id}): Arabic, translation, audio and a 30-day hifz plan. Recite aloud and get word-by-word feedback.`;
 
   return (
     <main className="mx-auto max-w-3xl px-4 pb-16 pt-6 sm:pt-8">
@@ -70,6 +71,19 @@ export default async function SurahPage({
       />
       <div className="mt-4">
         <SurahHero surah={surah} planDays={plan30 ? 30 : 7} />
+      </div>
+
+      {/* Mushaf reading mode — the surah as it appears in the printed Quran */}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <Link
+          href={`/hifz/mushaf/${SURAH_FIRST_PAGE[surah.id]}`}
+          className="inline-block rounded-full bg-[#0B3D2E] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#146B4D]"
+        >
+          Read as Mushaf — like the printed Quran →
+        </Link>
+        <span className="text-sm text-[#5b6b62]">
+          Page {SURAH_FIRST_PAGE[surah.id]} of 604 · Madani mushaf layout
+        </span>
       </div>
 
       {verses.length === 0 && (

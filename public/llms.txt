@@ -18,6 +18,9 @@
 - [Test Mode](https://www.iloveislam.life/hifz/test): Exam-style recall test — random ayahs from your memorised text, Arabic hidden, no cue; a reveal counts as a miss.
 - [Voice Search](https://www.iloveislam.life/hifz/voice-search): Recite a few words of any ayah and find it instantly; every match opens in the coach.
 - [Group Challenges](https://www.iloveislam.life/hifz/challenges): Memorise together — share a challenge code or link, track group progress. No accounts.
+- [Read the Mushaf](https://www.iloveislam.life/hifz/mushaf/1): The whole Quran page by page, like the printed Madani mushaf — 604 pages, ornamental surah headers, ayah markers, juz markers, Uthmani script.
+- [About](https://www.iloveislam.life/about): What the app is, who runs it, sources and privacy.
+- [Contact](https://www.iloveislam.life/contact): Report a bug, suggest a feature, or ask a question.
 
 ## The whole Quran
 

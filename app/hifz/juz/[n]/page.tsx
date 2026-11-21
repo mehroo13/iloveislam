@@ -6,6 +6,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getJuz, JUZ_PAGES } from '../../juz';
+import { JUZ_FIRST_PAGE } from '../../mushaf';
 import { getSurahById } from '../../surahs';
 import { Breadcrumb, Attribution} from '../../components/HifzShared';
 import { SITE_URL } from '../../lib/fetch';
@@ -82,12 +83,18 @@ export default async function JuzPage({ params }: { params: Promise<{ n: string 
           {juz.segments.length === 1 ? 'surah' : 'surahs'} · Part {juz.n} of 30
         </p>
         {firstSurah && (
-          <div className="mt-5">
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
             <Link
               href={`/hifz/${firstSurah.slug}?mode=recite`}
               className="inline-block rounded-full bg-[#C9A227] px-6 py-3 text-sm font-bold text-[#0B3D2E] hover:brightness-110"
             >
               Start reciting — Surah {firstSurah.name}
+            </Link>
+            <Link
+              href={`/hifz/mushaf/${JUZ_FIRST_PAGE[juz.n]}`}
+              className="inline-block rounded-full border border-white/40 px-6 py-3 text-sm font-bold text-white hover:bg-white/10"
+            >
+              Read as Mushaf →
             </Link>
           </div>
         )}

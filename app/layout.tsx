@@ -19,7 +19,7 @@ export const viewport: Viewport = {
 
 const SITE_TITLE = 'I Love Islam — Memorise the Quran with AI';
 const SITE_DESCRIPTION =
-  'Memorise the Quran with an AI recitation coach: recite aloud and get instant word-by-word feedback, with hifz plans, Test Mode, Voice Search, group challenges, streaks and mistake review. Free forever. No sign-up. Your audio never leaves your device.';
+  'Memorise the Quran with an AI recitation coach: recite aloud and get instant word-by-word feedback. Free forever, no sign-up.';
 
 export const metadata: Metadata = {
   title: SITE_TITLE,
@@ -106,11 +106,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   url: 'https://www.iloveislam.life',
                   description: SITE_DESCRIPTION,
                   publisher: { '@id': '#organization' },
-                  potentialAction: {
-                    '@type': 'SearchAction',
-                    target: 'https://www.iloveislam.life/search?q={search_term_string}',
-                    'query-input': 'required name=search_term_string',
-                  },
                 },
                 {
                   '@type': 'Organization',

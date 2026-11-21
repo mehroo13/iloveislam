@@ -58,7 +58,7 @@ export default function SurahList() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-semibold text-[#0B3D2E]">
-                    {s.name} <span className="font-normal text-[#5b6b62]">· {s.ayahCount} ayahs</span>
+                    {s.name} <span className="font-normal text-[#5b6b62]">— {s.meaning} · {s.ayahCount} ayahs</span>
                   </span>
                   <span className="mt-1 block max-w-40">
                     <SurahProgressBar surahId={s.id} ayahCount={s.ayahCount} />
