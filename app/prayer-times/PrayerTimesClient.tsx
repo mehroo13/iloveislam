@@ -314,7 +314,9 @@ export default function PrayerTimesClient({ initialToday, initialMonth, initialC
     return pSec - nowSec;
   })();
 
-  const todayKey = now.toLocaleDateString('en-CA'); // yyyy-mm-dd in local time
+  // Aladhan returns dates as DD-MM-YYYY (e.g. "21-11-2026") — match that
+  // format exactly, or the "Today" highlight never matches any row.
+  const todayKey = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
 
   return (
     <div className="min-h-screen bg-[#F7F5EF] text-[#1C2420]">
@@ -548,7 +550,7 @@ export default function PrayerTimesClient({ initialToday, initialMonth, initialC
                         return (
                           <tr key={day.date} className={isToday ? 'bg-emerald-50 font-semibold' : 'border-t border-[#1C2420]/5'}>
                             <td className="px-5 py-2.5">
-                              {day.weekday} {day.date.slice(-2)}
+                              {day.weekday} {Number(day.date.split('-')[0])}
                               {isToday && <span className="ml-2 text-[10px] font-bold uppercase text-emerald-700">Today</span>}
                             </td>
                             {ALL_PRAYERS.map((p) => (
