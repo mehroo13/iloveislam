@@ -378,19 +378,6 @@ export default function QuranClient({
     void fetchTafsir(verseKey);
   }, [tafsirs, fetchTafsir]);
 
-  const toggleTafsir = useCallback(async (verseKey: string) => {
-    const existing = tafsirs[verseKey];
-    if (existing?.open) {
-      setTafsirs((prev) => ({ ...prev, [verseKey]: { ...prev[verseKey], open: false } }));
-      return;
-    }
-    if (existing?.text) {
-      setTafsirs((prev) => ({ ...prev, [verseKey]: { ...prev[verseKey], open: true } }));
-      return;
-    }
-    void fetchTafsir(verseKey);
-  }, [tafsirs, fetchTafsir]);
-
   /* ---------- share ---------- */
   const shareVerse = useCallback(async (verse: Verse, surahName: string) => {
     const translation = stripHtml(verse.translations?.[0]?.text ?? '');
@@ -684,16 +671,6 @@ export default function QuranClient({
                     >
                       {bookmarked ? '★ Bookmarked' : '☆ Bookmark'}
                     </button>
-                    {viewMode === 'translation' && (
-                      <button
-                        type="button"
-                        onClick={() => void toggleTafsir(v.verse_key)}
-                        aria-expanded={tafsir?.open ?? false}
-                        className="rounded-full border border-[#e5e0d3] px-3.5 py-1.5 text-sm font-semibold hover:border-[#146B4D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
-                      >
-                        {tafsir?.open ? 'Hide Tafsir' : 'Tafsir'}
-                      </button>
-                    )}
                     <button
                       type="button"
                       onClick={() => void shareVerse(v, surahNameForVerse(v))}
@@ -703,17 +680,8 @@ export default function QuranClient({
                     </button>
                   </div>
 
-                  {viewMode === 'tafsir' ? (
+                  {viewMode === 'tafsir' && (
                     <TafsirAuto verseKey={v.verse_key} tafsir={tafsir} ensureTafsir={ensureTafsir} />
-                  ) : (
-                    tafsir?.open && (
-                      <div className="mt-4 rounded-xl bg-[#F7F5EF] border border-[#e5e0d3] p-4">
-                        <p className="text-xs font-bold uppercase tracking-wide text-[#146B4D]">{TAFSIR_NAME}</p>
-                        {tafsir.loading && <p className="mt-2 text-sm text-[#1C2420]/60">Loading tafsir…</p>}
-                        {tafsir.error && <p className="mt-2 text-sm text-red-700" role="alert">{tafsir.error}</p>}
-                        {tafsir.text && <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#1C2420]/85">{tafsir.text}</p>}
-                      </div>
-                    )
                   )}
                 </article>
               );
