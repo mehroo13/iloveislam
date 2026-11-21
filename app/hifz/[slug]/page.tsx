@@ -10,7 +10,7 @@ import { fetchSurahVerses, surahJsonLd, prevNextSurah, SITE_URL } from '../lib/f
 import SurahClient from '../components/SurahClient';
 import VirtuesBlock from '../components/VirtuesBlock';
 import PlanCard from '../components/PlanCard';
-import { Breadcrumb, Attribution, PremiumSection, SurahHero } from '../components/HifzShared';
+import { Breadcrumb, Attribution, SurahHero } from '../components/HifzShared';
 
 export async function generateStaticParams() {
   return ALL_SURAHS.map((s) => ({ slug: s.slug }));
@@ -90,7 +90,7 @@ export default async function SurahPage({
         <h2 id="plans-heading" className="text-2xl font-bold text-[#0B3D2E]">Memorisation plan</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           {plan7 && <PlanCard plan={plan7} surahSlug={surah.slug} surahName={surah.name} />}
-          {plan30 && <PlanCard plan={plan30} surahSlug={surah.slug} surahName={surah.name} premium />}
+          {plan30 && <PlanCard plan={plan30} surahSlug={surah.slug} surahName={surah.name} />}
         </div>
         <p className="mt-3 text-sm text-[#5b6b62]">
           <Link href="/hifz/plans" className="font-semibold text-[#146B4D] underline">See all plans</Link>
@@ -142,7 +142,6 @@ export default async function SurahPage({
         </ul>
       </nav>
 
-      <PremiumSection />
       <Attribution reciterName="Mishary Alafasy" />
     </main>
   );

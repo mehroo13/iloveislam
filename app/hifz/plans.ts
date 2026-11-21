@@ -19,7 +19,7 @@
 //   - Learning days cover the surah's ayahs exactly once, contiguously,
 //     never mid-ayah. Short surahs front-load their learning days and
 //     spend the remaining days reviewing - that is deliberate, not an error.
-// 30-day plans are Premium in v1: defined here, not billed (spec §3.3/§7).
+// All plans — 7-day, 30-day and the Juz Amma 90-day plan — are free, always.
 // The Juz Amma 90-day plan below is unchanged from v1 (static table,
 // hand-checked once 2026-11-21); do not hand-edit it either.
 

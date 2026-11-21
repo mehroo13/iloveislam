@@ -343,7 +343,6 @@ export default function AyahClient({
         <div className="mt-6 text-[#1C2420]">
           <RecitationCoach
             surah={surah.id}
-            surahSlug={surah.slug}
             surahName={surah.name}
             ayahs={coachAyahs}
             initialAyahIndex={0}

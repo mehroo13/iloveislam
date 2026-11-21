@@ -7,7 +7,7 @@ import { JUZ_AMMA_SURAHS } from '../surahs';
 import { JUZ_AMMA_90_DAY } from '../plans';
 import PlanCard from '../components/PlanCard';
 import { SurahProgressBar } from '../components/ProgressWidget';
-import { Breadcrumb, Attribution, PremiumSection } from '../components/HifzShared';
+import { Breadcrumb, Attribution} from '../components/HifzShared';
 import { SITE_URL } from '../lib/fetch';
 
 export const metadata: Metadata = {
@@ -64,7 +64,7 @@ export default function JuzAmmaPage() {
       <section aria-labelledby="plan-heading" className="mt-8">
         <h2 id="plan-heading" className="text-2xl font-bold text-[#0B3D2E]">The 90-day plan</h2>
         <div className="mt-4 max-w-3xl">
-          <PlanCard plan={JUZ_AMMA_90_DAY} surahName="Juz Amma" premium />
+          <PlanCard plan={JUZ_AMMA_90_DAY} surahName="Juz Amma" />
         </div>
       </section>
 
@@ -104,7 +104,6 @@ export default function JuzAmmaPage() {
         </div>
       </section>
 
-      <PremiumSection />
       <Attribution reciterName="Mishary Alafasy" />
     </main>
   );

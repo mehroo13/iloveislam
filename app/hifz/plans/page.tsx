@@ -1,12 +1,12 @@
 // app/hifz/plans/page.tsx — all memorisation plans (spec §5.2).
-// 7-day (free) and 30-day (Premium-defined, free during testing) per surah,
-// plus the Juz Amma 90-day plan.
+// 7-day and 30-day plans per surah, plus the Juz Amma 90-day plan.
+// Every plan is free — no paid tier, no limits.
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ALL_SURAHS } from '../surahs';
 import { getPlan, JUZ_AMMA_90_DAY } from '../plans';
 import PlanCard from '../components/PlanCard';
-import { Breadcrumb, Attribution, PremiumSection } from '../components/HifzShared';
+import { Breadcrumb, Attribution} from '../components/HifzShared';
 import { SITE_URL } from '../lib/fetch';
 
 export const metadata: Metadata = {
@@ -39,14 +39,14 @@ export default function PlansPage() {
       <section aria-labelledby="juz-amma-heading" className="mt-8">
         <h2 id="juz-amma-heading" className="text-2xl font-bold text-[#0B3D2E]">Juz Amma — 90 days</h2>
         <div className="mt-4 max-w-3xl">
-          <PlanCard plan={JUZ_AMMA_90_DAY} surahName="Juz Amma" premium />
+          <PlanCard plan={JUZ_AMMA_90_DAY} surahName="Juz Amma" />
         </div>
       </section>
 
       <section aria-labelledby="surah-plans-heading" className="mt-10">
         <h2 id="surah-plans-heading" className="text-2xl font-bold text-[#0B3D2E]">Per-surah plans</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
-          7-day plans are free. 30-day plans are Premium — defined now, free during testing.
+          Every plan is free — 7-day, 30-day and the Juz Amma 90-day plan.
         </p>
         <div className="mt-4 space-y-6">
           {named.map((s) => {
@@ -62,7 +62,7 @@ export default function PlansPage() {
                 </h3>
                 <div className="mt-3 grid gap-4 md:grid-cols-2">
                   {p7 && <PlanCard plan={p7} surahSlug={s.slug} surahName={s.name} />}
-                  {p30 && <PlanCard plan={p30} surahSlug={s.slug} surahName={s.name} premium />}
+                  {p30 && <PlanCard plan={p30} surahSlug={s.slug} surahName={s.name} />}
                 </div>
               </div>
             );
@@ -75,7 +75,6 @@ export default function PlansPage() {
         </p>
       </section>
 
-      <PremiumSection />
       <Attribution reciterName="Mishary Alafasy" />
     </main>
   );

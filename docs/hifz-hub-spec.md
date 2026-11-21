@@ -284,25 +284,26 @@ engine must support, not the engine.
 | Offline | Coach needs the model (downloaded once) — if the model is cached, it works offline; otherwise the offline state explains this. Quran text/audio need network (existing proxy behaviour). |
 | Low accuracy result | Show the words honestly; never soften a miss into a pass. Offer retry, not praise for a failed attempt. |
 
-### 3.3 Free vs premium limits (v1 — enforced in the client, no billing yet)
+### 3.3 Everything is free — no Premium tier (superseded 2026-11-21, §19)
 
-| Feature | Free | Premium (defined now, billed in v2) |
-|---|---|---|
-| Coach: surahs per day | 1 surah (any launch-set surah), up to 10 minutes of recitation/day | Unlimited surahs, unlimited time |
-| Coach: ayah scope | One ayah / one range per session | Whole-surah review mode |
-| Mistake log | Last 7 days, on this device | Full history, all devices (needs account — v3) |
-| Memorisation plans | 7-day plan for any one surah | All 30-day plans + Juz Amma 90-day plan |
-| Word-by-word, translation, tafsir, audio | Free, always | Free, always (never paywalled) |
-| Streaks, daily goal, progress dashboard | Free | Free |
-| Offline model | Free (download once) | Free |
-| Ads | None on hifz pages in v1 (see §7) | None |
+There is no Free vs Premium split. Everything is free, for everyone, always:
+unlimited coach use (any surah, any time, whole-surah review included), all
+7/30/90-day plans, the full mistake log (kept in full on the device, never
+trimmed), streaks, goals, progress dashboard, word-by-word, translation,
+tafsir, audio, offline model. No daily caps, no surah cap, no paywall, no
+billing, no "coming soon" pricing section. The old free/premium table below
+is retired and must not be reintroduced.
 
-Free-limit UX rules: when a free limit is hit, say so plainly ("You've used today's
-free recitation — come back tomorrow, or see Premium") with a "See Premium" link
-to a plain pricing section (no dark patterns, no countdown timers, no fake
-scarcity). The limit resets at local midnight. Limits are enforced client-side in
-v1 and must be labelled as such in code comments (a determined user can bypass
-client limits — that is accepted in v1 and fixed when accounts arrive in v3).
+| Feature | Free |
+|---|---|
+| Coach: surahs per day | Unlimited surahs, unlimited time |
+| Coach: ayah scope | One ayah / one range / whole surah |
+| Mistake log | Full history, on this device |
+| Memorisation plans | All 7-day, 30-day and Juz Amma 90-day plans |
+| Word-by-word, translation, tafsir, audio | Free, always (never paywalled) |
+| Streaks, daily goal, progress dashboard | Free |
+| Offline model | Free (download once) |
+| Ads | None on hifz pages |
 
 ---
 
@@ -423,7 +424,7 @@ interface HifzProgress {
     never fake continuity).
   - **Daily goal** is user-settable (5 / 10 / 15 / 30 minutes). Default 10.
   - **Mistake log** entry: `{ surah, ayah, word, expected, heard?, date, attempts }`.
-    Free tier keeps 7 days; trim older entries automatically on write. "Heard"
+    The full log is kept on this device; nothing is trimmed. "Heard"
     is only stored if the engine returns it — never invent a heard word.
   - **Export/import:** `/hifz/my-progress` has "Download my progress (.json)" and
     "Import" (file picker, validates `version`, rejects anything else with a plain
@@ -579,44 +580,25 @@ leads with feature density. Our first sight is calm, focused and single-purpose
 
 ---
 
-## 7. Monetisation
+## 7. Monetisation — everything is free (superseded 2026-11-21, §19)
 
-Benchmark (from the research report, confirmed in the §11 competition study,
-21 Nov 2026): **Tarteel Premium $12.99/mo or $99/yr** (App Store also lists a
-$19.99/mo and $239.99/yr tier — the listing shows several tiers, so treat
-$12.99/mo / $99/yr as the entry Premium price, not the only price). Quranly is
-~$5K/mo from ~50K downloads/mo — monetisation in this niche is subscription, not
-ads on the core experience. No revenue figures are publicly disclosed for
-Tarteel/Muslim Pro, so treat the benchmark as a price anchor, not a revenue
-promise. **The pricing beat (§11): Tarteel locks its flagship — live mistake
-detection — behind Premium; our v1 gives live coach feedback free every day
-(1 surah / 10 min, §3.3) and charges only for depth (unlimited time, all plans,
-full history). That free daily taste is the wedge, and it must survive into v2
-billing — do not move the live coach itself behind the paywall later.**
+There is no paid tier and no monetisation on the site. Everything is free:
+the coach (unlimited), all plans, the full mistake log, streaks, goals and
+the dashboard. No billing, no paywall, no ads on hifz pages, no "Premium —
+coming soon" section anywhere.
 
-| | Free (v1, live) | Premium (defined in v1, billed in v2) |
-|---|---|---|
-| Quran text, all translations, tafsir, basic audio | ✅ Free forever | ✅ Free forever |
-| Coach: 1 surah/day, 10 min/day | ✅ | Unlimited |
-| 7-day plans | ✅ (one surah at a time) | All plans incl. 30-day + Juz Amma 90-day |
-| Mistake log | Last 7 days | Full history |
-| Streaks, daily goal, dashboard | ✅ | ✅ |
-| Word-by-word | ✅ | ✅ |
-| Offline model | ✅ | ✅ |
-| Ads | None on `/hifz/*` in v1 | None |
+Benchmark (competitor research only, from the §11 competition study,
+21 Nov 2026): Tarteel Premium $12.99/mo or $99/yr (App Store also lists
+$19.99/mo and $239.99/yr). That is what the competition charges — it is
+not our model. Our beat is that the flagship (live mistake detection) is
+free for everyone, where Tarteel locks it behind Premium.
 
 - **No paywall on the Quran text itself** — ever. Not on text, translation,
-  tafsir, or basic audio. Premium is coaching depth, plan depth and history.
-- **Ads:** none on hifz pages in v1. The surah keywords carry high CPC
-  ($1.95–$4.80 per the research), so AdSense on hifz pages is a v2/v3 option —
-  but never inside the coach flow, never over Arabic text, and never before the
-  product works. AdSense setup itself is still outstanding for the site generally.
-- **Pricing (target for v2):** at or below the Tarteel benchmark — propose
-  $9.99/mo or $59/yr at v2 planning time; do not hard-code a price in v1 UI.
-  The v1 "See Premium" link goes to a plain section explaining what Premium will
-  include and that it is "coming soon — free during testing".
-- **Donations** (the Quran.com model) are a secondary option for v3; do not build
-  a donation flow in v1.
+  tafsir, or basic audio.
+- **Ads:** none on hifz pages. AdSense setup is still outstanding for the
+  site generally and is not part of this product.
+- **Donations** (the Quran.com model) are a possible future option; do not
+  build a donation flow unless the owner asks for one.
 
 ---
 
@@ -1024,7 +1006,7 @@ name, design and wording throughout.
 | 8 | Streaks | Daily streak tracking (Play listing) | **SHIPPED.** Local streak, goal-met day advances it, missed day resets it, never faked (§5.1). |
 | 9 | Advanced Analytics — heatmaps | Visualise progress with streaks and heatmaps (Play listing) | **SHIPPED 2026-11-21 (§15.3).** 12-week activity heatmap on My Progress, built from existing ayah records. Was "not in v1" (§12) — now shipped. |
 | 10 | Advanced Analytics — per-surah strength | See which surahs are strong and which ayahs need more work (Play listing) | **SHIPPED 2026-11-21 (§15.3).** Per-surah strength bars on My Progress (memorised full weight, learning half). Was "not in v1" (§12) — now shipped. |
-| 11 | Historical Mistakes / mistake log | Review a log of past recitation errors to identify patterns (Play listing) | **SHIPPED.** Mistake log on My Progress with ayah, word, heard-as, attempts, retry link; free tier keeps 7 days (§5.1). Deliberate difference: we never store audio, so there is no playback of your own recording — a privacy trade, not a gap to close by storing recordings (§8.2). |
+| 11 | Historical Mistakes / mistake log | Review a log of past recitation errors to identify patterns (Play listing) | **SHIPPED.** Mistake log on My Progress with ayah, word, heard-as, attempts, retry link; the full log is kept on this device (§5.1). Deliberate difference: we never store audio, so there is no playback of your own recording — a privacy trade, not a gap to close by storing recordings (§8.2). |
 | 12 | Reciters / Unlimited Listening | Listen to favourite qaris, follow along or in the background, free (Play listing) | **SHIPPED.** Reciter picker on every surah/ayah page; play-all with repeat 1–100, range loop, pause between repeats, 0.25×–2× speed (§4.1.4, Quran.com parity). |
 | 13 | Translations | Multiple translations (tarteel.ai / listing) | **SHIPPED.** Translation picker on surah pages; Saheeh International default; view modes Arabic / +translation / +tafsir. |
 | 14 | Tafsir | Tafsir on ayah/surah pages (app feature) | **SHIPPED.** Ibn Kathir Abridged via Quran.com proxy; renders **only** in Tafsir view mode (commit 12a3449 — do not regress). |
@@ -1436,3 +1418,42 @@ and a genuinely skipped word still shows as not-reached and still
 does not count toward memorised. The harness mirrors the shipped
 logic exactly (its `scoreTake` implements the same graces), so the
 measured rate IS the shipped rate. The `unclear` gate is unchanged.
+
+---
+
+## 19. Everything free — no Premium tier (2026-11-21)
+
+Mehran: why is there Free and Premium? Everything must be free — the
+audience must never pay for anything. The Free vs Premium split is gone,
+in full. §3.3 and §7 above are rewritten to record this; the old tables
+are retired and must not be reintroduced.
+
+What changed in the code:
+
+- Coach caps removed: the 1 surah/day and 10 minutes/day limits are gone
+  (`app/hifz/components/RecitationCoach.tsx` — `checkFreeLimit`,
+  `recordFreeUsage`, the `limitHit` alerts and the `FREE_*` constants
+  deleted; whole-surah review mode is now free like every other scope).
+  Unlimited coach use, any surah, any time.
+- All plans free: 7-day, 30-day and Juz Amma 90-day plans, with no badge
+  or gate (`PlanCard` `premium` prop removed; `app/hifz/plans.ts`).
+- Mistake log kept in full: the 7-day retention is gone
+  (`app/hifz/progress.ts` — `FREE_MISTAKE_LOG_DAYS`, the `freeUsage`
+  settings field and the `trimMistakes` trimming removed; `saveMistakes`
+  and `addMistake` no longer trim).
+- Every "Premium" mention removed from the site: the "Premium — coming
+  soon" section (`PremiumSection` deleted from `HifzShared.tsx` and all
+  seven pages that used it), the `#premium` anchor, "See Premium" links,
+  "free tier" wording, and the "free during testing" copy. The site shows
+  no Free vs Premium split anywhere. (The word "premiums" still appears
+  once in the retired halal-finance quiz — insurance premiums, not a tier —
+  and that route redirects to `/hifz`.)
+- "Free" as a word still appears where it states the truth (the whole app
+  is free) — only the tier split is gone.
+
+Also in this change: the recite entry (`/hifz/recite`) and the
+group-challenge create/join forms no longer default to Surah Al-Mulk —
+they default to Al-Fatihah, so the app never starts from Al-Mulk (the
+homepage/hub hero CTAs already pointed at `/hifz/recite`; the remaining
+Al-Mulk links are the surah-list row, a nav pill, and the footer
+"Start Here" shortcut, as specified).

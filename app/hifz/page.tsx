@@ -6,7 +6,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import ProgressWidget from './components/ProgressWidget';
 import SurahList from './components/SurahList';
-import { Breadcrumb, Attribution, PremiumSection } from './components/HifzShared';
+import { Breadcrumb, Attribution} from './components/HifzShared';
 import { SITE_URL } from './lib/fetch';
 
 export const metadata: Metadata = {
@@ -95,7 +95,6 @@ export default function HifzHubPage() {
         </ul>
       </section>
 
-      <PremiumSection />
       <Attribution reciterName="Mishary Alafasy" />
     </main>
   );

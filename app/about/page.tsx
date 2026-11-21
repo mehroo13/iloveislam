@@ -58,7 +58,7 @@ export default function About() {
           {
             icon: '',
             title: 'Our Values',
-            body: 'Everything we do is guided by Islamic values of service, honesty, and respect for privacy. We are completely free — no premium tiers, no hidden costs, no paywalls. We collect zero personal data — no accounts, no tracking, no selling of information. We believe access to Islamic tools is a right, not a privilege. Your privacy is sacred to us, which is why all calculations happen locally in your browser. We are transparent about our sources, our methods, and our limitations. When our tools cannot replace scholarly guidance, we say so clearly.',
+            body: 'Everything we do is guided by Islamic values of service, honesty, and respect for privacy. We are completely free — no paid tiers, no hidden costs, no paywalls. We collect zero personal data — no accounts, no tracking, no selling of information. We believe access to Islamic tools is a right, not a privilege. Your privacy is sacred to us, which is why all calculations happen locally in your browser. We are transparent about our sources, our methods, and our limitations. When our tools cannot replace scholarly guidance, we say so clearly.',
           },
           {
             icon: '',

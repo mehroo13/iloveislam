@@ -10,7 +10,7 @@ import {
 } from '../../lib/fetch';
 import { stripHtml, cleanIndopak } from '../../../quran/lib';
 import AyahClient from '../../components/AyahClient';
-import { Breadcrumb, Attribution, PremiumSection } from '../../components/HifzShared';
+import { Breadcrumb, Attribution} from '../../components/HifzShared';
 
 export async function generateStaticParams() {
   const params: { slug: string; ref: string }[] = [];
@@ -173,7 +173,6 @@ export default async function AyahPage({
         )}
       </section>
 
-      <PremiumSection />
       <Attribution reciterName="Mishary Alafasy" />
     </main>
   );

@@ -359,7 +359,6 @@ export default function SurahClient({
           <div className="mt-5 text-[#1C2420]">
             <RecitationCoach
               surah={surah.id}
-              surahSlug={surah.slug}
               surahName={surah.name}
               ayahs={coachAyahs}
               initialAyahIndex={coachAyahIndex}

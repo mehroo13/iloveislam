@@ -457,7 +457,7 @@ export default function MyProgressClient() {
       <section aria-labelledby="mistakes-heading" className="rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm sm:p-6">
         <h2 id="mistakes-heading" className="text-xl font-bold text-[#0B3D2E]">Words to retry</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
-          Free tier keeps the last 7 days of mistakes, on this device.
+          Your full mistake log is kept on this device — nothing is trimmed.
         </p>
         {mistakes.length === 0 ? (
           <p className="mt-2 text-sm text-[#5b6b62]">

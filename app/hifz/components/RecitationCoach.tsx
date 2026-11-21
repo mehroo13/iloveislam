@@ -3,7 +3,7 @@
 /**
  * app/hifz/components/RecitationCoach.tsx — the Hifz recitation coach.
  *
- * Spec §3 (coach flow), §3.2 (states), §3.3 (free limits), §8 (feedback).
+ * Spec §3 (coach flow), §3.2 (states), §8 (feedback). Everything is free —
  * Research: hifz-recitation-feedback-20261121, §5 (alignment), §6 (risks/UI copy).
  *
  * LOAD RULES (spec §6 performance budget): this component is a client island
@@ -35,11 +35,9 @@
  *    — the UI says so and offers a retry (research §5.7).
  *  - Never a percentage grade, never tajweed (spec §8).
  *
- * FREE LIMITS (spec §3.3): 1 surah/day, 10 minutes/day. Enforced CLIENT-SIDE
- * in v1 and labelled as such here — a determined user can bypass client
- * limits; that is accepted in v1 and fixed when accounts arrive in v3.
- * The limit resets at local midnight. No billing, no paywall on
- * text / translation / tafsir / audio — those are free, always.
+ * EVERYTHING IS FREE: no daily limits, no surah cap, no paid tier. The coach,
+ * plans, mistake log and progress are free for everyone, always. No billing,
+ * no paywall on text / translation / tafsir / audio — those are free, always.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -52,14 +50,12 @@ import {
   isDailyGoalMet,
   loadMistakes,
   loadProgress,
-  loadSettings,
   localDateString,
   markAttempt,
   recordMinutes,
   recordTypeActivity,
   saveMistakes,
   saveProgress,
-  saveSettings,
   type MistakeEntry,
 } from '../progress';
 import { splitWords } from '../lib/alignment';
@@ -86,12 +82,6 @@ export const TEACHER_DISCLAIMER =
 export const UNCLEAR_COPY =
   "I couldn't hear this clearly. Check your microphone, move somewhere quieter, and try again.";
 
-/** Free-tier limits (spec §3.3). Client-side in v1 — see header comment. */
-export const FREE_SURAHS_PER_DAY = 1;
-export const FREE_MINUTES_PER_DAY = 10;
-
-const PREMIUM_ANCHOR = '#premium';
-
 /* ------------------------------------------------------------------ */
 /*  Props                                                               */
 /* ------------------------------------------------------------------ */
@@ -111,8 +101,6 @@ export interface CoachAyah {
 export interface RecitationCoachProps {
   /** Surah number, e.g. 67. */
   surah: number;
-  /** URL slug, e.g. "al-mulk" — used for the free-tier "1 surah/day" counter. */
-  surahSlug: string;
   /** Display name, e.g. "Al-Mulk". */
   surahName: string;
   /** Ayahs available to practise, in order. The page supplies these. */
@@ -153,7 +141,6 @@ function clamp01(n: number): number {
 
 export default function RecitationCoach({
   surah,
-  surahSlug,
   surahName,
   ayahs,
   initialAyahIndex = 0,
@@ -200,7 +187,6 @@ export default function RecitationCoach({
   const [persistedMistakes, setPersistedMistakes] = useState<MistakeEntry[]>(() =>
     typeof window === 'undefined' ? [] : loadMistakes(),
   );
-  const [limitHit, setLimitHit] = useState<'surah' | 'minutes' | null>(null);
   const [storageNotice, setStorageNotice] = useState<string | null>(null);
   const [dailyGoalMet, setDailyGoalMet] = useState(false);
   const [streakCount, setStreakCount] = useState(0);
@@ -225,7 +211,7 @@ export default function RecitationCoach({
       const to = Math.max(rangeFrom, rangeTo);
       return ayahs.slice(from, to + 1);
     }
-    return ayahs; // whole surah — Premium only; the picker blocks starting it (see below)
+    return ayahs; // whole surah
   }, [ayahs, scopeKind, currentIndex, rangeFrom, rangeTo]);
 
   const scopeLabel = scopeAyahs().length === 1
@@ -333,44 +319,6 @@ export default function RecitationCoach({
     };
   }, []);
 
-  /* ---------------- free limits (spec §3.3, client-side) ---------------- */
-
-  const checkFreeLimit = useCallback((): 'ok' | 'surah' | 'minutes' => {
-    const settings = loadSettings();
-    const today = localDateString();
-    const usage = settings.freeUsage.date === today
-      ? settings.freeUsage
-      : { date: today, surahsRecitedToday: [], minutesRecitedToday: 0 };
-    if (usage.minutesRecitedToday >= FREE_MINUTES_PER_DAY) return 'minutes';
-    if (usage.surahsRecitedToday.length >= FREE_SURAHS_PER_DAY && !usage.surahsRecitedToday.includes(surahSlug)) {
-      return 'surah';
-    }
-    return 'ok';
-  }, [surahSlug]);
-
-  const recordFreeUsage = useCallback(
-    (minutes: number) => {
-      // Client-side counters (spec §3.3) — bypassable by design in v1.
-      const settings = loadSettings();
-      const today = localDateString();
-      const usage = settings.freeUsage.date === today
-        ? settings.freeUsage
-        : { date: today, surahsRecitedToday: [], minutesRecitedToday: 0 };
-      const next = {
-        ...settings,
-        freeUsage: {
-          date: today,
-          surahsRecitedToday: usage.surahsRecitedToday.includes(surahSlug)
-            ? usage.surahsRecitedToday
-            : [...usage.surahsRecitedToday, surahSlug],
-          minutesRecitedToday: usage.minutesRecitedToday + minutes,
-        },
-      };
-      saveSettings(next);
-    },
-    [surahSlug],
-  );
-
   /* ---------------- engine loading ---------------- */
 
   const loadEngineNow = useCallback(async () => {
@@ -417,12 +365,6 @@ export default function RecitationCoach({
 
   // Entering the recite step starts the (user-initiated) model download.
   const enterRecite = useCallback(() => {
-    const hit = checkFreeLimit();
-    if (hit !== 'ok') {
-      setLimitHit(hit);
-      return;
-    }
-    setLimitHit(null);
     setStep('recite');
     setResult(null);
     setFeedbackWords([]);
@@ -430,7 +372,7 @@ export default function RecitationCoach({
     setLiveWords({});
     setSelfMarks({});
     if (mode === 'mic') void loadEngineNow();
-  }, [checkFreeLimit, loadEngineNow, mode]);
+  }, [loadEngineNow, mode]);
 
   /* ---------------- progress writes (spec §5.1) ---------------- */
 
@@ -468,9 +410,8 @@ export default function RecitationCoach({
       setStreakCount(currentStreakCount(progress.streak, today));
       setAyahsToday(ayahsPractisedOn(progress, today));
       setStorageNotice(getStorageNotice());
-      recordFreeUsage(opts.minutes);
     },
-    [recordFreeUsage],
+    [],
   );
 
   /* ---------------- mic recording ---------------- */
@@ -478,12 +419,6 @@ export default function RecitationCoach({
   const startRecording = useCallback(async () => {
     const engine = engineRef.current;
     if (!engine) return;
-    const hit = checkFreeLimit();
-    if (hit !== 'ok') {
-      setLimitHit(hit);
-      return;
-    }
-    setLimitHit(null);
     setMicError(null);
     setMicState('idle');
     const scope = scopeAyahs();
@@ -532,7 +467,7 @@ export default function RecitationCoach({
     timerRef.current = setInterval(() => {
       setRecordingSecs(Math.floor((Date.now() - recordingStartRef.current) / 1000));
     }, 500);
-  }, [checkFreeLimit, scopeAyahs, surah]);
+  }, [scopeAyahs, surah]);
 
   const stopRecording = useCallback(async () => {
     const session = sessionRef.current;
@@ -756,9 +691,9 @@ export default function RecitationCoach({
                 <input type="radio" name="scope" checked={scopeKind === 'range'} onChange={() => setScopeKind('range')} />
                 An ayah range
               </label>
-              <label className="flex items-center gap-2 rounded-lg border border-[#e5e0d3] px-3 py-2 text-sm opacity-70">
+              <label className="flex items-center gap-2 rounded-lg border border-[#e5e0d3] px-3 py-2 text-sm">
                 <input type="radio" name="scope" checked={scopeKind === 'whole'} onChange={() => setScopeKind('whole')} />
-                Whole surah (Premium)
+                Whole surah
               </label>
             </div>
           </fieldset>
@@ -795,14 +730,6 @@ export default function RecitationCoach({
               </label>
             </div>
           )}
-          {scopeKind === 'whole' && (
-            <p className="mt-4 rounded-lg bg-[#F7F5EF] border border-[#e5e0d3] px-3 py-2 text-sm">
-              Whole-surah review mode is part of Premium. Free recitation covers one ayah or one range per session.{' '}
-              <a href={PREMIUM_ANCHOR} className="font-semibold text-[#146B4D] underline">See Premium</a>
-              {' '}— coming soon, free during testing.
-            </p>
-          )}
-
           <label className="mt-4 block text-sm font-semibold">
             Reciter
             <select
@@ -821,7 +748,7 @@ export default function RecitationCoach({
             <button
               type="button"
               onClick={() => { setStep('listen'); }}
-              disabled={scopeKind === 'whole' || scopeAyahs().length === 0}
+              disabled={scopeAyahs().length === 0}
               className="rounded-full bg-[#0B3D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#146B4D] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
             >
               Listen first
@@ -829,20 +756,12 @@ export default function RecitationCoach({
             <button
               type="button"
               onClick={enterRecite}
-              disabled={scopeKind === 'whole' || scopeAyahs().length === 0}
+              disabled={scopeAyahs().length === 0}
               className="rounded-full border border-[#0B3D2E] px-5 py-2.5 text-sm font-semibold text-[#0B3D2E] hover:bg-[#eaf3ee] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
             >
               Recite now
             </button>
           </div>
-          {limitHit && (
-            <p role="alert" className="mt-3 rounded-lg bg-[#F7F5EF] border border-[#e5e0d3] px-3 py-2 text-sm">
-              {limitHit === 'surah'
-                ? "You've used today's free recitation on another surah — come back tomorrow, or see Premium."
-                : "You've used today's 10 free minutes of recitation — come back tomorrow, or see Premium."}{' '}
-              <a href={PREMIUM_ANCHOR} className="font-semibold text-[#146B4D] underline">See Premium</a>
-            </p>
-          )}
         </div>
       )}
 
@@ -874,14 +793,6 @@ export default function RecitationCoach({
               Hide &amp; recite
             </button>
           </div>
-          {limitHit && (
-            <p role="alert" className="mt-3 rounded-lg bg-[#F7F5EF] border border-[#e5e0d3] px-3 py-2 text-sm">
-              {limitHit === 'surah'
-                ? "You've used today's free recitation on another surah — come back tomorrow, or see Premium."
-                : "You've used today's 10 free minutes of recitation — come back tomorrow, or see Premium."}{' '}
-              <a href={PREMIUM_ANCHOR} className="font-semibold text-[#146B4D] underline">See Premium</a>
-            </p>
-          )}
           <div className="mt-4 space-y-3">
             {scopeAyahs().map((a) => {
               const key = `${a.surah}:${a.ayah}`;
@@ -1093,14 +1004,6 @@ export default function RecitationCoach({
                     Practice without mic
                   </button>
                 </div>
-              )}
-              {limitHit && (
-                <p role="alert" className="mx-auto mt-3 max-w-md rounded-lg bg-[#F7F5EF] border border-[#e5e0d3] px-3 py-2 text-sm text-left">
-                  {limitHit === 'surah'
-                    ? "You've used today's free recitation on another surah — come back tomorrow, or see Premium."
-                    : "You've used today's 10 free minutes of recitation — come back tomorrow, or see Premium."}{' '}
-                  <a href={PREMIUM_ANCHOR} className="font-semibold text-[#146B4D] underline">See Premium</a>
-                </p>
               )}
             </div>
           ) : (

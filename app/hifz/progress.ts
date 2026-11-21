@@ -5,7 +5,7 @@
 // Keys:
 //   ili_hifz_v1           whole progress document (single key = single export/import)
 //   ili_hifz_mistakes_v1  mistake log (separate key so it can be trimmed independently)
-//   ili_hifz_settings_v1  reciter, translation, daily goal, preferences, free-tier usage
+//   ili_hifz_settings_v1  reciter, translation, daily goal, preferences
 //
 // Rules (normative, spec §5.1):
 //   - An ayah becomes 'memorised' after 3 CONSECUTIVE correct recitations
@@ -15,7 +15,7 @@
 //     (default 10, settable 5/10/15/30) OR 5 ayahs practised — whichever the
 //     user hits first. Local calendar date. A missed day resets the count to 0;
 //     continuity is never faked.
-//   - Mistake log: free tier keeps 7 days; older entries are trimmed on write.
+//   - Mistake log: kept in full — every mistake stays until the user clears it.
 //     "Heard" is only stored if the engine returns it — never invent a heard word.
 //   - Storage failure (unavailable / full / blocked): the site still works for
 //     reading, listening and reciting; progress just isn't saved, and a
@@ -27,8 +27,6 @@ export const HIFZ_SETTINGS_KEY = 'ili_hifz_settings_v1';
 
 /** Consecutive correct recitations that mark an ayah memorised. */
 export const CORRECT_STREAK_FOR_MEMORISED = 3;
-/** Free-tier mistake log retention, in days. */
-export const FREE_MISTAKE_LOG_DAYS = 7;
 /** Ayahs practised in a day that also meets the daily goal (with minutes). */
 export const AYAHS_FOR_DAILY_GOAL = 5;
 /** Allowed daily-goal values, in minutes. */
@@ -107,14 +105,6 @@ export interface HifzSettings {
   translationId: number;
   dailyGoalMinutes: number;
   hideTranslation: boolean;
-  /** Free-tier usage counters (client-side limits, spec §3.3 — bypassable by design in v1). */
-  freeUsage: {
-    /** YYYY-MM-DD local date these counters belong to. */
-    date: string;
-    /** Slugs recited today (free tier: 1 surah/day). */
-    surahsRecitedToday: string[];
-    minutesRecitedToday: number;
-  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -206,7 +196,6 @@ export function createDefaultSettings(now: Date = new Date()): HifzSettings {
     translationId: DEFAULT_TRANSLATION_ID,
     dailyGoalMinutes: DEFAULT_DAILY_GOAL_MINUTES,
     hideTranslation: false,
-    freeUsage: { date: localDateString(now), minutesRecitedToday: 0, surahsRecitedToday: [] },
   };
 }
 
@@ -262,9 +251,9 @@ export function loadMistakes(): MistakeEntry[] {
   return [];
 }
 
-/** Save the mistake log, trimming entries older than the free-tier retention first. */
+/** Save the mistake log in full — no trimming, every mistake is kept. */
 export function saveMistakes(mistakes: MistakeEntry[], now: Date = new Date()): boolean {
-  return writeKey(HIFZ_MISTAKES_KEY, JSON.stringify(trimMistakes(mistakes, now)));
+  return writeKey(HIFZ_MISTAKES_KEY, JSON.stringify(mistakes));
 }
 
 export function loadSettings(): HifzSettings {
@@ -276,7 +265,6 @@ export function loadSettings(): HifzSettings {
     return {
       ...defaults,
       ...parsed,
-      freeUsage: { ...defaults.freeUsage, ...(parsed.freeUsage ?? {}) },
     };
   } catch {
     return createDefaultSettings();
@@ -504,21 +492,8 @@ export function setTypeGoalTarget(
 }
 
 /* ------------------------------------------------------------------ */
-/*  Mistake log (pure add/trim)                                        */
+/*  Mistake log (pure add)                                              */
 /* ------------------------------------------------------------------ */
-
-/** Drop entries older than `retentionDays` (free tier: 7). Pure. */
-export function trimMistakes(
-  mistakes: MistakeEntry[],
-  now: Date = new Date(),
-  retentionDays: number = FREE_MISTAKE_LOG_DAYS,
-): MistakeEntry[] {
-  const cutoff = now.getTime() - retentionDays * 24 * 60 * 60 * 1000;
-  return mistakes.filter((m) => {
-    const t = Date.parse(m.date);
-    return Number.isNaN(t) || t >= cutoff;
-  });
-}
 
 /**
  * Add a mistake. A repeat of the same word in the same ayah on the same day
@@ -548,7 +523,7 @@ export function addMistake(
   } else {
     next = [...mistakes, { ...entry, attempts: 1 }];
   }
-  return trimMistakes(next, now);
+  return next;
 }
 
 /* ------------------------------------------------------------------ */

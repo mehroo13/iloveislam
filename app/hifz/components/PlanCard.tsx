@@ -1,7 +1,6 @@
 // app/hifz/components/PlanCard.tsx — memorisation plan cards (spec §5.2).
 // Client component: "Start this plan" writes the active plan to localStorage.
-// 30-day plans are Premium in v1 — defined, not billed (spec §3.3/§7):
-// the card says so plainly and still lets the user start it free during testing.
+// Every plan is free — 7-day, 30-day and the Juz Amma 90-day plan.
 'use client';
 
 import { useState } from 'react';
@@ -39,12 +38,10 @@ export default function PlanCard({
   plan,
   surahSlug,
   surahName,
-  premium = false,
 }: {
   plan: SurahPlan | JuzAmmaPlan;
   surahSlug?: string;
   surahName?: string;
-  premium?: boolean;
 }) {
   const [started, setStarted] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -76,11 +73,6 @@ export default function PlanCard({
         <h3 className="text-lg font-bold text-[#0B3D2E]">
           {plan.planDays}-day plan{surahName ? ` — ${surahName}` : ' — Juz Amma'}
         </h3>
-        {premium && (
-          <span className="rounded-full bg-[#F7F5EF] px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#5b6b62]">
-            Premium · free during testing
-          </span>
-        )}
       </div>
       <p className="mt-1 text-sm text-[#5b6b62]">
         {plan.planDays === 7

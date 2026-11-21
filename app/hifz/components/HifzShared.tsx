@@ -1,5 +1,5 @@
 // app/hifz/components/HifzShared.tsx — shared SERVER components for the hub:
-// breadcrumb, attribution footer, premium section, surah hero.
+// breadcrumb, attribution footer, surah hero.
 import Link from 'next/link';
 import type { HifzSurah } from '../surahs';
 import { ATTRIBUTION } from '../lib/fetch';
@@ -32,28 +32,6 @@ export function Attribution({ reciterName }: { reciterName?: string }) {
       {ATTRIBUTION}
       {reciterName ? ` Audio: ${reciterName}.` : ''}
     </p>
-  );
-}
-
-/** Premium — plain "coming soon" section (spec §3.3/§7). No billing, no
- *  price hard-coded, no paywall on text / translation / tafsir / audio /
- *  word-by-word. */
-export function PremiumSection() {
-  return (
-    <section id="premium" aria-labelledby="premium-heading" className="mt-10 scroll-mt-24 rounded-2xl border border-[#C9A227]/40 bg-white p-5 shadow-sm sm:p-6">
-      <h2 id="premium-heading" className="text-xl font-bold text-[#0B3D2E]">Premium — coming soon</h2>
-      <p className="mt-2 text-sm leading-relaxed text-[#1C2420]/80">
-        The recitation coach, 7-day plans, streaks and your progress dashboard are free —
-        free during testing, and free every day after that for one surah a day. Premium will
-        add unlimited recitation time, all 30-day plans, the Juz Amma 90-day plan and full
-        mistake history. Quran text, translations, tafsir, audio and word-by-word are free
-        forever and will never be paywalled.
-      </p>
-      <ul className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-        <li className="rounded-lg bg-[#F7F5EF] px-3 py-2"><strong>Free:</strong> coach 1 surah/day, 10 minutes/day · 7-day plans · streaks · 7-day mistake log</li>
-        <li className="rounded-lg bg-[#F7F5EF] px-3 py-2"><strong>Premium:</strong> unlimited coach · all 30-day plans · Juz Amma 90-day plan · full mistake history</li>
-      </ul>
-    </section>
   );
 }
 

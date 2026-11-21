@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getJuz, JUZ_PAGES } from '../../juz';
 import { getSurahById } from '../../surahs';
-import { Breadcrumb, Attribution, PremiumSection } from '../../components/HifzShared';
+import { Breadcrumb, Attribution} from '../../components/HifzShared';
 import { SITE_URL } from '../../lib/fetch';
 
 export async function generateStaticParams() {
@@ -159,7 +159,6 @@ export default async function JuzPage({ params }: { params: Promise<{ n: string 
         )}
       </nav>
 
-      <PremiumSection />
       <Attribution reciterName="Mishary Alafasy" />
     </main>
   );

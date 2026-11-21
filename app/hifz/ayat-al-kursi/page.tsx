@@ -7,7 +7,7 @@ import { fetchVerseByKey, fetchVerseWords, fetchTafsir, ayahJsonLd, SITE_URL } f
 import { getVirtue } from '../virtues';
 import AyahClient from '../components/AyahClient';
 import VirtuesBlock from '../components/VirtuesBlock';
-import { Breadcrumb, Attribution, PremiumSection } from '../components/HifzShared';
+import { Breadcrumb, Attribution} from '../components/HifzShared';
 import { stripHtml, cleanIndopak } from '../../quran/lib';
 
 const KEY = AYAT_AL_KURSI.key; // "2:255"
@@ -123,7 +123,6 @@ export default async function AyatAlKursiPage() {
         </p>
       )}
 
-      <PremiumSection />
       <Attribution reciterName="Mishary Alafasy" />
     </main>
   );
