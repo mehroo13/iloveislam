@@ -318,6 +318,11 @@ export default function PrayerTimesClient({ initialToday, initialMonth, initialC
   // format exactly, or the "Today" highlight never matches any row.
   const todayKey = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
 
+  // "Next 7 days" must be the 7 days AFTER today — not month.slice(0, 7),
+  // which showed the 1st–7th of the month (Nov 1–7) all month long.
+  const todayIdx = month.findIndex((d) => d.date === todayKey);
+  const nextWeek = todayIdx >= 0 ? month.slice(todayIdx + 1, todayIdx + 8) : month.slice(0, 7);
+
   return (
     <div className="min-h-screen bg-[#F7F5EF] text-[#1C2420]">
       {/* Header */}
@@ -527,7 +532,7 @@ export default function PrayerTimesClient({ initialToday, initialMonth, initialC
                   {showMonth ? 'Hide monthly timetable ↑' : 'View full month ↓'}
                 </button>
               </div>
-              {month.length === 0 ? (
+              {nextWeek.length === 0 ? (
                 <p className="px-5 py-6 text-sm text-[#1C2420]/60">
                   The 7-day schedule loads with today&rsquo;s times — change city or method to refresh it.
                 </p>
@@ -545,7 +550,7 @@ export default function PrayerTimesClient({ initialToday, initialMonth, initialC
                       </tr>
                     </thead>
                     <tbody>
-                      {month.slice(0, 7).map((day) => {
+                      {nextWeek.map((day) => {
                         const isToday = day.date === todayKey;
                         return (
                           <tr key={day.date} className={isToday ? 'bg-emerald-50 font-semibold' : 'border-t border-[#1C2420]/5'}>
