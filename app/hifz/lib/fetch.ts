@@ -106,6 +106,8 @@ export function pairWords(indopakText: string, words: WordInfo[]): { arabic: str
  *  char_type_name ('word' | 'end' for the ayah-end marker). */
 export interface MushafWord {
   text_uthmani: string;
+  /** Indo-Pak form of the same word (Quran.com word_fields=text_indopak). */
+  text_indopak?: string;
   line_number: number;
   page_number: number;
   position: number;
@@ -120,10 +122,49 @@ export interface MushafVerse {
 
 export async function fetchMushafPage(page: number): Promise<MushafVerse[]> {
   const data = await fetchJson(
-    `${UPSTREAM_API}/verses/by_page/${page}?words=true&word_fields=text_uthmani,line_number,page_number,position,char_type_name&fields=text_uthmani`,
+    `${UPSTREAM_API}/verses/by_page/${page}?words=true&word_fields=text_uthmani,text_indopak,line_number,page_number,position,char_type_name&fields=text_uthmani`,
   );
   const verses = (data as { verses?: MushafVerse[] } | null)?.verses;
   return Array.isArray(verses) ? verses : [];
+}
+
+/* ------------------------------------------------------------------ */
+/*  Mushaf word cleaning (spec §21)                                     */
+/* ------------------------------------------------------------------ */
+
+/* Small high pause marks (U+06D6–U+06DC, U+06DF–U+06E8, U+06EA–U+06ED):
+   Quran.com's Uthmani word text carries them after a space ("رَيْبَ ۛ"),
+   which renders as a tiny floating mark above the line. Attaching the
+   mark to the preceding letter puts it above the word, as in the printed
+   mushaf. Quran.com's Indo-Pak words already carry the marks attached. */
+const SMALL_HIGH_MARK = /[\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED]/;
+/** Invisible direction/format controls that trail Quran.com words — they
+ *  can be separated by a space (e.g. "…\u200F \uFEFF\uFEFF"), so spaces
+ *  are stripped with them. */
+const TRAILING_CONTROLS = /[\s\u200B\u200F\uFEFF]+$/;
+
+/** Uthmani word text for the mushaf: PUA stripped, pause marks attached
+ *  to the preceding letter, trailing controls stripped. */
+export function cleanMushafUthmani(text: string): string {
+  return text
+    .replace(/[\uE000-\uF8FF]/g, '')
+    .replace(/\s+(?=[\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED])/g, '')
+    .replace(TRAILING_CONTROLS, '')
+    .trim();
+}
+
+/** Indo-Pak word text for the mushaf: PUA markers (spec §15.7) and
+ *  trailing direction controls stripped. */
+export function cleanMushafIndopak(text: string): string {
+  return text
+    .replace(/[\uE000-\uF8FF]/g, '')
+    .replace(TRAILING_CONTROLS, '')
+    .trim();
+}
+
+/** True when a cleaned word is only small-high pause marks (no letters). */
+export function isPauseMarkOnly(text: string): boolean {
+  return text.length > 0 && [...text].every((ch) => SMALL_HIGH_MARK.test(ch));
 }
 
 /** Tafsir (Ibn Kathir Abridged, id 169) for one ayah — server-side, for the ayah page. */

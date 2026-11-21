@@ -35,7 +35,7 @@ export async function generateMetadata({
   const title = `Mushaf Page ${n} — ${names} | I Love Islam`;
   const description =
     `Read Mushaf page ${n} of 604 like the printed Madani Quran — ${names}. ` +
-    `Uthmani script, ayah-end markers and juz markers. Free, no sign-up.`;
+    `Indo-Pak or Uthmani script, ayah-end markers and juz markers. Free, no sign-up.`;
   return {
     title,
     description,
