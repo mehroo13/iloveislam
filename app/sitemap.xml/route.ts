@@ -1,4 +1,5 @@
 import { allArticles } from '../blog/content';
+import { LAUNCH_SURAHS, AYAT_AL_KURSI } from '../hifz/surahs';
 
 export async function GET() {
   const base = 'https://www.iloveislam.life';
@@ -46,6 +47,15 @@ export async function GET() {
     // Blog index
     { loc: '/blog', lastmod: now, changefreq: 'weekly', priority: '0.7' },
 
+    // Hifz hub (added 2026-11-21; URLs generated from app/hifz/surahs.ts)
+    { loc: '/hifz', lastmod: REBUILD_DATE, changefreq: 'weekly', priority: '0.9' },
+    { loc: '/hifz/juz-amma', lastmod: REBUILD_DATE, changefreq: 'monthly', priority: '0.8' },
+    { loc: '/hifz/juz/30', lastmod: REBUILD_DATE, changefreq: 'monthly', priority: '0.8' },
+    { loc: '/hifz/plans', lastmod: REBUILD_DATE, changefreq: 'monthly', priority: '0.7' },
+    { loc: '/hifz/ayat-al-kursi', lastmod: REBUILD_DATE, changefreq: 'monthly', priority: '0.8' },
+    // my-progress is a tool page, not content — low priority (spec §9.1).
+    { loc: '/hifz/my-progress', lastmod: REBUILD_DATE, changefreq: 'monthly', priority: '0.3' },
+
     // Static pages
     { loc: '/about', lastmod: now, changefreq: 'monthly', priority: '0.5' },
     { loc: '/contact', lastmod: now, changefreq: 'yearly', priority: '0.4' },
@@ -64,7 +74,37 @@ export async function GET() {
     priority: '0.7',
   }));
 
-  const allEntries = [...entries, ...blogEntries];
+  // Hifz hub URLs, generated from the launch-set slug table so the sitemap
+  // can never drift from app/hifz/surahs.ts. Ayah ref is SURAH-AYAH, e.g. 67-1.
+  // Note: the launch set has 969 ayah pages (404 named surahs + 564 Juz Amma
+  // + 1 Ayat al-Kursi), not the "~490" the spec estimated — Juz Amma alone
+  // holds 564 ayahs.
+  const hifzEntries: SitemapEntry[] = [];
+  for (const surah of LAUNCH_SURAHS) {
+    hifzEntries.push({
+      loc: `/hifz/${surah.slug}`,
+      lastmod: REBUILD_DATE,
+      changefreq: 'monthly',
+      priority: '0.8',
+    });
+    for (let ayah = 1; ayah <= surah.ayahCount; ayah++) {
+      hifzEntries.push({
+        loc: `/hifz/${surah.slug}/${surah.id}-${ayah}`,
+        lastmod: REBUILD_DATE,
+        changefreq: 'monthly',
+        priority: '0.6',
+      });
+    }
+  }
+  // Ayat al-Kursi (2:255) — canonical ayah page under its surah.
+  hifzEntries.push({
+    loc: `/hifz/${AYAT_AL_KURSI.surahSlug}/${AYAT_AL_KURSI.ref}`,
+    lastmod: REBUILD_DATE,
+    changefreq: 'monthly',
+    priority: '0.7',
+  });
+
+  const allEntries = [...entries, ...blogEntries, ...hifzEntries];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

@@ -95,6 +95,9 @@ export default function Footer() {
                 {link.label}
               </Link>
             ))}
+            <Link href="/llms.txt" className="transition-colors hover:text-white">
+              AI Index (llms.txt)
+            </Link>
           </nav>
         </div>
       </div>

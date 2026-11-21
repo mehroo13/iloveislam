@@ -8,6 +8,7 @@ import ToolIcon from './ToolIcon';
 
 const NAV_LINKS = [
   { href: '/', label: 'Home' },
+  { href: '/hifz', label: 'Hifz' },
   { href: '/dua-for-this-moment', label: 'Dua for This Moment' },
   { href: '/quran', label: 'Quran' },
   { href: '/prayer-times', label: 'Prayer Times' },

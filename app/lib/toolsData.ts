@@ -2,6 +2,7 @@
 // Do not re-add any tool that was removed in the rebuild.
 
 export const ALL_FEATURED_TOOLS = [
+  { href: '/hifz', badge: 'Hifz', title: 'Memorise the Quran', desc: 'Recite aloud and get instant word-by-word feedback', icon: 'mic', gradient: 'linear-gradient(135deg, #0b3d2e, #146b4d)', accent: '#c9a227' },
   { href: '/dua-for-this-moment', badge: 'Featured', title: 'Dua for This Moment', desc: 'The right dua for your exact situation, with audio', icon: 'dua', gradient: 'linear-gradient(135deg, #0b3d2e, #146b4d)', accent: '#c9a227' },
   { href: '/quran', badge: 'Quran', title: 'Quran Reader', desc: 'Read and listen in Indo-Pak script with translation', icon: 'quran', gradient: 'linear-gradient(135deg, #0b3d2e, #1a5c44)', accent: '#e7d9a8' },
   { href: '/prayer-times', badge: 'Daily', title: 'Prayer Times', desc: 'Accurate salah times for your location', icon: 'prayer', gradient: 'linear-gradient(135deg, #0b3d2e, #146b4d)', accent: '#7fb89e' },
@@ -11,6 +12,17 @@ export const ALL_FEATURED_TOOLS = [
 ];
 
 export const TOOLS_DATA = () => [
+  {
+    category: 'Memorise the Quran', emoji: 'mic',
+    items: [
+      { name: 'Hifz Hub', desc: 'Recitation coach, plans & progress', icon: 'mic', href: '/hifz', color: 'bg-emerald-100 text-emerald-800' },
+      { name: 'Recite Now', desc: 'Pick a surah and recite aloud', icon: 'mic', href: '/hifz/recite', color: 'bg-emerald-100 text-emerald-800' },
+      { name: 'Juz Amma', desc: 'Memorise the short surahs', icon: 'quran', href: '/hifz/juz-amma', color: 'bg-amber-100 text-amber-800' },
+      { name: 'Hifz Plans', desc: '7-day, 30-day & 90-day plans', icon: 'calendar', href: '/hifz/plans', color: 'bg-emerald-100 text-emerald-800' },
+      { name: 'My Progress', desc: 'Streak, mistakes & export', icon: 'check', href: '/hifz/my-progress', color: 'bg-teal-100 text-teal-800' },
+      { name: 'Ayat al-Kursi', desc: 'Memorise 2:255', icon: 'quran', href: '/hifz/ayat-al-kursi', color: 'bg-amber-100 text-amber-800' },
+    ],
+  },
   {
     category: 'Most Used', emoji: 'names',
     items: [

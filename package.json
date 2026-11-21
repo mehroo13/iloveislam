@@ -10,10 +10,12 @@
     "optimize-images": "node tools/convert-images.js"
   },
   "dependencies": {
+    "@tilawa/core": "1.0.0-rc.0",
     "@zxing/browser": "^0.2.0",
     "@zxing/library": "^0.22.0",
     "framer-motion": "^12.40.0",
     "next": "16.2.4",
+    "onnxruntime-web": "1.30.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "tesseract.js": "^7.0.0"
@@ -26,6 +28,7 @@
     "autoprefixer": "^10.5.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "onnxruntime-node": "1.30.0",
     "postcss": "^8.5.14",
     "sharp": "^0.32.6",
     "tailwindcss": "^3.4.19",

@@ -10,5 +10,8 @@ Disallow: /admin/
 # Sitemap
 Sitemap: https://www.iloveislam.life/sitemap.xml
 
+# Machine-readable index for AI assistants
+# llms.txt: https://www.iloveislam.life/llms.txt
+
 # Crawl-delay (optional, for polite crawling)
 Crawl-delay: 1

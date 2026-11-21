@@ -6,6 +6,7 @@ import {
   VOTD_KEYS, JUZ_DATA, stripHtml, cleanIndopak, dayOfYear, networkErrorMessage,
   type Chapter, type Verse, type Bookmark, type SearchHit, type Tab,
 } from './lib';
+import { LAUNCH_SURAHS_BY_SLUG } from '../hifz/surahs';
 
 /* Quran Reader client — Indo-Pak script (Quran.com API v4, text_indopak).
    The surah list and Verse of the Day arrive server-rendered as props;
@@ -535,6 +536,17 @@ export default function QuranClient({
                   {currentSurah.verses_count} verses · {currentSurah.revelation_place === 'makkah' ? 'Makki' : 'Madani'} · Surah {currentSurah.id} of 114
                 </p>
               )}
+              {currentSurah && (() => {
+                const launch = Object.values(LAUNCH_SURAHS_BY_SLUG).find((s) => s.id === currentSurah.id);
+                return launch ? (
+                  <a
+                    href={`/hifz/${launch.slug}`}
+                    className="mt-4 inline-block rounded-full bg-[#C9A227] px-4 py-2 text-sm font-semibold text-[#0B3D2E] hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  >
+                    Memorise this surah →
+                  </a>
+                ) : null;
+              })()}
               {currentSurah && currentSurah.id !== 1 && currentSurah.id !== 9 && (
                 <p className="font-quran mt-4 text-xl sm:text-2xl">{BISMILLAH}</p>
               )}

@@ -1,13 +1,15 @@
+// app/HomeClient.tsx — Homepage hub client (spec §2).
+// The hero lives in app/page.tsx (server). This client owns: how-it-works,
+// continue-where-you-left-off, coach entry card, featured surahs, plans
+// strip, the demoted Today strip (prayer countdown, Verse of the Day, Dua
+// of the Day), the utilities grid and the trust strip.
+// All external fetches happen client-side in useEffect — nothing here runs
+// at build time, so the page builds with no network.
 'use client';
 
-// app/HomeClient.tsx — Homepage "living dashboard" (client component).
-// No header/footer here: app/layout.tsx owns those landmarks.
-// All external fetches happen client-side in useEffect — nothing here
-// runs at build time, so the page builds with no network.
-
 import Link from 'next/link';
-import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { TOOLS_DATA } from './lib/toolsData';
 import { getDuaOfTheDay, type Dua } from '../lib/duas';
 import ToolIcon from './components/ToolIcon';
@@ -25,12 +27,13 @@ import {
   METHOD_KEY,
   type PrayerTimings,
 } from './lib/prayer';
+import { RECITERS } from './quran/lib';
+import { NAMED_LAUNCH_SURAHS, LAUNCH_SURAHS } from './hifz/surahs';
+import { getPlan, JUZ_AMMA_90_DAY } from './hifz/plans';
+import ProgressWidget, { SurahProgressBar } from './hifz/components/ProgressWidget';
+import PlanCard from './hifz/components/PlanCard';
 
 // ==================== CONSTANTS ====================
-const PRAYER_MARKS_KEY = 'ili_prayer_marks_v1';
-const DHIKR_KEY = 'ili_dhikr_today';
-const READING_KEY = 'ili_reading_plan';
-
 const VERSE_KEYS = ['94:6', '2:152', '13:28', '39:53', '65:3', '2:186', '16:97', '3:139'];
 
 const FALLBACK_VERSE = {
@@ -60,21 +63,7 @@ interface VerseState {
   reference: string;
 }
 
-interface Progress {
-  prayers: number;
-  dhikr: number;
-  juzDone: number;
-  loaded: boolean;
-}
-
 // ==================== HELPERS ====================
-function localIsoDate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
 function dayOfYear(d: Date): number {
   const start = new Date(d.getFullYear(), 0, 0);
   return Math.floor((d.getTime() - start.getTime()) / 86400000);
@@ -99,59 +88,12 @@ function resolveToolsData(): ToolSection[] {
   return [];
 }
 
-/** A real progress ring — always shows the honest number (0 when nothing is
- *  done yet), never an empty "Start today" placeholder. */
-function ProgressRingCard({
-  href,
-  label,
-  value,
-  total,
-  unit,
-  loaded,
-  cta,
-}: {
-  href: string;
-  label: string;
-  value: number;
-  total: number;
-  unit: string;
-  loaded: boolean;
-  cta: string;
-}) {
-  const frac = total > 0 ? Math.min(1, value / total) : 0;
-  const r = 26;
-  const circ = 2 * Math.PI * r;
-  return (
-    <Link href={href} className="group flex items-center gap-4 rounded-xl bg-[#F7F5EF] p-4 transition hover:bg-[#0B3D2E]/5">
-      <span className="relative h-16 w-16 shrink-0" aria-hidden="true">
-        <svg viewBox="0 0 64 64" className="h-16 w-16 -rotate-90">
-          <circle cx="32" cy="32" r={r} fill="none" stroke="#E5E0D3" strokeWidth="7" />
-          <circle
-            cx="32"
-            cy="32"
-            r={r}
-            fill="none"
-            stroke="#146B4D"
-            strokeWidth="7"
-            strokeLinecap="round"
-            strokeDasharray={circ}
-            strokeDashoffset={circ * (1 - frac)}
-          />
-        </svg>
-        <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-[#0B3D2E]">
-          {loaded ? `${Math.round(frac * 100)}%` : '—'}
-        </span>
-      </span>
-      <span className="min-w-0">
-        <span className="block text-xs font-bold uppercase tracking-wide text-[#1C2420]/50">{label}</span>
-        <span className="mt-0.5 block text-lg font-bold leading-tight text-[#0B3D2E]">
-          {loaded ? `${value}/${total} ${unit}` : 'Loading…'}
-        </span>
-        <span className="mt-0.5 block text-sm text-[#146B4D] group-hover:underline">{cta}</span>
-      </span>
-    </Link>
-  );
-}
+const HOW_IT_WORKS = [
+  { icon: 'ear', title: 'Listen', text: 'Hear the ayah from a trusted reciter, as many times as you need.' },
+  { icon: 'hide', title: 'Hide', text: 'Hide the Arabic and keep the translation as a prompt.' },
+  { icon: 'mic', title: 'Recite', text: 'Recite aloud into your microphone — audio never leaves your device.' },
+  { icon: 'check', title: 'Feedback', text: 'See every word marked correct, not heard, or to check — then retry.' },
+];
 
 // ==================== MAIN HOME CLIENT ====================
 export default function HomeClient({
@@ -161,6 +103,7 @@ export default function HomeClient({
    *  instantly instead of waiting on a client fetch. */
   initialPrayer?: { timings: PrayerTimings; hijri: string } | null;
 }) {
+  const router = useRouter();
   const [now, setNow] = useState(() => new Date());
 
   // --- Prayer times state ---
@@ -176,8 +119,9 @@ export default function HomeClient({
   // --- Verse of the day ---
   const [verse, setVerse] = useState<VerseState>(FALLBACK_VERSE);
 
-  // --- Progress strip ---
-  const [progress, setProgress] = useState<Progress>({ prayers: 0, dhikr: 0, juzDone: 0, loaded: false });
+  // --- Coach entry card ---
+  const [coachSurah, setCoachSurah] = useState('al-mulk');
+  const [coachReciter, setCoachReciter] = useState(7);
 
   // Dua of the day (deterministic per day, from lib/duas)
   const dua = useMemo<Dua | null>(() => {
@@ -190,7 +134,7 @@ export default function HomeClient({
 
   const sections = useMemo<ToolSection[]>(() => resolveToolsData(), []);
 
-  // Tick every second for the live countdown + greeting.
+  // Tick every second for the live countdown.
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
@@ -222,7 +166,6 @@ export default function HomeClient({
   }, []);
 
   // Fetch prayer times from Aladhan whenever location/method changes.
-  // The server-rendered initial timings stay visible while this refreshes.
   useEffect(() => {
     let cancelled = false;
     setPrayerError(false);
@@ -270,44 +213,6 @@ export default function HomeClient({
     };
   }, []);
 
-  // Read today's progress from localStorage (defensive — keys may not exist).
-  useEffect(() => {
-    const read = () => {
-      const today = localIsoDate(new Date());
-      let prayers = 0;
-      let dhikr = 0;
-      let juzDone = 0;
-      try {
-        const marks = JSON.parse(localStorage.getItem(PRAYER_MARKS_KEY) ?? 'null') as Record<string, unknown> | null;
-        const todayMarks = marks?.[today];
-        if (Array.isArray(todayMarks)) prayers = Math.min(todayMarks.length, 5);
-      } catch {
-        // No usable marks stored.
-      }
-      try {
-        const d = JSON.parse(localStorage.getItem(DHIKR_KEY) ?? 'null') as { date?: unknown; count?: unknown } | null;
-        if (d && d.date === today && typeof d.count === 'number') dhikr = d.count;
-      } catch {
-        // No usable dhikr stored.
-      }
-      try {
-        const r = JSON.parse(localStorage.getItem(READING_KEY) ?? 'null') as { juzDone?: unknown } | null;
-        if (r && Array.isArray(r.juzDone)) juzDone = r.juzDone.length;
-      } catch {
-        // No usable reading plan stored.
-      }
-      setProgress({ prayers, dhikr, juzDone, loaded: true });
-    };
-    read();
-    window.addEventListener('focus', read);
-    return () => window.removeEventListener('focus', read);
-  }, []);
-
-  // --- Derived values ---
-  const hour = now.getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const gregorian = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-
   const nextPrayer = useMemo(() => (timings ? calcNextPrayer(timings, now) : null), [timings, now]);
 
   function applyLocation(e: React.FormEvent) {
@@ -336,239 +241,332 @@ export default function HomeClient({
 
   return (
     <div className="bg-[#F7F5EF] text-[#1C2420]">
-      {/* ==================== HERO ==================== */}
-      <section className="relative overflow-hidden bg-[#0B3D2E] text-white">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 opacity-25"
-          style={{ backgroundImage: 'url(/hero-pattern.svg)', backgroundSize: '96px 96px' }}
-        />
-        <div className="relative mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10 sm:py-14 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-sm font-semibold tracking-wide text-[#C9A227]">
-              {greeting} · Assalamu alaikum
-            </p>
-            <h1 className="mt-2 max-w-2xl text-3xl font-bold leading-tight sm:text-5xl">
-              Your day, with Allah at its centre
-            </h1>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/75 sm:text-base">
-              Prayer times, the Quran, and the right dua for this moment — your daily companion,
-              free forever and always here when you need it.
-            </p>
-            <div className="mt-5 flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-              <span className="rounded-full bg-white/10 px-3 py-1.5 text-white/85">{gregorian}</span>
-              {hijri && (
-                <span className="rounded-full bg-white/10 px-3 py-1.5 text-[#C9A227]">{hijri}</span>
-              )}
-            </div>
-          </div>
-          <Image
-            src="/mosque-silhouette.svg"
-            alt=""
-            width={420}
-            height={170}
-            priority
-            className="hidden w-[420px] max-w-full shrink-0 opacity-90 lg:block"
-          />
-        </div>
-      </section>
-
       <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:space-y-8 sm:py-8">
-        {/* ==================== NEXT PRAYER ==================== */}
-        <section aria-labelledby="prayer-heading" className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id="prayer-heading" className="text-xl font-bold text-[#0B3D2E] sm:text-2xl">
-              Prayer times · {city}
-            </h2>
-            <Link href="/prayer-times" className="text-sm font-semibold text-[#146B4D] hover:text-[#0B3D2E] hover:underline">
-              Full prayer times →
-            </Link>
-          </div>
+        {/* ==================== HOW IT WORKS ==================== */}
+        <section aria-labelledby="how-heading">
+          <h2 id="how-heading" className="sr-only">How the recitation coach works</h2>
+          <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {HOW_IT_WORKS.map((step, i) => (
+              <li key={step.title} className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-4 shadow-sm">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eaf3ee] text-[#146B4D]">
+                  <ToolIcon name={step.icon} className="h-5 w-5" />
+                </span>
+                <p className="mt-3 font-bold text-[#0B3D2E]">
+                  {i + 1}. {step.title}
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-[#1C2420]/60">{step.text}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
 
-          {prayerError && !timings && (
-            <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              We couldn&apos;t load prayer times for {city}, {country}. Check the spelling below and try again.
-            </p>
-          )}
+        {/* ==================== CONTINUE ==================== */}
+        <ProgressWidget />
 
-          {timings && nextPrayer && (
-            <div className="mt-4 rounded-xl bg-[#0B3D2E] px-4 py-4 text-white sm:px-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#C9A227]">
-                Next prayer · {nextPrayer.name}
-                {nextPrayer.tomorrow ? ' (tomorrow)' : ''}
-              </p>
-              <p className="mt-1 font-mono text-3xl font-bold tabular-nums sm:text-4xl">
-                {formatCountdown(nextPrayer.time.getTime() - now.getTime())}
-              </p>
-              <p className="mt-1 text-sm text-white/70">
-                {nextPrayer.name} at {formatPrayerTime(timings[nextPrayer.name])}
-              </p>
-            </div>
-          )}
-
-          {timings && (
-            <ul className="mt-4 divide-y divide-[#1C2420]/5">
-              {PRAYER_ORDER.map((name) => {
-                const isNext = nextPrayer?.name === name && !nextPrayer.tomorrow;
-                return (
-                  <li key={name} className={`flex items-center justify-between py-2.5 text-sm sm:text-base ${isNext ? 'font-bold text-[#0B3D2E]' : ''}`}>
-                    <span className="flex items-center gap-2">
-                      {name}
-                      {isNext && (
-                        <span className="rounded-full bg-[#C9A227] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#0B3D2E]">
-                          Next
-                        </span>
-                      )}
-                    </span>
-                    <span className="tabular-nums">{formatPrayerTime(timings[name])}</span>
-                  </li>
-                );
-              })}
-              {timings.Sunrise && (
-                <li className="flex items-center justify-between py-2.5 text-sm text-[#1C2420]/60 sm:text-base">
-                  <span>Sunrise</span>
-                  <span className="tabular-nums">{formatPrayerTime(timings.Sunrise)}</span>
-                </li>
-              )}
-            </ul>
-          )}
-
-          <form onSubmit={applyLocation} className="mt-4 flex flex-col gap-2 border-t border-[#1C2420]/5 pt-4 sm:flex-row sm:items-end">
-            <label className="flex-1 text-xs font-semibold text-[#1C2420]/70">
-              City
-              <input
-                type="text"
-                value={cityInput}
-                onChange={(e) => setCityInput(e.target.value)}
-                placeholder="Sydney"
-                className="mt-1 w-full rounded-lg border border-[#1C2420]/15 px-3 py-2 text-sm font-normal text-[#1C2420] outline-none focus:border-[#146B4D]"
-              />
-            </label>
-            <label className="flex-1 text-xs font-semibold text-[#1C2420]/70">
-              Country
-              <input
-                type="text"
-                value={countryInput}
-                onChange={(e) => setCountryInput(e.target.value)}
-                placeholder="Australia"
-                className="mt-1 w-full rounded-lg border border-[#1C2420]/15 px-3 py-2 text-sm font-normal text-[#1C2420] outline-none focus:border-[#146B4D]"
-              />
-            </label>
-            <label className="flex-1 text-xs font-semibold text-[#1C2420]/70">
-              Calculation method
+        {/* ==================== COACH ENTRY CARD ==================== */}
+        <section aria-labelledby="coach-heading" className="rounded-2xl bg-[#0B3D2E] p-5 text-white shadow-sm sm:p-6">
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-[#C9A227]">
+            <ToolIcon name="mic" className="h-4 w-4" /> Recitation coach
+          </p>
+          <h2 id="coach-heading" className="mt-2 text-xl font-bold sm:text-2xl">Recite right now</h2>
+          <p className="mt-1 max-w-xl text-sm leading-relaxed text-white/80">
+            Pick a surah and a reciter. Listen first, or go straight to reciting.
+          </p>
+          <div className="mt-4 flex flex-wrap items-end gap-3">
+            <label className="text-xs font-semibold text-white/70">
+              Surah
               <select
-                value={method}
-                onChange={(e) => changeMethod(Number(e.target.value))}
-                className="mt-1 w-full rounded-lg border border-[#1C2420]/15 bg-white px-3 py-2 text-sm font-normal text-[#1C2420] outline-none focus:border-[#146B4D]"
+                value={coachSurah}
+                onChange={(e) => setCoachSurah(e.target.value)}
+                className="mt-1 block w-full max-w-xs rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-sm text-white"
               >
-                {PRAYER_METHODS.map((pm) => (
-                  <option key={pm.id} value={pm.id}>
-                    {pm.label}
+                {LAUNCH_SURAHS.map((s) => (
+                  <option key={s.slug} value={s.slug} className="text-[#1C2420]">
+                    {s.name} — {s.meaning} ({s.ayahCount} ayahs)
                   </option>
                 ))}
               </select>
             </label>
-            <button
-              type="submit"
-              className="rounded-lg bg-[#0B3D2E] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#146B4D]"
-            >
-              Update
-            </button>
-          </form>
+            <label className="text-xs font-semibold text-white/70">
+              Reciter
+              <select
+                value={coachReciter}
+                onChange={(e) => setCoachReciter(Number(e.target.value))}
+                className="mt-1 block w-full max-w-xs rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-sm text-white"
+              >
+                {RECITERS.map((r) => (
+                  <option key={r.id} value={r.id} className="text-[#1C2420]">{r.name}</option>
+                ))}
+              </select>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => router.push(`/hifz/${coachSurah}`)}
+                className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[#0B3D2E] hover:bg-[#eaf3ee]"
+              >
+                Listen first
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push(`/hifz/${coachSurah}?mode=recite`)}
+                className="rounded-full bg-[#C9A227] px-5 py-2.5 text-sm font-semibold text-[#0B3D2E] hover:brightness-110"
+              >
+                Recite now
+              </button>
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-white/60">
+            This checks which words you said — it does not check tajweed. A teacher is still needed for tajweed.
+          </p>
         </section>
 
-        {/* ==================== VERSE + DUA ==================== */}
-        <div className="grid gap-6 md:grid-cols-2">
-          <section aria-labelledby="verse-heading" className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm sm:p-6">
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#C9A227]">Verse of the day</p>
-            <h2 id="verse-heading" className="sr-only">
-              Verse of the day
-            </h2>
-            <p dir="rtl" lang="ar" className="font-quran mt-4 text-right text-2xl text-[#0B3D2E] sm:text-3xl">
-              {verse.arabic}
-            </p>
-            <p className="mt-3 text-sm leading-relaxed text-[#1C2420]/80 sm:text-base">
-              &ldquo;{verse.translation}&rdquo;
-            </p>
-            <p className="mt-2 text-xs font-semibold text-[#1C2420]/50">— {verse.reference}</p>
-            <Link href="/quran" className="mt-4 inline-block text-sm font-semibold text-[#146B4D] hover:text-[#0B3D2E] hover:underline">
-              Read more in the Quran reader →
+        {/* ==================== FEATURED SURAHS ==================== */}
+        <section aria-labelledby="featured-heading">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="featured-heading" className="text-xl font-bold text-[#0B3D2E] sm:text-2xl">Featured surahs</h2>
+            <Link href="/hifz" className="text-sm font-semibold text-[#146B4D] hover:text-[#0B3D2E] hover:underline">
+              Open the Hifz hub →
             </Link>
-          </section>
-
-          {dua && (
-            <section aria-labelledby="dua-heading" className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm sm:p-6">
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#C9A227]">Dua of the day</p>
-              <h2 id="dua-heading" className="mt-2 text-lg font-bold text-[#0B3D2E] sm:text-xl">
-                {dua.title}
-              </h2>
-              {dua.situations.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {dua.situations.map((s) => (
-                    <span key={s} className="rounded-full bg-[#F7F5EF] px-2.5 py-1 text-[11px] font-semibold text-[#146B4D]">
-                      {s}
-                    </span>
-                  ))}
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {NAMED_LAUNCH_SURAHS.map((s) => {
+              const plan = getPlan(s.slug, 7);
+              return (
+                <article key={s.slug} className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-lg font-bold text-[#0B3D2E]">
+                        <Link href={`/hifz/${s.slug}`} className="hover:underline">Surah {s.name}</Link>
+                      </h3>
+                      <p className="text-sm text-[#1C2420]/60">
+                        {s.meaning} · {s.ayahCount} ayahs · {s.revelation} · Juz {s.juz}
+                      </p>
+                    </div>
+                    <p dir="rtl" lang="ar" className="font-quran shrink-0 text-3xl text-[#146B4D]">{s.arabic}</p>
+                  </div>
+                  <div className="mt-4">
+                    <SurahProgressBar surahId={s.id} ayahCount={s.ayahCount} />
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Link href={`/hifz/${s.slug}?mode=recite`} className="rounded-full bg-[#0B3D2E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#146B4D]">
+                      Recite
+                    </Link>
+                    <Link href={`/hifz/${s.slug}`} className="rounded-full border border-[#e5e0d3] px-4 py-2 text-sm font-semibold hover:border-[#146B4D]">
+                      Study
+                    </Link>
+                    {plan && (
+                      <span className="rounded-full bg-[#F7F5EF] px-3 py-2 text-xs font-bold text-[#1C2420]/60">7-day plan</span>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+            <article className="rounded-2xl border border-[#C9A227]/40 bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-bold text-[#0B3D2E]">
+                    <Link href="/hifz/ayat-al-kursi" className="hover:underline">Ayat al-Kursi</Link>
+                  </h3>
+                  <p className="text-sm text-[#1C2420]/60">The greatest verse in the Book of Allah · 2:255 · 1 ayah</p>
                 </div>
-              )}
-              <p dir="rtl" lang="ar" className="font-quran mt-4 text-right text-2xl text-[#0B3D2E] sm:text-3xl">
-                {dua.arabic}
+                <p dir="rtl" lang="ar" className="font-quran shrink-0 text-3xl text-[#146B4D]">آية الكرسي</p>
+              </div>
+              <div className="mt-4">
+                <SurahProgressBar surahId={2} ayahCount={1} />
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link href="/hifz/ayat-al-kursi" className="rounded-full bg-[#0B3D2E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#146B4D]">
+                  Study Ayat al-Kursi
+                </Link>
+                <span className="rounded-full bg-[#F7F5EF] px-3 py-2 text-xs font-bold text-[#1C2420]/60">7-day plan</span>
+              </div>
+            </article>
+            <article className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-bold text-[#0B3D2E]">
+                    <Link href="/hifz/juz-amma" className="hover:underline">Juz Amma</Link>
+                  </h3>
+                  <p className="text-sm text-[#1C2420]/60">Juz 30 · 37 short surahs · 564 ayahs · the beginner path</p>
+                </div>
+                <p dir="rtl" lang="ar" className="font-quran shrink-0 text-3xl text-[#146B4D]">جزء عمّ</p>
+              </div>
+              <p className="mt-4 text-sm text-[#1C2420]/60">
+                Shortest first, one surah every 2–3 days — early wins that build a habit.
               </p>
-              {dua.transliteration && (
-                <p className="mt-3 text-sm italic leading-relaxed text-[#1C2420]/70">{dua.transliteration}</p>
-              )}
-              <p className="mt-2 text-sm leading-relaxed text-[#1C2420]/80 sm:text-base">{dua.translation}</p>
-              <p className="mt-2 text-xs font-semibold text-[#1C2420]/50">{dua.source}</p>
-              <Link href="/dua-for-this-moment" className="mt-4 inline-block text-sm font-semibold text-[#146B4D] hover:text-[#0B3D2E] hover:underline">
-                Find the dua for this moment →
-              </Link>
-            </section>
-          )}
-        </div>
-
-        {/* ==================== PROGRESS ==================== */}
-        <section aria-labelledby="progress-heading" className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm sm:p-6">
-          <h2 id="progress-heading" className="text-xl font-bold text-[#0B3D2E] sm:text-2xl">
-            Your progress today
-          </h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <ProgressRingCard
-              href="/prayer-times"
-              label="Prayers"
-              value={progress.prayers}
-              total={5}
-              unit="prayed"
-              loaded={progress.loaded}
-              cta={progress.prayers > 0 ? 'Keep going →' : 'Mark your prayers →'}
-            />
-            <ProgressRingCard
-              href="/dhikr"
-              label="Dhikr"
-              value={progress.dhikr}
-              total={100}
-              unit="counted"
-              loaded={progress.loaded}
-              cta={progress.dhikr > 0 ? 'Continue counting →' : 'Open the dhikr counter →'}
-            />
-            <ProgressRingCard
-              href="/quran"
-              label="Reading plan"
-              value={progress.juzDone}
-              total={30}
-              unit="juz read"
-              loaded={progress.loaded}
-              cta={progress.juzDone > 0 ? 'Continue reading →' : 'Begin your reading plan →'}
-            />
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link href="/hifz/juz-amma" className="rounded-full bg-[#0B3D2E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#146B4D]">
+                  Browse Juz Amma
+                </Link>
+                <span className="rounded-full bg-[#F7F5EF] px-3 py-2 text-xs font-bold text-[#1C2420]/60">90-day plan</span>
+              </div>
+            </article>
           </div>
         </section>
 
-        {/* ==================== TOOLS GRID ==================== */}
+        {/* ==================== PLANS STRIP ==================== */}
+        <section aria-labelledby="plans-heading">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="plans-heading" className="text-xl font-bold text-[#0B3D2E] sm:text-2xl">Memorisation plans</h2>
+            <Link href="/hifz/plans" className="text-sm font-semibold text-[#146B4D] hover:text-[#0B3D2E] hover:underline">
+              See all plans →
+            </Link>
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <PlanCard plan={getPlan('al-mulk', 7)!} surahSlug="al-mulk" surahName="Al-Mulk" />
+            <PlanCard plan={JUZ_AMMA_90_DAY} surahName="Juz Amma" premium />
+          </div>
+        </section>
+
+        {/* ==================== TODAY STRIP (demoted) ==================== */}
+        <section aria-labelledby="today-heading">
+          <h2 id="today-heading" className="text-xl font-bold text-[#0B3D2E] sm:text-2xl">Today</h2>
+          <div className="mt-4 grid gap-6 lg:grid-cols-3">
+            <section aria-labelledby="prayer-heading" className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm sm:p-6">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h3 id="prayer-heading" className="text-lg font-bold text-[#0B3D2E]">
+                  Prayer times · {city}
+                </h3>
+                <Link href="/prayer-times" className="text-sm font-semibold text-[#146B4D] hover:text-[#0B3D2E] hover:underline">
+                  Full prayer times →
+                </Link>
+              </div>
+              {prayerError && !timings && (
+                <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  We couldn&apos;t load prayer times for {city}, {country}. Check the spelling below and try again.
+                </p>
+              )}
+              {timings && nextPrayer && (
+                <div className="mt-4 rounded-xl bg-[#0B3D2E] px-4 py-4 text-white sm:px-6">
+                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#C9A227]">
+                    Next prayer · {nextPrayer.name}
+                    {nextPrayer.tomorrow ? ' (tomorrow)' : ''}
+                  </p>
+                  <p className="mt-1 font-mono text-3xl font-bold tabular-nums sm:text-4xl">
+                    {formatCountdown(nextPrayer.time.getTime() - now.getTime())}
+                  </p>
+                  <p className="mt-1 text-sm text-white/70">
+                    {nextPrayer.name} at {formatPrayerTime(timings[nextPrayer.name])}
+                  </p>
+                </div>
+              )}
+              {timings && (
+                <ul className="mt-4 divide-y divide-[#1C2420]/5">
+                  {PRAYER_ORDER.map((name) => {
+                    const isNext = nextPrayer?.name === name && !nextPrayer.tomorrow;
+                    return (
+                      <li key={name} className={`flex items-center justify-between py-2 text-sm ${isNext ? 'font-bold text-[#0B3D2E]' : ''}`}>
+                        <span className="flex items-center gap-2">
+                          {name}
+                          {isNext && (
+                            <span className="rounded-full bg-[#C9A227] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#0B3D2E]">
+                              Next
+                            </span>
+                          )}
+                        </span>
+                        <span className="tabular-nums">{formatPrayerTime(timings[name])}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {hijri && <p className="mt-3 text-xs font-semibold text-[#1C2420]/50">{hijri}</p>}
+              <form onSubmit={applyLocation} className="mt-4 flex flex-col gap-2 border-t border-[#1C2420]/5 pt-4 sm:flex-row sm:items-end">
+                <label className="flex-1 text-xs font-semibold text-[#1C2420]/70">
+                  City
+                  <input
+                    type="text"
+                    value={cityInput}
+                    onChange={(e) => setCityInput(e.target.value)}
+                    placeholder="Sydney"
+                    className="mt-1 w-full rounded-lg border border-[#1C2420]/15 px-3 py-2 text-sm font-normal text-[#1C2420] outline-none focus:border-[#146B4D]"
+                  />
+                </label>
+                <label className="flex-1 text-xs font-semibold text-[#1C2420]/70">
+                  Country
+                  <input
+                    type="text"
+                    value={countryInput}
+                    onChange={(e) => setCountryInput(e.target.value)}
+                    placeholder="Australia"
+                    className="mt-1 w-full rounded-lg border border-[#1C2420]/15 px-3 py-2 text-sm font-normal text-[#1C2420] outline-none focus:border-[#146B4D]"
+                  />
+                </label>
+                <label className="flex-1 text-xs font-semibold text-[#1C2420]/70">
+                  Calculation method
+                  <select
+                    value={method}
+                    onChange={(e) => changeMethod(Number(e.target.value))}
+                    className="mt-1 w-full rounded-lg border border-[#1C2420]/15 bg-white px-3 py-2 text-sm font-normal text-[#1C2420] outline-none focus:border-[#146B4D]"
+                  >
+                    {PRAYER_METHODS.map((pm) => (
+                      <option key={pm.id} value={pm.id}>
+                        {pm.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-[#0B3D2E] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#146B4D]"
+                >
+                  Update
+                </button>
+              </form>
+            </section>
+
+            <section aria-labelledby="verse-heading" className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm sm:p-6">
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#C9A227]">Verse of the day</p>
+              <h3 id="verse-heading" className="sr-only">Verse of the day</h3>
+              <p dir="rtl" lang="ar" className="font-quran mt-4 text-right text-2xl text-[#0B3D2E] sm:text-3xl">
+                {verse.arabic}
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-[#1C2420]/80 sm:text-base">
+                &ldquo;{verse.translation}&rdquo;
+              </p>
+              <p className="mt-2 text-xs font-semibold text-[#1C2420]/50">— {verse.reference}</p>
+              <Link href="/quran" className="mt-4 inline-block text-sm font-semibold text-[#146B4D] hover:text-[#0B3D2E] hover:underline">
+                Read more in the Quran reader →
+              </Link>
+            </section>
+
+            {dua && (
+              <section aria-labelledby="dua-heading" className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm sm:p-6">
+                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#C9A227]">Dua of the day</p>
+                <h3 id="dua-heading" className="mt-2 text-lg font-bold text-[#0B3D2E] sm:text-xl">
+                  {dua.title}
+                </h3>
+                {dua.situations.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {dua.situations.map((s) => (
+                      <span key={s} className="rounded-full bg-[#F7F5EF] px-2.5 py-1 text-[11px] font-semibold text-[#146B4D]">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <p dir="rtl" lang="ar" className="font-quran mt-4 text-right text-2xl text-[#0B3D2E] sm:text-3xl">
+                  {dua.arabic}
+                </p>
+                {dua.transliteration && (
+                  <p className="mt-3 text-sm italic leading-relaxed text-[#1C2420]/70">{dua.transliteration}</p>
+                )}
+                <p className="mt-2 text-sm leading-relaxed text-[#1C2420]/80 sm:text-base">{dua.translation}</p>
+                <p className="mt-2 text-xs font-semibold text-[#1C2420]/50">{dua.source}</p>
+                <Link href="/dua-for-this-moment" className="mt-4 inline-block text-sm font-semibold text-[#146B4D] hover:text-[#0B3D2E] hover:underline">
+                  Find the dua for this moment →
+                </Link>
+              </section>
+            )}
+          </div>
+        </section>
+
+        {/* ==================== UTILITIES GRID ==================== */}
         <section aria-labelledby="tools-heading" id="tools" className="scroll-mt-20">
-          <h2 id="tools-heading" className="text-xl font-bold text-[#0B3D2E] sm:text-2xl">
-            All tools
-          </h2>
+          <h2 id="tools-heading" className="text-xl font-bold text-[#0B3D2E] sm:text-2xl">More tools</h2>
           <p className="mt-1 text-sm text-[#1C2420]/60">
-            Everything you need for your daily deen, in one place.
+            Everything else you need for your daily deen, in one place.
           </p>
           {sections.map((section) => (
             <div key={section.category} className="mt-5">
@@ -601,11 +599,15 @@ export default function HomeClient({
           <h2 id="why-heading" className="text-xl font-bold sm:text-2xl">
             Why I Love Islam
           </h2>
+          <p className="mt-3 text-sm leading-relaxed text-white/80 sm:text-base">
+            Quran text, translation and tafsir from Quran.com. Your recitation audio never leaves
+            your device. A teacher is still needed for tajweed — this tool checks words, not tajweed.
+          </p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <p className="flex items-center gap-1.5 font-bold text-[#C9A227]"><ToolIcon name="check" className="h-4 w-4" /> Free forever</p>
               <p className="mt-1 text-sm leading-relaxed text-white/75">
-                No subscriptions, no premium tiers, no hidden costs. Every tool is completely free.
+                No subscriptions, no premium tiers, no hidden costs. The coach and the plans are free.
               </p>
             </div>
             <div>
@@ -617,7 +619,7 @@ export default function HomeClient({
             <div>
               <p className="flex items-center gap-1.5 font-bold text-[#C9A227]"><ToolIcon name="check" className="h-4 w-4" /> Privacy first</p>
               <p className="mt-1 text-sm leading-relaxed text-white/75">
-                Your prayers, dhikr, and reading progress stay on your own device. We never collect or sell your data.
+                Your recitation audio never leaves your device. Your progress stays on your own device.
               </p>
             </div>
             <div>
