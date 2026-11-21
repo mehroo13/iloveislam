@@ -4,10 +4,16 @@
 
 /* ------------------------------------------------------------------ */
 /*  Quran Reader — Indo-Pak script (Quran.com API v4, text_indopak)   */
-/*  All data is fetched client-side; the page builds with no network. */
+/*  The browser NEVER talks to api.quran.com directly: every client    */
+/*  fetch goes through the same-origin proxy /api/quran (see           */
+/*  app/api/quran/[...path]/route.ts), which fetches server-side with  */
+/*  a timeout, one retry and caching. The direct browser connection    */
+/*  failed/timed out for some users (the Juz view failed outright).    */
+/*  Server components use UPSTREAM_API directly — that path works.     */
 /* ------------------------------------------------------------------ */
 
-export const API = 'https://api.quran.com/api/v4';
+export const API = '/api/quran';
+export const UPSTREAM_API = 'https://api.quran.com/api/v4';
 export const AUDIO_BASE = 'https://verses.quran.com/';
 
 /* Verified live against api.quran.com on 2026-11-21. */
@@ -107,6 +113,15 @@ export type Tab = 'surahs' | 'juz' | 'search' | 'bookmarks' | 'plan';
 
 export function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '').replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').trim();
+}
+
+/* Quran.com's Indo-Pak text carries Private Use Area markers (U+E01A–
+   U+E022) — proprietary stop-mark annotations with no glyph in any
+   available font, so browsers render them as empty boxes. The Quranic
+   words and diacritics are untouched; only these markers are removed,
+   exactly as the Uthmani text (which has nothing at those positions). */
+export function cleanIndopak(text: string): string {
+  return text.replace(/[\uE000-\uF8FF]/g, '');
 }
 
 export function dayOfYear(d: Date): number {

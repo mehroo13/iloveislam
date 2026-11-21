@@ -5,7 +5,7 @@
 // lives in QuranClient.
 import type { Metadata } from 'next';
 import QuranClient from './QuranClient';
-import { API, VOTD_KEYS, dayOfYear, type Chapter, type Verse } from './lib';
+import { UPSTREAM_API, VOTD_KEYS, dayOfYear, type Chapter, type Verse } from './lib';
 
 export const revalidate = 3600;
 
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 
 async function fetchChapters(): Promise<Chapter[]> {
   try {
-    const res = await fetch(`${API}/chapters?language=en`, { next: { revalidate: 86400 } });
+    const res = await fetch(`${UPSTREAM_API}/chapters?language=en`, { next: { revalidate: 86400 } });
     if (!res.ok) return [];
     const data = await res.json();
     return Array.isArray(data?.chapters) ? (data.chapters as Chapter[]) : [];
@@ -40,7 +40,7 @@ async function fetchChapters(): Promise<Chapter[]> {
 async function fetchVotd(): Promise<{ verse: Verse | null; key: string }> {
   const key = VOTD_KEYS[dayOfYear(new Date()) % VOTD_KEYS.length];
   try {
-    const res = await fetch(`${API}/verses/by_key/${key}?fields=text_indopak&translations=20`, {
+    const res = await fetch(`${UPSTREAM_API}/verses/by_key/${key}?fields=text_indopak&translations=20`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return { verse: null, key };

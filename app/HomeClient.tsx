@@ -248,7 +248,7 @@ export default function HomeClient({
   useEffect(() => {
     let cancelled = false;
     const key = VERSE_KEYS[dayOfYear(new Date()) % VERSE_KEYS.length];
-    fetch(`https://api.quran.com/api/v4/verses/by_key/${key}?fields=text_indopak&translations=20`)
+    fetch(`/api/quran/verses/by_key/${key}?fields=text_indopak&translations=20`)
       .then((r) => {
         if (!r.ok) throw new Error('Verse request failed');
         return r.json();
@@ -259,7 +259,7 @@ export default function HomeClient({
         const arabic: unknown = v?.text_indopak;
         const translation: unknown = v?.translations?.[0]?.text;
         if (typeof arabic === 'string' && arabic.trim() && typeof translation === 'string' && translation.trim()) {
-          setVerse({ arabic: arabic.trim(), translation: stripHtml(translation), reference: `Quran ${key}` });
+          setVerse({ arabic: arabic.trim().replace(/[\uE000-\uF8FF]/g, ''), translation: stripHtml(translation), reference: `Quran ${key}` });
         }
       })
       .catch(() => {

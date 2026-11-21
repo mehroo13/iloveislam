@@ -1,12 +1,22 @@
 /* Self-hosted fonts — no external font requests, so Arabic text can never
-   fall back to a broken serif. Amiri Quran is the dedicated Quranic font
-   (proper Indo-Pak glyph shaping); Amiri is the fallback for Arabic labels. */
+   fall back to a broken serif. Scheherazade New is the Quranic font: a
+   clean, simple naskh that renders the Indo-Pak letter forms (ھ ہ ے ک)
+   like a printed South Asian mushaf. Amiri is kept for Arabic labels and
+   as a fallback. */
 @font-face {
-  font-family: 'Amiri Quran';
+  font-family: 'Scheherazade New';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('/fonts/amiri-quran-arabic.woff2') format('woff2');
+  src: url('/fonts/scheherazade-new-arabic-400.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200D;
+}
+@font-face {
+  font-family: 'Scheherazade New';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/scheherazade-new-arabic-700.woff2') format('woff2');
   unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200D;
 }
 @font-face {
@@ -99,11 +109,12 @@ body {
   font-family: 'Amiri', serif;
 }
 
-/* Quranic Arabic — Amiri Quran renders Indo-Pak text with its proper tall
-   diacritics. line-height 2.2 + generous word spacing stops long verses
-   (2:282, 2:286) from overlapping vertically. Always pair with dir="rtl". */
+/* Quranic Arabic — Scheherazade New renders the Indo-Pak text in a clean,
+   simple printed-mushaf style. line-height 2.2 + generous word spacing
+   stops long verses (2:282, 2:286) from overlapping vertically. Always
+   pair with dir="rtl". */
 .font-quran {
-  font-family: 'Amiri Quran', 'Amiri', serif;
+  font-family: 'Scheherazade New', 'Amiri', serif;
   line-height: 2.2;
   word-spacing: 0.08em;
   overflow-wrap: break-word;

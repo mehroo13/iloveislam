@@ -3,15 +3,56 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   API, AUDIO_BASE, TRANSLATIONS, RECITERS, TAFSIR_ID, TAFSIR_NAME, BISMILLAH,
-  VOTD_KEYS, JUZ_DATA, stripHtml, dayOfYear, networkErrorMessage,
+  VOTD_KEYS, JUZ_DATA, stripHtml, cleanIndopak, dayOfYear, networkErrorMessage,
   type Chapter, type Verse, type Bookmark, type SearchHit, type Tab,
 } from './lib';
 
 /* Quran Reader client — Indo-Pak script (Quran.com API v4, text_indopak).
    The surah list and Verse of the Day arrive server-rendered as props;
-   the client only fetches them itself if the server had nothing to give.
-   Verses render 25 at a time (load-more + auto-load on scroll) so a
-   286-verse surah is never a 63,760px page. */
+   verses come through the same-origin proxy /api/quran (see lib.ts).
+   A surah renders in full, in one continuous flow — no paging.
+   View modes: Arabic only / Arabic + Translation / Arabic + Translation
+   + Tafsir (tafsir loads under each verse as it scrolls into view). */
+
+type ViewMode = 'arabic' | 'translation' | 'tafsir';
+const VIEW_MODES: { id: ViewMode; label: string }[] = [
+  { id: 'arabic', label: 'Arabic only' },
+  { id: 'translation', label: 'Arabic + Translation' },
+  { id: 'tafsir', label: 'Arabic + Translation + Tafsir' },
+];
+
+/* In Tafsir view mode, each verse loads its own tafsir when it scrolls
+   near the viewport, so opening a long surah does not fire 286 requests. */
+function TafsirAuto({ verseKey, tafsir, ensureTafsir }: {
+  verseKey: string;
+  tafsir?: { open: boolean; loading: boolean; text: string; error: string };
+  ensureTafsir: (verseKey: string) => void;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || tafsir?.text || tafsir?.loading) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          ensureTafsir(verseKey);
+          obs.disconnect();
+        }
+      },
+      { rootMargin: '800px' },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [verseKey, tafsir?.text, tafsir?.loading, ensureTafsir]);
+  return (
+    <div ref={ref} className="mt-4 rounded-xl bg-[#F7F5EF] border border-[#e5e0d3] p-4">
+      <p className="text-xs font-bold uppercase tracking-wide text-[#146B4D]">{TAFSIR_NAME}</p>
+      {(!tafsir || tafsir.loading) && <p className="mt-2 text-sm text-[#1C2420]/60">Loading tafsir…</p>}
+      {tafsir?.error && <p className="mt-2 text-sm text-red-700" role="alert">{tafsir.error}</p>}
+      {tafsir?.text && <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#1C2420]/85">{tafsir.text}</p>}
+    </div>
+  );
+}
 
 export default function QuranClient({
   initialChapters,
@@ -31,10 +72,11 @@ export default function QuranClient({
   const [currentSurah, setCurrentSurah] = useState<Chapter | null>(null);
   const [currentJuz, setCurrentJuz] = useState<number | null>(null);
   const [verses, setVerses] = useState<Verse[]>([]);
-  const [visibleCount, setVisibleCount] = useState(25); // render 25 verses at a time
   const [versesLoading, setVersesLoading] = useState(false);
   const [versesError, setVersesError] = useState('');
   const [targetVerse, setTargetVerse] = useState(1);
+
+  const [viewMode, setViewMode] = useState<ViewMode>('translation');
 
   const [translationId, setTranslationId] = useState(20);
   const [reciterId, setReciterId] = useState(7);
@@ -212,13 +254,26 @@ export default function QuranClient({
     playAudioUrl(playable[0].audio!.url!, playable[0].verse_key);
   }, [verses, playAudioUrl]);
 
+  /* View mode persists on this device. */
+  const viewModeLoaded = useRef(false);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('ili_quran_view_mode');
+      if (saved === 'arabic' || saved === 'translation' || saved === 'tafsir') setViewMode(saved);
+    } catch { /* storage unavailable */ }
+    viewModeLoaded.current = true;
+  }, []);
+  useEffect(() => {
+    if (!viewModeLoaded.current) return;
+    try { localStorage.setItem('ili_quran_view_mode', viewMode); } catch { /* storage unavailable */ }
+  }, [viewMode]);
+
   /* ---------- loading verses ---------- */
   const loadSurah = useCallback(async (surah: Chapter, verse = 1) => {
     stopAudio();
     setCurrentSurah(surah);
     setCurrentJuz(null);
     setVerses([]);
-    setVisibleCount(25);
     setVersesLoading(true);
     setVersesError('');
     setTargetVerse(verse);
@@ -242,7 +297,6 @@ export default function QuranClient({
     setCurrentSurah(null);
     setCurrentJuz(juz);
     setVerses([]);
-    setVisibleCount(25);
     setVersesLoading(true);
     setVersesError('');
     setTargetVerse(1);
@@ -278,32 +332,12 @@ export default function QuranClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [translationId, reciterId]);
 
-  /* Scroll to a target verse once verses load. If the target is past the
-     rendered window, reveal it first — the effect re-runs and scrolls. */
+  /* Scroll to a target verse once verses load (bookmark / VOTD / search). */
   useEffect(() => {
     if (verses.length === 0 || targetVerse <= 1) return;
-    if (targetVerse > visibleCount) {
-      setVisibleCount(targetVerse);
-      return;
-    }
     const el = document.getElementById(`verse-${targetVerse}`);
     el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [verses, targetVerse, visibleCount]);
-
-  /* Auto-load more verses when the reader reaches the sentinel. */
-  const loadMoreRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    const el = loadMoreRef.current;
-    if (!el || verses.length === 0) return;
-    const obs = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) setVisibleCount((c) => Math.min(verses.length, c + 25));
-      },
-      { rootMargin: '600px' },
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [verses]);
+  }, [verses, targetVerse]);
 
   /* ---------- bookmarks ---------- */
   const isBookmarked = useCallback((surahNumber: number, verseNumber: number) =>
@@ -324,16 +358,7 @@ export default function QuranClient({
   }, [chapterById, loadSurah]);
 
   /* ---------- tafsir ---------- */
-  const toggleTafsir = useCallback(async (verseKey: string) => {
-    const existing = tafsirs[verseKey];
-    if (existing?.open) {
-      setTafsirs((prev) => ({ ...prev, [verseKey]: { ...prev[verseKey], open: false } }));
-      return;
-    }
-    if (existing?.text) {
-      setTafsirs((prev) => ({ ...prev, [verseKey]: { ...prev[verseKey], open: true } }));
-      return;
-    }
+  const fetchTafsir = useCallback(async (verseKey: string) => {
     setTafsirs((prev) => ({ ...prev, [verseKey]: { open: true, loading: true, text: '', error: '' } }));
     try {
       const res = await fetch(`${API}/tafsirs/${TAFSIR_ID}/by_ayah/${verseKey}`);
@@ -344,7 +369,27 @@ export default function QuranClient({
     } catch {
       setTafsirs((prev) => ({ ...prev, [verseKey]: { open: true, loading: false, text: '', error: 'Could not load the tafsir. Check your connection and try again.' } }));
     }
-  }, [tafsirs]);
+  }, []);
+
+  /* Used by Tafsir view mode: load a verse's tafsir once, when it scrolls near. */
+  const ensureTafsir = useCallback((verseKey: string) => {
+    const existing = tafsirs[verseKey];
+    if (existing?.text || existing?.loading) return;
+    void fetchTafsir(verseKey);
+  }, [tafsirs, fetchTafsir]);
+
+  const toggleTafsir = useCallback(async (verseKey: string) => {
+    const existing = tafsirs[verseKey];
+    if (existing?.open) {
+      setTafsirs((prev) => ({ ...prev, [verseKey]: { ...prev[verseKey], open: false } }));
+      return;
+    }
+    if (existing?.text) {
+      setTafsirs((prev) => ({ ...prev, [verseKey]: { ...prev[verseKey], open: true } }));
+      return;
+    }
+    void fetchTafsir(verseKey);
+  }, [tafsirs, fetchTafsir]);
 
   /* ---------- share ---------- */
   const shareVerse = useCallback(async (verse: Verse, surahName: string) => {
@@ -389,7 +434,7 @@ export default function QuranClient({
           const v = vd.verse as Verse;
           return {
             verse_key: r.verse_key, surahNumber: s, verseNumber: a,
-            arabic: v.text_indopak, translation: stripHtml(v.translations?.[0]?.text ?? ''),
+            arabic: cleanIndopak(v.text_indopak), translation: stripHtml(v.translations?.[0]?.text ?? ''),
           } as SearchHit;
         } catch {
           return { verse_key: r.verse_key, surahNumber: s, verseNumber: a, arabic: '', translation: '' } as SearchHit;
@@ -487,7 +532,7 @@ export default function QuranClient({
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={() => { stopAudio(); setCurrentSurah(null); setCurrentJuz(null); setVerses([]); setVisibleCount(25); setVersesError(''); }}
+                onClick={() => { stopAudio(); setCurrentSurah(null); setCurrentJuz(null); setVerses([]); setVersesError(''); }}
                 className="rounded-full bg-white border border-[#e5e0d3] px-4 py-2 text-sm font-semibold hover:border-[#146B4D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
               >
                 ← All Surahs
@@ -510,7 +555,23 @@ export default function QuranClient({
 
             {/* Reader controls */}
             <div className="mt-4 rounded-2xl bg-white border border-[#e5e0d3] p-4 shadow-sm">
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2" role="group" aria-label="View mode">
+                <span className="text-sm font-medium">View</span>
+                {VIEW_MODES.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    aria-pressed={viewMode === m.id}
+                    onClick={() => setViewMode(m.id)}
+                    className={`rounded-full px-3.5 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D] ${
+                      viewMode === m.id ? 'bg-[#0B3D2E] text-white' : 'border border-[#e5e0d3] hover:border-[#146B4D]'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
                 <button
                   type="button"
                   onClick={playingKey ? stopAudio : playWholeSurah}
@@ -576,7 +637,7 @@ export default function QuranClient({
               </div>
             )}
 
-            {!versesLoading && !versesError && verses.slice(0, visibleCount).map((v) => {
+            {!versesLoading && !versesError && verses.map((v) => {
               const sNum = Number(v.verse_key.split(':')[0]);
               const bookmarked = isBookmarked(sNum, v.verse_number);
               const tafsir = tafsirs[v.verse_key];
@@ -598,12 +659,12 @@ export default function QuranClient({
                   </div>
 
                   <p dir="rtl" lang="ar" className={`font-quran mt-4 text-right ${arabicSize}`}>
-                    {v.text_indopak}
+                    {cleanIndopak(v.text_indopak)}
                   </p>
-                  {translation && (
+                  {viewMode !== 'arabic' && translation && (
                     <p className="mt-4 text-[15px] leading-relaxed text-[#1C2420]/85">{translation}</p>
                   )}
-                  <p className="mt-2 text-xs text-[#1C2420]/50">Translation: {translationName}</p>
+                  {viewMode !== 'arabic' && <p className="mt-2 text-xs text-[#1C2420]/50">Translation: {translationName}</p>}
 
                   <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#f0ede4] pt-3">
                     <button
@@ -623,14 +684,16 @@ export default function QuranClient({
                     >
                       {bookmarked ? '★ Bookmarked' : '☆ Bookmark'}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => void toggleTafsir(v.verse_key)}
-                      aria-expanded={tafsir?.open ?? false}
-                      className="rounded-full border border-[#e5e0d3] px-3.5 py-1.5 text-sm font-semibold hover:border-[#146B4D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
-                    >
-                      {tafsir?.open ? 'Hide Tafsir' : 'Tafsir'}
-                    </button>
+                    {viewMode === 'translation' && (
+                      <button
+                        type="button"
+                        onClick={() => void toggleTafsir(v.verse_key)}
+                        aria-expanded={tafsir?.open ?? false}
+                        className="rounded-full border border-[#e5e0d3] px-3.5 py-1.5 text-sm font-semibold hover:border-[#146B4D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+                      >
+                        {tafsir?.open ? 'Hide Tafsir' : 'Tafsir'}
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => void shareVerse(v, surahNameForVerse(v))}
@@ -640,29 +703,22 @@ export default function QuranClient({
                     </button>
                   </div>
 
-                  {tafsir?.open && (
-                    <div className="mt-4 rounded-xl bg-[#F7F5EF] border border-[#e5e0d3] p-4">
-                      <p className="text-xs font-bold uppercase tracking-wide text-[#146B4D]">{TAFSIR_NAME}</p>
-                      {tafsir.loading && <p className="mt-2 text-sm text-[#1C2420]/60">Loading tafsir…</p>}
-                      {tafsir.error && <p className="mt-2 text-sm text-red-700" role="alert">{tafsir.error}</p>}
-                      {tafsir.text && <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#1C2420]/85">{tafsir.text}</p>}
-                    </div>
+                  {viewMode === 'tafsir' ? (
+                    <TafsirAuto verseKey={v.verse_key} tafsir={tafsir} ensureTafsir={ensureTafsir} />
+                  ) : (
+                    tafsir?.open && (
+                      <div className="mt-4 rounded-xl bg-[#F7F5EF] border border-[#e5e0d3] p-4">
+                        <p className="text-xs font-bold uppercase tracking-wide text-[#146B4D]">{TAFSIR_NAME}</p>
+                        {tafsir.loading && <p className="mt-2 text-sm text-[#1C2420]/60">Loading tafsir…</p>}
+                        {tafsir.error && <p className="mt-2 text-sm text-red-700" role="alert">{tafsir.error}</p>}
+                        {tafsir.text && <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#1C2420]/85">{tafsir.text}</p>}
+                      </div>
+                    )
                   )}
                 </article>
               );
             })}
-            {!versesLoading && !versesError && verses.length > visibleCount && (
-              <div ref={loadMoreRef} className="mt-6 text-center">
-                <button
-                  type="button"
-                  onClick={() => setVisibleCount((c) => Math.min(verses.length, c + 25))}
-                  className="rounded-full bg-[#0B3D2E] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#146B4D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
-                >
-                  Load more verses ({visibleCount} of {verses.length} shown)
-                </button>
-              </div>
-            )}
-            {!versesLoading && !versesError && verses.length > 0 && verses.length <= visibleCount && (
+            {!versesLoading && !versesError && verses.length > 0 && (
               <p className="mt-6 text-center text-xs text-[#1C2420]/50">End of {currentSurah ? `Surah ${currentSurah.name_simple}` : `Juz ${currentJuz}`} · {verses.length} verses</p>
             )}
           </section>
@@ -675,7 +731,7 @@ export default function QuranClient({
             {votd && (
               <article className="rounded-2xl bg-[#0B3D2E] p-5 text-white shadow-sm">
                 <p className="text-xs font-bold uppercase tracking-widest text-[#C9A227]">Verse of the Day · {votdKey}</p>
-                <p dir="rtl" lang="ar" className="font-quran mt-3 text-right text-2xl sm:text-3xl">{votd.text_indopak}</p>
+                <p dir="rtl" lang="ar" className="font-quran mt-3 text-right text-2xl sm:text-3xl">{cleanIndopak(votd.text_indopak)}</p>
                 {votd.translations?.[0] && (
                   <p className="mt-3 text-sm leading-relaxed text-emerald-100/90">“{stripHtml(votd.translations[0].text)}”</p>
                 )}
