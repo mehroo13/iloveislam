@@ -5,16 +5,16 @@ import Link from 'next/link';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CATEGORIES = [
-  { id: 'food', label: 'Food', icon: '🍱', color: '#f59e0b' },
-  { id: 'education', label: 'Education', icon: '📚', color: '#8b5cf6' },
-  { id: 'masjid', label: 'Masjid', icon: '🕌', color: '#10b981' },
-  { id: 'orphan', label: 'Orphan', icon: '👶', color: '#ec4899' },
-  { id: 'water', label: 'Water', icon: '💧', color: '#3b82f6' },
-  { id: 'medical', label: 'Medical', icon: '🏥', color: '#ef4444' },
-  { id: 'clothing', label: 'Clothing', icon: '👕', color: '#6366f1' },
-  { id: 'jariyah', label: 'Jariyah', icon: '🌳', color: '#059669' },
-  { id: 'general', label: 'General', icon: '❤️', color: '#f43f5e' },
-  { id: 'other', label: 'Other', icon: '✨', color: '#a855f7' },
+  { id: 'food', label: 'Food', icon: '', color: '#f59e0b' },
+  { id: 'education', label: 'Education', icon: '', color: '#8b5cf6' },
+  { id: 'masjid', label: 'Masjid', icon: '', color: '#10b981' },
+  { id: 'orphan', label: 'Orphan', icon: '', color: '#ec4899' },
+  { id: 'water', label: 'Water', icon: '', color: '#3b82f6' },
+  { id: 'medical', label: 'Medical', icon: '', color: '#ef4444' },
+  { id: 'clothing', label: 'Clothing', icon: '', color: '#6366f1' },
+  { id: 'jariyah', label: 'Jariyah', icon: '', color: '#059669' },
+  { id: 'general', label: 'General', icon: '', color: '#f43f5e' },
+  { id: 'other', label: 'Other', icon: '', color: '#a855f7' },
 ];
 
 const CURRENCIES = [
@@ -229,7 +229,7 @@ export default function SadaqahTracker() {
             <Link href="/" className="text-white/60 hover:text-white text-sm flex items-center gap-1 transition-colors">
               <span>←</span> Home
             </Link>
-            <h1 className="text-lg font-bold flex items-center gap-2">❤️ Sadaqah Tracker</h1>
+            <h1 className="text-lg font-bold flex items-center gap-2"> Sadaqah Tracker</h1>
             <button onClick={() => setShowCurrencyPicker(!showCurrencyPicker)} className="bg-white/15 backdrop-blur-sm text-white text-xs rounded-full px-3 py-1.5 border border-white/20 hover:bg-white/25 transition-all">
               {sym} {currency}
             </button>
@@ -260,7 +260,7 @@ export default function SadaqahTracker() {
               { label: 'This Week', value: thisWeek },
               { label: 'This Month', value: thisMonth },
               { label: 'This Year', value: thisYear },
-              { label: 'Streak', value: null, display: `${streak}🔥` },
+              { label: 'Streak', value: null, display: `${streak}` },
             ].map((s, i) => (
               <div key={i} className="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 text-center border border-white/5">
                 <p className="text-sm sm:text-base font-bold">{s.display || `${sym}${s.value!.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}</p>
@@ -276,7 +276,7 @@ export default function SadaqahTracker() {
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <span className="text-lg">🎯</span>
+              <span className="text-lg"></span>
               <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
                 {goal.type.charAt(0).toUpperCase() + goal.type.slice(1)} Goal
               </span>
@@ -295,12 +295,12 @@ export default function SadaqahTracker() {
               </div>
             </div>
             <span className="text-sm font-bold text-gray-700 dark:text-gray-200 min-w-[60px] text-right">
-              {goalProgress >= 100 ? '✅' : `${Math.round(goalProgress)}%`}
+              {goalProgress >= 100 ? '' : `${Math.round(goalProgress)}%`}
             </span>
           </div>
           <p className="text-xs text-gray-400 mt-1.5">
             {sym}{goalCurrent.toLocaleString(undefined, { maximumFractionDigits: 0 })} of {sym}{goal.amount.toLocaleString()} target
-            {goalProgress >= 100 && ' — MashaAllah! Goal reached! 🎉'}
+            {goalProgress >= 100 && ' — MashaAllah! Goal reached! '}
           </p>
 
           {showGoalEditor && (
@@ -344,10 +344,10 @@ export default function SadaqahTracker() {
       <div className="max-w-2xl mx-auto px-4 pt-4">
         <div className="flex bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-1.5 gap-1 shadow-sm">
           {[
-            { id: 'log', label: '📋 History' },
-            { id: 'breakdown', label: '📊 Insights' },
-            { id: 'heatmap', label: '🗓️ Calendar' },
-            { id: 'inspire', label: '✨ Inspire' },
+            { id: 'log', label: ' History' },
+            { id: 'breakdown', label: ' Insights' },
+            { id: 'heatmap', label: ' Calendar' },
+            { id: 'inspire', label: ' Inspire' },
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               className={`flex-1 py-2.5 rounded-xl text-[11px] sm:text-sm font-medium transition-all ${
@@ -390,7 +390,7 @@ export default function SadaqahTracker() {
 
             {entries.length === 0 ? (
               <div className="text-center py-16">
-                <p className="text-6xl mb-4">❤️</p>
+                <p className="text-6xl mb-4"></p>
                 <p className="text-gray-600 dark:text-gray-300 font-medium mb-1 text-lg">No sadaqah logged yet</p>
                 <p className="text-gray-400 text-sm mb-4">Every act of goodness is sadaqah</p>
                 <button onClick={() => setShowForm(true)} className="bg-emerald-800 text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-emerald-700 transition-all shadow-lg">
@@ -412,7 +412,7 @@ export default function SadaqahTracker() {
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: `${cat?.color}15`, color: cat?.color }}>
                             {cat?.label}
                           </span>
-                          {entry.recurring && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-300">🔄</span>}
+                          {entry.recurring && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-300"></span>}
                         </div>
                         {entry.recipient && <p className="text-xs text-gray-500 dark:text-gray-400 truncate">To: {entry.recipient}</p>}
                         {entry.note && <p className="text-[11px] text-gray-400 truncate">{entry.note}</p>}
@@ -421,11 +421,11 @@ export default function SadaqahTracker() {
                         </p>
                       </div>
                       <div className="flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 sm:opacity-100 transition-opacity">
-                        <button onClick={() => startEdit(entry)} className="text-gray-400 hover:text-emerald-600 text-sm p-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700" aria-label="Edit">✏️</button>
+                        <button onClick={() => startEdit(entry)} className="text-gray-400 hover:text-emerald-600 text-sm p-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700" aria-label="Edit"></button>
                         {confirmDelete === entry.id ? (
                           <button onClick={() => deleteEntry(entry.id)} className="text-red-500 text-[10px] p-1 rounded-lg bg-red-50 dark:bg-red-900 font-medium">Sure?</button>
                         ) : (
-                          <button onClick={() => setConfirmDelete(entry.id)} className="text-gray-400 hover:text-red-500 text-sm p-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700" aria-label="Delete">🗑️</button>
+                          <button onClick={() => setConfirmDelete(entry.id)} className="text-gray-400 hover:text-red-500 text-sm p-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700" aria-label="Delete"></button>
                         )}
                       </div>
                     </div>
@@ -436,7 +436,7 @@ export default function SadaqahTracker() {
 
             {entries.length > 0 && (
               <button onClick={exportData} className="w-full text-center text-xs text-emerald-600 dark:text-emerald-400 hover:underline py-2">
-                📥 Export as CSV
+                 Export as CSV
               </button>
             )}
           </>
@@ -446,7 +446,7 @@ export default function SadaqahTracker() {
         {activeTab === 'breakdown' && (
           <>
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-              <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4 text-lg">📊 Category Breakdown</h3>
+              <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4 text-lg"> Category Breakdown</h3>
               {categoryBreakdown.filter(c => c.total > 0).length === 0 ? (
                 <p className="text-gray-400 text-sm text-center py-6">No data yet — start logging sadaqah!</p>
               ) : (
@@ -470,7 +470,7 @@ export default function SadaqahTracker() {
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-              <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4 text-lg">📈 Summary</h3>
+              <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4 text-lg"> Summary</h3>
               <div className="space-y-0">
                 {[
                   { label: 'Total (all time)', value: `${sym}${totalAll.toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
@@ -480,7 +480,7 @@ export default function SadaqahTracker() {
                   { label: 'Total entries', value: `${entries.length}` },
                   { label: 'Average donation', value: entries.length ? `${sym}${(totalAll / entries.length).toFixed(2)}` : '-' },
                   { label: 'Largest donation', value: entries.length ? `${sym}${Math.max(...entries.map(e => e.amount)).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-' },
-                  { label: 'Current streak', value: `${streak} day${streak !== 1 ? 's' : ''} 🔥` },
+                  { label: 'Current streak', value: `${streak} day${streak !== 1 ? 's' : ''} ` },
                   { label: 'Categories used', value: `${new Set(entries.map(e => e.category)).size}` },
                 ].map((row, i) => (
                   <div key={i} className="flex justify-between py-3 border-b border-gray-50 dark:border-gray-700 last:border-0">
@@ -496,7 +496,7 @@ export default function SadaqahTracker() {
         {/* HEATMAP TAB */}
         {activeTab === 'heatmap' && (
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-            <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4 text-lg">🗓️ Giving Calendar</h3>
+            <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4 text-lg"> Giving Calendar</h3>
             <p className="text-xs text-gray-400 mb-4">Last 6 months — darker = more given that day</p>
             <div className="space-y-4">
               {heatmapData.map((month) => (
@@ -543,16 +543,16 @@ export default function SadaqahTracker() {
             ))}
 
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-              <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-3 text-lg">💡 Types of Sadaqah</h3>
+              <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-3 text-lg"> Types of Sadaqah</h3>
               <div className="space-y-3">
                 {[
-                  { icon: '😊', title: 'A smile', desc: 'Smiling at your brother is sadaqah — Prophet ﷺ' },
-                  { icon: '🌳', title: 'Sadaqah Jariyah', desc: 'Ongoing charity — plant a tree, build a well, teach knowledge' },
-                  { icon: '💬', title: 'Good words', desc: 'A kind word is sadaqah — Prophet ﷺ' },
-                  { icon: '🤝', title: 'Helping others', desc: 'Removing harm from the road is sadaqah' },
-                  { icon: '💧', title: 'Water', desc: 'Giving water to the thirsty is one of the best sadaqah' },
-                  { icon: '📖', title: 'Teaching', desc: 'Sharing beneficial knowledge is ongoing sadaqah' },
-                  { icon: '🤲', title: 'Dua', desc: 'Making dua for your brother in his absence' },
+                  { icon: '', title: 'A smile', desc: 'Smiling at your brother is sadaqah — Prophet ﷺ' },
+                  { icon: '', title: 'Sadaqah Jariyah', desc: 'Ongoing charity — plant a tree, build a well, teach knowledge' },
+                  { icon: '', title: 'Good words', desc: 'A kind word is sadaqah — Prophet ﷺ' },
+                  { icon: '', title: 'Helping others', desc: 'Removing harm from the road is sadaqah' },
+                  { icon: '', title: 'Water', desc: 'Giving water to the thirsty is one of the best sadaqah' },
+                  { icon: '', title: 'Teaching', desc: 'Sharing beneficial knowledge is ongoing sadaqah' },
+                  { icon: '', title: 'Dua', desc: 'Making dua for your brother in his absence' },
                 ].map((t, i) => (
                   <div key={i} className="flex gap-3 items-start">
                     <span className="text-2xl">{t.icon}</span>
@@ -588,7 +588,7 @@ export default function SadaqahTracker() {
           <div className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-6 space-y-4 shadow-2xl animate-slideUp max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center">
               <h2 className="font-bold text-gray-800 dark:text-gray-100 text-lg">
-                {editingEntry ? '✏️ Edit Sadaqah' : '❤️ Log New Sadaqah'}
+                {editingEntry ? ' Edit Sadaqah' : ' Log New Sadaqah'}
               </h2>
               <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">×</button>
             </div>
@@ -654,7 +654,7 @@ export default function SadaqahTracker() {
 
             <button onClick={addOrUpdateEntry} disabled={!form.amount || isNaN(Number(form.amount)) || Number(form.amount) <= 0}
               className="w-full py-4 rounded-2xl text-white font-semibold text-base bg-emerald-800 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl active:scale-[0.98]">
-              {editingEntry ? '✏️ Update Sadaqah' : '❤️ Log Sadaqah'}
+              {editingEntry ? ' Update Sadaqah' : ' Log Sadaqah'}
             </button>
           </div>
         </div>

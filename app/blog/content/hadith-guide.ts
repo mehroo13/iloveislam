@@ -4,7 +4,7 @@ export const hadithArticle = {
   title: "What is Hadith? The 6 Major Collections & Science of Hadith Explained",
   excerpt: "Hadith are the recorded sayings, actions, and approvals of the Prophet Muhammad ﷺ. Learn their importance, how they are authenticated, and the six major canonical collections (Kutub al-Sittah).",
   category: "Knowledge",
-  emoji: "📜",
+  emoji: "",
   readTime: "16 min read",
   date: "2026-03-13",
   content: `
@@ -79,13 +79,13 @@ export const hadithArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/hadith" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">📜</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Hadith Search Tool</h3>
     <p class="text-gray-600 dark:text-gray-400">Search the Six Major Collections</p>
   </a>
   
   <a href="/names" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">⭐</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">99 Names of Allah</h3>
     <p class="text-gray-600 dark:text-gray-400">Learn the divine attributes</p>
   </a>

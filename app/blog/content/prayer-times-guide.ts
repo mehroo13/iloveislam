@@ -4,7 +4,7 @@ export const prayerTimesGuide = {
   title: "Prayer Times: Complete Guide to the 5 Daily Salah Times",
   excerpt: "Your practical guide to the five daily prayer times — Fajr, Dhuhr, Asr, Maghrib and Isha — with calculation methods explained and tips to never miss a prayer.",
   category: "Prayer",
-  emoji: "🕐",
+  emoji: "",
   readTime: "16 min read",
   date: "2026-01-25",
   content: `

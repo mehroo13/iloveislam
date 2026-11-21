@@ -4,7 +4,7 @@ export const islamicBabyNames = {
   title: "Islamic Baby Names: 500+ Beautiful Muslim Names with Meanings",
   excerpt: "Discover 500+ beautiful Islamic baby names for boys and girls with meanings, Arabic text, and naming rules in Islam. Find the perfect Muslim name for your child.",
   category: "Names",
-  emoji: "✏️",
+  emoji: "",
   readTime: "25 min read",
   date: "2026-04-01",
   content: `

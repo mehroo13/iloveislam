@@ -10,6 +10,9 @@ export interface Dua {
   transliteration: string;
   translation: string;
   source: string;
+  /** Theme category. The flagship 18 leave this unset; the library page
+   *  assigns them categories by id, and lib/duasExtra.ts sets it directly. */
+  category?: string;
 }
 
 export const DUAS: Dua[] = [
@@ -217,12 +220,27 @@ const SYNONYMS: Record<string, string[]> = {
   study: ['knowledge'],
   morning: ['waking', 'provision'],
   night: ['sleep'],
+  wellbeing: ['protection'],
+  'well-being': ['protection'],
+  jannah: ['paradise'],
+  heaven: ['paradise'],
+  children: ['marriage'],
+  baby: ['marriage'],
+  pregnant: ['marriage'],
+  lonely: ['marriage'],
+  grave: ['forgiveness'],
+  dajjal: ['protection'],
+  devil: ['protection'],
+  shaytan: ['protection'],
+  nightmare: ['sleep', 'protection'],
+  debt: ['anxiety'],
 };
 
-/** Case-insensitive plain-words search against title + situations + translation. */
-export function searchDuas(q: string): Dua[] {
+/** Case-insensitive plain-words search against title + situations + translation.
+ *  `list` defaults to the flagship 18; pass ALL_DUAS to search the whole library. */
+export function searchDuas(q: string, list: Dua[] = DUAS): Dua[] {
   const query = q.trim().toLowerCase();
-  if (!query) return DUAS;
+  if (!query) return list;
 
   // Expand the query with synonyms, then match any of the expanded terms.
   const terms = new Set<string>([query]);
@@ -231,7 +249,7 @@ export function searchDuas(q: string): Dua[] {
     if (mapped) mapped.forEach((m) => terms.add(m));
   }
 
-  return DUAS.filter((dua) => {
+  return list.filter((dua) => {
     const haystack = [dua.title, ...dua.situations, dua.translation]
       .join(' ')
       .toLowerCase();

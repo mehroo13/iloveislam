@@ -4,7 +4,7 @@ export const eidArticle = {
   title: "Eid al-Fitr & Eid al-Adha: Complete Guide to Islamic Celebrations",
   excerpt: "Everything you need to know about celebrating Eid in Islam — significance, Sunnah acts, Eid prayer, Zakat al-Fitr, Qurbani, and how to make your Eid meaningful and rewarding.",
   category: "Knowledge",
-  emoji: "🎉",
+  emoji: "",
   readTime: "16 min read",
   date: "2026-05-09",
   content: `
@@ -80,13 +80,13 @@ export const eidArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/mosque" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕌</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Mosque Finder</h3>
     <p class="text-gray-600 dark:text-gray-400">Locate Eid prayer near you</p>
   </a>
   
   <a href="/prayer-times" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕐</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Prayer Times</h3>
     <p class="text-gray-600 dark:text-gray-400">Check Eid prayer timing</p>
   </a>

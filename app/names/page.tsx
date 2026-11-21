@@ -257,14 +257,14 @@ export default function NamesOfAllah() {
               {viewMode === 'allah' && (
                 <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
                   <p className="text-emerald-700 text-sm">
-                    📖 The Prophet ﷺ said: <em>"Allah has ninety-nine names. Whoever preserves them will enter Paradise."</em> (Bukhari)
+                     The Prophet ﷺ said: <em>"Allah has ninety-nine names. Whoever preserves them will enter Paradise."</em> (Bukhari)
                   </p>
                 </div>
               )}
               {viewMode === 'prophet' && (
                 <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
                   <p className="text-emerald-700 text-sm">
-                    📖 "The Messenger of Allah ﷺ said: I have five names: I am Muhammad, I am Ahmad, I am al-Mahi (the Effacer) through whom Allah effaces disbelief, I am al-Hashir (the Gatherer) at whose feet people will be gathered, and I am al-\'Aqib (the Last)." — Sahih Muslim
+                     "The Messenger of Allah ﷺ said: I have five names: I am Muhammad, I am Ahmad, I am al-Mahi (the Effacer) through whom Allah effaces disbelief, I am al-Hashir (the Gatherer) at whose feet people will be gathered, and I am al-\'Aqib (the Last)." — Sahih Muslim
                   </p>
                 </div>
               )}
@@ -302,7 +302,7 @@ export default function NamesOfAllah() {
         <h1 className="font-semibold text-lg flex-1">
           {viewMode === 'allah' ? '99 Names of Allah' : 'Names of Prophet ﷺ'}
         </h1>
-        <button onClick={() => setDark(!dark)} className="text-white/60 hover:text-white text-lg">{dark ? '☀️' : '🌙'}</button>
+        <button onClick={() => setDark(!dark)} className="text-white/60 hover:text-white text-lg">{dark ? '' : ''}</button>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-6">
@@ -314,7 +314,7 @@ export default function NamesOfAllah() {
               viewMode === 'allah' ? 'bg-[#0a3d2e] text-white shadow' : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
-            🕌 99 Names of Allah
+             99 Names of Allah
           </button>
           <button
             onClick={() => { setViewMode('prophet'); setSelected(null); }}
@@ -322,7 +322,7 @@ export default function NamesOfAllah() {
               viewMode === 'prophet' ? 'bg-[#0a3d2e] text-white shadow' : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
-            💚 99 Names of Prophet ﷺ
+             99 Names of Prophet ﷺ
           </button>
         </div>
 
@@ -342,7 +342,7 @@ export default function NamesOfAllah() {
         {/* Search & layout toggle */}
         <div className="flex gap-2 mb-4">
           <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></span>
             <input
               type="text"
               value={search}
@@ -355,7 +355,7 @@ export default function NamesOfAllah() {
             onClick={() => setLayout(layout === 'grid' ? 'list' : 'grid')}
             className="bg-white border border-gray-200 rounded-xl px-4 text-sm text-gray-500 hover:bg-gray-50 shadow-sm"
           >
-            {layout === 'grid' ? '☰' : '⊞'}
+            {layout === 'grid' ? '' : '⊞'}
           </button>
         </div>
 
@@ -404,7 +404,7 @@ export default function NamesOfAllah() {
 
         {filtered.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-4xl mb-4">🌙</p>
+            <p className="text-4xl mb-4"></p>
             <p className="text-gray-500">No names match your search</p>
           </div>
         )}

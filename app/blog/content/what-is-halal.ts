@@ -4,7 +4,7 @@ export const whatIsHalal = {
   title: "What is Halal? Complete Guide to Halal Food, Lifestyle & Rules",
   excerpt: "Discover what halal means in Islam. A comprehensive guide covering halal food, lifestyle rules, Quran references, and modern applications of halal principles.",
   category: "Halal",
-  emoji: "✅",
+  emoji: "",
   readTime: "18 min read",
   date: "2026-02-20",
   content: `

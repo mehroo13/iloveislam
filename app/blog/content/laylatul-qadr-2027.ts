@@ -4,7 +4,7 @@ export const laylatulQadr2027 = {
   title: "Laylatul Qadr 2027: When Is the Night of Power & How to Worship",
   excerpt: "When Laylatul Qadr 2027 falls, its signs, and how to worship on the Night of Power — duas and the last 10 nights schedule for Ramadan 2027.",
   category: "Ramadan",
-  emoji: "✨",
+  emoji: "",
   readTime: "17 min read",
   date: "2026-03-25",
   content: `

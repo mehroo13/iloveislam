@@ -45,14 +45,14 @@ function getCardinalDirection(degrees: number): string {
 }
 
 function getDirectionEmoji(degrees: number): string {
-  if (degrees >= 337.5 || degrees < 22.5) return '⬆️';
-  if (degrees >= 22.5 && degrees < 67.5) return '↗️';
-  if (degrees >= 67.5 && degrees < 112.5) return '➡️';
-  if (degrees >= 112.5 && degrees < 157.5) return '↘️';
-  if (degrees >= 157.5 && degrees < 202.5) return '⬇️';
-  if (degrees >= 202.5 && degrees < 247.5) return '↙️';
-  if (degrees >= 247.5 && degrees < 292.5) return '⬅️';
-  return '↖️';
+  if (degrees >= 337.5 || degrees < 22.5) return '';
+  if (degrees >= 22.5 && degrees < 67.5) return '↗';
+  if (degrees >= 67.5 && degrees < 112.5) return '';
+  if (degrees >= 112.5 && degrees < 157.5) return '↘';
+  if (degrees >= 157.5 && degrees < 202.5) return '';
+  if (degrees >= 202.5 && degrees < 247.5) return '↙';
+  if (degrees >= 247.5 && degrees < 292.5) return '';
+  return '↖';
 }
 
 function lowPassFilter(newValue: number, oldValue: number, smoothing = 0.15): number {
@@ -99,7 +99,7 @@ export default function QiblaFinder() {
   }, [qiblaDirection, compassHeading, compassEnabled]);
 
   const getFlagEmoji = (countryCode: string): string => {
-    if (!countryCode) return '📍';
+    if (!countryCode) return '';
     const codePoints = countryCode.toUpperCase().split('').map(char => 127397 + char.charCodeAt(0));
     return String.fromCodePoint(...codePoints);
   };
@@ -316,7 +316,7 @@ export default function QiblaFinder() {
         <Link href="/" className="text-white/70 hover:text-white text-sm flex items-center gap-1">
           <span>←</span> Back
         </Link>
-        <h1 className="text-white font-semibold text-lg flex-1 text-center">🕋 Qibla Finder</h1>
+        <h1 className="text-white font-semibold text-lg flex-1 text-center"> Qibla Finder</h1>
         <div className="w-12" />
       </header>
 
@@ -325,7 +325,7 @@ export default function QiblaFinder() {
         {!qiblaDirection && (
           <>
             <div className="text-center text-white">
-              <div className="text-6xl mb-4">🧭</div>
+              <div className="text-6xl mb-4"></div>
               <h2 className="text-2xl font-bold mb-2">Find Qibla Direction</h2>
               <p className="text-white/60 text-sm">Use your location or search a city to get the exact bearing to Kaaba.</p>
             </div>
@@ -335,7 +335,7 @@ export default function QiblaFinder() {
               disabled={loading}
               className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-4 rounded-2xl flex items-center justify-center gap-2 transition-colors"
             >
-              📍 Use My Location
+               Use My Location
             </button>
 
             <div className="flex items-center gap-2">
@@ -396,7 +396,7 @@ export default function QiblaFinder() {
           <>
             {/* Location — compact */}
             <div className="flex items-center justify-center gap-2 text-white/70 text-sm">
-              <span>{location.flag || '📍'}</span>
+              <span>{location.flag || ''}</span>
               <span className="font-medium text-white">{location.name}</span>
               {location.country && <span className="text-white/40">• {location.country}</span>}
             </div>
@@ -453,7 +453,7 @@ export default function QiblaFinder() {
                     <div className="relative">
                       <div className="w-0 h-0 border-l-[12px] border-r-[12px] border-b-[55px] border-l-transparent border-r-transparent border-b-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
                     </div>
-                    <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-xl">🕋</div>
+                    <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-xl"></div>
                   </div>
                 </div>
 
@@ -474,7 +474,7 @@ export default function QiblaFinder() {
               {compassEnabled && isFacingQibla && (
                 <div className="w-full mt-4 max-w-xs">
                   <div className="bg-emerald-500/20 border border-emerald-400/40 rounded-2xl p-4 text-center">
-                    <p className="text-emerald-300 text-lg font-bold">✅ Facing Qibla!</p>
+                    <p className="text-emerald-300 text-lg font-bold"> Facing Qibla!</p>
                     <p className="text-emerald-400/60 text-xs mt-1">You are aligned with the Kaaba</p>
                   </div>
                 </div>
@@ -499,19 +499,19 @@ export default function QiblaFinder() {
             <div className="flex gap-2">
               <button
                 onClick={() => {
-                  const text = `🕋 Qibla from ${location.name}: ${qiblaDirection.toFixed(1)}° ${getCardinalDirection(qiblaDirection)}\nDistance: ${distance?.toLocaleString()} km\n\niloveislam.life/qibla`;
+                  const text = ` Qibla from ${location.name}: ${qiblaDirection.toFixed(1)}° ${getCardinalDirection(qiblaDirection)}\nDistance: ${distance?.toLocaleString()} km\n\niloveislam.life/qibla`;
                   if (navigator.share) { navigator.share({ title: 'Qibla Direction', text }); }
                   else { navigator.clipboard.writeText(text); }
                 }}
                 className="flex-1 bg-white/5 hover:bg-white/10 text-white/70 font-medium py-2.5 rounded-xl border border-white/10 text-sm flex items-center justify-center gap-2"
               >
-                📤 Share
+                 Share
               </button>
               <button
                 onClick={resetLocation}
                 className="flex-1 bg-white/5 hover:bg-white/10 text-white/70 font-medium py-2.5 rounded-xl border border-white/10 text-sm"
               >
-                📍 Change Location
+                 Change Location
               </button>
             </div>
 

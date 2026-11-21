@@ -4,7 +4,7 @@ export const ramadan2027Dates = {
   title: "Ramadan 2027 Dates, Timetable & Complete Preparation Guide",
   excerpt: "Ramadan 2027 dates, expected start and end, suhoor/iftar timetable, and complete preparation guide. Get ready for the blessed month with our checklist.",
   category: "Ramadan",
-  emoji: "🌙",
+  emoji: "",
   readTime: "16 min read",
   date: "2026-03-01",
   content: `

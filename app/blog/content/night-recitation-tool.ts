@@ -4,7 +4,7 @@ export const nightRecitationArticle = {
   title: "Night Recitation: Powerful Quranic Surahs to Listen to Before Sleep",
   excerpt: "Reciting or listening to the Quran before bed brings barakah, protection from evil, and deep tranquility. Discover the benefits and use our Night Recitation tool with Sheikh Al-Sudais.",
   category: "Quran",
-  emoji: "🌙",
+  emoji: "",
   readTime: "13 min read",
   date: "2026-02-23",
   content: `
@@ -82,22 +82,22 @@ Features include:
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/night" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🌙</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Night Recitation</h3>
     <p class="text-gray-600 dark:text-gray-400">Beautiful Quran for bedtime</p>
   </a>
   <a href="/quran" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">📖</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Quran Reader</h3>
     <p class="text-gray-600 dark:text-gray-400">Read with translation & audio</p>
   </a>
   <a href="/dhikr" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">📿</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Dhikr Counter</h3>
     <p class="text-gray-600 dark:text-gray-400">Evening adhkar tracker</p>
   </a>
   <a href="/dua" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🤲</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Dua Generator</h3>
     <p class="text-gray-600 dark:text-gray-400">Supplications before sleep</p>
   </a>

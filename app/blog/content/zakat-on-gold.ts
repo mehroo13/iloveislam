@@ -4,7 +4,7 @@ export const zakatOnGold = {
   title: "Zakat on Gold: How to Calculate Zakat on Gold Jewelry & Savings",
   excerpt: "Learn how to calculate zakat on gold jewelry and savings. Complete guide with nisab thresholds, calculation examples, tola/gram conversions, and scholarly rulings.",
   category: "Finance",
-  emoji: "💰",
+  emoji: "",
   readTime: "16 min read",
   date: "2026-03-20",
   content: `

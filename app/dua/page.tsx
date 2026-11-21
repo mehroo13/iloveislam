@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { DUAS, searchDuas, type Dua } from '@/lib/duas';
+import { type Dua } from '@/lib/duas';
+import { ALL_DUAS, searchAllDuas, DUA_CATEGORIES } from '@/lib/duasExtra';
 
 // ─── Situation chips (same set as Dua for This Moment) ────────────────────────
 const CHIPS: { label: string; query: string }[] = [
@@ -24,6 +25,32 @@ const CHIPS: { label: string; query: string }[] = [
   { label: 'Parents', query: 'parents' },
   { label: 'Learning', query: 'knowledge' },
 ];
+
+// Theme category for each of the flagship 18 (extra duas carry their own).
+const FLAGSHIP_CATEGORY: Record<string, string> = {
+  anxiety: 'Hardship & Patience',
+  sleep: 'Daily Life',
+  waking: 'Morning & Evening',
+  parents: 'Family & Children',
+  knowledge: 'Guidance & Faith',
+  travel: 'Daily Life',
+  'before-eating': 'Daily Life',
+  'after-eating': 'Daily Life',
+  'entering-home': 'Daily Life',
+  forgiveness: 'Forgiveness & Mercy',
+  patience: 'Hardship & Patience',
+  sick: 'Hardship & Patience',
+  marriage: 'Family & Children',
+  provision: 'Provision & Work',
+  anger: 'Hardship & Patience',
+  exams: 'Hardship & Patience',
+  gratitude: 'Worship & Gratitude',
+  ease: 'Hardship & Patience',
+};
+
+function categoryOf(dua: Dua): string {
+  return dua.category ?? FLAGSHIP_CATEGORY[dua.id] ?? 'Daily Life';
+}
 
 const FAVORITES_KEY = 'ili_dua_favorites';
 
@@ -105,8 +132,13 @@ function DuaCard({
   return (
     <article className="bg-white rounded-2xl border border-[#E7E2D5] shadow-sm p-5 sm:p-6">
       <h3 className="text-lg font-bold text-[#1C2420]">{dua.title}</h3>
+      <p className="mt-1">
+        <span className="inline-block rounded-full bg-[#F7F5EF] border border-[#E7E2D5] px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#146B4D]">
+          {categoryOf(dua)}
+        </span>
+      </p>
 
-      <p dir="rtl" lang="ar" className="font-arabic text-2xl sm:text-[1.75rem] leading-[2.2] text-[#0B3D2E] text-right mt-4">
+      <p dir="rtl" lang="ar" className="font-quran text-2xl sm:text-[1.75rem] text-[#0B3D2E] text-right mt-4">
         {dua.arabic}
       </p>
 
@@ -158,6 +190,7 @@ function DuaCard({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function DuaLibraryPage() {
   const [activeChip, setActiveChip] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [favorites, setFavorites] = useState<string[]>([]);
 
@@ -174,17 +207,35 @@ export default function DuaLibraryPage() {
   };
 
   const results = useMemo(() => {
-    if (search.trim()) return searchDuas(search);
-    if (activeChip) {
-      const chip = CHIPS.find((c) => c.label === activeChip);
-      return chip ? searchDuas(chip.query) : DUAS;
-    }
-    return DUAS;
-  }, [search, activeChip]);
+    let list = search.trim()
+      ? searchAllDuas(search)
+      : activeChip
+        ? searchAllDuas(CHIPS.find((c) => c.label === activeChip)?.query ?? '')
+        : ALL_DUAS;
+    if (activeCategory) list = list.filter((d) => categoryOf(d) === activeCategory);
+    return list;
+  }, [search, activeChip, activeCategory]);
+
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const d of ALL_DUAS) counts.set(categoryOf(d), (counts.get(categoryOf(d)) ?? 0) + 1);
+    return counts;
+  }, []);
 
   const pickChip = (label: string) => {
     setSearch('');
     setActiveChip((prev) => (prev === label ? null : label));
+  };
+
+  const pickCategory = (category: string) => {
+    setSearch('');
+    setActiveCategory((prev) => (prev === category ? null : category));
+  };
+
+  const clearFilters = () => {
+    setSearch('');
+    setActiveChip(null);
+    setActiveCategory(null);
   };
 
   return (
@@ -195,8 +246,8 @@ export default function DuaLibraryPage() {
           <p className="text-[#C9A227] text-sm font-semibold tracking-widest uppercase">Dua Library</p>
           <h1 className="text-3xl sm:text-4xl font-bold mt-3 leading-tight">Every dua, in one place</h1>
           <p className="text-white/80 mt-3 leading-relaxed">
-            18 authentic duas from the Quran and Sunnah — Arabic, transliteration and translation —
-            for the moments that matter most.
+            {ALL_DUAS.length} authentic duas from the Quran and Sunnah — Arabic, transliteration
+            and translation — for the moments that matter most.
           </p>
           <div className="mt-6">
             <Link
@@ -212,6 +263,42 @@ export default function DuaLibraryPage() {
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
         {/* Filters */}
         <section aria-label="Filter duas">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by category">
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                setActiveCategory(null);
+              }}
+              aria-pressed={activeCategory === null}
+              className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                activeCategory === null
+                  ? 'bg-[#0B3D2E] text-white border-[#0B3D2E]'
+                  : 'bg-white text-[#0B3D2E] border-[#E7E2D5] hover:border-[#C9A227]'
+              }`}
+            >
+              All {ALL_DUAS.length} duas
+            </button>
+            {DUA_CATEGORIES.map((category) => (
+              <button
+                key={category}
+                type="button"
+                onClick={() => pickCategory(category)}
+                aria-pressed={activeCategory === category}
+                className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                  activeCategory === category
+                    ? 'bg-[#0B3D2E] text-white border-[#0B3D2E]'
+                    : 'bg-white text-[#0B3D2E] border-[#E7E2D5] hover:border-[#C9A227]'
+                }`}
+              >
+                {category} ({categoryCounts.get(category) ?? 0})
+              </button>
+            ))}
+          </div>
+
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#6B7280] mt-5 mb-2">
+            Or find one by how you feel
+          </p>
           <div className="flex flex-wrap gap-2">
             {CHIPS.map((chip) => (
               <button
@@ -240,6 +327,7 @@ export default function DuaLibraryPage() {
             onChange={(e) => {
               setSearch(e.target.value);
               setActiveChip(null);
+              setActiveCategory(null);
             }}
             placeholder="Search in plain words — e.g. “insomnia”, “money”, “thankful”…"
             className="w-full mt-4 px-4 py-3 rounded-xl border border-[#E7E2D5] bg-white text-[#1C2420] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#C9A227]"
@@ -255,13 +343,10 @@ export default function DuaLibraryPage() {
                 Tap a situation above, or{' '}
                 <button
                   type="button"
-                  onClick={() => {
-                    setSearch('');
-                    setActiveChip(null);
-                  }}
+                  onClick={clearFilters}
                   className="text-[#146B4D] font-semibold underline underline-offset-2"
                 >
-                  show all 18 duas
+                  show all {ALL_DUAS.length} duas
                 </button>
                 .
               </p>
@@ -269,7 +354,8 @@ export default function DuaLibraryPage() {
           ) : (
             <>
               <p className="text-sm text-[#6B7280] mb-4">
-                Showing {results.length} of {DUAS.length} duas
+                Showing {results.length} of {ALL_DUAS.length} duas
+                {activeCategory ? ` in ${activeCategory}` : ''}
               </p>
               <div className="space-y-5">
                 {results.map((dua) => (

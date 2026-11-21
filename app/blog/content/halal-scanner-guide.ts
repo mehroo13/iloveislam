@@ -4,7 +4,7 @@ export const halalScannerArticle = {
   title: "HalalScan: The Complete Guide to Scanning, Understanding & Trusting Halal Food Checks",
   excerpt: "A practical, in-depth guide to using HalalScan: how barcode and OCR scanning work, understanding ingredient flags (E‑numbers), making accurate decisions, privacy considerations, and tips for the most reliable results.",
   category: "Halal Scanner",
-  emoji: "🔎",
+  emoji: "",
   readTime: "15-20 min read",
   date: "2026-05-23",
   content: `

@@ -4,7 +4,7 @@ export const howToPerformHajj = {
   title: "How to Perform Hajj: Complete Step-by-Step Guide (2026)",
   excerpt: "Follow Hajj day by day, ritual by ritual — Ihram, Tawaf, Sa'i, Arafah, Muzdalifah, Mina and the stoning of Jamarat — in this complete step-by-step guide.",
   category: "Hajj",
-  emoji: "🕋",
+  emoji: "",
   readTime: "22 min read",
   date: "2026-03-15",
   content: `

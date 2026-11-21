@@ -73,7 +73,7 @@ export interface ReligionMeta {
 export const RELIGION_META: Record<Religion, ReligionMeta> = {
   christianity: {
     label: "Christianity",
-    emoji: "✝",
+    emoji: "",
     color: "#7B4FBF",
     followers: "2.4 billion",
     founded: "1st century CE",
@@ -83,7 +83,7 @@ export const RELIGION_META: Record<Religion, ReligionMeta> = {
   },
   judaism: {
     label: "Judaism",
-    emoji: "✡",
+    emoji: "",
     color: "#1A6B8A",
     followers: "15 million",
     founded: "2000 BCE",
@@ -103,7 +103,7 @@ export const RELIGION_META: Record<Religion, ReligionMeta> = {
   },
   buddhism: {
     label: "Buddhism",
-    emoji: "☸",
+    emoji: "",
     color: "#2E7D52",
     followers: "535 million",
     founded: "5th century BCE",
@@ -113,7 +113,7 @@ export const RELIGION_META: Record<Religion, ReligionMeta> = {
   },
   sikhism: {
     label: "Sikhism",
-    emoji: "☬",
+    emoji: "",
     color: "#B05C00",
     followers: "25 million",
     founded: "15th century CE",

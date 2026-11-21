@@ -4,7 +4,7 @@ export const mosqueEtiquetteArticle = {
   title: "Mosque Etiquette: Rules & Manners for Visiting a Masjid",
   excerpt: "The mosque is the House of Allah. Learn proper etiquette for entering, praying, and behaving inside the masjid — essential guidance for both regular attendees and first-time visitors.",
   category: "Prayer",
-  emoji: "🕌",
+  emoji: "",
   readTime: "12 min read",
   date: "2026-07-21",
   content: `
@@ -78,13 +78,13 @@ export const mosqueEtiquetteArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/mosque" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕌</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Mosque Finder</h3>
     <p class="text-gray-600 dark:text-gray-400">Locate mosques near you</p>
   </a>
   
   <a href="/prayer-times" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕐</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Prayer Times</h3>
     <p class="text-gray-600 dark:text-gray-400">Accurate salah timings</p>
   </a>

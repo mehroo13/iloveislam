@@ -44,7 +44,7 @@ interface KaffarahType {
 
 const KAFFARAH_TYPES: KaffarahType[] = [
   {
-    id: 'oath', label: 'Broken Oath (Yamin)', arabic: 'كفارة اليمين', icon: '🤝',
+    id: 'oath', label: 'Broken Oath (Yamin)', arabic: 'كفارة اليمين', icon: '',
     description: 'Breaking a sworn oath made in the name of Allah',
     ayah: 'So its expiation is the feeding of ten needy people from the average of that which you feed your families, or clothing them, or the freeing of a slave. But whoever cannot find — then a fast of three days.',
     source: 'Quran 5:89', category: 'kaffarah',
@@ -57,7 +57,7 @@ const KAFFARAH_TYPES: KaffarahType[] = [
     note: 'For broken oaths, the first three options are interchangeable (you choose one). Fasting is only if you cannot afford any of them.',
   },
   {
-    id: 'ramadan', label: 'Broken Ramadan Fast', arabic: 'كفارة الإفطار', icon: '🌙',
+    id: 'ramadan', label: 'Broken Ramadan Fast', arabic: 'كفارة الإفطار', icon: '',
     description: 'Intentionally breaking a Ramadan fast through intercourse',
     ayah: 'A man came to the Prophet ﷺ and said: "I am ruined!" He said: "Free a slave. If you cannot, fast two months consecutively. If you cannot, feed sixty poor people."',
     source: 'Hadith — Bukhari & Muslim', category: 'kaffarah',
@@ -69,7 +69,7 @@ const KAFFARAH_TYPES: KaffarahType[] = [
     note: 'This applies to breaking fast through intercourse. Eating/drinking intentionally requires Qada (making up the day) only — not kaffarah (Hanafi: kaffarah also applies for intentional eating).',
   },
   {
-    id: 'zihar', label: 'Zihar', arabic: 'كفارة الظهار', icon: '💔',
+    id: 'zihar', label: 'Zihar', arabic: 'كفارة الظهار', icon: '',
     description: 'Comparing wife to a mahram (e.g. "You are like my mother\'s back")',
     ayah: 'Those who pronounce zihar and then wish to go back on what they said — then the freeing of a slave before they touch one another. And he who does not find — then fasting for two months consecutively. And he who is unable — then the feeding of sixty poor persons.',
     source: 'Quran 58:3-4', category: 'kaffarah',
@@ -80,7 +80,7 @@ const KAFFARAH_TYPES: KaffarahType[] = [
     ],
   },
   {
-    id: 'murder', label: 'Accidental Killing', arabic: 'كفارة القتل الخطأ', icon: '⚖️',
+    id: 'murder', label: 'Accidental Killing', arabic: 'كفارة القتل الخطأ', icon: '',
     description: 'Unintentional killing of a person (e.g. car accident)',
     ayah: 'And whoever kills a believer by mistake — then the freeing of a believing slave and a compensation (diyah) delivered to his family... And whoever does not find — then fasting for two months consecutively.',
     source: 'Quran 4:92', category: 'kaffarah',
@@ -91,7 +91,7 @@ const KAFFARAH_TYPES: KaffarahType[] = [
     note: 'Diyah (blood money) must ALSO be paid to the victim\'s family separately. This is in addition to kaffarah. Consult a scholar and lawyer.',
   },
   {
-    id: 'fidyah_fast', label: 'Fidyah — Missed Fasts', arabic: 'فدية الصيام', icon: '🍽️',
+    id: 'fidyah_fast', label: 'Fidyah — Missed Fasts', arabic: 'فدية الصيام', icon: '',
     description: 'For those permanently unable to fast (elderly, chronic illness)',
     ayah: 'And upon those who are able [to fast, but with hardship] — a ransom of feeding a poor person [each day].',
     source: 'Quran 2:184', category: 'fidyah',
@@ -101,7 +101,7 @@ const KAFFARAH_TYPES: KaffarahType[] = [
     note: 'Fidyah applies to those who CANNOT fast at all (permanent illness, extreme old age). If you can make up fasts later, you should do Qada instead.',
   },
   {
-    id: 'fidyah_hajj', label: 'Fidyah — Hajj Violations', arabic: 'فدية الحج', icon: '🕋',
+    id: 'fidyah_hajj', label: 'Fidyah — Hajj Violations', arabic: 'فدية الحج', icon: '',
     description: 'Violating ihram restrictions during Hajj/Umrah',
     ayah: 'And whoever among you is ill or has an ailment of the head — then a ransom of fasting or charity or sacrifice.',
     source: 'Quran 2:196', category: 'fidyah',
@@ -113,7 +113,7 @@ const KAFFARAH_TYPES: KaffarahType[] = [
     note: 'The type of fidyah depends on the specific violation. Major violations (intercourse before standing at Arafat) require a camel. Consult a scholar.',
   },
   {
-    id: 'vow', label: 'Unfulfilled Vow (Nadhr)', arabic: 'كفارة النذر', icon: '📿',
+    id: 'vow', label: 'Unfulfilled Vow (Nadhr)', arabic: 'كفارة النذر', icon: '',
     description: 'Breaking a vow made to Allah that you cannot fulfill',
     ayah: 'The Prophet ﷺ said: "The kaffarah of a vow is the kaffarah of an oath."',
     source: 'Hadith — Muslim', category: 'kaffarah',
@@ -195,7 +195,7 @@ export default function KaffarahCalculator() {
           ) : (
             <Link href="/" className="text-white/60 hover:text-white text-sm transition-colors">← Home</Link>
           )}
-          <h1 className="text-lg font-bold">🕊️ Kaffarah & Fidyah Calculator</h1>
+          <h1 className="text-lg font-bold"> Kaffarah & Fidyah Calculator</h1>
           <button onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
             className="bg-white/15 text-white text-xs rounded-full px-3 py-1.5 border border-white/20 hover:bg-white/25 transition-all">
             {sym} {currency}
@@ -237,8 +237,8 @@ export default function KaffarahCalculator() {
             <div className="flex gap-2 justify-center">
               {[
                 { id: 'all' as const, label: 'All' },
-                { id: 'kaffarah' as const, label: '⚖️ Kaffarah' },
-                { id: 'fidyah' as const, label: '🍽️ Fidyah' },
+                { id: 'kaffarah' as const, label: ' Kaffarah' },
+                { id: 'fidyah' as const, label: ' Fidyah' },
               ].map(f => (
                 <button key={f.id} onClick={() => setFilterCategory(f.id)}
                   className={`text-xs px-4 py-2 rounded-full font-medium transition-all ${filterCategory === f.id ? 'bg-emerald-800 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
@@ -261,7 +261,7 @@ export default function KaffarahCalculator() {
                   <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{type.description}</p>
                   <div className="mt-2 flex items-center gap-1">
                     <span className={`text-[9px] px-2 py-0.5 rounded-full ${type.category === 'kaffarah' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'}`}>
-                      {type.category === 'kaffarah' ? '⚖️ Kaffarah' : '🍽️ Fidyah'}
+                      {type.category === 'kaffarah' ? ' Kaffarah' : ' Fidyah'}
                     </span>
                   </div>
                 </button>
@@ -271,7 +271,7 @@ export default function KaffarahCalculator() {
             {/* FAQ */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
               <button onClick={() => setShowFaq(!showFaq)} className="w-full flex items-center justify-between">
-                <h3 className="font-bold text-gray-800 dark:text-gray-100">❓ Frequently Asked Questions</h3>
+                <h3 className="font-bold text-gray-800 dark:text-gray-100"> Frequently Asked Questions</h3>
                 <span className="text-xs text-emerald-600 dark:text-emerald-400">{showFaq ? 'Hide' : 'Show'}</span>
               </button>
               {showFaq && (
@@ -296,7 +296,7 @@ export default function KaffarahCalculator() {
 
             {/* What is Kaffarah */}
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-5">
-              <h3 className="font-bold text-amber-800 dark:text-amber-300 text-sm mb-2">📚 What is Kaffarah?</h3>
+              <h3 className="font-bold text-amber-800 dark:text-amber-300 text-sm mb-2"> What is Kaffarah?</h3>
               <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed mb-2">
                 <strong>Kaffarah</strong> (كفارة) is an expiation — a prescribed act of worship to atone for specific sins. It must be accompanied by sincere repentance (Tawbah).
               </p>
@@ -312,21 +312,21 @@ export default function KaffarahCalculator() {
           <>
             {/* Daleel */}
             <div className="bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 text-white rounded-2xl p-6 shadow-xl">
-              <p className="text-white/50 text-[10px] mb-2 font-semibold uppercase tracking-wider">📖 Daleel (Evidence)</p>
+              <p className="text-white/50 text-[10px] mb-2 font-semibold uppercase tracking-wider"> Daleel (Evidence)</p>
               <p className="text-white/90 text-sm leading-relaxed italic mb-3">"{selected.ayah}"</p>
               <p className="text-white/40 text-xs">— {selected.source}</p>
             </div>
 
             {selected.note && (
               <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4">
-                <p className="text-xs font-bold text-amber-800 dark:text-amber-300 mb-1">⚠️ Important Note</p>
+                <p className="text-xs font-bold text-amber-800 dark:text-amber-300 mb-1"> Important Note</p>
                 <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">{selected.note}</p>
               </div>
             )}
 
             {/* Summary Card */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
-              <h2 className="font-bold text-gray-800 dark:text-gray-100 text-lg mb-4">📋 Summary</h2>
+              <h2 className="font-bold text-gray-800 dark:text-gray-100 text-lg mb-4"> Summary</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {selected.id === 'fidyah_fast' ? (
                   <div className="bg-emerald-50 dark:bg-emerald-900/30 rounded-xl p-4 text-center col-span-2 sm:col-span-1">
@@ -397,7 +397,7 @@ export default function KaffarahCalculator() {
                         {step.cost > 0 && !isSlaveStep && (
                           <div className={`mt-3 ${c.bg} rounded-xl p-3 border ${c.border}`}>
                             <div className="flex items-center justify-between">
-                              <span className={`text-xs font-medium ${c.text}`}>💰 Monetary Equivalent</span>
+                              <span className={`text-xs font-medium ${c.text}`}> Monetary Equivalent</span>
                               <span className={`text-lg font-bold ${c.text}`}>{sym}{step.cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                             </div>
                             <p className={`text-[10px] mt-1 opacity-70 ${c.text}`}>
@@ -409,7 +409,7 @@ export default function KaffarahCalculator() {
                         {step.type === 'fast' && !isSlaveStep && (
                           <div className={`mt-3 ${c.bg} rounded-xl p-3 border ${c.border}`}>
                             <div className="flex items-center justify-between">
-                              <span className={`text-xs font-medium ${c.text}`}>🌙 Fasting Required</span>
+                              <span className={`text-xs font-medium ${c.text}`}> Fasting Required</span>
                               <span className={`text-lg font-bold ${c.text}`}>{step.count} days</span>
                             </div>
                             {(step as any).consecutive && <p className={`text-[10px] mt-1 ${c.text} opacity-70`}>Must be consecutive — if broken, restart</p>}
@@ -424,7 +424,7 @@ export default function KaffarahCalculator() {
 
             {/* Customization */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
-              <h2 className="font-bold text-gray-800 dark:text-gray-100 text-base mb-4">⚙️ Customize Calculation</h2>
+              <h2 className="font-bold text-gray-800 dark:text-gray-100 text-base mb-4"> Customize Calculation</h2>
 
               {selected.id === 'fidyah_fast' && (
                 <div className="mb-4">
@@ -492,13 +492,13 @@ export default function KaffarahCalculator() {
 
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4">
               <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                <strong>⚠️ Disclaimer:</strong> This is a general guide based on majority Sunni fiqh. Scholarly opinions may vary between madhabs. Please consult a qualified Islamic scholar for your specific situation.
+                <strong> Disclaimer:</strong> This is a general guide based on majority Sunni fiqh. Scholarly opinions may vary between madhabs. Please consult a qualified Islamic scholar for your specific situation.
               </p>
             </div>
 
             <button onClick={() => window.print()}
               className="w-full py-3.5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm">
-              🖨️ Print / Save as PDF
+               Print / Save as PDF
             </button>
           </>
         )}

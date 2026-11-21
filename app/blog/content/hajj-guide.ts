@@ -4,7 +4,7 @@ export const hajjArticle = {
   title: "Hajj Explained: A Complete Beginner's Guide to the Fifth Pillar of Islam",
   excerpt: "Hajj is the journey of a lifetime. Learn the complete step-by-step rituals, spiritual significance, pillars, and practical preparation tips for this obligatory pilgrimage.",
   category: "Hajj & Umrah",
-  emoji: "🕋",
+  emoji: "",
   readTime: "16 min read",
   date: "2026-05-27",
   content: `
@@ -74,25 +74,25 @@ export const hajjArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/hajj" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕋</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Hajj Guide</h3>
     <p class="text-gray-600 dark:text-gray-400">Step-by-step interactive guide</p>
   </a>
   
   <a href="/prayer-times" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕐</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Prayer Times</h3>
     <p class="text-gray-600 dark:text-gray-400">Accurate times in Makkah</p>
   </a>
   
   <a href="/qibla" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🧭</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Qibla Finder</h3>
     <p class="text-gray-600 dark:text-gray-400">Direction to the Kaaba</p>
   </a>
   
   <a href="/dua" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🤲</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Dua Generator</h3>
     <p class="text-gray-600 dark:text-gray-400">Authentic duas for every ritual</p>
   </a>

@@ -203,15 +203,15 @@ export default function HadithSearch() {
           )}
           <div className="ml-auto flex items-center gap-3">
             <button onClick={() => copyHadith(h)} title="Copy" className="hover:scale-110 transition-transform" style={{ color: dark ? '#94a3b8' : '#64748b' }}>
-              {copiedId === h._id ? '✅' : '📋'}
+              {copiedId === h._id ? '' : ''}
             </button>
             <button onClick={() => {
               const text = `${displayText}\n\n— ${getBookLabel(h.bookSlug)}, Hadith #${h.hadithNumber}\n\niloveislam.life/hadith`;
               if (navigator.share) navigator.share({ title: 'Hadith', text });
               else navigator.clipboard?.writeText(text);
-            }} title="Share" className="hover:scale-110 transition-transform" style={{ color: dark ? '#94a3b8' : '#64748b' }}>📤</button>
+            }} title="Share" className="hover:scale-110 transition-transform" style={{ color: dark ? '#94a3b8' : '#64748b' }}></button>
             <button onClick={() => handleSave(h)} title={saved_ ? 'Unsave' : 'Save'} className="hover:scale-110 transition-transform text-lg">
-              {saved_ ? '⭐' : '☆'}
+              {saved_ ? '' : '☆'}
             </button>
           </div>
         </div>
@@ -234,7 +234,7 @@ export default function HadithSearch() {
             <Link href="/" className="text-white/70 hover:text-white text-sm flex items-center gap-1">
               <span>←</span> Back
             </Link>
-            <h1 className="text-xl font-bold">📚 Hadith Search</h1>
+            <h1 className="text-xl font-bold"> Hadith Search</h1>
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
@@ -246,7 +246,7 @@ export default function HadithSearch() {
                 </option>
               ))}
             </select>
-            <button onClick={() => setDark(!dark)} className="text-white/60 hover:text-white text-lg ml-2">{dark ? '☀️' : '🌙'}</button>
+            <button onClick={() => setDark(!dark)} className="text-white/60 hover:text-white text-lg ml-2">{dark ? '' : ''}</button>
           </div>
           <p className="text-white/60 text-xs text-center">
             Search in English or Urdu – results switch instantly
@@ -255,7 +255,7 @@ export default function HadithSearch() {
           {/* Search bar */}
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></span>
               <input
                 type="text"
                 value={query}
@@ -307,8 +307,8 @@ export default function HadithSearch() {
       <div className="max-w-2xl mx-auto px-4 mt-3">
         <div className="flex bg-white rounded-xl border border-gray-100 p-1 shadow-sm">
           {[
-            { id: 'search', label: '🔍 Search' },
-            { id: 'saved', label: `🔖 Saved${saved.length > 0 ? ` (${saved.length})` : ''}` },
+            { id: 'search', label: ' Search' },
+            { id: 'saved', label: ` Saved${saved.length > 0 ? ` (${saved.length})` : ''}` },
           ].map(tab => (
             <button
               key={tab.id}
@@ -333,8 +333,8 @@ export default function HadithSearch() {
               <>
                 <div className="bg-gradient-to-r from-emerald-900 to-emerald-700 text-white rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
                   <div className="absolute inset-0 opacity-5">
-                    <div className="absolute top-2 right-6 text-6xl select-none">☽</div>
-                    <div className="absolute bottom-2 left-6 text-4xl select-none">✦</div>
+                    <div className="absolute top-2 right-6 text-6xl select-none"></div>
+                    <div className="absolute bottom-2 left-6 text-4xl select-none"></div>
                   </div>
                   <div className="relative z-10">
                     <p className="text-3xl font-arabic mb-2" style={{ fontFamily: '"Scheherazade New", serif' }}>طَلَبُ الْعِلْمِ فَرِيضَةٌ</p>
@@ -351,13 +351,13 @@ export default function HadithSearch() {
                       }}
                       className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-all border border-white/20"
                     >
-                      🎲 Random Hadith
+                       Random Hadith
                     </button>
                   </div>
                 </div>
 
                 <div style={{ background: dark ? '#1e293b' : '#fff', border: `1px solid ${dark ? '#334155' : '#f1f5f9'}` }} className="rounded-2xl p-5 shadow-sm">
-                  <h3 style={{ color: dark ? '#e2e8f0' : '#1f2937' }} className="text-sm font-bold mb-3">⚡ Quick Topic Search</h3>
+                  <h3 style={{ color: dark ? '#e2e8f0' : '#1f2937' }} className="text-sm font-bold mb-3"> Quick Topic Search</h3>
                   <div className="flex flex-wrap gap-2">
                     {TOPICS.map(topic => (
                       <button
@@ -373,7 +373,7 @@ export default function HadithSearch() {
                 </div>
 
                 <div style={{ background: dark ? '#1e293b' : '#fff', border: `1px solid ${dark ? '#334155' : '#f1f5f9'}` }} className="rounded-2xl p-5 shadow-sm">
-                  <h3 style={{ color: dark ? '#e2e8f0' : '#1f2937' }} className="text-sm font-bold mb-3">📖 Browse by Book</h3>
+                  <h3 style={{ color: dark ? '#e2e8f0' : '#1f2937' }} className="text-sm font-bold mb-3"> Browse by Book</h3>
                   <p style={{ color: dark ? '#94a3b8' : '#6b7280' }} className="text-xs mb-3">Select a book then search for any topic</p>
                   <div className="space-y-2">
                     {BOOKS.map(b => (
@@ -401,7 +401,7 @@ export default function HadithSearch() {
 
             {error && !loading && (
               <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-                <p className="text-red-600 font-semibold text-sm mb-1">⚠️ Connection Error</p>
+                <p className="text-red-600 font-semibold text-sm mb-1"> Connection Error</p>
                 <p className="text-red-500 text-xs mb-3">{error}</p>
                 <button onClick={() => search()} className="bg-emerald-900 text-white px-5 py-2 rounded-full text-sm font-semibold">
                   Try Again
@@ -423,7 +423,7 @@ export default function HadithSearch() {
 
                 {results.length === 0 ? (
                   <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center shadow-sm">
-                    <p className="text-4xl mb-3">📖</p>
+                    <p className="text-4xl mb-3"></p>
                     <p className="text-gray-700 font-medium mb-1">No results for "{searched}"</p>
                     <p className="text-gray-400 text-sm">
                       Try different keywords or select a different book.
@@ -457,7 +457,7 @@ export default function HadithSearch() {
           <>
             {saved.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
-                <p className="text-4xl mb-4">🔖</p>
+                <p className="text-4xl mb-4"></p>
                 <p className="text-gray-700 font-medium mb-1">No saved hadiths yet</p>
                 <p className="text-gray-400 text-sm">Tap the bookmark icon on any hadith to save it</p>
               </div>

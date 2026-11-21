@@ -4,7 +4,7 @@ export const teachingChildrenArticle = {
   title: "Teaching Children About Islam: A Practical Parent's Guide",
   excerpt: "Raising righteous children is one of the greatest responsibilities. Learn age-appropriate ways to teach Salah, Quran, dua, character, and love for Allah from an early age.",
   category: "Kids",
-  emoji: "🧒",
+  emoji: "",
   readTime: "15 min read",
   date: "2026-02-17",
   content: `
@@ -61,25 +61,25 @@ export const teachingChildrenArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/kids" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🎮</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Islamic Games Hub</h3>
     <p class="text-gray-600 dark:text-gray-400">Fun educational games for kids</p>
   </a>
   
   <a href="/dua" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🤲</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Dua Generator</h3>
     <p class="text-gray-600 dark:text-gray-400">Daily duas for children</p>
   </a>
   
   <a href="/quran" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">📖</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Quran Reader</h3>
     <p class="text-gray-600 dark:text-gray-400">Kid-friendly Quran with audio</p>
   </a>
   
   <a href="/dhikr" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">📿</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Dhikr Counter</h3>
     <p class="text-gray-600 dark:text-gray-400">Family dhikr challenges</p>
   </a>

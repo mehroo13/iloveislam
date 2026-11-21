@@ -17,49 +17,49 @@ const SURAHS = [
     id: "kahf", number: 18, name: "Surah Al-Kahf", arabic: "سورة الكهف",
     meaning: "The Cave", ayahs: 110,
     description: "Protection from Dajjal — recite on Fridays",
-    color: "#1a2e2a", accent: "#34d399", moon: "🕌",
+    color: "#1a2e2a", accent: "#34d399", moon: "",
     file: "018 Kahf.mp3",
   },
   {
     id: "yasin", number: 36, name: "Surah Ya-Sin", arabic: "سورة يس",
     meaning: "Ya Sin", ayahs: 83,
     description: "The heart of the Quran",
-    color: "#1e1a3a", accent: "#a78bfa", moon: "💫",
+    color: "#1e1a3a", accent: "#a78bfa", moon: "",
     file: "036 Yasin.mp3",
   },
   {
     id: "najam", number: 53, name: "Surah An-Najm", arabic: "سورة النجم",
     meaning: "The Star", ayahs: 62,
     description: "Revelation of divine truth and guidance",
-    color: "#1a1e2e", accent: "#93c5fd", moon: "⭐",
+    color: "#1a1e2e", accent: "#93c5fd", moon: "",
     file: "053 Najam.mp3",
   },
   {
     id: "rahman", number: 55, name: "Surah Ar-Rahman", arabic: "سورة الرحمن",
     meaning: "The Most Merciful", ayahs: 78,
     description: "Reminder of Allah's endless blessings",
-    color: "#1a2a3a", accent: "#60a5fa", moon: "✨",
+    color: "#1a2a3a", accent: "#60a5fa", moon: "",
     file: "055 Rehman.mp3",
   },
   {
     id: "waqia", number: 56, name: "Surah Al-Waqi'ah", arabic: "سورة الواقعة",
     meaning: "The Inevitable Event", ayahs: 96,
     description: "Protection from poverty — recite every night",
-    color: "#2a1a1a", accent: "#f87171", moon: "🔥",
+    color: "#2a1a1a", accent: "#f87171", moon: "",
     file: "056 Waqia.mp3",
   },
   {
     id: "mulk", number: 67, name: "Surah Al-Mulk", arabic: "سورة الملك",
     meaning: "The Sovereignty", ayahs: 30,
     description: "Protection from the punishment of the grave",
-    color: "#1a3a2e", accent: "#4ade80", moon: "🌙",
+    color: "#1a3a2e", accent: "#4ade80", moon: "",
     file: "067 Mulk.mp3",
   },
   {
     id: "duha", number: 93, name: "Surah Ad-Duha", arabic: "سورة الضحى",
     meaning: "The Morning Brightness", ayahs: 11,
     description: "Allah has not forsaken you — peace before sleep",
-    color: "#2a1a0e", accent: "#fb923c", moon: "🌟",
+    color: "#2a1a0e", accent: "#fb923c", moon: "",
     file: "093 Duha.mp3",
   },
 ];
@@ -845,7 +845,7 @@ export default function NightPage() {
             </div>
             <div style={{ fontSize: "0.65rem", color: "#3a6a7a", fontFamily: "sans-serif" }}>
               Repeat {currentRepeat}/{totalRepeats}
-              {sleepSecondsLeft > 0 && <span style={{ marginLeft: "0.5rem", color: "#fb923c" }}>⏾ {fmtTimer(sleepSecondsLeft)}</span>}
+              {sleepSecondsLeft > 0 && <span style={{ marginLeft: "0.5rem", color: "#fb923c" }}> {fmtTimer(sleepSecondsLeft)}</span>}
             </div>
           </div>
           <div style={{ width: 60, height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 4, overflow: "hidden" }}>
@@ -885,7 +885,7 @@ export default function NightPage() {
             })}
           </div>
           <div style={{ position: "absolute", fontSize: "2.5rem", animation: "surah-enter 0.5s ease" }}>
-            ✨
+            
           </div>
         </div>
       )}
@@ -923,7 +923,7 @@ export default function NightPage() {
                 color: dimLevel > 0 ? "#fb923c" : "#3a6a7a",
                 fontFamily: "sans-serif", fontSize: "0.72rem",
               }}>
-              🔅 {dimLevel > 0 ? `${dimLevel}%` : "Dim"}
+               {dimLevel > 0 ? `${dimLevel}%` : "Dim"}
             </button>
 
             {/* Stats toggle */}
@@ -938,7 +938,7 @@ export default function NightPage() {
                 color: statsOpen ? "#34d399" : "#3a6a7a",
                 fontFamily: "sans-serif", fontSize: "0.72rem",
               }}>
-              📊 Stats
+               Stats
             </button>
           </div>
         </div>
@@ -952,7 +952,7 @@ export default function NightPage() {
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
               <span style={{ fontSize: "0.72rem", color: "#4a6a7a", fontFamily: "sans-serif", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-                🔅 Screen Dimmer
+                 Screen Dimmer
               </span>
               <span style={{ fontSize: "0.72rem", color: "#fb923c", fontFamily: "sans-serif" }}>{dimLevel}%</span>
             </div>
@@ -976,12 +976,12 @@ export default function NightPage() {
             animation: "slide-up 0.25s ease",
           }}>
             <h3 style={{ fontSize: "0.85rem", color: "#34d399", fontFamily: "sans-serif", margin: "0 0 0.75rem", fontWeight: 600 }}>
-              📊 Your Night Recitation Journey
+               Your Night Recitation Journey
             </h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.6rem" }}>
               <div style={{ textAlign: "center", padding: "0.6rem", borderRadius: 12, background: "rgba(52,211,153,0.08)" }}>
                 <div style={{ fontSize: "1.3rem", fontWeight: 700, color: "#34d399" }}>{stats.currentStreak}</div>
-                <div style={{ fontSize: "0.62rem", color: "#4a7a6a", fontFamily: "sans-serif" }}>Night Streak 🔥</div>
+                <div style={{ fontSize: "0.62rem", color: "#4a7a6a", fontFamily: "sans-serif" }}>Night Streak </div>
               </div>
               <div style={{ textAlign: "center", padding: "0.6rem", borderRadius: 12, background: "rgba(167,139,250,0.08)" }}>
                 <div style={{ fontSize: "1.3rem", fontWeight: 700, color: "#a78bfa" }}>{stats.sessionsCount}</div>
@@ -1003,7 +1003,7 @@ export default function NightPage() {
         {/* ── Header ───────────────────────────────────────────────────────── */}
         <div style={{ textAlign: "center", marginBottom: "1.75rem" }}>
           <div style={{ fontSize: "3rem", marginBottom: "0.4rem", animation: "float 4s ease-in-out infinite", display: "block" }} aria-hidden="true">
-            🌙
+            
           </div>
           <h1 style={{
             fontSize: "clamp(1.5rem, 4vw, 2rem)", fontWeight: 300,
@@ -1043,7 +1043,7 @@ export default function NightPage() {
                   sleep timer with auto fade-out, repeat counter, and lock-screen controls.
                 </p>
                 <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "0.5rem", marginTop: "0.5rem" }}>
-                  <strong style={{ color: "#7abaca", fontSize: "0.7rem" }}>⌨️ Keyboard Shortcuts:</strong>
+                  <strong style={{ color: "#7abaca", fontSize: "0.7rem" }}> Keyboard Shortcuts:</strong>
                   <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.2rem 0.8rem", marginTop: "0.3rem", fontSize: "0.7rem" }}>
                     <kbd style={{ background: "rgba(255,255,255,0.06)", padding: "0.1rem 0.4rem", borderRadius: 4 }}>Space</kbd><span>Play / Pause</span>
                     <kbd style={{ background: "rgba(255,255,255,0.06)", padding: "0.1rem 0.4rem", borderRadius: 4 }}>← →</kbd><span>Skip ±10s</span>
@@ -1072,7 +1072,7 @@ export default function NightPage() {
               background: "none", border: "none", cursor: "pointer",
             }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-              <span style={{ fontSize: "1.1rem" }}>🎙️</span>
+              <span style={{ fontSize: "1.1rem" }}></span>
               <div style={{ textAlign: "left" }}>
                 <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#34d399", fontFamily: "sans-serif" }}>
                   {RECITERS.find(r => r.id === selectedReciter)?.name}
@@ -1136,7 +1136,7 @@ export default function NightPage() {
               textTransform: "uppercase", cursor: "pointer", transition: "all 0.25s ease",
               boxShadow: mode === m ? "0 0 12px rgba(100,200,140,0.15)" : "none",
             }}>
-              {m === "single" ? "🎵 Single" : "🎶 Combo"}
+              {m === "single" ? " Single" : " Combo"}
             </button>
           ))}
         </div>
@@ -1222,7 +1222,7 @@ export default function NightPage() {
               fontFamily: "sans-serif", fontSize: "0.76rem", color: "#5a9a7a",
               display: "flex", alignItems: "center", gap: "0.5rem",
             }}>
-              <span style={{ fontSize: "1rem" }}>👆</span>
+              <span style={{ fontSize: "1rem" }}></span>
               <span>Tap surahs to build your playlist. Tap again to remove.</span>
             </div>
 
@@ -1306,14 +1306,14 @@ export default function NightPage() {
                       padding: "0.2rem 0.6rem", color: "#4ade80",
                       fontFamily: "sans-serif", fontSize: "0.65rem", cursor: "pointer",
                     }}>
-                      🔗 Share
+                       Share
                     </button>
                     <button onClick={() => setShowSavePlaylist(!showSavePlaylist)} aria-label="Save playlist" style={{
                       background: "none", border: "1px solid rgba(167,139,250,0.25)", borderRadius: 50,
                       padding: "0.2rem 0.6rem", color: "#a78bfa",
                       fontFamily: "sans-serif", fontSize: "0.65rem", cursor: "pointer",
                     }}>
-                      💾 Save
+                       Save
                     </button>
                   </div>
                 </div>
@@ -1384,7 +1384,7 @@ export default function NightPage() {
                 fontFamily: "sans-serif",
               }}>
                 <p style={{ fontSize: "0.68rem", color: "#6a5a8a", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.5rem" }}>
-                  💾 Saved Playlists
+                   Saved Playlists
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
                   {savedPlaylists.map((pl, i) => (
@@ -1420,7 +1420,7 @@ export default function NightPage() {
         }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.6rem" }}>
             <p style={{ fontSize: "0.72rem", color: "#4a6a7a", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "sans-serif", margin: 0 }}>
-              ⏾ Sleep Timer
+               Sleep Timer
             </p>
             {sleepSecondsLeft > 0 && (
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", animation: "slide-up 0.3s ease" }}>
@@ -1474,7 +1474,7 @@ export default function NightPage() {
             letterSpacing: "0.1em", display: "flex", alignItems: "center", gap: "0.5rem",
             width: "100%", padding: 0,
           }}>
-            <span>🎚️ Playback Speed</span>
+            <span> Playback Speed</span>
             <span style={{ color: "#60a5fa", fontWeight: 600 }}>{playbackSpeed}x</span>
             <span style={{ marginLeft: "auto", fontSize: "0.6rem" }}>{showSpeedControl ? "▲" : "▼"}</span>
           </button>
@@ -1539,7 +1539,7 @@ export default function NightPage() {
                     <><span style={{ color: "#2a4050" }}>·</span><span style={{ color: "#4a6a7a" }}>Track {currentIdx + 1}/{queueRef.current.length}</span></>
                   )}
                   {sleepSecondsLeft > 0 && (
-                    <><span style={{ color: "#2a4050" }}>·</span><span style={{ color: "#fb923c" }}>⏾ {fmtTimer(sleepSecondsLeft)}</span></>
+                    <><span style={{ color: "#2a4050" }}>·</span><span style={{ color: "#fb923c" }}> {fmtTimer(sleepSecondsLeft)}</span></>
                   )}
                 </div>
               </>
@@ -1550,7 +1550,7 @@ export default function NightPage() {
                   ✓ Complete
                 </p>
                 <p style={{ color: "#3a6a5a", fontFamily: "sans-serif", fontSize: "0.75rem", fontStyle: "italic", margin: 0 }}>
-                  Rest well, inshaaAllah 🌙
+                  Rest well, inshaaAllah 
                 </p>
               </div>
             )}
@@ -1559,7 +1559,7 @@ export default function NightPage() {
           {/* Volume indicator (visible when fading) */}
           {volume < 1 && (
             <div style={{ marginBottom: "0.7rem", display: "flex", alignItems: "center", gap: "0.5rem", animation: "slide-up 0.2s ease" }}>
-              <span style={{ fontSize: "0.65rem", color: "#fb923c", fontFamily: "sans-serif" }}>🔉 Fading</span>
+              <span style={{ fontSize: "0.65rem", color: "#fb923c", fontFamily: "sans-serif" }}> Fading</span>
               <div style={{ flex: 1, height: 3, background: "rgba(255,255,255,0.07)", borderRadius: 3 }}>
                 <div style={{ height: "100%", width: `${volume * 100}%`, background: "#fb923c", borderRadius: 3, transition: "width 1s linear" }} />
               </div>
@@ -1750,7 +1750,7 @@ export default function NightPage() {
             color: "#1a3040", fontSize: "0.6rem",
             fontFamily: "sans-serif", letterSpacing: "0.04em",
           }}>
-            ⌨️ Space=Play/Pause · ←→=Skip · R=Restart · S=Stop
+             Space=Play/Pause · ←→=Skip · R=Restart · S=Stop
           </p>
         </div>
       </div>

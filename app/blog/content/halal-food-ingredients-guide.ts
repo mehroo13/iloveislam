@@ -4,7 +4,7 @@ export const halalFoodIngredientsGuide = {
   title: "Halal Food Ingredients: Complete Guide to What Muslims Can Eat",
   excerpt: "Complete guide to halal food ingredients including E-numbers, additives, and common ingredients. Know what's halal, haram, and mashbooh instantly.",
   category: "Halal",
-  emoji: "🥗",
+  emoji: "",
   readTime: "20-25 min read",
   date: "2026-02-10",
   content: `

@@ -23,7 +23,7 @@ export default function BlogPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 px-5 py-2 rounded-full text-sm font-medium mb-4">
-            📖 Islamic Knowledge
+             Islamic Knowledge
           </div>
           <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 dark:text-white tracking-tight mb-2">
             Islamic Blog

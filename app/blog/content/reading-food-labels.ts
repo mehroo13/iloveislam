@@ -4,7 +4,7 @@ export const readingFoodLabelsArticle = {
   title: "Reading Food Labels: A Practical Guide to Halal Ingredients",
   excerpt: "Learn how to read packaged food labels, recognise risky ingredients, decode E‑numbers, and make confident halal choices while shopping.",
   category: "Halal Guidance",
-  emoji: "📦",
+  emoji: "",
   readTime: "6-9 min read",
   date: "2026-05-23",
   content: `

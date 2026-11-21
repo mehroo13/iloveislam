@@ -43,7 +43,7 @@ export default function Newsletter({ t }: { t: TranslationsType }) {
   return (
     <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/50">
       <div className="flex items-center gap-2 mb-1">
-        <span>📧</span>
+        <span></span>
         <h3 className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{t.newsletterTitle}</h3>
       </div>
       <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{t.newsletterSubtitle}</p>

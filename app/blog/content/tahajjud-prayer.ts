@@ -4,7 +4,7 @@ export const tahajjudArticle = {
   title: "Tahajjud Prayer: The Night Vigil – How to Wake Up and Pray Consistently",
   excerpt: "Tahajjud is one of the most beloved voluntary prayers to Allah. Learn its immense rewards, the best time to pray, step-by-step method, and proven tips to wake up for it regularly.",
   category: "Prayer",
-  emoji: "🌙",
+  emoji: "",
   readTime: "14 min read",
   date: "2026-01-27",
   content: `
@@ -68,13 +68,13 @@ export const tahajjudArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/prayer-times" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕐</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Prayer Times</h3>
     <p class="text-gray-600 dark:text-gray-400">Calculate the last third of the night</p>
   </a>
   
   <a href="/dua" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🤲</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Dua Generator</h3>
     <p class="text-gray-600 dark:text-gray-400">Powerful duas for Tahajjud</p>
   </a>

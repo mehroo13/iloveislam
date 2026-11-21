@@ -58,7 +58,7 @@ const HEIRS: HeirDef[] = [
 ];
 
 const GROUPS = ['Spouse', 'Children', 'Parents', 'Grandparents', 'Siblings'];
-const GROUP_ICONS: Record<string, string> = { Spouse: '💑', Children: '👶', Parents: '👨‍👩‍👧', Grandparents: '👴', Siblings: '🤝' };
+const GROUP_ICONS: Record<string, string> = { Spouse: '', Children: '', Parents: '', Grandparents: '', Siblings: '' };
 const COLORS = ['#059669', '#0d9488', '#c8a96e', '#7c3aed', '#dc2626', '#2563eb', '#d97706', '#ec4899', '#6366f1', '#14b8a6'];
 
 const SCENARIOS: { name: string; heirs: Record<string, number> }[] = [
@@ -310,7 +310,7 @@ export default function InheritanceCalculator() {
       <header className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white px-5 py-4 shadow-xl sticky top-0 z-20">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <Link href="/" className="text-white/60 hover:text-white text-sm transition-colors">← Home</Link>
-          <h1 className="text-lg font-bold">⚖️ Islamic Inheritance Calculator</h1>
+          <h1 className="text-lg font-bold"> Islamic Inheritance Calculator</h1>
           <button onClick={() => setCurrency(CURRENCIES[(CURRENCIES.findIndex(c => c.code === currency) + 1) % CURRENCIES.length].code)}
             className="bg-white/15 text-white text-xs rounded-full px-3 py-1.5 border border-white/20 hover:bg-white/25 transition-all">
             {sym} {currency}
@@ -339,7 +339,7 @@ export default function InheritanceCalculator() {
           <>
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 space-y-5">
               <div>
-                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-1">💰 Estate & Deductions</h2>
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-1"> Estate & Deductions</h2>
                 <p className="text-xs text-gray-400">Enter the total value of all assets and any deductions.</p>
               </div>
 
@@ -350,7 +350,7 @@ export default function InheritanceCalculator() {
                   {(['male', 'female'] as const).map(g => (
                     <button key={g} onClick={() => { setDeceasedGender(g); setHeirCounts(prev => { const n = {...prev}; delete n[g === 'male' ? 'husband' : 'wife']; return n; }); }}
                       className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all ${deceasedGender === g ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 shadow-sm' : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400'}`}>
-                      {g === 'male' ? '👨 Male' : '👩 Female'}
+                      {g === 'male' ? ' Male' : ' Female'}
                     </button>
                   ))}
                 </div>
@@ -369,9 +369,9 @@ export default function InheritanceCalculator() {
               <div className="border-t border-gray-100 dark:border-gray-700 pt-5">
                 <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Deductions (in Islamic priority order)</p>
                 {[
-                  { label: '⚰️ Funeral & Burial Expenses', value: funeral, set: setFuneral, hint: 'Paid first from estate' },
-                  { label: '💳 Debts of Deceased', value: debts, set: setDebts, hint: 'All outstanding debts' },
-                  { label: '📜 Wasiyyah / Bequests (max ⅓)', value: wasiyyah, set: setWasiyyah, hint: 'Charitable bequests, max one-third' },
+                  { label: ' Funeral & Burial Expenses', value: funeral, set: setFuneral, hint: 'Paid first from estate' },
+                  { label: ' Debts of Deceased', value: debts, set: setDebts, hint: 'All outstanding debts' },
+                  { label: ' Wasiyyah / Bequests (max ⅓)', value: wasiyyah, set: setWasiyyah, hint: 'Charitable bequests, max one-third' },
                 ].map(item => (
                   <div key={item.label} className="mb-3">
                     <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block font-medium">{item.label}</label>
@@ -405,7 +405,7 @@ export default function InheritanceCalculator() {
             {/* Scenarios */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
               <button onClick={() => setShowScenarios(!showScenarios)} className="w-full flex items-center justify-between text-sm">
-                <span className="font-medium text-gray-700 dark:text-gray-200">📋 Quick Scenarios</span>
+                <span className="font-medium text-gray-700 dark:text-gray-200"> Quick Scenarios</span>
                 <span className="text-xs text-emerald-600 dark:text-emerald-400">{showScenarios ? 'Hide' : 'Show'}</span>
               </button>
               {showScenarios && (
@@ -458,7 +458,7 @@ export default function InheritanceCalculator() {
               <button onClick={() => setStep(1)} className="flex-1 py-3.5 rounded-2xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">← Back</button>
               <button onClick={() => { setStep(3); window.scrollTo({ top: 0, behavior: 'smooth' }); }} disabled={!hasAnyHeir}
                 className="flex-1 py-3.5 rounded-2xl bg-emerald-800 text-white font-semibold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg active:scale-[0.98]">
-                Calculate ⚖️
+                Calculate 
               </button>
             </div>
           </>
@@ -473,8 +473,8 @@ export default function InheritanceCalculator() {
               <p className="text-white/40 text-xs mt-2">{calcResult.results.length} heir group{calcResult.results.length !== 1 ? 's' : ''} · Deceased: {deceasedGender}</p>
               {(calcResult.awl || calcResult.radd) && (
                 <div className="mt-3 flex justify-center gap-2">
-                  {calcResult.awl && <span className="text-xs bg-red-500/20 text-red-200 px-2 py-0.5 rounded-full">⚠️ Awl Applied</span>}
-                  {calcResult.radd && <span className="text-xs bg-blue-500/20 text-blue-200 px-2 py-0.5 rounded-full">↩️ Radd Applied</span>}
+                  {calcResult.awl && <span className="text-xs bg-red-500/20 text-red-200 px-2 py-0.5 rounded-full"> Awl Applied</span>}
+                  {calcResult.radd && <span className="text-xs bg-blue-500/20 text-blue-200 px-2 py-0.5 rounded-full">↩ Radd Applied</span>}
                 </div>
               )}
             </div>
@@ -541,7 +541,7 @@ export default function InheritanceCalculator() {
                           <span className="font-semibold" style={{ color: COLORS[i % COLORS.length] }}>{sym}{r.perPerson.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                         </div>
                       )}
-                      <p className="text-[10px] text-gray-400 flex items-center gap-1">📖 {r.quranicRef}</p>
+                      <p className="text-[10px] text-gray-400 flex items-center gap-1"> {r.quranicRef}</p>
                     </div>
                   ))}
                 </div>
@@ -550,12 +550,12 @@ export default function InheritanceCalculator() {
 
             <div className="flex gap-3 pt-2">
               <button onClick={() => setStep(2)} className="flex-1 py-3.5 rounded-2xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">← Edit Heirs</button>
-              <button onClick={handlePrint} className="py-3.5 px-5 rounded-2xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">🖨️</button>
+              <button onClick={handlePrint} className="py-3.5 px-5 rounded-2xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"></button>
               <button onClick={resetAll} className="flex-1 py-3.5 rounded-2xl bg-emerald-800 text-white font-semibold hover:bg-emerald-700 transition-all shadow-lg active:scale-[0.98]">New Calculation</button>
             </div>
 
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 text-sm text-amber-800 dark:text-amber-300">
-              <p className="font-semibold mb-1">⚠️ Disclaimer</p>
+              <p className="font-semibold mb-1"> Disclaimer</p>
               <p className="text-xs leading-relaxed">This calculator provides estimates based on majority Sunni (Hanafi) fiqh. Inheritance law is complex and varies by school of thought. Always consult a qualified Islamic scholar and local lawyer for your specific case.</p>
             </div>
           </>

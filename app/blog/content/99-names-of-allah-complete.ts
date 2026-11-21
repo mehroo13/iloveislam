@@ -4,7 +4,7 @@ export const ninetyNineNamesComplete = {
   title: "99 Names of Allah (Asma ul Husna): Complete List with Meanings",
   excerpt: "The complete reference list of Allah's 99 names with Arabic text, English meanings and spiritual benefits — the full Asma ul Husna list for daily recitation.",
   category: "Worship",
-  emoji: "⭐",
+  emoji: "",
   readTime: "18 min read",
   date: "2026-02-01",
   content: `

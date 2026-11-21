@@ -4,7 +4,7 @@ export const halalFinanceArticle = {
   title: "Halal Finance: What Is Riba and How to Avoid It Completely",
   excerpt: "Riba (interest) is one of the major sins in Islam. Learn what Riba really is, its different types, why it is strictly forbidden, and practical ways to structure your finances in a fully halal manner.",
   category: "Finance",
-  emoji: "💎",
+  emoji: "",
   readTime: "14 min read",
   date: "2026-05-05",
   content: `
@@ -99,13 +99,13 @@ export const halalFinanceArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 my-10">
   <a href="/halal-finance" class="group bg-white dark:bg-gray-800 p-7 rounded-3xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-5xl mb-4 block">✅</span>
+    <span class="text-5xl mb-4 block"></span>
     <h3 class="font-bold text-2xl">Halal Finance Checker</h3>
     <p class="text-gray-600 dark:text-gray-400">Verify if your banking and investments are Riba-free</p>
   </a>
   
   <a href="/zakat" class="group bg-white dark:bg-gray-800 p-7 rounded-3xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-5xl mb-4 block">💰</span>
+    <span class="text-5xl mb-4 block"></span>
     <h3 class="font-bold text-2xl">Zakat Calculator</h3>
     <p class="text-gray-600 dark:text-gray-400">Calculate your annual Zakat the correct way</p>
   </a>

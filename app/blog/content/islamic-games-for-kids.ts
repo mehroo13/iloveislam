@@ -4,7 +4,7 @@ export const islamicGamesForKids = {
   title: "Islamic Games for Kids: 17 Free Educational Games Online",
   excerpt: "Discover 17 free Islamic games for kids that teach Quran, Arabic, prayer, and Islamic values. Fun educational games for Muslim children ages 3-12.",
   category: "Kids",
-  emoji: "🎮",
+  emoji: "",
   readTime: "14 min read",
   date: "2026-02-15",
   content: `

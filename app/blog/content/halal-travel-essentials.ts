@@ -4,7 +4,7 @@ export const halalTravelEssentialsArticle = {
   title: "Halal Travel Essentials: Eating and Praying on the Road",
   excerpt: "On the road with no halal restaurant or prayer space in sight? Practical advice for Muslim travellers: finding halal meals, praying on the go and staying confident away from home.",
   category: "Travel",
-  emoji: "🧳",
+  emoji: "",
   readTime: "6-9 min read",
   date: "2026-05-23",
   content: `

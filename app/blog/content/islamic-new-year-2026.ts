@@ -4,7 +4,7 @@ export const islamicNewYear2026 = {
   title: "Islamic New Year 2026 (1448 AH): Date, Significance & Practices",
   excerpt: "Islamic New Year 2026 (1448 AH): the expected date, Muharram practices and Ashura fasting for this year — plus the history of the Hijri calendar.",
   category: "Events",
-  emoji: "🗓️",
+  emoji: "",
   readTime: "15 min read",
   date: "2026-03-05",
   content: `

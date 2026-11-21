@@ -4,7 +4,7 @@ export const qiblaArticle = {
   title: "How to Find the Qibla Direction Anywhere in the World",
   excerpt: "Learn the importance of the Qibla, why the direction changes by location, and how to accurately find it using our free Qibla Finder tool or traditional methods.",
   category: "Prayer",
-  emoji: "🧭",
+  emoji: "",
   readTime: "13 min read",
   date: "2026-05-05",
   content: `
@@ -86,13 +86,13 @@ No. Facing the general direction of the city of Mecca is sufficient for people f
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/qibla" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🧭</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Qibla Finder</h3>
     <p class="text-gray-600 dark:text-gray-400">Accurate direction anywhere</p>
   </a>
   
   <a href="/prayer-times" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕐</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Prayer Times</h3>
     <p class="text-gray-600 dark:text-gray-400">Accurate salah timings for your location</p>
   </a>

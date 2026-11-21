@@ -4,7 +4,7 @@ export const halalTravelArticle = {
   title: "Halal Travel Guide: 10 Essential Tips for Muslim Travellers",
   excerpt: "Travelling while staying true to your faith is easy with the right preparation. Learn practical halal travel tips — from prayer times and Qibla to halal food, mosques, and traveller’s concessions.",
   category: "Travel",
-  emoji: "🧳",
+  emoji: "",
   readTime: "14 min read",
   date: "2026-05-15",
   content: `
@@ -71,25 +71,25 @@ export const halalTravelArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/prayer-times" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕐</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Prayer Times</h3>
     <p class="text-gray-600 dark:text-gray-400">Accurate times worldwide</p>
   </a>
   
   <a href="/qibla" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🧭</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Qibla Finder</h3>
     <p class="text-gray-600 dark:text-gray-400">Find direction anywhere</p>
   </a>
   
   <a href="/mosque" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕌</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Mosque Finder</h3>
     <p class="text-gray-600 dark:text-gray-400">Locate masjids near you</p>
   </a>
   
   <a href="/dua" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🤲</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Dua Generator</h3>
     <p class="text-gray-600 dark:text-gray-400">Travel duas & more</p>
   </a>

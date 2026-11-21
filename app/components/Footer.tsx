@@ -88,7 +88,7 @@ export default function Footer() {
       {/* Bottom bar */}
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-5 text-xs text-white/60 sm:flex-row">
-          <p>© {year} I Love Islam. Made with love for the Ummah.</p>
+          <p>©{' '}{year}{' '}I Love Islam. Made with love for the Ummah.</p>
           <nav aria-label="Footer legal links" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
             {LEGAL_LINKS.map((link) => (
               <Link key={link.href} href={link.href} className="transition-colors hover:text-white">

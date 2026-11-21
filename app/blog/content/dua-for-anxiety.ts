@@ -4,7 +4,7 @@ export const duaForAnxiety = {
   title: "Dua for Anxiety: 10 Powerful Islamic Prayers for Stress Relief",
   excerpt: "Discover 10 powerful dua for anxiety and stress relief from the Quran and Sunnah. Arabic text, transliteration, and Prophet's remedies for worry and depression.",
   category: "Dua",
-  emoji: "🤲",
+  emoji: "",
   readTime: "18 min read",
   date: "2026-04-05",
   content: `

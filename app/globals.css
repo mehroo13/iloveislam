@@ -1,7 +1,63 @@
-@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&display=swap');
+/* Self-hosted fonts — no external font requests, so Arabic text can never
+   fall back to a broken serif. Amiri Quran is the dedicated Quranic font
+   (proper Indo-Pak glyph shaping); Amiri is the fallback for Arabic labels. */
+@font-face {
+  font-family: 'Amiri Quran';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/amiri-quran-arabic.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200D;
+}
+@font-face {
+  font-family: 'Amiri';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/amiri-arabic-400.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+@font-face {
+  font-family: 'Amiri';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/amiri-arabic-700.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+@font-face {
+  font-family: 'Amiri';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/amiri-latin-400.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F;
+}
+@font-face {
+  font-family: 'Amiri';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/amiri-latin-700.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F;
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/dm-sans-latin-400.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Anchor / scroll targets must clear the 56px sticky header. */
+html {
+  scroll-padding-top: 4.75rem;
+}
 
 /* ===== I Love Islam — design system (emerald + gold on warm paper) ===== */
 :root {
@@ -41,6 +97,16 @@ body {
 
 .font-arabic {
   font-family: 'Amiri', serif;
+}
+
+/* Quranic Arabic — Amiri Quran renders Indo-Pak text with its proper tall
+   diacritics. line-height 2.2 + generous word spacing stops long verses
+   (2:282, 2:286) from overlapping vertically. Always pair with dir="rtl". */
+.font-quran {
+  font-family: 'Amiri Quran', 'Amiri', serif;
+  line-height: 2.2;
+  word-spacing: 0.08em;
+  overflow-wrap: break-word;
 }
 
 /* Brand selection + focus */

@@ -35,16 +35,16 @@ const CURRENCIES: Record<string, { symbol: string; goldDefault: number; silverDe
 const CURRENCY_KEYS = Object.keys(CURRENCIES);
 
 const ASSET_FIELDS = [
-  { key: 'gold', label: 'Gold owned', icon: '🥇', tip: 'All gold jewellery, coins, bars (Hanafi: includes personal jewellery. Shafi\'i: excludes personal use jewellery)' },
-  { key: 'silver', label: 'Silver owned', icon: '🥈', tip: 'Silver coins, bars, or silver held as savings' },
-  { key: 'cash', label: 'Cash in hand', icon: '💵', tip: 'Physical cash at home or on your person' },
-  { key: 'savings', label: 'Bank savings', icon: '🏦', tip: 'All bank accounts — current, savings, fixed deposit' },
-  { key: 'investments', label: 'Stocks & funds', icon: '📈', tip: 'Stocks, mutual funds, ETFs, bonds — use current market value' },
+  { key: 'gold', label: 'Gold owned', icon: '', tip: 'All gold jewellery, coins, bars (Hanafi: includes personal jewellery. Shafi\'i: excludes personal use jewellery)' },
+  { key: 'silver', label: 'Silver owned', icon: '', tip: 'Silver coins, bars, or silver held as savings' },
+  { key: 'cash', label: 'Cash in hand', icon: '', tip: 'Physical cash at home or on your person' },
+  { key: 'savings', label: 'Bank savings', icon: '', tip: 'All bank accounts — current, savings, fixed deposit' },
+  { key: 'investments', label: 'Stocks & funds', icon: '', tip: 'Stocks, mutual funds, ETFs, bonds — use current market value' },
   { key: 'crypto', label: 'Cryptocurrency', icon: '₿', tip: 'Bitcoin, Ethereum, and all crypto holdings at current market value' },
-  { key: 'rental', label: 'Rental income saved', icon: '🏠', tip: 'Accumulated rental income not yet spent (not the property value itself)' },
-  { key: 'business', label: 'Business assets', icon: '🏢', tip: 'Inventory, trade goods, receivables — not fixed assets like machinery' },
-  { key: 'loans', label: 'Loans given out', icon: '🤝', tip: 'Money you have lent to others that you expect back' },
-  { key: 'other', label: 'Other assets', icon: '💎', tip: 'Any other wealth subject to zakat not listed above' },
+  { key: 'rental', label: 'Rental income saved', icon: '', tip: 'Accumulated rental income not yet spent (not the property value itself)' },
+  { key: 'business', label: 'Business assets', icon: '', tip: 'Inventory, trade goods, receivables — not fixed assets like machinery' },
+  { key: 'loans', label: 'Loans given out', icon: '', tip: 'Money you have lent to others that you expect back' },
+  { key: 'other', label: 'Other assets', icon: '', tip: 'Any other wealth subject to zakat not listed above' },
 ] as const;
 
 type AssetKey = (typeof ASSET_FIELDS)[number]['key'];
@@ -85,7 +85,7 @@ function ZakatHistory({ sym }: { sym: string }) {
         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: i < history.length - 1 ? '1px solid #f0ece4' : 'none' }}>
           <div>
             <p style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a', margin: 0 }}>
-              {entry.meetsNisab ? '✅' : '❌'} {entry.currency} — {new Date(entry.date).toLocaleDateString()}
+              {entry.meetsNisab ? '' : ''} {entry.currency} — {new Date(entry.date).toLocaleDateString()}
             </p>
             <p style={{ fontSize: 10, color: '#888', margin: '2px 0 0' }}>
               Zakatable: {sym}{Number(entry.zakatable).toLocaleString('en', { maximumFractionDigits: 0 })}
@@ -307,13 +307,13 @@ export default function ZakatCalculator() {
 
   function handleShare() {
     if (!result) return;
-    const text = `📊 My Zakat Calculation — I Love Islam\n\n` +
+    const text = ` My Zakat Calculation — I Love Islam\n\n` +
       `Total Assets: ${sym}${fmt(result.totalAssets)}\n` +
       `After Debts: ${sym}${fmt(result.zakatable)}\n` +
       `Nisab (${result.nisabMethod}): ${sym}${fmt(result.nisabUsed)}\n` +
-      `Meets Nisab: ${result.meetsNisab ? '✅ Yes' : '❌ No'}\n` +
-      (result.meetsNisab ? `\n💰 Zakat Due (2.5%): ${sym}${fmt(result.zakatDue)}\n` : '\nNo zakat is due.\n') +
-      `\nCalculated at iloveislam.life/zakat\nJazakAllah Khair 🤲`;
+      `Meets Nisab: ${result.meetsNisab ? ' Yes' : ' No'}\n` +
+      (result.meetsNisab ? `\n Zakat Due (2.5%): ${sym}${fmt(result.zakatDue)}\n` : '\nNo zakat is due.\n') +
+      `\nCalculated at iloveislam.life/zakat\nJazakAllah Khair `;
 
     if (navigator.share && /Mobi/i.test(navigator.userAgent)) {
       navigator.share({ title: 'My Zakat Calculation', text });
@@ -359,7 +359,7 @@ export default function ZakatCalculator() {
         <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 12 }}>
           <Link href="/" style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textDecoration: 'none' }}>← Back</Link>
           <div style={{ flex: 1, textAlign: 'center' }}>
-            <p style={{ color: '#fff', fontWeight: 700, fontSize: 16, margin: 0 }}>💰 Zakat Calculator</p>
+            <p style={{ color: '#fff', fontWeight: 700, fontSize: 16, margin: 0 }}> Zakat Calculator</p>
             <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, margin: 0 }}>2.5% of zakatable wealth above nisab</p>
           </div>
           <div style={{ width: 60 }} />
@@ -370,7 +370,7 @@ export default function ZakatCalculator() {
         {/* ── SETTINGS CARD ── */}
         <div className="no-print" style={{ background: '#fff', borderRadius: 20, border: '1px solid #e8e0cc', padding: '20px 22px', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <p style={{ fontWeight: 700, fontSize: 14, color: '#1a1a1a', margin: 0 }}>⚙️ Settings</p>
+            <p style={{ fontWeight: 700, fontSize: 14, color: '#1a1a1a', margin: 0 }}> Settings</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <label style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
                 <input
@@ -400,7 +400,7 @@ export default function ZakatCalculator() {
                   fontWeight: 600,
                 }}
               >
-                {fetchingPrices ? '⏳ Fetching...' : '🔄 Refresh'}
+                {fetchingPrices ? ' Fetching...' : ' Refresh'}
               </button>
             </div>
           </div>
@@ -493,8 +493,8 @@ export default function ZakatCalculator() {
             <div style={{ display: 'flex', gap: 10 }}>
               {(
                 [
-                  ['silver', '🥈 Silver nisab', `${sym}${fmt(SILVER_NISAB_GRAMS * silverPrice)} — most scholars recommend`],
-                  ['gold', '🥇 Gold nisab', `${sym}${fmt(GOLD_NISAB_GRAMS * goldPrice)} — higher threshold`],
+                  ['silver', ' Silver nisab', `${sym}${fmt(SILVER_NISAB_GRAMS * silverPrice)} — most scholars recommend`],
+                  ['gold', ' Gold nisab', `${sym}${fmt(GOLD_NISAB_GRAMS * goldPrice)} — higher threshold`],
                 ] as const
               ).map(([val, label, sub]) => (
                 <button
@@ -527,8 +527,8 @@ export default function ZakatCalculator() {
             <div style={{ display: 'flex', gap: 10 }}>
               {(
                 [
-                  ['hanafi', '📗 Hanafi', 'Gold/silver jewellery IS zakatable'],
-                  ['shafii', '📘 Shafi\'i / Maliki / Hanbali', 'Personal jewellery excluded'],
+                  ['hanafi', ' Hanafi', 'Gold/silver jewellery IS zakatable'],
+                  ['shafii', ' Shafi\'i / Maliki / Hanbali', 'Personal jewellery excluded'],
                 ] as const
               ).map(([val, label, sub]) => (
                 <button
@@ -558,7 +558,7 @@ export default function ZakatCalculator() {
 
         {/* ── ASSETS CARD (same as before) ── */}
         <div className="no-print" style={{ background: '#fff', borderRadius: 20, border: '1px solid #e8e0cc', padding: '20px 22px', marginBottom: 14 }}>
-          <p style={{ fontWeight: 700, fontSize: 14, color: '#1a1a1a', margin: '0 0 16px' }}>📦 Your Assets</p>
+          <p style={{ fontWeight: 700, fontSize: 14, color: '#1a1a1a', margin: '0 0 16px' }}> Your Assets</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {ASSET_FIELDS.map((field) => {
               const isGoldOrSilver = field.key === 'gold' || field.key === 'silver';
@@ -636,10 +636,10 @@ export default function ZakatCalculator() {
 
         {/* ── DEBTS CARD ── */}
         <div className="no-print" style={{ background: '#fff', borderRadius: 20, border: '1px solid #e8e0cc', padding: '20px 22px', marginBottom: 14 }}>
-          <p style={{ fontWeight: 700, fontSize: 14, color: '#1a1a1a', margin: '0 0 4px' }}>📉 Deductions</p>
+          <p style={{ fontWeight: 700, fontSize: 14, color: '#1a1a1a', margin: '0 0 4px' }}> Deductions</p>
           <p style={{ fontSize: 11, color: '#aaa', margin: '0 0 14px' }}>Immediate debts payable within the year</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 20 }}>💳</span>
+            <span style={{ fontSize: 20 }}></span>
             <label style={{ fontSize: 13, color: '#444', flex: 1 }}>Debts & liabilities ({sym})</label>
             <div style={{ position: 'relative', width: getDynamicWidth(debts, 45), transition: 'width 0.2s ease' }}>
               <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#aaa' }}>{sym}</span>
@@ -658,7 +658,7 @@ export default function ZakatCalculator() {
         <div className="no-print" style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
           <button onClick={calculate}
             style={{ flex: 1, padding: '14px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg, #0a3d2e, #0d5238)', color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.03em' }}>
-            Calculate My Zakat ⚖️
+            Calculate My Zakat 
           </button>
           <button onClick={reset}
             style={{ padding: '14px 20px', borderRadius: 14, border: '1px solid #e0d8c8', background: '#fff', color: '#888', fontSize: 13, cursor: 'pointer' }}>
@@ -669,7 +669,7 @@ export default function ZakatCalculator() {
         {/* ── QUICK MODE (for simple cases) ── */}
         {!result && (
           <div className="no-print" style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8e0cc', padding: '14px 18px', marginBottom: 14 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: '#aaa', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 10px' }}>⚡ Quick Calculate</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: '#aaa', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 10px' }}> Quick Calculate</p>
             <p style={{ fontSize: 12, color: '#666', margin: '0 0 10px' }}>Just have cash savings? Enter the amount and tap calculate:</p>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <span style={{ fontSize: 13, color: '#888' }}>{sym}</span>
@@ -697,7 +697,7 @@ export default function ZakatCalculator() {
             onClick={() => setShowHistory(!showHistory)}
             style={{ fontSize: 12, color: '#0a3d2e', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: '4px 0' }}
           >
-            📋 {showHistory ? 'Hide' : 'View'} Past Calculations
+             {showHistory ? 'Hide' : 'View'} Past Calculations
           </button>
           {showHistory && <ZakatHistory sym={sym} />}
         </div>
@@ -785,11 +785,11 @@ export default function ZakatCalculator() {
               <div className="no-print" style={{ display: 'flex', gap: 10, marginTop: 16 }}>
                 <button onClick={handleShare}
                   style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: copied ? '#059669' : 'linear-gradient(135deg, #0a3d2e, #0d5238)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                  {copied ? '✅ Copied to clipboard!' : '📤 Share My Zakat'}
+                  {copied ? ' Copied to clipboard!' : ' Share My Zakat'}
                 </button>
                 <button onClick={handlePrint}
                   style={{ flex: 1, padding: '12px', borderRadius: 12, border: '1px solid #e0d8c8', background: '#fff', color: '#555', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                  🖨️ Save as PDF
+                   Save as PDF
                 </button>
               </div>
               {copied && (
@@ -797,7 +797,7 @@ export default function ZakatCalculator() {
               )}
               <div style={{ marginTop: 16, padding: '12px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12 }}>
                 <p style={{ fontSize: 11, color: '#92400e', margin: 0, lineHeight: 1.6 }}>
-                  ⚠️ <strong>Disclaimer:</strong> This calculator provides an estimate based on majority Sunni (Hanafi) fiqh. Gold and silver prices are approximations. Please verify current prices and consult a qualified Islamic scholar for your specific situation. Prices last updated: {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}.
+                   <strong>Disclaimer:</strong> This calculator provides an estimate based on majority Sunni (Hanafi) fiqh. Gold and silver prices are approximations. Please verify current prices and consult a qualified Islamic scholar for your specific situation. Prices last updated: {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}.
                 </p>
               </div>
               <div style={{ marginTop: 12, textAlign: 'center', padding: '14px', background: 'linear-gradient(135deg, #0a3d2e, #0d5238)', borderRadius: 14 }}>
@@ -805,7 +805,7 @@ export default function ZakatCalculator() {
                   اللَّهُمَّ تَقَبَّلْ مِنِّي
                 </p>
                 <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, margin: 0 }}>
-                  O Allah, accept from me — Ameen 🤲
+                  O Allah, accept from me — Ameen 
                 </p>
               </div>
             </div>
@@ -814,13 +814,13 @@ export default function ZakatCalculator() {
 
         {/* Info card (unchanged) */}
         <div className="no-print" style={{ background: '#fff', borderRadius: 20, border: '1px solid #e8e0cc', padding: '18px 22px' }}>
-          <p style={{ fontWeight: 700, fontSize: 13, color: '#1a1a1a', margin: '0 0 12px' }}>📚 About Zakat</p>
+          <p style={{ fontWeight: 700, fontSize: 13, color: '#1a1a1a', margin: '0 0 12px' }}> About Zakat</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
-              { icon: '📐', title: 'Nisab (Minimum Threshold)', body: 'Zakat is only due when your net wealth exceeds the nisab for a full lunar year (hawl). Silver nisab is ~612g; gold nisab is ~87.5g.' },
-              { icon: '💸', title: 'Rate', body: 'The Zakat rate is 2.5% (1/40th) of your total zakatable wealth above the nisab.' },
-              { icon: '🤝', title: 'Who receives Zakat?', body: 'The 8 categories in Quran 9:60: the poor, the needy, Zakat administrators, those whose hearts are to be reconciled, freeing captives, those in debt, for the sake of Allah, and wayfarers.' },
-              { icon: '📅', title: 'When to pay?', body: 'Once a full lunar year (354 days) has passed with your wealth above nisab. Many Muslims pay in Ramadan for the multiplied reward.' },
+              { icon: '', title: 'Nisab (Minimum Threshold)', body: 'Zakat is only due when your net wealth exceeds the nisab for a full lunar year (hawl). Silver nisab is ~612g; gold nisab is ~87.5g.' },
+              { icon: '', title: 'Rate', body: 'The Zakat rate is 2.5% (1/40th) of your total zakatable wealth above the nisab.' },
+              { icon: '', title: 'Who receives Zakat?', body: 'The 8 categories in Quran 9:60: the poor, the needy, Zakat administrators, those whose hearts are to be reconciled, freeing captives, those in debt, for the sake of Allah, and wayfarers.' },
+              { icon: '', title: 'When to pay?', body: 'Once a full lunar year (354 days) has passed with your wealth above nisab. Many Muslims pay in Ramadan for the multiplied reward.' },
             ].map((item) => (
               <div key={item.title} style={{ display: 'flex', gap: 12, padding: '10px 12px', background: '#fafaf7', borderRadius: 12 }}>
                 <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>

@@ -4,7 +4,7 @@ export const quranBeginnersGuideArticle = {
   title: "Beginner's Guide to Reading the Quran: Where to Start & How to Build a Habit",
   excerpt: "Feeling overwhelmed starting the Quran? This complete beginner’s guide walks you through the best Surahs to begin with, practical tips, tajweed basics, and how to make Quran reading a daily joy.",
   category: "Quran",
-  emoji: "📖",
+  emoji: "",
   readTime: "14 min read",
   date: "2026-05-23",
   content: `
@@ -74,13 +74,13 @@ export const quranBeginnersGuideArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/quran" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">📖</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Quran Reader</h3>
     <p class="text-gray-600 dark:text-gray-400">Full Quran with translation, audio & bookmarking</p>
   </a>
   
   <a href="/dhikr" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">📿</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Dhikr Counter</h3>
     <p class="text-gray-600 dark:text-gray-400">Track your daily Quran & dhikr goals</p>
   </a>

@@ -32,7 +32,7 @@ export default function ComparisonCard({
         <div className="comp-card islam-card">
           <div className="card-religion-header islam-header">
             <div className="religion-icon-wrap islam-icon">
-              <span>☪</span>
+              <span></span>
             </div>
             <div>
               <div className="card-religion-name">Islam</div>
@@ -82,12 +82,12 @@ export default function ComparisonCard({
         <div className="share-section">
           <button 
             onClick={() => {
-              const text = `${topicLabel}: Islam vs ${religionMeta.label}\n\n☪️ Islam: ${data.islam.substring(0, 100)}...\n\n${religionMeta.emoji} ${religionMeta.label}: ${data.other.substring(0, 100)}...\n\nExplore full comparison at iloveislam.life/compare-religions`;
+              const text = `${topicLabel}: Islam vs ${religionMeta.label}\n\n Islam: ${data.islam.substring(0, 100)}...\n\n${religionMeta.emoji} ${religionMeta.label}: ${data.other.substring(0, 100)}...\n\nExplore full comparison at iloveislam.life/compare-religions`;
               if (navigator.share) {
                 navigator.share({ title: `Islam vs ${religionMeta.label} — ${topicLabel}`, text, url: window.location.href });
               } else {
                 navigator.clipboard.writeText(text + '\n' + window.location.href);
-                alert('✅ Copied to clipboard!');
+                alert(' Copied to clipboard!');
               }
             }}
             className="share-btn"

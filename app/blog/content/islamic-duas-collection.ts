@@ -4,7 +4,7 @@ export const islamicDuasCollection = {
   title: "Islamic Duas for Every Occasion: 50+ Authentic Supplications",
   excerpt: "Complete collection of Islamic duas for daily life, morning/evening, travel, eating, sleeping, and more. Authentic supplications with Arabic text.",
   category: "Dua",
-  emoji: "🤲",
+  emoji: "",
   readTime: "20 min read",
   date: "2026-02-05",
   content: `

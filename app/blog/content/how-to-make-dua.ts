@@ -4,7 +4,7 @@ export const duaGuideArticle = {
   title: "How to Make Dua: The Complete Islamic Guide to Supplication",
   excerpt: "Dua is the most powerful weapon of the believer. Learn the proper etiquettes, best times, conditions for acceptance, and powerful duas taught by the Prophet ﷺ.",
   category: "Worship",
-  emoji: "🤲",
+  emoji: "",
   readTime: "15 min read",
   date: "2026-05-21",
   content: `
@@ -69,13 +69,13 @@ export const duaGuideArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/dua" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🤲</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Dua Generator</h3>
     <p class="text-gray-600 dark:text-gray-400">Hundreds of authentic duas for every situation</p>
   </a>
   
   <a href="/dhikr" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">📿</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Dhikr Counter</h3>
     <p class="text-gray-600 dark:text-gray-400">Build your daily remembrance habit</p>
   </a>

@@ -4,7 +4,7 @@ export const ramadanPreparationArticle = {
   title: "How to Prepare for Ramadan: A Complete Spiritual, Physical & Practical Guide",
   excerpt: "Ramadan is the most blessed month of the year. Learn how to prepare your heart, body, and schedule so you can fully benefit from its immense rewards.",
   category: "Ramadan",
-  emoji: "🌙",
+  emoji: "",
   readTime: "15 min read",
   date: "2026-05-13",
   content: `
@@ -53,13 +53,13 @@ export const ramadanPreparationArticle = {
 
 <div class="grid md:grid-cols-2 gap-6 my-10">
   <a href="/ramadan" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🌙</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Ramadan Planner</h3>
     <p class="text-gray-600 dark:text-gray-400">Track fasting, Quran progress, Tarawih, and goals</p>
   </a>
   
   <a href="/prayer-times" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕐</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Prayer Times</h3>
     <p class="text-gray-600 dark:text-gray-400">Accurate Fajr & Maghrib times for your location</p>
   </a>
@@ -86,22 +86,22 @@ export const ramadanPreparationArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/ramadan" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🌙</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Ramadan Planner</h3>
     <p class="text-gray-600 dark:text-gray-400">Complete tracking tool</p>
   </a>
   <a href="/quran" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">📖</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Quran Reader</h3>
     <p class="text-gray-600 dark:text-gray-400">Read with translation</p>
   </a>
   <a href="/dhikr" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">📿</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Dhikr Counter</h3>
     <p class="text-gray-600 dark:text-gray-400">Build consistent remembrance</p>
   </a>
   <a href="/prayer-times" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕐</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Prayer Times</h3>
     <p class="text-gray-600 dark:text-gray-400">Accurate salah schedule</p>
   </a>

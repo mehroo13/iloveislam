@@ -4,7 +4,7 @@ export const zakatNisab2026 = {
   title: "Zakat Nisab 2026: Current Threshold in Gold, Silver & Cash",
   excerpt: "Zakat nisab 2026 threshold values in gold, silver, and cash equivalents. Learn how to check if you meet the nisab and calculate your zakat obligation.",
   category: "Finance",
-  emoji: "💰",
+  emoji: "",
   readTime: "14 min read",
   date: "2026-01-10",
   content: `

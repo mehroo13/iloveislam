@@ -65,7 +65,7 @@ export default function Contact() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           {status === 'sent' ? (
             <div className="text-center py-12">
-              <div className="text-5xl mb-4">✅</div>
+              <div className="text-5xl mb-4"></div>
               <p className="font-bold text-gray-800 text-lg mb-2">JazakAllah Khair!</p>
               <p className="text-gray-500 text-sm mb-4">We'll reply within 48 hours inshaAllah.</p>
               <button
@@ -138,7 +138,7 @@ export default function Contact() {
                 disabled={status === 'sending'}
                 className="w-full py-3.5 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-semibold text-sm transition disabled:opacity-60 shadow-sm"
               >
-                {status === 'sending' ? 'Sending...' : 'Send Message ✉️'}
+                {status === 'sending' ? 'Sending...' : 'Send Message '}
               </button>
 
               <p className="text-center text-gray-300 text-xs">
@@ -151,7 +151,7 @@ export default function Contact() {
         {/* Short footer */}
         <div className="text-center mt-10">
           <p className="font-arabic text-emerald-800 text-lg mb-1">بسم الله الرحمن الرحيم</p>
-          <p className="text-xs text-gray-400">Made with ❤️ for the Ummah · Always Free</p>
+          <p className="text-xs text-gray-400">Made with  for the Ummah · Always Free</p>
           <div className="flex justify-center gap-4 mt-3">
             <Link href="/" className="text-xs text-gray-400 hover:text-gray-600">Home</Link>
             <Link href="/about" className="text-xs text-gray-400 hover:text-gray-600">About</Link>

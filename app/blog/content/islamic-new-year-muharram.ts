@@ -4,7 +4,7 @@ export const islamicNewYearArticle = {
   title: "Islamic New Year & Muharram: Significance, Virtues of Ashura & How to Start the Hijri Year Right",
   excerpt: "Discover the blessings of Muharram, the first sacred month. Learn about the Hijri New Year, the Day of Ashura, recommended fasting, and practical ways to make this new year spiritually rewarding.",
   category: "Knowledge",
-  emoji: "🌙",
+  emoji: "",
   readTime: "14 min read",
   date: "2026-01-29",
   content: `
@@ -63,11 +63,11 @@ export const islamicNewYearArticle = {
 
 <div class="grid md:grid-cols-2 gap-6 my-10">
   <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700">
-    <h3 class="font-semibold text-emerald-700 dark:text-emerald-400 mb-3">📖 Quran Goals</h3>
+    <h3 class="font-semibold text-emerald-700 dark:text-emerald-400 mb-3"> Quran Goals</h3>
     <p class="text-sm">Complete one full Khatm • Memorize one new Surah every two months</p>
   </div>
   <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700">
-    <h3 class="font-semibold text-emerald-700 dark:text-emerald-400 mb-3">🤲 Worship Goals</h3>
+    <h3 class="font-semibold text-emerald-700 dark:text-emerald-400 mb-3"> Worship Goals</h3>
     <p class="text-sm">Daily morning & evening adhkar • Regular Tahajjud • Consistent voluntary fasts</p>
   </div>
 </div>
@@ -91,19 +91,19 @@ export const islamicNewYearArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/hijri" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🌙</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Hijri Calendar</h3>
     <p class="text-gray-600 dark:text-gray-400">Convert dates and track sacred months</p>
   </a>
   
   <a href="/dhikr" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">📿</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Dhikr Counter</h3>
     <p class="text-gray-600 dark:text-gray-400">Build consistent daily remembrance</p>
   </a>
   
   <a href="/prayer-times" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕐</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Prayer Times</h3>
     <p class="text-gray-600 dark:text-gray-400">Never miss a prayer in the new year</p>
   </a>

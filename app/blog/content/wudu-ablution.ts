@@ -4,7 +4,7 @@ export const wuduArticle = {
   title: "How to Perform Wudu (Ablution): Complete Step-by-Step Guide with Duas",
   excerpt: "Master the ritual of Wudu with this detailed guide. Learn the Fard and Sunnah actions, common mistakes to avoid, and the beautiful duas to recite during and after Wudu.",
   category: "Prayer",
-  emoji: "💧",
+  emoji: "",
   readTime: "13 min read",
   date: "2026-05-17",
   content: `
@@ -114,13 +114,13 @@ Allahummaj'alni minat-tawwabeen waj'alni minal-mutatahhireen.
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/prayer-times" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕐</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Prayer Times</h3>
     <p class="text-gray-600 dark:text-gray-400">Accurate salah timings</p>
   </a>
   
   <a href="/qibla" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🧭</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Qibla Finder</h3>
     <p class="text-gray-600 dark:text-gray-400">Direction to the Kaaba</p>
   </a>

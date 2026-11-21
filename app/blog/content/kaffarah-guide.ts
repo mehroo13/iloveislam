@@ -4,7 +4,7 @@ export const kaffarahArticle = {
   title: "What is Kaffarah? Types, Reasons & How to Calculate Expiation",
   excerpt: "Kaffarah is the expiation required for breaking certain Islamic obligations. Learn the different types, when it applies, and how to fulfill it correctly.",
   category: "Knowledge",
-  emoji: "📋",
+  emoji: "",
   readTime: "15 min read",
   date: "2026-04-07",
   content: `
@@ -73,13 +73,13 @@ export const kaffarahArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/kaffarah" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">📋</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Kaffarah Calculator</h3>
     <p class="text-gray-600 dark:text-gray-400">Calculate expiation accurately</p>
   </a>
   
   <a href="/ramadan" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🌙</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Ramadan Planner</h3>
     <p class="text-gray-600 dark:text-gray-400">Track fasts and missed days</p>
   </a>

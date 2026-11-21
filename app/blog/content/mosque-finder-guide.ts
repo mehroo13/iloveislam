@@ -4,7 +4,7 @@ export const mosqueFinderArticle = {
   title: "How to Find a Mosque Near You — Anywhere in the World",
   excerpt: "Discover nearby mosques easily with our free Mosque Finder tool. Learn mosque etiquette, Jumu'ah timings, and how to build a strong connection with your local Muslim community.",
   category: "Prayer",
-  emoji: "🕌",
+  emoji: "",
   readTime: "12 min read",
   date: "2026-03-11",
   content: `
@@ -78,19 +78,19 @@ export const mosqueFinderArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/mosque" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕌</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Mosque Finder</h3>
     <p class="text-gray-600 dark:text-gray-400">Locate mosques worldwide</p>
   </a>
   
   <a href="/prayer-times" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕐</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Prayer Times</h3>
     <p class="text-gray-600 dark:text-gray-400">Accurate salah timings</p>
   </a>
   
   <a href="/qibla" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🧭</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Qibla Finder</h3>
     <p class="text-gray-600 dark:text-gray-400">Direction to the Kaaba</p>
   </a>

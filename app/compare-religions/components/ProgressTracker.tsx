@@ -36,7 +36,7 @@ export default function ProgressTracker({ religion, viewedTopics, totalTopics }:
       </div>
       <p className="progress-text">
         You've explored {Array.from(viewedTopics).filter((t) => t.startsWith(religion)).length} of {totalTopics} topics
-        {progress === 100 && " 🎉 All topics completed!"}
+        {progress === 100 && "  All topics completed!"}
       </p>
 
       <style jsx>{`

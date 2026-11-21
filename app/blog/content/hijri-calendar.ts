@@ -4,7 +4,7 @@ export const hijriCalendarArticle = {
   title: "The Islamic Hijri Calendar Explained — History, Structure & Date Conversion",
   excerpt: "Learn how the Islamic Hijri lunar calendar works, its 12 months, the significance of sacred months, and how to easily convert between Hijri and Gregorian dates.",
   category: "Knowledge",
-  emoji: "🌙",
+  emoji: "",
   readTime: "14 min read",
   date: "2026-05-09",
   content: `
@@ -71,13 +71,13 @@ export const hijriCalendarArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/hijri" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">📅</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Hijri Converter</h3>
     <p class="text-gray-600 dark:text-gray-400">Convert dates instantly</p>
   </a>
   
   <a href="/prayer-times" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕐</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Prayer Times</h3>
     <p class="text-gray-600 dark:text-gray-400">Accurate salah timings</p>
   </a>

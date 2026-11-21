@@ -6,29 +6,30 @@
 // runs at build time, so the page builds with no network.
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import { TOOLS_DATA } from './lib/toolsData';
 import { getDuaOfTheDay, type Dua } from '../lib/duas';
+import ToolIcon from './components/ToolIcon';
+import {
+  PRAYER_METHODS,
+  PRAYER_ORDER,
+  formatPrayerTime,
+  formatCountdown,
+  nextPrayer as calcNextPrayer,
+  fetchTimingsByCity,
+  DEFAULT_CITY,
+  DEFAULT_COUNTRY,
+  DEFAULT_METHOD,
+  CITY_KEY,
+  METHOD_KEY,
+  type PrayerTimings,
+} from './lib/prayer';
 
 // ==================== CONSTANTS ====================
-const CITY_KEY = 'ili_city';
-const METHOD_KEY = 'ili_prayer_method';
 const PRAYER_MARKS_KEY = 'ili_prayer_marks_v1';
 const DHIKR_KEY = 'ili_dhikr_today';
 const READING_KEY = 'ili_reading_plan';
-
-const DEFAULT_CITY = 'Sydney';
-const DEFAULT_COUNTRY = 'Australia';
-
-const PRAYER_METHODS = [
-  { id: 3, label: 'Muslim World League' },
-  { id: 2, label: 'ISNA (North America)' },
-  { id: 4, label: 'Umm al-Qura (Makkah)' },
-  { id: 5, label: 'Egyptian General Authority' },
-  { id: 1, label: 'Univ. of Islamic Sciences, Karachi' },
-];
-
-const PRAYER_ORDER = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'] as const;
 
 const VERSE_KEYS = ['94:6', '2:152', '13:28', '39:53', '65:3', '2:186', '16:97', '3:139'];
 
@@ -39,15 +40,6 @@ const FALLBACK_VERSE = {
 };
 
 // ==================== TYPES ====================
-interface Timings {
-  Fajr: string;
-  Sunrise: string;
-  Dhuhr: string;
-  Asr: string;
-  Maghrib: string;
-  Isha: string;
-}
-
 interface ToolItem {
   name: string;
   desc: string;
@@ -88,35 +80,6 @@ function dayOfYear(d: Date): number {
   return Math.floor((d.getTime() - start.getTime()) / 86400000);
 }
 
-/** Aladhan returns times like "05:12 (AEST)" — strip the zone suffix. */
-function cleanTime(t: string): string {
-  return t.split(' ')[0];
-}
-
-function parseTimeToDate(timeStr: string, base: Date): Date | null {
-  const [h, m] = cleanTime(timeStr).split(':').map(Number);
-  if (Number.isNaN(h) || Number.isNaN(m)) return null;
-  const d = new Date(base);
-  d.setHours(h, m, 0, 0);
-  return d;
-}
-
-function formatPrayerTime(t: string): string {
-  const [h, m] = cleanTime(t).split(':').map(Number);
-  if (Number.isNaN(h) || Number.isNaN(m)) return cleanTime(t);
-  const hour12 = h % 12 === 0 ? 12 : h % 12;
-  return `${hour12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
-}
-
-function formatCountdown(ms: number): string {
-  const total = Math.max(0, Math.floor(ms / 1000));
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(h)}:${pad(m)}:${pad(s)}`;
-}
-
 function stripHtml(s: string): string {
   return s.replace(/<[^>]*>/g, '').trim();
 }
@@ -136,8 +99,68 @@ function resolveToolsData(): ToolSection[] {
   return [];
 }
 
+/** A real progress ring — always shows the honest number (0 when nothing is
+ *  done yet), never an empty "Start today" placeholder. */
+function ProgressRingCard({
+  href,
+  label,
+  value,
+  total,
+  unit,
+  loaded,
+  cta,
+}: {
+  href: string;
+  label: string;
+  value: number;
+  total: number;
+  unit: string;
+  loaded: boolean;
+  cta: string;
+}) {
+  const frac = total > 0 ? Math.min(1, value / total) : 0;
+  const r = 26;
+  const circ = 2 * Math.PI * r;
+  return (
+    <Link href={href} className="group flex items-center gap-4 rounded-xl bg-[#F7F5EF] p-4 transition hover:bg-[#0B3D2E]/5">
+      <span className="relative h-16 w-16 shrink-0" aria-hidden="true">
+        <svg viewBox="0 0 64 64" className="h-16 w-16 -rotate-90">
+          <circle cx="32" cy="32" r={r} fill="none" stroke="#E5E0D3" strokeWidth="7" />
+          <circle
+            cx="32"
+            cy="32"
+            r={r}
+            fill="none"
+            stroke="#146B4D"
+            strokeWidth="7"
+            strokeLinecap="round"
+            strokeDasharray={circ}
+            strokeDashoffset={circ * (1 - frac)}
+          />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-[#0B3D2E]">
+          {loaded ? `${Math.round(frac * 100)}%` : '—'}
+        </span>
+      </span>
+      <span className="min-w-0">
+        <span className="block text-xs font-bold uppercase tracking-wide text-[#1C2420]/50">{label}</span>
+        <span className="mt-0.5 block text-lg font-bold leading-tight text-[#0B3D2E]">
+          {loaded ? `${value}/${total} ${unit}` : 'Loading…'}
+        </span>
+        <span className="mt-0.5 block text-sm text-[#146B4D] group-hover:underline">{cta}</span>
+      </span>
+    </Link>
+  );
+}
+
 // ==================== MAIN HOME CLIENT ====================
-export default function HomeClient() {
+export default function HomeClient({
+  initialPrayer,
+}: {
+  /** Server-rendered Sydney / Muslim World League timings — the card renders
+   *  instantly instead of waiting on a client fetch. */
+  initialPrayer?: { timings: PrayerTimings; hijri: string } | null;
+}) {
   const [now, setNow] = useState(() => new Date());
 
   // --- Prayer times state ---
@@ -145,9 +168,9 @@ export default function HomeClient() {
   const [country, setCountry] = useState(DEFAULT_COUNTRY);
   const [cityInput, setCityInput] = useState(DEFAULT_CITY);
   const [countryInput, setCountryInput] = useState(DEFAULT_COUNTRY);
-  const [method, setMethod] = useState(3);
-  const [timings, setTimings] = useState<Timings | null>(null);
-  const [hijri, setHijri] = useState('');
+  const [method, setMethod] = useState(DEFAULT_METHOD);
+  const [timings, setTimings] = useState<PrayerTimings | null>(initialPrayer?.timings ?? null);
+  const [hijri, setHijri] = useState(initialPrayer?.hijri ?? '');
   const [prayerError, setPrayerError] = useState(false);
 
   // --- Verse of the day ---
@@ -199,34 +222,18 @@ export default function HomeClient() {
   }, []);
 
   // Fetch prayer times from Aladhan whenever location/method changes.
+  // The server-rendered initial timings stay visible while this refreshes.
   useEffect(() => {
     let cancelled = false;
     setPrayerError(false);
-    fetch(
-      `https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&method=${method}`,
-    )
-      .then((r) => {
-        if (!r.ok) throw new Error('Prayer times request failed');
-        return r.json();
-      })
-      .then((data) => {
+    fetchTimingsByCity(city, country, method)
+      .then((day) => {
         if (cancelled) return;
-        const t = data?.data?.timings;
-        const h = data?.data?.date?.hijri;
-        if (t?.Fajr && t?.Dhuhr && t?.Asr && t?.Maghrib && t?.Isha) {
-          setTimings({
-            Fajr: String(t.Fajr),
-            Sunrise: t.Sunrise ? String(t.Sunrise) : '',
-            Dhuhr: String(t.Dhuhr),
-            Asr: String(t.Asr),
-            Maghrib: String(t.Maghrib),
-            Isha: String(t.Isha),
-          });
+        if (day) {
+          setTimings(day.timings);
+          if (day.hijri) setHijri(day.hijri);
         } else {
           setPrayerError(true);
-        }
-        if (h?.day && h?.month?.en && h?.year) {
-          setHijri(`${h.day} ${h.month.en} ${h.year} AH`);
         }
       })
       .catch(() => {
@@ -301,17 +308,7 @@ export default function HomeClient() {
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const gregorian = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-  const nextPrayer = useMemo<{ name: (typeof PRAYER_ORDER)[number]; time: Date; tomorrow: boolean } | null>(() => {
-    if (!timings) return null;
-    for (const name of PRAYER_ORDER) {
-      const d = parseTimeToDate(timings[name], now);
-      if (d && d.getTime() > now.getTime()) return { name, time: d, tomorrow: false };
-    }
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const d = parseTimeToDate(timings.Fajr, tomorrow);
-    return d ? { name: 'Fajr' as const, time: d, tomorrow: true } : null;
-  }, [timings, now]);
+  const nextPrayer = useMemo(() => (timings ? calcNextPrayer(timings, now) : null), [timings, now]);
 
   function applyLocation(e: React.FormEvent) {
     e.preventDefault();
@@ -340,24 +337,39 @@ export default function HomeClient() {
   return (
     <div className="bg-[#F7F5EF] text-[#1C2420]">
       {/* ==================== HERO ==================== */}
-      <section className="bg-[#0B3D2E] text-white">
-        <div className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
-          <p className="text-sm font-semibold tracking-wide text-[#C9A227]">
-            {greeting} · Assalamu alaikum
-          </p>
-          <h1 className="mt-2 max-w-2xl text-3xl font-bold leading-tight sm:text-5xl">
-            Your day, with Allah at its centre
-          </h1>
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/75 sm:text-base">
-            Prayer times, the Quran, and the right dua for this moment — your daily companion,
-            free forever and always here when you need it.
-          </p>
-          <div className="mt-5 flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-            <span className="rounded-full bg-white/10 px-3 py-1.5 text-white/85">{gregorian}</span>
-            {hijri && (
-              <span className="rounded-full bg-white/10 px-3 py-1.5 text-[#C9A227]">{hijri}</span>
-            )}
+      <section className="relative overflow-hidden bg-[#0B3D2E] text-white">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-25"
+          style={{ backgroundImage: 'url(/hero-pattern.svg)', backgroundSize: '96px 96px' }}
+        />
+        <div className="relative mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10 sm:py-14 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold tracking-wide text-[#C9A227]">
+              {greeting} · Assalamu alaikum
+            </p>
+            <h1 className="mt-2 max-w-2xl text-3xl font-bold leading-tight sm:text-5xl">
+              Your day, with Allah at its centre
+            </h1>
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/75 sm:text-base">
+              Prayer times, the Quran, and the right dua for this moment — your daily companion,
+              free forever and always here when you need it.
+            </p>
+            <div className="mt-5 flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+              <span className="rounded-full bg-white/10 px-3 py-1.5 text-white/85">{gregorian}</span>
+              {hijri && (
+                <span className="rounded-full bg-white/10 px-3 py-1.5 text-[#C9A227]">{hijri}</span>
+              )}
+            </div>
           </div>
+          <Image
+            src="/mosque-silhouette.svg"
+            alt=""
+            width={420}
+            height={170}
+            priority
+            className="hidden w-[420px] max-w-full shrink-0 opacity-90 lg:block"
+          />
         </div>
       </section>
 
@@ -472,7 +484,7 @@ export default function HomeClient() {
             <h2 id="verse-heading" className="sr-only">
               Verse of the day
             </h2>
-            <p dir="rtl" lang="ar" className="font-arabic mt-4 text-right text-2xl leading-loose text-[#0B3D2E] sm:text-3xl">
+            <p dir="rtl" lang="ar" className="font-quran mt-4 text-right text-2xl text-[#0B3D2E] sm:text-3xl">
               {verse.arabic}
             </p>
             <p className="mt-3 text-sm leading-relaxed text-[#1C2420]/80 sm:text-base">
@@ -499,7 +511,7 @@ export default function HomeClient() {
                   ))}
                 </div>
               )}
-              <p dir="rtl" lang="ar" className="font-arabic mt-4 text-right text-2xl leading-loose text-[#0B3D2E] sm:text-3xl">
+              <p dir="rtl" lang="ar" className="font-quran mt-4 text-right text-2xl text-[#0B3D2E] sm:text-3xl">
                 {dua.arabic}
               </p>
               {dua.transliteration && (
@@ -520,38 +532,38 @@ export default function HomeClient() {
             Your progress today
           </h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <Link href="/prayer-times" className="group rounded-xl bg-[#F7F5EF] p-4 transition hover:bg-[#0B3D2E]/5">
-              <p className="text-xs font-bold uppercase tracking-wide text-[#1C2420]/50">Prayers</p>
-              <p className="mt-1 text-2xl font-bold text-[#0B3D2E]">
-                {progress.loaded && progress.prayers > 0 ? `${progress.prayers}/5 prayed` : 'Start today'}
-              </p>
-              <p className="mt-1 text-sm text-[#146B4D] group-hover:underline">
-                {progress.loaded && progress.prayers > 0 ? 'Keep going →' : 'Mark your prayers →'}
-              </p>
-            </Link>
-            <Link href="/dhikr" className="group rounded-xl bg-[#F7F5EF] p-4 transition hover:bg-[#0B3D2E]/5">
-              <p className="text-xs font-bold uppercase tracking-wide text-[#1C2420]/50">Dhikr</p>
-              <p className="mt-1 text-2xl font-bold text-[#0B3D2E]">
-                {progress.loaded && progress.dhikr > 0 ? `Dhikr ${progress.dhikr}` : 'Start today'}
-              </p>
-              <p className="mt-1 text-sm text-[#146B4D] group-hover:underline">
-                {progress.loaded && progress.dhikr > 0 ? 'Continue counting →' : 'Open the dhikr counter →'}
-              </p>
-            </Link>
-            <Link href="/quran" className="group rounded-xl bg-[#F7F5EF] p-4 transition hover:bg-[#0B3D2E]/5">
-              <p className="text-xs font-bold uppercase tracking-wide text-[#1C2420]/50">Reading plan</p>
-              <p className="mt-1 text-2xl font-bold text-[#0B3D2E]">
-                {progress.loaded && progress.juzDone > 0 ? `Juz read ${progress.juzDone}/30` : 'Start today'}
-              </p>
-              <p className="mt-1 text-sm text-[#146B4D] group-hover:underline">
-                {progress.loaded && progress.juzDone > 0 ? 'Continue reading →' : 'Begin your reading plan →'}
-              </p>
-            </Link>
+            <ProgressRingCard
+              href="/prayer-times"
+              label="Prayers"
+              value={progress.prayers}
+              total={5}
+              unit="prayed"
+              loaded={progress.loaded}
+              cta={progress.prayers > 0 ? 'Keep going →' : 'Mark your prayers →'}
+            />
+            <ProgressRingCard
+              href="/dhikr"
+              label="Dhikr"
+              value={progress.dhikr}
+              total={100}
+              unit="counted"
+              loaded={progress.loaded}
+              cta={progress.dhikr > 0 ? 'Continue counting →' : 'Open the dhikr counter →'}
+            />
+            <ProgressRingCard
+              href="/quran"
+              label="Reading plan"
+              value={progress.juzDone}
+              total={30}
+              unit="juz read"
+              loaded={progress.loaded}
+              cta={progress.juzDone > 0 ? 'Continue reading →' : 'Begin your reading plan →'}
+            />
           </div>
         </section>
 
         {/* ==================== TOOLS GRID ==================== */}
-        <section aria-labelledby="tools-heading">
+        <section aria-labelledby="tools-heading" id="tools" className="scroll-mt-20">
           <h2 id="tools-heading" className="text-xl font-bold text-[#0B3D2E] sm:text-2xl">
             All tools
           </h2>
@@ -561,7 +573,7 @@ export default function HomeClient() {
           {sections.map((section) => (
             <div key={section.category} className="mt-5">
               <h3 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-[#1C2420]/60">
-                <span aria-hidden="true">{section.emoji}</span> {section.category}
+                <span className="text-[#146B4D]"><ToolIcon name={section.emoji} className="h-4 w-4" /></span> {section.category}
               </h3>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {section.items.map((tool) => (
@@ -570,8 +582,8 @@ export default function HomeClient() {
                     href={tool.href}
                     className="group flex flex-col items-start rounded-xl border border-[#0B3D2E]/10 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#C9A227] hover:shadow-md"
                   >
-                    <span className={`flex h-10 w-10 items-center justify-center rounded-xl text-xl ${tool.color}`}>
-                      {tool.icon}
+                    <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${tool.color}`}>
+                      <ToolIcon name={tool.icon} className="h-5 w-5" />
                     </span>
                     <span className="mt-3 text-sm font-bold leading-tight text-[#1C2420] group-hover:text-[#0B3D2E]">
                       {tool.name}
@@ -591,25 +603,25 @@ export default function HomeClient() {
           </h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <p className="font-bold text-[#C9A227]">✓ Free forever</p>
+              <p className="flex items-center gap-1.5 font-bold text-[#C9A227]"><ToolIcon name="check" className="h-4 w-4" /> Free forever</p>
               <p className="mt-1 text-sm leading-relaxed text-white/75">
                 No subscriptions, no premium tiers, no hidden costs. Every tool is completely free.
               </p>
             </div>
             <div>
-              <p className="font-bold text-[#C9A227]">✓ No sign-up</p>
+              <p className="flex items-center gap-1.5 font-bold text-[#C9A227]"><ToolIcon name="check" className="h-4 w-4" /> No sign-up</p>
               <p className="mt-1 text-sm leading-relaxed text-white/75">
                 Use any tool instantly — no account, no email, no personal information required.
               </p>
             </div>
             <div>
-              <p className="font-bold text-[#C9A227]">✓ Privacy first</p>
+              <p className="flex items-center gap-1.5 font-bold text-[#C9A227]"><ToolIcon name="check" className="h-4 w-4" /> Privacy first</p>
               <p className="mt-1 text-sm leading-relaxed text-white/75">
                 Your prayers, dhikr, and reading progress stay on your own device. We never collect or sell your data.
               </p>
             </div>
             <div>
-              <p className="font-bold text-[#C9A227]">✓ Authentic sources</p>
+              <p className="flex items-center gap-1.5 font-bold text-[#C9A227]"><ToolIcon name="check" className="h-4 w-4" /> Authentic sources</p>
               <p className="mt-1 text-sm leading-relaxed text-white/75">
                 Quran text, translations, and duas drawn from verified sources and established Islamic references.
               </p>

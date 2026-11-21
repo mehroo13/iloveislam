@@ -4,7 +4,7 @@ export const prayerTimesArticle = {
   title: "Understanding Islamic Prayer Times: Fajr, Dhuhr, Asr, Maghrib & Isha",
   excerpt: "A complete guide to the five daily prayers — their virtues, exact time windows, and how to find accurate prayer times for any location in the world.",
   category: "Prayer",
-  emoji: "🕐",
+  emoji: "",
   readTime: "14 min read",
   date: "2026-02-07",
   content: `
@@ -85,13 +85,13 @@ Most people use MWL or ISNA. Follow your local mosque or scholar if they recomme
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/prayer-times" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕐</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Prayer Times</h3>
     <p class="text-gray-600 dark:text-gray-400">Accurate timings for your city</p>
   </a>
   
   <a href="/qibla" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🧭</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Qibla Finder</h3>
     <p class="text-gray-600 dark:text-gray-400">Find the direction to the Kaaba</p>
   </a>

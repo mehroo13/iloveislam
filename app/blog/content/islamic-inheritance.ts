@@ -4,7 +4,7 @@ export const inheritanceArticle = {
   title: "Islamic Inheritance (Mirath): Complete Guide to Quranic Rules & Shares",
   excerpt: "Discover the beautiful justice of Islamic inheritance law. Learn the fixed shares from the Quran and easily calculate them with our free tool.",
   category: "Finance",
-  emoji: "⚖️",
+  emoji: "",
   readTime: "12 min read",
   date: "2026-05-01",
   content: `
@@ -91,13 +91,13 @@ export const inheritanceArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
   <a href="/inheritance" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">⚖️</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Inheritance Calculator</h3>
     <p class="text-gray-600 dark:text-gray-400">Instant accurate calculation with ‘Awl & Radd</p>
   </a>
   
   <a href="/will" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">📜</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Islamic Will Tool</h3>
     <p class="text-gray-600 dark:text-gray-400">Create Shariah-compliant will easily</p>
   </a>

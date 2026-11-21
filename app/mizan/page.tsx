@@ -45,7 +45,7 @@ const ARCHETYPES: Record<number, {
     color: '#c8a96e',
     pageGrad: 'linear-gradient(160deg, #1c1000 0%, #2a1a00 50%, #1a1000 100%)',
     cardGrad: 'linear-gradient(135deg, #3a2500, #1a1000)',
-    symbol: '☀️', emoji: '🌟',
+    symbol: '', emoji: '',
     personality: 'You are a natural leader with a pioneering spirit. Born to walk paths others have not yet discovered, you carry the light of originality. Like Sayyiduna Ibrahim ﷺ who stood alone against his people, you have the courage to stand for truth even in solitude.',
     strength: ['Natural leadership', 'Original thinking', 'Unwavering conviction', 'Divine courage'],
     challenge: 'Your challenge is patience with those who move slower. Practice Shura — consulting others even when you know the way.',
@@ -75,7 +75,7 @@ const ARCHETYPES: Record<number, {
     color: '#7eb8d4',
     pageGrad: 'linear-gradient(160deg, #001828 0%, #002035 50%, #001525 100%)',
     cardGrad: 'linear-gradient(135deg, #003050, #001525)',
-    symbol: '🌊', emoji: '🕊️',
+    symbol: '', emoji: '',
     personality: 'You are the bridge between worlds — gifted with deep empathy and a rare ability to bring harmony to chaos. Like water that finds its level, you naturally restore balance. The Prophet ﷺ said "Gentleness adorns everything" — this is your nature.',
     strength: ['Deep empathy', 'Peacemaking', 'Intuitive wisdom', 'Gentle strength'],
     challenge: 'Your challenge is over-giving. Your own spiritual cup must be full before you pour into others. Setting limits is not selfishness — it is wisdom.',
@@ -105,7 +105,7 @@ const ARCHETYPES: Record<number, {
     color: '#f0c040',
     pageGrad: 'linear-gradient(160deg, #1a1600 0%, #2a2200 50%, #1a1600 100%)',
     cardGrad: 'linear-gradient(135deg, #3a2e00, #1a1600)',
-    symbol: '✨', emoji: '🌙',
+    symbol: '', emoji: '',
     personality: 'You are a bearer of light — eloquent, expressive, and touched with divine creativity. Your words carry weight and your presence lifts rooms. Like the companions who memorised and spread the Quran, you are built to carry sacred knowledge forward.',
     strength: ['Eloquence and expression', 'Creative vision', 'Inspiring others', 'Joy and optimism'],
     challenge: 'Your challenge is focus. Your gifts are many and the world pulls you in many directions. Choose your calling with intention and go deep.',
@@ -135,7 +135,7 @@ const ARCHETYPES: Record<number, {
     color: '#7ab87a',
     pageGrad: 'linear-gradient(160deg, #021008 0%, #041a0c 50%, #021008 100%)',
     cardGrad: 'linear-gradient(135deg, #063018, #021008)',
-    symbol: '🏔️', emoji: '🏗️',
+    symbol: '', emoji: '',
     personality: 'You are the foundation upon which communities are built. Reliable, disciplined, and tireless, you embody Itqan — doing everything with excellence. The Prophet ﷺ said "Allah loves when one of you does a job, to do it with Itqan." That is you.',
     strength: ['Unshakeable discipline', 'Trustworthiness', 'Practical wisdom', 'Long-term vision'],
     challenge: 'Your challenge is rigidity. Even in worship, Allah made concessions for travellers. Learn to bend without breaking.',
@@ -165,7 +165,7 @@ const ARCHETYPES: Record<number, {
     color: '#c07ec0',
     pageGrad: 'linear-gradient(160deg, #180a20 0%, #240f30 50%, #180a20 100%)',
     cardGrad: 'linear-gradient(135deg, #380f4a, #180a20)',
-    symbol: '🌍', emoji: '🧭',
+    symbol: '', emoji: '',
     personality: 'You are the free spirit of the Ummah — adaptable, curious, and drawn to the horizons of this world. Like Ibn Battuta and Ibn Khaldun who mapped the world for knowledge, you learn by experiencing.',
     strength: ['Adaptability', 'Courage to explore', 'Cross-cultural wisdom', 'Infectious enthusiasm'],
     challenge: 'Your challenge is rootedness. Freedom without anchor becomes drift. Establish your daily Salah as the five pillars that hold your life steady.',
@@ -195,7 +195,7 @@ const ARCHETYPES: Record<number, {
     color: '#e87898',
     pageGrad: 'linear-gradient(160deg, #200510 0%, #300810 50%, #200510 100%)',
     cardGrad: 'linear-gradient(135deg, #4a0820, #200510)',
-    symbol: '🌹', emoji: '💗',
+    symbol: '', emoji: '',
     personality: 'You carry the divine quality of Rahma — mercy — as your defining trait. Like a mother\'s love that knows no conditions, you give without keeping score. The Prophet ﷺ was described as "rahmatun lil-alameen" — this quality lives strongly in you.',
     strength: ['Unconditional compassion', 'Healing presence', 'Community building', 'Generous heart'],
     challenge: 'Your challenge is learning that mercy also means sometimes saying no. Enabling is not mercy. The most merciful act is sometimes the difficult one.',
@@ -225,7 +225,7 @@ const ARCHETYPES: Record<number, {
     color: '#6898e8',
     pageGrad: 'linear-gradient(160deg, #020e22 0%, #041530 50%, #020e22 100%)',
     cardGrad: 'linear-gradient(135deg, #082545, #020e22)',
-    symbol: '🔭', emoji: '📚',
+    symbol: '', emoji: '',
     personality: 'You are the scholar, the contemplative, the seeker of divine wisdom. You were born to go deep — into books, into prayer, into the mysteries of existence. Like Imam Ghazali who retreated to find truth, you find God in silence and study.',
     strength: ['Profound intellect', 'Spiritual depth', 'Pattern recognition', 'Quiet wisdom'],
     challenge: 'Wisdom that stays in your mind helps no one. The Prophet ﷺ said "convey from me even one verse." Share what you know.',
@@ -255,7 +255,7 @@ const ARCHETYPES: Record<number, {
     color: '#e85858',
     pageGrad: 'linear-gradient(160deg, #1e0200 0%, #2e0400 50%, #1e0200 100%)',
     cardGrad: 'linear-gradient(135deg, #4a0800, #1e0200)',
-    symbol: '⚔️', emoji: '🦅',
+    symbol: '', emoji: '',
     personality: 'You carry the strength of mountains and the ambition of eagles. You were built for authority, for impact, for changing the world at scale. Like Umar ibn al-Khattab RA whose conversion shifted the entire power of early Islam, your strength is a divine gift.',
     strength: ['Commanding presence', 'Strategic mind', 'Extraordinary drive', 'Transformative vision'],
     challenge: 'Your challenge is the ego. The greatest leaders in Islam were known for their humility in private. Strength must always serve others.',
@@ -285,7 +285,7 @@ const ARCHETYPES: Record<number, {
     color: '#a878e8',
     pageGrad: 'linear-gradient(160deg, #0e0420 0%, #180630 50%, #0e0420 100%)',
     cardGrad: 'linear-gradient(135deg, #2a0850, #0e0420)',
-    symbol: '🌌', emoji: '♾️',
+    symbol: '', emoji: '',
     personality: 'You are the completion — the one who brings things full circle. Nine is the number of perfection in Islamic numerology. You carry an old soul, a humanitarian heart, and a vision that transcends borders. You feel the pain of the entire Ummah.',
     strength: ['Universal compassion', 'Visionary thinking', 'Spiritual completion', 'Timeless wisdom'],
     challenge: 'Your challenge is endings — you must learn to let go. Trust Allah with what has passed.',
@@ -347,7 +347,7 @@ function getDayOfWeek(): number { return new Date().getDay(); }
 function ShariaDisclaimer({ color }: { color: string }) {
   return (
     <div style={{ borderLeft: `3px solid ${color}55`, borderRadius: 8, padding: '12px 16px', marginTop: 20, background: `${color}08` }}>
-      <p style={{ color: color, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>📜 Important Islamic Note</p>
+      <p style={{ color: color, fontSize: 11, fontWeight: 600, marginBottom: 4 }}> Important Islamic Note</p>
       <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, lineHeight: 1.6 }}>
         Mizan is a tool for self-reflection and inspiration based on patterns in creation. It is not divination nor a replacement for Islamic guidance. All knowledge belongs to Allah alone. Consult qualified scholars for religious decisions.
       </p>
@@ -470,7 +470,7 @@ export default function Mizan() {
   const handleShare = useCallback(() => {
     if (!result) return;
     const arch = result.archetype;
-    const text = `✦ My Islamic Blueprint ✦\n\nI am "${result.subTitle}"\nArchetype: ${arch.title} — ${arch.name}\n${arch.arabic}\n\nMy Divine Name: ${arch.divineName} ${arch.divineArabic}\nLife ${result.life} · Soul ${result.soul} · Destiny ${result.destiny}\n\n"${arch.verse}"\n— ${arch.verseRef}\n\n🌿 Discover YOUR Islamic Blueprint free:\niloveislam.life/mizan\n\n#ILoveIslam #IslamicBlueprint #Mizan`;
+    const text = ` My Islamic Blueprint \n\nI am "${result.subTitle}"\nArchetype: ${arch.title} — ${arch.name}\n${arch.arabic}\n\nMy Divine Name: ${arch.divineName} ${arch.divineArabic}\nLife ${result.life} · Soul ${result.soul} · Destiny ${result.destiny}\n\n"${arch.verse}"\n— ${arch.verseRef}\n\n Discover YOUR Islamic Blueprint free:\niloveislam.life/mizan\n\n#ILoveIslam #IslamicBlueprint #Mizan`;
     if (navigator.share && /Mobi|Android/i.test(navigator.userAgent)) {
       navigator.share({ title: 'My Islamic Blueprint — Mizan', text, url: 'https://www.iloveislam.life/mizan' }).catch(() => {});
     } else {
@@ -502,7 +502,7 @@ export default function Mizan() {
   const todayVerse = arch ? arch.dailyVerses[getDayOfWeek() % arch.dailyVerses.length] : null;
   const pageBg = arch ? arch.pageGrad : 'linear-gradient(160deg, #060a0f 0%, #0a1018 100%)';
   const waShareLink = result ? `https://wa.me/?text=${encodeURIComponent(
-    `✦ My Islamic Blueprint ✦\n\nI am "${result.subTitle}"\nArchetype: ${arch!.title} — ${arch!.name}\n${arch!.arabic}\n\nMy Divine Name: ${arch!.divineName} ${arch!.divineArabic}\nLife ${result.life} · Soul ${result.soul} · Destiny ${result.destiny}\n\n"${arch!.verse}"\n— ${arch!.verseRef}\n\n🌿 Discover YOUR Islamic Blueprint free:\niloveislam.life/mizan\n\n#ILoveIslam #IslamicBlueprint #Mizan`
+    ` My Islamic Blueprint \n\nI am "${result.subTitle}"\nArchetype: ${arch!.title} — ${arch!.name}\n${arch!.arabic}\n\nMy Divine Name: ${arch!.divineName} ${arch!.divineArabic}\nLife ${result.life} · Soul ${result.soul} · Destiny ${result.destiny}\n\n"${arch!.verse}"\n— ${arch!.verseRef}\n\n Discover YOUR Islamic Blueprint free:\niloveislam.life/mizan\n\n#ILoveIslam #IslamicBlueprint #Mizan`
   )}` : '';
 
   return (
@@ -543,9 +543,9 @@ export default function Mizan() {
           <div style={{ maxWidth: 680, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Link href="/" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, textDecoration: 'none' }} aria-label="Back to tools">← Back</Link>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ color: '#c8a96e', fontSize: 12 }}>✦</span>
+              <span style={{ color: '#c8a96e', fontSize: 12 }}></span>
               <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, letterSpacing: '0.2em' }}>MIZAN</span>
-              <span style={{ color: '#c8a96e', fontSize: 12 }}>✦</span>
+              <span style={{ color: '#c8a96e', fontSize: 12 }}></span>
             </div>
             {step === 'result' ? (
               <button onClick={() => { setStep('input'); setResult(null); setRevealStep(0); }}
@@ -562,7 +562,7 @@ export default function Mizan() {
         {step === 'intro' && (
           <div style={{ maxWidth: 680, margin: '0 auto', padding: '36px 16px 60px' }}>
             <div style={{ textAlign: 'center', marginBottom: 36 }}>
-              <div className="float" style={{ fontSize: 60, marginBottom: 14 }}>✦</div>
+              <div className="float" style={{ fontSize: 60, marginBottom: 14 }}></div>
               <p style={{ color: '#c8a96e', fontSize: 10, letterSpacing: '0.5em', textTransform: 'uppercase', marginBottom: 10 }}>Islamic Numerology & Self-Discovery</p>
               <h1 style={{ color: '#fff', fontSize: 'clamp(28px,6vw,48px)', fontWeight: 700, lineHeight: 1.15, marginBottom: 12 }}>
                 Discover Your<br /><span style={{ color: '#c8a96e' }}>Islamic Blueprint</span>
@@ -577,7 +577,7 @@ export default function Mizan() {
               </div>
               {visits > 1 && (
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(200,169,110,0.08)', border: '1px solid rgba(200,169,110,0.15)', borderRadius: 20, padding: '6px 16px', marginBottom: 20 }}>
-                  <span style={{ fontSize: 14 }}>🔥</span>
+                  <span style={{ fontSize: 14 }}></span>
                   <span style={{ color: '#c8a96e', fontSize: 12 }}>Welcome back — visit #{visits}</span>
                 </div>
               )}
@@ -586,11 +586,11 @@ export default function Mizan() {
                 className="glow"
                 aria-label="Begin your Mizan journey"
               >
-                Begin Your Journey ✦
+                Begin Your Journey 
               </button>
               <p style={{ color: 'rgba(255,255,255,0.12)', fontSize: 11, marginTop: 10 }}>Free · Private · No data stored on servers</p>
               <button onClick={clearAllData} style={{ marginTop: 20, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '6px 16px', color: 'rgba(255,255,255,0.3)', fontSize: 11, cursor: 'pointer' }}>
-                🗑 Clear My Data
+                 Clear My Data
               </button>
             </div>
 
@@ -636,7 +636,7 @@ export default function Mizan() {
         {step === 'input' && (
           <div style={{ maxWidth: 480, margin: '0 auto', padding: '44px 16px' }}>
             <div style={{ textAlign: 'center', marginBottom: 32 }}>
-              <div className="float" style={{ fontSize: 48, marginBottom: 10 }}>✦</div>
+              <div className="float" style={{ fontSize: 48, marginBottom: 10 }}></div>
               <h2 style={{ color: '#fff', fontSize: 26, fontWeight: 700, marginBottom: 6 }}>Enter Your Birth Date</h2>
               <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>Your date unlocks your unique blueprint — one of 81 possible combinations</p>
             </div>
@@ -681,13 +681,13 @@ export default function Mizan() {
                 style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', fontSize: 15, fontWeight: 700, background: (!day || !month || !year || year.length < 4 || !!error) ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, #c8a96e, #a07840)', color: (!day || !month || !year || year.length < 4 || !!error) ? 'rgba(255,255,255,0.2)' : '#0a0800', cursor: (!day || !month || !year || year.length < 4 || !!error) ? 'not-allowed' : 'pointer', transition: 'all 0.2s' }}
                 aria-label="Calculate Islamic blueprint"
               >
-                Reveal My Blueprint ✦
+                Reveal My Blueprint 
               </button>
             </div>
             <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.12)', fontSize: 11, marginTop: 10 }}>Everything calculated privately in your browser. Nothing sent to servers.</p>
             <ShariaDisclaimer color="#c8a96e" />
             <button onClick={clearAllData} style={{ marginTop: 20, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '6px 16px', color: 'rgba(255,255,255,0.3)', fontSize: 11, cursor: 'pointer', display: 'block', margin: '20px auto 0' }}>
-              🗑 Clear My Data
+               Clear My Data
             </button>
           </div>
         )}
@@ -695,7 +695,7 @@ export default function Mizan() {
         {/* CALCULATING */}
         {step === 'calculating' && (
           <div style={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center' }}>
-            <div style={{ fontSize: 64, animation: 'spin 3s linear infinite', marginBottom: 24 }}>✦</div>
+            <div style={{ fontSize: 64, animation: 'spin 3s linear infinite', marginBottom: 24 }}></div>
             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 20, marginBottom: 6, fontWeight: 600 }}>Calculating your blueprint...</p>
             <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 13, marginBottom: 32 }}>Applying the Abjad numerology system</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -757,18 +757,18 @@ export default function Mizan() {
               <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, marginBottom: 16 }}>{arch.verseRef}</p>
 
               <div style={{ background: `${arch.color}12`, border: `1px solid ${arch.color}20`, borderRadius: 12, padding: '12px 14px', marginBottom: 16 }}>
-                <p style={{ color: arch.color, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>✦ Your Prophetic Mirror</p>
+                <p style={{ color: arch.color, fontSize: 11, fontWeight: 700, marginBottom: 4 }}> Your Prophetic Mirror</p>
                 <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>{arch.prophetExample}</p>
               </div>
 
-              <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, marginBottom: 6 }}>🌍 {arch.estimatedUsers.toLocaleString()} people share your core archetype</p>
+              <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, marginBottom: 6 }}> {arch.estimatedUsers.toLocaleString()} people share your core archetype</p>
               <div style={{ width: '100%', height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2 }}>
                 <div style={{ width: `${(arch.estimatedUsers / 25000) * 100}%`, height: 3, background: arch.color, borderRadius: 2, transition: 'width 1s ease' }} />
               </div>
 
               {visits > 1 && (
                 <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, marginTop: 10 }}>
-                  🔥 You've visited Mizan {visits} time{visits !== 1 ? 's' : ''}. Your spiritual journey continues.
+                   You've visited Mizan {visits} time{visits !== 1 ? 's' : ''}. Your spiritual journey continues.
                 </p>
               )}
             </div>
@@ -779,26 +779,26 @@ export default function Mizan() {
                 style={{ width: '100%', padding: '14px', borderRadius: 14, border: 'none', background: copied ? 'linear-gradient(135deg,#50c878,#2d8a50)' : `linear-gradient(135deg, ${arch.color}, #a07840)`, color: '#0a0800', fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'all 0.3s', boxShadow: `0 6px 24px ${arch.color}40` }}
                 aria-label="Share your blueprint"
               >
-                {copied ? '✅ Copied! Paste anywhere 🤍' : '✦ Share My Islamic Blueprint'}
+                {copied ? ' Copied! Paste anywhere ' : ' Share My Islamic Blueprint'}
               </button>
               {waShareLink && (
                 <a href={waShareLink} target="_blank" rel="noopener noreferrer"
                   style={{ display: 'block', textAlign: 'center', padding: '12px', borderRadius: 14, border: '1px solid #25d366', background: 'transparent', color: '#25d366', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
                 >
-                  💬 Share on WhatsApp
+                   Share on WhatsApp
                 </a>
               )}
             </div>
-            {!copied && <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, textAlign: 'center', marginBottom: 14 }}>Every share is sadaqah jariyah 🌙</p>}
+            {!copied && <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, textAlign: 'center', marginBottom: 14 }}>Every share is sadaqah jariyah </p>}
 
             {/* SECTION NAVIGATION */}
             <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 14 }}>
               {([
-                { id: 'personality', label: '🗺️ Blueprint' },
-                { id: 'rizq', label: '💎 Rizq & Love' },
-                { id: 'compatibility', label: '🤝 Companions' },
-                { id: 'daily', label: '📖 Daily Verse' },
-                { id: 'dhikr', label: '📿 Dhikr' },
+                { id: 'personality', label: ' Blueprint' },
+                { id: 'rizq', label: ' Rizq & Love' },
+                { id: 'compatibility', label: ' Companions' },
+                { id: 'daily', label: ' Daily Verse' },
+                { id: 'dhikr', label: ' Dhikr' },
               ] as const).map(s => (
                 <button key={s.id} onClick={() => setActiveSection(s.id)}
                   style={{ flexShrink: 0, padding: '8px 14px', borderRadius: 20, border: `1px solid ${activeSection === s.id ? arch.color : 'rgba(255,255,255,0.1)'}`, background: activeSection === s.id ? `${arch.color}22` : 'rgba(255,255,255,0.04)', color: activeSection === s.id ? arch.color : 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: activeSection === s.id ? 700 : 400, cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap' }}>
@@ -816,7 +816,7 @@ export default function Mizan() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 14 }}>
                     {arch.strength.map(s => (
                       <div key={s} style={{ display: 'flex', gap: 8, alignItems: 'center', background: `${arch.color}0e`, borderRadius: 10, padding: '8px 12px' }}>
-                        <span style={{ color: arch.color, fontSize: 10 }}>✦</span>
+                        <span style={{ color: arch.color, fontSize: 10 }}></span>
                         <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{s}</span>
                       </div>
                     ))}
@@ -824,14 +824,14 @@ export default function Mizan() {
                 </div>
                 <div style={{ background: 'rgba(220,80,60,0.08)', border: '1px solid rgba(220,80,60,0.2)', borderRadius: 16, padding: 18 }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontSize: 16 }}>⚠️</span>
+                    <span style={{ fontSize: 16 }}></span>
                     <p style={{ color: '#e07050', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Your Challenge</p>
                   </div>
                   <p style={{ color: 'rgba(255,255,255,0.62)', fontSize: 13, lineHeight: 1.75 }}>{arch.challenge}</p>
                 </div>
                 <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: 18 }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                    <span>🎯</span>
+                    <span></span>
                     <p style={{ color: arch.color, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Your Life Purpose</p>
                   </div>
                   <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, lineHeight: 1.75 }}>{arch.purpose}</p>
@@ -844,14 +844,14 @@ export default function Mizan() {
               <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ background: 'rgba(80,200,120,0.07)', border: '1px solid rgba(80,200,120,0.2)', borderRadius: 16, padding: 20 }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
-                    <span style={{ fontSize: 20 }}>💎</span>
+                    <span style={{ fontSize: 20 }}></span>
                     <p style={{ color: '#50c878', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Your Rizq & Wealth Path</p>
                   </div>
                   <p style={{ color: 'rgba(255,255,255,0.68)', fontSize: 14, lineHeight: 1.8 }}>{arch.rizq}</p>
                 </div>
                 <div style={{ background: 'rgba(220,110,140,0.07)', border: '1px solid rgba(220,110,140,0.2)', borderRadius: 16, padding: 20 }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
-                    <span style={{ fontSize: 20 }}>❤️</span>
+                    <span style={{ fontSize: 20 }}></span>
                     <p style={{ color: '#e87898', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Relationships & Love</p>
                   </div>
                   <p style={{ color: 'rgba(255,255,255,0.68)', fontSize: 14, lineHeight: 1.8 }}>{arch.relationship}</p>
@@ -866,7 +866,7 @@ export default function Mizan() {
                   <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 10, letterSpacing: '0.3em', marginBottom: 8 }}>WHY THESE COMPANIONS?</p>
                   <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, lineHeight: 1.7 }}>{arch.compatibilityReason}</p>
                 </div>
-                <p style={{ color: '#50c878', fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', paddingLeft: 4 }}>✦ Best Companions</p>
+                <p style={{ color: '#50c878', fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', paddingLeft: 4 }}> Best Companions</p>
                 {arch.companions.map(n => {
                   const a = ARCHETYPES[n];
                   return (
@@ -877,11 +877,11 @@ export default function Mizan() {
                         <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>Life Number {n} · {a.name}</p>
                         <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, marginTop: 3 }}>{a.personality.slice(0, 80)}...</p>
                       </div>
-                      <span style={{ background: '#50c87818', border: '1px solid #50c87840', borderRadius: 20, padding: '3px 10px', color: '#50c878', fontSize: 10, flexShrink: 0 }}>✦ Compatible</span>
+                      <span style={{ background: '#50c87818', border: '1px solid #50c87840', borderRadius: 20, padding: '3px 10px', color: '#50c878', fontSize: 10, flexShrink: 0 }}> Compatible</span>
                     </div>
                   );
                 })}
-                <p style={{ color: '#e07050', fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', paddingLeft: 4, marginTop: 4 }}>⚠️ Challenging Dynamics</p>
+                <p style={{ color: '#e07050', fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', paddingLeft: 4, marginTop: 4 }}> Challenging Dynamics</p>
                 {arch.incompatible.map(n => {
                   const a = ARCHETYPES[n];
                   return (
@@ -891,7 +891,7 @@ export default function Mizan() {
                         <p style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 700, fontSize: 14 }}>{a.title}</p>
                         <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>Requires patience & understanding</p>
                       </div>
-                      <span style={{ background: 'rgba(220,80,60,0.1)', border: '1px solid rgba(220,80,60,0.3)', borderRadius: 20, padding: '3px 10px', color: '#e07050', fontSize: 10, flexShrink: 0 }}>⚠️ Challenging</span>
+                      <span style={{ background: 'rgba(220,80,60,0.1)', border: '1px solid rgba(220,80,60,0.3)', borderRadius: 20, padding: '3px 10px', color: '#e07050', fontSize: 10, flexShrink: 0 }}> Challenging</span>
                     </div>
                   );
                 })}
@@ -913,7 +913,7 @@ export default function Mizan() {
                     <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, lineHeight: 1.75 }}>{todayVerse.reflection}</p>
                   </div>
                 </div>
-                <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, textAlign: 'center' }}>A new verse every day of the week 🌙</p>
+                <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, textAlign: 'center' }}>A new verse every day of the week </p>
                 <div style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${arch.color}15`, borderRadius: 16, padding: 18 }}>
                   <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9, letterSpacing: '0.3em', marginBottom: 14 }}>ALL 7 VERSES FOR YOUR ARCHETYPE</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -961,11 +961,11 @@ export default function Mizan() {
 
                   <button onClick={handleDhikr}
                     style={{ padding: '16px 44px', borderRadius: 50, border: 'none', background: `linear-gradient(135deg, ${arch.color}, #a07840)`, color: '#0a0800', fontSize: 16, fontWeight: 700, marginBottom: 12, boxShadow: `0 6px 28px ${arch.color}40`, cursor: 'pointer', transition: 'transform 0.1s' }}>
-                    📿 {dhikrCount === 0 ? 'Begin Dhikr' : 'Tap to Count'}
+                     {dhikrCount === 0 ? 'Begin Dhikr' : 'Tap to Count'}
                   </button>
 
                   {dhikrCount >= arch.dhikrCount && (
-                    <p style={{ color: '#50c878', fontSize: 14, fontWeight: 600 }}>🎉 Alhamdulillah! Daily dhikr complete!</p>
+                    <p style={{ color: '#50c878', fontSize: 14, fontWeight: 600 }}> Alhamdulillah! Daily dhikr complete!</p>
                   )}
                   {dhikrCount > 0 && dhikrCount < arch.dhikrCount && (
                     <div>
@@ -995,14 +995,14 @@ export default function Mizan() {
             <ShariaDisclaimer color={arch.color} />
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 20, flexWrap: 'wrap' }}>
               <button onClick={() => {
-                const text = `🌟 My Islamic Archetype: ${arch.title} (${arch.arabic})\n\n"${arch.purpose}"\n\n🔮 Divine Name: ${arch.divineName} (${arch.divineArabic})\n📿 Dhikr: ${arch.dhikr}\n\nDiscover yours free at iloveislam.life/mizan`;
+                const text = ` My Islamic Archetype: ${arch.title} (${arch.arabic})\n\n"${arch.purpose}"\n\n Divine Name: ${arch.divineName} (${arch.divineArabic})\n Dhikr: ${arch.dhikr}\n\nDiscover yours free at iloveislam.life/mizan`;
                 if (navigator.share) navigator.share({ title: `Mizan: ${arch.title}`, text });
                 else navigator.clipboard?.writeText(text);
               }} style={{ background: `linear-gradient(135deg, ${arch.color}, #a07840)`, color: '#0a0800', border: 'none', borderRadius: 30, padding: '10px 24px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                📤 Share My Archetype
+                 Share My Archetype
               </button>
               <button onClick={clearAllData} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 30, padding: '10px 20px', color: 'rgba(255,255,255,0.3)', fontSize: 12, cursor: 'pointer' }}>
-                🗑 Clear Data
+                 Clear Data
               </button>
             </div>
             <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.08)', fontSize: 11, marginTop: 20 }}>

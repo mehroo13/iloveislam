@@ -65,73 +65,73 @@ const HIJRI_MONTHS = [
 const EVENT_TEMPLATES: IslamicEventTemplate[] = [
   {
     name: 'Ramadan', arabicName: 'رَمَضَان', hijriMonth: 9, hijriDay: 1,
-    emoji: '🌙', color: '#c8a96e',
+    emoji: '', color: '#c8a96e',
     bgGradient: 'linear-gradient(135deg, #1a0a00 0%, #3d1f00 50%, #1a0a00 100%)',
     description: 'The blessed month of fasting, prayer, and reflection', importance: 'Fard (Obligatory)',
   },
   {
     name: 'Laylatul Qadr', arabicName: 'لَيْلَةُ الْقَدْر', hijriMonth: 9, hijriDay: 27,
-    emoji: '✨', color: '#a78bfa',
+    emoji: '', color: '#a78bfa',
     bgGradient: 'linear-gradient(135deg, #0f0520 0%, #2d1b69 50%, #0f0520 100%)',
     description: 'The Night of Power — better than a thousand months', importance: 'The Most Blessed Night',
   },
   {
     name: 'Eid ul-Fitr', arabicName: 'عِيدُ الفِطْر', hijriMonth: 10, hijriDay: 1,
-    emoji: '🎉', color: '#4ade80',
+    emoji: '', color: '#4ade80',
     bgGradient: 'linear-gradient(135deg, #0a1a0a 0%, #0a3d2e 50%, #0a1a0a 100%)',
     description: 'The Festival of Breaking the Fast — celebrate with family', importance: 'Eid Prayer (Wajib)',
   },
   {
     name: 'Day of Arafah', arabicName: 'يَوْمُ عَرَفَة', hijriMonth: 12, hijriDay: 9,
-    emoji: '🕋', color: '#fbbf24',
+    emoji: '', color: '#fbbf24',
     bgGradient: 'linear-gradient(135deg, #1a1000 0%, #3d2e00 50%, #1a1000 100%)',
     description: 'Fasting on this day expiates sins of two years', importance: 'Highly Recommended Fast',
   },
   {
     name: 'Eid ul-Adha', arabicName: 'عِيدُ الأَضْحَى', hijriMonth: 12, hijriDay: 10,
-    emoji: '🐑', color: '#fb923c',
+    emoji: '', color: '#fb923c',
     bgGradient: 'linear-gradient(135deg, #1a0800 0%, #4a1a00 50%, #1a0800 100%)',
     description: 'The Festival of Sacrifice — commemorating Ibrahim (AS)', importance: 'Eid Prayer & Qurbani',
   },
   {
     name: 'Islamic New Year', arabicName: 'رَأْسُ السَّنَةِ الهِجْرِيَّة', hijriMonth: 1, hijriDay: 1,
-    emoji: '🌟', color: '#38bdf8',
+    emoji: '', color: '#38bdf8',
     bgGradient: 'linear-gradient(135deg, #00101a 0%, #003d5c 50%, #00101a 100%)',
     description: 'The start of a new Hijri year — reflect and renew intentions', importance: 'New Hijri Year',
   },
   {
     name: 'Day of Ashura', arabicName: 'يَوْمُ عَاشُورَاء', hijriMonth: 1, hijriDay: 10,
-    emoji: '🤲', color: '#818cf8',
+    emoji: '', color: '#818cf8',
     bgGradient: 'linear-gradient(135deg, #0a001a 0%, #1e1b4b 50%, #0a001a 100%)',
     description: 'Fasting on this day expiates sins of the previous year', importance: 'Recommended Fast',
   },
   {
     name: "Mawlid an-Nabi", arabicName: 'المَوْلِدُ النَّبَوِيّ', hijriMonth: 3, hijriDay: 12,
-    emoji: '☪️', color: '#34d399',
+    emoji: '', color: '#34d399',
     bgGradient: 'linear-gradient(135deg, #001a0a 0%, #014a2a 50%, #001a0a 100%)',
     description: "Commemorating the birth of Prophet Muhammad ﷺ", importance: 'Celebrated Widely',
   },
   {
     name: "Isra and Mi'raj", arabicName: 'الإسراء والمعراج', hijriMonth: 7, hijriDay: 27,
-    emoji: '🌠', color: '#f0abfc',
+    emoji: '', color: '#f0abfc',
     bgGradient: 'linear-gradient(135deg, #1a001a 0%, #4a004a 50%, #1a001a 100%)',
     description: "The miraculous night journey and ascension of the Prophet ﷺ", importance: 'Significant Night',
   },
   {
     name: "Shab-e-Barat", arabicName: 'لَيْلَةُ البَرَاءَة', hijriMonth: 8, hijriDay: 15,
-    emoji: '🕯️', color: '#fcd34d',
+    emoji: '', color: '#fcd34d',
     bgGradient: 'linear-gradient(135deg, #1a1400 0%, #4a3a00 50%, #1a1400 100%)',
     description: "The Night of Forgiveness — seek Allah's mercy and pardon", importance: 'Night of Worship',
   },
   {
     name: "First of Dhul Hijjah", arabicName: 'أَوَّلُ ذِي الحِجَّة', hijriMonth: 12, hijriDay: 1,
-    emoji: '🕋', color: '#f97316',
+    emoji: '', color: '#f97316',
     bgGradient: 'linear-gradient(135deg, #1a0800 0%, #3d1a00 50%, #1a0800 100%)',
     description: "The best 10 days of the year begin — increase worship, fasting, and charity", importance: 'Best Days of the Year',
   },
   {
     name: "27th Rajab (Isra Mi'raj)", arabicName: 'لَيْلَةُ الإِسْرَاء', hijriMonth: 7, hijriDay: 27,
-    emoji: '🌠', color: '#f0abfc',
+    emoji: '', color: '#f0abfc',
     bgGradient: 'linear-gradient(135deg, #1a001a 0%, #4a004a 50%, #1a001a 100%)',
     description: "The miraculous night journey and ascension of the Prophet ﷺ", importance: 'Significant Night',
   },
@@ -345,7 +345,7 @@ function EventCard({
         <div className="absolute top-3 left-3 z-10">
           <span className="text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1"
             style={{ background: `${event.color}25`, color: event.color, border: `1px solid ${event.color}40` }}>
-            📌 Pinned
+             Pinned
           </span>
         </div>
       )}
@@ -354,7 +354,7 @@ function EventCard({
       {isToday && (
         <div className="absolute top-3 right-3 z-10">
           <span className="text-[10px] font-bold px-2 py-1 rounded-full animate-pulse"
-            style={{ background: event.color, color: '#000' }}>TODAY! 🎉</span>
+            style={{ background: event.color, color: '#000' }}>TODAY! </span>
         </div>
       )}
 
@@ -380,7 +380,7 @@ function EventCard({
           }}
           title={isPinned ? 'Unpin' : 'Pin to top'}
         >
-          📌
+          
         </button>
       )}
 
@@ -422,12 +422,12 @@ function EventCard({
 
       {/* Hijri date footer + actions */}
       <div className="px-5 pb-3 flex items-center justify-between">
-        <p className="text-[10px] text-white/20 border-t border-white/5 pt-2">🌙 {event.hijriDate}</p>
+        <p className="text-[10px] text-white/20 border-t border-white/5 pt-2"> {event.hijriDate}</p>
         {!isPast && (
           <button
             onClick={(e) => {
               e.stopPropagation();
-              const text = `${event.emoji} ${event.name}\n📅 ${formatDate(event.gregorianDate)}\n🌙 ${event.hijriDate}\n${event.description}`;
+              const text = `${event.emoji} ${event.name}\n ${formatDate(event.gregorianDate)}\n ${event.hijriDate}\n${event.description}`;
               if (navigator.share) {
                 navigator.share({ title: event.name, text }).catch(() => {});
               } else {
@@ -437,7 +437,7 @@ function EventCard({
             className="text-[10px] text-white/20 hover:text-white/50 transition-colors border-t border-white/5 pt-2"
             title="Share this event"
           >
-            📤 Share
+             Share
           </button>
         )}
       </div>
@@ -479,7 +479,7 @@ function NextEventHero({ event }: { event: ResolvedEvent }) {
 
       <div className="relative z-10 text-center">
         <p className="text-xs font-bold tracking-[0.2em] uppercase mb-3" style={{ color: event.color }}>
-          ✦ Next Islamic Event ✦
+           Next Islamic Event 
         </p>
         <h2 className="text-white font-bold text-2xl mb-1">{event.name}</h2>
         <p className="text-3xl mb-1 font-arabic" style={{ color: event.color }}>{event.arabicName}</p>
@@ -576,11 +576,11 @@ export default function IslamicEventsPage() {
               <Link href="/" className="text-white/40 hover:text-white/70 text-xs transition flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 hover:border-white/20">
                 ← Back
               </Link>
-              <span className="text-white/20 text-xs tracking-[0.2em]">☽ ISLAMIC CALENDAR</span>
+              <span className="text-white/20 text-xs tracking-[0.2em]"> ISLAMIC CALENDAR</span>
             </div>
             <div className="text-center">
               <div className="relative inline-block mb-3">
-                <span className="text-4xl">🕌</span>
+                <span className="text-4xl"></span>
                 <div className="absolute -inset-4 rounded-full opacity-20"
                   style={{ background: 'radial-gradient(circle, #c8a96e, transparent)' }} />
               </div>
@@ -608,7 +608,7 @@ export default function IslamicEventsPage() {
             {pinnedKeys.length > 0 && filter === 'upcoming' && (
               <span className="px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1"
                 style={{ background: 'rgba(200,169,110,0.1)', color: '#c8a96e', border: '1px solid rgba(200,169,110,0.2)' }}>
-                📌 {pinnedKeys.length} pinned
+                 {pinnedKeys.length} pinned
               </span>
             )}
           </div>
@@ -629,7 +629,7 @@ export default function IslamicEventsPage() {
           {/* Empty state */}
           {displayEvents.length === 0 && (
             <div className="text-center py-16">
-              <p className="text-5xl mb-4">🌙</p>
+              <p className="text-5xl mb-4"></p>
               <p className="text-white/40 text-sm">No events to show</p>
             </div>
           )}
@@ -637,21 +637,21 @@ export default function IslamicEventsPage() {
           {/* Disclaimer */}
           <div className="mt-8 p-4 rounded-2xl border border-white/5 bg-white/[0.02] text-center">
             <p className="text-white/25 text-xs leading-relaxed">
-              ⚠️ Dates are calculated algorithmically and may vary ±1–2 days depending on moon sighting in your region. Always confirm with your local mosque.
+               Dates are calculated algorithmically and may vary ±1–2 days depending on moon sighting in your region. Always confirm with your local mosque.
             </p>
           </div>
 
           {/* Related tools */}
           <div className="mt-6 p-5 rounded-2xl border border-white/5 bg-white/[0.02]">
-            <p className="text-white/40 text-xs font-bold tracking-wider uppercase mb-3">🔗 Related Tools</p>
+            <p className="text-white/40 text-xs font-bold tracking-wider uppercase mb-3"> Related Tools</p>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { href: '/zakat', icon: '💰', label: 'Zakat Calculator' },
-                { href: '/hajj', icon: '🕋', label: 'Hajj Checklist' },
-                { href: '/eid-adha', icon: '🐑', label: 'Eid ul-Adha Kit' },
-                { href: '/ramadan', icon: '🌙', label: 'Ramadan Planner' },
-                { href: '/dhikr', icon: '📿', label: 'Dhikr Counter' },
-                { href: '/hijri', icon: '📅', label: 'Hijri Calendar' },
+                { href: '/zakat', icon: '', label: 'Zakat Calculator' },
+                { href: '/hajj', icon: '', label: 'Hajj Checklist' },
+                { href: '/eid-adha', icon: '', label: 'Eid ul-Adha Kit' },
+                { href: '/ramadan', icon: '', label: 'Ramadan Planner' },
+                { href: '/dhikr', icon: '', label: 'Dhikr Counter' },
+                { href: '/hijri', icon: '', label: 'Hijri Calendar' },
               ].map(tool => (
                 <Link key={tool.href} href={tool.href}
                   className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-white/5 hover:border-white/15 bg-white/[0.02] hover:bg-white/[0.05] transition-all text-white/50 hover:text-white/80 text-xs">

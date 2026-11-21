@@ -4,7 +4,7 @@ export const fivePillarsArticle = {
   title: "The Five Pillars of Islam: Foundation of Muslim Life",
   excerpt: "Learn the Five Pillars — Shahada, Salah, Zakat, Sawm (Fasting), and Hajj — their meanings, rulings, and how to fulfill them properly.",
   category: "Knowledge",
-  emoji: "🕋",
+  emoji: "",
   readTime: "15 min read",
   date: "2026-07-19",
   content: `
@@ -74,13 +74,13 @@ export const fivePillarsArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/prayer-times" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕐</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Prayer Times</h3>
     <p class="text-gray-600 dark:text-gray-400">Never miss a Salah</p>
   </a>
   
   <a href="/zakat" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">💰</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Zakat Calculator</h3>
     <p class="text-gray-600 dark:text-gray-400">Calculate your Zakat</p>
   </a>

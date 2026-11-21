@@ -4,7 +4,7 @@ export const zakatArticle = {
   title: "How to Calculate Zakat: A Complete Step-by-Step Guide",
   excerpt: "Master the calculation of Zakat with this comprehensive guide. Learn about Nisab, zakatable assets, and use our free calculator to compute your Zakat accurately.",
   category: "Finance",
-  emoji: "💰",
+  emoji: "",
   readTime: "10 min read",
   date: "2026-02-01",
   content: `
@@ -113,13 +113,13 @@ export const zakatArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/zakat" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">💰</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl mb-1">Zakat Calculator</h3>
     <p class="text-gray-600 dark:text-gray-400">Accurate calculation in seconds</p>
   </a>
   
   <a href="/sadaqah" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">❤️</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl mb-1">Sadaqah Tracker</h3>
     <p class="text-gray-600 dark:text-gray-400">Track your voluntary charity</p>
   </a>

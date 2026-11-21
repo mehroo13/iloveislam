@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import ToolIcon from './ToolIcon';
 
 const NAV_LINKS = [
   { href: '/', label: 'Home' },
@@ -60,7 +61,7 @@ export default function Header() {
           onClick={() => setOpen((prev) => !prev)}
         >
           <span aria-hidden="true" className="text-2xl leading-none">
-            {open ? '✕' : '☰'}
+            <ToolIcon name={open ? 'close' : 'menu'} className="h-5 w-5" />
           </span>
         </button>
       </div>

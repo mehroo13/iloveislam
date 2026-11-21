@@ -5,18 +5,18 @@ import Link from 'next/link';
 
 // ─── Deal Types ───────────────────────────────────────────────────────────────
 const DEAL_TYPES = [
-  { id: 'loan', label: 'Personal Loan', icon: '💳', desc: 'Bank loan, credit card, personal lending', category: 'Borrowing' },
-  { id: 'mortgage', label: 'Home Mortgage', icon: '🏠', desc: 'Home purchase financing', category: 'Borrowing' },
-  { id: 'credit_card', label: 'Credit Card', icon: '💳', desc: 'Credit card usage and rewards', category: 'Borrowing' },
-  { id: 'student_loan', label: 'Student Loan', icon: '🎓', desc: 'Education financing', category: 'Borrowing' },
-  { id: 'investment', label: 'Stock / Fund', icon: '📈', desc: 'Stocks, ETFs, mutual funds', category: 'Investing' },
+  { id: 'loan', label: 'Personal Loan', icon: '', desc: 'Bank loan, credit card, personal lending', category: 'Borrowing' },
+  { id: 'mortgage', label: 'Home Mortgage', icon: '', desc: 'Home purchase financing', category: 'Borrowing' },
+  { id: 'credit_card', label: 'Credit Card', icon: '', desc: 'Credit card usage and rewards', category: 'Borrowing' },
+  { id: 'student_loan', label: 'Student Loan', icon: '', desc: 'Education financing', category: 'Borrowing' },
+  { id: 'investment', label: 'Stock / Fund', icon: '', desc: 'Stocks, ETFs, mutual funds', category: 'Investing' },
   { id: 'crypto', label: 'Cryptocurrency', icon: '₿', desc: 'Bitcoin, Ethereum, DeFi, staking', category: 'Investing' },
-  { id: 'business', label: 'Business Deal', icon: '🤝', desc: 'Partnership, sale, trade', category: 'Business' },
-  { id: 'savings', label: 'Savings Account', icon: '🏦', desc: 'Bank savings, fixed deposit, bonds', category: 'Banking' },
-  { id: 'insurance', label: 'Insurance', icon: '🛡️', desc: 'Life, health, car, home insurance', category: 'Protection' },
-  { id: 'rent', label: 'Rental / Lease', icon: '🏢', desc: 'Property rental, car lease', category: 'Business' },
-  { id: 'forex', label: 'Forex Trading', icon: '💱', desc: 'Currency exchange and trading', category: 'Investing' },
-  { id: 'mlm', label: 'MLM / Network', icon: '🔺', desc: 'Multi-level marketing, network marketing', category: 'Business' },
+  { id: 'business', label: 'Business Deal', icon: '', desc: 'Partnership, sale, trade', category: 'Business' },
+  { id: 'savings', label: 'Savings Account', icon: '', desc: 'Bank savings, fixed deposit, bonds', category: 'Banking' },
+  { id: 'insurance', label: 'Insurance', icon: '', desc: 'Life, health, car, home insurance', category: 'Protection' },
+  { id: 'rent', label: 'Rental / Lease', icon: '', desc: 'Property rental, car lease', category: 'Business' },
+  { id: 'forex', label: 'Forex Trading', icon: '', desc: 'Currency exchange and trading', category: 'Investing' },
+  { id: 'mlm', label: 'MLM / Network', icon: '', desc: 'Multi-level marketing, network marketing', category: 'Business' },
 ];
 
 type DealType = (typeof DEAL_TYPES)[number];
@@ -200,11 +200,11 @@ export default function HalalFinanceCheck() {
 
     const pct = maxScore > 0 ? (riskScore / maxScore) * 100 : 0;
     let verdict: string, color: string, emoji: string, bg: string;
-    if (pct === 0) { verdict = 'Halal ✓'; color = '#059669'; emoji = '✅'; bg = 'from-emerald-700 to-emerald-500'; }
-    else if (pct <= 20) { verdict = 'Mostly Halal — Minor Concerns'; color = '#10b981'; emoji = '🟢'; bg = 'from-emerald-600 to-teal-500'; }
-    else if (pct <= 45) { verdict = 'Questionable — Seek Scholar Advice'; color = '#d97706'; emoji = '🟡'; bg = 'from-amber-600 to-orange-500'; }
-    else if (pct <= 70) { verdict = 'High Risk — Likely Haram Elements'; color = '#ea580c'; emoji = '🟠'; bg = 'from-orange-600 to-red-500'; }
-    else { verdict = 'Haram — Clear Prohibitions Present'; color = '#dc2626'; emoji = '🔴'; bg = 'from-red-700 to-red-500'; }
+    if (pct === 0) { verdict = 'Halal ✓'; color = '#059669'; emoji = ''; bg = 'from-emerald-700 to-emerald-500'; }
+    else if (pct <= 20) { verdict = 'Mostly Halal — Minor Concerns'; color = '#10b981'; emoji = ''; bg = 'from-emerald-600 to-teal-500'; }
+    else if (pct <= 45) { verdict = 'Questionable — Seek Scholar Advice'; color = '#d97706'; emoji = ''; bg = 'from-amber-600 to-orange-500'; }
+    else if (pct <= 70) { verdict = 'High Risk — Likely Haram Elements'; color = '#ea580c'; emoji = ''; bg = 'from-orange-600 to-red-500'; }
+    else { verdict = 'Haram — Clear Prohibitions Present'; color = '#dc2626'; emoji = ''; bg = 'from-red-700 to-red-500'; }
 
     const res = { pct, verdict, color, emoji, bg, redFlags, greenPoints, riskScore, maxScore };
     setResult(res); setStep('result');
@@ -228,10 +228,10 @@ export default function HalalFinanceCheck() {
           ) : (
             <Link href="/" className="text-white/60 hover:text-white text-sm transition-colors">← Home</Link>
           )}
-          <h1 className="text-lg font-bold">☪️ Halal Finance Check</h1>
+          <h1 className="text-lg font-bold"> Halal Finance Check</h1>
           <div className="flex gap-2">
-            <button onClick={() => setShowGlossary(!showGlossary)} className="text-xs bg-white/15 px-2.5 py-1 rounded-full border border-white/20 hover:bg-white/25 transition-all">📖</button>
-            <button onClick={() => setShowHistory(!showHistory)} className="text-xs bg-white/15 px-2.5 py-1 rounded-full border border-white/20 hover:bg-white/25 transition-all">📋</button>
+            <button onClick={() => setShowGlossary(!showGlossary)} className="text-xs bg-white/15 px-2.5 py-1 rounded-full border border-white/20 hover:bg-white/25 transition-all"></button>
+            <button onClick={() => setShowHistory(!showHistory)} className="text-xs bg-white/15 px-2.5 py-1 rounded-full border border-white/20 hover:bg-white/25 transition-all"></button>
           </div>
         </div>
       </header>
@@ -241,7 +241,7 @@ export default function HalalFinanceCheck() {
         {showGlossary && (
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-5 animate-slideDown">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg">📖 Islamic Finance Glossary</h3>
+              <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg"> Islamic Finance Glossary</h3>
               <button onClick={() => setShowGlossary(false)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
             </div>
             <div className="space-y-3 max-h-[400px] overflow-y-auto">
@@ -262,7 +262,7 @@ export default function HalalFinanceCheck() {
         {showHistory && history.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-5 animate-slideDown">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="font-bold text-gray-800 dark:text-gray-100">📋 Recent Checks</h3>
+              <h3 className="font-bold text-gray-800 dark:text-gray-100"> Recent Checks</h3>
               <button onClick={() => setShowHistory(false)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
             </div>
             <div className="space-y-2 max-h-[200px] overflow-y-auto">
@@ -321,9 +321,9 @@ export default function HalalFinanceCheck() {
               <h3 className="font-bold text-gray-800 dark:text-gray-100 text-base mb-4">The Three Prohibitions in Islamic Finance</h3>
               <div className="space-y-3">
                 {[
-                  { icon: '💸', term: 'Riba (ربا)', meaning: 'Interest / Usury', detail: 'Any predetermined return on a loan. "Allah has permitted trade and forbidden Riba" — Quran 2:275' },
-                  { icon: '🎲', term: 'Maysir (ميسر)', meaning: 'Gambling', detail: 'Profit from pure chance without productive effort or asset backing.' },
-                  { icon: '🌫️', term: 'Gharar (غرر)', meaning: 'Excessive Uncertainty', detail: 'Contracts with ambiguous terms, hidden conditions, or deceptive elements.' },
+                  { icon: '', term: 'Riba (ربا)', meaning: 'Interest / Usury', detail: 'Any predetermined return on a loan. "Allah has permitted trade and forbidden Riba" — Quran 2:275' },
+                  { icon: '', term: 'Maysir (ميسر)', meaning: 'Gambling', detail: 'Profit from pure chance without productive effort or asset backing.' },
+                  { icon: '', term: 'Gharar (غرر)', meaning: 'Excessive Uncertainty', detail: 'Contracts with ambiguous terms, hidden conditions, or deceptive elements.' },
                 ].map((item, i) => (
                   <div key={i} className="flex gap-3 items-start">
                     <span className="text-2xl">{item.icon}</span>
@@ -390,7 +390,7 @@ export default function HalalFinanceCheck() {
                     </div>
                     {hasAns && (
                       <div className={`rounded-xl p-3 text-xs leading-relaxed ${isRed ? 'bg-red-50 text-red-700 border border-red-100 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800' : 'bg-emerald-50 text-emerald-700 border border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800'}`}>
-                        {isRed ? '⚠️ ' : '✅ '}{q.tip}
+                        {isRed ? ' ' : ' '}{q.tip}
                       </div>
                     )}
                   </div>
@@ -400,7 +400,7 @@ export default function HalalFinanceCheck() {
 
             <button onClick={calculateResult} disabled={!allAnswered}
               className="w-full py-4 rounded-2xl bg-emerald-800 hover:bg-emerald-700 text-white font-semibold text-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg active:scale-[0.98]">
-              {allAnswered ? 'Get My Verdict ⚖️' : `Answer ${qs.length - answered} more`}
+              {allAnswered ? 'Get My Verdict ' : `Answer ${qs.length - answered} more`}
             </button>
           </>
         )}
@@ -420,15 +420,15 @@ export default function HalalFinanceCheck() {
                 </div>
               </div>
               <div className="flex justify-between text-[10px] text-white/50 mt-1">
-                <span>✅ Halal</span>
-                <span>🚫 Haram</span>
+                <span> Halal</span>
+                <span> Haram</span>
               </div>
             </div>
 
             {/* Red flags */}
             {result.redFlags.length > 0 && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-5">
-                <h3 className="font-bold text-red-800 dark:text-red-300 mb-3">🚩 Red Flags ({result.redFlags.length})</h3>
+                <h3 className="font-bold text-red-800 dark:text-red-300 mb-3"> Red Flags ({result.redFlags.length})</h3>
                 <ul className="space-y-2">
                   {result.redFlags.map((flag: string, i: number) => (
                     <li key={i} className="text-sm text-red-700 dark:text-red-300 flex gap-2 items-start">
@@ -442,7 +442,7 @@ export default function HalalFinanceCheck() {
             {/* Green points */}
             {result.greenPoints.length > 0 && (
               <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-5">
-                <h3 className="font-bold text-emerald-800 dark:text-emerald-300 mb-3">✅ Positive ({result.greenPoints.length})</h3>
+                <h3 className="font-bold text-emerald-800 dark:text-emerald-300 mb-3"> Positive ({result.greenPoints.length})</h3>
                 <ul className="space-y-2">
                   {result.greenPoints.map((pt: string, i: number) => (
                     <li key={i} className="text-sm text-emerald-700 dark:text-emerald-300 flex gap-2 items-start">
@@ -455,7 +455,7 @@ export default function HalalFinanceCheck() {
 
             {/* Alternatives */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
-              <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-3">💡 Halal Alternatives</h3>
+              <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-3"> Halal Alternatives</h3>
               <div className="space-y-2">
                 {(ALTERNATIVES[dealType.id] || []).map((alt, i) => (
                   <div key={i} className="flex gap-2 items-start text-sm text-gray-600 dark:text-gray-300">
@@ -476,7 +476,7 @@ export default function HalalFinanceCheck() {
             {/* Disclaimer */}
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4">
               <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                <strong>⚠️ Disclaimer:</strong> This is a general screening tool, not a fatwa. For a binding Islamic ruling on your specific situation, consult a qualified Islamic finance scholar or Shariah board.
+                <strong> Disclaimer:</strong> This is a general screening tool, not a fatwa. For a binding Islamic ruling on your specific situation, consult a qualified Islamic finance scholar or Shariah board.
               </p>
             </div>
 

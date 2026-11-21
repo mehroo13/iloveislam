@@ -162,7 +162,7 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
       {false && showUpdateToast && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] animate-slide-up">
           <div className="bg-blue-800 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 max-w-sm">
-            <span className="text-lg">🔄</span>
+            <span className="text-lg"></span>
             <div>
               <p className="text-sm font-semibold">App updated</p>
               <p className="text-xs text-blue-200">Refresh for the latest version</p>

@@ -3,7 +3,7 @@ export const qiblaDirectionGuide = {
   title: "Qibla Direction: How to Find It from Anywhere in the World",
   excerpt: "No app or compass to hand? Find the Qibla direction from anywhere using the sun, shadows and other no-tool methods — plus our free Qibla Finder when you are back online.",
   category: "Prayer",
-  emoji: "🧭",
+  emoji: "",
   readTime: "10 min read",
   date: "2026-01-20",
   content: `

@@ -29,21 +29,21 @@ export interface DuaCategory {
 }
 
 export const DUA_CATEGORIES: DuaCategory[] = [
-  { id: 'morning', name: 'Morning Adhkar', nameAr: 'أذكار الصباح', icon: '🌅', description: 'Duas to recite every morning after Fajr', count: 0 },
-  { id: 'evening', name: 'Evening Adhkar', nameAr: 'أذكار المساء', icon: '🌇', description: 'Duas to recite every evening after Asr', count: 0 },
-  { id: 'prayer', name: 'Prayer & Worship', nameAr: 'الصلاة والعبادة', icon: '🕌', description: 'Before, during, and after salah', count: 0 },
-  { id: 'sleep', name: 'Sleep & Waking', nameAr: 'النوم والاستيقاظ', icon: '🌙', description: 'Before sleeping and upon waking', count: 0 },
-  { id: 'food', name: 'Food & Drink', nameAr: 'الطعام والشراب', icon: '🍽️', description: 'Before and after eating and drinking', count: 0 },
-  { id: 'travel', name: 'Travel', nameAr: 'السفر', icon: '✈️', description: 'Duas for journeys and transportation', count: 0 },
-  { id: 'home', name: 'Home & Family', nameAr: 'البيت والأسرة', icon: '🏠', description: 'Entering home, family, children', count: 0 },
-  { id: 'health', name: 'Health & Healing', nameAr: 'الصحة والشفاء', icon: '💚', description: 'Sickness, pain, visiting the ill', count: 0 },
-  { id: 'protection', name: 'Protection & Ruqyah', nameAr: 'الحماية والرقية', icon: '🛡️', description: 'Evil eye, harm, enemies, shaytan', count: 0 },
-  { id: 'forgiveness', name: 'Forgiveness', nameAr: 'الاستغفار والتوبة', icon: '🤲', description: 'Repentance and seeking mercy', count: 0 },
-  { id: 'anxiety', name: 'Anxiety & Distress', nameAr: 'القلق والكرب', icon: '💙', description: 'Worry, sadness, fear, grief', count: 0 },
-  { id: 'rizq', name: 'Rizq & Provision', nameAr: 'الرزق', icon: '💰', description: 'Wealth, debt, work, barakah', count: 0 },
-  { id: 'knowledge', name: 'Knowledge', nameAr: 'العلم', icon: '📚', description: 'Study, exams, understanding', count: 0 },
-  { id: 'events', name: 'Islamic Events', nameAr: 'المناسبات', icon: '🌟', description: 'Ramadan, Hajj, Eid, Jumu\'ah', count: 0 },
-  { id: 'life', name: 'Life Events', nameAr: 'أحداث الحياة', icon: '🎯', description: 'Marriage, children, new home, death', count: 0 },
+  { id: 'morning', name: 'Morning Adhkar', nameAr: 'أذكار الصباح', icon: '', description: 'Duas to recite every morning after Fajr', count: 0 },
+  { id: 'evening', name: 'Evening Adhkar', nameAr: 'أذكار المساء', icon: '', description: 'Duas to recite every evening after Asr', count: 0 },
+  { id: 'prayer', name: 'Prayer & Worship', nameAr: 'الصلاة والعبادة', icon: '', description: 'Before, during, and after salah', count: 0 },
+  { id: 'sleep', name: 'Sleep & Waking', nameAr: 'النوم والاستيقاظ', icon: '', description: 'Before sleeping and upon waking', count: 0 },
+  { id: 'food', name: 'Food & Drink', nameAr: 'الطعام والشراب', icon: '', description: 'Before and after eating and drinking', count: 0 },
+  { id: 'travel', name: 'Travel', nameAr: 'السفر', icon: '', description: 'Duas for journeys and transportation', count: 0 },
+  { id: 'home', name: 'Home & Family', nameAr: 'البيت والأسرة', icon: '', description: 'Entering home, family, children', count: 0 },
+  { id: 'health', name: 'Health & Healing', nameAr: 'الصحة والشفاء', icon: '', description: 'Sickness, pain, visiting the ill', count: 0 },
+  { id: 'protection', name: 'Protection & Ruqyah', nameAr: 'الحماية والرقية', icon: '', description: 'Evil eye, harm, enemies, shaytan', count: 0 },
+  { id: 'forgiveness', name: 'Forgiveness', nameAr: 'الاستغفار والتوبة', icon: '', description: 'Repentance and seeking mercy', count: 0 },
+  { id: 'anxiety', name: 'Anxiety & Distress', nameAr: 'القلق والكرب', icon: '', description: 'Worry, sadness, fear, grief', count: 0 },
+  { id: 'rizq', name: 'Rizq & Provision', nameAr: 'الرزق', icon: '', description: 'Wealth, debt, work, barakah', count: 0 },
+  { id: 'knowledge', name: 'Knowledge', nameAr: 'العلم', icon: '', description: 'Study, exams, understanding', count: 0 },
+  { id: 'events', name: 'Islamic Events', nameAr: 'المناسبات', icon: '', description: 'Ramadan, Hajj, Eid, Jumu\'ah', count: 0 },
+  { id: 'life', name: 'Life Events', nameAr: 'أحداث الحياة', icon: '', description: 'Marriage, children, new home, death', count: 0 },
 ];
 
 export const DUAS: Dua[] = [

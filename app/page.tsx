@@ -1,6 +1,8 @@
 // app/page.tsx — Server Component (SSR + ISR)
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import HomeClient from './HomeClient';
+import { fetchTimingsByCity, DEFAULT_CITY, DEFAULT_COUNTRY, DEFAULT_METHOD } from './lib/prayer';
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
@@ -56,78 +58,64 @@ const jsonLd = {
   },
 };
 
-export default function Page() {
+export default async function Page() {
+  // Server-render today's prayer times (Sydney, Muslim World League) so the
+  // homepage prayer card is never blank. If the API is unreachable at
+  // render time, HomeClient falls back to its own client-side fetch.
+  let initialPrayer = null;
+  try {
+    initialPrayer = await fetchTimingsByCity(DEFAULT_CITY, DEFAULT_COUNTRY, DEFAULT_METHOD);
+  } catch {
+    initialPrayer = null;
+  }
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <HomeClient />
-      <section className="max-w-4xl mx-auto px-4 py-10 pb-16 space-y-8 bg-[#F7F5EF]">
-        <div className="bg-white rounded-2xl border border-[#0B3D2E]/10 p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-[#0B3D2E] mb-4">Welcome to I Love Islam — Your Daily Companion</h2>
-          <p className="text-[#1C2420]/70 text-sm leading-relaxed mb-3">
-            I Love Islam is a free, carefully curated companion for your daily deen — built around the moments that matter most: the next prayer, the right dua for what you are feeling right now, and a verse of the Quran to carry with you through the day. Everything lives in one place, completely free, with no registration required.
+      <HomeClient initialPrayer={initialPrayer} />
+      <section className="mx-auto max-w-4xl space-y-6 px-4 py-10 pb-16">
+        <div className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-6 shadow-sm">
+          <h2 className="mb-3 text-xl font-bold text-[#0B3D2E]">Welcome to I Love Islam — Your Daily Companion</h2>
+          <p className="text-sm leading-relaxed text-[#1C2420]/70">
+            I Love Islam is a free companion for your daily deen — built around the moments that
+            matter most: the next prayer, the right dua for what you are feeling right now, and a
+            verse of the Quran to carry with you through the day. Start with accurate prayer times
+            for your city and a live countdown to the next salah. Read the Quran in the beautiful
+            Indo-Pak script, with reciter audio, translations, tafsir, bookmarks, and a 30-juz
+            reading plan. When life brings a moment — joy, worry, gratitude, hardship — Dua for
+            This Moment gives you the right authentic dua, with Arabic, transliteration, and
+            translation. Everything lives in one place, completely free, with no registration
+            required. We source our data from established Islamic APIs and scholarly databases,
+            your personal progress stays on your own device, and the interface works beautifully
+            on any device.
           </p>
-          <p className="text-[#1C2420]/70 text-sm leading-relaxed mb-3">
-            Start your day with accurate prayer times for your city and a live countdown to the next salah. Open the Quran reader — set in the beautiful Indo-Pak script, with reciter audio, translations, tafsir, bookmarks, and a 30-juz reading plan. When life brings a moment — joy, worry, gratitude, hardship — Dua for This Moment gives you the right authentic dua, with Arabic, transliteration, and translation.
-          </p>
-          <p className="text-[#1C2420]/70 text-sm leading-relaxed">
-            Every tool on this platform is built with accuracy, privacy, and ease of use as core principles. We source our data from established Islamic APIs and scholarly databases, your personal progress stays on your own device, and our interface is designed to work beautifully on any device — from desktop computers to mobile phones.
-          </p>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-[#0B3D2E]/10 p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-[#0B3D2E] mb-3">Your Daily Essentials</h3>
-          <div className="space-y-3 text-sm text-[#1C2420]/70 leading-relaxed">
-            <p><strong className="text-[#1C2420]">Dua for This Moment:</strong> Tell us how you feel or what you are facing, and find the right authentic dua for that exact situation — with Arabic text, transliteration, translation, and its source, so you can learn it and use it with confidence.</p>
-            <p><strong className="text-[#1C2420]">Quran Reader:</strong> Read the complete Holy Quran in the familiar Indo-Pak script, with reciter audio, multiple translations, Ibn Kathir tafsir, bookmarks, search, and a 30-juz reading plan to help you finish the Quran at your own pace.</p>
-            <p><strong className="text-[#1C2420]">Prayer Times:</strong> Get accurate daily salah times for any city worldwide. Choose from multiple calculation methods (Muslim World League, ISNA, Umm al-Qura, and more), with a live countdown to the next prayer and all five daily prayers plus sunrise.</p>
-            <p><strong className="text-[#1C2420]">Qibla Finder:</strong> Find the exact direction to the Kaaba from anywhere in the world, with a live compass, distance to Makkah, and clear cardinal direction.</p>
-            <p><strong className="text-[#1C2420]">Zakat Calculator:</strong> Calculate your annual Zakat obligation with precision. Supports gold, silver, cash, investments, and debts, with live metal prices, multiple currencies, and clear Nisab thresholds.</p>
-            <p><strong className="text-[#1C2420]">Dhikr Counter:</strong> A beautiful digital tasbeeh with preset phrases (SubhanAllah, Alhamdulillah, Allahu Akbar, and more), target tracking, session history, and streaks to help you maintain consistent remembrance of Allah.</p>
-            <p><strong className="text-[#1C2420]">99 Names of Allah:</strong> Explore and reflect on Asma ul Husna — each name with its meaning, so you can learn them one by one and call upon Allah by His beautiful names.</p>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-[#0B3D2E]/10 p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-[#0B3D2E] mb-3">More Tools for Every Part of Muslim Life</h3>
-          <div className="space-y-3 text-sm text-[#1C2420]/70 leading-relaxed">
-            <p><strong className="text-[#1C2420]">Finance and Giving:</strong> Beyond Zakat, we offer a Halal Finance Screening tool (check any deal for Riba, Gharar, and Maysir), an Islamic Inheritance Calculator (Fara&apos;id distribution), a Kaffarah Calculator (expiation for broken oaths and fasts), and a Sadaqah Tracker (log your charitable giving).</p>
-            <p><strong className="text-[#1C2420]">Daily Worship:</strong> The Hadith Search covers six canonical collections, so you can verify what you hear and study the Sunnah directly. The Night Recitation player lets you fall asleep to beautiful Quran recitation, and the Hijri Calendar keeps you connected to the Islamic dates that shape your year.</p>
-            <p><strong className="text-[#1C2420]">Travel and Knowledge:</strong> Plan your journey with the Halal Travel Guide, prepare for pilgrimage with the Hajj Checklist, discover beautiful Muslim names with the Islamic Names Finder, and stay on top of Islamic events and dates with the Ramadan Planner and Eid toolkit.</p>
-          </div>
-        </div>
-
-        <div className="bg-[#0B3D2E] rounded-2xl p-6">
-          <h3 className="text-lg font-bold text-white mb-3">Why Muslims Trust I Love Islam</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-white/75 leading-relaxed">
-            <div>
-              <p className="font-semibold text-[#C9A227] mb-1">✓ 100% Free Forever</p>
-              <p>No subscriptions, no premium tiers, no hidden costs. Every tool is completely free.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-[#C9A227] mb-1">✓ No Registration Required</p>
-              <p>Use any tool instantly without creating an account or providing personal information.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-[#C9A227] mb-1">✓ Privacy First</p>
-              <p>Your data stays on your device. We never collect, store, or sell your personal information.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-[#C9A227] mb-1">✓ Authentic Sources</p>
-              <p>Content sourced from verified Quran databases, authenticated hadith collections, and established Islamic APIs.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-[#C9A227] mb-1">✓ Works Everywhere</p>
-              <p>Responsive design works on phones, tablets, and desktops, so your companion is with you wherever you are.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-[#C9A227] mb-1">✓ Always Fast</p>
-              <p>Built with modern web technology for instant loading and smooth performance on any connection.</p>
-            </div>
-          </div>
+          <nav aria-label="All tools" className="mt-5 flex flex-wrap gap-2">
+            {[
+              ['/dua-for-this-moment', 'Dua for This Moment'],
+              ['/quran', 'Quran Reader'],
+              ['/prayer-times', 'Prayer Times'],
+              ['/qibla', 'Qibla Finder'],
+              ['/zakat', 'Zakat Calculator'],
+              ['/dhikr', 'Dhikr Counter'],
+              ['/names', '99 Names of Allah'],
+              ['/hijri', 'Hijri Calendar'],
+              ['/hadith', 'Hadith Search'],
+              ['/hajj', 'Hajj Checklist'],
+              ['/inheritance', 'Inheritance Calculator'],
+              ['/ramadan', 'Ramadan Planner'],
+            ].map(([href, label]) => (
+              <Link
+                key={href}
+                href={href}
+                className="rounded-full border border-[#0B3D2E]/15 bg-[#F7F5EF] px-3 py-1.5 text-xs font-semibold text-[#146B4D] transition hover:border-[#C9A227] hover:text-[#0B3D2E]"
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
         </div>
       </section>
     </>

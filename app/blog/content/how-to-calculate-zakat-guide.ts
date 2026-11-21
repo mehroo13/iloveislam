@@ -3,7 +3,7 @@ export const howToCalculateZakatGuide = {
   title: "How to Calculate Zakat: Complete 2026 Step-by-Step Guide",
   excerpt: "Worked examples for calculating Zakat in 2026 — gold, silver, cash and investments — with current Nisab thresholds, Zakat rates and a free online calculator.",
   category: "Finance",
-  emoji: "💰",
+  emoji: "",
   readTime: "12 min read",
   date: "2026-01-15",
   content: `

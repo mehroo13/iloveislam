@@ -24,23 +24,23 @@ const HIJRI_MONTHS = [
 
 // Key Islamic events: month-day → event info
 const ISLAMIC_EVENTS: Record<string, { name: string; color: string; emoji: string }> = {
-  '1-1': { name: 'Islamic New Year', color: 'bg-blue-500', emoji: '🔵' },
-  '1-10': { name: 'Day of Ashura', color: 'bg-red-500', emoji: '🔴' },
-  '3-12': { name: 'Mawlid al-Nabi ﷺ', color: 'bg-yellow-500', emoji: '🟡' },
-  '7-27': { name: "Isra' wal Mi'raj", color: 'bg-purple-500', emoji: '🟣' },
-  '8-15': { name: "Laylat al-Bara'at", color: 'bg-indigo-500', emoji: '💜' },
-  '9-1': { name: 'First day of Ramadan', color: 'bg-purple-600', emoji: '🟣' },
-  '9-27': { name: 'Laylat al-Qadr (est.)', color: 'bg-amber-500', emoji: '⭐' },
-  '10-1': { name: 'Eid al-Fitr', color: 'bg-green-500', emoji: '🟢' },
-  '10-2': { name: 'Eid al-Fitr (Day 2)', color: 'bg-green-500', emoji: '🟢' },
-  '10-3': { name: 'Eid al-Fitr (Day 3)', color: 'bg-green-500', emoji: '🟢' },
-  '12-1': { name: 'Start of Dhul Hijjah', color: 'bg-amber-600', emoji: '🌟' },
-  '12-8': { name: 'Day of Tarwiyah', color: 'bg-amber-500', emoji: '🕋' },
-  '12-9': { name: 'Day of Arafah', color: 'bg-amber-600', emoji: '🌟' },
-  '12-10': { name: 'Eid al-Adha', color: 'bg-green-600', emoji: '🟢' },
-  '12-11': { name: 'Eid al-Adha (Day 2)', color: 'bg-green-500', emoji: '🟢' },
-  '12-12': { name: 'Eid al-Adha (Day 3)', color: 'bg-green-500', emoji: '🟢' },
-  '12-13': { name: 'Ayyam al-Tashreeq', color: 'bg-green-400', emoji: '🟢' },
+  '1-1': { name: 'Islamic New Year', color: 'bg-blue-500', emoji: '' },
+  '1-10': { name: 'Day of Ashura', color: 'bg-red-500', emoji: '' },
+  '3-12': { name: 'Mawlid al-Nabi ﷺ', color: 'bg-yellow-500', emoji: '' },
+  '7-27': { name: "Isra' wal Mi'raj", color: 'bg-purple-500', emoji: '' },
+  '8-15': { name: "Laylat al-Bara'at", color: 'bg-indigo-500', emoji: '' },
+  '9-1': { name: 'First day of Ramadan', color: 'bg-purple-600', emoji: '' },
+  '9-27': { name: 'Laylat al-Qadr (est.)', color: 'bg-amber-500', emoji: '' },
+  '10-1': { name: 'Eid al-Fitr', color: 'bg-green-500', emoji: '' },
+  '10-2': { name: 'Eid al-Fitr (Day 2)', color: 'bg-green-500', emoji: '' },
+  '10-3': { name: 'Eid al-Fitr (Day 3)', color: 'bg-green-500', emoji: '' },
+  '12-1': { name: 'Start of Dhul Hijjah', color: 'bg-amber-600', emoji: '' },
+  '12-8': { name: 'Day of Tarwiyah', color: 'bg-amber-500', emoji: '' },
+  '12-9': { name: 'Day of Arafah', color: 'bg-amber-600', emoji: '' },
+  '12-10': { name: 'Eid al-Adha', color: 'bg-green-600', emoji: '' },
+  '12-11': { name: 'Eid al-Adha (Day 2)', color: 'bg-green-500', emoji: '' },
+  '12-12': { name: 'Eid al-Adha (Day 3)', color: 'bg-green-500', emoji: '' },
+  '12-13': { name: 'Ayyam al-Tashreeq', color: 'bg-green-400', emoji: '' },
 };
 
 // Ayyamul Bidh (white days) — 13, 14, 15 of every month
@@ -250,7 +250,7 @@ export default function HijriCalendar() {
       <header style={{ background: 'linear-gradient(135deg, #071e14, #0a3d2e)' }} className="px-4 py-3">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <Link href="/" className="text-white/50 hover:text-white text-sm">← Home</Link>
-          <h1 className="text-white font-bold text-base">🌙 Hijri Calendar</h1>
+          <h1 className="text-white font-bold text-base"> Hijri Calendar</h1>
           <div className="w-12" />
         </div>
       </header>
@@ -279,11 +279,11 @@ export default function HijriCalendar() {
         <div className="flex bg-white dark:bg-gray-800 rounded-xl p-1 border border-gray-100 dark:border-gray-700">
           <button onClick={() => setMode('calendar')}
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${mode === 'calendar' ? 'bg-emerald-600 text-white shadow' : 'text-gray-500 dark:text-gray-400'}`}>
-            📅 Calendar
+             Calendar
           </button>
           <button onClick={() => setMode('converter')}
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${mode === 'converter' ? 'bg-emerald-600 text-white shadow' : 'text-gray-500 dark:text-gray-400'}`}>
-            🔄 Converter
+             Converter
           </button>
         </div>
 
@@ -306,7 +306,7 @@ export default function HijriCalendar() {
             {/* Calendar grid */}
             {loading ? (
               <div className="text-center py-12">
-                <div className="text-3xl animate-pulse mb-2">🌙</div>
+                <div className="text-3xl animate-pulse mb-2"></div>
                 <p className="text-gray-400 dark:text-gray-500 text-sm">Loading calendar...</p>
               </div>
             ) : monthData && (
@@ -413,7 +413,7 @@ export default function HijriCalendar() {
                   className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 text-sm bg-gray-50 dark:bg-gray-700 dark:text-white" />
                 <button onClick={convertG2H} disabled={convLoading}
                   className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl py-3 font-medium text-sm">
-                  {convLoading ? 'Converting...' : 'Convert to Hijri 🌙'}
+                  {convLoading ? 'Converting...' : 'Convert to Hijri '}
                 </button>
               </div>
             ) : (
@@ -431,7 +431,7 @@ export default function HijriCalendar() {
                 </div>
                 <button onClick={convertH2G} disabled={convLoading}
                   className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl py-3 font-medium text-sm">
-                  {convLoading ? 'Converting...' : 'Convert to Gregorian 📅'}
+                  {convLoading ? 'Converting...' : 'Convert to Gregorian '}
                 </button>
               </div>
             )}

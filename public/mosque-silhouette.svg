@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="260" viewBox="0 0 640 260" fill="none" role="img" aria-label="Mosque silhouette">
+  <g stroke="#C9A227" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="rgba(201,162,39,0.08)">
+    <!-- central dome -->
+    <path d="M320 52 C 268 84, 244 128, 244 168 L 396 168 C 396 128, 372 84, 320 52 Z" />
+    <!-- crescent on dome -->
+    <path d="M320 22 a14 14 0 1 0 8 25 a11 11 0 1 1 -8 -25 Z" fill="#C9A227" stroke="none" />
+    <path d="M320 36 v14" />
+    <!-- side domes -->
+    <path d="M196 108 C 172 126, 160 144, 160 168 L 232 168 C 232 144, 220 126, 196 108 Z" />
+    <path d="M444 108 C 420 126, 408 144, 408 168 L 480 168 C 480 144, 468 126, 444 108 Z" />
+    <!-- minarets -->
+    <path d="M96 168 V 84" />
+    <path d="M84 84 h24" />
+    <path d="M96 84 C 88 72, 88 64, 96 56 C 104 64, 104 72, 96 84 Z" />
+    <path d="M96 56 v-8" />
+    <circle cx="96" cy="42" r="3" fill="#C9A227" stroke="none" />
+    <path d="M544 168 V 84" />
+    <path d="M532 84 h24" />
+    <path d="M544 84 C 536 72, 536 64, 544 56 C 552 64, 552 72, 544 84 Z" />
+    <path d="M544 56 v-8" />
+    <circle cx="544" cy="42" r="3" fill="#C9A227" stroke="none" />
+    <!-- arched doorway -->
+    <path d="M296 232 V 196 a24 24 0 0 1 48 0 v36" />
+    <!-- windows -->
+    <path d="M264 196 v20 M352 196 v20" />
+    <path d="M176 184 v16 M440 184 v16" />
+    <!-- base -->
+    <path d="M40 232 H 600" />
+    <path d="M120 232 V 168 M520 232 V 168" />
+  </g>
+</svg>

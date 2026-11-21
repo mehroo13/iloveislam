@@ -4,7 +4,7 @@ export const mizanArticle = {
   title: "What is the Mizan Islamic Life Blueprint?",
   excerpt: "Discover your unique spiritual profile using the ancient Abjad system, the 99 Names of Allah, and Quranic wisdom. Find balance, purpose, and deeper connection with your Creator.",
   category: "Self-Discovery",
-  emoji: "⚖️",
+  emoji: "",
   readTime: "12 min read",
   date: "2026-03-03",
   content: `
@@ -83,13 +83,13 @@ export const mizanArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/mizan" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">⚖️</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Mizan Blueprint</h3>
     <p class="text-gray-600 dark:text-gray-400">Discover your spiritual profile</p>
   </a>
   
   <a href="/names" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">⭐</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">99 Names of Allah</h3>
     <p class="text-gray-600 dark:text-gray-400">Explore all Asma ul-Husna</p>
   </a>

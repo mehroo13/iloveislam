@@ -4,7 +4,7 @@ export const laylatulQadrArticle = {
   title: "Laylat al-Qadr: The Night of Power – Better Than a Thousand Months",
   excerpt: "Discover the immense blessings of Laylat al-Qadr, the most powerful night of the year. Learn its signs, virtues, recommended worship, and how to catch this night better than 83 years of worship.",
   category: "Ramadan",
-  emoji: "🌙",
+  emoji: "",
   readTime: "15 min read",
   date: "2026-04-25",
   content: `
@@ -99,25 +99,25 @@ export const laylatulQadrArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/night" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🌙</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Night Recitation</h3>
     <p class="text-gray-600 dark:text-gray-400">Beautiful Quran to help you stay awake</p>
   </a>
   
   <a href="/dhikr" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">📿</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Dhikr Counter</h3>
     <p class="text-gray-600 dark:text-gray-400">Track istighfar and adhkar</p>
   </a>
   
   <a href="/quran" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">📖</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Quran Reader</h3>
     <p class="text-gray-600 dark:text-gray-400">Read with translation</p>
   </a>
   
   <a href="/dua" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🤲</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Dua Generator</h3>
     <p class="text-gray-600 dark:text-gray-400">Powerful supplications for the night</p>
   </a>

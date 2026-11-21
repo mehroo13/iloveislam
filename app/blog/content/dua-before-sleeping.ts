@@ -4,7 +4,7 @@ export const duaBeforeSleeping = {
   title: "Dua Before Sleeping: Complete Night Adhkar & Bedtime Prayers",
   excerpt: "Learn the complete dua before sleeping with Arabic text, transliteration, and Sunnah sleep practices. Protect yourself with authentic night adhkar and bedtime prayers.",
   category: "Dua",
-  emoji: "🌙",
+  emoji: "",
   readTime: "17 min read",
   date: "2026-03-01",
   content: `

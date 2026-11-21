@@ -4,7 +4,7 @@ export const islamicWillArticle = {
   title: "Why Every Muslim Needs a Will — And How to Write One",
   excerpt: "Writing a Will (Wasiyyah) is a major Islamic obligation. Learn the rules, what you can and cannot include, and create yours easily with our free tool.",
   category: "Finance",
-  emoji: "📜",
+  emoji: "",
   readTime: "11 min read",
   date: "2026-04-03",
   content: `
@@ -61,13 +61,13 @@ export const islamicWillArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/will" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">📜</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Islamic Will Tool</h3>
     <p class="text-gray-600 dark:text-gray-400">Generate a Shariah-compliant will in minutes</p>
   </a>
   
   <a href="/inheritance" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">⚖️</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Inheritance Calculator</h3>
     <p class="text-gray-600 dark:text-gray-400">Calculate exact shares for your heirs</p>
   </a>

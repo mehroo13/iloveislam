@@ -4,7 +4,7 @@ export const hijriCalendar2026 = {
   title: "Hijri Calendar 2026 (1447-1448 AH): Complete Islamic Date Guide",
   excerpt: "Hijri calendar 2026 (1447–1448 AH): month-by-month Islamic dates, conversions and key religious dates for this year — plan your Islamic year.",
   category: "Calendar",
-  emoji: "🌙",
+  emoji: "",
   readTime: "15 min read",
   date: "2026-01-01",
   content: `

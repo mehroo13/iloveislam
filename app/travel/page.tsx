@@ -35,30 +35,30 @@ interface PrayerData {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TABS: { id: TabId; label: string; icon: string; href?: string }[] = [
-  { id: 'food',   label: 'Halal Food',   icon: '🍱' },
-  { id: 'mosque', label: 'Mosques',      icon: '🕌' },
-  { id: 'hotel',  label: 'Hotels',       icon: '🏨' },
-  { id: 'prayer', label: 'Prayer Times', icon: '🕐', href: '/prayer-times' },
-  { id: 'qibla',  label: 'Qibla',        icon: '🧭', href: '/qibla' },
-  { id: 'tips',   label: 'Travel Tips',  icon: '💡' },
-  { id: 'dua',    label: 'Journey Duas', icon: '🤲' },
+  { id: 'food',   label: 'Halal Food',   icon: '' },
+  { id: 'mosque', label: 'Mosques',      icon: '' },
+  { id: 'hotel',  label: 'Hotels',       icon: '' },
+  { id: 'prayer', label: 'Prayer Times', icon: '', href: '/prayer-times' },
+  { id: 'qibla',  label: 'Qibla',        icon: '', href: '/qibla' },
+  { id: 'tips',   label: 'Travel Tips',  icon: '' },
+  { id: 'dua',    label: 'Journey Duas', icon: '' },
 ];
 
 const TIPS = [
-  { icon: '🍱', cat: 'Food',          title: 'Finding Halal Food',         desc: 'Look for official Halal certification logos on restaurants. Ask locals near the mosque for trusted recommendations. Apps like Zabihah and HalalTrip are also helpful.' },
-  { icon: '🙏', cat: 'Prayer',        title: 'Praying While Travelling',   desc: 'You can combine and shorten prayers (Qasr) when travelling over 80 km. On planes, ask for a direction of Mecca or pray seated if standing is unsafe.' },
-  { icon: '👗', cat: 'Etiquette',     title: 'Modest Dress & Customs',     desc: 'Research local dress codes. Cover your head when entering mosques. Learn "As-salamu alaykum" — it opens many doors.' },
-  { icon: '🏥', cat: 'Health',        title: 'Health & Safety',            desc: 'Carry medications and prescriptions. Get travel insurance (Takaful). Save local emergency numbers before you arrive.' },
-  { icon: '📿', cat: 'Spirituality',  title: 'Maintaining Your Ibadah',    desc: 'Find the nearest mosque on arrival. Use a dhikr app for duas on the road. Try to pray Fajr in the masjid — it sets a blessed tone for the day.' },
-  { icon: '🌙', cat: 'Ramadan',       title: 'Travelling in Ramadan',      desc: 'Travellers may break their fast and make it up later. Check local iftar and suhoor times. Many cities have special Ramadan buffets at Muslim restaurants.' },
-  { icon: '🧳', cat: 'Packing',       title: 'Muslim Travel Essentials',   desc: 'Pack a travel prayer mat, pocket Quran, small compass, and halal snacks. Keep digital and physical copies of all travel documents.' },
-  { icon: '💬', cat: 'Communication', title: 'Language & Local Phrases',   desc: '"Salam" and "Shukran" go a long way in Muslim-majority countries. Download Google Translate offline for areas with poor connectivity.' },
-  { icon: '💰', cat: 'Finance',       title: 'Money & Islamic Finance',    desc: 'Consider Takaful travel insurance. Carry local currency and small bills. Notify your bank before travelling to avoid card blocks.' },
-  { icon: '✈️', cat: 'Flights',       title: 'Halal Meals on Flights',     desc: 'Always request a Halal meal (MOML) when booking. Confirm 24–48 hours before departure.' },
-  { icon: '🏨', cat: 'Hotels',        title: 'Muslim-Friendly Hotels',     desc: 'Look for hotels with prayer mats, Quran in rooms, qibla direction stickers, and halal breakfast. HalalBooking.com specializes in this.' },
-  { icon: '🚿', cat: 'Hygiene',       title: 'Wudu & Bathroom Facilities', desc: 'Carry a portable bidet/lota. Airport prayer rooms usually have wudu facilities. In non-Muslim countries, use the disabled toilet for more space.' },
-  { icon: '🗺️', cat: 'Planning',      title: 'Top Muslim-Friendly Destinations', desc: 'Turkey, Malaysia, UAE, Morocco, Indonesia, Jordan, Oman, Bosnia, and Uzbekistan are excellent for Muslim travellers with abundant halal food and mosques.' },
-  { icon: '⚠️', cat: 'Safety',        title: 'Travelling as a Visibly Muslim', desc: 'Research the political climate. Register with your embassy. Keep emergency contacts accessible. Travel in groups when possible in unfamiliar areas.' },
+  { icon: '', cat: 'Food',          title: 'Finding Halal Food',         desc: 'Look for official Halal certification logos on restaurants. Ask locals near the mosque for trusted recommendations. Apps like Zabihah and HalalTrip are also helpful.' },
+  { icon: '', cat: 'Prayer',        title: 'Praying While Travelling',   desc: 'You can combine and shorten prayers (Qasr) when travelling over 80 km. On planes, ask for a direction of Mecca or pray seated if standing is unsafe.' },
+  { icon: '', cat: 'Etiquette',     title: 'Modest Dress & Customs',     desc: 'Research local dress codes. Cover your head when entering mosques. Learn "As-salamu alaykum" — it opens many doors.' },
+  { icon: '', cat: 'Health',        title: 'Health & Safety',            desc: 'Carry medications and prescriptions. Get travel insurance (Takaful). Save local emergency numbers before you arrive.' },
+  { icon: '', cat: 'Spirituality',  title: 'Maintaining Your Ibadah',    desc: 'Find the nearest mosque on arrival. Use a dhikr app for duas on the road. Try to pray Fajr in the masjid — it sets a blessed tone for the day.' },
+  { icon: '', cat: 'Ramadan',       title: 'Travelling in Ramadan',      desc: 'Travellers may break their fast and make it up later. Check local iftar and suhoor times. Many cities have special Ramadan buffets at Muslim restaurants.' },
+  { icon: '', cat: 'Packing',       title: 'Muslim Travel Essentials',   desc: 'Pack a travel prayer mat, pocket Quran, small compass, and halal snacks. Keep digital and physical copies of all travel documents.' },
+  { icon: '', cat: 'Communication', title: 'Language & Local Phrases',   desc: '"Salam" and "Shukran" go a long way in Muslim-majority countries. Download Google Translate offline for areas with poor connectivity.' },
+  { icon: '', cat: 'Finance',       title: 'Money & Islamic Finance',    desc: 'Consider Takaful travel insurance. Carry local currency and small bills. Notify your bank before travelling to avoid card blocks.' },
+  { icon: '', cat: 'Flights',       title: 'Halal Meals on Flights',     desc: 'Always request a Halal meal (MOML) when booking. Confirm 24–48 hours before departure.' },
+  { icon: '', cat: 'Hotels',        title: 'Muslim-Friendly Hotels',     desc: 'Look for hotels with prayer mats, Quran in rooms, qibla direction stickers, and halal breakfast. HalalBooking.com specializes in this.' },
+  { icon: '', cat: 'Hygiene',       title: 'Wudu & Bathroom Facilities', desc: 'Carry a portable bidet/lota. Airport prayer rooms usually have wudu facilities. In non-Muslim countries, use the disabled toilet for more space.' },
+  { icon: '', cat: 'Planning',      title: 'Top Muslim-Friendly Destinations', desc: 'Turkey, Malaysia, UAE, Morocco, Indonesia, Jordan, Oman, Bosnia, and Uzbekistan are excellent for Muslim travellers with abundant halal food and mosques.' },
+  { icon: '', cat: 'Safety',        title: 'Travelling as a Visibly Muslim', desc: 'Research the political climate. Register with your embassy. Keep emergency contacts accessible. Travel in groups when possible in unfamiliar areas.' },
 ];
 
 const DUAS = [
@@ -73,7 +73,7 @@ const DUAS = [
   { arabic: 'آيِبُونَ تَائِبُونَ عَابِدُونَ لِرَبِّنَا حَامِدُونَ', transliteration: "Ā'ibūna tā'ibūna 'ābidūna li-rabbinā ḥāmidūn.", meaning: 'Returning from a journey', reference: 'Bukhari & Muslim' },
 ];
 
-const PRAYER_ICONS: Record<string, string> = { Fajr: '🌅', Sunrise: '🌤️', Dhuhr: '☀️', Asr: '🌥️', Maghrib: '🌇', Isha: '🌙' };
+const PRAYER_ICONS: Record<string, string> = { Fajr: '', Sunrise: '', Dhuhr: '', Asr: '', Maghrib: '', Isha: '' };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -299,7 +299,7 @@ function PlaceCard({ place, type, saved, onDirections, onSave, onRemove }: {
   onSave: () => void;
   onRemove: () => void;
 }) {
-  const icons = { food: '🍱', mosque: '🕌', hotel: '🏨' };
+  const icons = { food: '', mosque: '', hotel: '' };
   const distStr = place.distance !== undefined
     ? place.distance < 1 ? `${Math.round(place.distance * 1000)}m` : `${place.distance.toFixed(1)}km`
     : null;
@@ -316,34 +316,34 @@ function PlaceCard({ place, type, saved, onDirections, onSave, onRemove }: {
           <p style={{ fontWeight: 700, fontSize: 14, color: C.text, margin: 0, fontFamily: 'Georgia, serif', flex: 1, lineHeight: 1.3 }}>{place.name}</p>
           {distStr && (
             <span style={{ flexShrink: 0, background: isVeryClose ? C.green : isClose ? C.greenMid : '#6b7280', color: '#fff', fontSize: 12, fontWeight: 800, padding: '3px 9px', borderRadius: 20, whiteSpace: 'nowrap' }}>
-              {isVeryClose ? '📍 ' : ''}{distStr}
+              {isVeryClose ? ' ' : ''}{distStr}
             </span>
           )}
         </div>
         {place.distance !== undefined && (
           <p style={{ fontSize: 11, color: isVeryClose ? C.greenLight : C.muted, margin: '0 0 3px', fontStyle: 'italic' }}>
-            {place.distance < 0.1 ? '🚶 Less than 2 min walk'
-              : place.distance < 0.5 ? `🚶 ~${Math.round(place.distance * 1000 / 80)} min walk`
-              : place.distance < 2 ? `🚗 ~${Math.round(place.distance / 0.5)} min drive`
-              : `🚗 ~${Math.round(place.distance / 0.8)} min drive`}
+            {place.distance < 0.1 ? ' Less than 2 min walk'
+              : place.distance < 0.5 ? ` ~${Math.round(place.distance * 1000 / 80)} min walk`
+              : place.distance < 2 ? ` ~${Math.round(place.distance / 0.5)} min drive`
+              : ` ~${Math.round(place.distance / 0.8)} min drive`}
           </p>
         )}
         {place.cuisine && <p style={{ fontSize: 11, color: C.muted, margin: '0 0 2px', textTransform: 'capitalize' }}>{place.cuisine.replace(/_/g, ' ')}</p>}
-        {place.address && <p style={{ fontSize: 11, color: C.muted, margin: '0 0 2px' }}>📍 {place.address}</p>}
-        {place.opening && <p style={{ fontSize: 11, color: C.greenLight, margin: '0 0 2px' }}>🕐 {place.opening}</p>}
-        {place.phone && <p style={{ fontSize: 11, color: C.muted, margin: '0 0 2px' }}>📞 {place.phone}</p>}
+        {place.address && <p style={{ fontSize: 11, color: C.muted, margin: '0 0 2px' }}> {place.address}</p>}
+        {place.opening && <p style={{ fontSize: 11, color: C.greenLight, margin: '0 0 2px' }}> {place.opening}</p>}
+        {place.phone && <p style={{ fontSize: 11, color: C.muted, margin: '0 0 2px' }}> {place.phone}</p>}
         {place.website && (
           <a href={place.website.startsWith('http') ? place.website : `https://${place.website}`} target="_blank" rel="noopener noreferrer"
             style={{ fontSize: 11, color: '#2563eb', textDecoration: 'none', display: 'block', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            🌐 {place.website.replace(/https?:\/\//, '')}
+             {place.website.replace(/https?:\/\//, '')}
           </a>
         )}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
-        <button onClick={onDirections} style={{ ...S.btnPrimary, padding: '7px 12px', fontSize: 12 }}>🧭 Go</button>
+        <button onClick={onDirections} style={{ ...S.btnPrimary, padding: '7px 12px', fontSize: 12 }}> Go</button>
         <button onClick={saved ? onRemove : onSave}
           style={{ padding: '6px 12px', borderRadius: 10, border: `1.5px solid ${saved ? C.gold : C.border}`, background: saved ? C.goldLight : C.cream, color: saved ? '#92400e' : C.muted, fontSize: 12, cursor: 'pointer' }}>
-          {saved ? '🔖' : '🔖 Save'}
+          {saved ? '' : ' Save'}
         </button>
       </div>
     </div>
@@ -377,7 +377,7 @@ function QiblaCompass({ angle, deviceHeading }: { angle: number; deviceHeading: 
           <div style={{ position: 'absolute', bottom: '50%', left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderBottom: `80px solid ${C.gold}` }} />
           <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: `70px solid ${C.border}` }} />
         </div>
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: 14 }}>🕋</div>
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: 14 }}></div>
       </div>
       <p style={{ fontSize: 26, fontWeight: 800, color: C.green, fontFamily: 'Georgia, serif', margin: '0 0 4px' }}>{Math.round(angle)}°</p>
       <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>
@@ -578,7 +578,7 @@ export default function HalalTravel() {
   // ── City search button ────────────────────────────────────────────────────────
   const handleCitySearch = useCallback(async (type: 'food' | 'mosque' | 'hotel') => {
     if (!city.trim()) {
-      setError('Please enter a city name or tap "📍 My Location".');
+      setError('Please enter a city name or tap " My Location".');
       return;
     }
     setLoading(true);
@@ -724,7 +724,7 @@ export default function HalalTravel() {
         <div style={{ maxWidth: 700, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Link href="/" style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, textDecoration: 'none' }}>← Back</Link>
           <div style={{ textAlign: 'center' }}>
-            <h1 style={{ color: C.white, fontSize: 18, fontWeight: 700, margin: 0, fontFamily: 'Lora, Georgia, serif' }}>🌍 Halal Travel</h1>
+            <h1 style={{ color: C.white, fontSize: 18, fontWeight: 700, margin: 0, fontFamily: 'Lora, Georgia, serif' }}> Halal Travel</h1>
             <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 10, margin: '2px 0 0', letterSpacing: 1, textTransform: 'uppercase' }}>Your Muslim Travel Companion</p>
           </div>
           <div style={{ width: 50 }} />
@@ -758,10 +758,10 @@ export default function HalalTravel() {
           <div className="fade-up">
             <div style={{ ...S.card, marginBottom: 14 }}>
               <p style={{ fontSize: 13, fontWeight: 700, color: C.green, margin: '0 0 4px', fontFamily: 'Lora, Georgia, serif' }}>
-                {activeTab === 'food' ? '🍱 Find Halal Restaurants' : activeTab === 'mosque' ? '🕌 Find Nearby Mosques' : '🏨 Find Hotels'}
+                {activeTab === 'food' ? ' Find Halal Restaurants' : activeTab === 'mosque' ? ' Find Nearby Mosques' : ' Find Hotels'}
               </p>
               <p style={{ fontSize: 11, color: C.muted, margin: '0 0 14px' }}>
-                Type a city name and tap Search — or tap 📍 My Location to find places near you right now
+                Type a city name and tap Search — or tap  My Location to find places near you right now
               </p>
 
               {/* GPS button — prominent at top */}
@@ -772,7 +772,7 @@ export default function HalalTravel() {
               >
                 {locating
                   ? <><span style={{ width: 16, height: 16, border: `2px solid ${C.greenLight}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} /> Finding your location…</>
-                  : <>📍 Use My Location — Find Nearest {activeTab === 'food' ? 'Halal Food' : activeTab === 'mosque' ? 'Mosques' : 'Hotels'}</>
+                  : <> Use My Location — Find Nearest {activeTab === 'food' ? 'Halal Food' : activeTab === 'mosque' ? 'Mosques' : 'Hotels'}</>
                 }
               </button>
 
@@ -794,7 +794,7 @@ export default function HalalTravel() {
                   placeholder={`e.g. ${activeTab === 'food' ? 'Istanbul, London, Dubai' : activeTab === 'mosque' ? 'London, Sydney, New York' : 'Dubai, Istanbul, Kuala Lumpur'}`}
                 />
                 <button onClick={() => handleCitySearch(searchType)} style={S.btnPrimary} disabled={loading}>
-                  🔍 Search
+                   Search
                 </button>
               </div>
 
@@ -819,7 +819,7 @@ export default function HalalTravel() {
               {/* Location status */}
               {coordsDisplay && (
                 <p style={{ fontSize: 11, color: C.greenLight, margin: '8px 0 0' }}>
-                  ✅ {usingGPS ? '📍 Using your GPS location' : `📍 Showing results near ${city}`}
+                   {usingGPS ? ' Using your GPS location' : ` Showing results near ${city}`}
                 </p>
               )}
             </div>
@@ -853,7 +853,7 @@ export default function HalalTravel() {
                       activeTab === 'mosque' ? `mosque near me` : `hotel ${city}`
                     )}
                     style={{ ...S.btnPrimary, background: '#1d4ed8', fontSize: 12, padding: '8px 14px' }}>
-                    🗺️ Search on Google Maps
+                     Search on Google Maps
                   </button>
                   <button
                     onClick={() => coordsRef.current
@@ -861,7 +861,7 @@ export default function HalalTravel() {
                       : handleCitySearch(searchType)
                     }
                     style={{ ...S.btnSecondary, fontSize: 12, padding: '7px 14px' }}>
-                    🔄 Try Again
+                     Try Again
                   </button>
                 </div>
               </div>
@@ -903,13 +903,13 @@ export default function HalalTravel() {
             {currentTabSavedPlaces.length > 0 && (
               <div style={{ ...S.card, marginTop: 16 }}>
                 <p style={{ fontSize: 13, fontWeight: 700, color: C.green, margin: '0 0 12px', fontFamily: 'Lora, Georgia, serif' }}>
-                  🔖 Saved {activeTab === 'food' ? 'Restaurants' : activeTab === 'mosque' ? 'Mosques' : 'Hotels'}
+                   Saved {activeTab === 'food' ? 'Restaurants' : activeTab === 'mosque' ? 'Mosques' : 'Hotels'}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 240, overflowY: 'auto' }}>
                   {currentTabSavedPlaces.map(p => (
                     <div key={`sv-${p.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: C.cream, borderRadius: 10, border: `1px solid ${C.border}` }}>
                       <span style={{ fontSize: 13, color: C.text }}>
-                        {activeTab === 'food' ? '🍱' : activeTab === 'mosque' ? '🕌' : '🏨'} {p.name}
+                        {activeTab === 'food' ? '' : activeTab === 'mosque' ? '' : ''} {p.name}
                       </span>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button onClick={() => openDirections(p.lat, p.lon)} style={{ fontSize: 11, background: C.green, color: C.white, border: 'none', borderRadius: 8, padding: '4px 10px', cursor: 'pointer' }}>Go</button>
@@ -927,7 +927,7 @@ export default function HalalTravel() {
         {activeTab === 'prayer' && (
           <div className="fade-up">
             <div style={{ ...S.card, marginBottom: 14 }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: C.green, margin: '0 0 12px', fontFamily: 'Lora, Georgia, serif' }}>🕐 Daily Prayer Times</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: C.green, margin: '0 0 12px', fontFamily: 'Lora, Georgia, serif' }}> Daily Prayer Times</p>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <input style={S.input} type="text" value={prayerCity} onChange={e => setPrayerCity(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && fetchPrayerTimes()}
@@ -946,7 +946,7 @@ export default function HalalTravel() {
               <div className="fade-up">
                 <div style={{ background: `linear-gradient(135deg, ${C.green}, ${C.greenMid})`, borderRadius: '16px 16px 0 0', padding: '18px 20px', textAlign: 'center' }}>
                   <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: 1 }}>Prayer Times for</p>
-                  <p style={{ color: C.white, fontSize: 18, fontWeight: 700, margin: '0 0 4px', fontFamily: 'Lora, Georgia, serif' }}>📍 {prayerData.city}</p>
+                  <p style={{ color: C.white, fontSize: 18, fontWeight: 700, margin: '0 0 4px', fontFamily: 'Lora, Georgia, serif' }}> {prayerData.city}</p>
                   {prayerData.hijri && <p style={{ color: C.gold, fontSize: 12, margin: 0 }}>{prayerData.hijri}</p>}
                 </div>
                 {nextPrayer && (
@@ -977,7 +977,7 @@ export default function HalalTravel() {
                   })}
                 </div>
                 <div style={{ marginTop: 12, padding: '14px 16px', background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: 24 }}>🕌</span>
+                  <span style={{ fontSize: 24 }}></span>
                   <div style={{ flex: 1 }}>
                     <p style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: '0 0 2px' }}>Find a mosque for this prayer</p>
                     <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>Pray in congregation for 27× the reward</p>
@@ -993,19 +993,19 @@ export default function HalalTravel() {
         {activeTab === 'qibla' && (
           <div className="fade-up">
             <div style={{ ...S.card, marginBottom: 14 }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: C.green, margin: '0 0 12px', fontFamily: 'Lora, Georgia, serif' }}>🧭 Qibla Direction</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: C.green, margin: '0 0 12px', fontFamily: 'Lora, Georgia, serif' }}> Qibla Direction</p>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
                 <input style={S.input} type="text" value={qiblaCity} onChange={e => setQiblaCity(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && fetchQibla()}
                   placeholder="City name (or use My Location)" />
-                <button onClick={fetchQibla} style={S.btnPrimary} disabled={qiblaLoading}>{qiblaLoading ? '…' : '🧭 Find Qibla'}</button>
-                <button onClick={() => { if (coordsRef.current) setQiblaAngle(getQiblaAngle(coordsRef.current.lat, coordsRef.current.lon)); else handleMyLocation('mosque'); }} style={S.btnSecondary}>📍 My Location</button>
+                <button onClick={fetchQibla} style={S.btnPrimary} disabled={qiblaLoading}>{qiblaLoading ? '…' : ' Find Qibla'}</button>
+                <button onClick={() => { if (coordsRef.current) setQiblaAngle(getQiblaAngle(coordsRef.current.lat, coordsRef.current.lon)); else handleMyLocation('mosque'); }} style={S.btnSecondary}> My Location</button>
               </div>
               <button onClick={startCompass} style={{ width: '100%', padding: '10px 0', borderRadius: 12, border: `1.5px solid ${C.gold}`, background: C.goldLight, color: '#92400e', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
-                📱 Enable Live Compass
+                 Enable Live Compass
               </button>
               {compassError && <p style={{ fontSize: 12, color: C.red, margin: '8px 0 0' }}>{compassError}</p>}
-              {deviceHeading !== null && <p style={{ fontSize: 12, color: C.greenLight, margin: '8px 0 0' }}>✅ Live compass active — Heading: {Math.round(deviceHeading)}°</p>}
+              {deviceHeading !== null && <p style={{ fontSize: 12, color: C.greenLight, margin: '8px 0 0' }}> Live compass active — Heading: {Math.round(deviceHeading)}°</p>}
             </div>
             {qiblaAngle !== null && (
               <div style={{ ...S.card }} className="fade-up">
@@ -1017,7 +1017,7 @@ export default function HalalTravel() {
             )}
             {qiblaAngle === null && !qiblaLoading && (
               <div style={{ textAlign: 'center', padding: '50px 20px' }}>
-                <p style={{ fontSize: 48, margin: '0 0 12px' }}>🕋</p>
+                <p style={{ fontSize: 48, margin: '0 0 12px' }}></p>
                 <p style={{ fontSize: 14, color: C.muted, fontStyle: 'italic', fontFamily: 'Lora, Georgia, serif' }}>Enter your city or use your location to find the Qibla direction</p>
               </div>
             )}
@@ -1046,7 +1046,7 @@ export default function HalalTravel() {
         {activeTab === 'dua' && (
           <div className="fade-up">
             <div style={{ background: `linear-gradient(135deg, ${C.green}, ${C.greenMid})`, borderRadius: 18, padding: '18px 20px', marginBottom: 14, textAlign: 'center' }}>
-              <p style={{ color: C.gold, fontSize: 16, fontWeight: 700, margin: '0 0 4px', fontFamily: 'Lora, Georgia, serif' }}>🤲 Journey Duas</p>
+              <p style={{ color: C.gold, fontSize: 16, fontWeight: 700, margin: '0 0 4px', fontFamily: 'Lora, Georgia, serif' }}> Journey Duas</p>
               <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, margin: 0, lineHeight: 1.7 }}>Recite these blessed duas for a safe and enriching journey</p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

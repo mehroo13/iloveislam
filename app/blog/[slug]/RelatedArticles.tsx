@@ -22,7 +22,7 @@ export default function RelatedArticles({
   return (
     <section className="mt-16">
       <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-8 flex items-center gap-3">
-        📚 You May Also Like
+         You May Also Like
       </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

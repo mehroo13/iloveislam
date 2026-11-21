@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { DUAS, getDuaOfTheDay, searchDuas, type Dua } from '@/lib/duas';
 
@@ -107,7 +108,7 @@ function DuaCard({
     <article className="bg-white rounded-2xl border border-[#E7E2D5] shadow-sm p-5 sm:p-6">
       <h3 className="text-lg font-bold text-[#1C2420]">{dua.title}</h3>
 
-      <p dir="rtl" lang="ar" className="font-arabic text-2xl sm:text-[1.75rem] leading-[2.2] text-[#0B3D2E] text-right mt-4">
+      <p dir="rtl" lang="ar" className="font-quran text-2xl sm:text-[1.75rem] text-[#0B3D2E] text-right mt-4">
         {dua.arabic}
       </p>
 
@@ -204,8 +205,13 @@ export default function DuaForThisMomentPage() {
   return (
     <main className="min-h-screen bg-[#F7F5EF] text-[#1C2420]">
       {/* Hero */}
-      <section className="bg-[#0B3D2E] text-white px-4 pt-12 pb-10 sm:pt-16 sm:pb-14">
-        <div className="max-w-3xl mx-auto text-center">
+      <section className="relative overflow-hidden bg-[#0B3D2E] text-white px-4 pt-12 pb-10 sm:pt-16 sm:pb-14 scroll-mt-20">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-25"
+          style={{ backgroundImage: 'url(/hero-pattern.svg)', backgroundSize: '96px 96px' }}
+        />
+        <div className="relative max-w-3xl mx-auto text-center">
           <p className="text-[#C9A227] text-sm font-semibold tracking-widest uppercase">Dua for This Moment</p>
           <h1 className="text-3xl sm:text-4xl font-bold mt-3 leading-tight">What&rsquo;s happening right now?</h1>
           <p className="text-white/80 mt-3 leading-relaxed">
@@ -220,6 +226,14 @@ export default function DuaForThisMomentPage() {
               Browse the full Dua Library →
             </Link>
           </div>
+          <Image
+            src="/mosque-silhouette.svg"
+            alt=""
+            width={320}
+            height={130}
+            priority
+            className="mx-auto mt-8 w-[320px] max-w-full opacity-90"
+          />
         </div>
       </section>
 

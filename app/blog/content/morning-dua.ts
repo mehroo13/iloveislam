@@ -4,7 +4,7 @@ export const morningDuaGuide = {
   title: "Morning Dua: 15 Powerful Supplications to Start Your Day",
   excerpt: "Learn the most powerful morning dua and adhkar to start your day with blessings. Includes Arabic text, transliteration, and benefits of each morning supplication.",
   category: "Dua",
-  emoji: "🌅",
+  emoji: "",
   readTime: "16 min read",
   date: "2026-02-25",
   content: `

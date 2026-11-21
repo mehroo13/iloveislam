@@ -37,18 +37,18 @@ async function loadDataset(): Promise<NameEntry[]> {
 
 // ─── Quick topics ────────────────────────────────────────────────────────────
 const TOPICS = [
-  { emoji: '🕌', label: 'Prophets',  term: 'prophet'  },
-  { emoji: '⭐', label: 'Sahaba',    term: 'sahaba'   },
-  { emoji: '📖', label: 'Quranic',   term: 'quranic'  },
-  { emoji: '🌟', label: 'Light',     term: 'light'    },
-  { emoji: '🦁', label: 'Brave',     term: 'brave'    },
-  { emoji: '🌸', label: 'Beauty',    term: 'beautiful' },
-  { emoji: '🌙', label: 'Moon',      term: 'moon'     },
-  { emoji: '💎', label: 'Pure',      term: 'pure'     },
-  { emoji: '🌊', label: 'Ocean',     term: 'ocean'    },
-  { emoji: '🕊️', label: 'Peace',    term: 'peace'    },
-  { emoji: '🌺', label: 'Flower',    term: 'flower'   },
-  { emoji: '☀️', label: 'Sun',      term: 'sun'      },
+  { emoji: '', label: 'Prophets',  term: 'prophet'  },
+  { emoji: '', label: 'Sahaba',    term: 'sahaba'   },
+  { emoji: '', label: 'Quranic',   term: 'quranic'  },
+  { emoji: '', label: 'Light',     term: 'light'    },
+  { emoji: '', label: 'Brave',     term: 'brave'    },
+  { emoji: '', label: 'Beauty',    term: 'beautiful' },
+  { emoji: '', label: 'Moon',      term: 'moon'     },
+  { emoji: '', label: 'Pure',      term: 'pure'     },
+  { emoji: '', label: 'Ocean',     term: 'ocean'    },
+  { emoji: '', label: 'Peace',    term: 'peace'    },
+  { emoji: '', label: 'Flower',    term: 'flower'   },
+  { emoji: '', label: 'Sun',      term: 'sun'      },
 ];
 
 const PAGE_SIZE = 24;
@@ -155,7 +155,7 @@ function NameCard({
             fontSize: 10, fontWeight: 700, borderRadius: 20,
             padding: '3px 10px', background: gbg, color: gc, letterSpacing: '0.05em',
           }}>
-            {n.gender === 'boy' ? '♂ BOY' : '♀ GIRL'}
+            {n.gender === 'boy' ? ' BOY' : ' GIRL'}
           </span>
           <span style={{ fontSize: 13, color: '#ccc', transition: 'transform .2s', transform: open ? 'rotate(180deg)' : 'none' }}>▼</span>
         </div>
@@ -196,10 +196,10 @@ function NameCard({
           {/* Tags */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
             <span style={{ fontSize: 11, background: gbg, color: gc, borderRadius: 20, padding: '5px 14px', fontWeight: 600 }}>
-              {n.gender === 'boy' ? '♂ Boy' : '♀ Girl'}
+              {n.gender === 'boy' ? ' Boy' : ' Girl'}
             </span>
             <span style={{ fontSize: 11, background: '#f0ede8', color: '#666', borderRadius: 20, padding: '5px 14px' }}>
-              🌍 {n.origin}
+               {n.origin}
             </span>
             {n.popular && (
               <span style={{ fontSize: 11, background: '#fef3c7', color: '#92400e', borderRadius: 20, padding: '5px 14px', fontWeight: 600 }}>
@@ -220,7 +220,7 @@ function NameCard({
                 transition: 'all .2s',
                 boxShadow: saved ? `0 4px 12px ${gc}44` : 'none',
               }}>
-              {saved ? '🔖 Saved!' : '🔖 Save Name'}
+              {saved ? ' Saved!' : ' Save Name'}
             </button>
             <button
               onClick={copy}
@@ -229,7 +229,7 @@ function NameCard({
                 border: 'none', borderRadius: 12, padding: '12px 0',
                 fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all .2s',
               }}>
-              {copied ? '✅ Copied!' : '📋 Copy'}
+              {copied ? ' Copied!' : ' Copy'}
             </button>
           </div>
         </div>
@@ -467,7 +467,7 @@ export default function IslamicNamesFinder() {
                 fontFamily: "'Playfair Display', Georgia, serif",
                 letterSpacing: '-0.01em',
               }}>
-                📖 Islamic Name Finder
+                 Islamic Name Finder
               </h1>
               <p style={{ color: GOLD, fontSize: 11, margin: '2px 0 0', fontFamily: "'DM Sans', sans-serif" }}>
                 {datasetReady
@@ -483,7 +483,7 @@ export default function IslamicNamesFinder() {
           {/* Search bar */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
             <div style={{ position: 'relative', flex: 1 }}>
-              <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 16, pointerEvents: 'none' }}>🔍</span>
+              <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 16, pointerEvents: 'none' }}></span>
               <input
                 ref={inputRef}
                 className="search-input"
@@ -524,9 +524,9 @@ export default function IslamicNamesFinder() {
           {/* Gender filter */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
             {([
-              { v: 'all',  label: '✨ All'    },
-              { v: 'boy',  label: '♂ Boys'   },
-              { v: 'girl', label: '♀ Girls'  },
+              { v: 'all',  label: ' All'    },
+              { v: 'boy',  label: ' Boys'   },
+              { v: 'girl', label: ' Girls'  },
             ] as const).map(g => (
               <button
                 key={g.v}
@@ -565,7 +565,7 @@ export default function IslamicNamesFinder() {
                   border: `1px solid ${tab === t ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.12)'}`,
                   backdropFilter: tab === t ? 'blur(4px)' : 'none',
                 }}>
-                {t === 'search' ? '🔍 Search' : `🔖 Saved (${saved.length})`}
+                {t === 'search' ? ' Search' : ` Saved (${saved.length})`}
               </button>
             ))}
           </div>
@@ -584,7 +584,7 @@ export default function IslamicNamesFinder() {
                 borderRadius: 20, padding: '48px 24px', textAlign: 'center',
                 boxShadow: '0 8px 32px rgba(10,61,46,0.2)',
               }}>
-                <p style={{ fontSize: 48, margin: '0 0 14px' }}>🔖</p>
+                <p style={{ fontSize: 48, margin: '0 0 14px' }}></p>
                 <p style={{ color: '#fff', fontSize: 16, fontWeight: 700, margin: '0 0 8px', fontFamily: "'Playfair Display', Georgia, serif" }}>
                   No saved names yet
                 </p>
@@ -636,7 +636,7 @@ export default function IslamicNamesFinder() {
 
             {datasetError && (
               <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 14, padding: '14px 18px' }}>
-                <p style={{ color: '#dc2626', fontSize: 13, margin: 0, fontFamily: "'DM Sans', sans-serif" }}>⚠️ {datasetError}</p>
+                <p style={{ color: '#dc2626', fontSize: 13, margin: 0, fontFamily: "'DM Sans', sans-serif" }}> {datasetError}</p>
               </div>
             )}
 
@@ -741,7 +741,7 @@ export default function IslamicNamesFinder() {
                     padding: '12px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
                     fontFamily: "'DM Sans', sans-serif",
                   }}>
-                    🎲 Random Names
+                     Random Names
                   </button>
                   {nameOfDay && (
                     <button onClick={() => { setQuery(nameOfDay.name); runSearch(nameOfDay.name, gender); }} style={{
@@ -749,7 +749,7 @@ export default function IslamicNamesFinder() {
                       padding: '12px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                       fontFamily: "'DM Sans', sans-serif",
                     }}>
-                      ⭐ Today: {nameOfDay.name}
+                       Today: {nameOfDay.name}
                     </button>
                   )}
                 </div>
@@ -817,7 +817,7 @@ export default function IslamicNamesFinder() {
                     background: '#fff', borderRadius: 18, border: '1px solid #ede8e0',
                     padding: '48px 24px', textAlign: 'center',
                   }}>
-                    <p style={{ fontSize: 40, margin: '0 0 12px' }}>🔍</p>
+                    <p style={{ fontSize: 40, margin: '0 0 12px' }}></p>
                     <p style={{ fontSize: 15, color: '#555', margin: '0 0 6px', fontFamily: "'Playfair Display', Georgia, serif" }}>No names found</p>
                     <p style={{ fontSize: 12, color: '#aaa', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>Try a different keyword or browse a topic above</p>
                   </div>
@@ -845,7 +845,7 @@ export default function IslamicNamesFinder() {
                 {!hasMore && filtered.length > 0 && (
                   <div style={{ textAlign: 'center', padding: '24px 0 8px' }}>
                     <p style={{ fontSize: 12, color: '#b0a89a', margin: 0, fontFamily: "'DM Sans', sans-serif" }}>
-                      ✅ All {filtered.length.toLocaleString()} results shown
+                       All {filtered.length.toLocaleString()} results shown
                     </p>
                   </div>
                 )}
@@ -861,11 +861,11 @@ export default function IslamicNamesFinder() {
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 18, flexWrap: 'wrap' }}>
             {[
-              { href: '/',       label: '🏠 Home'         },
-              { href: '/zakat',  label: '💰 Zakat'        },
+              { href: '/',       label: ' Home'         },
+              { href: '/zakat',  label: ' Zakat'        },
               
-              { href: '/qibla',  label: '🧭 Qibla'        },
-              { href: '/about',  label: 'ℹ️ About'        },
+              { href: '/qibla',  label: ' Qibla'        },
+              { href: '/about',  label: 'ℹ About'        },
             ].map(l => (
               <Link key={l.href} href={l.href} style={{
                 fontSize: 12, color: GREEN_DARK, textDecoration: 'none',

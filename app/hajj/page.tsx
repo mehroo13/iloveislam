@@ -24,149 +24,149 @@ interface Section {
 // ─── Hajj Checklist Data ──────────────────────────────────────────────────────
 const HAJJ_SECTIONS: Section[] = [
   {
-    id: 'preparation', title: '📝 Before You Leave', icon: '📝', color: '#0a3d2e',
+    id: 'preparation', title: ' Before You Leave', icon: '', color: '#0a3d2e',
     items: [
-      { id: 'prep1', text: 'Obtain Hajj visa and Nusuk permit', icon: '🛂', detail: 'Apply through your country\'s authorized Hajj agent' },
-      { id: 'prep2', text: 'Book flights and accommodation', icon: '✈️', detail: 'Mina tents, Arafat, Muzdalifah arrangements' },
-      { id: 'prep3', text: 'Learn the Manasik (rites) of Hajj thoroughly', icon: '📚', detail: 'Attend a Hajj seminar or watch detailed guides' },
-      { id: 'prep4', text: 'Prepare physically – walk daily, build stamina', icon: '🏃', detail: 'You will walk 10-15km per day during Hajj' },
-      { id: 'prep5', text: 'Get required vaccinations (Meningitis ACWY mandatory)', icon: '💉', detail: 'Also recommended: flu, COVID, pneumonia' },
-      { id: 'prep6', text: 'Arrange travel medical insurance', icon: '🏥' },
-      { id: 'prep7', text: 'Settle all debts and seek forgiveness from people', icon: '🤝' },
-      { id: 'prep8', text: 'Write your Islamic will (Wasiyyah)', icon: '📜' },
-      { id: 'prep9', text: 'Make sincere intention (Niyyah) for Allah alone', icon: '🤲' },
-      { id: 'prep10', text: 'Learn key Arabic phrases and duas', icon: '💬' },
-      { id: 'prep11', text: 'Photocopy all documents (passport, visa, tickets)', icon: '📄' },
-      { id: 'prep12', text: 'Inform family and leave emergency contacts', icon: '📞' },
+      { id: 'prep1', text: 'Obtain Hajj visa and Nusuk permit', icon: '', detail: 'Apply through your country\'s authorized Hajj agent' },
+      { id: 'prep2', text: 'Book flights and accommodation', icon: '', detail: 'Mina tents, Arafat, Muzdalifah arrangements' },
+      { id: 'prep3', text: 'Learn the Manasik (rites) of Hajj thoroughly', icon: '', detail: 'Attend a Hajj seminar or watch detailed guides' },
+      { id: 'prep4', text: 'Prepare physically – walk daily, build stamina', icon: '', detail: 'You will walk 10-15km per day during Hajj' },
+      { id: 'prep5', text: 'Get required vaccinations (Meningitis ACWY mandatory)', icon: '', detail: 'Also recommended: flu, COVID, pneumonia' },
+      { id: 'prep6', text: 'Arrange travel medical insurance', icon: '' },
+      { id: 'prep7', text: 'Settle all debts and seek forgiveness from people', icon: '' },
+      { id: 'prep8', text: 'Write your Islamic will (Wasiyyah)', icon: '' },
+      { id: 'prep9', text: 'Make sincere intention (Niyyah) for Allah alone', icon: '' },
+      { id: 'prep10', text: 'Learn key Arabic phrases and duas', icon: '' },
+      { id: 'prep11', text: 'Photocopy all documents (passport, visa, tickets)', icon: '' },
+      { id: 'prep12', text: 'Inform family and leave emergency contacts', icon: '' },
     ],
   },
   {
-    id: 'day1', title: '🏕️ Day 1: 8th Dhul Hijjah – Mina', icon: '🏕️', color: '#1a6b4a',
+    id: 'day1', title: ' Day 1: 8th Dhul Hijjah – Mina', icon: '', color: '#1a6b4a',
     items: [
-      { id: 'd1_1', text: 'Enter state of Ihram at Miqat', icon: '🤍', detail: 'Ghusl, wear Ihram, make intention for Hajj' },
-      { id: 'd1_2', text: 'Recite Talbiyah continuously', icon: '🗣️', detail: 'Labbayk Allahumma labbayk...' },
-      { id: 'd1_3', text: 'Travel to Mina after Fajr', icon: '🚌' },
-      { id: 'd1_4', text: 'Pray Dhuhr, Asr, Maghrib, Isha (shortened, not combined)', icon: '🕌' },
-      { id: 'd1_5', text: 'Spend the night in Mina', icon: '🌙', detail: 'Rest, make dhikr, prepare for Arafat' },
-      { id: 'd1_6', text: 'Pray Fajr in Mina before leaving for Arafat', icon: '🌅' },
+      { id: 'd1_1', text: 'Enter state of Ihram at Miqat', icon: '', detail: 'Ghusl, wear Ihram, make intention for Hajj' },
+      { id: 'd1_2', text: 'Recite Talbiyah continuously', icon: '', detail: 'Labbayk Allahumma labbayk...' },
+      { id: 'd1_3', text: 'Travel to Mina after Fajr', icon: '' },
+      { id: 'd1_4', text: 'Pray Dhuhr, Asr, Maghrib, Isha (shortened, not combined)', icon: '' },
+      { id: 'd1_5', text: 'Spend the night in Mina', icon: '', detail: 'Rest, make dhikr, prepare for Arafat' },
+      { id: 'd1_6', text: 'Pray Fajr in Mina before leaving for Arafat', icon: '' },
     ],
   },
   {
-    id: 'day2', title: '🏔️ Day 2: 9th Dhul Hijjah – Arafat', icon: '🏔️', color: '#b8860b',
+    id: 'day2', title: ' Day 2: 9th Dhul Hijjah – Arafat', icon: '', color: '#b8860b',
     items: [
-      { id: 'd2_1', text: 'Travel to Arafat after sunrise', icon: '☀️' },
-      { id: 'd2_2', text: 'Perform Wuquf (standing) at Arafat', icon: '🧍', detail: 'THE most important pillar — Hajj IS Arafat' },
-      { id: 'd2_3', text: 'Listen to the Hajj Khutbah', icon: '🎙️' },
-      { id: 'd2_4', text: 'Pray Dhuhr and Asr combined & shortened', icon: '🕌' },
-      { id: 'd2_5', text: 'Spend entire afternoon in du\'a and repentance', icon: '🤲', detail: 'Best du\'a is on this day — cry, beg, repent' },
-      { id: 'd2_6', text: 'After sunset, travel calmly to Muzdalifah', icon: '🚶' },
-      { id: 'd2_7', text: 'Pray Maghrib and Isha combined in Muzdalifah', icon: '🕌' },
-      { id: 'd2_8', text: 'Collect 49-70 pebbles for Jamarat', icon: '🪨', detail: '49 if leaving on 12th, 70 if staying till 13th' },
-      { id: 'd2_9', text: 'Sleep in Muzdalifah (Wajib to stay till Fajr)', icon: '🌌' },
+      { id: 'd2_1', text: 'Travel to Arafat after sunrise', icon: '' },
+      { id: 'd2_2', text: 'Perform Wuquf (standing) at Arafat', icon: '', detail: 'THE most important pillar — Hajj IS Arafat' },
+      { id: 'd2_3', text: 'Listen to the Hajj Khutbah', icon: '' },
+      { id: 'd2_4', text: 'Pray Dhuhr and Asr combined & shortened', icon: '' },
+      { id: 'd2_5', text: 'Spend entire afternoon in du\'a and repentance', icon: '', detail: 'Best du\'a is on this day — cry, beg, repent' },
+      { id: 'd2_6', text: 'After sunset, travel calmly to Muzdalifah', icon: '' },
+      { id: 'd2_7', text: 'Pray Maghrib and Isha combined in Muzdalifah', icon: '' },
+      { id: 'd2_8', text: 'Collect 49-70 pebbles for Jamarat', icon: '', detail: '49 if leaving on 12th, 70 if staying till 13th' },
+      { id: 'd2_9', text: 'Sleep in Muzdalifah (Wajib to stay till Fajr)', icon: '' },
     ],
   },
   {
-    id: 'day3', title: '🐑 Day 3: 10th Dhul Hijjah – Eid & Nahr', icon: '🕋', color: '#c8a96e',
+    id: 'day3', title: ' Day 3: 10th Dhul Hijjah – Eid & Nahr', icon: '', color: '#c8a96e',
     items: [
-      { id: 'd3_1', text: 'Pray Fajr in Muzdalifah, then head to Mina', icon: '🌄' },
-      { id: 'd3_2', text: 'Stone Jamarat al-Aqaba (large pillar) with 7 pebbles', icon: '🪨', detail: 'Say "Bismillah, Allahu Akbar" with each throw' },
-      { id: 'd3_3', text: 'Offer Hadi (sacrifice)', icon: '🐏', detail: 'Required for Tamattu\' and Qiran Hajj' },
-      { id: 'd3_4', text: 'Shave head (Halq) or trim hair (Taqsir)', icon: '🪒', detail: 'Halq is better for men. Women trim fingertip length.' },
-      { id: 'd3_5', text: 'First Tahallul — most Ihram restrictions lifted', icon: '✅', detail: 'Can wear normal clothes, use perfume. Marital relations still prohibited.' },
-      { id: 'd3_6', text: 'Go to Makkah for Tawaf al-Ifadah', icon: '🕋', detail: 'This is a Rukn (pillar) of Hajj — cannot be skipped' },
-      { id: 'd3_7', text: 'Perform Sa\'ee between Safa and Marwa', icon: '🚶‍♀️', detail: '7 rounds. Required for Tamattu\' Hajj.' },
-      { id: 'd3_8', text: 'Second Tahallul — ALL restrictions lifted', icon: '🎉' },
-      { id: 'd3_9', text: 'Return to Mina for the night', icon: '🏕️' },
+      { id: 'd3_1', text: 'Pray Fajr in Muzdalifah, then head to Mina', icon: '' },
+      { id: 'd3_2', text: 'Stone Jamarat al-Aqaba (large pillar) with 7 pebbles', icon: '', detail: 'Say "Bismillah, Allahu Akbar" with each throw' },
+      { id: 'd3_3', text: 'Offer Hadi (sacrifice)', icon: '', detail: 'Required for Tamattu\' and Qiran Hajj' },
+      { id: 'd3_4', text: 'Shave head (Halq) or trim hair (Taqsir)', icon: '', detail: 'Halq is better for men. Women trim fingertip length.' },
+      { id: 'd3_5', text: 'First Tahallul — most Ihram restrictions lifted', icon: '', detail: 'Can wear normal clothes, use perfume. Marital relations still prohibited.' },
+      { id: 'd3_6', text: 'Go to Makkah for Tawaf al-Ifadah', icon: '', detail: 'This is a Rukn (pillar) of Hajj — cannot be skipped' },
+      { id: 'd3_7', text: 'Perform Sa\'ee between Safa and Marwa', icon: '', detail: '7 rounds. Required for Tamattu\' Hajj.' },
+      { id: 'd3_8', text: 'Second Tahallul — ALL restrictions lifted', icon: '' },
+      { id: 'd3_9', text: 'Return to Mina for the night', icon: '' },
     ],
   },
   {
-    id: 'days4_5', title: '☀️ Days 4-5: 11th-12th Dhul Hijjah – Tashreeq', icon: '⛺', color: '#2d8a5e',
+    id: 'days4_5', title: ' Days 4-5: 11th-12th Dhul Hijjah – Tashreeq', icon: '', color: '#2d8a5e',
     items: [
-      { id: 'd4_1', text: 'Stay in Mina during Days of Tashreeq', icon: '🏕️' },
-      { id: 'd4_2', text: 'Day 11: Stone all 3 Jamarat after Dhuhr (7 each)', icon: '🪨', detail: 'Small → Medium → Large. Make du\'a after first two.' },
-      { id: 'd4_3', text: 'Day 12: Stone all 3 Jamarat after Dhuhr (7 each)', icon: '🪨' },
-      { id: 'd4_4', text: 'If leaving on 12th: depart Mina before sunset', icon: '⏳', detail: 'If sun sets while still in Mina, must stay for 13th' },
-      { id: 'd4_5', text: 'Day 13 (optional): Stone all 3 Jamarat if staying', icon: '🪨' },
+      { id: 'd4_1', text: 'Stay in Mina during Days of Tashreeq', icon: '' },
+      { id: 'd4_2', text: 'Day 11: Stone all 3 Jamarat after Dhuhr (7 each)', icon: '', detail: 'Small → Medium → Large. Make du\'a after first two.' },
+      { id: 'd4_3', text: 'Day 12: Stone all 3 Jamarat after Dhuhr (7 each)', icon: '' },
+      { id: 'd4_4', text: 'If leaving on 12th: depart Mina before sunset', icon: '', detail: 'If sun sets while still in Mina, must stay for 13th' },
+      { id: 'd4_5', text: 'Day 13 (optional): Stone all 3 Jamarat if staying', icon: '' },
     ],
   },
   {
-    id: 'farewell', title: '🕋 Farewell & Departure', icon: '🕋', color: '#4a2c0a',
+    id: 'farewell', title: ' Farewell & Departure', icon: '', color: '#4a2c0a',
     items: [
-      { id: 'fw1', text: 'Perform Tawaf al-Wada\' (Farewell Tawaf)', icon: '🕋', detail: 'Last thing before leaving Makkah. Wajib.' },
-      { id: 'fw2', text: 'Make du\'a at the Multazam', icon: '🤲', detail: 'Between Hajar al-Aswad and the Ka\'bah door' },
-      { id: 'fw3', text: 'Drink Zamzam water and make du\'a', icon: '💧' },
-      { id: 'fw4', text: 'Visit Madinah (recommended, not part of Hajj)', icon: '🕌', detail: 'Pray 40 prayers in Masjid an-Nabawi if possible' },
-      { id: 'fw5', text: 'Send Salam upon the Prophet ﷺ at his grave', icon: '🌹' },
-      { id: 'fw6', text: 'Visit Masjid Quba (reward of Umrah)', icon: '🕌' },
-      { id: 'fw7', text: 'Return home with gratitude and renewed faith', icon: '🏠' },
+      { id: 'fw1', text: 'Perform Tawaf al-Wada\' (Farewell Tawaf)', icon: '', detail: 'Last thing before leaving Makkah. Wajib.' },
+      { id: 'fw2', text: 'Make du\'a at the Multazam', icon: '', detail: 'Between Hajar al-Aswad and the Ka\'bah door' },
+      { id: 'fw3', text: 'Drink Zamzam water and make du\'a', icon: '' },
+      { id: 'fw4', text: 'Visit Madinah (recommended, not part of Hajj)', icon: '', detail: 'Pray 40 prayers in Masjid an-Nabawi if possible' },
+      { id: 'fw5', text: 'Send Salam upon the Prophet ﷺ at his grave', icon: '' },
+      { id: 'fw6', text: 'Visit Masjid Quba (reward of Umrah)', icon: '' },
+      { id: 'fw7', text: 'Return home with gratitude and renewed faith', icon: '' },
     ],
   },
 ];
 
 const PACKING_LIST: Section[] = [
   {
-    id: 'documents', title: '📄 Documents', icon: '📄', color: '#1a3d6b',
+    id: 'documents', title: ' Documents', icon: '', color: '#1a3d6b',
     items: [
-      { id: 'pk_doc1', text: 'Passport (valid 6+ months)', icon: '🛂' },
-      { id: 'pk_doc2', text: 'Hajj visa / Nusuk permit', icon: '📋' },
-      { id: 'pk_doc3', text: 'Flight tickets (printed)', icon: '✈️' },
-      { id: 'pk_doc4', text: 'Hotel booking confirmations', icon: '🏨' },
-      { id: 'pk_doc5', text: 'Vaccination certificate', icon: '💉' },
-      { id: 'pk_doc6', text: 'Travel insurance documents', icon: '🛡️' },
-      { id: 'pk_doc7', text: 'Photocopies of all documents', icon: '📑' },
-      { id: 'pk_doc8', text: 'Emergency contact card (in pocket)', icon: '📞' },
+      { id: 'pk_doc1', text: 'Passport (valid 6+ months)', icon: '' },
+      { id: 'pk_doc2', text: 'Hajj visa / Nusuk permit', icon: '' },
+      { id: 'pk_doc3', text: 'Flight tickets (printed)', icon: '' },
+      { id: 'pk_doc4', text: 'Hotel booking confirmations', icon: '' },
+      { id: 'pk_doc5', text: 'Vaccination certificate', icon: '' },
+      { id: 'pk_doc6', text: 'Travel insurance documents', icon: '' },
+      { id: 'pk_doc7', text: 'Photocopies of all documents', icon: '' },
+      { id: 'pk_doc8', text: 'Emergency contact card (in pocket)', icon: '' },
     ],
   },
   {
-    id: 'ihram', title: '🤍 Ihram & Prayer', icon: '🤍', color: '#0a3d2e',
+    id: 'ihram', title: ' Ihram & Prayer', icon: '', color: '#0a3d2e',
     items: [
-      { id: 'pk_ih1', text: 'Ihram garments (2 white sheets for men)', icon: '🤍' },
-      { id: 'pk_ih2', text: 'Ihram belt / money pouch', icon: '👛' },
-      { id: 'pk_ih3', text: 'Prayer mat (lightweight, foldable)', icon: '🧎' },
-      { id: 'pk_ih4', text: 'Pocket Quran or Quran app', icon: '📖' },
-      { id: 'pk_ih5', text: 'Du\'a book / Hajj guide booklet', icon: '📚' },
-      { id: 'pk_ih6', text: 'Tasbeeh / counter', icon: '📿' },
-      { id: 'pk_ih7', text: 'Compass (for Qibla)', icon: '🧭' },
+      { id: 'pk_ih1', text: 'Ihram garments (2 white sheets for men)', icon: '' },
+      { id: 'pk_ih2', text: 'Ihram belt / money pouch', icon: '' },
+      { id: 'pk_ih3', text: 'Prayer mat (lightweight, foldable)', icon: '' },
+      { id: 'pk_ih4', text: 'Pocket Quran or Quran app', icon: '' },
+      { id: 'pk_ih5', text: 'Du\'a book / Hajj guide booklet', icon: '' },
+      { id: 'pk_ih6', text: 'Tasbeeh / counter', icon: '' },
+      { id: 'pk_ih7', text: 'Compass (for Qibla)', icon: '' },
     ],
   },
   {
-    id: 'clothing', title: '👕 Clothing', icon: '👕', color: '#4a2c6b',
+    id: 'clothing', title: ' Clothing', icon: '', color: '#4a2c6b',
     items: [
-      { id: 'pk_cl1', text: 'Comfortable sandals (no stitching for men in Ihram)', icon: '🩴' },
-      { id: 'pk_cl2', text: 'Regular clothes (for after Ihram)', icon: '👔' },
-      { id: 'pk_cl3', text: 'Socks and underwear', icon: '🧦' },
-      { id: 'pk_cl4', text: 'Light jacket (Madinah can be cool)', icon: '🧥' },
-      { id: 'pk_cl5', text: 'Umbrella (essential for sun protection)', icon: '☂️' },
-      { id: 'pk_cl6', text: 'Sleeping bag or light blanket (for Muzdalifah)', icon: '🛏️' },
+      { id: 'pk_cl1', text: 'Comfortable sandals (no stitching for men in Ihram)', icon: '' },
+      { id: 'pk_cl2', text: 'Regular clothes (for after Ihram)', icon: '' },
+      { id: 'pk_cl3', text: 'Socks and underwear', icon: '' },
+      { id: 'pk_cl4', text: 'Light jacket (Madinah can be cool)', icon: '' },
+      { id: 'pk_cl5', text: 'Umbrella (essential for sun protection)', icon: '' },
+      { id: 'pk_cl6', text: 'Sleeping bag or light blanket (for Muzdalifah)', icon: '' },
     ],
   },
   {
-    id: 'health', title: '🏥 Health & Hygiene', icon: '🏥', color: '#6b1a1a',
+    id: 'health', title: ' Health & Hygiene', icon: '', color: '#6b1a1a',
     items: [
-      { id: 'pk_h1', text: 'Unscented soap, shampoo, deodorant', icon: '🧴' },
-      { id: 'pk_h2', text: 'Sunscreen (unscented)', icon: '☀️' },
-      { id: 'pk_h3', text: 'Prescription medications', icon: '💊' },
-      { id: 'pk_h4', text: 'Pain relievers (paracetamol, ibuprofen)', icon: '💊' },
-      { id: 'pk_h5', text: 'Blister plasters and bandages', icon: '🩹' },
-      { id: 'pk_h6', text: 'Electrolyte sachets (for dehydration)', icon: '💧' },
-      { id: 'pk_h7', text: 'Face masks (crowds are intense)', icon: '😷' },
-      { id: 'pk_h8', text: 'Hand sanitizer', icon: '🧴' },
-      { id: 'pk_h9', text: 'Vaseline (prevents chafing in Ihram)', icon: '🫙' },
-      { id: 'pk_h10', text: 'Nail clippers and scissors', icon: '✂️' },
+      { id: 'pk_h1', text: 'Unscented soap, shampoo, deodorant', icon: '' },
+      { id: 'pk_h2', text: 'Sunscreen (unscented)', icon: '' },
+      { id: 'pk_h3', text: 'Prescription medications', icon: '' },
+      { id: 'pk_h4', text: 'Pain relievers (paracetamol, ibuprofen)', icon: '' },
+      { id: 'pk_h5', text: 'Blister plasters and bandages', icon: '' },
+      { id: 'pk_h6', text: 'Electrolyte sachets (for dehydration)', icon: '' },
+      { id: 'pk_h7', text: 'Face masks (crowds are intense)', icon: '' },
+      { id: 'pk_h8', text: 'Hand sanitizer', icon: '' },
+      { id: 'pk_h9', text: 'Vaseline (prevents chafing in Ihram)', icon: '' },
+      { id: 'pk_h10', text: 'Nail clippers and scissors', icon: '' },
     ],
   },
   {
-    id: 'essentials', title: '🎒 Essentials', icon: '🎒', color: '#6b4a0a',
+    id: 'essentials', title: ' Essentials', icon: '', color: '#6b4a0a',
     items: [
-      { id: 'pk_e1', text: 'Small backpack / waist bag', icon: '🎒' },
-      { id: 'pk_e2', text: 'Water bottle (refillable)', icon: '🍶' },
-      { id: 'pk_e3', text: 'Snacks (dates, nuts, energy bars)', icon: '🥜' },
-      { id: 'pk_e4', text: 'Phone + charger + power bank', icon: '🔋' },
-      { id: 'pk_e5', text: 'Universal adapter', icon: '🔌' },
-      { id: 'pk_e6', text: 'Cash (Saudi Riyals) + credit card', icon: '💰' },
-      { id: 'pk_e7', text: 'Plastic bags (for shoes at mosque)', icon: '👜' },
-      { id: 'pk_e8', text: 'Small towel', icon: '🧻' },
-      { id: 'pk_e9', text: 'Earplugs and eye mask (for sleeping in Mina)', icon: '😴' },
+      { id: 'pk_e1', text: 'Small backpack / waist bag', icon: '' },
+      { id: 'pk_e2', text: 'Water bottle (refillable)', icon: '' },
+      { id: 'pk_e3', text: 'Snacks (dates, nuts, energy bars)', icon: '' },
+      { id: 'pk_e4', text: 'Phone + charger + power bank', icon: '' },
+      { id: 'pk_e5', text: 'Universal adapter', icon: '' },
+      { id: 'pk_e6', text: 'Cash (Saudi Riyals) + credit card', icon: '' },
+      { id: 'pk_e7', text: 'Plastic bags (for shoes at mosque)', icon: '' },
+      { id: 'pk_e8', text: 'Small towel', icon: '' },
+      { id: 'pk_e9', text: 'Earplugs and eye mask (for sleeping in Mina)', icon: '' },
     ],
   },
 ];
@@ -183,45 +183,45 @@ const HAJJ_DUAS = [
 ];
 
 const IHRAM_RESTRICTIONS = [
-  { icon: '✂️', text: 'Cutting hair or nails', applies: 'Both' },
-  { icon: '🌹', text: 'Using perfume or scented products', applies: 'Both' },
-  { icon: '💍', text: 'Marriage or proposals', applies: 'Both' },
-  { icon: '❤️', text: 'Sexual relations', applies: 'Both' },
-  { icon: '🎯', text: 'Hunting land animals', applies: 'Both' },
-  { icon: '👔', text: 'Wearing stitched clothing', applies: 'Men only' },
-  { icon: '🧢', text: 'Covering the head', applies: 'Men only' },
-  { icon: '🧤', text: 'Wearing gloves', applies: 'Women only' },
-  { icon: '😷', text: 'Covering the face (Niqab)', applies: 'Women only' },
+  { icon: '', text: 'Cutting hair or nails', applies: 'Both' },
+  { icon: '', text: 'Using perfume or scented products', applies: 'Both' },
+  { icon: '', text: 'Marriage or proposals', applies: 'Both' },
+  { icon: '', text: 'Sexual relations', applies: 'Both' },
+  { icon: '', text: 'Hunting land animals', applies: 'Both' },
+  { icon: '', text: 'Wearing stitched clothing', applies: 'Men only' },
+  { icon: '', text: 'Covering the head', applies: 'Men only' },
+  { icon: '', text: 'Wearing gloves', applies: 'Women only' },
+  { icon: '', text: 'Covering the face (Niqab)', applies: 'Women only' },
 ];
 
 const COMMON_MISTAKES = [
-  { icon: '❌', mistake: 'Pushing and shoving during Tawaf', fix: 'Stay calm, make du\'a, move with the flow. Upper floors are less crowded.' },
-  { icon: '❌', mistake: 'Touching/kissing Hajar al-Aswad by force', fix: 'Simply point toward it and say "Bismillah, Allahu Akbar" from a distance.' },
-  { icon: '❌', mistake: 'Specific du\'as for each round of Tawaf', fix: 'There are NO specific duas for each round. Make any du\'a from your heart.' },
-  { icon: '❌', mistake: 'Leaving Muzdalifah before Fajr (without excuse)', fix: 'Stay until after Fajr. Only elderly/weak may leave after midnight.' },
-  { icon: '❌', mistake: 'Not staying in Arafat until sunset', fix: 'You MUST stay until sunset. Leaving early may invalidate your Hajj.' },
-  { icon: '❌', mistake: 'Stoning Jamarat before Dhuhr on Days of Tashreeq', fix: 'Stoning on 11th, 12th, 13th must be AFTER Dhuhr (Hanafi/Hanbali).' },
-  { icon: '❌', mistake: 'Skipping Tawaf al-Wada\' (Farewell Tawaf)', fix: 'It is Wajib. Skipping it requires a penalty (dam/sacrifice).' },
-  { icon: '❌', mistake: 'Wasting time on phone/socializing at Arafat', fix: 'Arafat is THE day of Hajj. Spend every moment in du\'a and dhikr.' },
-  { icon: '❌', mistake: 'Not learning the rites before going', fix: 'Study Hajj thoroughly. Ignorance leads to mistakes that may require penalties.' },
+  { icon: '', mistake: 'Pushing and shoving during Tawaf', fix: 'Stay calm, make du\'a, move with the flow. Upper floors are less crowded.' },
+  { icon: '', mistake: 'Touching/kissing Hajar al-Aswad by force', fix: 'Simply point toward it and say "Bismillah, Allahu Akbar" from a distance.' },
+  { icon: '', mistake: 'Specific du\'as for each round of Tawaf', fix: 'There are NO specific duas for each round. Make any du\'a from your heart.' },
+  { icon: '', mistake: 'Leaving Muzdalifah before Fajr (without excuse)', fix: 'Stay until after Fajr. Only elderly/weak may leave after midnight.' },
+  { icon: '', mistake: 'Not staying in Arafat until sunset', fix: 'You MUST stay until sunset. Leaving early may invalidate your Hajj.' },
+  { icon: '', mistake: 'Stoning Jamarat before Dhuhr on Days of Tashreeq', fix: 'Stoning on 11th, 12th, 13th must be AFTER Dhuhr (Hanafi/Hanbali).' },
+  { icon: '', mistake: 'Skipping Tawaf al-Wada\' (Farewell Tawaf)', fix: 'It is Wajib. Skipping it requires a penalty (dam/sacrifice).' },
+  { icon: '', mistake: 'Wasting time on phone/socializing at Arafat', fix: 'Arafat is THE day of Hajj. Spend every moment in du\'a and dhikr.' },
+  { icon: '', mistake: 'Not learning the rites before going', fix: 'Study Hajj thoroughly. Ignorance leads to mistakes that may require penalties.' },
 ];
 
 const EMERGENCY_INFO = [
-  { label: 'Saudi Emergency', number: '911', icon: '🚨' },
-  { label: 'Ambulance', number: '997', icon: '🚑' },
-  { label: 'Civil Defense', number: '998', icon: '🚒' },
-  { label: 'Traffic Police', number: '993', icon: '🚔' },
-  { label: 'Hajj Ministry Helpline', number: '920002814', icon: '🕋' },
-  { label: 'Lost Pilgrims', number: '0125366333', icon: '🔍' },
+  { label: 'Saudi Emergency', number: '911', icon: '' },
+  { label: 'Ambulance', number: '997', icon: '' },
+  { label: 'Civil Defense', number: '998', icon: '' },
+  { label: 'Traffic Police', number: '993', icon: '' },
+  { label: 'Hajj Ministry Helpline', number: '920002814', icon: '' },
+  { label: 'Lost Pilgrims', number: '0125366333', icon: '' },
 ];
 
 const TABS: { id: TabId; label: string; icon: string }[] = [
-  { id: 'checklist', label: 'Checklist', icon: '✅' },
-  { id: 'packing', label: 'Packing', icon: '🎒' },
-  { id: 'duas', label: 'Duas', icon: '🤲' },
-  { id: 'restrictions', label: 'Ihram', icon: '🤍' },
-  { id: 'mistakes', label: 'Mistakes', icon: '⚠️' },
-  { id: 'emergency', label: 'Emergency', icon: '🚨' },
+  { id: 'checklist', label: 'Checklist', icon: '' },
+  { id: 'packing', label: 'Packing', icon: '' },
+  { id: 'duas', label: 'Duas', icon: '' },
+  { id: 'restrictions', label: 'Ihram', icon: '' },
+  { id: 'mistakes', label: 'Mistakes', icon: '' },
+  { id: 'emergency', label: 'Emergency', icon: '' },
 ];
 
 export default function HajjChecklist() {
@@ -266,8 +266,8 @@ export default function HajjChecklist() {
       <header className="bg-gradient-to-r from-stone-900 via-emerald-900 to-stone-900 text-white px-5 py-4 shadow-xl sticky top-0 z-20">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <Link href="/" className="text-white/60 hover:text-white text-sm transition-colors">← Home</Link>
-          <h1 className="text-lg font-bold">🕋 Hajj Guide & Checklist</h1>
-          <button onClick={resetProgress} className="text-white/40 hover:text-red-300 text-xs transition-colors" title="Reset progress">🔄</button>
+          <h1 className="text-lg font-bold"> Hajj Guide & Checklist</h1>
+          <button onClick={resetProgress} className="text-white/40 hover:text-red-300 text-xs transition-colors" title="Reset progress"></button>
         </div>
       </header>
 
@@ -307,7 +307,7 @@ export default function HajjChecklist() {
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                   {activeTab === 'checklist' ? 'Hajj Rites Progress' : 'Packing Progress'}
                 </p>
-                {progressPercent === 100 && <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium">✅ All done! May Allah accept your Hajj.</p>}
+                {progressPercent === 100 && <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium"> All done! May Allah accept your Hajj.</p>}
               </div>
             </div>
 
@@ -328,7 +328,7 @@ export default function HajjChecklist() {
                       <p className="text-[10px] text-gray-500 dark:text-gray-400">{sectionCompleted}/{sectionTotal} completed</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {isDone && <span className="text-emerald-600 text-sm">✅</span>}
+                      {isDone && <span className="text-emerald-600 text-sm"></span>}
                       <span className="text-gray-400 text-xs">{isCollapsed ? '▼' : '▲'}</span>
                     </div>
                   </button>
@@ -371,7 +371,7 @@ export default function HajjChecklist() {
                   <p className="text-lg text-right leading-loose text-gray-800 dark:text-gray-100" style={{ fontFamily: "'Amiri', serif" }} dir="rtl">{dua.arabic}</p>
                 </div>
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">{dua.meaning}</p>
-                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1">📍 {dua.when}</p>
+                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1"> {dua.when}</p>
               </div>
             ))}
           </div>
@@ -381,7 +381,7 @@ export default function HajjChecklist() {
         {activeTab === 'restrictions' && (
           <div className="space-y-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
-              <h2 className="font-bold text-gray-800 dark:text-gray-100 text-lg mb-2">🤍 Ihram Restrictions</h2>
+              <h2 className="font-bold text-gray-800 dark:text-gray-100 text-lg mb-2"> Ihram Restrictions</h2>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">These actions are prohibited while in the state of Ihram. Violating them may require Fidyah (penalty).</p>
               <div className="space-y-3">
                 {IHRAM_RESTRICTIONS.map((r, i) => (
@@ -409,7 +409,7 @@ export default function HajjChecklist() {
         {activeTab === 'mistakes' && (
           <div className="space-y-3">
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 mb-2">
-              <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">⚠️ Avoid these common mistakes that many pilgrims make. Some can invalidate your Hajj or require a penalty.</p>
+              <p className="text-xs text-amber-700 dark:text-amber-300 font-medium"> Avoid these common mistakes that many pilgrims make. Some can invalidate your Hajj or require a penalty.</p>
             </div>
             {COMMON_MISTAKES.map((m, i) => (
               <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
@@ -417,7 +417,7 @@ export default function HajjChecklist() {
                   <span className="text-lg mt-0.5">{m.icon}</span>
                   <div>
                     <p className="text-sm font-bold text-red-700 dark:text-red-400 mb-1">{m.mistake}</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">✅ <strong>Correct:</strong> {m.fix}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed"> <strong>Correct:</strong> {m.fix}</p>
                   </div>
                 </div>
               </div>
@@ -429,7 +429,7 @@ export default function HajjChecklist() {
         {activeTab === 'emergency' && (
           <div className="space-y-4">
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-5">
-              <h2 className="font-bold text-red-800 dark:text-red-300 text-lg mb-3">🚨 Emergency Numbers (Saudi Arabia)</h2>
+              <h2 className="font-bold text-red-800 dark:text-red-300 text-lg mb-3"> Emergency Numbers (Saudi Arabia)</h2>
               <div className="space-y-2">
                 {EMERGENCY_INFO.map((e, i) => (
                   <div key={i} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-xl border border-red-100 dark:border-red-800">
@@ -443,7 +443,7 @@ export default function HajjChecklist() {
               </div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
-              <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-3">💡 Safety Tips</h3>
+              <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-3"> Safety Tips</h3>
               <ul className="space-y-2 text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
                 <li>• Keep your passport and ID in a waterproof pouch at all times</li>
                 <li>• Memorize your hotel name and address in Arabic</li>
@@ -460,7 +460,7 @@ export default function HajjChecklist() {
 
         {/* Footer */}
         <div className="text-center pt-4">
-          <p className="text-xs text-gray-400 dark:text-gray-500">Progress saved automatically · May Allah accept your Hajj Mabrur 🤍</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">Progress saved automatically · May Allah accept your Hajj Mabrur </p>
         </div>
       </main>
     </div>

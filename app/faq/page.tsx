@@ -262,14 +262,14 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
 };
 
 const LANGUAGES = [
-  { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'ar', label: 'عربي', flag: '🇸🇦' },
-  { code: 'ur', label: 'اردو', flag: '🇵🇰' },
-  { code: 'fr', label: 'Français', flag: '🇫🇷' },
-  { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
-  { code: 'id', label: 'Indonesia', flag: '🇮🇩' },
-  { code: 'ms', label: 'Melayu', flag: '🇲🇾' },
-  { code: 'bn', label: 'বাংলা', flag: '🇧🇩' },
+  { code: 'en', label: 'English', flag: '' },
+  { code: 'ar', label: 'عربي', flag: '' },
+  { code: 'ur', label: 'اردو', flag: '' },
+  { code: 'fr', label: 'Français', flag: '' },
+  { code: 'tr', label: 'Türkçe', flag: '' },
+  { code: 'id', label: 'Indonesia', flag: '' },
+  { code: 'ms', label: 'Melayu', flag: '' },
+  { code: 'bn', label: 'বাংলা', flag: '' },
 ];
 
 const RTL_LANGS = ['ar', 'ur'];
@@ -386,7 +386,7 @@ export default function FAQPage() {
             placeholder={t.searchPlaceholder || 'Search questions...'}
             className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
           />
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></span>
         </div>
 
         {/* Category Filters */}
@@ -470,7 +470,7 @@ export default function FAQPage() {
       {/* Footer */}
       <footer className="border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 mt-8">
         <div className="max-w-6xl mx-auto px-4 py-6 text-center">
-          <p className="text-xs text-gray-400 dark:text-gray-500">Made with ❤️ for the Ummah</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">Made with  for the Ummah</p>
           <div className="flex flex-wrap justify-center gap-4 mt-3">
             <Link href="/" className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition">Home</Link>
             <Link href="/about" className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition">About</Link>

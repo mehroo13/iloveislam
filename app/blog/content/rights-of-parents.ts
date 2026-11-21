@@ -4,7 +4,7 @@ export const rightsOfParentsArticle = {
   title: 'Rights of Parents on Children in Islam: Respect, Care, and Gratitude',
   excerpt: 'A complete guide for Muslim children to understand the rights of parents, rooted in Quran, Sunnah, and practical everyday behavior.',
   category: 'Family',
-  emoji: '👪',
+  emoji: '',
   readTime: '14 min read',
   date: '2026-05-24',
   content: `

@@ -729,7 +729,7 @@ function CallToAction() {
   return (
     <div className="cta-section">
       <div className="cta-inner">
-        <div className="cta-icon">☪</div>
+        <div className="cta-icon"></div>
         <h3>Explore More Islamic Tools</h3>
         <p>
           Continue your journey of knowledge with our complete Islamic toolkit

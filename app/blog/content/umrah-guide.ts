@@ -4,7 +4,7 @@ export const umrahArticle = {
   title: "How to Perform Umrah: A Complete Step-by-Step Beginner's Guide",
   excerpt: "Umrah is a highly rewarding pilgrimage that can be performed any time of the year. Learn the four essential pillars — Ihram, Tawaf, Sa'i, and Halq/Taqsir — with practical tips and authentic duas.",
   category: "Hajj & Umrah",
-  emoji: "🕋",
+  emoji: "",
   readTime: "14 min read",
   date: "2026-04-29",
   content: `
@@ -55,25 +55,25 @@ export const umrahArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/umrah-guide-tool" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕋</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Umrah Guide Tool</h3>
     <p class="text-gray-600 dark:text-gray-400">Step-by-step interactive assistant</p>
   </a>
   
   <a href="/qibla" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🧭</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Qibla Finder</h3>
     <p class="text-gray-600 dark:text-gray-400">Find the direction of the Kaaba</p>
   </a>
   
   <a href="/prayer-times" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🕐</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Prayer Times</h3>
     <p class="text-gray-600 dark:text-gray-400">Accurate times in Makkah</p>
   </a>
   
   <a href="/dua" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">🤲</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Dua Generator</h3>
     <p class="text-gray-600 dark:text-gray-400">Authentic duas for every step</p>
   </a>

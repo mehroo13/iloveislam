@@ -265,14 +265,14 @@ const COLORS: Record<string, { bg: string; light: string; text: string; border: 
 };
 
 const CELEBRATIONS = [
-  'MashAllah! Keep going! 🤍',
-  'Alhamdulillah! One more round! ✨',
-  'SubhanAllah! You are doing great! 🌙',
-  'Barakallah feek! Allah is watching! 💚',
-  'Every dhikr brings you closer to Allah! 📿',
-  'The angels are recording your worship! 🌟',
-  'JazakAllah khair for this beautiful act! 🕌',
-  'Allah loves those who remember Him! 💛',
+  'MashAllah! Keep going! ',
+  'Alhamdulillah! One more round! ',
+  'SubhanAllah! You are doing great! ',
+  'Barakallah feek! Allah is watching! ',
+  'Every dhikr brings you closer to Allah! ',
+  'The angels are recording your worship! ',
+  'JazakAllah khair for this beautiful act! ',
+  'Allah loves those who remember Him! ',
 ];
 
 const CATEGORIES = ['all', 'tasbih', 'tahlil', 'istighfar', 'salawat', 'dua', 'free'] as const;
@@ -513,7 +513,7 @@ export default function DhikrCounter() {
     saveData('dhikr_total', 0); saveData('dhikr_streak', 0); saveData('dhikr_history', []); saveData('dhikr_per', {});
   };
 
-  const shareText = `🌙 I just completed ${sessions > 0 ? sessions + ' round(s) of ' : ''}${preset.name} (${preset.arabic})\n\n${preset.meaning}\n\n📿 "${preset.hadith}"\n\nUse this free Islamic Dhikr Counter 👇\n🔗 iloveislam.life/dhikr\n\nShare this — every time they do dhikr because of you, you earn the same reward! 🤍`;
+  const shareText = ` I just completed ${sessions > 0 ? sessions + ' round(s) of ' : ''}${preset.name} (${preset.arabic})\n\n${preset.meaning}\n\n "${preset.hadith}"\n\nUse this free Islamic Dhikr Counter \n iloveislam.life/dhikr\n\nShare this — every time they do dhikr because of you, you earn the same reward! `;
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -589,22 +589,22 @@ export default function DhikrCounter() {
           {/* Top row */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <Link href="/" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>← Back</Link>
-            <h1 style={{ color: '#fff', fontSize: 16, fontWeight: 700, margin: 0, letterSpacing: 0.5 }}>📿 Dhikr Counter</h1>
+            <h1 style={{ color: '#fff', fontSize: 16, fontWeight: 700, margin: 0, letterSpacing: 0.5 }}> Dhikr Counter</h1>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               {/* Dark mode */}
               <button onClick={() => setDarkMode(!dm)} className="icon-btn"
                 style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 20, padding: '5px 10px', cursor: 'pointer', fontSize: 14, color: '#fff' }}>
-                {dm ? '☀️' : '🌙'}
+                {dm ? '' : ''}
               </button>
               {/* Sound */}
               <button onClick={() => setSoundOn(!soundOn)} className="icon-btn"
                 style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 20, padding: '5px 10px', cursor: 'pointer', fontSize: 14, color: '#fff' }}>
-                {soundOn ? '🔊' : '🔇'}
+                {soundOn ? '' : ''}
               </button>
               {/* Full screen */}
               <button onClick={() => setFullScreen(true)} className="icon-btn"
                 style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 20, padding: '5px 10px', cursor: 'pointer', fontSize: 14, color: '#fff' }}>
-                ⛶
+                
               </button>
             </div>
           </div>
@@ -612,10 +612,10 @@ export default function DhikrCounter() {
           {/* Stats bar */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 6 }}>
             {[
-              { label: 'Total',   value: totalAll.toLocaleString(), icon: '📿' },
-              { label: 'Streak',  value: streakDay + 'd', icon: '🔥' },
-              { label: 'Today',   value: todayTotal.toString(), icon: '🌟' },
-              { label: 'Timer',   value: timerFmt, icon: '⏱' },
+              { label: 'Total',   value: totalAll.toLocaleString(), icon: '' },
+              { label: 'Streak',  value: streakDay + 'd', icon: '' },
+              { label: 'Today',   value: todayTotal.toString(), icon: '' },
+              { label: 'Timer',   value: timerFmt, icon: '' },
             ].map(s => (
               <div key={s.label} style={{ background: 'rgba(255,255,255,0.14)', borderRadius: 12, padding: '10px 4px', textAlign: 'center', backdropFilter: 'blur(6px)' }}>
                 <p style={{ fontSize: 14, margin: '0 0 2px' }}>{s.icon}</p>
@@ -641,7 +641,7 @@ export default function DhikrCounter() {
                 fontSize: 12, fontWeight: tab === t ? 700 : 500, fontFamily: 'Georgia, serif',
                 letterSpacing: 0.3,
               }}>
-              {t === 'counter' ? '📿 Counter' : t === 'stats' ? '📊 Stats' : '📋 History'}
+              {t === 'counter' ? ' Counter' : t === 'stats' ? ' Stats' : ' History'}
             </button>
           ))}
         </div>
@@ -714,7 +714,7 @@ export default function DhikrCounter() {
                       color: displayMode === m ? '#fff' : textMuted,
                       borderRadius: 20, fontSize: 11, cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 600,
                     }}>
-                    {m === 'beads' ? '📿 Beads' : '⭕ Ring'}
+                    {m === 'beads' ? ' Beads' : ' Ring'}
                   </button>
                 ))}
               </div>
@@ -747,7 +747,7 @@ export default function DhikrCounter() {
                     {!isFreeMode && <span style={{ fontSize: 11, color: textMuted, marginTop: 4 }}>of {effectiveTarget}</span>}
                     {sessions > 0 && (
                       <span style={{ fontSize: 10, color: dm ? color.ring : color.text, marginTop: 8, background: dm ? `${color.bg}33` : color.light, padding: '3px 10px', borderRadius: 20, border: `1px solid ${dm ? color.bg : color.border}`, animation: 'popIn 0.3s ease' }}>
-                        ✅ {sessions} round{sessions !== 1 ? 's' : ''}
+                         {sessions} round{sessions !== 1 ? 's' : ''}
                       </span>
                     )}
                   </div>
@@ -781,7 +781,7 @@ export default function DhikrCounter() {
                 ) : (
                   <button onClick={() => setEditingTarget(true)}
                     style={{ padding: '4px 12px', borderRadius: 8, border: `1px dashed ${color.ring}`, background: 'transparent', color: dm ? color.ring : color.text, fontSize: 12, cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
-                    {customTarget || (preset.target ? `${preset.target}` : '∞')} ✏️
+                    {customTarget || (preset.target ? `${preset.target}` : '∞')} 
                   </button>
                 )}
                 {customTarget && (
@@ -820,7 +820,7 @@ export default function DhikrCounter() {
                 {ripples.map(r => (
                   <span key={r.id} style={{ position: 'absolute', left: r.x, top: r.y, width: 40, height: 40, marginLeft: -20, marginTop: -20, borderRadius: '50%', background: 'rgba(255,255,255,0.3)', animation: 'ripple 0.6s ease-out forwards', pointerEvents: 'none' }} />
                 ))}
-                📿 {isFreeMode ? `Count — ${count}` : 'Tap to Count'}
+                 {isFreeMode ? `Count — ${count}` : 'Tap to Count'}
               </button>
 
               {/* Vibration toggle + keyboard hint */}
@@ -828,7 +828,7 @@ export default function DhikrCounter() {
                 <p style={{ fontSize: 10, color: textMuted, margin: 0 }}>Space / Enter on keyboard</p>
                 <button onClick={() => setVibOn(!vibOn)}
                   style={{ background: 'none', border: 'none', fontSize: 11, color: textMuted, cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
-                  {vibOn ? '📳 Vibrate ON' : '📴 Vibrate OFF'}
+                  {vibOn ? ' Vibrate ON' : ' Vibrate OFF'}
                 </button>
               </div>
 
@@ -840,15 +840,15 @@ export default function DhikrCounter() {
                 </button>
                 <button onClick={reset}
                   style={{ flex: 1, padding: 11, border: `1.5px solid ${borderC}`, borderRadius: 13, fontSize: 12, color: textMuted, background: cardBg2, cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'background .2s' }}>
-                  🔄 Reset
+                   Reset
                 </button>
                 <button onClick={() => setShowHadith(!showHadith)}
                   style={{ flex: 1, padding: 11, border: `1.5px solid ${dm ? color.bg + '66' : color.border}`, borderRadius: 13, fontSize: 12, color: dm ? color.ring : color.text, background: dm ? `${color.bg}18` : color.light, cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all .2s' }}>
-                  📖 {showHadith ? 'Hide' : 'Hadith'}
+                   {showHadith ? 'Hide' : 'Hadith'}
                 </button>
                 <button onClick={handleShare}
                   style={{ flex: 1, padding: 11, border: 'none', borderRadius: 13, fontSize: 12, color: '#fff', background: color.grad, cursor: 'pointer', fontFamily: 'Georgia, serif', boxShadow: `0 4px 14px ${color.ring}30` }}>
-                  🌙 Share
+                   Share
                 </button>
               </div>
             </div>
@@ -856,21 +856,21 @@ export default function DhikrCounter() {
             {/* Hadith Card */}
             {showHadith && (
               <div style={{ background: dm ? '#1a1500' : '#fffbeb', border: `1px solid ${dm ? '#3d3000' : '#fde68a'}`, borderRadius: 18, padding: '18px 20px', marginBottom: 10, animation: 'slideUp 0.25s ease', boxShadow: '0 2px 14px rgba(251,191,36,0.1)' }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: dm ? '#fbbf24' : '#92400e', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: 0.5 }}>📖 Hadith & Virtue</p>
+                <p style={{ fontSize: 11, fontWeight: 700, color: dm ? '#fbbf24' : '#92400e', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: 0.5 }}> Hadith & Virtue</p>
                 <p style={{ fontSize: 13, color: dm ? '#fde68a' : '#78350f', lineHeight: 1.9, margin: 0, fontStyle: 'italic', fontFamily: 'Lora, Georgia, serif' }}>{preset.hadith}</p>
               </div>
             )}
 
             {/* Sadaqah Jariyah Banner */}
             <div style={{ background: dm ? 'linear-gradient(135deg,#0f1f10,#1a3020)' : 'linear-gradient(135deg,#0a3d2e,#1a5c3a)', borderRadius: 18, padding: '18px 20px', boxShadow: '0 4px 20px rgba(10,61,46,0.25)' }}>
-              <p style={{ color: '#c8a96e', fontSize: 13, fontWeight: 700, margin: '0 0 7px', fontFamily: 'Lora, Georgia, serif' }}>🌙 Share & Earn Sadaqah Jariyah</p>
+              <p style={{ color: '#c8a96e', fontSize: 13, fontWeight: 700, margin: '0 0 7px', fontFamily: 'Lora, Georgia, serif' }}> Share & Earn Sadaqah Jariyah</p>
               <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, lineHeight: 1.75, margin: '0 0 13px', fontFamily: 'Lora, Georgia, serif' }}>
                 Every time someone does dhikr because of you, you earn the same reward — even after you are gone.{' '}
                 <em>&quot;Whoever guides someone to goodness will have a reward like the one who did it.&quot;</em>
               </p>
               <button onClick={handleShare}
                 style={{ width: '100%', padding: 12, background: '#c8a96e', color: '#0a3d2e', border: 'none', borderRadius: 13, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'Georgia, serif', boxShadow: '0 4px 16px rgba(200,169,110,0.3)' }}>
-                🤍 Share This App
+                 Share This App
               </button>
             </div>
           </>
@@ -883,11 +883,11 @@ export default function DhikrCounter() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 11, animation: 'slideUp 0.3s ease' }}>
             {/* Overall stats */}
             <div style={{ background: cardBg, borderRadius: 20, border: `1px solid ${borderC}`, padding: '20px 18px', boxShadow: dm ? '0 4px 20px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.04)' }}>
-              <p style={{ fontSize: 14, fontWeight: 700, color: dm ? color.ring : color.text, margin: '0 0 16px', fontFamily: 'Lora, Georgia, serif' }}>📊 Your Journey</p>
+              <p style={{ fontSize: 14, fontWeight: 700, color: dm ? color.ring : color.text, margin: '0 0 16px', fontFamily: 'Lora, Georgia, serif' }}> Your Journey</p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9 }}>
                 {[
                   { label: 'Total Dhikr Ever', value: totalAll.toLocaleString(), c: dm ? color.ring : color.text },
-                  { label: 'Day Streak 🔥',    value: streakDay + ' days', c: '#f59e0b' },
+                  { label: 'Day Streak ',    value: streakDay + ' days', c: '#f59e0b' },
                   { label: 'Today\'s Dhikr',   value: todayTotal.toString(), c: dm ? '#4ade80' : '#16a34a' },
                   { label: 'Sessions Done',    value: sessions.toString(), c: dm ? '#a78bfa' : '#7c3aed' },
                 ].map(s => (
@@ -901,7 +901,7 @@ export default function DhikrCounter() {
 
             {/* Per-dhikr breakdown */}
             <div style={{ background: cardBg, borderRadius: 20, border: `1px solid ${borderC}`, padding: '18px', boxShadow: dm ? '0 4px 20px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.04)' }}>
-              <p style={{ fontSize: 14, fontWeight: 700, color: dm ? color.ring : color.text, margin: '0 0 14px', fontFamily: 'Lora, Georgia, serif' }}>📿 Per-Dhikr Totals</p>
+              <p style={{ fontSize: 14, fontWeight: 700, color: dm ? color.ring : color.text, margin: '0 0 14px', fontFamily: 'Lora, Georgia, serif' }}> Per-Dhikr Totals</p>
               {Object.keys(perDhikrCounts).length === 0 ? (
                 <p style={{ fontSize: 12, color: textMuted, textAlign: 'center', padding: '12px 0', fontStyle: 'italic' }}>No data yet — start counting!</p>
               ) : (
@@ -929,12 +929,12 @@ export default function DhikrCounter() {
 
             {/* Power of dhikr */}
             <div style={{ background: cardBg, borderRadius: 20, border: `1px solid ${borderC}`, padding: '18px', boxShadow: dm ? '0 4px 20px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.04)' }}>
-              <p style={{ fontSize: 14, fontWeight: 700, color: dm ? color.ring : color.text, margin: '0 0 13px', fontFamily: 'Lora, Georgia, serif' }}>✨ The Power of Dhikr</p>
+              <p style={{ fontSize: 14, fontWeight: 700, color: dm ? color.ring : color.text, margin: '0 0 13px', fontFamily: 'Lora, Georgia, serif' }}> The Power of Dhikr</p>
               {[
-                { num: '33×', label: 'SubhanAllah, Alhamdulillah, Allahu Akbar after each prayer', icon: '🕌' },
-                { num: '100×', label: 'La ilaha illallah — the best of all dhikr', icon: '⭐' },
-                { num: '10×', label: 'Reward multiplied for every Salawat on the Prophet ﷺ', icon: '💚' },
-                { num: '1×', label: 'Ayatul Kursi after prayer → path to Paradise', icon: '🌙' },
+                { num: '33×', label: 'SubhanAllah, Alhamdulillah, Allahu Akbar after each prayer', icon: '' },
+                { num: '100×', label: 'La ilaha illallah — the best of all dhikr', icon: '' },
+                { num: '10×', label: 'Reward multiplied for every Salawat on the Prophet ﷺ', icon: '' },
+                { num: '1×', label: 'Ayatul Kursi after prayer → path to Paradise', icon: '' },
               ].map(i => (
                 <div key={i.num} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', background: cardBg2, borderRadius: 12, marginBottom: 7, border: `1px solid ${borderC}` }}>
                   <span style={{ fontSize: 18 }}>{i.icon}</span>
@@ -948,7 +948,7 @@ export default function DhikrCounter() {
 
             <button onClick={resetAll}
               style={{ background: cardBg, border: `1px solid ${dm ? '#3d1515' : '#fca5a5'}`, borderRadius: 14, padding: 14, color: '#ef4444', fontSize: 13, cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
-              🗑️ Reset All Stats
+               Reset All Stats
             </button>
           </div>
         )}
@@ -960,7 +960,7 @@ export default function DhikrCounter() {
           <div style={{ animation: 'slideUp 0.3s ease' }}>
             {history.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-                <p style={{ fontSize: 40, margin: '0 0 12px' }}>📿</p>
+                <p style={{ fontSize: 40, margin: '0 0 12px' }}></p>
                 <p style={{ fontSize: 15, color: textMuted, fontStyle: 'italic', fontFamily: 'Lora, Georgia, serif' }}>No completed rounds yet.<br />Complete a dhikr round to see your history!</p>
               </div>
             ) : (
@@ -968,7 +968,7 @@ export default function DhikrCounter() {
                 {/* Today summary */}
                 {todayHistory.length > 0 && (
                   <div style={{ background: dm ? `${color.bg}22` : color.light, border: `1px solid ${dm ? color.bg + '55' : color.border}`, borderRadius: 16, padding: '14px 16px', marginBottom: 4 }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: dm ? color.ring : color.text, margin: '0 0 4px' }}>📅 Today</p>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: dm ? color.ring : color.text, margin: '0 0 4px' }}> Today</p>
                     <p style={{ fontSize: 12, color: textMuted, margin: 0 }}>{todayHistory.length} round{todayHistory.length !== 1 ? 's' : ''} · {todayTotal.toLocaleString()} dhikr total</p>
                   </div>
                 )}
@@ -985,7 +985,7 @@ export default function DhikrCounter() {
                   return (
                     <div key={i} style={{ background: cardBg, borderRadius: 14, border: `1px solid ${borderC}`, padding: '13px 15px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: dm ? '0 2px 8px rgba(0,0,0,0.2)' : '0 1px 4px rgba(0,0,0,0.04)' }}>
                       <div style={{ width: 36, height: 36, borderRadius: '50%', background: dm ? `${c2.bg}33` : c2.light, border: `2px solid ${c2.ring}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16 }}>
-                        📿
+                        
                       </div>
                       <div style={{ flex: 1 }}>
                         <p style={{ fontSize: 13, fontWeight: 700, color: textMain, margin: '0 0 2px' }}>{h.dhikr}</p>
@@ -1010,23 +1010,23 @@ export default function DhikrCounter() {
           <div style={{ background: cardBg, borderRadius: '24px 24px 0 0', padding: '24px 20px 48px', width: '100%', maxWidth: 520, animation: 'slideUp 0.3s ease' }}
             onClick={e => e.stopPropagation()}>
             <div style={{ width: 40, height: 4, background: borderC, borderRadius: 2, margin: '0 auto 20px' }} />
-            <p style={{ fontSize: 17, fontWeight: 700, color: dm ? color.ring : '#0a3d2e', margin: '0 0 4px', fontFamily: 'Lora, Georgia, serif' }}>🌙 Share & Earn Rewards</p>
-            <p style={{ fontSize: 12, color: textMuted, margin: '0 0 16px' }}>Every dhikr they do = reward for you too 🤍</p>
+            <p style={{ fontSize: 17, fontWeight: 700, color: dm ? color.ring : '#0a3d2e', margin: '0 0 4px', fontFamily: 'Lora, Georgia, serif' }}> Share & Earn Rewards</p>
+            <p style={{ fontSize: 12, color: textMuted, margin: '0 0 16px' }}>Every dhikr they do = reward for you too </p>
             <div style={{ background: cardBg2, borderRadius: 14, padding: 14, marginBottom: 14, fontSize: 12, color: textMuted, lineHeight: 1.8, maxHeight: 130, overflowY: 'auto', border: `1px solid ${borderC}`, fontFamily: 'Lora, Georgia, serif' }}>
               {shareText}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <button onClick={copyShare}
                 style={{ padding: 14, background: copied ? '#059669' : '#0a3d2e', color: '#fff', border: 'none', borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'background .3s' }}>
-                {copied ? '✅ Copied!' : '📋 Copy Message'}
+                {copied ? ' Copied!' : ' Copy Message'}
               </button>
               <a href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer"
                 style={{ display: 'block', padding: 14, background: '#25d366', color: '#fff', borderRadius: 14, fontSize: 14, fontWeight: 700, textDecoration: 'none', textAlign: 'center', fontFamily: 'Georgia, serif' }}>
-                💬 Share on WhatsApp
+                 Share on WhatsApp
               </a>
               <a href={`https://t.me/share/url?url=https://www.iloveislam.life/dhikr&text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer"
                 style={{ display: 'block', padding: 14, background: '#0088cc', color: '#fff', borderRadius: 14, fontSize: 14, fontWeight: 700, textDecoration: 'none', textAlign: 'center', fontFamily: 'Georgia, serif' }}>
-                ✈️ Share on Telegram
+                 Share on Telegram
               </a>
               <button onClick={() => setShowShare(false)}
                 style={{ padding: 12, background: cardBg2, color: textMuted, border: `1px solid ${borderC}`, borderRadius: 14, fontSize: 13, cursor: 'pointer', fontFamily: 'Georgia, serif' }}>

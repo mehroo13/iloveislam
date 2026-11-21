@@ -19,18 +19,18 @@ const DUAS = [
   },
 ];
 
-const MOODS = ['😄', '🙂', '😐', '😔', '🤲'];
+const MOODS = ['', '', '', '', ''];
 
 const IBADAH_OPTIONS = [
   'Quran', 'Tarawih', 'Tahajjud', 'Sadaqah', 'Dhikr', 'Fasting', 'Dua', 'Good Deed',
 ];
 
 const GOALS = [
-  { id: 'quran', label: 'Complete Quran', icon: '📖', target: 30 },
-  { id: 'tarawih', label: 'Pray Tarawih', icon: '🕌', target: 30 },
-  { id: 'sadaqah', label: 'Give Sadaqah', icon: '💚', target: 30 },
-  { id: 'dhikr', label: 'Daily Dhikr', icon: '📿', target: 30 },
-  { id: 'tahajjud', label: 'Pray Tahajjud', icon: '🌙', target: 10 },
+  { id: 'quran', label: 'Complete Quran', icon: '', target: 30 },
+  { id: 'tarawih', label: 'Pray Tarawih', icon: '', target: 30 },
+  { id: 'sadaqah', label: 'Give Sadaqah', icon: '', target: 30 },
+  { id: 'dhikr', label: 'Daily Dhikr', icon: '', target: 30 },
+  { id: 'tahajjud', label: 'Pray Tahajjud', icon: '', target: 10 },
 ];
 
 type DayData = {
@@ -145,9 +145,9 @@ export default function RamadanPlanner() {
           <Link href="/" className="text-white/70 hover:text-white text-sm flex items-center gap-1">
             <span>←</span> Back
           </Link>
-          <h1 className="text-xl font-bold tracking-wide">🌙 Ramadan Planner</h1>
+          <h1 className="text-xl font-bold tracking-wide"> Ramadan Planner</h1>
           <div className="flex items-center gap-2">
-            <button onClick={() => setDark(!dark)} className="text-white/60 hover:text-white text-lg">{dark ? '☀️' : '🌙'}</button>
+            <button onClick={() => setDark(!dark)} className="text-white/60 hover:text-white text-lg">{dark ? '' : ''}</button>
             {/* Day selector */}
             <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1">
               <button
@@ -208,11 +208,11 @@ export default function RamadanPlanner() {
       <div className="max-w-2xl mx-auto px-4 pt-4">
         <div style={{ background: dark ? '#1e293b' : '#fff', border: `1px solid ${dark ? '#334155' : '#f1f5f9'}` }} className="flex rounded-2xl p-1.5 gap-1 shadow-sm">
           {[
-            { id: 'tracker', label: '📅 Today' },
-            { id: 'quran', label: '📖 Quran' },
-            { id: 'goals', label: '🎯 Goals' },
-            { id: 'duas', label: '🤲 Duas' },
-            { id: 'notes', label: '📝 Journal' },
+            { id: 'tracker', label: ' Today' },
+            { id: 'quran', label: ' Quran' },
+            { id: 'goals', label: ' Goals' },
+            { id: 'duas', label: ' Duas' },
+            { id: 'notes', label: ' Journal' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -258,7 +258,7 @@ export default function RamadanPlanner() {
               </div>
               {todayData.fasted && (
                 <div className="mt-4 bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
-                  <p className="text-emerald-700 text-sm font-semibold">✅ Alhamdulillah! Fast recorded</p>
+                  <p className="text-emerald-700 text-sm font-semibold"> Alhamdulillah! Fast recorded</p>
                 </div>
               )}
             </div>
@@ -316,7 +316,7 @@ export default function RamadanPlanner() {
               </div>
               {todayData.ibadah?.length > 0 && (
                 <p className="text-xs text-gray-400 mt-4 text-center">
-                  {todayData.ibadah.length} of {IBADAH_OPTIONS.length} completed — MashaAllah! ✨
+                  {todayData.ibadah.length} of {IBADAH_OPTIONS.length} completed — MashaAllah! 
                 </p>
               )}
             </div>
@@ -327,7 +327,7 @@ export default function RamadanPlanner() {
         {activeTab === 'quran' && (
           <>
             <div className={card}>
-              <h3 style={{ color: dark ? '#e2e8f0' : '#1a1a1a' }} className="font-bold text-base mb-3">📖 Quran Khatmah Tracker</h3>
+              <h3 style={{ color: dark ? '#e2e8f0' : '#1a1a1a' }} className="font-bold text-base mb-3"> Quran Khatmah Tracker</h3>
               <p style={{ color: dark ? '#94a3b8' : '#6b7280' }} className="text-xs mb-4">Tap each Juz when completed. Goal: finish the entire Quran in Ramadan.</p>
               
               {/* Progress */}
@@ -381,7 +381,7 @@ export default function RamadanPlanner() {
 
               {juzCompleted.filter(Boolean).length === 30 && (
                 <div className="mt-4 bg-emerald-500 rounded-xl p-4 text-center text-white">
-                  <p className="text-2xl mb-1">🎉</p>
+                  <p className="text-2xl mb-1"></p>
                   <p className="font-bold">MashAllah! Quran Khatmah Complete!</p>
                   <p className="text-xs text-emerald-100 mt-1">May Allah accept your recitation</p>
                 </div>
@@ -422,7 +422,7 @@ export default function RamadanPlanner() {
                         />
                       </div>
                       {pct === 100 && (
-                        <p className="text-xs text-amber-600 mt-1 font-semibold">🏆 Goal completed!</p>
+                        <p className="text-xs text-amber-600 mt-1 font-semibold"> Goal completed!</p>
                       )}
                     </div>
                   );
@@ -509,15 +509,15 @@ export default function RamadanPlanner() {
             </div>
 
             <div className={card}>
-              <p className="font-semibold text-gray-800 text-lg mb-4">✨ Ramadan Tips</p>
+              <p className="font-semibold text-gray-800 text-lg mb-4"> Ramadan Tips</p>
               <div className="space-y-3">
                 {[
-                  { icon: '🌙', tip: 'Make intention for fasting every night before Fajr' },
-                  { icon: '💧', tip: 'Drink plenty of water between Iftar and Suhoor' },
-                  { icon: '📖', tip: 'Read at least 1 Juz of Quran daily to complete it' },
-                  { icon: '🤲', tip: 'Make dua abundantly — dua is accepted when fasting' },
-                  { icon: '💚', tip: 'Give sadaqah daily, even if small — it is multiplied' },
-                  { icon: '🕌', tip: 'Pray Tarawih — even a few rakahs is better than none' },
+                  { icon: '', tip: 'Make intention for fasting every night before Fajr' },
+                  { icon: '', tip: 'Drink plenty of water between Iftar and Suhoor' },
+                  { icon: '', tip: 'Read at least 1 Juz of Quran daily to complete it' },
+                  { icon: '', tip: 'Make dua abundantly — dua is accepted when fasting' },
+                  { icon: '', tip: 'Give sadaqah daily, even if small — it is multiplied' },
+                  { icon: '', tip: 'Pray Tarawih — even a few rakahs is better than none' },
                 ].map((t, i) => (
                   <div key={i} className="flex gap-3 items-start">
                     <span className="text-xl">{t.icon}</span>
@@ -545,7 +545,7 @@ export default function RamadanPlanner() {
             </div>
 
             <div className={card}>
-              <p className="font-semibold text-gray-800 text-lg mb-4">💡 Journal Prompts</p>
+              <p className="font-semibold text-gray-800 text-lg mb-4"> Journal Prompts</p>
               <div className="space-y-2">
                 {[
                   'What am I most grateful to Allah for today?',

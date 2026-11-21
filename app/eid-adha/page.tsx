@@ -10,21 +10,21 @@ type SharePartner = { id: string; name: string; paid: boolean };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TABS: { id: Tab; icon: string; label: string }[] = [
-  { id: 'calculator',   icon: '🐄', label: 'Qurbani Calc'  },
-  { id: 'distribution', icon: '🥩', label: 'Meat Split'    },
-  { id: 'takbeer',      icon: '📿', label: 'Takbeer'       },
-  { id: 'checklist',    icon: '✅', label: 'Checklist'     },
-  { id: 'sunnah',       icon: '🌙', label: 'Sunnah Guide'  },
-  { id: 'prayer',       icon: '🕌', label: 'Eid Prayer'    },
-  { id: 'greeting',     icon: '💌', label: 'Greetings'     },
-  { id: 'recipes',      icon: '🍖', label: 'Recipes'       },
+  { id: 'calculator',   icon: '', label: 'Qurbani Calc'  },
+  { id: 'distribution', icon: '', label: 'Meat Split'    },
+  { id: 'takbeer',      icon: '', label: 'Takbeer'       },
+  { id: 'checklist',    icon: '', label: 'Checklist'     },
+  { id: 'sunnah',       icon: '', label: 'Sunnah Guide'  },
+  { id: 'prayer',       icon: '', label: 'Eid Prayer'    },
+  { id: 'greeting',     icon: '', label: 'Greetings'     },
+  { id: 'recipes',      icon: '', label: 'Recipes'       },
 ];
 
 const ANIMALS: { id: Animal; name: string; icon: string; maxShares: number; minAge: string; desc: string }[] = [
-  { id: 'goat',   name: 'Goat',   icon: '🐐', maxShares: 1, minAge: '1 year',   desc: '1 share only — counts for one person or household' },
-  { id: 'sheep',  name: 'Sheep',  icon: '🐑', maxShares: 1, minAge: '6 months', desc: '1 share only — 6 months old is sufficient for sheep' },
-  { id: 'cow',    name: 'Cow',    icon: '🐄', maxShares: 7, minAge: '2 years',  desc: 'Up to 7 shares — popular for family groups' },
-  { id: 'camel',  name: 'Camel',  icon: '🐪', maxShares: 7, minAge: '5 years',  desc: 'Up to 7 shares — highest reward according to scholars' },
+  { id: 'goat',   name: 'Goat',   icon: '', maxShares: 1, minAge: '1 year',   desc: '1 share only — counts for one person or household' },
+  { id: 'sheep',  name: 'Sheep',  icon: '', maxShares: 1, minAge: '6 months', desc: '1 share only — 6 months old is sufficient for sheep' },
+  { id: 'cow',    name: 'Cow',    icon: '', maxShares: 7, minAge: '2 years',  desc: 'Up to 7 shares — popular for family groups' },
+  { id: 'camel',  name: 'Camel',  icon: '', maxShares: 7, minAge: '5 years',  desc: 'Up to 7 shares — highest reward according to scholars' },
 ];
 
 const COUNTRIES = [
@@ -69,39 +69,39 @@ const TAKBEERS = [
 ];
 
 const CHECKLIST_ITEMS = [
-  { id: 'nisab',    cat: 'Eligibility',  icon: '💰', text: 'Confirm you meet Nisab threshold (owner of 87.5g gold or equivalent)' },
-  { id: 'niyyah',   cat: 'Eligibility',  icon: '🤲', text: 'Make your Niyyah (intention) for Qurbani before 10th Dhul Hijjah' },
-  { id: 'animal',   cat: 'Animal',       icon: '🐄', text: 'Select a valid animal (goat ≥1yr, sheep ≥6m, cow ≥2yr, camel ≥5yr)' },
-  { id: 'healthy',  cat: 'Animal',       icon: '🏥', text: 'Verify the animal is healthy — free from blindness, lameness, major illness' },
-  { id: 'shares',   cat: 'Animal',       icon: '👥', text: 'Confirm shares (goat/sheep = 1 person; cow/camel = up to 7)' },
-  { id: 'knife',    cat: 'Preparation',  icon: '🔪', text: 'Sharpen the knife beforehand — do not sharpen in front of the animal' },
-  { id: 'qibla',    cat: 'Preparation',  icon: '🧭', text: 'Face the animal toward the Qibla' },
-  { id: 'bismillah',cat: 'At Slaughter', icon: '📿', text: 'Say Bismillah Allahu Akbar before slaughtering' },
-  { id: 'swift',    cat: 'At Slaughter', icon: '⚡', text: 'Slaughter swiftly in one motion — minimize animal pain' },
-  { id: 'portions', cat: 'Distribution', icon: '🥩', text: 'Divide meat into 3 equal portions: self, relatives, poor' },
-  { id: 'poor',     cat: 'Distribution', icon: '🤝', text: 'Ensure the poor receive their portion — this is the core purpose' },
-  { id: 'nosell',   cat: 'Distribution', icon: '🚫', text: 'Do NOT sell the meat, skin, or any part of the Qurbani animal' },
-  { id: 'skin',     cat: 'Distribution', icon: '🎁', text: 'Give the skin to the poor, or use it yourself — do not sell it' },
-  { id: 'fast',     cat: 'Dhul Hijjah',  icon: '🌙', text: 'Fast on 9th Dhul Hijjah (Day of Arafah) — expiates 2 years of sins' },
-  { id: 'takbeer',  cat: 'Dhul Hijjah',  icon: '🔊', text: 'Recite Takbeer-e-Tashreeq from 9th Fajr to 13th Asr' },
-  { id: 'charity',  cat: 'Dhul Hijjah',  icon: '💝', text: 'Give extra charity in the 10 days — best days of the year' },
-  { id: 'prayer2',  cat: 'Eid Day',      icon: '🕌', text: 'Attend Eid ul Adha prayer — compulsory for those able' },
-  { id: 'ghusl',    cat: 'Eid Day',      icon: '🚿', text: 'Perform Ghusl before Eid prayer' },
-  { id: 'noeat',    cat: 'Eid Day',      icon: '🍽️', text: 'Do NOT eat before Eid prayer (eat from your Qurbani meat after)' },
-  { id: 'route',    cat: 'Eid Day',      icon: '🛤️', text: 'Take a different route returning from Eid prayer (Sunnah)' },
+  { id: 'nisab',    cat: 'Eligibility',  icon: '', text: 'Confirm you meet Nisab threshold (owner of 87.5g gold or equivalent)' },
+  { id: 'niyyah',   cat: 'Eligibility',  icon: '', text: 'Make your Niyyah (intention) for Qurbani before 10th Dhul Hijjah' },
+  { id: 'animal',   cat: 'Animal',       icon: '', text: 'Select a valid animal (goat ≥1yr, sheep ≥6m, cow ≥2yr, camel ≥5yr)' },
+  { id: 'healthy',  cat: 'Animal',       icon: '', text: 'Verify the animal is healthy — free from blindness, lameness, major illness' },
+  { id: 'shares',   cat: 'Animal',       icon: '', text: 'Confirm shares (goat/sheep = 1 person; cow/camel = up to 7)' },
+  { id: 'knife',    cat: 'Preparation',  icon: '', text: 'Sharpen the knife beforehand — do not sharpen in front of the animal' },
+  { id: 'qibla',    cat: 'Preparation',  icon: '', text: 'Face the animal toward the Qibla' },
+  { id: 'bismillah',cat: 'At Slaughter', icon: '', text: 'Say Bismillah Allahu Akbar before slaughtering' },
+  { id: 'swift',    cat: 'At Slaughter', icon: '', text: 'Slaughter swiftly in one motion — minimize animal pain' },
+  { id: 'portions', cat: 'Distribution', icon: '', text: 'Divide meat into 3 equal portions: self, relatives, poor' },
+  { id: 'poor',     cat: 'Distribution', icon: '', text: 'Ensure the poor receive their portion — this is the core purpose' },
+  { id: 'nosell',   cat: 'Distribution', icon: '', text: 'Do NOT sell the meat, skin, or any part of the Qurbani animal' },
+  { id: 'skin',     cat: 'Distribution', icon: '', text: 'Give the skin to the poor, or use it yourself — do not sell it' },
+  { id: 'fast',     cat: 'Dhul Hijjah',  icon: '', text: 'Fast on 9th Dhul Hijjah (Day of Arafah) — expiates 2 years of sins' },
+  { id: 'takbeer',  cat: 'Dhul Hijjah',  icon: '', text: 'Recite Takbeer-e-Tashreeq from 9th Fajr to 13th Asr' },
+  { id: 'charity',  cat: 'Dhul Hijjah',  icon: '', text: 'Give extra charity in the 10 days — best days of the year' },
+  { id: 'prayer2',  cat: 'Eid Day',      icon: '', text: 'Attend Eid ul Adha prayer — compulsory for those able' },
+  { id: 'ghusl',    cat: 'Eid Day',      icon: '', text: 'Perform Ghusl before Eid prayer' },
+  { id: 'noeat',    cat: 'Eid Day',      icon: '', text: 'Do NOT eat before Eid prayer (eat from your Qurbani meat after)' },
+  { id: 'route',    cat: 'Eid Day',      icon: '', text: 'Take a different route returning from Eid prayer (Sunnah)' },
 ];
 
 const SUNNAH_TIMELINE = [
-  { time: 'Days 1–8',       icon: '📅', title: '10 Blessed Days',          desc: 'Increase ALL good deeds. The Prophet ﷺ said: "There are no days in which good deeds are more beloved to Allah than these ten days." Recite Takbeer, Tahmeed, Tahleel, and Tasbeeh abundantly.' },
-  { time: 'Day 9 (Arafah)', icon: '🌄', title: 'Fast the Day of Arafah',   desc: 'The Prophet ﷺ said: "Fasting on the Day of Arafah expiates the sins of the past year and the coming year." This is one of the most virtuous acts of worship.' },
-  { time: 'Night of Eid',   icon: '🌙', title: 'Stay Awake in Worship',    desc: 'Whoever spends the nights of Eid ul Fitr and Eid ul Adha in worship, their heart will not die on the day when hearts die. Recite Takbeer through the night.' },
-  { time: 'Eid Morning',    icon: '🚿', title: 'Ghusl & Best Clothes',     desc: 'Perform Ghusl (ritual bath) and wear your best or new clothes. Apply attar (non-alcoholic perfume). This is the Sunnah of the Prophet ﷺ.' },
-  { time: 'Eid Morning',    icon: '🚶', title: 'Walk to Eid Prayer',        desc: 'Walk to Eid prayer reciting Takbeer aloud. Do NOT eat before Eid ul Adha prayer — eat from the Qurbani meat after the prayer.' },
-  { time: 'Eid Prayer',     icon: '🕌', title: '2 Rak\'ahs Eid Salah',    desc: '2 rak\'ahs with 6 extra Takbeers (3 in first raka\'ah before Fatihah, 3 in second after standing). Listen attentively to the Khutbah — it is Sunnah Mu\'akkadah.' },
-  { time: 'After Prayer',   icon: '🐄', title: 'Perform Qurbani',           desc: 'Qurbani is valid from after Eid prayer on 10th until sunset of 13th Dhul Hijjah. Say Bismillah Allahu Akbar, face the Qibla, and slaughter swiftly.' },
-  { time: 'After Qurbani',  icon: '🥩', title: 'Distribute the Meat',      desc: 'Divide into 3 portions: 1/3 for yourself and family, 1/3 for relatives and friends, 1/3 for the poor and needy. You may vary proportions but must give to the poor.' },
-  { time: 'Eid Day',        icon: '👨‍👩‍👧', title: 'Visit Family & Give Gifts', desc: 'Strengthen family ties on Eid day. Visit relatives, exchange gifts, and spread the salam. Say "Taqabbalallahu minna wa minkum" to Muslims you meet.' },
-  { time: 'Days 11–13',     icon: '📿', title: 'Days of Tashreeq',          desc: 'Continue reciting Takbeer-e-Tashreeq after every fard prayer until Asr on 13th. These are also days of eating, drinking, and remembrance of Allah.' },
+  { time: 'Days 1–8',       icon: '', title: '10 Blessed Days',          desc: 'Increase ALL good deeds. The Prophet ﷺ said: "There are no days in which good deeds are more beloved to Allah than these ten days." Recite Takbeer, Tahmeed, Tahleel, and Tasbeeh abundantly.' },
+  { time: 'Day 9 (Arafah)', icon: '', title: 'Fast the Day of Arafah',   desc: 'The Prophet ﷺ said: "Fasting on the Day of Arafah expiates the sins of the past year and the coming year." This is one of the most virtuous acts of worship.' },
+  { time: 'Night of Eid',   icon: '', title: 'Stay Awake in Worship',    desc: 'Whoever spends the nights of Eid ul Fitr and Eid ul Adha in worship, their heart will not die on the day when hearts die. Recite Takbeer through the night.' },
+  { time: 'Eid Morning',    icon: '', title: 'Ghusl & Best Clothes',     desc: 'Perform Ghusl (ritual bath) and wear your best or new clothes. Apply attar (non-alcoholic perfume). This is the Sunnah of the Prophet ﷺ.' },
+  { time: 'Eid Morning',    icon: '', title: 'Walk to Eid Prayer',        desc: 'Walk to Eid prayer reciting Takbeer aloud. Do NOT eat before Eid ul Adha prayer — eat from the Qurbani meat after the prayer.' },
+  { time: 'Eid Prayer',     icon: '', title: '2 Rak\'ahs Eid Salah',    desc: '2 rak\'ahs with 6 extra Takbeers (3 in first raka\'ah before Fatihah, 3 in second after standing). Listen attentively to the Khutbah — it is Sunnah Mu\'akkadah.' },
+  { time: 'After Prayer',   icon: '', title: 'Perform Qurbani',           desc: 'Qurbani is valid from after Eid prayer on 10th until sunset of 13th Dhul Hijjah. Say Bismillah Allahu Akbar, face the Qibla, and slaughter swiftly.' },
+  { time: 'After Qurbani',  icon: '', title: 'Distribute the Meat',      desc: 'Divide into 3 portions: 1/3 for yourself and family, 1/3 for relatives and friends, 1/3 for the poor and needy. You may vary proportions but must give to the poor.' },
+  { time: 'Eid Day',        icon: '', title: 'Visit Family & Give Gifts', desc: 'Strengthen family ties on Eid day. Visit relatives, exchange gifts, and spread the salam. Say "Taqabbalallahu minna wa minkum" to Muslims you meet.' },
+  { time: 'Days 11–13',     icon: '', title: 'Days of Tashreeq',          desc: 'Continue reciting Takbeer-e-Tashreeq after every fard prayer until Asr on 13th. These are also days of eating, drinking, and remembrance of Allah.' },
 ];
 
 const GREETINGS = [
@@ -112,18 +112,18 @@ const GREETINGS = [
   { lang: 'Turkish', text: 'Kurban Bayramınız mübarek olsun',                            transliteration: '',                            meaning: 'May your Eid of Sacrifice be blessed' },
   { lang: 'Malay',   text: 'Selamat Hari Raya Haji',                                    transliteration: '',                            meaning: 'Happy Hajj Celebration Day' },
   { lang: 'Bengali', text: 'ঈদুল আযহা মোবারক',                                          transliteration: 'Eidul Azha Mubarak',          meaning: 'Blessed Eid ul Adha (Bengali)' },
-  { lang: 'English', text: 'May Allah accept your Qurbani and all your good deeds. Eid Mubarak! 🐄🌙', transliteration: '', meaning: 'English Eid greeting' },
-  { lang: 'WhatsApp',text: '🌙🐄 *Eid ul Adha Mubarak!* 🐄🌙\n\n"Taqabbalallahu minna wa minkum"\nMay Allah accept from us and from you.\n\nMay your Qurbani be accepted, your duas answered, and your family blessed. 💚\n\n#EidMubarak #EidulAdha', transliteration: '', meaning: 'WhatsApp message' },
-  { lang: 'Instagram', text: '✨ Eid ul Adha Mubarak to all! ✨\n\nMay Allah accept our Qurbani, forgive our sins, and fill our homes with barakah 🌙\n\nTaqabbalallahu minna wa minkum 🤍\n\n#EidulAdha #EidMubarak #Qurbani #Alhamdulillah #Muslim', transliteration: '', meaning: 'Instagram caption' },
+  { lang: 'English', text: 'May Allah accept your Qurbani and all your good deeds. Eid Mubarak! ', transliteration: '', meaning: 'English Eid greeting' },
+  { lang: 'WhatsApp',text: ' *Eid ul Adha Mubarak!* \n\n"Taqabbalallahu minna wa minkum"\nMay Allah accept from us and from you.\n\nMay your Qurbani be accepted, your duas answered, and your family blessed. \n\n#EidMubarak #EidulAdha', transliteration: '', meaning: 'WhatsApp message' },
+  { lang: 'Instagram', text: ' Eid ul Adha Mubarak to all! \n\nMay Allah accept our Qurbani, forgive our sins, and fill our homes with barakah \n\nTaqabbalallahu minna wa minkum \n\n#EidulAdha #EidMubarak #Qurbani #Alhamdulillah #Muslim', transliteration: '', meaning: 'Instagram caption' },
 ];
 
 const RECIPES = [
-  { name: 'Eid Biryani',        icon: '🍛', time: '90 min', serves: 8, origin: 'South Asian', ingredients: ['1 kg qurbani beef/mutton', '3 cups basmati rice', '2 large onions', '1 cup yogurt', '4 tbsp biryani spice mix', 'Saffron in warm milk', 'Ghee & whole spices', 'Fresh mint & coriander'], steps: ['Marinate meat with yogurt and spices for 2 hours', 'Fry onions golden, add marinated meat and cook 30 min', 'Par-boil rice with whole spices to 70% done', 'Layer rice over meat in pot', 'Drizzle saffron milk and ghee', 'Seal with dough and cook on dum for 25 min', 'Rest 10 min before serving'], tip: 'The longer you marinate the meat, the more tender the biryani.' },
-  { name: 'Slow-Cooked Nihari', icon: '🍲', time: '4 hrs',  serves: 6, origin: 'Pakistani',   ingredients: ['1 kg beef shank/leg', '4 tbsp nihari masala', '1 tbsp ginger-garlic paste', '4 tbsp ghee', '1/4 cup whole wheat flour', 'Salt to taste', 'Julienned ginger, lime, coriander for garnish'], steps: ['Heat ghee, add ginger-garlic paste and fry', 'Add meat and nihari masala, brown well', 'Add water to cover, simmer 3–4 hours on low heat', 'Mix flour with water, add to thicken broth', 'Season, garnish generously, serve with naan'], tip: 'Nihari is traditionally eaten at Fajr — slow cook overnight for best results.' },
-  { name: 'Kabsa (Gulf-Style)', icon: '🍚', time: '2 hrs',  serves: 8, origin: 'Arabic',      ingredients: ['1.5 kg lamb or goat pieces', '3 cups basmati rice', '2 tomatoes', '1 can tomato purée', 'Kabsa spice mix', 'Rose water', 'Raisins & toasted almonds', 'Ghee'], steps: ['Brown meat in ghee with onions', 'Add tomatoes, purée, and kabsa spices', 'Add water, cook meat until tender (1.5 hrs)', 'Add washed rice to the broth, cook 20 min', 'Fluff rice, arrange meat on top', 'Garnish with raisins and toasted almonds', 'Sprinkle rose water before serving'], tip: 'Rose water is the signature touch of authentic Kabsa — don\'t skip it.' },
-  { name: 'Mutton Karahi',      icon: '🫕', time: '60 min', serves: 4, origin: 'Pakistani',   ingredients: ['750g mutton (bone-in)', '4 tomatoes chopped', '4 tbsp oil', '1 tbsp ginger-garlic paste', '1 tsp each: cumin, coriander, red chilli', 'Julienned ginger, green chilli, coriander'], steps: ['Heat oil in karahi/wok, add meat', 'Cook on high heat without water for 10 min', 'Add ginger-garlic, cook until fragrant', 'Add tomatoes and spices, cook covered 30 min', 'Dry up excess liquid on high heat', 'Garnish with ginger, chilli, coriander'], tip: 'Never add water — the meat releases its own juices which creates the authentic karahi flavour.' },
-  { name: 'Seekh Kebab',        icon: '🍢', time: '45 min', serves: 6, origin: 'Middle Eastern', ingredients: ['500g minced lamb or beef', '1 onion finely grated', '2 tsp seekh kebab spice', '1 tsp each: garam masala, chilli', 'Fresh coriander & mint', 'Salt & black pepper', 'Oil for grilling'], steps: ['Mix mince with all spices and herbs thoroughly', 'Refrigerate mixture for 30 min', 'Wrap around flat skewers in sausage shape', 'Grill on BBQ or tawa on medium-high heat', 'Turn every 3–4 min until cooked through', 'Serve with naan, chutney, and sliced onion'], tip: 'Grating the onion (not chopping) prevents the kebab from falling off the skewer.' },
-  { name: 'Harees (Emirati)',   icon: '🥣', time: '3 hrs',  serves: 6, origin: 'Gulf/Emirati', ingredients: ['500g lamb or chicken', '2 cups whole wheat (harees grain)', '1 tsp cinnamon', 'Salt to taste', 'Ghee for serving', 'Ground cinnamon & sugar to garnish'], steps: ['Soak wheat overnight', 'Boil meat until very tender, shred', 'Cook soaked wheat in meat broth 2 hours stirring', 'Add shredded meat, stir vigorously until paste-like', 'Season with cinnamon and salt', 'Serve hot topped generously with ghee'], tip: 'Harees is a traditional Eid dish across the Gulf — simple but deeply satisfying.' },
+  { name: 'Eid Biryani',        icon: '', time: '90 min', serves: 8, origin: 'South Asian', ingredients: ['1 kg qurbani beef/mutton', '3 cups basmati rice', '2 large onions', '1 cup yogurt', '4 tbsp biryani spice mix', 'Saffron in warm milk', 'Ghee & whole spices', 'Fresh mint & coriander'], steps: ['Marinate meat with yogurt and spices for 2 hours', 'Fry onions golden, add marinated meat and cook 30 min', 'Par-boil rice with whole spices to 70% done', 'Layer rice over meat in pot', 'Drizzle saffron milk and ghee', 'Seal with dough and cook on dum for 25 min', 'Rest 10 min before serving'], tip: 'The longer you marinate the meat, the more tender the biryani.' },
+  { name: 'Slow-Cooked Nihari', icon: '', time: '4 hrs',  serves: 6, origin: 'Pakistani',   ingredients: ['1 kg beef shank/leg', '4 tbsp nihari masala', '1 tbsp ginger-garlic paste', '4 tbsp ghee', '1/4 cup whole wheat flour', 'Salt to taste', 'Julienned ginger, lime, coriander for garnish'], steps: ['Heat ghee, add ginger-garlic paste and fry', 'Add meat and nihari masala, brown well', 'Add water to cover, simmer 3–4 hours on low heat', 'Mix flour with water, add to thicken broth', 'Season, garnish generously, serve with naan'], tip: 'Nihari is traditionally eaten at Fajr — slow cook overnight for best results.' },
+  { name: 'Kabsa (Gulf-Style)', icon: '', time: '2 hrs',  serves: 8, origin: 'Arabic',      ingredients: ['1.5 kg lamb or goat pieces', '3 cups basmati rice', '2 tomatoes', '1 can tomato purée', 'Kabsa spice mix', 'Rose water', 'Raisins & toasted almonds', 'Ghee'], steps: ['Brown meat in ghee with onions', 'Add tomatoes, purée, and kabsa spices', 'Add water, cook meat until tender (1.5 hrs)', 'Add washed rice to the broth, cook 20 min', 'Fluff rice, arrange meat on top', 'Garnish with raisins and toasted almonds', 'Sprinkle rose water before serving'], tip: 'Rose water is the signature touch of authentic Kabsa — don\'t skip it.' },
+  { name: 'Mutton Karahi',      icon: '', time: '60 min', serves: 4, origin: 'Pakistani',   ingredients: ['750g mutton (bone-in)', '4 tomatoes chopped', '4 tbsp oil', '1 tbsp ginger-garlic paste', '1 tsp each: cumin, coriander, red chilli', 'Julienned ginger, green chilli, coriander'], steps: ['Heat oil in karahi/wok, add meat', 'Cook on high heat without water for 10 min', 'Add ginger-garlic, cook until fragrant', 'Add tomatoes and spices, cook covered 30 min', 'Dry up excess liquid on high heat', 'Garnish with ginger, chilli, coriander'], tip: 'Never add water — the meat releases its own juices which creates the authentic karahi flavour.' },
+  { name: 'Seekh Kebab',        icon: '', time: '45 min', serves: 6, origin: 'Middle Eastern', ingredients: ['500g minced lamb or beef', '1 onion finely grated', '2 tsp seekh kebab spice', '1 tsp each: garam masala, chilli', 'Fresh coriander & mint', 'Salt & black pepper', 'Oil for grilling'], steps: ['Mix mince with all spices and herbs thoroughly', 'Refrigerate mixture for 30 min', 'Wrap around flat skewers in sausage shape', 'Grill on BBQ or tawa on medium-high heat', 'Turn every 3–4 min until cooked through', 'Serve with naan, chutney, and sliced onion'], tip: 'Grating the onion (not chopping) prevents the kebab from falling off the skewer.' },
+  { name: 'Harees (Emirati)',   icon: '', time: '3 hrs',  serves: 6, origin: 'Gulf/Emirati', ingredients: ['500g lamb or chicken', '2 cups whole wheat (harees grain)', '1 tsp cinnamon', 'Salt to taste', 'Ghee for serving', 'Ground cinnamon & sugar to garnish'], steps: ['Soak wheat overnight', 'Boil meat until very tender, shred', 'Cook soaked wheat in meat broth 2 hours stirring', 'Add shredded meat, stir vigorously until paste-like', 'Season with cinnamon and salt', 'Serve hot topped generously with ghee'], tip: 'Harees is a traditional Eid dish across the Gulf — simple but deeply satisfying.' },
 ];
 
 const DHUL_HIJJAH_DAYS = [
@@ -135,8 +135,8 @@ const DHUL_HIJJAH_DAYS = [
   { day: 6,  special: '',                          deed: 'Perform 2 rak\'ah Nafl after each prayer' },
   { day: 7,  special: '',                          deed: 'Make abundant Istighfar' },
   { day: 8,  special: 'Day of Tarwiyah',           deed: 'Fast today — Sunnah of Hujjaj' },
-  { day: 9,  special: '⭐ Day of Arafah',           deed: 'FAST — expiates 2 years of sins!' },
-  { day: 10, special: '🎉 Eid ul Adha',             deed: 'Eid prayer + Qurbani — do NOT fast' },
+  { day: 9,  special: ' Day of Arafah',           deed: 'FAST — expiates 2 years of sins!' },
+  { day: 10, special: ' Eid ul Adha',             deed: 'Eid prayer + Qurbani — do NOT fast' },
   { day: 11, special: 'Day of Tashreeq',           deed: 'Takbeer after every fard prayer' },
   { day: 12, special: 'Day of Tashreeq',           deed: 'Takbeer after every fard prayer' },
   { day: 13, special: 'Last Day of Tashreeq',      deed: 'Takbeer until Asr — conclude Eid' },
@@ -335,7 +335,7 @@ export default function EidulAdha() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0 8px' }}>
             <Link href="/" style={{ color: C.muted, fontSize: 13, textDecoration: 'none', fontFamily: 'Lora, Georgia, serif' }}>← Back</Link>
             <div style={{ textAlign: 'center' }}>
-              <h1 style={{ color: C.gold, fontSize: 20, fontWeight: 700, margin: 0, fontFamily: 'Amiri, Georgia, serif', letterSpacing: 0.5 }}>🐄 Eid ul Adha</h1>
+              <h1 style={{ color: C.gold, fontSize: 20, fontWeight: 700, margin: 0, fontFamily: 'Amiri, Georgia, serif', letterSpacing: 0.5 }}> Eid ul Adha</h1>
               <p style={{ color: C.muted, fontSize: 10, margin: '2px 0 0', letterSpacing: 1.5, textTransform: 'uppercase' }}>Complete Islamic Toolkit</p>
             </div>
             <div style={{ width: 50 }} />
@@ -359,7 +359,7 @@ export default function EidulAdha() {
           )}
           {countdown.passed && (
             <div style={{ textAlign: 'center', padding: '8px 0 12px' }}>
-              <p style={{ color: C.gold, fontSize: 16, fontWeight: 700, margin: 0, fontFamily: 'Amiri, Georgia, serif' }}>🎉 Eid ul Adha Mubarak! تَقَبَّلَ اللَّهُ مِنَّا وَمِنكُم 🎉</p>
+              <p style={{ color: C.gold, fontSize: 16, fontWeight: 700, margin: 0, fontFamily: 'Amiri, Georgia, serif' }}> Eid ul Adha Mubarak! تَقَبَّلَ اللَّهُ مِنَّا وَمِنكُم </p>
             </div>
           )}
         </div>
@@ -388,7 +388,7 @@ export default function EidulAdha() {
       <main style={{ maxWidth: 800, margin: '0 auto', padding: '18px 14px 80px' }}>
 
         {/* ════════════════════════════════════════
-            🐄 QURBANI CALCULATOR
+             QURBANI CALCULATOR
         ════════════════════════════════════════ */}
         {tab === 'calculator' && (
           <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -417,7 +417,7 @@ export default function EidulAdha() {
               </div>
               <div style={{ marginTop: 10, padding: '10px 14px', background: C.bgCard2, borderRadius: 10, border: `1px solid ${C.border}` }}>
                 <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>
-                  ⚡ Min age: <strong style={{ color: C.goldLight }}>{animalInfo.minAge}</strong> &nbsp;·&nbsp;
+                   Min age: <strong style={{ color: C.goldLight }}>{animalInfo.minAge}</strong> &nbsp;·&nbsp;
                   Shares: <strong style={{ color: C.goldLight }}>1–{animalInfo.maxShares}</strong>
                 </p>
               </div>
@@ -468,7 +468,7 @@ export default function EidulAdha() {
                     <button
                       onClick={() => setPartners(prev => prev.map(x => x.id === p.id ? { ...x, paid: !x.paid } : x))}
                       style={{ padding: '7px 10px', borderRadius: 8, border: `1px solid ${p.paid ? C.green : C.border}`, background: p.paid ? C.greenPale : C.bgCard2, color: p.paid ? C.greenLight : C.muted, fontSize: 11, cursor: 'pointer' }}>
-                      {p.paid ? '✅ Paid' : 'Unpaid'}
+                      {p.paid ? ' Paid' : 'Unpaid'}
                     </button>
                     {partners.length > 1 && (
                       <button onClick={() => removePartner(p.id)}
@@ -482,7 +482,7 @@ export default function EidulAdha() {
             {/* Results */}
             {priceNum > 0 && (
               <div style={{ background: `linear-gradient(135deg, #1a1200, #0d1117)`, borderRadius: 18, border: `1px solid ${C.gold}55`, padding: 20 }} className="fade-up">
-                <p style={{ color: C.gold, fontSize: 15, fontWeight: 700, margin: '0 0 14px', fontFamily: 'Amiri, serif', textAlign: 'center' }}>🐄 Qurbani Summary</p>
+                <p style={{ color: C.gold, fontSize: 15, fontWeight: 700, margin: '0 0 14px', fontFamily: 'Amiri, serif', textAlign: 'center' }}> Qurbani Summary</p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
                   {[
                     { label: 'Animal',           value: `${animalInfo.icon} ${animalInfo.name}` },
@@ -505,7 +505,7 @@ export default function EidulAdha() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span style={{ fontSize: 13, fontWeight: 700, color: C.gold }}>{currency} {perShare.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                         <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 8, background: p.paid ? C.greenPale : C.bgCard2, color: p.paid ? C.greenLight : C.muted, border: `1px solid ${p.paid ? C.green + '44' : C.border}` }}>
-                          {p.paid ? '✅' : '⏳'}
+                          {p.paid ? '' : ''}
                         </span>
                       </div>
                     </div>
@@ -516,7 +516,7 @@ export default function EidulAdha() {
                 {partners.some(p => !p.paid) && (
                   <div style={{ marginTop: 10, padding: '10px 14px', background: C.bgCard2, borderRadius: 10, border: `1px solid ${C.gold}33` }}>
                     <p style={{ fontSize: 12, color: C.gold, margin: 0 }}>
-                      💰 {partners.filter(p => !p.paid).length} person(s) yet to pay · Outstanding: {currency} {(partners.filter(p => !p.paid).length * perShare).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                       {partners.filter(p => !p.paid).length} person(s) yet to pay · Outstanding: {currency} {(partners.filter(p => !p.paid).length * perShare).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </p>
                   </div>
                 )}
@@ -525,7 +525,7 @@ export default function EidulAdha() {
 
             {/* Fiqh rules */}
             <div style={{ background: C.bgCard, borderRadius: 18, border: `1px solid ${C.border}`, padding: 18 }}>
-              <p style={{ color: C.gold, fontSize: 13, fontWeight: 700, margin: '0 0 12px', fontFamily: 'Lora, serif', textTransform: 'uppercase', letterSpacing: 0.8 }}>📖 Qurbani Rules (Fiqh)</p>
+              <p style={{ color: C.gold, fontSize: 13, fontWeight: 700, margin: '0 0 12px', fontFamily: 'Lora, serif', textTransform: 'uppercase', letterSpacing: 0.8 }}> Qurbani Rules (Fiqh)</p>
               {[
                 { q: 'Who must perform Qurbani?', a: 'Every adult Muslim who possesses Nisab (87.5g gold or 612.4g silver equivalent) on 10th Dhul Hijjah — after paying all basic needs.' },
                 { q: 'Valid animals & minimum age', a: 'Goat/Sheep (min 1 year for goat, 6 months for sheep if plump), Cow/Buffalo (min 2 years), Camel (min 5 years). Must be free from major defects.' },
@@ -543,12 +543,12 @@ export default function EidulAdha() {
         )}
 
         {/* ════════════════════════════════════════
-            🥩 MEAT DISTRIBUTION
+             MEAT DISTRIBUTION
         ════════════════════════════════════════ */}
         {tab === 'distribution' && (
           <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ background: C.bgCard, borderRadius: 18, border: `1px solid ${C.border}`, padding: 18 }}>
-              <p style={{ color: C.gold, fontSize: 13, fontWeight: 700, margin: '0 0 14px', fontFamily: 'Lora, serif', textTransform: 'uppercase', letterSpacing: 0.8 }}>🥩 Meat Distribution Calculator</p>
+              <p style={{ color: C.gold, fontSize: 13, fontWeight: 700, margin: '0 0 14px', fontFamily: 'Lora, serif', textTransform: 'uppercase', letterSpacing: 0.8 }}> Meat Distribution Calculator</p>
 
               {/* Animal type */}
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
@@ -572,9 +572,9 @@ export default function EidulAdha() {
 
               {/* Sliders */}
               {[
-                { label: 'Yourself & Family', value: selfPct, set: setSelfPct, color: C.gold, icon: '🏠' },
-                { label: 'Relatives & Friends', value: relPct, set: setRelPct, color: C.blue, icon: '👨‍👩‍👧' },
-                { label: 'Poor & Needy ⭐', value: poorPct, set: setPoorPct, color: C.greenLight, icon: '🤝' },
+                { label: 'Yourself & Family', value: selfPct, set: setSelfPct, color: C.gold, icon: '' },
+                { label: 'Relatives & Friends', value: relPct, set: setRelPct, color: C.blue, icon: '' },
+                { label: 'Poor & Needy ', value: poorPct, set: setPoorPct, color: C.greenLight, icon: '' },
               ].map(s => (
                 <div key={s.label} style={{ marginBottom: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
@@ -590,16 +590,16 @@ export default function EidulAdha() {
               {/* Total warning */}
               {selfPct + relPct + poorPct !== 100 && (
                 <div style={{ padding: '8px 12px', background: '#1a0a00', borderRadius: 8, border: '1px solid #dc262644', marginBottom: 12 }}>
-                  <p style={{ fontSize: 12, color: C.red, margin: 0 }}>⚠️ Total = {selfPct + relPct + poorPct}% — adjust sliders to reach 100%</p>
+                  <p style={{ fontSize: 12, color: C.red, margin: 0 }}> Total = {selfPct + relPct + poorPct}% — adjust sliders to reach 100%</p>
                 </div>
               )}
 
               {/* Results */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 4 }}>
                 {[
-                  { label: 'Your Family 🏠', kg: selfKg, color: C.gold, pct: selfPct },
-                  { label: 'Relatives 👨‍👩‍👧', kg: relKg,  color: C.blue, pct: relPct  },
-                  { label: 'Poor 🤝',         kg: poorKg, color: C.greenLight, pct: poorPct  },
+                  { label: 'Your Family ', kg: selfKg, color: C.gold, pct: selfPct },
+                  { label: 'Relatives ', kg: relKg,  color: C.blue, pct: relPct  },
+                  { label: 'Poor ',         kg: poorKg, color: C.greenLight, pct: poorPct  },
                 ].map(r => (
                   <div key={r.label} style={{ background: C.bgCard2, borderRadius: 12, padding: '14px 10px', textAlign: 'center', border: `1px solid ${r.color}44` }}>
                     <p style={{ fontSize: 22, fontWeight: 800, color: r.color, margin: '0 0 2px', fontFamily: 'Lora, serif' }}>{r.kg} kg</p>
@@ -612,7 +612,7 @@ export default function EidulAdha() {
 
             {/* Sunnah guidance */}
             <div style={{ background: C.bgCard, borderRadius: 18, border: `1px solid ${C.border}`, padding: 18 }}>
-              <p style={{ color: C.gold, fontSize: 13, fontWeight: 700, margin: '0 0 12px', fontFamily: 'Lora, serif', textTransform: 'uppercase', letterSpacing: 0.8 }}>📖 Distribution Rules</p>
+              <p style={{ color: C.gold, fontSize: 13, fontWeight: 700, margin: '0 0 12px', fontFamily: 'Lora, serif', textTransform: 'uppercase', letterSpacing: 0.8 }}> Distribution Rules</p>
               {[
                 ['Mandatory minimum', 'At least 1/3 MUST go to the poor — this is a condition for Qurbani validity according to many scholars.'],
                 ['Can I keep all the meat?', 'No — giving to the poor is obligatory. Keeping all the meat for yourself invalidates the full reward of Qurbani.'],
@@ -630,7 +630,7 @@ export default function EidulAdha() {
         )}
 
         {/* ════════════════════════════════════════
-            📿 TAKBEER COUNTER
+             TAKBEER COUNTER
         ════════════════════════════════════════ */}
         {tab === 'takbeer' && (
           <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -702,14 +702,14 @@ export default function EidulAdha() {
               {takbeerCount > 0 && (
                 <button onClick={() => setTakbeerCount(0)}
                   style={{ marginTop: 8, padding: '7px 20px', borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, fontSize: 12, cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
-                  🔄 Reset
+                   Reset
                 </button>
               )}
             </div>
 
             {/* Dhul Hijjah Day Tracker */}
             <div style={{ background: C.bgCard, borderRadius: 18, border: `1px solid ${C.border}`, padding: 18 }}>
-              <p style={{ color: C.gold, fontSize: 13, fontWeight: 700, margin: '0 0 12px', fontFamily: 'Lora, serif', textTransform: 'uppercase', letterSpacing: 0.8 }}>📅 10 Days of Dhul Hijjah Tracker</p>
+              <p style={{ color: C.gold, fontSize: 13, fontWeight: 700, margin: '0 0 12px', fontFamily: 'Lora, serif', textTransform: 'uppercase', letterSpacing: 0.8 }}> 10 Days of Dhul Hijjah Tracker</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {DHUL_HIJJAH_DAYS.map(d => {
                   const done = completedDays.includes(d.day);
@@ -736,7 +736,7 @@ export default function EidulAdha() {
         )}
 
         {/* ════════════════════════════════════════
-            ✅ CHECKLIST
+             CHECKLIST
         ════════════════════════════════════════ */}
         {tab === 'checklist' && (
           <div className="fade-up">
@@ -750,7 +750,7 @@ export default function EidulAdha() {
                 <div style={{ height: '100%', width: `${(checkedCount / totalItems) * 100}%`, background: checkedCount === totalItems ? `linear-gradient(90deg, ${C.green}, ${C.greenLight})` : `linear-gradient(90deg, ${C.gold}, ${C.goldLight})`, borderRadius: 99, transition: 'width 0.4s ease' }} />
               </div>
               {checkedCount === totalItems && (
-                <p style={{ fontSize: 13, color: C.greenLight, textAlign: 'center', margin: '10px 0 0', fontStyle: 'italic' }}>🎉 MashAllah! All items completed. Taqabbalallahu minna wa minkum!</p>
+                <p style={{ fontSize: 13, color: C.greenLight, textAlign: 'center', margin: '10px 0 0', fontStyle: 'italic' }}> MashAllah! All items completed. Taqabbalallahu minna wa minkum!</p>
               )}
             </div>
 
@@ -776,13 +776,13 @@ export default function EidulAdha() {
 
             <button onClick={() => setChecked({})}
               style={{ width: '100%', padding: 12, borderRadius: 12, border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, fontSize: 13, cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
-              🔄 Reset Checklist
+               Reset Checklist
             </button>
           </div>
         )}
 
         {/* ════════════════════════════════════════
-            🌙 SUNNAH GUIDE
+             SUNNAH GUIDE
         ════════════════════════════════════════ */}
         {tab === 'sunnah' && (
           <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -813,23 +813,23 @@ export default function EidulAdha() {
         )}
 
         {/* ════════════════════════════════════════
-            🕌 EID PRAYER FINDER
+             EID PRAYER FINDER
         ════════════════════════════════════════ */}
         {tab === 'prayer' && (
           <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ background: C.bgCard, borderRadius: 18, border: `1px solid ${C.border}`, padding: 18 }}>
-              <p style={{ color: C.gold, fontSize: 13, fontWeight: 700, margin: '0 0 6px', fontFamily: 'Lora, serif', textTransform: 'uppercase', letterSpacing: 0.8 }}>🕌 Find Eid Prayer Near You</p>
+              <p style={{ color: C.gold, fontSize: 13, fontWeight: 700, margin: '0 0 6px', fontFamily: 'Lora, serif', textTransform: 'uppercase', letterSpacing: 0.8 }}> Find Eid Prayer Near You</p>
               <p style={{ fontSize: 12, color: C.muted, margin: '0 0 14px', lineHeight: 1.6 }}>Eid prayer is performed in congregation after sunrise on Eid day. Tap below to find your nearest mosque.</p>
               <button
                 onClick={() => window.open('https://www.iloveislam.life/travel', '_blank')}
                 style={{ width: '100%', padding: '14px 0', borderRadius: 14, background: `linear-gradient(135deg, ${C.gold}, #a07030)`, color: '#0d1117', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Lora, Georgia, serif' }}>
-                🗺️ Find Nearest Mosque → Halal Travel Tool
+                 Find Nearest Mosque → Halal Travel Tool
               </button>
             </div>
 
             {/* Eid prayer guide */}
             <div style={{ background: C.bgCard, borderRadius: 18, border: `1px solid ${C.border}`, padding: 18 }}>
-              <p style={{ color: C.gold, fontSize: 13, fontWeight: 700, margin: '0 0 12px', fontFamily: 'Lora, serif', textTransform: 'uppercase', letterSpacing: 0.8 }}>📖 Eid Salah Guide</p>
+              <p style={{ color: C.gold, fontSize: 13, fontWeight: 700, margin: '0 0 12px', fontFamily: 'Lora, serif', textTransform: 'uppercase', letterSpacing: 0.8 }}> Eid Salah Guide</p>
               {[
                 { t: 'When is Eid prayer?',         d: 'After sunrise, before midday (Dhuhr). Typically 7–9 AM depending on location and sunrise time.' },
                 { t: 'How many rak\'ahs?',           d: '2 rak\'ahs. In the first: 3 extra Takbeers before Surah Fatihah. In the second: 3 extra Takbeers after standing from Sujood.' },
@@ -847,7 +847,7 @@ export default function EidulAdha() {
 
             {/* Slaughter dua */}
             <div style={{ background: C.bgCard, borderRadius: 18, border: `1px solid ${C.gold}44`, padding: 18 }}>
-              <p style={{ color: C.gold, fontSize: 13, fontWeight: 700, margin: '0 0 12px', fontFamily: 'Lora, serif', textTransform: 'uppercase', letterSpacing: 0.8 }}>🤲 Essential Duas</p>
+              <p style={{ color: C.gold, fontSize: 13, fontWeight: 700, margin: '0 0 12px', fontFamily: 'Lora, serif', textTransform: 'uppercase', letterSpacing: 0.8 }}> Essential Duas</p>
               {TAKBEERS.map((t, i) => (
                 <div key={i} style={{ marginBottom: 10, padding: '14px', background: C.bgCard2, borderRadius: 12, border: `1px solid ${C.border}` }}>
                   <p style={{ fontSize: 12, fontWeight: 700, color: C.goldLight, margin: '0 0 6px' }}>{t.name}</p>
@@ -862,7 +862,7 @@ export default function EidulAdha() {
         )}
 
         {/* ════════════════════════════════════════
-            💌 GREETING GENERATOR
+             GREETING GENERATOR
         ════════════════════════════════════════ */}
         {tab === 'greeting' && (
           <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -877,7 +877,7 @@ export default function EidulAdha() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: C.gold, background: C.goldPale, padding: '2px 9px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>{g.lang}</span>
                   <span style={{ fontSize: 12, color: copiedIdx === i ? C.greenLight : C.muted }}>
-                    {copiedIdx === i ? '✅ Copied!' : '📋 Tap to copy'}
+                    {copiedIdx === i ? ' Copied!' : ' Tap to copy'}
                   </span>
                 </div>
                 <p style={{
@@ -899,18 +899,18 @@ export default function EidulAdha() {
             {/* WhatsApp share */}
             <a href={`https://wa.me/?text=${encodeURIComponent(GREETINGS[4].text)}`} target="_blank" rel="noopener noreferrer"
               style={{ display: 'block', padding: '13px 0', background: '#25d366', color: '#fff', borderRadius: 14, fontSize: 14, fontWeight: 700, textDecoration: 'none', textAlign: 'center', fontFamily: 'Lora, Georgia, serif' }}>
-              💬 Send on WhatsApp
+               Send on WhatsApp
             </a>
           </div>
         )}
 
         {/* ════════════════════════════════════════
-            🍖 RECIPES
+             RECIPES
         ════════════════════════════════════════ */}
         {tab === 'recipes' && (
           <div className="fade-up">
             <div style={{ background: C.bgCard, borderRadius: 18, border: `1px solid ${C.border}`, padding: '14px 18px', marginBottom: 14, textAlign: 'center' }}>
-              <p style={{ color: C.gold, fontSize: 14, fontWeight: 700, margin: '0 0 4px', fontFamily: 'Amiri, serif' }}>🍖 Eid ul Adha Recipes</p>
+              <p style={{ color: C.gold, fontSize: 14, fontWeight: 700, margin: '0 0 4px', fontFamily: 'Amiri, serif' }}> Eid ul Adha Recipes</p>
               <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>Traditional dishes from across the Muslim world to celebrate Eid</p>
             </div>
 
@@ -924,8 +924,8 @@ export default function EidulAdha() {
                     <div style={{ flex: 1 }}>
                       <p style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: '0 0 2px', fontFamily: 'Lora, serif' }}>{r.name}</p>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 10, color: C.muted }}>⏱ {r.time}</span>
-                        <span style={{ fontSize: 10, color: C.muted }}>👥 Serves {r.serves}</span>
+                        <span style={{ fontSize: 10, color: C.muted }}> {r.time}</span>
+                        <span style={{ fontSize: 10, color: C.muted }}> Serves {r.serves}</span>
                         <span style={{ fontSize: 10, color: C.gold }}>{r.origin}</span>
                       </div>
                     </div>
@@ -954,7 +954,7 @@ export default function EidulAdha() {
                         </div>
                       </div>
                       <div style={{ padding: '10px 12px', background: C.goldPale, borderRadius: 10, border: `1px solid ${C.gold}44` }}>
-                        <p style={{ fontSize: 12, color: C.gold, margin: 0 }}>💡 <strong>Chef's Tip:</strong> {r.tip}</p>
+                        <p style={{ fontSize: 12, color: C.gold, margin: 0 }}> <strong>Chef's Tip:</strong> {r.tip}</p>
                       </div>
                     </div>
                   )}

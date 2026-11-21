@@ -4,7 +4,7 @@ export const halalENumbersList = {
   title: "Halal E Numbers List: Complete Guide to Food Additives (2026)",
   excerpt: "Complete halal E numbers list for 2026. Find out which food additives are halal, haram, or mashbooh. Essential guide for Muslim consumers checking ingredients.",
   category: "Halal",
-  emoji: "🏷️",
+  emoji: "",
   readTime: "20 min read",
   date: "2026-03-10",
   content: `
@@ -41,61 +41,61 @@ export const halalENumbersList = {
 <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 mt-8 mb-4">Halal Colors (E100-E199)</h3>
 
 <ul class="list-disc pl-6 space-y-2 my-4">
-  <li><strong>E100</strong> — Curcumin (from turmeric) ✅ Halal</li>
-  <li><strong>E101</strong> — Riboflavin (Vitamin B2) ✅ Halal (synthetic)</li>
-  <li><strong>E102</strong> — Tartrazine ✅ Halal (synthetic)</li>
-  <li><strong>E104</strong> — Quinoline Yellow ✅ Halal (synthetic)</li>
-  <li><strong>E110</strong> — Sunset Yellow ✅ Halal (synthetic)</li>
-  <li><strong>E122</strong> — Carmoisine ✅ Halal (synthetic)</li>
-  <li><strong>E123</strong> — Amaranth ✅ Halal (synthetic)</li>
-  <li><strong>E124</strong> — Ponceau 4R ✅ Halal (synthetic)</li>
-  <li><strong>E127</strong> — Erythrosine ✅ Halal (synthetic)</li>
-  <li><strong>E131</strong> — Patent Blue V ✅ Halal (synthetic)</li>
-  <li><strong>E132</strong> — Indigo Carmine ✅ Halal (synthetic)</li>
-  <li><strong>E133</strong> — Brilliant Blue ✅ Halal (synthetic)</li>
-  <li><strong>E140</strong> — Chlorophyll ✅ Halal (plant-based)</li>
-  <li><strong>E141</strong> — Copper Chlorophyll ✅ Halal (plant-based)</li>
-  <li><strong>E150a-d</strong> — Caramel Colors ✅ Halal (from sugar)</li>
-  <li><strong>E160a</strong> — Beta-Carotene ✅ Halal (plant-based)</li>
-  <li><strong>E160b</strong> — Annatto ✅ Halal (plant-based)</li>
-  <li><strong>E162</strong> — Beetroot Red ✅ Halal (plant-based)</li>
-  <li><strong>E163</strong> — Anthocyanins ✅ Halal (plant-based)</li>
-  <li><strong>E170</strong> — Calcium Carbonate ✅ Halal (mineral)</li>
-  <li><strong>E171</strong> — Titanium Dioxide ✅ Halal (mineral)</li>
-  <li><strong>E172</strong> — Iron Oxides ✅ Halal (mineral)</li>
+  <li><strong>E100</strong> — Curcumin (from turmeric)  Halal</li>
+  <li><strong>E101</strong> — Riboflavin (Vitamin B2)  Halal (synthetic)</li>
+  <li><strong>E102</strong> — Tartrazine  Halal (synthetic)</li>
+  <li><strong>E104</strong> — Quinoline Yellow  Halal (synthetic)</li>
+  <li><strong>E110</strong> — Sunset Yellow  Halal (synthetic)</li>
+  <li><strong>E122</strong> — Carmoisine  Halal (synthetic)</li>
+  <li><strong>E123</strong> — Amaranth  Halal (synthetic)</li>
+  <li><strong>E124</strong> — Ponceau 4R  Halal (synthetic)</li>
+  <li><strong>E127</strong> — Erythrosine  Halal (synthetic)</li>
+  <li><strong>E131</strong> — Patent Blue V  Halal (synthetic)</li>
+  <li><strong>E132</strong> — Indigo Carmine  Halal (synthetic)</li>
+  <li><strong>E133</strong> — Brilliant Blue  Halal (synthetic)</li>
+  <li><strong>E140</strong> — Chlorophyll  Halal (plant-based)</li>
+  <li><strong>E141</strong> — Copper Chlorophyll  Halal (plant-based)</li>
+  <li><strong>E150a-d</strong> — Caramel Colors  Halal (from sugar)</li>
+  <li><strong>E160a</strong> — Beta-Carotene  Halal (plant-based)</li>
+  <li><strong>E160b</strong> — Annatto  Halal (plant-based)</li>
+  <li><strong>E162</strong> — Beetroot Red  Halal (plant-based)</li>
+  <li><strong>E163</strong> — Anthocyanins  Halal (plant-based)</li>
+  <li><strong>E170</strong> — Calcium Carbonate  Halal (mineral)</li>
+  <li><strong>E171</strong> — Titanium Dioxide  Halal (mineral)</li>
+  <li><strong>E172</strong> — Iron Oxides  Halal (mineral)</li>
 </ul>
 
 <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 mt-8 mb-4">Halal Preservatives (E200-E299)</h3>
 
 <ul class="list-disc pl-6 space-y-2 my-4">
-  <li><strong>E200</strong> — Sorbic Acid ✅ Halal (synthetic)</li>
-  <li><strong>E201-203</strong> — Sorbates ✅ Halal (synthetic)</li>
-  <li><strong>E210-213</strong> — Benzoates ✅ Halal (synthetic)</li>
-  <li><strong>E220-228</strong> — Sulphites ✅ Halal (mineral-based)</li>
-  <li><strong>E234</strong> — Nisin ✅ Halal (from bacteria)</li>
-  <li><strong>E260</strong> — Acetic Acid ✅ Halal (vinegar)</li>
-  <li><strong>E261-263</strong> — Acetates ✅ Halal (synthetic)</li>
-  <li><strong>E270</strong> — Lactic Acid ✅ Halal (usually synthetic/plant)</li>
-  <li><strong>E280-283</strong> — Propionates ✅ Halal (synthetic)</li>
-  <li><strong>E290</strong> — Carbon Dioxide ✅ Halal (gas)</li>
-  <li><strong>E296</strong> — Malic Acid ✅ Halal (from fruit)</li>
-  <li><strong>E297</strong> — Fumaric Acid ✅ Halal (synthetic)</li>
+  <li><strong>E200</strong> — Sorbic Acid  Halal (synthetic)</li>
+  <li><strong>E201-203</strong> — Sorbates  Halal (synthetic)</li>
+  <li><strong>E210-213</strong> — Benzoates  Halal (synthetic)</li>
+  <li><strong>E220-228</strong> — Sulphites  Halal (mineral-based)</li>
+  <li><strong>E234</strong> — Nisin  Halal (from bacteria)</li>
+  <li><strong>E260</strong> — Acetic Acid  Halal (vinegar)</li>
+  <li><strong>E261-263</strong> — Acetates  Halal (synthetic)</li>
+  <li><strong>E270</strong> — Lactic Acid  Halal (usually synthetic/plant)</li>
+  <li><strong>E280-283</strong> — Propionates  Halal (synthetic)</li>
+  <li><strong>E290</strong> — Carbon Dioxide  Halal (gas)</li>
+  <li><strong>E296</strong> — Malic Acid  Halal (from fruit)</li>
+  <li><strong>E297</strong> — Fumaric Acid  Halal (synthetic)</li>
 </ul>
 
 <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 mt-8 mb-4">Halal Antioxidants (E300-E399)</h3>
 
 <ul class="list-disc pl-6 space-y-2 my-4">
-  <li><strong>E300</strong> — Ascorbic Acid (Vitamin C) ✅ Halal</li>
-  <li><strong>E301-304</strong> — Ascorbates ✅ Halal</li>
-  <li><strong>E306-309</strong> — Tocopherols (Vitamin E) ✅ Halal (plant-based)</li>
-  <li><strong>E310-312</strong> — Gallates ✅ Halal (synthetic)</li>
-  <li><strong>E320</strong> — BHA ✅ Halal (synthetic)</li>
-  <li><strong>E321</strong> — BHT ✅ Halal (synthetic)</li>
-  <li><strong>E322</strong> — Lecithin ✅ Halal (usually from soy/sunflower)</li>
-  <li><strong>E330</strong> — Citric Acid ✅ Halal (from citrus/fermentation)</li>
-  <li><strong>E331-333</strong> — Citrates ✅ Halal</li>
-  <li><strong>E334-337</strong> — Tartrates ✅ Halal</li>
-  <li><strong>E338-343</strong> — Phosphates ✅ Halal (mineral)</li>
+  <li><strong>E300</strong> — Ascorbic Acid (Vitamin C)  Halal</li>
+  <li><strong>E301-304</strong> — Ascorbates  Halal</li>
+  <li><strong>E306-309</strong> — Tocopherols (Vitamin E)  Halal (plant-based)</li>
+  <li><strong>E310-312</strong> — Gallates  Halal (synthetic)</li>
+  <li><strong>E320</strong> — BHA  Halal (synthetic)</li>
+  <li><strong>E321</strong> — BHT  Halal (synthetic)</li>
+  <li><strong>E322</strong> — Lecithin  Halal (usually from soy/sunflower)</li>
+  <li><strong>E330</strong> — Citric Acid  Halal (from citrus/fermentation)</li>
+  <li><strong>E331-333</strong> — Citrates  Halal</li>
+  <li><strong>E334-337</strong> — Tartrates  Halal</li>
+  <li><strong>E338-343</strong> — Phosphates  Halal (mineral)</li>
 </ul>
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Halal E Numbers List: Haram Additives to Avoid</h2>
@@ -103,12 +103,12 @@ export const halalENumbersList = {
 <p>The following E-numbers are derived from haram sources and should be avoided:</p>
 
 <ul class="list-disc pl-6 space-y-2 my-4">
-  <li><strong>E120</strong> — Cochineal/Carmine ❌ Haram (from crushed insects — disputed; some scholars permit)</li>
-  <li><strong>E441</strong> — Gelatin ❌ Haram (if from pork; halal if from halal-slaughtered beef or fish)</li>
-  <li><strong>E542</strong> — Edible Bone Phosphate ❌ Haram (if from pork bones)</li>
-  <li><strong>E904</strong> — Shellac ❌ Haram (from lac insects — disputed)</li>
-  <li><strong>E920</strong> — L-Cysteine ❌ Haram (often from human hair or duck feathers; synthetic is halal)</li>
-  <li><strong>E921</strong> — L-Cystine ❌ Haram (same source concerns as E920)</li>
+  <li><strong>E120</strong> — Cochineal/Carmine  Haram (from crushed insects — disputed; some scholars permit)</li>
+  <li><strong>E441</strong> — Gelatin  Haram (if from pork; halal if from halal-slaughtered beef or fish)</li>
+  <li><strong>E542</strong> — Edible Bone Phosphate  Haram (if from pork bones)</li>
+  <li><strong>E904</strong> — Shellac  Haram (from lac insects — disputed)</li>
+  <li><strong>E920</strong> — L-Cysteine  Haram (often from human hair or duck feathers; synthetic is halal)</li>
+  <li><strong>E921</strong> — L-Cystine  Haram (same source concerns as E920)</li>
 </ul>
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Halal E Numbers List: Mashbooh (Doubtful) Additives</h2>
@@ -116,23 +116,23 @@ export const halalENumbersList = {
 <p>These E-numbers can be derived from either halal or haram sources. Their status depends on the specific manufacturer and source:</p>
 
 <ul class="list-disc pl-6 space-y-2 my-4">
-  <li><strong>E153</strong> — Carbon Black ⚠️ Mashbooh (can be from animal bones)</li>
-  <li><strong>E161b</strong> — Lutein ⚠️ Mashbooh (can be from egg yolks)</li>
-  <li><strong>E252</strong> — Potassium Nitrate ⚠️ Mashbooh (processing may involve animal products)</li>
-  <li><strong>E322</strong> — Lecithin ⚠️ Mashbooh (halal if from soy; check if from egg)</li>
-  <li><strong>E422</strong> — Glycerol ⚠️ Mashbooh (can be from animal fat or plant sources)</li>
-  <li><strong>E431</strong> — Polyoxyethylene Stearate ⚠️ Mashbooh (stearate source unclear)</li>
-  <li><strong>E432-436</strong> — Polysorbates ⚠️ Mashbooh (may contain animal-derived fatty acids)</li>
-  <li><strong>E470-479</strong> — Fatty Acid Salts/Esters ⚠️ Mashbooh (animal or plant source)</li>
-  <li><strong>E471</strong> — Mono/Diglycerides ⚠️ Mashbooh (very common; can be from animal fat)</li>
-  <li><strong>E472a-f</strong> — Esters of Mono/Diglycerides ⚠️ Mashbooh</li>
-  <li><strong>E473-474</strong> — Sucrose Esters ⚠️ Mashbooh (fatty acid source unclear)</li>
-  <li><strong>E481-482</strong> — Stearoyl Lactylates ⚠️ Mashbooh (stearic acid source)</li>
-  <li><strong>E491-495</strong> — Sorbitan Esters ⚠️ Mashbooh (fatty acid source)</li>
-  <li><strong>E570</strong> — Stearic Acid ⚠️ Mashbooh (animal or plant)</li>
-  <li><strong>E572</strong> — Magnesium Stearate ⚠️ Mashbooh (stearate source)</li>
-  <li><strong>E631</strong> — Disodium Inosinate ⚠️ Mashbooh (can be from animal tissue)</li>
-  <li><strong>E635</strong> — Disodium Ribonucleotides ⚠️ Mashbooh (animal or plant)</li>
+  <li><strong>E153</strong> — Carbon Black  Mashbooh (can be from animal bones)</li>
+  <li><strong>E161b</strong> — Lutein  Mashbooh (can be from egg yolks)</li>
+  <li><strong>E252</strong> — Potassium Nitrate  Mashbooh (processing may involve animal products)</li>
+  <li><strong>E322</strong> — Lecithin  Mashbooh (halal if from soy; check if from egg)</li>
+  <li><strong>E422</strong> — Glycerol  Mashbooh (can be from animal fat or plant sources)</li>
+  <li><strong>E431</strong> — Polyoxyethylene Stearate  Mashbooh (stearate source unclear)</li>
+  <li><strong>E432-436</strong> — Polysorbates  Mashbooh (may contain animal-derived fatty acids)</li>
+  <li><strong>E470-479</strong> — Fatty Acid Salts/Esters  Mashbooh (animal or plant source)</li>
+  <li><strong>E471</strong> — Mono/Diglycerides  Mashbooh (very common; can be from animal fat)</li>
+  <li><strong>E472a-f</strong> — Esters of Mono/Diglycerides  Mashbooh</li>
+  <li><strong>E473-474</strong> — Sucrose Esters  Mashbooh (fatty acid source unclear)</li>
+  <li><strong>E481-482</strong> — Stearoyl Lactylates  Mashbooh (stearic acid source)</li>
+  <li><strong>E491-495</strong> — Sorbitan Esters  Mashbooh (fatty acid source)</li>
+  <li><strong>E570</strong> — Stearic Acid  Mashbooh (animal or plant)</li>
+  <li><strong>E572</strong> — Magnesium Stearate  Mashbooh (stearate source)</li>
+  <li><strong>E631</strong> — Disodium Inosinate  Mashbooh (can be from animal tissue)</li>
+  <li><strong>E635</strong> — Disodium Ribonucleotides  Mashbooh (animal or plant)</li>
 </ul>
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">How to Check E-Numbers for Halal Status</h2>

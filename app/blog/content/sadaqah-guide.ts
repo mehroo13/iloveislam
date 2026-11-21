@@ -4,7 +4,7 @@ export const sadaqahArticle = {
   title: "What is Sadaqah? Types, Benefits & How to Give Charity in Islam",
   excerpt: "Discover the beauty of Sadaqah in Islam. Learn its types, immense rewards, and why even a smile counts as charity.",
   category: "Finance",
-  emoji: "❤️",
+  emoji: "",
   readTime: "9 min read",
   date: "2026-06-25",
   content: `
@@ -45,12 +45,12 @@ export const sadaqahArticle = {
 
 <div class="grid md:grid-cols-2 gap-6 my-10">
   <div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950 dark:to-teal-950 p-7 rounded-3xl">
-    <h3 class="font-bold text-xl mb-3">💰 Financial Sadaqah</h3>
+    <h3 class="font-bold text-xl mb-3"> Financial Sadaqah</h3>
     <p>Giving money, food, clothes, or sponsoring someone.</p>
   </div>
   
   <div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950 dark:to-teal-950 p-7 rounded-3xl">
-    <h3 class="font-bold text-xl mb-3">🌱 Sadaqah Jariyah</h3>
+    <h3 class="font-bold text-xl mb-3"> Sadaqah Jariyah</h3>
     <p>Ongoing charity that continues even after death (mosque, well, knowledge, etc.)</p>
   </div>
 </div>
@@ -84,13 +84,13 @@ export const sadaqahArticle = {
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10">
   <a href="/sadaqah" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">❤️</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Sadaqah Tracker</h3>
     <p class="text-gray-600 dark:text-gray-400">Log and track all your charity</p>
   </a>
   
   <a href="/zakat" class="group bg-white dark:bg-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-700 hover:border-emerald-500 transition-all">
-    <span class="text-4xl mb-3 block">💰</span>
+    <span class="text-4xl mb-3 block"></span>
     <h3 class="font-bold text-xl">Zakat Calculator</h3>
     <p class="text-gray-600 dark:text-gray-400">Pay your obligatory charity first</p>
   </a>
