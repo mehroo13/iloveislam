@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Sadaqah Tracker — Log & Track Your Charity & Donations | I Love Islam',
+  title: 'Sadaqah Tracker — Log & Track Your Charity & Donations | Hifz',
   description:
     'Record every sadaqah you give. Categorise donations, set goals, maintain streaks, and get inspired by Quranic verses. Free, no sign‑up.',
   keywords: [
@@ -9,17 +9,17 @@ export const metadata: Metadata = {
     'islamic charity', 'free charity app', 'sadaqah log',
   ],
   openGraph: {
-    title: 'Sadaqah Tracker — Log Your Charity & Earn Rewards | I Love Islam',
+    title: 'Sadaqah Tracker — Log Your Charity & Earn Rewards | Hifz',
     description: 'Keep a beautiful log of your sadaqah, track streaks, and see category breakdowns.',
     url: 'https://www.iloveislam.life/sadaqah-tracker',
-    siteName: 'I Love Islam',
+    siteName: 'Hifz',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Sadaqah Tracker | I Love Islam',
+    title: 'Sadaqah Tracker | Hifz',
     description: 'Free charity tracker with streaks and breakdowns.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/sadaqah-tracker' },
@@ -41,7 +41,7 @@ const jsonLd = {
       description:
         'Log every sadaqah (charity) you give, track daily streaks, view category breakdowns, and get inspired by Quranic verses. All data saved locally in your browser.',
       url: 'https://www.iloveislam.life/sadaqah-tracker',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
+      provider: { '@type': 'Organization', name: 'Hifz', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',

@@ -1,6 +1,6 @@
-# I Love Islam — llms-full.txt
+# Hifz — llms-full.txt
 
-> I Love Islam (iloveislam.life) helps visitors memorise the Quran by reciting
+> Hifz (iloveislam.life) helps visitors memorise the Quran by reciting
 > aloud and getting word-by-word feedback. Free, no sign-up, no account.
 > Quran text, translations and tafsir are sourced from Quran.com; audio is
 > from named reciters. This tool checks which words were recited — it does
@@ -13,6 +13,7 @@
 - [https://www.iloveislam.life/hifz/my-progress](https://www.iloveislam.life/hifz/my-progress): My progress — streak, daily goal, mistake log, export/import (stored on the user's device only).
 - [https://www.iloveislam.life/hifz/juz-amma](https://www.iloveislam.life/hifz/juz-amma): Juz Amma (Juz 30) — all 37 short surahs, shortest first, the beginner path.
 - [https://www.iloveislam.life/hifz/juz/30](https://www.iloveislam.life/hifz/juz/30): Juz 30 overview — same content as Juz Amma.
+- [https://www.iloveislam.life/hifz/challenges](https://www.iloveislam.life/hifz/challenges): Group challenges — memorise together, share a code or link, track group progress. No accounts.
 - [https://www.iloveislam.life/hifz/ayat-al-kursi](https://www.iloveislam.life/hifz/ayat-al-kursi): Ayat al-Kursi (2:255) — single-ayah study page; Quran text via Quran.com.
 
 ## Surah pages

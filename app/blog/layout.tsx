@@ -6,8 +6,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
 
   title: {
-    default: 'Islamic Knowledge & Guides – Free Articles on Islam | I Love Islam',
-    template: '%s | I Love Islam',
+    default: 'Islamic Knowledge & Guides – Free Articles on Islam | Hifz',
+    template: '%s | Hifz',
   },
   description:
     'Free in-depth Islamic guides covering Zakat calculation, prayer times, Qibla direction, Quran reading, Ramadan preparation, Hajj, Umrah, halal finance, and much more. No sign-up required.',
@@ -38,9 +38,9 @@ export const metadata: Metadata = {
     'eid guide',
   ],
 
-  authors: [{ name: 'I Love Islam', url: SITE_URL }],
-  creator: 'I Love Islam',
-  publisher: 'I Love Islam',
+  authors: [{ name: 'Hifz', url: SITE_URL }],
+  creator: 'Hifz',
+  publisher: 'Hifz',
   robots: {
     index: true,
     follow: true,
@@ -58,11 +58,11 @@ export const metadata: Metadata = {
   },
 
   openGraph: {
-    title: 'Islamic Knowledge & Guides | I Love Islam',
+    title: 'Islamic Knowledge & Guides | Hifz',
     description:
       'Free in-depth Islamic guides and articles. Learn about Zakat, prayer, Quran, Ramadan, Hajj, halal finance, and more.',
     url: `${SITE_URL}/blog`,
-    siteName: 'I Love Islam',
+    siteName: 'Hifz',
     type: 'website',
     locale: 'en_US',
     images: [
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
         url: `${SITE_URL}/og-image-blog.jpg`,
         width: 1200,
         height: 630,
-        alt: 'Islamic Knowledge & Guides – I Love Islam',
+        alt: 'Islamic Knowledge & Guides – Hifz',
       },
     ],
   },
@@ -79,7 +79,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     site: '@iloveislam',
     creator: '@iloveislam',
-    title: 'Islamic Knowledge & Guides | I Love Islam',
+    title: 'Islamic Knowledge & Guides | Hifz',
     description:
       'Free in-depth Islamic guides and articles. Learn about Zakat, prayer, Quran, Ramadan, Hajj, halal finance, and more.',
     images: [`${SITE_URL}/og-image-blog.jpg`],

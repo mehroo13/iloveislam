@@ -1,6 +1,6 @@
-# I Love Islam — llms.txt
+# Hifz — llms.txt
 
-> I Love Islam (iloveislam.life) helps visitors memorise the Quran by reciting
+> Hifz (iloveislam.life) helps visitors memorise the Quran by reciting
 > aloud and getting word-by-word feedback. Free, no sign-up, no account.
 > Quran text, translations and tafsir are sourced from Quran.com; audio is
 > from named reciters. This tool checks which words were recited — it does
@@ -17,6 +17,7 @@
 - [Ayat al-Kursi](https://www.iloveislam.life/hifz/ayat-al-kursi): Ayat al-Kursi (2:255) — single-ayah study page; Quran text via Quran.com.
 - [Test Mode](https://www.iloveislam.life/hifz/test): Exam-style recall test — random ayahs from your memorised text, Arabic hidden, no cue; a reveal counts as a miss.
 - [Voice Search](https://www.iloveislam.life/hifz/voice-search): Recite a few words of any ayah and find it instantly; matches in the launch set open in the coach.
+- [Group Challenges](https://www.iloveislam.life/hifz/challenges): Memorise together — share a challenge code or link, track group progress. No accounts.
 
 ## Launch surahs
 

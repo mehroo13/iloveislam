@@ -1,21 +1,21 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy — I Love Islam | No Data Collection',
+  title: 'Privacy Policy — Hifz | No Data Collection',
   description:
     'We do not collect any personal data. All Islamic tools work locally in your browser. No tracking, no cookies, no registration required. Your privacy is protected.',
   openGraph: {
-    title: 'Privacy Policy — I Love Islam',
+    title: 'Privacy Policy — Hifz',
     description: 'Your privacy is protected. No registration, no data collection. All tools work locally.',
     type: 'website',
     url: 'https://www.iloveislam.life/privacy',
-    siteName: 'I Love Islam',
+    siteName: 'Hifz',
     locale: 'en_US',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Privacy Policy — I Love Islam' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Privacy Policy — Hifz' }],
   },
   twitter: {
     card: 'summary',
-    title: 'Privacy Policy — I Love Islam',
+    title: 'Privacy Policy — Hifz',
     description: 'No data collection. All tools work locally in your browser.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/privacy' },

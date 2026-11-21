@@ -14,14 +14,12 @@ const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: '#0B3D2E',
 };
 
-const SITE_TITLE = 'I Love Islam — Memorise the Quran with an AI Recitation Coach';
+const SITE_TITLE = 'Hifz — Memorise the Quran with AI';
 const SITE_DESCRIPTION =
-  'Memorise the Quran with an AI recitation coach: recite aloud and get instant word-by-word feedback, with hifz plans, Test Mode, Voice Search, streaks and mistake review. Free forever. No sign-up. Your audio never leaves your device.';
+  'Memorise the Quran with an AI recitation coach: recite aloud and get instant word-by-word feedback, with hifz plans, Test Mode, Voice Search, group challenges, streaks and mistake review. Free forever. No sign-up. Your audio never leaves your device.';
 
 export const metadata: Metadata = {
   title: SITE_TITLE,
@@ -39,7 +37,7 @@ export const metadata: Metadata = {
     'quran test mode',
     'voice search quran',
   ],
-  authors: [{ name: 'I Love Islam', url: 'https://www.iloveislam.life' }],
+  authors: [{ name: 'Hifz', url: 'https://www.iloveislam.life' }],
   robots: { index: true, follow: true },
   alternates: {
     canonical: 'https://www.iloveislam.life',
@@ -52,7 +50,7 @@ export const metadata: Metadata = {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     url: 'https://www.iloveislam.life',
-    siteName: 'I Love Islam',
+    siteName: 'Hifz',
     locale: 'en_US',
     type: 'website',
     images: [
@@ -60,7 +58,7 @@ export const metadata: Metadata = {
         url: '/optimized/og-image.webp',
         width: 1200,
         height: 630,
-        alt: 'I Love Islam — Memorise the Quran with an AI Recitation Coach',
+        alt: 'Hifz — Memorise the Quran with an AI Recitation Coach',
       },
     ],
   },
@@ -69,7 +67,6 @@ export const metadata: Metadata = {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     images: ['/optimized/og-image.webp'],
-    creator: '@iloveislam_life',
   },
   icons: {
     icon: '/favicon.png',
@@ -87,7 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Apple PWA meta tags */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="I Love Islam" />
+        <meta name="apple-mobile-web-app-title" content="Hifz" />
         <meta name="mobile-web-app-capable" content="yes" />
 
         {/* Hreflang alternates */}
@@ -105,7 +102,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               '@graph': [
                 {
                   '@type': 'WebSite',
-                  name: 'I Love Islam',
+                  name: 'Hifz',
                   url: 'https://www.iloveislam.life',
                   description: SITE_DESCRIPTION,
                   publisher: { '@id': '#organization' },
@@ -118,7 +115,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {
                   '@type': 'Organization',
                   '@id': '#organization',
-                  name: 'I Love Islam',
+                  name: 'Hifz',
                   url: 'https://www.iloveislam.life',
                   logo: {
                     '@type': 'ImageObject',
@@ -126,11 +123,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     width: 512,
                     height: 512,
                   },
-                  sameAs: [
-                    'https://www.facebook.com/iloveislam.life',
-                    'https://twitter.com/iloveislam_life',
-                    'https://www.instagram.com/iloveislam.life',
-                  ],
                   contactPoint: {
                     '@type': 'ContactPoint',
                     contactType: 'customer support',
@@ -139,7 +131,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 },
                 {
                   '@type': 'WebApplication',
-                  name: 'I Love Islam — Memorise the Quran with an AI Recitation Coach',
+                  name: 'Hifz — Memorise the Quran with an AI Recitation Coach',
                   description: SITE_DESCRIPTION,
                   url: 'https://www.iloveislam.life',
                   applicationCategory: 'EducationalApplication',

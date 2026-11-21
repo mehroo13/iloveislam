@@ -13,7 +13,7 @@ export default function InstallPage() {
         <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12 text-center relative z-10">
           <Link href="/" className="inline-block mb-4 text-white/50 hover:text-white/80 text-sm transition-colors">← Back to Tools</Link>
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3" style={{ fontFamily: 'serif' }}>
-             Install I Love Islam
+             Install Hifz
           </h1>
           <p className="text-white/60 text-sm sm:text-base max-w-lg mx-auto">
             Get instant access to all Islamic tools from your home screen. Works offline — no app store needed.
@@ -223,12 +223,12 @@ export default function InstallPage() {
               onClick={installApp}
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-10 py-4 rounded-2xl text-base transition-all active:scale-95 shadow-xl"
             >
-               Install I Love Islam — Free
+               Install Hifz — Free
             </button>
           ) : isInstalled ? (
             <div className="space-y-3">
               <p className="text-emerald-600 dark:text-emerald-400 font-semibold text-lg"> App is installed!</p>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Find &quot;I Love Islam&quot; on your home screen or app drawer.</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">Find &quot;Hifz&quot; on your home screen or app drawer.</p>
             </div>
           ) : (
             <div className="space-y-3">

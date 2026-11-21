@@ -32,6 +32,8 @@ export async function GET() {
     { loc: '/hifz/ayat-al-kursi', lastmod: REFOCUS_DATE, changefreq: 'monthly', priority: '0.8' },
     // my-progress is a tool page, not content — low priority (spec §9.1).
     { loc: '/hifz/my-progress', lastmod: REFOCUS_DATE, changefreq: 'monthly', priority: '0.3' },
+    // Group challenges (spec §15.9) — same low priority as my-progress.
+    { loc: '/hifz/challenges', lastmod: '2026-11-21', changefreq: 'monthly', priority: '0.3' },
   ];
 
   // Hifz hub URLs, generated from the launch-set slug table so the sitemap

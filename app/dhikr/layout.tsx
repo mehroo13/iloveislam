@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Dhikr Counter — Free Tasbeeh Counter | I Love Islam',
+  title: 'Dhikr Counter — Free Tasbeeh Counter | Hifz',
   description:
     'Count daily dhikr with beautiful presets: Subhanallah, Alhamdulillah, Allahu Akbar, Salawat, Istighfar. Track streaks, history, and per‑dhikr statistics. Free, no sign‑up.',
   keywords: [
@@ -9,17 +9,17 @@ export const metadata: Metadata = {
     'subhanallah counter', 'alhamdulillah counter', 'allahu akbar counter', 'free dhikr app',
   ],
   openGraph: {
-    title: 'Dhikr Counter — Tasbeeh & Zikr Tracker | I Love Islam',
+    title: 'Dhikr Counter — Tasbeeh & Zikr Tracker | Hifz',
     description: 'Count your daily dhikr with beautiful presets, track streaks, and see your history.',
     url: 'https://www.iloveislam.life/dhikr-counter',
-    siteName: 'I Love Islam',
+    siteName: 'Hifz',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Dhikr Counter | I Love Islam',
+    title: 'Dhikr Counter | Hifz',
     description: 'Free Islamic tasbeeh counter with progress tracking.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/dhikr-counter' },
@@ -41,7 +41,7 @@ const jsonLd = {
       description:
         'A digital Islamic tasbeeh counter with preset dhikr, target tracking, session streaks, and detailed per‑dhikr statistics — all stored locally in your browser.',
       url: 'https://www.iloveislam.life/dhikr-counter',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
+      provider: { '@type': 'Organization', name: 'Hifz', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',

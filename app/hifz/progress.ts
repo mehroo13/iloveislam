@@ -77,6 +77,8 @@ export interface HifzProgress {
   } | null;
   ayahs: Record<string, AyahProgress>;
   minutesToday: { date: string; minutes: number };
+  /** Per-type daily goals (§15.8). Optional: older saved documents lack it. */
+  typeGoals?: TypeGoals;
 }
 
 export interface MistakeEntry {
@@ -410,6 +412,98 @@ export function setDailyGoal(
 }
 
 /* ------------------------------------------------------------------ */
+/*  Per-type daily goals (spec §13 #7, §15.8) — memorisation, revision */
+/*  and reading are SEPARATE goals, each with its own target (ayahs/    */
+/*  day) and its own counter. Counts reset every local day. Auto-       */
+/*  counted: coach attempts → memorisation, test questions → revision.  */
+/*  Reading is logged by hand on My Progress (there is no honest way    */
+/*  to auto-detect "I read this ayah" from a page view).                */
+/* ------------------------------------------------------------------ */
+
+export type GoalType = 'memorisation' | 'revision' | 'reading';
+
+export const GOAL_TYPE_LABELS: Record<GoalType, string> = {
+  memorisation: 'Memorisation',
+  revision: 'Revision',
+  reading: 'Reading',
+};
+
+export const GOAL_TYPE_DESCRIPTIONS: Record<GoalType, string> = {
+  memorisation: 'New ayahs practised with the coach.',
+  revision: 'Ayahs revised — test questions and revision-queue recitations.',
+  reading: 'Ayahs read. Log them by hand on this page.',
+};
+
+export const DEFAULT_TYPE_GOAL_TARGETS: Record<GoalType, number> = {
+  memorisation: 3,
+  revision: 3,
+  reading: 5,
+};
+
+export const TYPE_GOAL_OPTIONS = [1, 3, 5, 10, 20] as const;
+
+export interface TypeGoalState {
+  /** Target ayahs for the day. */
+  target: number;
+  /** Ayahs done today. */
+  done: number;
+  /** YYYY-MM-DD local date `done` belongs to. */
+  date: string;
+}
+
+export type TypeGoals = Record<GoalType, TypeGoalState>;
+
+export function defaultTypeGoals(now: Date = new Date()): TypeGoals {
+  const date = localDateString(now);
+  return {
+    memorisation: { target: DEFAULT_TYPE_GOAL_TARGETS.memorisation, done: 0, date },
+    revision: { target: DEFAULT_TYPE_GOAL_TARGETS.revision, done: 0, date },
+    reading: { target: DEFAULT_TYPE_GOAL_TARGETS.reading, done: 0, date },
+  };
+}
+
+/** The stored goals, with today's counts (0 when the stored date is not today). */
+export function getTypeGoals(progress: HifzProgress, now: Date = new Date()): TypeGoals {
+  const today = localDateString(now);
+  const stored = progress.typeGoals ?? defaultTypeGoals(now);
+  const out = {} as TypeGoals;
+  (Object.keys(DEFAULT_TYPE_GOAL_TARGETS) as GoalType[]).forEach((t) => {
+    const g = stored[t] ?? defaultTypeGoals(now)[t];
+    out[t] = g.date === today ? g : { ...g, done: 0, date: today };
+  });
+  return out;
+}
+
+/** Add `count` ayahs to one type's today counter. Returns a NEW document. */
+export function recordTypeActivity(
+  progress: HifzProgress,
+  type: GoalType,
+  count: number = 1,
+  now: Date = new Date(),
+): HifzProgress {
+  const goals = getTypeGoals(progress, now);
+  const g = goals[type];
+  return {
+    ...progress,
+    typeGoals: { ...goals, [type]: { ...g, done: g.done + count } },
+  };
+}
+
+/** Set one type's daily target (ayahs). Returns a NEW document. */
+export function setTypeGoalTarget(
+  progress: HifzProgress,
+  type: GoalType,
+  target: number,
+  now: Date = new Date(),
+): HifzProgress {
+  const goals = getTypeGoals(progress, now);
+  return {
+    ...progress,
+    typeGoals: { ...goals, [type]: { ...goals[type], target } },
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /*  Mistake log (pure add/trim)                                        */
 /* ------------------------------------------------------------------ */
 
@@ -462,7 +556,7 @@ export function addMistake(
 /* ------------------------------------------------------------------ */
 
 export interface HifzExport {
-  kind: 'iloveislam-hifz-export';
+  kind: 'hifz-export';
   exportedAt: string;
   progress: HifzProgress;
   mistakes: MistakeEntry[];
@@ -475,7 +569,7 @@ export function exportProgress(
   settings: HifzSettings,
 ): string {
   const doc: HifzExport = {
-    kind: 'iloveislam-hifz-export',
+    kind: 'hifz-export',
     exportedAt: new Date().toISOString(),
     progress,
     mistakes,
@@ -500,8 +594,8 @@ export function importProgress(json: string): ImportResult {
     return { ok: false, error: 'That file does not contain a progress export.' };
   }
   const doc = parsed as Record<string, unknown>;
-  if (doc.kind !== 'iloveislam-hifz-export') {
-    return { ok: false, error: 'That file is not an I Love Islam hifz export.' };
+  if (doc.kind !== 'hifz-export' && doc.kind !== 'iloveislam-hifz-export') {
+    return { ok: false, error: 'That file is not a Hifz progress export.' };
   }
   if (!isValidProgress(doc.progress)) {
     return {

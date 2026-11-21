@@ -5,7 +5,7 @@ import { Breadcrumb, Attribution } from '../components/HifzShared';
 import { SITE_URL } from '../lib/fetch';
 
 export const metadata: Metadata = {
-  title: 'Recite the Quran — AI Recitation Coach | I Love Islam',
+  title: 'Recite the Quran — AI Recitation Coach | Hifz',
   description:
     'Pick a surah and recite it aloud. The coach follows your recitation word by word, on your device. Free, no sign-up.',
   alternates: { canonical: `${SITE_URL}/hifz/recite` },

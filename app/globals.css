@@ -67,6 +67,32 @@
 /* Anchor / scroll targets must clear the 56px sticky header. */
 html {
   scroll-padding-top: 4.75rem;
+  /* Never disable the browser's text scaling: users who need 200% text
+     must be able to pinch-zoom and enlarge text (spec §13 #24). */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* 200% text + 360px screens (spec §15.11): nothing on the page may force
+   horizontal scrolling or clip. `clip` (unlike `hidden`) does not create
+   a scroll container, so the sticky header keeps working. */
+html,
+body {
+  overflow-x: clip;
+}
+
+img,
+svg,
+video,
+iframe {
+  max-width: 100%;
+}
+
+select,
+input,
+textarea,
+button {
+  max-width: 100%;
 }
 
 /* ===== I Love Islam — design system (emerald + gold on warm paper) ===== */
@@ -118,6 +144,12 @@ body {
   line-height: 2.2;
   word-spacing: 0.08em;
   overflow-wrap: break-word;
+}
+
+/* Madani (Uthmani) script — Amiri renders the Uthmani letter forms and
+   maddah marks more faithfully than Scheherazade New (spec §15.7). */
+.font-quran-madani {
+  font-family: 'Amiri', serif;
 }
 
 /* Brand selection + focus */

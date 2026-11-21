@@ -14,16 +14,16 @@ import { stripHtml, cleanIndopak } from '../../quran/lib';
 const KEY = AYAT_AL_KURSI.key; // "2:255"
 
 export const metadata: Metadata = {
-  title: 'Ayat al-Kursi (2:255) — Memorise | I Love Islam',
+  title: 'Ayat al-Kursi (2:255) — Memorise | Hifz',
   description:
     'Memorise Ayat al-Kursi (2:255), the greatest verse in the Book of Allah — Arabic, translation, word-by-word, audio and tafsir, with the recitation coach.',
   alternates: { canonical: `${SITE_URL}/hifz/ayat-al-kursi` },
   openGraph: {
-    title: 'Ayat al-Kursi (2:255) — Memorise | I Love Islam',
+    title: 'Ayat al-Kursi (2:255) — Memorise | Hifz',
     description:
       'Memorise Ayat al-Kursi (2:255), the greatest verse in the Book of Allah — Arabic, translation, word-by-word, audio and tafsir.',
     url: `${SITE_URL}/hifz/ayat-al-kursi`,
-    siteName: 'I Love Islam',
+    siteName: 'Hifz',
     type: 'article',
   },
 };

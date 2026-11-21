@@ -1,6 +1,6 @@
 {
-  "name": "I Love Islam — AI Hifz & Recitation Coach",
-  "short_name": "I Love Islam",
+  "name": "Hifz — Memorise the Quran with AI",
+  "short_name": "Hifz",
   "description": "Memorise the Quran with an AI recitation coach: live word-by-word mistake detection, hifz plans, Test Mode, Voice Search, streaks and mistake review. Free, no sign-up.",
   "start_url": "/",
   "display": "standalone",
@@ -73,6 +73,13 @@
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
+      "name": "Group Challenges",
+      "short_name": "Challenges",
+      "description": "Memorise together — share a challenge code, track group progress",
+      "url": "/hifz/challenges",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
       "name": "My Progress",
       "short_name": "Progress",
       "description": "Streak, mistake log, heatmap and surah strength",
@@ -100,7 +107,7 @@
       "sizes": "1200x630",
       "type": "image/webp",
       "form_factor": "wide",
-      "label": "I Love Islam - AI Hifz & Recitation Coach"
+      "label": "Hifz - Memorise the Quran with AI"
     }
   ],
   "related_applications": [],

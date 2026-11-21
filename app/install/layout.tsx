@@ -1,22 +1,22 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Install I Love Islam App — Free Offline Islamic Tools',
-  description: 'Install I Love Islam on your phone or computer for instant offline access to Prayer Times, Dhikr Counter, Quran Reader, and 25+ Islamic tools. No app store needed.',
+  title: 'Install Hifz App — Free Offline Islamic Tools',
+  description: 'Install Hifz on your phone or computer for instant offline access to Prayer Times, Dhikr Counter, Quran Reader, and 25+ Islamic tools. No app store needed.',
   keywords: ['install islamic app', 'offline islamic tools', 'pwa islamic', 'add to home screen islam'],
   alternates: { canonical: 'https://www.iloveislam.life/install' },
   openGraph: {
-    title: 'Install I Love Islam App — Free Offline Islamic Tools',
-    description: 'Install I Love Islam on your phone or computer for instant offline access to 25+ Islamic tools.',
+    title: 'Install Hifz App — Free Offline Islamic Tools',
+    description: 'Install Hifz on your phone or computer for instant offline access to 25+ Islamic tools.',
     url: 'https://www.iloveislam.life/install',
-    siteName: 'I Love Islam',
+    siteName: 'Hifz',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Install I Love Islam App' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Install Hifz App' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Install I Love Islam App — Free Offline Islamic Tools',
+    title: 'Install Hifz App — Free Offline Islamic Tools',
     description: 'Get instant offline access to 25+ Islamic tools from your home screen.',
     images: ['/optimized/og-image.webp'],
   },
@@ -31,8 +31,8 @@ const jsonLd = {
   '@graph': [
     {
       '@type': 'WebPage',
-      name: 'Install I Love Islam App',
-      description: 'Step-by-step guide to install I Love Islam as a Progressive Web App on iPhone, Android, Windows, and Mac.',
+      name: 'Install Hifz App',
+      description: 'Step-by-step guide to install Hifz as a Progressive Web App on iPhone, Android, Windows, and Mac.',
       url: 'https://www.iloveislam.life/install',
     },
     {

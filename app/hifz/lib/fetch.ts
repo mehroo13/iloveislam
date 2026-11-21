@@ -57,7 +57,7 @@ export async function fetchSurahVerses(
   reciterId = 7,
 ): Promise<Verse[]> {
   const data = await fetchJson(
-    `${UPSTREAM_API}/verses/by_chapter/${surahId}?fields=text_indopak&translations=${translationId}&audio=${reciterId}&per_page=all`,
+    `${UPSTREAM_API}/verses/by_chapter/${surahId}?fields=text_indopak,text_uthmani&translations=${translationId}&audio=${reciterId}&per_page=all`,
   );
   const verses = (data as { verses?: Verse[] } | null)?.verses;
   return Array.isArray(verses) ? verses : [];
@@ -70,7 +70,7 @@ export async function fetchVerseByKey(
   reciterId = 7,
 ): Promise<Verse | null> {
   const data = await fetchJson(
-    `${UPSTREAM_API}/verses/by_key/${key}?fields=text_indopak&translations=${translationId}&audio=${reciterId}`,
+    `${UPSTREAM_API}/verses/by_key/${key}?fields=text_indopak,text_uthmani&translations=${translationId}&audio=${reciterId}`,
   );
   const verse = (data as { verse?: Verse } | null)?.verse;
   return verse ?? null;
@@ -79,7 +79,7 @@ export async function fetchVerseByKey(
 /** Word-by-word data for one verse, paired with the verse's Indo-Pak words by position. */
 export async function fetchVerseWords(key: string): Promise<WordInfo[]> {
   const data = await fetchJson(
-    `${UPSTREAM_API}/verses/by_key/${key}?fields=text_indopak&words=true`,
+    `${UPSTREAM_API}/verses/by_key/${key}?fields=text_indopak,text_uthmani&words=true`,
   );
   const raw = (data as { verse?: { words?: Record<string, unknown>[] } } | null)?.verse?.words;
   if (!Array.isArray(raw)) return [];
@@ -148,8 +148,8 @@ export function surahJsonLd(surah: LaunchSurah, description: string) {
       headline: `Surah ${surah.name} — Read, Listen & Memorise`,
       description,
       inLanguage: ['ar', 'en'],
-      author: { '@type': 'Organization', name: 'I Love Islam', url: SITE_URL },
-      publisher: { '@type': 'Organization', name: 'I Love Islam', url: SITE_URL },
+      author: { '@type': 'Organization', name: 'Hifz', url: SITE_URL },
+      publisher: { '@type': 'Organization', name: 'Hifz', url: SITE_URL },
       mainEntityOfPage: `${SITE_URL}/hifz/${surah.slug}`,
     },
     breadcrumbJsonLd([
@@ -175,8 +175,8 @@ export function ayahJsonLd(opts: {
       headline: `Surah ${surah.name} Ayah ${ayah} (${key})`,
       description,
       inLanguage: ['ar', 'en'],
-      author: { '@type': 'Organization', name: 'I Love Islam', url: SITE_URL },
-      publisher: { '@type': 'Organization', name: 'I Love Islam', url: SITE_URL },
+      author: { '@type': 'Organization', name: 'Hifz', url: SITE_URL },
+      publisher: { '@type': 'Organization', name: 'Hifz', url: SITE_URL },
       mainEntityOfPage: `${SITE_URL}/hifz/${surah.slug}/${surah.id}-${ayah}`,
     },
     {

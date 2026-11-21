@@ -5,7 +5,7 @@ import { Breadcrumb, Attribution } from '../components/HifzShared';
 import { SITE_URL } from '../lib/fetch';
 
 export const metadata: Metadata = {
-  title: 'Voice Search — Find Any Ayah by Reciting It | I Love Islam',
+  title: 'Voice Search — Find Any Ayah by Reciting It | Hifz',
   description:
     'Recite a few words of any ayah and find it instantly. The browser turns your voice into text on your device, and the match opens straight into the recitation coach.',
   alternates: { canonical: `${SITE_URL}/hifz/voice-search` },

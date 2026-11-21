@@ -16,18 +16,18 @@ import {
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: 'Prayer Times — Accurate Salah Times for Any City | I Love Islam',
+  title: 'Prayer Times — Accurate Salah Times for Any City | Hifz',
   description:
     'Accurate daily prayer times for any city worldwide — Fajr, Sunrise, Dhuhr, Asr, Maghrib and Isha with a live countdown to the next prayer, a 7-day schedule and a full monthly timetable. Muslim World League method by default, with 14 calculation methods to choose from.',
   keywords:
     'prayer times, salah times, fajr time, dhuhr time, asr time, maghrib time, isha time, islamic prayer times, muslim world league, prayer timetable',
   alternates: { canonical: 'https://www.iloveislam.life/prayer-times' },
   openGraph: {
-    title: 'Prayer Times — Accurate Salah Times for Any City | I Love Islam',
+    title: 'Prayer Times — Accurate Salah Times for Any City | Hifz',
     description:
       'Accurate daily prayer times for any city worldwide, with a live countdown to the next prayer and a full monthly timetable.',
     url: 'https://www.iloveislam.life/prayer-times',
-    siteName: 'I Love Islam',
+    siteName: 'Hifz',
     type: 'website',
   },
 };

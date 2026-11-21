@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Ramadan Planner 2027 — Complete Ramadan Tracker | I Love Islam',
+  title: 'Ramadan Planner 2027 — Complete Ramadan Tracker | Hifz',
   description:
     'Plan and track your Ramadan: daily fasts, ibadah checklist, mood, goals (Quran, Tarawih, Sadaqah), duas, and personal journal. Free, no sign‑up.',
   keywords: [
@@ -9,17 +9,17 @@ export const metadata: Metadata = {
     'ramadan ibadah', 'ramadan journal', 'ramadan checklist', 'free ramadan app',
   ],
   openGraph: {
-    title: 'Ramadan Planner — Daily Fasting & Ibadah Tracker | I Love Islam',
+    title: 'Ramadan Planner — Daily Fasting & Ibadah Tracker | Hifz',
     description: 'Make the most of Ramadan with a daily tracker, goals, duas, and a personal journal.',
     url: 'https://www.iloveislam.life/ramadan-planner',
-    siteName: 'I Love Islam',
+    siteName: 'Hifz',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Ramadan Planner | I Love Islam',
+    title: 'Ramadan Planner | Hifz',
     description: 'Free Ramadan tracker with daily checklists and goals.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/ramadan-planner' },
@@ -41,7 +41,7 @@ const jsonLd = {
       description:
         'A comprehensive Ramadan companion: track daily fasts, ibadah, set 30‑day goals, read duas, and maintain a personal journal. All data saved locally.',
       url: 'https://www.iloveislam.life/ramadan-planner',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
+      provider: { '@type': 'Organization', name: 'Hifz', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',

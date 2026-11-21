@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Quran Reader — Read the Quran in Indo-Pak Script with Translation & Audio | I Love Islam',
+  title: 'Quran Reader — Read the Quran in Indo-Pak Script with Translation & Audio | Hifz',
   description:
     'Read the Holy Quran in the Indo-Pak script — the 15-line Mushaf style read in Pakistan, India and Bangladesh — with five English translations, audio recitation by world-renowned Qaris, Ibn Kathir tafsir, bookmarks and a 30-juz reading plan. Free, no sign-up.',
   keywords: [
@@ -10,17 +10,17 @@ export const metadata: Metadata = {
     'al quran', 'free quran app', 'quran recitation', 'quran juz', 'quran reading plan',
   ],
   openGraph: {
-    title: 'Quran Reader — Holy Quran in Indo-Pak Script with Translation & Audio | I Love Islam',
+    title: 'Quran Reader — Holy Quran in Indo-Pak Script with Translation & Audio | Hifz',
     description: 'Read the Quran in the Indo-Pak script with five English translations, audio recitation, Ibn Kathir tafsir and bookmarks.',
     url: 'https://www.iloveislam.life/quran',
-    siteName: 'I Love Islam',
+    siteName: 'Hifz',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Quran Reader — Indo-Pak Script | I Love Islam',
+    title: 'Quran Reader — Indo-Pak Script | Hifz',
     description: 'Read the Quran in Indo-Pak script with translation, audio, tafsir and bookmarks. Free forever.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/quran' },
@@ -42,7 +42,7 @@ const jsonLd = {
       description:
         'Read the Holy Quran in the Indo-Pak script with five English translations, audio recitation by renowned Qaris, Ibn Kathir tafsir, bookmarks and a 30-juz reading plan.',
       url: 'https://www.iloveislam.life/quran',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
+      provider: { '@type': 'Organization', name: 'Hifz', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',

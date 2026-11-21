@@ -11,10 +11,32 @@ import {
   currentStreakCount, localDateString, isDailyGoalMet, ayahsPractisedOn,
   getStorageNotice, setDailyGoal, DAILY_GOAL_OPTIONS,
   activityByDate, weekPracticeDays, surahStrength, revisionDue, daysSince,
-  type HifzProgress, type MistakeEntry, type HifzSettings,
+  getTypeGoals, setTypeGoalTarget, recordTypeActivity,
+  GOAL_TYPE_LABELS, GOAL_TYPE_DESCRIPTIONS, TYPE_GOAL_OPTIONS,
+  type GoalType, type HifzProgress, type MistakeEntry, type HifzSettings,
 } from '../progress';
 import { getSurahById, LAUNCH_SURAHS } from '../surahs';
 import ToolIcon from '../../components/ToolIcon';
+
+/** Small SVG progress ring for one per-type daily goal. */
+function GoalRing({ done, target }: { done: number; target: number }) {
+  const pct = target > 0 ? Math.min(100, Math.round((done / target) * 100)) : 0;
+  const r = 26;
+  const c = 2 * Math.PI * r;
+  return (
+    <svg width="64" height="64" viewBox="0 0 64 64" role="img" aria-label={`${done} of ${target} ayahs — ${pct}%`}>
+      <circle cx="32" cy="32" r={r} fill="none" stroke="#e5e0d3" strokeWidth="7" />
+      <circle
+        cx="32" cy="32" r={r} fill="none" stroke="#146B4D" strokeWidth="7"
+        strokeLinecap="round" strokeDasharray={`${(pct / 100) * c} ${c}`}
+        transform="rotate(-90 32 32)"
+      />
+      <text x="32" y="36" textAnchor="middle" fontSize="13" fontWeight="700" fill="#0B3D2E">
+        {pct}%
+      </text>
+    </svg>
+  );
+}
 
 export default function MyProgressClient() {
   const [progress, setProgress] = useState<HifzProgress | null>(null);
@@ -22,6 +44,9 @@ export default function MyProgressClient() {
   const [settings, setSettings] = useState<HifzSettings | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [importMsg, setImportMsg] = useState<string | null>(null);
+  const [offlineMsg, setOfflineMsg] = useState<string | null>(null);
+  const [offlineSaving, setOfflineSaving] = useState(false);
+  const [swReady, setSwReady] = useState<boolean | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const reload = useCallback(() => {
@@ -38,6 +63,17 @@ export default function MyProgressClient() {
 
   useEffect(() => {
     reload();
+    // Offline coach (§15.10): is the service worker actually controlling this page?
+    try {
+      if ('serviceWorker' in navigator) {
+        setSwReady(!!navigator.serviceWorker.controller);
+        void navigator.serviceWorker.ready.then(() => setSwReady(true)).catch(() => undefined);
+      } else {
+        setSwReady(false);
+      }
+    } catch {
+      setSwReady(false);
+    }
   }, [reload]);
 
   if (progress === null || settings === null) {
@@ -57,6 +93,8 @@ export default function MyProgressClient() {
   const memorised = Object.entries(progress.ayahs).filter(([, a]) => a.status === 'memorised');
   const learning = Object.entries(progress.ayahs).filter(([, a]) => a.status === 'learning');
   const goalPct = Math.min(100, Math.round((minutesToday / progress.dailyGoalMinutes) * 100));
+  // Per-type daily goals (§15.8): separate targets + counters.
+  const typeGoals = getTypeGoals(progress);
 
   // --- Analytics (spec §15): heatmap, surah strength, revision queue, weekly challenge.
   const activity = activityByDate(progress);
@@ -92,9 +130,54 @@ export default function MyProgressClient() {
     setProgress(next);
   };
 
+  const changeTypeTarget = (type: GoalType, target: number) => {
+    const next = setTypeGoalTarget(progress, type, target);
+    saveProgress(next);
+    setProgress(next);
+  };
+
+  const logType = (type: GoalType, count: number) => {
+    const next = recordTypeActivity(progress, type, count);
+    saveProgress(next);
+    setProgress(next);
+  };
+
+  /** Save the surah text the coach needs so it works in airplane mode (§15.10). */
+  const saveForOffline = async () => {
+    setOfflineSaving(true);
+    setOfflineMsg(null);
+    try {
+      const urls: string[] = [
+        '/', '/hifz', '/hifz/recite', '/hifz/test', '/hifz/voice-search',
+        '/hifz/my-progress', '/hifz/challenges', '/hifz/juz-amma', '/hifz/plans',
+        ...LAUNCH_SURAHS.map(
+          (s) => `/api/quran/verses/by_chapter/${s.id}?fields=text_indopak,text_uthmani&translations=20&audio=7&per_page=all`,
+        ),
+      ];
+      let saved = 0;
+      for (const url of urls) {
+        try {
+          const res = await fetch(url);
+          if (res.ok) saved += 1;
+        } catch {
+          /* one failed fetch must not stop the rest */
+        }
+      }
+      setOfflineMsg(
+        saved === urls.length
+          ? `Saved ${saved} pages and surahs for offline use. The coach model downloads the first time you recite, and is then cached too — after that, airplane mode works.`
+          : `Saved ${saved} of ${urls.length}. Some items failed — check your connection and try again.`,
+      );
+    } catch {
+      setOfflineMsg('Could not save for offline use — check your connection and try again.');
+    } finally {
+      setOfflineSaving(false);
+    }
+  };
+
   const doExport = () => {
     downloadProgressJson(
-      `iloveislam-hifz-${today}.json`,
+      `hifz-${today}.json`,
       exportProgress(progress, mistakes, settings),
     );
   };
@@ -183,6 +266,64 @@ export default function MyProgressClient() {
               Active plan: {progress.activePlan.planDays}-day plan · day {progress.activePlan.currentDay}
             </p>
           )}
+        </div>
+      </section>
+
+      {/* Per-type daily goals (§15.8) — memorisation, revision, reading separately */}
+      <section aria-labelledby="goals-heading" className="rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm sm:p-6">
+        <h2 id="goals-heading" className="text-xl font-bold text-[#0B3D2E]">Today&apos;s goals — by type</h2>
+        <p className="mt-1 text-sm text-[#5b6b62]">
+          One goal per kind of practice, in ayahs per day. Coach attempts count toward
+          memorisation, test questions toward revision; reading is logged by hand below.
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          {(Object.keys(GOAL_TYPE_LABELS) as GoalType[]).map((type) => {
+            const g = typeGoals[type];
+            const met = g.done >= g.target;
+            return (
+              <div key={type} className="rounded-xl border border-[#e5e0d3] bg-[#F7F5EF] p-4">
+                <div className="flex items-center gap-3">
+                  <GoalRing done={g.done} target={g.target} />
+                  <div className="min-w-0">
+                    <p className="font-bold text-[#0B3D2E]">{GOAL_TYPE_LABELS[type]}</p>
+                    <p className="text-sm text-[#5b6b62]">
+                      {g.done} / {g.target} ayahs {met ? '— goal met.' : 'today'}
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-[#5b6b62]">{GOAL_TYPE_DESCRIPTIONS[type]}</p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-[#5b6b62]">
+                    Target
+                    <select
+                      value={g.target}
+                      onChange={(e) => changeTypeTarget(type, Number(e.target.value))}
+                      className="rounded-lg border border-[#e5e0d3] bg-white px-2 py-1.5 text-sm"
+                      aria-label={`${GOAL_TYPE_LABELS[type]} daily target in ayahs`}
+                    >
+                      {TYPE_GOAL_OPTIONS.map((n) => (
+                        <option key={n} value={n}>{n} ayahs</option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => logType(type, 1)}
+                    className="rounded-full border border-[#146B4D] px-3 py-1.5 text-xs font-semibold text-[#146B4D] hover:bg-[#eaf3ee]"
+                  >
+                    +1 ayah
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => logType(type, 5)}
+                    className="rounded-full border border-[#146B4D] px-3 py-1.5 text-xs font-semibold text-[#146B4D] hover:bg-[#eaf3ee]"
+                  >
+                    +5 ayahs
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -355,6 +496,34 @@ export default function MyProgressClient() {
               );
             })}
           </ul>
+        )}
+      </section>
+
+      {/* Offline coach (§15.10) */}
+      <section aria-labelledby="offline-heading" className="rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm sm:p-6">
+        <h2 id="offline-heading" className="text-xl font-bold text-[#0B3D2E]">Offline coach</h2>
+        <p className="mt-1 text-sm text-[#5b6b62]">
+          {swReady === true
+            ? 'Offline support is on — this device can run the coach without internet once the surahs below are saved.'
+            : swReady === false
+              ? 'Offline support is not active in this browser yet — try reloading, or use a browser that supports service workers.'
+              : 'Checking offline support…'}
+        </p>
+        <p className="mt-2 text-sm text-[#5b6b62]">
+          Saving downloads the text of every launch surah plus the main pages, so the
+          coach works in airplane mode. The AI model itself downloads the first time
+          you recite and is cached on this device after that.
+        </p>
+        <button
+          type="button"
+          onClick={saveForOffline}
+          disabled={offlineSaving}
+          className="mt-4 rounded-full bg-[#0B3D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#146B4D] disabled:opacity-50"
+        >
+          {offlineSaving ? 'Saving…' : 'Save surahs for offline use'}
+        </button>
+        {offlineMsg && (
+          <p role="status" className="mt-3 text-sm font-semibold text-[#146B4D]">{offlineMsg}</p>
         )}
       </section>
 

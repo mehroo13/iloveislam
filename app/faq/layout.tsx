@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'FAQ — Islamic Tools Help & Answers | I Love Islam',
+  title: 'FAQ — Islamic Tools Help & Answers | Hifz',
   description:
     'Find answers to frequently asked questions about our free Islamic tools — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Dhikr Counter, and more.',
   keywords: [
@@ -9,17 +9,17 @@ export const metadata: Metadata = {
     'qibla finder help', 'islamic app questions',
   ],
   openGraph: {
-    title: 'FAQ — Islamic Tools Help & Answers | I Love Islam',
+    title: 'FAQ — Islamic Tools Help & Answers | Hifz',
     description: 'Answers to common questions about our 20+ free Islamic tools. Privacy, accuracy, and usage explained.',
     type: 'website',
     url: 'https://www.iloveislam.life/faq',
-    siteName: 'I Love Islam',
+    siteName: 'Hifz',
     locale: 'en_US',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'FAQ — I Love Islam' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'FAQ — Hifz' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'FAQ — I Love Islam',
+    title: 'FAQ — Hifz',
     description: 'Answers to common questions about our free Islamic tools.',
     images: ['/optimized/og-image.webp'],
   },
@@ -38,7 +38,7 @@ const jsonLd = {
       mainEntity: [
         {
           '@type': 'Question',
-          name: 'Is I Love Islam completely free?',
+          name: 'Is Hifz completely free?',
           acceptedAnswer: {
             '@type': 'Answer',
             text: 'Yes! All tools are 100% free. No hidden fees, no subscription plans, and no credit card required.',

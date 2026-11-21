@@ -11,6 +11,7 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
       { href: '/hifz/recite', label: 'Recite with the Coach' },
       { href: '/hifz/test', label: 'Test Mode' },
       { href: '/hifz/voice-search', label: 'Voice Search' },
+      { href: '/hifz/challenges', label: 'Group Challenges' },
       { href: '/hifz/plans', label: 'Memorisation Plans' },
       { href: '/hifz/my-progress', label: 'My Progress' },
     ],
@@ -41,10 +42,10 @@ export default function Footer() {
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
         {/* Brand */}
         <div className="lg:col-span-2">
-          <Link href="/" className="flex items-center gap-2.5" aria-label="I Love Islam — home">
-            <Image src="/logo.svg" alt="I Love Islam logo" width={36} height={36} />
+          <Link href="/" className="flex items-center gap-2.5" aria-label="Hifz — home">
+            <Image src="/logo.svg" alt="Hifz logo" width={36} height={36} />
             <span className="text-lg font-bold leading-none tracking-tight text-white">
-              I Love <span className="text-[#E7D9A8]">Islam</span>
+              Hifz
             </span>
           </Link>
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/70">
@@ -75,7 +76,7 @@ export default function Footer() {
       {/* Bottom bar */}
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-5 text-xs text-white/60 sm:flex-row">
-          <p>©{' '}{year}{' '}I Love Islam. Made with love for the Ummah.</p>
+          <p>©{' '}{year}{' '}Hifz. Memorise the Quran with AI.</p>
           <nav aria-label="Footer legal links" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
             {LEGAL_LINKS.map((link) => (
               <Link key={link.href} href={link.href} className="transition-colors hover:text-white">

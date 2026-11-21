@@ -1,21 +1,21 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Contact Us — I Love Islam | Free Islamic Tools',
+  title: 'Contact Us — Hifz | Free Islamic Tools',
   description:
-    'Get in touch with the I Love Islam team. Report bugs, suggest new tools, ask Islamic questions, or discuss partnerships. We reply within 48 hours inshaAllah.',
+    'Get in touch with the Hifz team. Report bugs, suggest new tools, ask Islamic questions, or discuss partnerships. We reply within 48 hours inshaAllah.',
   openGraph: {
-    title: 'Contact Us — I Love Islam',
-    description: 'Reach out to the I Love Islam team. We’re here to help.',
+    title: 'Contact Us — Hifz',
+    description: 'Reach out to the Hifz team. We’re here to help.',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
     url: 'https://www.iloveislam.life/contact',
-    siteName: 'I Love Islam',
+    siteName: 'Hifz',
     locale: 'en_US',
   },
   twitter: {
     card: 'summary',
-    title: 'Contact Us — I Love Islam',
+    title: 'Contact Us — Hifz',
     description: 'Report bugs, suggest tools, or just say salam.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/contact' },
@@ -27,8 +27,8 @@ const jsonLd = {
   '@graph': [
     {
       '@type': 'ContactPage',
-      name: 'Contact I Love Islam',
-      description: 'Get in touch with the I Love Islam team. Report bugs, suggest new tools, or ask questions.',
+      name: 'Contact Hifz',
+      description: 'Get in touch with the Hifz team. Report bugs, suggest new tools, or ask questions.',
       url: 'https://www.iloveislam.life/contact',
     },
     {
@@ -56,7 +56,7 @@ export default function ContactLayout({ children }: { children: React.ReactNode 
             We welcome all feedback, questions, and suggestions from our community. Whether you have found a bug in one of our tools, want to suggest a new feature, have a question about how a tool works, or simply want to share your experience — we would love to hear from you. Our team reads every message personally and strives to respond within 48 hours.
           </p>
           <p className="text-gray-600 text-sm leading-relaxed">
-            I Love Islam is built for the Ummah, by the Ummah. Many of our tools and improvements have come directly from user suggestions. Your feedback helps us make this platform better for millions of Muslims worldwide. Do not hesitate to reach out — no question is too small, and every suggestion is valued.
+            Hifz is built for the Ummah, by the Ummah. Many of our tools and improvements have come directly from user suggestions. Your feedback helps us make this platform better for millions of Muslims worldwide. Do not hesitate to reach out — no question is too small, and every suggestion is valued.
           </p>
         </div>
 

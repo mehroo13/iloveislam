@@ -307,7 +307,7 @@ export default function ZakatCalculator() {
 
   function handleShare() {
     if (!result) return;
-    const text = ` My Zakat Calculation — I Love Islam\n\n` +
+    const text = ` My Zakat Calculation — Hifz\n\n` +
       `Total Assets: ${sym}${fmt(result.totalAssets)}\n` +
       `After Debts: ${sym}${fmt(result.zakatable)}\n` +
       `Nisab (${result.nisabMethod}): ${sym}${fmt(result.nisabUsed)}\n` +

@@ -5,7 +5,7 @@ const sections = [
     icon: '',
     title: '1. Overview',
     content:
-      'I Love Islam ("we", "our", "the site") is committed to protecting your privacy. This Privacy Policy explains how we handle information when you use our website at iloveislam.life.',
+      'Hifz ("we", "our", "the site") is committed to protecting your privacy. This Privacy Policy explains how we handle information when you use our website at iloveislam.life.',
   },
   {
     icon: '',

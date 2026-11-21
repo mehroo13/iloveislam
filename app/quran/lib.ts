@@ -89,6 +89,8 @@ export interface Verse {
   verse_key: string;
   verse_number: number;
   text_indopak: string;
+  /** Uthmani (Madani) text — present when the fetch asked for text_uthmani. */
+  text_uthmani?: string;
   audio?: { url?: string };
   translations?: { text: string }[];
 }
@@ -122,6 +124,23 @@ export function stripHtml(html: string): string {
    exactly as the Uthmani text (which has nothing at those positions). */
 export function cleanIndopak(text: string): string {
   return text.replace(/[\uE000-\uF8FF]/g, '');
+}
+
+/* Uthmani (Madani) text: same PUA strip for safety, then trim. The
+   Uthmani script uses different letter forms (e.g. ىٰ, ۤ) and different
+   word breaks from Indo-Pak, so it must never be fed to the coach's word
+   alignment — see app/hifz/lib/script.ts. */
+export function cleanUthmani(text: string): string {
+  return text.replace(/[\uE000-\uF8FF]/g, '').trim();
+}
+
+export type QuranScript = 'indopak' | 'uthmani';
+
+/** Display text for a verse in the reader's chosen script. Falls back to
+ *  Indo-Pak when the Uthmani text was not fetched (e.g. cached responses). */
+export function verseText(v: Verse, script: QuranScript): string {
+  if (script === 'uthmani' && v.text_uthmani) return cleanUthmani(v.text_uthmani);
+  return cleanIndopak(v.text_indopak);
 }
 
 export function dayOfYear(d: Date): number {

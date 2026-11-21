@@ -1020,7 +1020,7 @@ name, design and wording throughout.
 | 4 | Voice Search ("Shazam for Quran") | Recite any phrase, find the specific ayah and surah (Play listing) | **SHIPPED 2026-11-21 (§15.2).** Browser speech recognition → text → Quran.com search via the `/api/quran` proxy; matches in the launch set open in the coach. Was "not in v1" (§12) — now shipped. |
 | 5 | Test Mode | Drops you at random places in your memorised text, breaking cue-dependence (added Aug 2026, v5.81.1, release notes) | **SHIPPED 2026-11-21 (§15.1).** `/hifz/test`: random ayahs from memorised/learning pool, Arabic hidden, reveal = miss, self-mark records attempts like coach attempts. Was "not in v1" (§12) — now shipped. |
 | 6 | Memorisation Planning | Tailor the journey to your learning style (tarteel.ai) | **SHIPPED.** 7-day plans per surah, 30-day plans, Juz Amma 90-day plan (`app/hifz/plans.ts`); plan completion is earned by coach verification, not claimed (§5.2). |
-| 7 | Smart Goals | Custom targets for memorisation, revision, or reading (Play listing) | **SHIPPED, partial.** Daily goal 5/10/15/30 min + 5-ayah alternative, set on My Progress (§5.1). Per-type goals (memorisation vs revision vs reading) are not separate goals yet — the daily goal covers all three in practice. |
+| 7 | Smart Goals | Custom targets for memorisation, revision, or reading (Play listing) | **SHIPPED 2026-11-21 (§15.8).** Separate daily goals per type — memorisation, revision, reading — each with its own target (1/3/5/10/20 ayahs) and progress ring on My Progress. Coach attempts auto-count toward memorisation, test questions toward revision; reading is logged by hand (no honest auto-detection from a page view). The combined minutes goal (§5.1) stays as well. |
 | 8 | Streaks | Daily streak tracking (Play listing) | **SHIPPED.** Local streak, goal-met day advances it, missed day resets it, never faked (§5.1). |
 | 9 | Advanced Analytics — heatmaps | Visualise progress with streaks and heatmaps (Play listing) | **SHIPPED 2026-11-21 (§15.3).** 12-week activity heatmap on My Progress, built from existing ayah records. Was "not in v1" (§12) — now shipped. |
 | 10 | Advanced Analytics — per-surah strength | See which surahs are strong and which ayahs need more work (Play listing) | **SHIPPED 2026-11-21 (§15.3).** Per-surah strength bars on My Progress (memorised full weight, learning half). Was "not in v1" (§12) — now shipped. |
@@ -1029,20 +1029,23 @@ name, design and wording throughout.
 | 13 | Translations | Multiple translations (tarteel.ai / listing) | **SHIPPED.** Translation picker on surah pages; Saheeh International default; view modes Arabic / +translation / +tafsir. |
 | 14 | Tafsir | Tafsir on ayah/surah pages (app feature) | **SHIPPED.** Ibn Kathir Abridged via Quran.com proxy; renders **only** in Tafsir view mode (commit 12a3449 — do not regress). |
 | 15 | Word-by-word | Word-by-word text and audio (Quran.com parity, §12) | **SHIPPED.** Word-by-word panel per ayah with translation per word and per-word audio (`WordByWord.tsx`). Root/morphology on tap is still a v2 item (§12). |
-| 16 | Adaptive Mushaf — Madani / Indo-Pak scripts | Choose Madani or Indo-Pak script; hide ayah markers (Play listing) | **PARTIAL — known gap.** Indo-Pak script throughout (Scheherazade New); ayah markers can be hidden by hiding the Arabic in the coach. Madani (Uthmani) script option is **not** built: the coach's word alignment is built on the Indo-Pak text, so a script toggle is real work, not a label. Recorded honestly here; do not claim it. |
+| 16 | Adaptive Mushaf — Madani / Indo-Pak scripts | Choose Madani or Indo-Pak script; hide ayah markers (Play listing) | **SHIPPED 2026-11-21 (§15.7).** Script picker (Indo-Pak / Madani-Uthmani) on surah and ayah pages, persisted per device; the reader fetches both Quran.com fields (`text_indopak`, `text_uthmani`) so switching needs no refetch, and Madani renders in Amiri. Scoped cleanly: the coach, Test Mode and word-by-word stay Indo-Pak — the word alignment is built on it (Uthmani word breaks differ) — and the reader says so when Madani is selected. |
 | 17 | Audio controls | Playback speed, repeat, looping (Quran.com parity, §12) | **SHIPPED.** See #12. |
 | 18 | Progress tracking | Streaks, goals, per-surah progress (Play listing) | **SHIPPED.** My Progress dashboard + homepage continue widget + per-surah progress bars; export/import JSON (no account, §5.1). |
 | 19 | Premium gating | Mistake detection, peeking, goals, analytics, history behind Premium; free trial; Family Plan; Alim $0 programme (tarteel.ai FAQ) | **DELIVERED DIFFERENTLY, deliberately.** Our free tier includes the live coach daily, goals, streaks and analytics — the things Tarteel paywalls. Premium ("coming soon") buys depth only: unlimited coach time, all 30-day plans, full mistake history (§3.3, §7). No billing exists yet; the free set is a promise and must never move behind a paywall later (§11.4 warning). Alim-style affordability path is a v2 item (§7, §12). |
-| 20 | Challenges | In-app challenges / group challenges (app feature; Family Plan in FAQ) | **PARTIAL.** No social/group challenges — those need accounts (v3). Solo challenge shipped 2026-11-21: "This week's challenge — practise 5 days" on My Progress (§15.4), plus 7-day plans as structured challenges. |
+| 20 | Challenges | In-app challenges / group challenges (app feature; Family Plan in FAQ) | **SHIPPED 2026-11-21 (§15.9).** Group challenges WITHOUT accounts (`/hifz/challenges`): create a challenge (surah, ayahs each, 7/14/30 days), share a code (`HIFZ-XXXX`) or a link that carries the challenge + member progress as a URL payload; opening a teammate's link merges their latest progress (newest update wins). Solo weekly challenge (§15.4) and 7-day plans stay as well. Honest limit: no live leaderboard — progress syncs through shared links, nothing is uploaded. |
 | 21 | Revision mode / spaced repetition | Smart Goals cover revision; Test Mode breaks cue-dependence (listing; release notes) | **SHIPPED 2026-11-21 (§15.5).** Performance-driven revision queue on My Progress: learning ayahs due after 2 days, memorised after 7 days, oldest first. Was "not in v1" (§12) — now shipped. |
 | 22 | Privacy | "Privacy First — does not sell your data" (Play listing); voice features need internet (listing) | **SHIPPED, stronger.** On-device processing, audio never leaves the device, no account, no ads on Hifz pages, no analytics event containing ayah text or mistake words (§5.1, §8.1.3). |
-| 23 | Offline use | Reciter audio downloadable; AI needs internet (listing; help centre) | **PARTIAL.** PWA + service worker cache Hifz pages and the Quran proxy; the Tilawa model downloads once on-device. Offline coach in airplane mode is **not yet verified** — a named test still owed (§10 checks), not a claim. |
-| 24 | Accessibility | Large-text breakage reported in reviews (§11.1) | **BAR SET, not yet tested on device.** Fully usable at 200% text scaling with no overlap; feedback never by colour alone (§6.3, §12). The §10 phone test is still owed. |
+| 23 | Offline use | Reciter audio downloadable; AI needs internet (listing; help centre) | **SHIPPED 2026-11-21 (§15.10).** Service worker v3: Quran proxy responses cached 7 days, Hifz pages network-first with cache fallback, Tilawa model + ONNX WASM cached (MODEL_CACHE), and a "Save surahs for offline use" button on My Progress that warms the cache for every launch surah. After one online recitation (model download) the coach works in airplane mode. Airplane-mode test on a real device is still owed (browser verification) — the mechanism is shipped, the device test is not yet run. |
+| 24 | Accessibility | Large-text breakage reported in reviews (§11.1) | **SHIPPED (static fixes) 2026-11-21 (§15.11).** The viewport no longer blocks scaling (`maximumScale`/`userScalable=false` removed), `text-size-adjust: 100%`, `overflow-x: clip` on html/body, and `max-width: 100%` on media and form controls; audit found no fixed-width overflow at 360px. A real-device 200% / 360px check is still owed (browser verification) — the fixes are in, the device test is not yet run. |
 
-**Honest summary:** of Tarteel's feature set, everything a web app can do without
-accounts is shipped. The gaps are named, not hidden: Madani script (#16),
-per-type goals (#7, partial), social challenges (#20, needs accounts), offline
-coach verification (#23) and the 200%-text device test (#24).
+**Honest summary (updated 2026-11-21):** of Tarteel's feature set, everything
+a web app can do without accounts is shipped — including Madani script (#16),
+per-type goals (#7), social challenges without accounts (#20) and the offline
+coach mechanism (#23). What remains is verification, not building: the
+airplane-mode test and the 200%-text / 360px device test (#23, #24) still need
+a real device/browser check, and group challenges sync through shared links
+rather than a live server (#20).
 
 ## 14. Single-purpose refocus (2026-11-21) — the tools site is gone
 
@@ -1150,9 +1153,106 @@ days; oldest first, linked straight into the coach (`revisionDue` in
 `app/hifz/progress.ts`). Review days stop being calendar-fixed and become
 performance-driven, which is the beat over Quran.com's plans too (§11.2).
 
-### 15.6 What is deliberately NOT claimed as "beyond Tarteel"
+### 15.7 Madani (Uthmani) script (`/hifz/[slug]`, ayah pages)
+A script picker in the reading controls: Indo-Pak (default) or Madani
+(Uthmani). The reader fetches both Quran.com v4 fields on every request
+(`fields=text_indopak,text_uthmani`, via the existing `/api/quran` proxy —
+no proxy change was needed, both fields pass through), so switching scripts
+is instant with no refetch. Madani text renders in Amiri; Indo-Pak keeps
+Scheherazade New. The choice persists per device (`hifz_script_v1`).
+Scoped decision, documented in `app/hifz/lib/script.ts`: the coach, Test
+Mode and word-by-word stay Indo-Pak, because the word alignment
+(`splitWords`) and the Tilawa tracker's word positions are built on the
+Indo-Pak text and Uthmani word breaks differ — aligning against Uthmani
+would mis-mark words. The reader shows a one-line note when Madani is
+selected so the split is visible, never silent.
+
+### 15.8 Per-type daily goals (My Progress)
+Separate daily goals for memorisation, revision and reading — each with its
+own target (1/3/5/10/20 ayahs) and its own progress ring. Stored in the
+progress document (`typeGoals`, optional so older saves still load; counts
+reset every local day). Auto-counted: coach attempts → memorisation, test
+questions → revision. Reading is logged by hand (+1 / +5 buttons) — there is
+no honest way to auto-detect "I read this ayah" from a page view, and the UI
+says so. Pure helpers in `app/hifz/progress.ts` (`getTypeGoals`,
+`recordTypeActivity`, `setTypeGoalTarget`); the combined minutes goal (§5.1)
+is unchanged.
+
+### 15.9 Group challenges without accounts (`/hifz/challenges`)
+Create a challenge — name, surah, ayahs each (5/10/20/30), length (7/14/30
+days) — and get a code (`HIFZ-XXXX`) plus a share link. The link carries the
+whole challenge (surah, target, members and their progress) as a URL-safe
+base64 payload (`?join=CODE&c=...`); opening it joins the challenge on that
+device, and opening a teammate's link back merges their latest progress
+(per member, newest update wins). A bare code can also be joined by hand
+with the agreed surah/target/length. All state is localStorage
+(`hifz_challenges_v1`); nothing is uploaded anywhere, and the page says so.
+Honest limit: this is sync-through-shared-links, not a live leaderboard —
+progress only updates when someone shares their link. Linked from the
+header, hub, sitemap (0.3) and manifest shortcuts.
+
+### 15.10 Offline coach (service worker v3 + My Progress)
+The service worker (`public/sw.js`, v3.0.0) now caches the coach model path:
+a MODEL_CACHE for Tilawa model files (tilawa.dev) and ONNX WASM/CDN files
+(cache-first), the Quran proxy for 7 days (text never changes), and all Hifz
+pages network-first with cache fallback. My Progress has a "Save surahs for
+offline use" button that fetches every launch surah's text plus the main
+pages, warming the cache, and reports how many saved; it also shows whether
+the service worker is actually controlling the page. After one online
+recitation (which downloads the ~25–68 MB model) the coach works in
+airplane mode. Voice Search still needs the network (browser speech
+recognition). The airplane-mode test on a real device is still owed.
+
+### 15.11 200% text-size and 360px layout (static fixes)
+The viewport no longer blocks scaling: `maximumScale: 1` and
+`userScalable: false` were removed from the root layout (they also broke
+accessibility for low-vision users). `text-size-adjust: 100%`,
+`overflow-x: clip` on html/body (clip, not hidden, so the sticky header
+keeps working), and `max-width: 100%` on media and form controls. A static
+audit found no fixed-width overflow at 360px (the only wide element, the
+hero image, is hidden below `lg`). A real-device check at 200% text and
+360px width is still owed — the fixes are in, the device test is not run.
+
+### 15.12 What is deliberately NOT claimed as "beyond Tarteel"
 - No tajweed feedback (nobody in the category does this reliably, §11.1; we
   say so in the UI instead of faking it).
 - No recording playback (we never store audio — a privacy trade, §8.2).
-- No cross-device sync, groups or leaderboards (needs accounts, v3).
-- No Madani script yet (§13 #16).
+- No live cross-device sync or leaderboards (needs accounts, v3) — group
+  challenges sync through shared links instead (§15.9), which is the
+  account-free substitute, not a live sync.
+
+## 16. Rebrand to Hifz + Tarteel-simple UI (2026-11-21)
+
+### 16.1 Rebrand
+The site is now **Hifz**, tagline "Memorise the Quran with AI". "I Love
+Islam" was removed from every served surface: page titles, root metadata,
+JSON-LD, header, footer, homepage copy, manifest (`name: "Hifz —
+Memorise the Quran with AI"`), llms.txt / llms-full.txt, sitemap,
+Privacy/Terms, og tags and the offline page. The domain stays
+iloveislam.life (URLs, canonicals and the contact email keep the domain);
+the old-brand social handles were dropped from JSON-LD. New mark, same
+palette (emerald #0B3D2E + gold #C9A227): an emerald rounded square, a gold
+eight-point star, a white open book — generated by
+`tools/generate-hifz-brand.py` and wired as favicon.ico, favicon.png,
+apple-touch-icon, PWA icons 192/512, og-image (1200×630) and the header
+logo, including the `/optimized/*.webp` copies. Old localStorage keys
+(`ili_hifz_*`) were deliberately NOT renamed — renaming would have wiped
+existing users' progress; they are invisible to users. Old progress
+exports (`kind: iloveislam-hifz-export`) still import.
+
+### 16.2 UI simplification — Tarteel's structure, our branding
+tarteel.ai itself is a client-side app and would not render as text when
+fetched, so the simplification follows the Tarteel structure already
+documented in §11/§13 (minimal navigation, one primary action per screen,
+big Arabic, generous whitespace, everything else one tap away) rather than
+a pixel copy — and copies none of Tarteel's logo, name, artwork or wording.
+What changed: the homepage is now a slim hero with one primary CTA, the
+coach entry card, Continue, one searchable surah list and one slim
+verse-of-the-day card (the How-it-works grid, featured-surah cards, plans
+strip, Test/Voice Search cards and trust strip are gone from the page —
+all reachable from the hub/header). The hub is the same shape: compact
+header, Continue, the shared surah list (`SurahList.tsx`, one row per
+surah with search + progress + Recite), and a single "More" link list.
+The header has five links (Surahs, Recite, Test, Challenges, My Progress).
+Max content width on home/hub is now `max-w-3xl`, matching Tarteel's
+single-column reading feel.

@@ -857,7 +857,7 @@ export default function IslamicNamesFinder() {
         {/* Footer */}
         <div style={{ textAlign: 'center', marginTop: 32, paddingTop: 20, borderTop: '1px solid #ede8e0' }}>
           <p style={{ fontSize: 11, color: '#c0b8ae', margin: '0 0 10px', fontFamily: "'DM Sans', sans-serif" }}>
-            More tools from I Love Islam
+            More tools from Hifz
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 18, flexWrap: 'wrap' }}>
             {[

@@ -423,7 +423,7 @@ export const islamWorldReligionsComparisonToolArticle = {
 </p>
 
 <p class="text-center text-sm text-gray-500 dark:text-gray-400 mt-8">
-  Built with  for the Ummah | <a href="/" class="text-emerald-600 dark:text-emerald-400 hover:underline">I Love Islam</a> | Always Free
+  Built with  for the Ummah | <a href="/" class="text-emerald-600 dark:text-emerald-400 hover:underline">Hifz</a> | Always Free
 </p>
 
 </div>

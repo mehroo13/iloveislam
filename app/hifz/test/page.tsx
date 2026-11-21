@@ -5,7 +5,7 @@ import { Breadcrumb, Attribution } from '../components/HifzShared';
 import { SITE_URL } from '../lib/fetch';
 
 export const metadata: Metadata = {
-  title: 'Test Mode — Exam-Style Recall Test | I Love Islam',
+  title: 'Test Mode — Exam-Style Recall Test | Hifz',
   description:
     'Test your hifz like a teacher would: random ayahs from what you have memorised, Arabic hidden, no cue. Recite from memory and mark yourself honestly.',
   alternates: { canonical: `${SITE_URL}/hifz/test` },

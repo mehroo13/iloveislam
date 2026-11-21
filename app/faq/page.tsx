@@ -7,7 +7,7 @@ import { useState, useEffect, useMemo } from 'react';
 const FAQ_TRANSLATIONS: Record<string, any> = {
   en: {
     title: 'Frequently Asked Questions',
-    subtitle: 'Find answers to common questions about I Love Islam tools',
+    subtitle: 'Find answers to common questions about Hifz tools',
     backToHome: '← Back to Home',
     searchPlaceholder: 'Search questions...',
     noResults: 'No matching questions found.',
@@ -24,11 +24,11 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
     },
     faqs: [
       // ── General ──
-      { category: 'general', q: 'Is I Love Islam completely free?', a: 'Yes! All our tools are 100% free to use. No hidden fees, no subscription plans, and no credit card required. We believe every Muslim should have access to quality Islamic tools without financial barriers.' },
+      { category: 'general', q: 'Is Hifz completely free?', a: 'Yes! All our tools are 100% free to use. No hidden fees, no subscription plans, and no credit card required. We believe every Muslim should have access to quality Islamic tools without financial barriers.' },
       { category: 'general', q: 'Do I need to create an account?', a: 'No account needed! You can use all tools immediately without registration. Some features like saving your Dhikr progress use your browser\'s local storage, but no personal data is collected on our servers.' },
       { category: 'general', q: 'How accurate are the prayer times?', a: 'Prayer times are calculated using the Aladhan API, which uses accurate astronomical calculations based on your location. Times are adjusted for your specific city and follow standard Islamic calculation methods (Muslim World League by default).' },
       { category: 'general', q: 'Is the site available in multiple languages?', a: 'Yes! We support English, Arabic, Urdu, French, Turkish, Indonesian, Malay, and Bengali. More languages are being added regularly.' },
-      { category: 'general', q: 'Who built I Love Islam and why?', a: 'We are a small team of Muslims passionate about technology and faith. Our goal is to provide a single, reliable destination for essential Islamic tools — completely free for the global Ummah.' },
+      { category: 'general', q: 'Who built Hifz and why?', a: 'We are a small team of Muslims passionate about technology and faith. Our goal is to provide a single, reliable destination for essential Islamic tools — completely free for the global Ummah.' },
 
       // ── Tools ──
       { category: 'tools', q: 'How does the Zakat Calculator work?', a: 'Our Zakat Calculator helps you calculate your annual Zakat based on current gold/silver prices. Enter your assets (cash, gold, silver, investments, business goods) and liabilities (debts, expenses) to determine your Zakatable wealth, then calculate 2.5% of that amount.' },
@@ -98,7 +98,7 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
   // ===== URDU (full original kept) =====
   ur: {
     title: 'اکثر پوچھے جانے والے سوالات',
-    subtitle: 'I Love Islam ٹولز کے بارے میں عام سوالات کے جوابات حاصل کریں',
+    subtitle: 'Hifz ٹولز کے بارے میں عام سوالات کے جوابات حاصل کریں',
     backToHome: '← ہوم پیج پر واپس',
     searchPlaceholder: 'سوالات تلاش کریں...',
     noResults: 'کوئی مماثل سوال نہیں ملا۔',
@@ -111,7 +111,7 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
     faqs: [
       {
         category: 'general',
-        q: 'کیا I Love Islam مکمل طور پر مفت ہے؟',
+        q: 'کیا Hifz مکمل طور پر مفت ہے؟',
         a: 'جی ہاں! ہمارے تمام ٹولز 100% مفت ہیں۔ کوئی چھپی ہوئی فیس نہیں، کوئی سبسکرپشن نہیں۔ ہر مسلمان کو بغیر کسی رکاوٹ کے معیاری اسلامی ٹولز تک رسائی حاصل ہونی چاہیے۔',
       },
       {
@@ -133,7 +133,7 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
   // ===== FRENCH (full original kept) =====
   fr: {
     title: 'Questions Fréquemment Posées',
-    subtitle: 'Trouvez des réponses aux questions courantes sur les outils I Love Islam',
+    subtitle: 'Trouvez des réponses aux questions courantes sur les outils Hifz',
     backToHome: '← Retour à l\'accueil',
     searchPlaceholder: 'Rechercher...',
     noResults: 'Aucune question trouvée.',
@@ -146,7 +146,7 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
     faqs: [
       {
         category: 'general',
-        q: 'I Love Islam est-il complètement gratuit ?',
+        q: 'Hifz est-il complètement gratuit ?',
         a: 'Oui ! Tous nos outils sont 100% gratuits. Pas de frais cachés, pas d\'abonnement. Chaque musulman devrait avoir accès à des outils islamiques de qualité sans barrières financières.',
       },
       {
@@ -163,7 +163,7 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
   // ===== TURKISH (full original kept) =====
   tr: {
     title: 'Sıkça Sorulan Sorular',
-    subtitle: 'I Love Islam araçları hakkında sık sorulan soruların cevaplarını bulun',
+    subtitle: 'Hifz araçları hakkında sık sorulan soruların cevaplarını bulun',
     backToHome: '← Ana Sayfaya Dön',
     searchPlaceholder: 'Ara...',
     noResults: 'Eşleşen soru yok.',
@@ -176,7 +176,7 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
     faqs: [
       {
         category: 'general',
-        q: 'I Love Islam tamamen ücretsiz mi?',
+        q: 'Hifz tamamen ücretsiz mi?',
         a: 'Evet! Tüm araçlarımız %100 ücretsizdir. Gizli ücret yok, abonelik yok. Her Müslümanın kaliteli İslami araçlara erişimi olmalıdır.',
       },
     ],
@@ -188,7 +188,7 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
   // ===== INDONESIAN (full original kept) =====
   id: {
     title: 'Pertanyaan yang Sering Diajukan',
-    subtitle: 'Temukan jawaban untuk pertanyaan umum tentang alat I Love Islam',
+    subtitle: 'Temukan jawaban untuk pertanyaan umum tentang alat Hifz',
     backToHome: '← Kembali ke Beranda',
     searchPlaceholder: 'Cari...',
     noResults: 'Tidak ada pertanyaan cocok.',
@@ -201,7 +201,7 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
     faqs: [
       {
         category: 'general',
-        q: 'Apakah I Love Islam benar-benar gratis?',
+        q: 'Apakah Hifz benar-benar gratis?',
         a: 'Ya! Semua alat kami 100% gratis. Tidak ada biaya tersembunyi, tidak ada langganan. Setiap Muslim harus memiliki akses ke alat Islam berkualitas tanpa hambatan finansial.',
       },
     ],
@@ -213,7 +213,7 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
   // ===== MALAY (full original kept) =====
   ms: {
     title: 'Soalan Lazim',
-    subtitle: 'Cari jawapan kepada soalan lazim tentang alat I Love Islam',
+    subtitle: 'Cari jawapan kepada soalan lazim tentang alat Hifz',
     backToHome: '← Kembali ke Utama',
     searchPlaceholder: 'Cari...',
     noResults: 'Tiada soalan sepadan.',
@@ -226,7 +226,7 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
     faqs: [
       {
         category: 'general',
-        q: 'Adakah I Love Islam percuma sepenuhnya?',
+        q: 'Adakah Hifz percuma sepenuhnya?',
         a: 'Ya! Semua alat kami 100% percuma. Tiada yuran tersembunyi, tiada langganan. Setiap Muslim harus mempunyai akses kepada alat Islam berkualiti tanpa halangan kewangan.',
       },
     ],
@@ -238,7 +238,7 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
   // ===== BENGALI (full original kept) =====
   bn: {
     title: 'প্রায়শই জিজ্ঞাসিত প্রশ্নাবলী',
-    subtitle: 'I Love Islam টুলস সম্পর্কে সাধারণ প্রশ্নের উত্তর খুঁজুন',
+    subtitle: 'Hifz টুলস সম্পর্কে সাধারণ প্রশ্নের উত্তর খুঁজুন',
     backToHome: '← হোমে ফিরে যান',
     searchPlaceholder: 'অনুসন্ধান...',
     noResults: 'কোনো মিল পাওয়া যায়নি।',
@@ -251,7 +251,7 @@ const FAQ_TRANSLATIONS: Record<string, any> = {
     faqs: [
       {
         category: 'general',
-        q: 'I Love Islam কি সম্পূর্ণ বিনামূল্যে?',
+        q: 'Hifz কি সম্পূর্ণ বিনামূল্যে?',
         a: 'হ্যাঁ! আমাদের সমস্ত টুল 100% বিনামূল্যে। কোন লুকানো ফি নেই, কোন সাবস্ক্রিপশন নেই। প্রতিটি মুসলিমের আর্থিক বাধা ছাড়াই মানসম্পন্ন ইসলামিক টুলস অ্যাক্সেস করা উচিত।',
       },
     ],

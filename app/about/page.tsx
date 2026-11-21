@@ -18,7 +18,7 @@ export default function About() {
         {/* Hero */}
         <div className="bg-gradient-to-r from-emerald-900 to-emerald-700 text-white rounded-2xl p-8 text-center shadow-lg">
           <p className="text-4xl mb-3"></p>
-          <h2 className="text-2xl font-bold mb-2">I Love Islam</h2>
+          <h2 className="text-2xl font-bold mb-2">Hifz</h2>
           <p className="text-white/80 text-sm max-w-md mx-auto leading-relaxed">
             Free Islamic tools for every Muslim — no sign‑up, no fees, no barriers.
           </p>
@@ -26,9 +26,9 @@ export default function About() {
 
         {/* Introduction */}
         <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-          <h3 className="font-bold text-gray-800 text-lg mb-3">Welcome to I Love Islam</h3>
+          <h3 className="font-bold text-gray-800 text-lg mb-3">Welcome to Hifz</h3>
           <p className="text-gray-600 text-sm leading-relaxed mb-3">
-            I Love Islam is a comprehensive, free-to-use platform offering over 20 carefully crafted Islamic tools designed to support Muslims in their daily worship, spiritual growth, and practical religious needs. Whether you are looking to calculate your Zakat, find accurate prayer times, locate the Qibla direction, or read the Quran with translation, our platform provides everything you need in one convenient place.
+            Hifz is a comprehensive, free-to-use platform offering over 20 carefully crafted Islamic tools designed to support Muslims in their daily worship, spiritual growth, and practical religious needs. Whether you are looking to calculate your Zakat, find accurate prayer times, locate the Qibla direction, or read the Quran with translation, our platform provides everything you need in one convenient place.
           </p>
           <p className="text-gray-600 text-sm leading-relaxed mb-3">
             We launched this project with a simple belief: that every Muslim, regardless of their location, language, or financial situation, deserves access to reliable, well-designed Islamic tools. In a world where many apps charge subscription fees or require personal data, we chose a different path — one rooted in the Islamic principle of serving the Ummah without expecting anything in return.
@@ -53,7 +53,7 @@ export default function About() {
           {
             icon: '',
             title: 'Why We Built It',
-            body: 'The idea for I Love Islam came from a common frustration: Muslims needed multiple apps and websites to handle basic religious tasks — one for prayer times, another for Zakat, a third for Quran reading, and so on. Many of these were cluttered with ads, required accounts, or charged fees. Inspired by platforms like iLovePDF that simplify complex tasks into one clean interface, we set out to create the Islamic equivalent — a single, reliable, beautiful platform where every Muslim can find what they need without friction. We wanted to prove that Islamic tools can be both functional and beautifully designed.',
+            body: 'The idea for Hifz came from a common frustration: Muslims needed multiple apps and websites to handle basic religious tasks — one for prayer times, another for Zakat, a third for Quran reading, and so on. Many of these were cluttered with ads, required accounts, or charged fees. Inspired by platforms like iLovePDF that simplify complex tasks into one clean interface, we set out to create the Islamic equivalent — a single, reliable, beautiful platform where every Muslim can find what they need without friction. We wanted to prove that Islamic tools can be both functional and beautifully designed.',
           },
           {
             icon: '',
@@ -78,7 +78,7 @@ export default function About() {
           {
             icon: '',
             title: 'Community & Feedback',
-            body: 'I Love Islam belongs to the Ummah. We actively welcome feedback, suggestions, bug reports, and feature requests from our users. Many of our tools were built or improved based on community input. If you notice an error, have an idea for a new tool, or want to help with translations, we encourage you to reach out through our Contact page. Together, we can make this platform even more useful for Muslims everywhere. Every suggestion is read and considered carefully.',
+            body: 'Hifz belongs to the Ummah. We actively welcome feedback, suggestions, bug reports, and feature requests from our users. Many of our tools were built or improved based on community input. If you notice an error, have an idea for a new tool, or want to help with translations, we encourage you to reach out through our Contact page. Together, we can make this platform even more useful for Muslims everywhere. Every suggestion is read and considered carefully.',
           },
           {
             icon: '',

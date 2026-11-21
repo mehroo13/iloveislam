@@ -11,10 +11,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {
-  API, AUDIO_BASE, TRANSLATIONS, RECITERS, stripHtml, cleanIndopak,
+  API, AUDIO_BASE, TRANSLATIONS, RECITERS, stripHtml, cleanIndopak, verseText,
   type Verse,
 } from '../../quran/lib';
 import type { LaunchSurah } from '../surahs';
+import { useScriptPref, SCRIPT_LABELS } from '../lib/script';
 import {
   loadProgress, saveProgress, loadSettings, saveSettings,
   type HifzProgress,
@@ -75,6 +76,7 @@ export default function SurahClient({
   const [viewMode, setViewMode] = useState<ViewMode>('translation');
   const [translationId, setTranslationId] = useState(20);
   const [reciterId, setReciterId] = useState(7);
+  const [script, setScript] = useScriptPref();
   const [page, setPage] = useState(1);
   const [coachOpen, setCoachOpen] = useState(initialCoachOpen);
   const [coachAyahIndex, setCoachAyahIndex] = useState(
@@ -149,7 +151,7 @@ export default function SurahClient({
   const refetchVerses = useCallback(async (tId: number, rId: number) => {
     try {
       const res = await fetch(
-        `${API}/verses/by_chapter/${surah.id}?fields=text_indopak&translations=${tId}&audio=${rId}&per_page=all`,
+        `${API}/verses/by_chapter/${surah.id}?fields=text_indopak,text_uthmani&translations=${tId}&audio=${rId}&per_page=all`,
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
@@ -422,6 +424,18 @@ export default function SurahClient({
               ))}
             </select>
           </label>
+          <label className="flex items-center gap-2 text-sm font-medium">
+            Script
+            <select
+              value={script}
+              onChange={(e) => setScript(e.target.value as 'indopak' | 'uthmani')}
+              className="rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+            >
+              {(Object.keys(SCRIPT_LABELS) as ('indopak' | 'uthmani')[]).map((s) => (
+                <option key={s} value={s}>{SCRIPT_LABELS[s]}</option>
+              ))}
+            </select>
+          </label>
           <Link
             href={`/hifz/${surah.slug}/${surah.id}-1`}
             className="ml-auto text-sm font-semibold text-[#146B4D] underline"
@@ -429,6 +443,12 @@ export default function SurahClient({
             Open the first ayah
           </Link>
         </div>
+        {script === 'uthmani' && (
+          <p className="mt-3 text-xs leading-relaxed text-[#5b6b62]">
+            Reading in Madani (Uthmani) script. The recitation coach still checks
+            against the Indo-Pak text — its word alignment is built on it.
+          </p>
+        )}
       </section>
 
       {/* ---------- LISTEN ---------- */}
@@ -548,8 +568,8 @@ export default function SurahClient({
                   <span className="rounded-full bg-[#F7F5EF] px-2.5 py-1 text-xs font-bold text-[#5b6b62]">Learning</span>
                 )}
               </div>
-              <p dir="rtl" lang="ar" className="font-quran mt-4 text-right text-[28px] sm:text-4xl">
-                {cleanIndopak(v.text_indopak)}
+              <p dir="rtl" lang="ar" className={`font-quran ${script === 'uthmani' ? 'font-quran-madani' : ''} mt-4 text-right text-[28px] sm:text-4xl`}>
+                {verseText(v, script)}
               </p>
               {viewMode !== 'arabic' && translation && (
                 <p className="mt-4 text-[15px] leading-relaxed text-[#1C2420]/85">{translation}</p>

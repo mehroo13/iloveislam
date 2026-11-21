@@ -51,6 +51,7 @@ import {
   localDateString,
   markAttempt,
   recordMinutes,
+  recordTypeActivity,
   saveMistakes,
   saveProgress,
   saveSettings,
@@ -292,7 +293,10 @@ export default function RecitationCoach({
       setReciterId(id);
       setAudioNote(null);
       try {
-        const res = await fetch(
+        // Coach audio is fetched in Indo-Pak only, by design: the coach's
+      // word alignment is built on the Indo-Pak text (see lib/script.ts).
+      // The reader may show Madani, but the coach always checks Indo-Pak.
+      const res = await fetch(
           `${API}/verses/by_chapter/${surah}?fields=text_indopak&audio=${id}&per_page=all`,
         );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -437,6 +441,8 @@ export default function RecitationCoach({
         );
       }
       progress = recordMinutes(progress, opts.minutes);
+      // Per-type goal (§15.8): a coach attempt is memorisation practice.
+      progress = recordTypeActivity(progress, 'memorisation', opts.scope.length);
       saveProgress(progress);
       if (opts.mistakes.length > 0) {
         let log = loadMistakes();

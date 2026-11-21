@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: '99 Names of Allah (Asma ul Husna) — Meanings & Benefits | I Love Islam',
+  title: '99 Names of Allah (Asma ul Husna) — Meanings & Benefits | Hifz',
   description:
     'Explore the 99 names of Allah (Asma ul Husna) with Arabic, transliteration, meaning, and benefits. Learn, memorize, and reflect on the most beautiful names of Allah. Free, no sign-up.',
   keywords: [
@@ -9,17 +9,17 @@ export const metadata: Metadata = {
     'names of prophet', 'allah 99 names list', 'asma ul husna with meaning',
   ],
   openGraph: {
-    title: '99 Names of Allah (Asma ul Husna) — Meanings & Benefits | I Love Islam',
+    title: '99 Names of Allah (Asma ul Husna) — Meanings & Benefits | Hifz',
     description: 'Explore the 99 names of Allah with Arabic, transliteration, meaning, and benefits. Free, no sign-up.',
     url: 'https://www.iloveislam.life/names-of-allah',
-    siteName: 'I Love Islam',
+    siteName: 'Hifz',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: '99 Names of Allah (Asma ul Husna) — Meanings & Benefits | I Love Islam',
+    title: '99 Names of Allah (Asma ul Husna) — Meanings & Benefits | Hifz',
     description: 'Explore the 99 names of Allah with Arabic, transliteration, meaning, and benefits. Free, no sign-up.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/names-of-allah' },
@@ -41,7 +41,7 @@ const jsonLd = {
       description:
         'Browse and learn the 99 names of Allah (Asma ul Husna) and the blessed names of Prophet Muhammad ﷺ, each with Arabic, transliteration, meaning, and benefits.',
       url: 'https://www.iloveislam.life/names-of-allah',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
+      provider: { '@type': 'Organization', name: 'Hifz', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',

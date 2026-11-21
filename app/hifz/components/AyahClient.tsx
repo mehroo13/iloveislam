@@ -8,11 +8,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {
-  API, AUDIO_BASE, TRANSLATIONS, RECITERS, stripHtml, cleanIndopak,
+  API, AUDIO_BASE, TRANSLATIONS, RECITERS, stripHtml, cleanIndopak, verseText,
   type Verse,
 } from '../../quran/lib';
 import type { LaunchSurah } from '../surahs';
 import { loadProgress, saveProgress, type HifzProgress } from '../progress';
+import { useScriptPref, SCRIPT_LABELS } from '../lib/script';
 import ToolIcon from '../../components/ToolIcon';
 import TafsirBlock from './TafsirBlock';
 import type { CoachAyah } from './RecitationCoach';
@@ -47,6 +48,7 @@ export default function AyahClient({
   const [reciterId, setReciterId] = useState(7);
   const [viewMode, setViewMode] = useState<ViewMode>('translation');
   const [coachOpen, setCoachOpen] = useState(initialCoachOpen);
+  const [script, setScript] = useScriptPref();
 
   /* ?mode=recite is read client-side so the server page stays static. */
   useEffect(() => {
@@ -89,7 +91,7 @@ export default function AyahClient({
     async (tId: number, rId: number) => {
       try {
         const res = await fetch(
-          `${API}/verses/by_key/${key}?fields=text_indopak&translations=${tId}&audio=${rId}`,
+          `${API}/verses/by_key/${key}?fields=text_indopak,text_uthmani&translations=${tId}&audio=${rId}`,
         );
         if (!res.ok) return;
         const data = await res.json();
@@ -178,8 +180,8 @@ export default function AyahClient({
 
       {/* Arabic + translation */}
       <article className="rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm sm:p-6">
-        <p dir="rtl" lang="ar" className="font-quran text-right text-4xl sm:text-5xl">
-          {cleanIndopak(verse.text_indopak)}
+        <p dir="rtl" lang="ar" className={`font-quran ${script === 'uthmani' ? 'font-quran-madani' : ''} text-right text-4xl sm:text-5xl`}>
+          {verseText(verse, script)}
         </p>
         {viewMode !== 'arabic' && translation && (
           <p className="mt-5 text-base leading-relaxed text-[#1C2420]/85 sm:text-lg">{translation}</p>
@@ -267,7 +269,25 @@ export default function AyahClient({
               ))}
             </select>
           </label>
+          <label className="flex items-center gap-2 text-sm font-medium">
+            Script
+            <select
+              value={script}
+              onChange={(e) => setScript(e.target.value as 'indopak' | 'uthmani')}
+              className="rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-2 py-1.5 text-sm"
+            >
+              {(Object.keys(SCRIPT_LABELS) as ('indopak' | 'uthmani')[]).map((s) => (
+                <option key={s} value={s}>{SCRIPT_LABELS[s]}</option>
+              ))}
+            </select>
+          </label>
         </div>
+        {script === 'uthmani' && (
+          <p className="mt-3 text-xs leading-relaxed text-[#5b6b62]">
+            Reading in Madani (Uthmani) script. The recitation coach still checks
+            against the Indo-Pak text — its word alignment is built on it.
+          </p>
+        )}
 
         {/* Tafsir renders ONLY in Tafsir mode (commit 12a3449 — do not regress). */}
         {viewMode === 'tafsir' && (

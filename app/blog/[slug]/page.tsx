@@ -23,9 +23,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const description = seo?.description ?? article.excerpt;
   const url = `https://www.iloveislam.life/blog/${article.slug}`;
   return {
-    // `absolute` bypasses the blog layout's '%s | I Love Islam' template:
+    // `absolute` bypasses the blog layout's '%s | Hifz' template:
     // the tabled titles already carry the suffix where they have one, so
-    // without this they would render doubled ("… | I Love Islam | I Love Islam").
+    // without this they would render doubled ("… | Hifz | Hifz").
     title: { absolute: title },
     description,
     keywords: [article.category, 'islamic guide', 'muslim tips', article.slug.replace(/-/g, ' ')],
@@ -39,10 +39,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description,
       url,
       type: 'article',
-      siteName: 'I Love Islam',
+      siteName: 'Hifz',
       locale: 'en_US',
       publishedTime: article.date,
-      authors: ['I Love Islam'],
+      authors: ['Hifz'],
       images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: title }],
     },
     twitter: {
@@ -89,10 +89,10 @@ export default async function BlogPostPage({ params }: PageProps) {
             "headline": article.title,
             "description": article.excerpt,
             "datePublished": article.date,
-            "author": { "@type": "Organization", "name": "I Love Islam" },
+            "author": { "@type": "Organization", "name": "Hifz" },
             "publisher": {
               "@type": "Organization",
-              "name": "I Love Islam",
+              "name": "Hifz",
               "logo": { "@type": "ImageObject", "url": "https://www.iloveislam.life/icon-512.png" }
             }
           }),

@@ -29,7 +29,7 @@ export default function ShareButton({ religions, topics }: Props) {
     const url = window.location.href;
     const religionNames = religions.join(", ");
     const topicNames = topics.join(", ");
-    const text = `Compare Islam with ${religionNames} on topics: ${topicNames} | I Love Islam`;
+    const text = `Compare Islam with ${religionNames} on topics: ${topicNames} | Hifz`;
 
     switch (type) {
       case "copy":

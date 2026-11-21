@@ -1,5 +1,6 @@
 'use client';
-// app/components/Header.tsx — sticky site header, new emerald + gold identity.
+// app/components/Header.tsx — sticky site header, Hifz identity (emerald + gold).
+// Tarteel-simple: five links, no more — everything else lives on the Hifz hub.
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -7,13 +8,10 @@ import { usePathname } from 'next/navigation';
 import ToolIcon from './ToolIcon';
 
 const NAV_LINKS = [
-  { href: '/', label: 'Home' },
-  { href: '/hifz', label: 'Hifz' },
+  { href: '/hifz', label: 'Surahs' },
   { href: '/hifz/recite', label: 'Recite' },
-  { href: '/hifz/test', label: 'Test Mode' },
-  { href: '/hifz/voice-search', label: 'Voice Search' },
-  { href: '/hifz/plans', label: 'Plans' },
-  { href: '/hifz/juz-amma', label: 'Juz Amma' },
+  { href: '/hifz/test', label: 'Test' },
+  { href: '/hifz/challenges', label: 'Challenges' },
   { href: '/hifz/my-progress', label: 'My Progress' },
 ];
 
@@ -31,15 +29,15 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 bg-[#0B3D2E] text-white shadow-md">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-3 sm:px-4">
-        <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label="I Love Islam — home">
-          <Image src="/logo.svg" alt="I Love Islam logo" width={36} height={36} priority />
+        <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label="Hifz — home">
+          <Image src="/logo.svg" alt="Hifz logo" width={36} height={36} priority />
           <span className="text-lg font-bold leading-none tracking-tight">
-            I Love <span className="text-[#E7D9A8]">Islam</span>
+            Hifz
           </span>
         </Link>
 
         {/* Desktop nav */}
-        <nav aria-label="Main navigation" className="hidden items-center xl:flex">
+        <nav aria-label="Main navigation" className="hidden items-center md:flex">
           {NAV_LINKS.map((link) => (
             <Link key={link.href} href={link.href} className={linkClass(link.href)}>
               {link.label}
@@ -50,7 +48,7 @@ export default function Header() {
         {/* Mobile hamburger */}
         <button
           type="button"
-          className="flex h-10 w-10 items-center justify-center rounded-md text-white transition-colors hover:bg-white/10 xl:hidden"
+          className="flex h-10 w-10 items-center justify-center rounded-md text-white transition-colors hover:bg-white/10 md:hidden"
           aria-expanded={open}
           aria-controls="mobile-nav"
           aria-label={open ? 'Close menu' : 'Open menu'}
@@ -67,7 +65,7 @@ export default function Header() {
         <nav
           id="mobile-nav"
           aria-label="Mobile navigation"
-          className="border-t border-white/10 bg-[#0B3D2E] px-3 pb-4 pt-2 xl:hidden"
+          className="border-t border-white/10 bg-[#0B3D2E] px-3 pb-4 pt-2 md:hidden"
         >
           <ul className="flex flex-col">
             {NAV_LINKS.map((link) => (

@@ -1,10 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="logoTitle logoDesc">
-  <title id="logoTitle">I Love Islam</title>
-  <desc id="logoDesc">Eight-point star in gold and deep emerald</desc>
-  <!-- Outer eight-point star: gold -->
-  <polygon fill="#C9A227" points="62,32 44,37 53.2,53.2 37,44 32,62 27,44 10.8,53.2 20,37 2,32 20,27 10.8,10.8 27,20 32,2 37,20 53.2,10.8 44,27"/>
-  <!-- Inner eight-point star: deep emerald -->
-  <polygon fill="#0B3D2E" points="47,32 38,34.5 42.6,42.6 34.5,38 32,47 29.5,38 21.4,42.6 26,34.5 17,32 26,29.5 21.4,21.4 29.5,26 32,17 34.5,26 42.6,21.4 38,29.5"/>
-  <!-- Centre: gold-light dot -->
-  <circle cx="32" cy="32" r="4" fill="#E7D9A8"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Hifz logo">
+  <rect width="512" height="512" rx="112" fill="#0B3D2E"/>
+  <polygon fill="#C9A227" points="256.0,36.0 287.4,160.2 397.4,94.6 331.8,204.6 456.0,236.0 331.8,267.4 397.4,377.4 287.4,311.8 256.0,436.0 224.6,311.8 114.6,377.4 180.2,267.4 56.0,236.0 180.2,204.6 114.6,94.6 224.6,160.2"/>
+  <polygon fill="#FFFFFF" points="126,296 256,336 386,296 386,396 256,436 126,396"/>
+  <line x1="256" y1="336" x2="256" y2="436" stroke="#0B3D2E" stroke-width="9"/>
 </svg>

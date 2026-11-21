@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Dua Library — 18 Authentic Duas from Quran & Sunnah | I Love Islam',
+  title: 'Dua Library — 18 Authentic Duas from Quran & Sunnah | Hifz',
   description:
     'Browse all 56 authentic duas in our collection — for anxiety, sleep, travel, exams, parents, sickness and more. Arabic, transliteration, translation and source for every dua. Free, no sign-up.',
   keywords: [
@@ -15,18 +15,18 @@ export const metadata: Metadata = {
     'dua for exams',
   ],
   openGraph: {
-    title: 'Dua Library — 18 Authentic Duas from Quran & Sunnah | I Love Islam',
+    title: 'Dua Library — 18 Authentic Duas from Quran & Sunnah | Hifz',
     description:
       'Browse all 56 authentic duas — Arabic, transliteration, translation and source for every dua. Free, no sign-up.',
     url: 'https://www.iloveislam.life/dua',
-    siteName: 'I Love Islam',
+    siteName: 'Hifz',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Dua Library — 18 Authentic Duas from Quran & Sunnah | I Love Islam',
+    title: 'Dua Library — 18 Authentic Duas from Quran & Sunnah | Hifz',
     description:
       'Browse all 56 authentic duas — Arabic, transliteration, translation and source for every dua. Free, no sign-up.',
   },
@@ -50,7 +50,7 @@ const jsonLd = {
       description:
         'A curated collection of 56 authentic duas from the Quran and Sahih hadith. Each dua includes the original Arabic text, transliteration, translation and source reference.',
       url: 'https://www.iloveislam.life/dua',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
+      provider: { '@type': 'Organization', name: 'Hifz', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',

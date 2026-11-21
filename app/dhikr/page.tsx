@@ -517,7 +517,7 @@ export default function DhikrCounter() {
 
   const handleShare = async () => {
     if (navigator.share) {
-      try { await navigator.share({ title: 'Dhikr Counter — I Love Islam', text: shareText, url: 'https://www.iloveislam.life/dhikr' }); return; } catch {}
+      try { await navigator.share({ title: 'Dhikr Counter — Hifz', text: shareText, url: 'https://www.iloveislam.life/dhikr' }); return; } catch {}
     }
     setShowShare(true);
   };

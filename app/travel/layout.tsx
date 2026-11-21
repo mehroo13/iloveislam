@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Halal Travel — Find Mosques, Halal Food, Hotels & Prayer Times | I Love Islam',
+  title: 'Halal Travel — Find Mosques, Halal Food, Hotels & Prayer Times | Hifz',
   description:
     'Find mosques, halal restaurants, hotels, and prayer times for your journey. Travel with confidence — free, no sign‑up.',
   keywords: [
@@ -9,17 +9,17 @@ export const metadata: Metadata = {
     'hotels near mosque', 'halal travel guide', 'muslim travel', 'halal trip planner',
   ],
   openGraph: {
-    title: 'Muslim Travel Guide — Halal Food & Mosque Finder | I Love Islam',
+    title: 'Muslim Travel Guide — Halal Food & Mosque Finder | Hifz',
     description: 'Find everything you need for a blessed journey: halal food, mosques, hotels, and prayer times.',
     url: 'https://www.iloveislam.life/halal-travel',
-    siteName: 'I Love Islam',
+    siteName: 'Hifz',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Halal Travel | I Love Islam',
+    title: 'Halal Travel | Hifz',
     description: 'Free halal travel assistant with mosque and restaurant finder.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/halal-travel' },
@@ -41,7 +41,7 @@ const jsonLd = {
       description:
         'A complete halal travel companion: find halal restaurants, mosques, and hotels near any location or city, plus get prayer times for your destination.',
       url: 'https://www.iloveislam.life/halal-travel',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
+      provider: { '@type': 'Organization', name: 'Hifz', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Zakat Calculator 2026 — Free Zakat Calculator | I Love Islam',
+  title: 'Zakat Calculator 2026 — Free Zakat Calculator | Hifz',
   description:
     'Calculate your Zakat accurately. Enter gold, silver, cash, investments, and debts. Supports any currency, live gold prices, and tola/grams. Free, no sign-up.',
   keywords: [
@@ -9,17 +9,17 @@ export const metadata: Metadata = {
     'zakat money', 'zakat percentage', 'zakah', 'how much zakat', 'zakat due date',
   ],
   openGraph: {
-    title: 'Zakat Calculator 2026 — Free Zakat Calculator | I Love Islam',
+    title: 'Zakat Calculator 2026 — Free Zakat Calculator | Hifz',
     description: 'Calculate your Zakat accurately. Enter gold, silver, cash, investments, and debts. Supports any currency, live gold prices, and tola/grams. Free, no sign-up.',
     url: 'https://www.iloveislam.life/zakat',
-    siteName: 'I Love Islam',
+    siteName: 'Hifz',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Free Islamic Tools' }],
+    images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'Hifz — Free Islamic Tools' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Zakat Calculator 2026 — Free Zakat Calculator | I Love Islam',
+    title: 'Zakat Calculator 2026 — Free Zakat Calculator | Hifz',
     description: 'Calculate your Zakat accurately. Enter gold, silver, cash, investments, and debts. Supports any currency, live gold prices, and tola/grams. Free, no sign-up.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/zakat' },
@@ -41,7 +41,7 @@ const jsonLd = {
       description:
         'Calculate your annual Zakat obligation based on gold, silver, cash, investments, and debts. Supports any currency and live metal prices.',
       url: 'https://www.iloveislam.life/zakat',
-      provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
+      provider: { '@type': 'Organization', name: 'Hifz', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',

@@ -10,7 +10,7 @@ import { Breadcrumb, Attribution, PremiumSection } from '../components/HifzShare
 import { SITE_URL } from '../lib/fetch';
 
 export const metadata: Metadata = {
-  title: 'Hifz Plans — 7-Day, 30-Day & 90-Day | I Love Islam',
+  title: 'Hifz Plans — 7-Day, 30-Day & 90-Day | Hifz',
   description:
     'Memorisation plans for every launch surah: 7-day plans, 30-day plans and the Juz Amma 90-day plan, each paired with the recitation coach.',
   alternates: { canonical: `${SITE_URL}/hifz/plans` },

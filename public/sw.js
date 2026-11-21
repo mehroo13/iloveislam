@@ -1,11 +1,21 @@
-// I Love Islam — Advanced Service Worker v2.1.0
-// Offline-first PWA for the single-purpose Hifz app (refocus 2026-11-21).
+// Hifz — Advanced Service Worker v3.0.0
+// Offline-first PWA for the single-purpose Hifz app (rebrand 2026-11-21).
+//
+// Offline coach (§15.10): the coach model (Tilawa, hosted on tilawa.dev,
+// downloaded through the Cache API) and the ONNX runtime WASM are cached
+// by MODEL_CACHE below, and the Quran proxy responses are cached for 7
+// days (Quran text never changes). After one online recitation — which
+// downloads the model — plus "Save surahs for offline use" on My Progress,
+// the coach works in airplane mode: pages, surah text and model all come
+// from cache. Voice Search still needs the network (browser speech
+// recognition); the page says so.
 
-const CACHE_VERSION = 'iloveislam-v2.0.0';
-const STATIC_CACHE = 'iloveislam-static-v2';
-const DYNAMIC_CACHE = 'iloveislam-dynamic-v2';
-const API_CACHE = 'iloveislam-api-v2';
-const IMAGE_CACHE = 'iloveislam-images-v2';
+const CACHE_VERSION = 'hifz-v3.0.0';
+const STATIC_CACHE = 'hifz-static-v3';
+const DYNAMIC_CACHE = 'hifz-dynamic-v3';
+const API_CACHE = 'hifz-api-v3';
+const IMAGE_CACHE = 'hifz-images-v3';
+const MODEL_CACHE = 'hifz-model-v3';
 const OFFLINE_URL = '/offline.html';
 
 // ==================== CACHE STRATEGIES FOR THE HIFZ APP ====================
@@ -17,6 +27,7 @@ const NETWORK_FIRST_ROUTES = [
   '/hifz/voice-search',
   '/hifz/plans',
   '/hifz/my-progress',
+  '/hifz/challenges',
   '/hifz/juz-amma',
 ];
 
@@ -41,8 +52,22 @@ const CACHEABLE_API_PATTERNS = [
   '/api/quran',
 ];
 
-// API cache expiry (in milliseconds)
-const API_CACHE_EXPIRY = 30 * 60 * 1000; // 30 minutes
+// API cache expiry (in milliseconds) — Quran text never changes, so the
+// proxy responses stay usable offline for 7 days; networkFirstWithExpiry
+// returns even an expired entry when offline rather than nothing.
+const API_CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+// Coach model assets (§15.10): Tilawa hosts its ONNX model on tilawa.dev
+// and its WASM runtime on a CDN. These are large, versioned, immutable
+// files — cache-first, so the coach works in airplane mode after the
+// first download. (Tilawa also caches through the Cache API itself;
+// this is the service-worker's copy of the same guarantee.)
+function isModelRequest(url) {
+  if (url.hostname.includes('tilawa.dev')) return true;
+  if (/\.(onnx|wasm|mjs)$/i.test(url.pathname)) return true;
+  if (url.hostname.includes('cdn.jsdelivr.net') && url.pathname.includes('onnxruntime')) return true;
+  return false;
+}
 
 // ==================== INSTALL EVENT ====================
 self.addEventListener('install', (event) => {
@@ -65,7 +90,7 @@ self.addEventListener('install', (event) => {
 
 // ==================== ACTIVATE EVENT ====================
 self.addEventListener('activate', (event) => {
-  const currentCaches = [STATIC_CACHE, DYNAMIC_CACHE, API_CACHE, IMAGE_CACHE];
+  const currentCaches = [STATIC_CACHE, DYNAMIC_CACHE, API_CACHE, IMAGE_CACHE, MODEL_CACHE];
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -97,6 +122,14 @@ self.addEventListener('fetch', (event) => {
   if (url.hostname.includes('google-analytics') || url.hostname.includes('googletagmanager')) return;
   if (url.hostname.includes('pagead2.googlesyndication.com')) return;
   if (url.hostname.includes('doubleclick.net')) return;
+
+  // Coach model files (Tilawa model + ONNX WASM) — Cache First, so the
+  // coach works in airplane mode after the first download (§15.10).
+  // Cross-origin: cache only opaque-safe successful responses.
+  if (isModelRequest(url)) {
+    event.respondWith(cacheFirst(event.request, MODEL_CACHE));
+    return;
+  }
 
   // Handle API requests — Network First with cache fallback + expiry
   if (url.pathname.startsWith('/api/')) {
@@ -345,7 +378,7 @@ self.addEventListener('push', (event) => {
   try {
     data = event.data.json();
   } catch (e) {
-    data = { title: 'I Love Islam', body: event.data.text() };
+    data = { title: 'Hifz', body: event.data.text() };
   }
 
   const options = {
@@ -358,12 +391,12 @@ self.addEventListener('push', (event) => {
       dateOfArrival: Date.now(),
     },
     actions: data.actions || [],
-    tag: data.tag || 'iloveislam-notification',
+    tag: data.tag || 'hifz-notification',
     renotify: true,
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'I Love Islam', options)
+    self.registration.showNotification(data.title || 'Hifz', options)
   );
 });
 

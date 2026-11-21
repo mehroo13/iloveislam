@@ -10,7 +10,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
-  loadProgress, saveProgress, markAttempt, recordMinutes, pickTestPool,
+  loadProgress, saveProgress, markAttempt, recordMinutes, recordTypeActivity,
+  pickTestPool,
   type HifzProgress,
 } from '../progress';
 import { LAUNCH_SURAHS, getSurahById, AYAT_AL_KURSI } from '../surahs';
@@ -137,6 +138,8 @@ export default function TestClient() {
       const honest = revealed ? false : correct;
       let next = markAttempt(progress, q.surah, q.ayah, honest ? 'correct' : 'miss');
       next = recordMinutes(next, 1);
+      // Per-type goal (§15.8): a test question is revision practice.
+      next = recordTypeActivity(next, 'revision', 1);
       saveProgress(next);
       setProgress(next);
       setResults((r) => [...r, honest]);
