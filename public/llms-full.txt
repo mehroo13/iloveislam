@@ -1035,13 +1035,3 @@ One page per ayah: Arabic (Indo-Pak script), Saheeh International translation, w
 - [https://www.iloveislam.life/hifz/an-nas/114-6](https://www.iloveislam.life/hifz/an-nas/114-6): Surah An-Nas ayah 6 (114:6) — Arabic, translation, word-by-word, audio and tafsir via Quran.com.
 - [https://www.iloveislam.life/hifz/al-baqarah/2-255](https://www.iloveislam.life/hifz/al-baqarah/2-255): Ayat al-Kursi (2:255) — Arabic, translation, word-by-word, audio and tafsir via Quran.com.
 
-## Other tools (utilities, not part of the Hifz hub)
-
-- [https://www.iloveislam.life/quran](https://www.iloveislam.life/quran): Read the whole Quran — full reader, all 114 surahs; text via Quran.com.
-- [https://www.iloveislam.life/dua-for-this-moment](https://www.iloveislam.life/dua-for-this-moment): Dua for This Moment — the right dua for your exact situation, with audio.
-- [https://www.iloveislam.life/prayer-times](https://www.iloveislam.life/prayer-times): Prayer times — monthly timetable.
-- [https://www.iloveislam.life/qibla](https://www.iloveislam.life/qibla): Qibla finder.
-- [https://www.iloveislam.life/zakat](https://www.iloveislam.life/zakat): Zakat calculator.
-- [https://www.iloveislam.life/dhikr](https://www.iloveislam.life/dhikr): Dhikr counter.
-- [https://www.iloveislam.life/names](https://www.iloveislam.life/names): The 99 Names of Allah.
-- [https://www.iloveislam.life/hadith](https://www.iloveislam.life/hadith): Hadith search.

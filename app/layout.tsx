@@ -19,28 +19,25 @@ export const viewport: Viewport = {
   themeColor: '#0B3D2E',
 };
 
-const SITE_TITLE = 'I Love Islam — Your Daily Companion for Prayer, Quran & Duas';
+const SITE_TITLE = 'I Love Islam — Memorise the Quran with an AI Recitation Coach';
 const SITE_DESCRIPTION =
-  'Your daily companion for prayer, Quran and duas. Find the right Dua for This Moment, read the Quran in Indo-Pak script, check prayer times, find the Qibla, calculate zakat, count dhikr and explore the 99 Names of Allah. Free forever. No sign-up.';
+  'Memorise the Quran with an AI recitation coach: recite aloud and get instant word-by-word feedback, with hifz plans, Test Mode, Voice Search, streaks and mistake review. Free forever. No sign-up. Your audio never leaves your device.';
 
 export const metadata: Metadata = {
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
   metadataBase: new URL('https://www.iloveislam.life'),
   keywords: [
-    'Islamic tools',
-    'Muslim tools',
-    'Dua for This Moment',
-    'Quran reader Indo-Pak script',
-    'Prayer times',
-    'Qibla finder',
-    'Zakat calculator',
-    'Dhikr counter',
-    '99 Names of Allah',
-    'Hijri calendar',
-    'Hadith search',
-    'Hajj checklist',
-    'Inheritance calculator',
+    'memorise quran',
+    'hifz',
+    'quran memorisation',
+    'AI recitation coach',
+    'quran mistake detection',
+    'surah al-mulk',
+    'juz amma',
+    'ayat al-kursi',
+    'quran test mode',
+    'voice search quran',
   ],
   authors: [{ name: 'I Love Islam', url: 'https://www.iloveislam.life' }],
   robots: { index: true, follow: true },
@@ -63,7 +60,7 @@ export const metadata: Metadata = {
         url: '/optimized/og-image.webp',
         width: 1200,
         height: 630,
-        alt: 'I Love Islam — Your Daily Companion for Prayer, Quran & Duas',
+        alt: 'I Love Islam — Memorise the Quran with an AI Recitation Coach',
       },
     ],
   },
@@ -86,9 +83,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${geist.variable} h-full antialiased`}>
       <head>
         <link rel="preload" href="/optimized/og-image.webp" as="image" />
-        
-        {/* Tabler Icons CDN for Compare Religions tool */}
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
 
         {/* Apple PWA meta tags */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -140,16 +134,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   contactPoint: {
                     '@type': 'ContactPoint',
                     contactType: 'customer support',
-                    url: 'https://www.iloveislam.life/contact',
                     email: 'contact@iloveislam.life',
                   },
                 },
                 {
                   '@type': 'WebApplication',
-                  name: 'I Love Islam — Your Daily Companion for Prayer, Quran & Duas',
+                  name: 'I Love Islam — Memorise the Quran with an AI Recitation Coach',
                   description: SITE_DESCRIPTION,
                   url: 'https://www.iloveislam.life',
-                  applicationCategory: 'LifestyleApplication',
+                  applicationCategory: 'EducationalApplication',
                   operatingSystem: 'Web',
                   browserRequirements: 'Requires JavaScript',
                   offers: {
@@ -157,7 +150,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     price: '0',
                     priceCurrency: 'USD',
                   },
-                  featureList: 'Dua for This Moment, Quran Reader in Indo-Pak script, Prayer Times, Qibla Finder, Zakat Calculator, Dhikr Counter, 99 Names of Allah, Hijri Calendar, Hadith Search, Hajj Checklist, Inheritance Calculator, Ramadan Planner, Night Recitation, and more',
+                  featureList: 'AI Recitation Coach with live word-by-word mistake detection, Memorisation Mode with hidden verses and peeking, Test Mode, Voice Search, Hifz Plans, Streaks, Mistake Review, Activity Heatmaps, Per-Surah Strength, Juz Amma, Tafsir and Translations',
                   screenshot: 'https://www.iloveislam.life/optimized/og-image.webp',
                   author: { '@id': '#organization' },
                   publisher: { '@id': '#organization' },

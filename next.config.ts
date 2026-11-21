@@ -12,6 +12,48 @@ try {
 }
 
 const nextConfig: NextConfig = {
+  // Single-purpose Hifz app (2026-11-21 refocus): every old tool route is
+  // permanently redirected to the Hifz hub. The old route folders stay in
+  // the repo (app/quran/lib.ts is shared by the Hifz pages) but no old tool
+  // URL can ever be served again — redirects run before routing.
+  async redirects() {
+    const retired = [
+      'about',
+      'blog',
+      'compare-religions',
+      'contact',
+      'dhikr',
+      'dua',
+      'dua-for-this-moment',
+      'eid',
+      'eid-adha',
+      'faq',
+      'hadith',
+      'hajj',
+      'halal-finance',
+      'hijri',
+      'inheritance',
+      'install',
+      'kaffarah',
+      'mizan',
+      'names',
+      'names-finder',
+      'night',
+      'prayer-times',
+      'qibla',
+      'quran',
+      'ramadan',
+      'sadaqah',
+      'travel',
+      'zakat',
+    ];
+    const rules: { source: string; destination: string; permanent: boolean }[] = [];
+    for (const route of retired) {
+      rules.push({ source: `/${route}`, destination: '/hifz', permanent: true });
+      rules.push({ source: `/${route}/:path*`, destination: '/hifz', permanent: true });
+    }
+    return rules;
+  },
   async headers() {
     return [
       {

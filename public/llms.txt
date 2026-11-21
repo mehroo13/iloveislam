@@ -15,6 +15,8 @@
 - [Juz Amma](https://www.iloveislam.life/hifz/juz-amma): Juz Amma (Juz 30) — all 37 short surahs, shortest first, the beginner path.
 - [Juz 30](https://www.iloveislam.life/hifz/juz/30): Juz 30 overview — same content as Juz Amma.
 - [Ayat al-Kursi](https://www.iloveislam.life/hifz/ayat-al-kursi): Ayat al-Kursi (2:255) — single-ayah study page; Quran text via Quran.com.
+- [Test Mode](https://www.iloveislam.life/hifz/test): Exam-style recall test — random ayahs from your memorised text, Arabic hidden, no cue; a reveal counts as a miss.
+- [Voice Search](https://www.iloveislam.life/hifz/voice-search): Recite a few words of any ayah and find it instantly; matches in the launch set open in the coach.
 
 ## Launch surahs
 
@@ -65,17 +67,6 @@
 ## Ayah pages
 
 - Every ayah has its own page at /hifz/[surah-slug]/[surah]-[ayah] — for example /hifz/al-mulk/67-1 — with Arabic, translation, word-by-word, audio and tafsir via Quran.com. The full list (969 ayah URLs) is in llms-full.txt.
-
-## Other tools
-
-- [Dua for This Moment](https://www.iloveislam.life/dua-for-this-moment): The right dua for your exact situation, with audio.
-- [Quran reader](https://www.iloveislam.life/quran): Read the whole Quran — full reader, all 114 surahs; text via Quran.com.
-- [Prayer times](https://www.iloveislam.life/prayer-times): Prayer times and monthly timetable.
-- [Qibla finder](https://www.iloveislam.life/qibla): Qibla direction.
-- [Zakat calculator](https://www.iloveislam.life/zakat): Zakat calculator.
-- [Dhikr counter](https://www.iloveislam.life/dhikr): Dhikr counter.
-- [99 Names of Allah](https://www.iloveislam.life/names): The 99 Names of Allah.
-- [Hadith search](https://www.iloveislam.life/hadith): Hadith search.
 
 ## Sources
 

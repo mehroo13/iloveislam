@@ -1,5 +1,5 @@
-// I Love Islam — Advanced Service Worker v2.0.0
-// Comprehensive offline-first PWA with per-tool caching strategies
+// I Love Islam — Advanced Service Worker v2.1.0
+// Offline-first PWA for the single-purpose Hifz app (refocus 2026-11-21).
 
 const CACHE_VERSION = 'iloveislam-v2.0.0';
 const STATIC_CACHE = 'iloveislam-static-v2';
@@ -8,39 +8,20 @@ const API_CACHE = 'iloveislam-api-v2';
 const IMAGE_CACHE = 'iloveislam-images-v2';
 const OFFLINE_URL = '/offline.html';
 
-// ==================== CACHE STRATEGIES PER TOOL ====================
-// Cache First — fully offline tools (instant, no internet needed)
-const CACHE_FIRST_ROUTES = [
-  '/dhikr',
-  '/zakat',
-  '/names',
-  '/hijri',
-  '/dua',
-  '/ramadan',
-  '/sadaqah',
-  '/inheritance',
-  '/halal-finance',
-  '/kaffarah',
-  '/names-finder',
-  '/eid',
-  '/eid-adha',
-  '/hadith',
-  '/night',
-  '/mizan',
-  '/install',
-];
-
-// Network First — dynamic tools (try network, fallback to cache)
+// ==================== CACHE STRATEGIES FOR THE HIFZ APP ====================
+// Network First — Hifz pages are dynamic (Quran text comes from the API).
 const NETWORK_FIRST_ROUTES = [
-  '/prayer-times',
-  '/qibla',
-  '/travel',
-  '/quran',
-  '/hajj',
+  '/hifz',
+  '/hifz/recite',
+  '/hifz/test',
+  '/hifz/voice-search',
+  '/hifz/plans',
+  '/hifz/my-progress',
+  '/hifz/juz-amma',
 ];
 
-// All tool routes combined
-const ALL_TOOL_ROUTES = [...CACHE_FIRST_ROUTES, ...NETWORK_FIRST_ROUTES];
+// All Hifz routes combined
+const ALL_TOOL_ROUTES = [...NETWORK_FIRST_ROUTES];
 
 // Static assets to precache on install
 const PRECACHE_ASSETS = [
@@ -55,10 +36,9 @@ const PRECACHE_ASSETS = [
   '/logo2.png',
 ];
 
-// API endpoints to cache with expiry
+// API endpoints to cache with expiry — the Hifz app's Quran proxy only.
 const CACHEABLE_API_PATTERNS = [
-  '/api/live-prices',
-  '/api/halal-checker',
+  '/api/quran',
 ];
 
 // API cache expiry (in milliseconds)
@@ -142,13 +122,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle Cache First tool routes
-  if (CACHE_FIRST_ROUTES.some((route) => url.pathname === route || url.pathname.startsWith(route + '/'))) {
-    event.respondWith(cacheFirst(event.request, DYNAMIC_CACHE));
-    return;
-  }
-
-  // Handle Network First tool routes
+  // Handle Network First Hifz routes
   if (NETWORK_FIRST_ROUTES.some((route) => url.pathname === route || url.pathname.startsWith(route + '/'))) {
     event.respondWith(networkFirst(event.request));
     return;
@@ -313,7 +287,7 @@ self.addEventListener('sync', (event) => {
 });
 
 async function syncCachedData() {
-  // Refresh prayer times and other dynamic data
+  // Refresh Hifz data and other dynamic data
   try {
     const clients = await self.clients.matchAll();
     

@@ -1,61 +1,34 @@
-// app/HomeClient.tsx — Homepage hub client (spec §2).
-// The hero lives in app/page.tsx (server). This client owns: how-it-works,
-// continue-where-you-left-off, coach entry card, featured surahs, plans
-// strip, the demoted Today strip (prayer countdown, Verse of the Day, Dua
-// of the Day), the utilities grid and the trust strip.
+// app/HomeClient.tsx — Homepage client for the single-purpose Hifz app
+// (spec §2, refocus §14). The hero lives in app/page.tsx (server). This
+// client owns: the coach entry card (FIRST — the coach is the product),
+// continue-where-you-left-off, how-it-works, featured surahs, plans strip,
+// Test Mode + Voice Search entries, the verse of the day, and the trust strip.
+// No prayer times, no dua of the day, no utilities grid, no tool links:
+// the old tools were retired 2026-11-21 and redirect to /hifz.
 // All external fetches happen client-side in useEffect — nothing here runs
 // at build time, so the page builds with no network.
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { TOOLS_DATA } from './lib/toolsData';
-import { getDuaOfTheDay, type Dua } from '../lib/duas';
 import ToolIcon from './components/ToolIcon';
-import {
-  PRAYER_METHODS,
-  PRAYER_ORDER,
-  formatPrayerTime,
-  formatCountdown,
-  nextPrayer as calcNextPrayer,
-  fetchTimingsByCity,
-  DEFAULT_CITY,
-  DEFAULT_COUNTRY,
-  DEFAULT_METHOD,
-  CITY_KEY,
-  METHOD_KEY,
-  type PrayerTimings,
-} from './lib/prayer';
 import { RECITERS } from './quran/lib';
-import { NAMED_LAUNCH_SURAHS, LAUNCH_SURAHS } from './hifz/surahs';
+import { NAMED_LAUNCH_SURAHS, LAUNCH_SURAHS, getSurahById } from './hifz/surahs';
 import { getPlan, JUZ_AMMA_90_DAY } from './hifz/plans';
 import ProgressWidget, { SurahProgressBar } from './hifz/components/ProgressWidget';
 import PlanCard from './hifz/components/PlanCard';
 
 // ==================== CONSTANTS ====================
-const VERSE_KEYS = ['94:6', '2:152', '13:28', '39:53', '65:3', '2:186', '16:97', '3:139'];
+// Verse of the day — launch-set verses only, so every one links into the hub.
+// '2:255' is Ayat al-Kursi, whose friendly page is /hifz/ayat-al-kursi.
+const VERSE_KEYS = ['67:1', '1:5', '55:13', '78:1', '94:6', '2:255', '112:1', '36:58'];
 
 const FALLBACK_VERSE = {
   arabic: 'إِنَّ مَعَ الْعُسْرِ يُسْرًا',
   translation: 'Indeed, with hardship comes ease.',
   reference: 'Quran 94:6',
 };
-
-// ==================== TYPES ====================
-interface ToolItem {
-  name: string;
-  desc: string;
-  icon: string;
-  href: string;
-  color: string;
-}
-
-interface ToolSection {
-  category: string;
-  emoji: string;
-  items: ToolItem[];
-}
 
 interface VerseState {
   arabic: string;
@@ -73,19 +46,12 @@ function stripHtml(s: string): string {
   return s.replace(/<[^>]*>/g, '').trim();
 }
 
-/** TOOLS_DATA is exported as a zero-arg function in lib/toolsData.ts; resolve
- *  defensively so a plain-array rewrite of that file still works. */
-function resolveToolsData(): ToolSection[] {
-  const data: unknown = TOOLS_DATA;
-  if (typeof data === 'function') {
-    try {
-      return (data as () => ToolSection[])();
-    } catch {
-      return [];
-    }
-  }
-  if (Array.isArray(data)) return data as ToolSection[];
-  return [];
+/** Hub link for a verse key like '67:1' — Ayat al-Kursi goes to its own page. */
+function verseHref(key: string): string {
+  if (key === '2:255') return '/hifz/ayat-al-kursi';
+  const [s, a] = key.split(':').map(Number);
+  const surah = getSurahById(s);
+  return surah ? `/hifz/${surah.slug}/${s}-${a}` : '/hifz';
 }
 
 const HOW_IT_WORKS = [
@@ -96,25 +62,8 @@ const HOW_IT_WORKS = [
 ];
 
 // ==================== MAIN HOME CLIENT ====================
-export default function HomeClient({
-  initialPrayer,
-}: {
-  /** Server-rendered Sydney / Muslim World League timings — the card renders
-   *  instantly instead of waiting on a client fetch. */
-  initialPrayer?: { timings: PrayerTimings; hijri: string } | null;
-}) {
+export default function HomeClient() {
   const router = useRouter();
-  const [now, setNow] = useState(() => new Date());
-
-  // --- Prayer times state ---
-  const [city, setCity] = useState(DEFAULT_CITY);
-  const [country, setCountry] = useState(DEFAULT_COUNTRY);
-  const [cityInput, setCityInput] = useState(DEFAULT_CITY);
-  const [countryInput, setCountryInput] = useState(DEFAULT_COUNTRY);
-  const [method, setMethod] = useState(DEFAULT_METHOD);
-  const [timings, setTimings] = useState<PrayerTimings | null>(initialPrayer?.timings ?? null);
-  const [hijri, setHijri] = useState(initialPrayer?.hijri ?? '');
-  const [prayerError, setPrayerError] = useState(false);
 
   // --- Verse of the day ---
   const [verse, setVerse] = useState<VerseState>(FALLBACK_VERSE);
@@ -123,69 +72,7 @@ export default function HomeClient({
   const [coachSurah, setCoachSurah] = useState('al-mulk');
   const [coachReciter, setCoachReciter] = useState(7);
 
-  // Dua of the day (deterministic per day, from lib/duas)
-  const dua = useMemo<Dua | null>(() => {
-    try {
-      return getDuaOfTheDay();
-    } catch {
-      return null;
-    }
-  }, []);
-
-  const sections = useMemo<ToolSection[]>(() => resolveToolsData(), []);
-
-  // Tick every second for the live countdown.
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  // Load saved location + calculation method.
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(CITY_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as { city?: string; country?: string };
-        if (typeof parsed.city === 'string' && parsed.city.trim()) {
-          setCity(parsed.city.trim());
-          setCityInput(parsed.city.trim());
-        }
-        if (typeof parsed.country === 'string' && parsed.country.trim()) {
-          setCountry(parsed.country.trim());
-          setCountryInput(parsed.country.trim());
-        }
-      }
-      const savedMethod = localStorage.getItem(METHOD_KEY);
-      if (savedMethod) {
-        const n = Number(savedMethod);
-        if (PRAYER_METHODS.some((pm) => pm.id === n)) setMethod(n);
-      }
-    } catch {
-      // Defaults stand.
-    }
-  }, []);
-
-  // Fetch prayer times from Aladhan whenever location/method changes.
-  useEffect(() => {
-    let cancelled = false;
-    setPrayerError(false);
-    fetchTimingsByCity(city, country, method)
-      .then((day) => {
-        if (cancelled) return;
-        if (day) {
-          setTimings(day.timings);
-          if (day.hijri) setHijri(day.hijri);
-        } else {
-          setPrayerError(true);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setPrayerError(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [city, country, method]);
+  const verseKey = VERSE_KEYS[dayOfYear(new Date()) % VERSE_KEYS.length];
 
   // Fetch verse of the day from Quran.com (rotates by day of year).
   useEffect(() => {
@@ -213,64 +100,18 @@ export default function HomeClient({
     };
   }, []);
 
-  const nextPrayer = useMemo(() => (timings ? calcNextPrayer(timings, now) : null), [timings, now]);
-
-  function applyLocation(e: React.FormEvent) {
-    e.preventDefault();
-    const c = cityInput.trim() || DEFAULT_CITY;
-    const co = countryInput.trim() || DEFAULT_COUNTRY;
-    setCity(c);
-    setCountry(co);
-    setCityInput(c);
-    setCountryInput(co);
-    try {
-      localStorage.setItem(CITY_KEY, JSON.stringify({ city: c, country: co }));
-    } catch {
-      // Storage unavailable — location still applies for this session.
-    }
-  }
-
-  function changeMethod(id: number) {
-    setMethod(id);
-    try {
-      localStorage.setItem(METHOD_KEY, String(id));
-    } catch {
-      // Storage unavailable — method still applies for this session.
-    }
-  }
-
   return (
     <div className="bg-[#F7F5EF] text-[#1C2420]">
       <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:space-y-8 sm:py-8">
-        {/* ==================== HOW IT WORKS ==================== */}
-        <section aria-labelledby="how-heading">
-          <h2 id="how-heading" className="sr-only">How the recitation coach works</h2>
-          <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {HOW_IT_WORKS.map((step, i) => (
-              <li key={step.title} className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-4 shadow-sm">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eaf3ee] text-[#146B4D]">
-                  <ToolIcon name={step.icon} className="h-5 w-5" />
-                </span>
-                <p className="mt-3 font-bold text-[#0B3D2E]">
-                  {i + 1}. {step.title}
-                </p>
-                <p className="mt-1 text-sm leading-relaxed text-[#1C2420]/60">{step.text}</p>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        {/* ==================== CONTINUE ==================== */}
-        <ProgressWidget />
-
-        {/* ==================== COACH ENTRY CARD ==================== */}
+        {/* ==================== COACH ENTRY CARD — FIRST ==================== */}
         <section aria-labelledby="coach-heading" className="rounded-2xl bg-[#0B3D2E] p-5 text-white shadow-sm sm:p-6">
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-[#C9A227]">
-            <ToolIcon name="mic" className="h-4 w-4" /> Recitation coach
+            <ToolIcon name="mic" className="h-4 w-4" /> AI recitation coach
           </p>
           <h2 id="coach-heading" className="mt-2 text-xl font-bold sm:text-2xl">Recite right now</h2>
           <p className="mt-1 max-w-xl text-sm leading-relaxed text-white/80">
-            Pick a surah and a reciter. Listen first, or go straight to reciting.
+            Pick a surah and a reciter. Listen first, hide the verse, then recite it from
+            memory — the coach follows you word by word and flags every missed word live.
           </p>
           <div className="mt-4 flex flex-wrap items-end gap-3">
             <label className="text-xs font-semibold text-white/70">
@@ -319,6 +160,27 @@ export default function HomeClient({
           <p className="mt-3 text-xs text-white/60">
             This checks which words you said — it does not check tajweed. A teacher is still needed for tajweed.
           </p>
+        </section>
+
+        {/* ==================== CONTINUE ==================== */}
+        <ProgressWidget />
+
+        {/* ==================== HOW IT WORKS ==================== */}
+        <section aria-labelledby="how-heading">
+          <h2 id="how-heading" className="sr-only">How the recitation coach works</h2>
+          <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {HOW_IT_WORKS.map((step, i) => (
+              <li key={step.title} className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-4 shadow-sm">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eaf3ee] text-[#146B4D]">
+                  <ToolIcon name={step.icon} className="h-5 w-5" />
+                </span>
+                <p className="mt-3 font-bold text-[#0B3D2E]">
+                  {i + 1}. {step.title}
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-[#1C2420]/60">{step.text}</p>
+              </li>
+            ))}
+          </ol>
         </section>
 
         {/* ==================== FEATURED SURAHS ==================== */}
@@ -419,179 +281,47 @@ export default function HomeClient({
           </div>
         </section>
 
-        {/* ==================== TODAY STRIP (demoted) ==================== */}
-        <section aria-labelledby="today-heading">
-          <h2 id="today-heading" className="text-xl font-bold text-[#0B3D2E] sm:text-2xl">Today</h2>
-          <div className="mt-4 grid gap-6 lg:grid-cols-3">
-            <section aria-labelledby="prayer-heading" className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm sm:p-6">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 id="prayer-heading" className="text-lg font-bold text-[#0B3D2E]">
-                  Prayer times · {city}
-                </h3>
-                <Link href="/prayer-times" className="text-sm font-semibold text-[#146B4D] hover:text-[#0B3D2E] hover:underline">
-                  Full prayer times →
-                </Link>
-              </div>
-              {prayerError && !timings && (
-                <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  We couldn&apos;t load prayer times for {city}, {country}. Check the spelling below and try again.
-                </p>
-              )}
-              {timings && nextPrayer && (
-                <div className="mt-4 rounded-xl bg-[#0B3D2E] px-4 py-4 text-white sm:px-6">
-                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#C9A227]">
-                    Next prayer · {nextPrayer.name}
-                    {nextPrayer.tomorrow ? ' (tomorrow)' : ''}
-                  </p>
-                  <p className="mt-1 font-mono text-3xl font-bold tabular-nums sm:text-4xl">
-                    {formatCountdown(nextPrayer.time.getTime() - now.getTime())}
-                  </p>
-                  <p className="mt-1 text-sm text-white/70">
-                    {nextPrayer.name} at {formatPrayerTime(timings[nextPrayer.name])}
-                  </p>
-                </div>
-              )}
-              {timings && (
-                <ul className="mt-4 divide-y divide-[#1C2420]/5">
-                  {PRAYER_ORDER.map((name) => {
-                    const isNext = nextPrayer?.name === name && !nextPrayer.tomorrow;
-                    return (
-                      <li key={name} className={`flex items-center justify-between py-2 text-sm ${isNext ? 'font-bold text-[#0B3D2E]' : ''}`}>
-                        <span className="flex items-center gap-2">
-                          {name}
-                          {isNext && (
-                            <span className="rounded-full bg-[#C9A227] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#0B3D2E]">
-                              Next
-                            </span>
-                          )}
-                        </span>
-                        <span className="tabular-nums">{formatPrayerTime(timings[name])}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-              {hijri && <p className="mt-3 text-xs font-semibold text-[#1C2420]/50">{hijri}</p>}
-              <form onSubmit={applyLocation} className="mt-4 flex flex-col gap-2 border-t border-[#1C2420]/5 pt-4 sm:flex-row sm:items-end">
-                <label className="flex-1 text-xs font-semibold text-[#1C2420]/70">
-                  City
-                  <input
-                    type="text"
-                    value={cityInput}
-                    onChange={(e) => setCityInput(e.target.value)}
-                    placeholder="Sydney"
-                    className="mt-1 w-full rounded-lg border border-[#1C2420]/15 px-3 py-2 text-sm font-normal text-[#1C2420] outline-none focus:border-[#146B4D]"
-                  />
-                </label>
-                <label className="flex-1 text-xs font-semibold text-[#1C2420]/70">
-                  Country
-                  <input
-                    type="text"
-                    value={countryInput}
-                    onChange={(e) => setCountryInput(e.target.value)}
-                    placeholder="Australia"
-                    className="mt-1 w-full rounded-lg border border-[#1C2420]/15 px-3 py-2 text-sm font-normal text-[#1C2420] outline-none focus:border-[#146B4D]"
-                  />
-                </label>
-                <label className="flex-1 text-xs font-semibold text-[#1C2420]/70">
-                  Calculation method
-                  <select
-                    value={method}
-                    onChange={(e) => changeMethod(Number(e.target.value))}
-                    className="mt-1 w-full rounded-lg border border-[#1C2420]/15 bg-white px-3 py-2 text-sm font-normal text-[#1C2420] outline-none focus:border-[#146B4D]"
-                  >
-                    {PRAYER_METHODS.map((pm) => (
-                      <option key={pm.id} value={pm.id}>
-                        {pm.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  type="submit"
-                  className="rounded-lg bg-[#0B3D2E] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#146B4D]"
-                >
-                  Update
-                </button>
-              </form>
-            </section>
-
-            <section aria-labelledby="verse-heading" className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm sm:p-6">
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#C9A227]">Verse of the day</p>
-              <h3 id="verse-heading" className="sr-only">Verse of the day</h3>
-              <p dir="rtl" lang="ar" className="font-quran mt-4 text-right text-2xl text-[#0B3D2E] sm:text-3xl">
-                {verse.arabic}
+        {/* ==================== GO FURTHER: TEST + VOICE SEARCH ==================== */}
+        <section aria-labelledby="further-heading">
+          <h2 id="further-heading" className="text-xl font-bold text-[#0B3D2E] sm:text-2xl">Go further</h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <article className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm">
+              <h3 className="text-lg font-bold text-[#0B3D2E]">Test Mode</h3>
+              <p className="mt-1 text-sm leading-relaxed text-[#1C2420]/60">
+                Exam-style recall: random ayahs from what you have memorised, Arabic hidden,
+                no cue. A reveal counts as a miss — exactly like a peek in the coach.
               </p>
-              <p className="mt-3 text-sm leading-relaxed text-[#1C2420]/80 sm:text-base">
-                &ldquo;{verse.translation}&rdquo;
-              </p>
-              <p className="mt-2 text-xs font-semibold text-[#1C2420]/50">— {verse.reference}</p>
-              <Link href="/quran" className="mt-4 inline-block text-sm font-semibold text-[#146B4D] hover:text-[#0B3D2E] hover:underline">
-                Read more in the Quran reader →
+              <Link href="/hifz/test" className="mt-4 inline-block rounded-full bg-[#0B3D2E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#146B4D]">
+                Take a test →
               </Link>
-            </section>
-
-            {dua && (
-              <section aria-labelledby="dua-heading" className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm sm:p-6">
-                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#C9A227]">Dua of the day</p>
-                <h3 id="dua-heading" className="mt-2 text-lg font-bold text-[#0B3D2E] sm:text-xl">
-                  {dua.title}
-                </h3>
-                {dua.situations.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {dua.situations.map((s) => (
-                      <span key={s} className="rounded-full bg-[#F7F5EF] px-2.5 py-1 text-[11px] font-semibold text-[#146B4D]">
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <p dir="rtl" lang="ar" className="font-quran mt-4 text-right text-2xl text-[#0B3D2E] sm:text-3xl">
-                  {dua.arabic}
-                </p>
-                {dua.transliteration && (
-                  <p className="mt-3 text-sm italic leading-relaxed text-[#1C2420]/70">{dua.transliteration}</p>
-                )}
-                <p className="mt-2 text-sm leading-relaxed text-[#1C2420]/80 sm:text-base">{dua.translation}</p>
-                <p className="mt-2 text-xs font-semibold text-[#1C2420]/50">{dua.source}</p>
-                <Link href="/dua-for-this-moment" className="mt-4 inline-block text-sm font-semibold text-[#146B4D] hover:text-[#0B3D2E] hover:underline">
-                  Find the dua for this moment →
-                </Link>
-              </section>
-            )}
+            </article>
+            <article className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm">
+              <h3 className="text-lg font-bold text-[#0B3D2E]">Voice Search</h3>
+              <p className="mt-1 text-sm leading-relaxed text-[#1C2420]/60">
+                Heard an ayah and don&apos;t know where it is? Recite a few words and find it
+                instantly — then open it straight in the coach.
+              </p>
+              <Link href="/hifz/voice-search" className="mt-4 inline-block rounded-full bg-[#0B3D2E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#146B4D]">
+                Find an ayah by voice →
+              </Link>
+            </article>
           </div>
         </section>
 
-        {/* ==================== UTILITIES GRID ==================== */}
-        <section aria-labelledby="tools-heading" id="tools" className="scroll-mt-20">
-          <h2 id="tools-heading" className="text-xl font-bold text-[#0B3D2E] sm:text-2xl">More tools</h2>
-          <p className="mt-1 text-sm text-[#1C2420]/60">
-            Everything else you need for your daily deen, in one place.
+        {/* ==================== VERSE OF THE DAY ==================== */}
+        <section aria-labelledby="verse-heading" className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm sm:p-6">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#C9A227]">Verse of the day</p>
+          <h3 id="verse-heading" className="sr-only">Verse of the day</h3>
+          <p dir="rtl" lang="ar" className="font-quran mt-4 text-right text-2xl text-[#0B3D2E] sm:text-3xl">
+            {verse.arabic}
           </p>
-          {sections.map((section) => (
-            <div key={section.category} className="mt-5">
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-[#1C2420]/60">
-                <span className="text-[#146B4D]"><ToolIcon name={section.emoji} className="h-4 w-4" /></span> {section.category}
-              </h3>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {section.items.map((tool) => (
-                  <Link
-                    key={tool.href}
-                    href={tool.href}
-                    className="group flex flex-col items-start rounded-xl border border-[#0B3D2E]/10 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#C9A227] hover:shadow-md"
-                  >
-                    <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${tool.color}`}>
-                      <ToolIcon name={tool.icon} className="h-5 w-5" />
-                    </span>
-                    <span className="mt-3 text-sm font-bold leading-tight text-[#1C2420] group-hover:text-[#0B3D2E]">
-                      {tool.name}
-                    </span>
-                    <span className="mt-0.5 text-xs leading-snug text-[#1C2420]/55">{tool.desc}</span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))}
+          <p className="mt-3 text-sm leading-relaxed text-[#1C2420]/80 sm:text-base">
+            &ldquo;{verse.translation}&rdquo;
+          </p>
+          <p className="mt-2 text-xs font-semibold text-[#1C2420]/50">— {verse.reference}</p>
+          <Link href={verseHref(verseKey)} className="mt-4 inline-block text-sm font-semibold text-[#146B4D] hover:text-[#0B3D2E] hover:underline">
+            Open this ayah in the coach →
+          </Link>
         </section>
 
         {/* ==================== TRUST STRIP ==================== */}
@@ -613,7 +343,7 @@ export default function HomeClient({
             <div>
               <p className="flex items-center gap-1.5 font-bold text-[#C9A227]"><ToolIcon name="check" className="h-4 w-4" /> No sign-up</p>
               <p className="mt-1 text-sm leading-relaxed text-white/75">
-                Use any tool instantly — no account, no email, no personal information required.
+                Use the coach instantly — no account, no email, no personal information required.
               </p>
             </div>
             <div>
@@ -625,7 +355,7 @@ export default function HomeClient({
             <div>
               <p className="flex items-center gap-1.5 font-bold text-[#C9A227]"><ToolIcon name="check" className="h-4 w-4" /> Authentic sources</p>
               <p className="mt-1 text-sm leading-relaxed text-white/75">
-                Quran text, translations, and duas drawn from verified sources and established Islamic references.
+                Quran text, translations, and tafsir drawn from verified sources and established Islamic references.
               </p>
             </div>
           </div>

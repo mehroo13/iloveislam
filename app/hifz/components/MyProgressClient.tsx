@@ -10,9 +10,10 @@ import {
   exportProgress, importProgress, downloadProgressJson,
   currentStreakCount, localDateString, isDailyGoalMet, ayahsPractisedOn,
   getStorageNotice, setDailyGoal, DAILY_GOAL_OPTIONS,
+  activityByDate, weekPracticeDays, surahStrength, revisionDue, daysSince,
   type HifzProgress, type MistakeEntry, type HifzSettings,
 } from '../progress';
-import { getSurahById } from '../surahs';
+import { getSurahById, LAUNCH_SURAHS } from '../surahs';
 import ToolIcon from '../../components/ToolIcon';
 
 export default function MyProgressClient() {
@@ -56,6 +57,34 @@ export default function MyProgressClient() {
   const memorised = Object.entries(progress.ayahs).filter(([, a]) => a.status === 'memorised');
   const learning = Object.entries(progress.ayahs).filter(([, a]) => a.status === 'learning');
   const goalPct = Math.min(100, Math.round((minutesToday / progress.dailyGoalMinutes) * 100));
+
+  // --- Analytics (spec §15): heatmap, surah strength, revision queue, weekly challenge.
+  const activity = activityByDate(progress);
+  const weekDays = weekPracticeDays(progress);
+  const WEEK_CHALLENGE_DAYS = 5;
+  const strengths = surahStrength(progress, LAUNCH_SURAHS);
+  const due = revisionDue(progress);
+
+  // 12-week activity heatmap (Monday-first columns). Dates are local; a day
+  // counts when any ayah was last practised on it (see activityByDate).
+  const heatmapWeeks: { date: string; count: number }[][] = (() => {
+    const weeks: { date: string; count: number }[][] = [];
+    const now = new Date();
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7) - 7 * 11);
+    for (let w = 0; w < 12; w++) {
+      const days: { date: string; count: number }[] = [];
+      for (let d = 0; d < 7; d++) {
+        const day = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + w * 7 + d);
+        const key = localDateString(day);
+        days.push({ date: key, count: day > now ? -1 : (activity[key] ?? 0) });
+      }
+      weeks.push(days);
+    }
+    return weeks;
+  })();
+  const heatColor = (count: number) =>
+    count < 0 ? 'bg-transparent' : count === 0 ? 'bg-[#e5e0d3]' : count <= 1 ? 'bg-[#bcd8c6]' : count <= 3 ? 'bg-[#7fb894]' : 'bg-[#146B4D]';
 
   const changeGoal = (minutes: number) => {
     const next = setDailyGoal(progress, minutes as 5 | 10 | 15 | 30);
@@ -155,6 +184,104 @@ export default function MyProgressClient() {
             </p>
           )}
         </div>
+      </section>
+
+      {/* Weekly challenge + activity heatmap */}
+      <section aria-labelledby="challenge-heading" className="rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm sm:p-6">
+        <h2 id="challenge-heading" className="text-xl font-bold text-[#0B3D2E]">This week&apos;s challenge</h2>
+        <p className="mt-1 text-sm text-[#5b6b62]">
+          Practise on {WEEK_CHALLENGE_DAYS} days this week — {weekDays} of {WEEK_CHALLENGE_DAYS} done.
+          {weekDays >= WEEK_CHALLENGE_DAYS ? ' Challenge complete — well done.' : ' A day counts when you practise any ayah.'}
+        </p>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#e5e0d3]" role="progressbar" aria-valuenow={weekDays} aria-valuemin={0} aria-valuemax={WEEK_CHALLENGE_DAYS} aria-label="Weekly challenge progress">
+          <div className="h-full rounded-full bg-[#C9A227]" style={{ width: `${Math.min(100, (weekDays / WEEK_CHALLENGE_DAYS) * 100)}%` }} />
+        </div>
+        <h3 className="mt-6 text-sm font-bold text-[#0B3D2E]">Your activity — last 12 weeks</h3>
+        <p className="mt-1 text-xs text-[#5b6b62]">
+          One square per day; darker means more ayahs practised that day. Built from your
+          ayah records, so it works on progress saved before this view existed.
+        </p>
+        <div className="mt-3 flex gap-[3px] overflow-x-auto pb-1" role="img" aria-label={`Activity heatmap, ${Object.keys(activity).length} days practised in the last 12 weeks`}>
+          {heatmapWeeks.map((week, wi) => (
+            <div key={wi} className="flex shrink-0 flex-col gap-[3px]">
+              {week.map((day) => (
+                <span
+                  key={day.date}
+                  title={day.count < 0 ? day.date : `${day.date}: ${day.count} ${day.count === 1 ? 'ayah' : 'ayahs'} practised`}
+                  className={`h-3 w-3 rounded-[3px] ${heatColor(day.count)}`}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Surah strength */}
+      <section aria-labelledby="strength-heading" className="rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm sm:p-6">
+        <h2 id="strength-heading" className="text-xl font-bold text-[#0B3D2E]">Surah strength</h2>
+        <p className="mt-1 text-sm text-[#5b6b62]">
+          How strong each surah you have touched is: memorised ayahs count fully, learning
+          ayahs count half. Surahs you have never practised are not listed.
+        </p>
+        {strengths.length === 0 ? (
+          <p className="mt-2 text-sm text-[#5b6b62]">
+            No strength yet — recite an ayah with the coach and it appears here.{' '}
+            <Link href="/hifz/juz-amma" className="font-semibold text-[#146B4D] underline">Start with Juz Amma →</Link>
+          </p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {strengths.map((s) => (
+              <li key={s.slug}>
+                <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+                  <Link href={`/hifz/${s.slug}`} className="font-semibold text-[#0B3D2E] hover:underline">
+                    {s.name} <span className="font-normal text-[#5b6b62]">· {s.memorised} memorised, {s.learning} learning of {s.ayahCount}</span>
+                  </Link>
+                  <span className="font-bold text-[#146B4D]">{s.strengthPct}%</span>
+                </div>
+                <div className="mt-1 flex h-2 overflow-hidden rounded-full bg-[#e5e0d3]" aria-hidden="true">
+                  <div className="h-full bg-[#146B4D]" style={{ width: `${(s.memorised / s.ayahCount) * 100}%` }} />
+                  <div className="h-full bg-[#7fb894]" style={{ width: `${(s.learning / s.ayahCount) * 100}%` }} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Revision due — spaced repetition queue */}
+      <section aria-labelledby="revision-heading" className="rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm sm:p-6">
+        <h2 id="revision-heading" className="text-xl font-bold text-[#0B3D2E]">Revision due</h2>
+        <p className="mt-1 text-sm text-[#5b6b62]">
+          Memory fades on a schedule: a learning ayah is due after 2 days without practice,
+          a memorised ayah after 7 days. Oldest first — the weakest memory is the most urgent.
+        </p>
+        {due.length === 0 ? (
+          <p className="mt-2 text-sm text-[#5b6b62]">Nothing due — everything you have practised is fresh.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {due.slice(0, 10).map((item) => {
+              const surah = getSurahById(item.surah);
+              return (
+                <li key={`${item.surah}:${item.ayah}`} className="flex flex-wrap items-center gap-2 rounded-xl bg-[#F7F5EF] px-3 py-2 text-sm">
+                  <span>
+                    {surah ? surah.name : `Surah ${item.surah}`} {item.surah}:{item.ayah} ·{' '}
+                    {item.status === 'memorised' ? 'memorised' : 'learning'} · last practised{' '}
+                    {item.daysSincePractised} {item.daysSincePractised === 1 ? 'day' : 'days'} ago
+                  </span>
+                  <Link
+                    href={surah ? `/hifz/${surah.slug}?mode=recite&ayah=${item.ayah}` : '/hifz'}
+                    className="ml-auto font-semibold text-[#146B4D] underline"
+                  >
+                    Revise now →
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {due.length > 10 && (
+          <p className="mt-2 text-sm text-[#5b6b62]">{due.length - 10} more due after these.</p>
+        )}
       </section>
 
       {/* Memorised ayahs */}

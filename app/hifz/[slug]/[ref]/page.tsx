@@ -171,8 +171,8 @@ export default async function AyahPage({
             </li>
           )}
           <li>
-            <Link href="/quran" className="font-semibold text-[#146B4D] hover:underline">
-              Read this ayah in the full Quran reader →
+            <Link href="/hifz/test" className="font-semibold text-[#146B4D] hover:underline">
+              Test yourself on this ayah in Test Mode →
             </Link>
           </li>
           <li>

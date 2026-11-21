@@ -131,8 +131,8 @@ export default async function SurahPage({
             </li>
           )}
           <li>
-            <Link href="/quran" className="font-semibold text-[#146B4D] hover:underline">
-              Read the whole Quran in the reader
+            <Link href="/hifz/test" className="font-semibold text-[#146B4D] hover:underline">
+              Test yourself on this surah
             </Link>
           </li>
           <li>

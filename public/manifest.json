@@ -1,7 +1,7 @@
 {
-  "name": "I Love Islam — Your Daily Companion for Prayer, Quran & Duas",
+  "name": "I Love Islam — AI Hifz & Recitation Coach",
   "short_name": "I Love Islam",
-  "description": "Free Islamic tools for every Muslim: Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Hijri Calendar, Dhikr Counter and more tools.",
+  "description": "Memorise the Quran with an AI recitation coach: live word-by-word mistake detection, hifz plans, Test Mode, Voice Search, streaks and mistake review. Free, no sign-up.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a3d2e",
@@ -52,59 +52,45 @@
   ],
   "shortcuts": [
     {
-      "name": "Prayer Times",
-      "short_name": "Prayer",
-      "description": "Check today's prayer times for your location",
-      "url": "/prayer-times",
+      "name": "Recite with the Coach",
+      "short_name": "Recite",
+      "description": "Recite aloud and get word-by-word feedback",
+      "url": "/hifz/recite",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Qibla Finder",
-      "short_name": "Qibla",
-      "description": "Find the direction of the Holy Kaaba",
-      "url": "/qibla",
+      "name": "Test Mode",
+      "short_name": "Test",
+      "description": "Exam-style recall test on your memorised ayahs",
+      "url": "/hifz/test",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Zakat Calculator",
-      "short_name": "Zakat",
-      "description": "Calculate your annual Zakat",
-      "url": "/zakat",
+      "name": "Voice Search",
+      "short_name": "Voice",
+      "description": "Find any ayah by reciting it",
+      "url": "/hifz/voice-search",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Quran Reader",
-      "short_name": "Quran",
-      "description": "Read the Holy Quran with translation",
-      "url": "/quran",
+      "name": "My Progress",
+      "short_name": "Progress",
+      "description": "Streak, mistake log, heatmap and surah strength",
+      "url": "/hifz/my-progress",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Dhikr Counter",
-      "short_name": "Dhikr",
-      "description": "Digital tasbih for daily remembrance",
-      "url": "/dhikr",
+      "name": "Hifz Plans",
+      "short_name": "Plans",
+      "description": "7-day, 30-day and 90-day memorisation plans",
+      "url": "/hifz/plans",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "99 Names of Allah",
-      "short_name": "99 Names",
-      "description": "Explore Asma ul Husna",
-      "url": "/names",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Dua Generator",
-      "short_name": "Duas",
-      "description": "Supplications for every moment",
-      "url": "/dua",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Hijri Calendar",
-      "short_name": "Hijri",
-      "description": "Islamic date converter",
-      "url": "/hijri",
+      "name": "Juz Amma",
+      "short_name": "Juz Amma",
+      "description": "The beginner path — 37 short surahs",
+      "url": "/hifz/juz-amma",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ],
@@ -114,7 +100,7 @@
       "sizes": "1200x630",
       "type": "image/webp",
       "form_factor": "wide",
-      "label": "I Love Islam - Islamic Tools Suite"
+      "label": "I Love Islam - AI Hifz & Recitation Coach"
     }
   ],
   "related_applications": [],

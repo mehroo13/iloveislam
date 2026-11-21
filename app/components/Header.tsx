@@ -9,17 +9,12 @@ import ToolIcon from './ToolIcon';
 const NAV_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/hifz', label: 'Hifz' },
-  { href: '/dua-for-this-moment', label: 'Dua for This Moment' },
-  { href: '/quran', label: 'Quran' },
-  { href: '/prayer-times', label: 'Prayer Times' },
-  { href: '/qibla', label: 'Qibla' },
-  { href: '/dhikr', label: 'Dhikr' },
-  { href: '/zakat', label: 'Zakat' },
-  { href: '/names', label: '99 Names' },
-  { href: '/hijri', label: 'Calendar' },
-  { href: '/hadith', label: 'Hadith' },
-  { href: '/hajj', label: 'Hajj' },
-  { href: '/#tools', label: 'All Tools' },
+  { href: '/hifz/recite', label: 'Recite' },
+  { href: '/hifz/test', label: 'Test Mode' },
+  { href: '/hifz/voice-search', label: 'Voice Search' },
+  { href: '/hifz/plans', label: 'Plans' },
+  { href: '/hifz/juz-amma', label: 'Juz Amma' },
+  { href: '/hifz/my-progress', label: 'My Progress' },
 ];
 
 export default function Header() {

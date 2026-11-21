@@ -1,47 +1,34 @@
-// app/components/Footer.tsx — site footer, deep emerald, links to the kept tools.
+// app/components/Footer.tsx — site footer, deep emerald. Hifz app only:
+// links to the Hifz hub and the legal pages. No tool links anywhere.
 import Link from 'next/link';
 import Image from 'next/image';
 
 const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
   {
-    title: 'Most Used',
+    title: 'Hifz',
     links: [
-      { href: '/dua-for-this-moment', label: 'Dua for This Moment' },
-      { href: '/quran', label: 'Quran Reader' },
-      { href: '/prayer-times', label: 'Prayer Times' },
-      { href: '/qibla', label: 'Qibla Finder' },
-      { href: '/zakat', label: 'Zakat Calculator' },
-      { href: '/dhikr', label: 'Dhikr Counter' },
+      { href: '/hifz', label: 'Hifz Hub' },
+      { href: '/hifz/recite', label: 'Recite with the Coach' },
+      { href: '/hifz/test', label: 'Test Mode' },
+      { href: '/hifz/voice-search', label: 'Voice Search' },
+      { href: '/hifz/plans', label: 'Memorisation Plans' },
+      { href: '/hifz/my-progress', label: 'My Progress' },
     ],
   },
   {
-    title: 'Daily Practice',
+    title: 'Start Here',
     links: [
-      { href: '/names', label: '99 Names of Allah' },
-      { href: '/hadith', label: 'Hadith Search' },
-      { href: '/hijri', label: 'Hijri Calendar' },
-      { href: '/ramadan', label: 'Ramadan Planner' },
-      { href: '/night', label: 'Night Recitation' },
-    ],
-  },
-  {
-    title: 'Finance & Travel',
-    links: [
-      { href: '/inheritance', label: 'Inheritance Calculator' },
-      { href: '/sadaqah', label: 'Sadaqah Tracker' },
-      { href: '/halal-finance', label: 'Halal Finance Check' },
-      { href: '/kaffarah', label: 'Kaffarah Calculator' },
-      { href: '/hajj', label: 'Hajj Checklist' },
-      { href: '/travel', label: 'Halal Travel Guide' },
-      { href: '/names-finder', label: 'Islamic Name Finder' },
-      { href: '/mizan', label: 'Mizan — Life Blueprint' },
+      { href: '/hifz/juz-amma', label: 'Juz Amma — the Beginner Path' },
+      { href: '/hifz/al-mulk', label: 'Surah Al-Mulk' },
+      { href: '/hifz/ya-sin', label: 'Surah Ya-Sin' },
+      { href: '/hifz/al-kahf', label: 'Surah Al-Kahf' },
+      { href: '/hifz/al-fatihah', label: 'Surah Al-Fatihah' },
+      { href: '/hifz/ayat-al-kursi', label: 'Ayat al-Kursi' },
     ],
   },
 ];
 
 const LEGAL_LINKS = [
-  { href: '/about', label: 'About' },
-  { href: '/contact', label: 'Contact' },
   { href: '/privacy', label: 'Privacy' },
   { href: '/terms', label: 'Terms' },
 ];
@@ -51,7 +38,7 @@ export default function Footer() {
 
   return (
     <footer className="bg-[#0B3D2E] text-white/80">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-10 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
         {/* Brand */}
         <div className="lg:col-span-2">
           <Link href="/" className="flex items-center gap-2.5" aria-label="I Love Islam — home">
@@ -61,9 +48,9 @@ export default function Footer() {
             </span>
           </Link>
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/70">
-            Your daily companion for prayer, Quran and duas — the right dua for
-            every moment, prayer times, Qibla, zakat, dhikr and the 99 Names of
-            Allah, all in one place.
+            Memorise the Quran with an AI recitation coach: recite aloud and get
+            word-by-word feedback, follow a plan, and test yourself — free, no
+            sign-up, your audio never leaves your device.
           </p>
           <p className="mt-4 text-sm font-semibold text-[#E7D9A8]">Free forever. No sign-up.</p>
         </div>

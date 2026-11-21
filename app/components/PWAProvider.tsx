@@ -17,20 +17,22 @@ interface PWAContextType {
 }
 
 // ==================== OFFLINE STATUS MAP ====================
+// The Hifz app: reading/listening pages work from cache; the coach needs the
+// on-device model (downloaded once) and Quran text from the API.
 const FULL_OFFLINE_TOOLS = [
-  '/dhikr', '/zakat', '/names', '/hijri', '/dua',
-  '/ramadan', '/sadaqah', '/inheritance', '/halal-finance',
-  '/kaffarah', '/names-finder', '/eid', '/eid-adha', '/hadith',
-  '/night', '/mizan',
+  '/hifz',
+  '/hifz/plans',
+  '/hifz/my-progress',
+  '/hifz/juz-amma',
 ];
 
 const LIMITED_OFFLINE_TOOLS = [
-  '/prayer-times', '/qibla', '/quran',
+  '/hifz/recite',
+  '/hifz/test',
+  '/hifz/voice-search',
 ];
 
-const NEEDS_INTERNET_TOOLS = [
-  '/travel', '/hajj',
-];
+const NEEDS_INTERNET_TOOLS: string[] = [];
 
 // ==================== CONTEXT ====================
 const PWAContext = createContext<PWAContextType>({

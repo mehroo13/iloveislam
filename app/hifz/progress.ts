@@ -534,3 +534,175 @@ export function downloadProgressJson(filename: string, json: string): void {
     storageNotice = 'The progress file could not be downloaded in this browser.';
   }
 }
+
+/* ------------------------------------------------------------------ */
+/*  Analytics — heatmap, surah strength, revision queue, test pool     */
+/*  (spec §13/§15 — Tarteel parity + beyond. All pure, all derived    */
+/*  from the existing ayah records; no new data is collected.)        */
+/* ------------------------------------------------------------------ */
+
+/** Days since `dateStr` (YYYY-MM-DD local) until `now`, in whole days. */
+export function daysSince(dateStr: string, now: Date = new Date()): number {
+  const today = localDateString(now);
+  const t1 = Date.parse(`${dateStr}T00:00:00`);
+  const t2 = Date.parse(`${today}T00:00:00`);
+  if (Number.isNaN(t1) || Number.isNaN(t2)) return 0;
+  return Math.max(0, Math.round((t2 - t1) / 86400000));
+}
+
+/**
+ * Practice activity by local date: how many ayahs were last practised on
+ * each date. Built only from the ayah records' lastPractised stamps, so it
+ * works on progress saved before this feature existed. A day counts once
+ * per ayah practised that day; it is a lower bound on real activity, never
+ * an invented count.
+ */
+export function activityByDate(progress: HifzProgress): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const a of Object.values(progress.ayahs)) {
+    if (!a.lastPractised) continue;
+    const day = a.lastPractised.slice(0, 10);
+    out[day] = (out[day] ?? 0) + 1;
+  }
+  return out;
+}
+
+/** Distinct local dates on which any ayah was practised, newest first. */
+export function practiceDates(progress: HifzProgress): string[] {
+  return Object.keys(activityByDate(progress)).sort().reverse();
+}
+
+/** Monday (00:00 local) of the week containing `now`. */
+export function weekStart(now: Date = new Date()): string {
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dow = (d.getDay() + 6) % 7; // Monday = 0
+  d.setDate(d.getDate() - dow);
+  return localDateString(d);
+}
+
+/** Distinct practice days in the current Monday–Sunday week. */
+export function weekPracticeDays(progress: HifzProgress, now: Date = new Date()): number {
+  const start = weekStart(now);
+  const end = localDateString(now);
+  return practiceDates(progress).filter((d) => d >= start && d <= end).length;
+}
+
+export interface SurahStrength {
+  surah: number;
+  slug: string;
+  name: string;
+  ayahCount: number;
+  memorised: number;
+  learning: number;
+  practised: number;
+  /** 0–100: memorised counts fully, learning counts half. */
+  strengthPct: number;
+}
+
+/**
+ * Per-surah strength for every launch surah with any practice. Strength is
+ * the share of the surah's ayahs memorised (full weight) or learning (half
+ * weight) — a surah you have never touched scores nothing and is omitted.
+ */
+export function surahStrength(
+  progress: HifzProgress,
+  surahs: { id: number; slug: string; name: string; ayahCount: number }[],
+): SurahStrength[] {
+  const out: SurahStrength[] = [];
+  for (const s of surahs) {
+    let memorised = 0;
+    let learning = 0;
+    for (const [key, a] of Object.entries(progress.ayahs)) {
+      if (Number(key.split(':')[0]) !== s.id) continue;
+      if (a.status === 'memorised') memorised += 1;
+      else if (a.status === 'learning') learning += 1;
+    }
+    if (memorised === 0 && learning === 0) continue;
+    out.push({
+      surah: s.id,
+      slug: s.slug,
+      name: s.name,
+      ayahCount: s.ayahCount,
+      memorised,
+      learning,
+      practised: memorised + learning,
+      strengthPct: Math.min(
+        100,
+        Math.round(((memorised + 0.5 * learning) / s.ayahCount) * 100),
+      ),
+    });
+  }
+  return out.sort((a, b) => b.strengthPct - a.strengthPct);
+}
+
+export interface RevisionItem {
+  surah: number;
+  ayah: number;
+  status: AyahStatus;
+  daysSincePractised: number;
+}
+
+/**
+ * Spaced-revision queue: ayahs whose memory is due a review. A 'learning'
+ * ayah is due after 2 days without practice; a 'memorised' ayah after 7
+ * days. Oldest first — the weakest memory is the most urgent. This is the
+ * revision scheduling Tarteel's Smart Goals do; ours is performance-driven,
+ * not calendar-fixed.
+ */
+export function revisionDue(
+  progress: HifzProgress,
+  now: Date = new Date(),
+  limit: number = 20,
+): RevisionItem[] {
+  const items: RevisionItem[] = [];
+  for (const [key, a] of Object.entries(progress.ayahs)) {
+    if (!a.lastPractised) continue;
+    const days = daysSince(a.lastPractised.slice(0, 10), now);
+    const dueAfter = a.status === 'memorised' ? 7 : 2;
+    if (a.status === 'new') continue;
+    if (days < dueAfter) continue;
+    const [s, ay] = key.split(':').map(Number);
+    items.push({ surah: s, ayah: ay, status: a.status, daysSincePractised: days });
+  }
+  items.sort((x, y) => y.daysSincePractised - x.daysSincePractised);
+  return items.slice(0, limit);
+}
+
+/**
+ * Test Mode pool (spec §15): the ayahs a test draws from. Memorised ayahs
+ * first (the real test is recall of what you claim to know), then learning
+ * ayahs; if fewer than `count` practised ayahs exist, the pool is topped up
+ * with unpractised ayahs from the launch set so a new user can still take
+ * a test. Shuffled, so the test drops you at random places with no cue.
+ */
+export function pickTestPool(
+  progress: HifzProgress,
+  launchAyahs: { surah: number; ayah: number }[],
+  count: number,
+): { surah: number; ayah: number }[] {
+  const memorised: { surah: number; ayah: number }[] = [];
+  const learning: { surah: number; ayah: number }[] = [];
+  const practisedKeys = new Set<string>();
+  for (const [key, a] of Object.entries(progress.ayahs)) {
+    practisedKeys.add(key);
+    const [s, ay] = key.split(':').map(Number);
+    if (a.status === 'memorised') memorised.push({ surah: s, ayah: ay });
+    else if (a.status === 'learning') learning.push({ surah: s, ayah: ay });
+  }
+  const shuffle = <T,>(arr: T[]): T[] => {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+  const pool = [...shuffle(memorised), ...shuffle(learning)];
+  if (pool.length < count) {
+    const fresh = shuffle(
+      launchAyahs.filter((x) => !practisedKeys.has(ayahKey(x.surah, x.ayah))),
+    );
+    pool.push(...fresh);
+  }
+  return pool.slice(0, count);
+}

@@ -423,10 +423,10 @@ export default function SurahClient({
             </select>
           </label>
           <Link
-            href="/quran"
+            href={`/hifz/${surah.slug}/${surah.id}-1`}
             className="ml-auto text-sm font-semibold text-[#146B4D] underline"
           >
-            Read in the full Quran reader
+            Open the first ayah
           </Link>
         </div>
       </section>

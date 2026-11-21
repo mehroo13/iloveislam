@@ -11,25 +11,25 @@ const sections = [
     icon: '',
     title: '2. Data We Do NOT Collect',
     content:
-      'We do not require you to create an account. We do not ask for your name, email address, phone number, or any personal information to use any tool on this site. All calculations (Zakat, Prayer Times, Mizan Blueprint, etc.) happen in your browser.',
+      'We do not require you to create an account. We do not ask for your name, email address, phone number, or any personal information to use the Hifz app. Your recitation audio is processed on your device and never uploaded. Your memorisation progress, streak and mistake log live only in your own browser.',
   },
   {
     icon: '',
     title: '3. Local Storage',
     content:
-      'Some tools (like the Mizan Blueprint and language preference) save data locally on your own device using browser localStorage. This data never leaves your device and is never sent to our servers. You can clear it at any time by clearing your browser data.',
+      'The Hifz app saves your progress, settings and mistake log locally on your own device using browser localStorage. This data never leaves your device and is never sent to our servers. You can clear it at any time by clearing your browser data, or by exporting and deleting it from the My Progress page.',
   },
   {
     icon: '',
     title: '4. Third-Party APIs',
     content:
-      'Some tools use free third-party APIs to function: Prayer Times uses Aladhan API (aladhan.com). Hijri Calendar uses Aladhan API. Quran Reader uses AlQuran Cloud API (alquran.cloud). Mosque/Halal Food search uses OpenStreetMap Overpass API. These services have their own privacy policies. We only send the minimum data needed (e.g. your city coordinates for prayer times).',
+      'The app fetches Quran text, translations, tafsir and reciter audio through the Quran.com API (api.quran.com), requested from our own server so your browser talks only to iloveislam.life. Voice Search uses your browser\'s built-in speech recognition where available. These services have their own privacy policies. We send them no personal data — only the Quran reference or the words you searched for.',
   },
   {
     icon: '',
     title: '5. Analytics',
     content:
-      'We may use anonymous, privacy-friendly analytics to understand how many people visit our site and which tools are most used. This does not include any personally identifiable information.',
+      'We may use anonymous, privacy-friendly analytics to understand how many people visit our site and which parts of the Hifz app are most used. This does not include any personally identifiable information, your recitation audio, or the words you missed.',
   },
   {
     icon: '',
@@ -70,7 +70,7 @@ export default function Privacy() {
       <header className="bg-gradient-to-r from-emerald-900 to-emerald-700 text-white px-5 py-5 shadow-lg">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <Link href="/" className="text-white/70 hover:text-white text-sm flex items-center gap-1">
-            <span>←</span> Back to Tools
+            <span>←</span> Back to the Hifz app
           </Link>
           <h1 className="text-xl font-bold tracking-wide">Privacy Policy</h1>
           <div className="w-6" />
@@ -83,9 +83,9 @@ export default function Privacy() {
           <div className="text-4xl mb-3"></div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Your Privacy is Protected</h2>
           <p className="text-gray-500 text-sm max-w-md mx-auto leading-relaxed">
-            We do not collect personal data. No registration required. All tools work locally in your browser.
+            We do not collect personal data. No registration required. The Hifz app works locally in your browser.
           </p>
-          <p className="text-xs text-gray-400 mt-2">Last updated: May 2026</p>
+          <p className="text-xs text-gray-400 mt-2">Last updated: November 2026</p>
         </div>
 
         {/* Sections */}
@@ -112,9 +112,8 @@ export default function Privacy() {
           <p className="text-xs text-gray-400">Made with  for the Ummah · Always Free</p>
           <div className="flex justify-center gap-4 mt-3">
             <Link href="/" className="text-xs text-gray-400 hover:text-gray-600">Home</Link>
-            <Link href="/about" className="text-xs text-gray-400 hover:text-gray-600">About</Link>
-            <Link href="/contact" className="text-xs text-gray-400 hover:text-gray-600">Contact</Link>
-            <Link href="/faq" className="text-xs text-gray-400 hover:text-gray-600">FAQ</Link>
+            <Link href="/hifz" className="text-xs text-gray-400 hover:text-gray-600">Hifz Hub</Link>
+            <Link href="/terms" className="text-xs text-gray-400 hover:text-gray-600">Terms</Link>
           </div>
         </div>
       </main>

@@ -221,8 +221,8 @@ export default function HifzHubPage() {
         </ul>
         <p className="mt-3 text-sm text-[#5b6b62]">
           {JUZ_AMMA_SURAHS.length} of these are Juz Amma (surahs 78–114).{' '}
-          <Link href="/quran" className="font-semibold text-[#146B4D] underline">
-            Read the whole Quran in the reader →
+          <Link href="/hifz/juz-amma" className="font-semibold text-[#146B4D] underline">
+            Start with Juz Amma, the beginner path →
           </Link>
         </p>
       </section>

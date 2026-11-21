@@ -1000,3 +1000,159 @@ Modified in v1: `app/page.tsx` + `app/HomeClient.tsx` (hub homepage),
 3. Urdu UI in v2 — confirm it is the first non-English language.
 4. Ramadan 2027 dates were not verified in the research — do not set a
    Ramadan launch date from this spec without checking the Hijri calendar.
+
+---
+
+## 13. Tarteel feature inventory — the full replication target (2026-11-21)
+
+**Studied 21 November 2026** from tarteel.ai (fetched), the Google Play and App
+Store listings, and the §11 competition study. The owner asked for an **exact
+copy of Tarteel's feature set, including its AI, on the web — plus more**. This
+section is the inventory that request is measured against. Features are copied;
+Tarteel's name, logo, artwork and exact wording are **not** — our own branding,
+name, design and wording throughout.
+
+| # | Tarteel feature | What it is (evidence) | Our status on the web |
+|---|---|---|---|
+| 1 | Live Memorisation Mistake Detection (AI coach) | Hide verses, recite from memory; AI flags missed, added, changed words and incorrect tashkeel in real time; tap a mistake to see what you said vs the correct ayah (Play listing; tarteel.ai) | **SHIPPED.** Tilawa on-device coach (`RecitationCoach.tsx`): listen → hide → recite → word-by-word feedback, live correction tap, peek counted as a miss. Free daily (1 surah / 10 min, §3.3) — Tarteel paywalls it. Honest limit kept: word accuracy only, never tajweed; teacher disclaimer in the UI. |
+| 2 | Memorisation Mode (hide & recite) | Hide the verses on the mushaf, recite from memory, words reveal as you say them (Play listing) | **SHIPPED.** Hide-Arabic toggle + word-by-word reveal in the coach; translation stays as a prompt. |
+| 3 | Peeking / Hidden Verses Mode | Peek when stuck (Premium, Play listing) | **SHIPPED, stricter.** Peek button exists and the peek is **counted as a miss** for streak/accuracy — Tarteel's listing does not say peeking costs anything. |
+| 4 | Voice Search ("Shazam for Quran") | Recite any phrase, find the specific ayah and surah (Play listing) | **SHIPPED 2026-11-21 (§15.2).** Browser speech recognition → text → Quran.com search via the `/api/quran` proxy; matches in the launch set open in the coach. Was "not in v1" (§12) — now shipped. |
+| 5 | Test Mode | Drops you at random places in your memorised text, breaking cue-dependence (added Aug 2026, v5.81.1, release notes) | **SHIPPED 2026-11-21 (§15.1).** `/hifz/test`: random ayahs from memorised/learning pool, Arabic hidden, reveal = miss, self-mark records attempts like coach attempts. Was "not in v1" (§12) — now shipped. |
+| 6 | Memorisation Planning | Tailor the journey to your learning style (tarteel.ai) | **SHIPPED.** 7-day plans per surah, 30-day plans, Juz Amma 90-day plan (`app/hifz/plans.ts`); plan completion is earned by coach verification, not claimed (§5.2). |
+| 7 | Smart Goals | Custom targets for memorisation, revision, or reading (Play listing) | **SHIPPED, partial.** Daily goal 5/10/15/30 min + 5-ayah alternative, set on My Progress (§5.1). Per-type goals (memorisation vs revision vs reading) are not separate goals yet — the daily goal covers all three in practice. |
+| 8 | Streaks | Daily streak tracking (Play listing) | **SHIPPED.** Local streak, goal-met day advances it, missed day resets it, never faked (§5.1). |
+| 9 | Advanced Analytics — heatmaps | Visualise progress with streaks and heatmaps (Play listing) | **SHIPPED 2026-11-21 (§15.3).** 12-week activity heatmap on My Progress, built from existing ayah records. Was "not in v1" (§12) — now shipped. |
+| 10 | Advanced Analytics — per-surah strength | See which surahs are strong and which ayahs need more work (Play listing) | **SHIPPED 2026-11-21 (§15.3).** Per-surah strength bars on My Progress (memorised full weight, learning half). Was "not in v1" (§12) — now shipped. |
+| 11 | Historical Mistakes / mistake log | Review a log of past recitation errors to identify patterns (Play listing) | **SHIPPED.** Mistake log on My Progress with ayah, word, heard-as, attempts, retry link; free tier keeps 7 days (§5.1). Deliberate difference: we never store audio, so there is no playback of your own recording — a privacy trade, not a gap to close by storing recordings (§8.2). |
+| 12 | Reciters / Unlimited Listening | Listen to favourite qaris, follow along or in the background, free (Play listing) | **SHIPPED.** Reciter picker on every surah/ayah page; play-all with repeat 1–100, range loop, pause between repeats, 0.25×–2× speed (§4.1.4, Quran.com parity). |
+| 13 | Translations | Multiple translations (tarteel.ai / listing) | **SHIPPED.** Translation picker on surah pages; Saheeh International default; view modes Arabic / +translation / +tafsir. |
+| 14 | Tafsir | Tafsir on ayah/surah pages (app feature) | **SHIPPED.** Ibn Kathir Abridged via Quran.com proxy; renders **only** in Tafsir view mode (commit 12a3449 — do not regress). |
+| 15 | Word-by-word | Word-by-word text and audio (Quran.com parity, §12) | **SHIPPED.** Word-by-word panel per ayah with translation per word and per-word audio (`WordByWord.tsx`). Root/morphology on tap is still a v2 item (§12). |
+| 16 | Adaptive Mushaf — Madani / Indo-Pak scripts | Choose Madani or Indo-Pak script; hide ayah markers (Play listing) | **PARTIAL — known gap.** Indo-Pak script throughout (Scheherazade New); ayah markers can be hidden by hiding the Arabic in the coach. Madani (Uthmani) script option is **not** built: the coach's word alignment is built on the Indo-Pak text, so a script toggle is real work, not a label. Recorded honestly here; do not claim it. |
+| 17 | Audio controls | Playback speed, repeat, looping (Quran.com parity, §12) | **SHIPPED.** See #12. |
+| 18 | Progress tracking | Streaks, goals, per-surah progress (Play listing) | **SHIPPED.** My Progress dashboard + homepage continue widget + per-surah progress bars; export/import JSON (no account, §5.1). |
+| 19 | Premium gating | Mistake detection, peeking, goals, analytics, history behind Premium; free trial; Family Plan; Alim $0 programme (tarteel.ai FAQ) | **DELIVERED DIFFERENTLY, deliberately.** Our free tier includes the live coach daily, goals, streaks and analytics — the things Tarteel paywalls. Premium ("coming soon") buys depth only: unlimited coach time, all 30-day plans, full mistake history (§3.3, §7). No billing exists yet; the free set is a promise and must never move behind a paywall later (§11.4 warning). Alim-style affordability path is a v2 item (§7, §12). |
+| 20 | Challenges | In-app challenges / group challenges (app feature; Family Plan in FAQ) | **PARTIAL.** No social/group challenges — those need accounts (v3). Solo challenge shipped 2026-11-21: "This week's challenge — practise 5 days" on My Progress (§15.4), plus 7-day plans as structured challenges. |
+| 21 | Revision mode / spaced repetition | Smart Goals cover revision; Test Mode breaks cue-dependence (listing; release notes) | **SHIPPED 2026-11-21 (§15.5).** Performance-driven revision queue on My Progress: learning ayahs due after 2 days, memorised after 7 days, oldest first. Was "not in v1" (§12) — now shipped. |
+| 22 | Privacy | "Privacy First — does not sell your data" (Play listing); voice features need internet (listing) | **SHIPPED, stronger.** On-device processing, audio never leaves the device, no account, no ads on Hifz pages, no analytics event containing ayah text or mistake words (§5.1, §8.1.3). |
+| 23 | Offline use | Reciter audio downloadable; AI needs internet (listing; help centre) | **PARTIAL.** PWA + service worker cache Hifz pages and the Quran proxy; the Tilawa model downloads once on-device. Offline coach in airplane mode is **not yet verified** — a named test still owed (§10 checks), not a claim. |
+| 24 | Accessibility | Large-text breakage reported in reviews (§11.1) | **BAR SET, not yet tested on device.** Fully usable at 200% text scaling with no overlap; feedback never by colour alone (§6.3, §12). The §10 phone test is still owed. |
+
+**Honest summary:** of Tarteel's feature set, everything a web app can do without
+accounts is shipped. The gaps are named, not hidden: Madani script (#16),
+per-type goals (#7, partial), social challenges (#20, needs accounts), offline
+coach verification (#23) and the 200%-text device test (#24).
+
+## 14. Single-purpose refocus (2026-11-21) — the tools site is gone
+
+**Owner verdict:** the Hifz hub worked, but every other tool was still there — it
+was still a tools site with a Hifz section on top, not the dedicated Hifz app.
+**Fix applied 2026-11-21:** the whole site is now the Tarteel-equivalent AI
+Hifz app (§13) and nothing else.
+
+### What was removed from the experience
+- Homepage: prayer-times card + countdown, Dua of the Day, utilities grid,
+  "More tools" / "All tools" section, "daily companion" positioning. The
+  homepage is now: hero → coach entry card (first) → continue → how it works
+  → featured surahs → plans → Test Mode + Voice Search → verse of the day
+  (launch-set verses only, linking into the hub) → trust strip.
+- Header nav: all tool links removed. Nav is now Home, Hifz, Recite, Test Mode,
+  Voice Search, Plans, Juz Amma, My Progress.
+- Footer: all three tool columns removed. Footer is now Hifz links, start-here
+  surah links, and legal links (Privacy, Terms) only.
+- Metadata/JSON-LD: site title, description, keywords, WebApplication
+  featureList rewritten Hifz-only in `app/layout.tsx` and `app/page.tsx`.
+- Sitemap: tool, blog, about/contact/faq/install and legal URLs removed —
+  homepage + Hifz URLs only.
+- PWA manifest: name, description, shortcuts rewritten Hifz-only.
+- Service worker + offline page: tool routes and tool links removed; Hifz
+  routes only.
+- PWA provider + install prompt: per-tool offline status/messages replaced
+  with Hifz routes and one Hifz install message.
+- llms.txt / llms-full.txt: "Other tools" sections removed; Test Mode and
+  Voice Search added to the Hifz index.
+- Privacy / Terms: rewritten Hifz-only (coach, local progress, Quran.com API,
+  browser speech recognition; tajweed disclaimer in Terms §3).
+- Hifz pages: the four "Read in the full Quran reader" links to `/quran`
+  retargeted inside the hub (first ayah, Juz Amma, Test Mode).
+
+### Redirects (permanent, 308, `next.config.ts`)
+Every retired route redirects to `/hifz` — base and all subpaths:
+about, blog, compare-religions, contact, dhikr, dua, dua-for-this-moment, eid,
+eid-adha, faq, hadith, hajj, halal-finance, hijri, inheritance, install,
+kaffarah, mizan, names, names-finder, night, prayer-times, qibla, quran,
+ramadan, sadaqah, travel, zakat.
+**Not redirected:** `/` (homepage), `/hifz` and everything under it, `/api/*`
+(the `/api/quran` proxy the Hifz pages rely on), `/privacy`, `/terms` (kept
+live, linked only from the footer).
+
+### What was deliberately NOT deleted
+The old route folders stay in the repo. `app/quran/lib.ts` is shared by the
+Hifz pages (reciters, translations, API helpers, Indo-Pak cleaning) — deleting
+the folder would break the build. Redirects run before routing, so no old tool
+URL can ever be served. `app/lib/toolsData.ts` and `app/lib/prayer.ts` are now
+unused by live pages (only the retired folders import them); they are left in
+place rather than risking a shared-import break for tidiness.
+
+### Coach front-and-centre (final direction, 2026-11-21)
+The Tilawa on-device coach is the centre of the product, not an add-on: it is
+the first thing on the homepage (hero CTA + coach entry card first in
+`HomeClient`), the first section of every surah page (`SurahClient`), and
+scoped into every ayah page (`AyahClient`). Flow end-to-end: pick → listen →
+hide → recite → feedback → mistake log → retry. Accuracy limits unchanged:
+word accuracy only, never tajweed, teacher disclaimer in the UI (§8).
+
+## 15. Advanced extras — beyond Tarteel (shipped 2026-11-21)
+
+These are the features that make the app clearly better than Tarteel, not just
+equal. All are free (Tarteel paywalls the equivalents) and all run on data the
+app already stores — no new collection, no account.
+
+### 15.1 Test Mode — exam-style recall test (`/hifz/test`)
+Tarteel added Test Mode in Aug 2026; ours matches it and is stricter. Random
+ayahs from your memorised pool first (then learning, then new ayahs so a new
+user can still test), Arabic hidden, no cue except surah + ayah number.
+Reveal counts as a miss, like a peek. Self-marked attempts are recorded
+exactly like coach attempts (3 consecutive correct = memorised, §5.1) and each
+question counts a minute toward the daily goal. Score screen grades the test
+and links every missed ayah back into the coach. Scope (memorised / practised /
+any) and length (5 / 10) are the user's choice.
+
+### 15.2 Voice Search — "Shazam for Quran" (`/hifz/voice-search`)
+Tarteel's voice search, on the web. The browser's speech recognition (Web
+Speech API, `ar-SA`) transcribes the spoken phrase on the device; only the
+recognised text is sent to the Quran.com search endpoint through the existing
+`/api/quran` proxy. A typed search box is the fallback where the browser has
+no speech recognition. Matches in the launch set open straight into the coach
+for that ayah; matches outside the launch set show the verse with an honest
+note instead of a dead link.
+
+### 15.3 Mistake heatmaps + per-surah strength (My Progress)
+Tarteel paywalls analytics; ours are free. A 12-week activity heatmap (one
+square per day, darker = more ayahs practised) built only from the ayah
+records' `lastPractised` stamps, so it works on progress saved before the
+feature existed. Per-surah strength: memorised ayahs count fully, learning
+ayahs count half, as a percentage of the surah — with memorised/learning bars
+per surah. Pure functions in `app/hifz/progress.ts` (`activityByDate`,
+`surahStrength`); no new data collected.
+
+### 15.4 Weekly challenge (My Progress)
+The solo answer to Tarteel's challenges, without accounts: "Practise on 5 days
+this week", tracked from real practice dates (`weekPracticeDays`,
+Monday–Sunday). Social/group challenges still need accounts (v3) and are not
+claimed.
+
+### 15.5 Spaced-revision queue (My Progress)
+Performance-driven revision scheduling — the thing §12 said v2 would add. A
+learning ayah is due after 2 days without practice, a memorised ayah after 7
+days; oldest first, linked straight into the coach (`revisionDue` in
+`app/hifz/progress.ts`). Review days stop being calendar-fixed and become
+performance-driven, which is the beat over Quran.com's plans too (§11.2).
+
+### 15.6 What is deliberately NOT claimed as "beyond Tarteel"
+- No tajweed feedback (nobody in the category does this reliably, §11.1; we
+  say so in the UI instead of faking it).
+- No recording playback (we never store audio — a privacy trade, §8.2).
+- No cross-device sync, groups or leaderboards (needs accounts, v3).
+- No Madani script yet (§13 #16).
