@@ -470,7 +470,7 @@ export default function FAQPage() {
       {/* Footer */}
       <footer className="border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 mt-8">
         <div className="max-w-6xl mx-auto px-4 py-6 text-center">
-          <p className="text-xs text-gray-400 dark:text-gray-500">Made with  for the Ummah</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">Made with love for the Ummah</p>
           <div className="flex flex-wrap justify-center gap-4 mt-3">
             <Link href="/" className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition">Home</Link>
             <Link href="/about" className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition">About</Link>

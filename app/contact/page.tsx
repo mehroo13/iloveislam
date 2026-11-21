@@ -151,7 +151,7 @@ export default function Contact() {
         {/* Short footer */}
         <div className="text-center mt-10">
           <p className="font-arabic text-emerald-800 text-lg mb-1">بسم الله الرحمن الرحيم</p>
-          <p className="text-xs text-gray-400">Made with  for the Ummah · Always Free</p>
+          <p className="text-xs text-gray-400">Made with love for the Ummah · Always Free</p>
           <div className="flex justify-center gap-4 mt-3">
             <Link href="/" className="text-xs text-gray-400 hover:text-gray-600">Home</Link>
             <Link href="/about" className="text-xs text-gray-400 hover:text-gray-600">About</Link>

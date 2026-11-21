@@ -109,7 +109,7 @@ export default function Privacy() {
         {/* Footer */}
         <div className="text-center pt-6 border-t border-gray-100">
           <p className="font-arabic text-emerald-800 text-xl mb-2">بسم الله الرحمن الرحيم</p>
-          <p className="text-xs text-gray-400">Made with  for the Ummah · Always Free</p>
+          <p className="text-xs text-gray-400">Made with love for the Ummah · Always Free</p>
           <div className="flex justify-center gap-4 mt-3">
             <Link href="/" className="text-xs text-gray-400 hover:text-gray-600">Home</Link>
             <Link href="/hifz" className="text-xs text-gray-400 hover:text-gray-600">Hifz Hub</Link>

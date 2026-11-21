@@ -7,34 +7,49 @@ const GA_MEASUREMENT_ID = 'G-4BDTXNC58M';
 
 // Cookie / ads consent (2026-11-21 SEO + AdSense fix).
 //
-// Before this change the component silently wrote `granted` into
-// localStorage on first visit and loaded the AdSense script and Google
-// Analytics without asking — that is not valid consent for personalised
-// advertising under Google's EU user-consent policy, and AdSense
-// reviewers look for a real choice. Now the visitor gets a small,
-// non-intrusive banner and the scripts load only after they accept.
-// Declining loads nothing. The choice is stored on the device only.
+// The banner is rendered by default (showBanner starts true) so it is
+// present in the server-rendered HTML and visible on first paint, and it
+// is only hidden after hydration when a stored choice exists. Before,
+// it started hidden and only appeared after a client-side effect — so a
+// browser that never ran that effect (or already held a stored grant)
+// never saw it at all. Declining loads nothing; accepting loads the
+// AdSense and Analytics scripts. The choice is stored on the device
+// only, and the app works fully either way.
+//
+// The storage key changed in 2026-11-21 because the version before the
+// banner silently wrote `ads_consent=granted` into localStorage on first
+// visit and loaded ads without ever asking — that was not a real choice.
+// Every stored value under the old key is ignored (and deleted), so
+// every visitor is asked once, properly. That old silent grant is also
+// why the banner never appeared in the live browser check: the test
+// browser already held it.
+const CONSENT_KEY = 'ili_ads_consent';
+const LEGACY_CONSENT_KEY = 'ads_consent';
+
 export default function CMPConsent() {
-  const [showBanner, setShowBanner] = useState(false);
+  const [showBanner, setShowBanner] = useState(true);
 
   useEffect(() => {
     try {
-      const v = localStorage.getItem('ads_consent');
+      // Drop the old silently-written grant: it was never a real choice.
+      localStorage.removeItem(LEGACY_CONSENT_KEY);
+      const v = localStorage.getItem(CONSENT_KEY);
       if (v === 'granted') {
         loadAds();
         loadAnalytics();
-      } else if (v !== 'denied') {
-        // No choice stored yet — ask. Nothing loads until they accept.
-        setShowBanner(true);
+        setShowBanner(false);
+      } else if (v === 'denied') {
+        setShowBanner(false);
       }
+      // No stored choice: keep the banner visible.
     } catch {
-      setShowBanner(true);
+      // Storage unavailable: keep the banner visible so the visitor can choose.
     }
   }, []);
 
   function choose(granted: boolean) {
     try {
-      localStorage.setItem('ads_consent', granted ? 'granted' : 'denied');
+      localStorage.setItem(CONSENT_KEY, granted ? 'granted' : 'denied');
     } catch {}
     setShowBanner(false);
     if (granted) {
