@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="logoTitle logoDesc">
+  <title id="logoTitle">I Love Islam</title>
+  <desc id="logoDesc">Eight-point star in gold and deep emerald</desc>
+  <!-- Outer eight-point star: gold -->
+  <polygon fill="#C9A227" points="62,32 44,37 53.2,53.2 37,44 32,62 27,44 10.8,53.2 20,37 2,32 20,27 10.8,10.8 27,20 32,2 37,20 53.2,10.8 44,27"/>
+  <!-- Inner eight-point star: deep emerald -->
+  <polygon fill="#0B3D2E" points="47,32 38,34.5 42.6,42.6 34.5,38 32,47 29.5,38 21.4,42.6 26,34.5 17,32 26,29.5 21.4,21.4 29.5,26 32,17 34.5,26 42.6,21.4 38,29.5"/>
+  <!-- Centre: gold-light dot -->
+  <circle cx="32" cy="32" r="4" fill="#E7D9A8"/>
+</svg>

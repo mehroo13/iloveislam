@@ -6,11 +6,11 @@ export const metadata: Metadata = {
     'Find answers to frequently asked questions about our free Islamic tools — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Dhikr Counter, and more.',
   keywords: [
     'islamic tools faq', 'i love islam help', 'zakat calculator help', 'prayer times faq',
-    'qibla finder help', 'halal scanner faq', 'islamic app questions',
+    'qibla finder help', 'islamic app questions',
   ],
   openGraph: {
     title: 'FAQ — Islamic Tools Help & Answers | I Love Islam',
-    description: 'Answers to common questions about our 25+ free Islamic tools. Privacy, accuracy, and usage explained.',
+    description: 'Answers to common questions about our 20+ free Islamic tools. Privacy, accuracy, and usage explained.',
     type: 'website',
     url: 'https://www.iloveislam.life/faq',
     siteName: 'I Love Islam',

@@ -2,7 +2,7 @@
 export const islamicNewYear2026 = {
   slug: "islamic-new-year-2026-muharram",
   title: "Islamic New Year 2026 (1448 AH): Date, Significance & Practices",
-  excerpt: "Learn about the Islamic New Year 2026 (1448 AH). Discover the date, significance of Muharram, recommended practices, and the history of the Hijri calendar.",
+  excerpt: "Islamic New Year 2026 (1448 AH): the expected date, Muharram practices and Ashura fasting for this year — plus the history of the Hijri calendar.",
   category: "Events",
   emoji: "🗓️",
   readTime: "15 min read",
@@ -12,7 +12,7 @@ export const islamicNewYear2026 = {
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Islamic New Year 2026: When is 1 Muharram 1448 AH?</h2>
 
-<p>The Islamic New Year 2026 marks the beginning of the Hijri year 1448 AH. Based on astronomical calculations, the Islamic New Year 2026 is expected to fall on approximately June 26, 2026 (subject to moon sighting). This date marks 1 Muharram 1448, the first day of the first month in the Islamic lunar calendar. Unlike the Gregorian New Year, the Islamic New Year 2026 is a time for reflection, gratitude, and spiritual renewal rather than celebration and festivities.</p>
+<p>The Islamic New Year 2026 marks the beginning of the Hijri year 1448 AH. Based on astronomical calculations, the Islamic New Year 2026 is expected to fall on approximately June 26, 2026 (subject to moon sighting). This date marks 1 Muharram 1448, the first day of the first month in the Islamic lunar calendar. Unlike the Gregorian New Year, the Islamic New Year 2026 is a time for reflection, gratitude, and spiritual renewal rather than celebration and festivities. For the timeless significance of Muharram and Ashura beyond this year, see our <a href="/blog/islamic-new-year-muharram" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">evergreen guide to the Islamic New Year</a>.</p>
 
 <p class="text-right text-xl my-4 font-arabic leading-loose" dir="rtl">إِنَّ عِدَّةَ الشُّهُورِ عِندَ اللَّهِ اثْنَا عَشَرَ شَهْرًا فِي كِتَابِ اللَّهِ يَوْمَ خَلَقَ السَّمَاوَاتِ وَالْأَرْضَ مِنْهَا أَرْبَعَةٌ حُرُمٌ</p>
 

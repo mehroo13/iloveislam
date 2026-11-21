@@ -2,7 +2,7 @@
 export const howToPerformHajj = {
   slug: "how-to-perform-hajj-step-by-step",
   title: "How to Perform Hajj: Complete Step-by-Step Guide (2026)",
-  excerpt: "Learn how to perform Hajj with this complete step-by-step guide. Covers all rituals including Ihram, Tawaf, Sa'i, Arafah, Muzdalifah, Mina, and stoning of Jamarat.",
+  excerpt: "Follow Hajj day by day, ritual by ritual — Ihram, Tawaf, Sa'i, Arafah, Muzdalifah, Mina and the stoning of Jamarat — in this complete step-by-step guide.",
   category: "Hajj",
   emoji: "🕋",
   readTime: "22 min read",
@@ -14,7 +14,7 @@ export const howToPerformHajj = {
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">How to Perform Hajj: Introduction</h2>
 
-<p>Learning how to perform Hajj is a duty upon every Muslim who has the physical and financial ability to undertake this sacred journey. Hajj is the fifth pillar of Islam and one of the greatest acts of worship. Every year, millions of Muslims from around the world gather in Makkah to fulfill this obligation, following the footsteps of Prophet Ibrahim (Abraham) عليه السلام and Prophet Muhammad ﷺ.</p>
+<p>Learning how to perform Hajj is a duty upon every Muslim who has the physical and financial ability to undertake this sacred journey. Hajj is the fifth pillar of Islam and one of the greatest acts of worship. Every year, millions of Muslims from around the world gather in Makkah to fulfill this obligation, following the footsteps of Prophet Ibrahim (Abraham) عليه السلام and Prophet Muhammad ﷺ. If you are new to Hajj, start with our <a href="/blog/hajj-explained-beginners-guide" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">beginner's guide explaining Hajj</a> — this guide then walks you through the rituals day by day.</p>
 
 <p class="text-right text-xl my-4 font-arabic leading-loose" dir="rtl">وَلِلَّهِ عَلَى النَّاسِ حِجُّ الْبَيْتِ مَنِ اسْتَطَاعَ إِلَيْهِ سَبِيلًا</p>
 

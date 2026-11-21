@@ -1,17 +1,18 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Quran Reader — Read, Listen & Bookmark the Holy Quran | I Love Islam',
+  title: 'Quran Reader — Read the Quran in Indo-Pak Script with Translation & Audio | I Love Islam',
   description:
-    'Read the Quran with Indo‑Pak Mushaf or verse‑by‑verse, listen to recitations, bookmark ayahs, and switch between English & Urdu translations. Free, no sign‑up.',
+    'Read the Holy Quran in the Indo-Pak script — the 15-line Mushaf style read in Pakistan, India and Bangladesh — with five English translations, audio recitation by world-renowned Qaris, Ibn Kathir tafsir, bookmarks and a 30-juz reading plan. Free, no sign-up.',
   keywords: [
-    'quran reader', 'quran with translation', 'quran audio', 'quran bookmarks',
-    'quran english', 'quran urdu', 'al quran', 'free quran app', 'quran recitation',
+    'quran reader', 'quran indo-pak script', 'indo pak mushaf', 'quran with translation',
+    'quran audio', 'quran bookmarks', 'quran english', 'quran tafsir', 'ibn kathir tafsir',
+    'al quran', 'free quran app', 'quran recitation', 'quran juz', 'quran reading plan',
   ],
   openGraph: {
-    title: 'Quran Reader — Holy Quran with Translation & Audio | I Love Islam',
-    description: 'Read the Quran in Arabic with English/Urdu translation, audio recitation, and bookmarking.',
-    url: 'https://www.iloveislam.life/quran-reader',
+    title: 'Quran Reader — Holy Quran in Indo-Pak Script with Translation & Audio | I Love Islam',
+    description: 'Read the Quran in the Indo-Pak script with five English translations, audio recitation, Ibn Kathir tafsir and bookmarks.',
+    url: 'https://www.iloveislam.life/quran',
     siteName: 'I Love Islam',
     locale: 'en_US',
     type: 'website',
@@ -19,10 +20,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Quran Reader | I Love Islam',
-    description: 'Read, listen, and bookmark the Quran. Free forever.',
+    title: 'Quran Reader — Indo-Pak Script | I Love Islam',
+    description: 'Read the Quran in Indo-Pak script with translation, audio, tafsir and bookmarks. Free forever.',
   },
-  alternates: { canonical: 'https://www.iloveislam.life/quran-reader' },
+  alternates: { canonical: 'https://www.iloveislam.life/quran' },
   robots: {
     index: true, follow: true,
     googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
@@ -39,15 +40,15 @@ const jsonLd = {
       operatingSystem: 'Web',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
-        'Read the Holy Quran in Arabic with Indo‑Pak Mushaf or verse‑by‑verse, listen to recitations, bookmark verses, and toggle English or Urdu translations.',
-      url: 'https://www.iloveislam.life/quran-reader',
+        'Read the Holy Quran in the Indo-Pak script with five English translations, audio recitation by renowned Qaris, Ibn Kathir tafsir, bookmarks and a 30-juz reading plan.',
+      url: 'https://www.iloveislam.life/quran',
       provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.iloveislam.life' },
-        { '@type': 'ListItem', position: 2, name: 'Quran Reader', item: 'https://www.iloveislam.life/quran-reader' },
+        { '@type': 'ListItem', position: 2, name: 'Quran Reader', item: 'https://www.iloveislam.life/quran' },
       ],
     },
     {
@@ -55,10 +56,10 @@ const jsonLd = {
       mainEntity: [
         {
           '@type': 'Question',
-          name: 'Can I read the Quran in English and Urdu?',
+          name: 'Can I read the Quran in English?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Yes, you can switch between English and Urdu translations at any time. The Arabic text is always displayed alongside.',
+            text: 'Yes, you can switch between five English translations at any time — Saheeh International, Yusuf Ali, Pickthall, Abdel Haleem and Taqi Usmani. The Arabic text is always displayed in the Indo-Pak script alongside.',
           },
         },
         {
@@ -66,7 +67,7 @@ const jsonLd = {
           name: 'Is there audio recitation?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Yes, tap any verse to hear a renowned Qari recite it. You can also enable continuous playback for the whole surah.',
+            text: 'Yes, tap any verse to hear a renowned Qari recite it. You can also enable continuous playback for the whole surah, and read the Ibn Kathir tafsir for any verse.',
           },
         },
         {
@@ -74,7 +75,7 @@ const jsonLd = {
           name: 'How do bookmarks work?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Double‑tap any verse to bookmark it. Bookmarks are saved in your browser and shown in the surah list along with your last read position.',
+            text: 'Tap the Bookmark button on any verse to save it. Bookmarks are saved in your browser and shown in the Bookmarks tab along with your last read position.',
           },
         },
       ],
@@ -97,7 +98,7 @@ export default function QuranReaderLayout({ children }: { children: React.ReactN
             The Holy Quran is the final revelation from Allah to humanity, revealed to Prophet Muhammad (peace be upon him) over a period of 23 years through the Angel Jibreel (Gabriel). It is the primary source of guidance for over 1.8 billion Muslims worldwide, containing 114 surahs (chapters) and over 6,200 verses covering all aspects of faith, worship, morality, law, and human conduct. Allah describes it as: &quot;A guidance for mankind and clear proofs of guidance and the criterion between right and wrong&quot; (Quran 2:185).
           </p>
           <p className="text-gray-600 text-sm leading-relaxed mb-3">
-            Our Quran Reader provides a beautiful, distraction-free reading experience with the complete Arabic text alongside translations in English and Urdu. You can browse by surah, search for specific verses, listen to professional recitations, and bookmark your favourite ayahs for easy reference. The tool remembers your last reading position so you can continue where you left off.
+            Our Quran Reader provides a beautiful, distraction-free reading experience with the complete Arabic text in the Indo-Pak script alongside five English translations. You can browse by surah or juz, search for specific verses, listen to professional recitations, read Ibn Kathir tafsir, and bookmark your favourite ayahs for easy reference. The tool remembers your last reading position so you can continue where you left off.
           </p>
           <p className="text-gray-600 text-sm leading-relaxed">
             Whether you are reading your daily portion (wird), studying a specific topic, memorizing verses, or simply seeking spiritual comfort, our Quran Reader is designed to make your interaction with the Book of Allah as smooth and meaningful as possible. The interface works beautifully on all devices, from large desktop screens to mobile phones.
@@ -107,10 +108,10 @@ export default function QuranReaderLayout({ children }: { children: React.ReactN
         <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
           <h3 className="text-lg font-bold text-gray-800 mb-3">Features of Our Quran Reader</h3>
           <div className="space-y-3 text-sm text-gray-600 leading-relaxed">
-            <p><strong className="text-gray-800">Complete Arabic Text:</strong> The full Quran in clear, readable Arabic script with proper tajweed markings. Choose between Indo-Pak Mushaf style or verse-by-verse display.</p>
-            <p><strong className="text-gray-800">Multiple Translations:</strong> Toggle between English and Urdu translations displayed alongside the Arabic text. Translations are sourced from respected scholars.</p>
+            <p><strong className="text-gray-800">Complete Arabic Text:</strong> The full Quran in the clear, readable Indo-Pak Mushaf script with proper tajweed markings, displayed verse by verse.</p>
+            <p><strong className="text-gray-800">Multiple Translations:</strong> Switch between five respected English translations displayed alongside the Arabic text: Saheeh International, Yusuf Ali, Pickthall, Abdel Haleem and Taqi Usmani.</p>
             <p><strong className="text-gray-800">Audio Recitation:</strong> Listen to beautiful recitations by renowned Qaris. Tap any verse to hear it recited, or enable continuous playback for the entire surah.</p>
-            <p><strong className="text-gray-800">Bookmarks and Progress:</strong> Double-tap any verse to bookmark it. Your reading position and bookmarks are saved locally in your browser for easy access.</p>
+            <p><strong className="text-gray-800">Bookmarks and Progress:</strong> Tap “Bookmark” on any verse to save it. Your reading position and bookmarks are saved locally in your browser for easy access.</p>
             <p><strong className="text-gray-800">Search Functionality:</strong> Search for specific words or phrases across the entire Quran to find relevant verses on any topic.</p>
           </div>
         </div>

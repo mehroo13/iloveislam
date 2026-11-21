@@ -28,7 +28,7 @@ export default function About() {
         <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
           <h3 className="font-bold text-gray-800 text-lg mb-3">Welcome to I Love Islam</h3>
           <p className="text-gray-600 text-sm leading-relaxed mb-3">
-            I Love Islam is a comprehensive, free-to-use platform offering over 26 carefully crafted Islamic tools designed to support Muslims in their daily worship, spiritual growth, and practical religious needs. Whether you are looking to calculate your Zakat, find accurate prayer times, locate the Qibla direction, read the Quran with translation, or check if a food product is Halal, our platform provides everything you need in one convenient place.
+            I Love Islam is a comprehensive, free-to-use platform offering over 20 carefully crafted Islamic tools designed to support Muslims in their daily worship, spiritual growth, and practical religious needs. Whether you are looking to calculate your Zakat, find accurate prayer times, locate the Qibla direction, or read the Quran with translation, our platform provides everything you need in one convenient place.
           </p>
           <p className="text-gray-600 text-sm leading-relaxed mb-3">
             We launched this project with a simple belief: that every Muslim, regardless of their location, language, or financial situation, deserves access to reliable, well-designed Islamic tools. In a world where many apps charge subscription fees or require personal data, we chose a different path — one rooted in the Islamic principle of serving the Ummah without expecting anything in return.
@@ -48,7 +48,7 @@ export default function About() {
           {
             icon: '🛠️',
             title: 'What We Offer',
-            body: 'Our suite includes over 26 essential Islamic tools: Zakat Calculator with live gold prices, Prayer Times for any city worldwide, Qibla Finder with compass, Quran Reader with multiple translations, HalalScan barcode and ingredient checker, Dhikr Counter with streak tracking, Hijri Calendar converter, Hadith Search engine, Ramadan Planner, Sadaqah Tracker, Islamic Inheritance Calculator, Halal Finance Screening tool, Kaffarah Calculator, Mosque Finder, Hajj and Umrah Checklist, Islamic Will Generator, Halal Travel Guide, Islamic Names Finder with 14,000+ names, Dua Collection with 60+ authentic supplications, Night Recitation player, Eid toolkit, 99 Names of Allah, Kids Islamic Corner, and our unique Mizan Islamic Life Blueprint. Each tool is carefully researched and regularly updated.',
+            body: 'Our suite includes over 20 essential Islamic tools: Zakat Calculator with live gold prices, Prayer Times for any city worldwide, Qibla Finder with compass, Quran Reader with multiple translations, Dhikr Counter with streak tracking, Hijri Calendar converter, Hadith Search engine, Ramadan Planner, Sadaqah Tracker, Islamic Inheritance Calculator, Halal Finance Screening tool, Kaffarah Calculator, Hajj and Umrah Checklist, Halal Travel Guide, Islamic Names Finder with 14,000+ names, Dua Collection with 60+ authentic supplications, Night Recitation player, Eid toolkit, 99 Names of Allah, and our unique Mizan Islamic Life Blueprint. Each tool is carefully researched and regularly updated.',
           },
           {
             icon: '💡',

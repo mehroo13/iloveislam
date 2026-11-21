@@ -1,7 +1,7 @@
 export const howToCalculateZakatGuide = {
   slug: "how-to-calculate-zakat-step-by-step",
   title: "How to Calculate Zakat: Complete 2026 Step-by-Step Guide",
-  excerpt: "Learn how to calculate zakat on gold, silver, cash, and investments. Includes nisab thresholds, zakat rates, and a free online calculator for accurate results.",
+  excerpt: "Worked examples for calculating Zakat in 2026 — gold, silver, cash and investments — with current Nisab thresholds, Zakat rates and a free online calculator.",
   category: "Finance",
   emoji: "💰",
   readTime: "12 min read",
@@ -11,7 +11,7 @@ export const howToCalculateZakatGuide = {
 <img src="/blog/how-to-calculate-zakat-guide.jpg" alt="how to calculate zakat guide" class="w-full rounded-2xl mb-8 shadow-lg" width="1200" height="630" loading="lazy" />
 
 
-<p>Knowing <strong>how to calculate zakat</strong> is essential for every Muslim who owns wealth above the nisab threshold. Zakat (زكاة) is the third pillar of Islam — a mandatory annual payment of 2.5% on qualifying assets that purifies your wealth and supports those in need. This comprehensive guide walks you through every step of calculating your zakat accurately in 2026.</p>
+<p>Knowing <strong>how to calculate zakat</strong> is essential for every Muslim who owns wealth above the nisab threshold. Zakat (زكاة) is the third pillar of Islam — a mandatory annual payment of 2.5% on qualifying assets that purifies your wealth and supports those in need. This comprehensive guide walks you through every step of calculating your zakat accurately in 2026. For the method itself, see our <a href="/blog/how-to-calculate-zakat" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">step-by-step guide to calculating Zakat</a>; this 2026 edition works through the figures with worked examples for gold, silver, cash and investments.</p>
 
 <p>Use our free <a href="/zakat" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Zakat Calculator</a> to compute your exact obligation with live gold and silver prices.</p>
 

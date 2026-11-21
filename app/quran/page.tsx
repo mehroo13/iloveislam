@@ -1,27 +1,93 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-interface Surah {
-  number: number;
-  name: string;
-  arabic: string;
-  urduName: string;
-  meaning: string;
-  meaningUrdu: string;
-  verses: number;
-  juz: number;
-  makki: boolean;
+/* ------------------------------------------------------------------ */
+/*  Quran Reader — Indo-Pak script (Quran.com API v4, text_indopak)   */
+/*  All data is fetched client-side; the page builds with no network. */
+/* ------------------------------------------------------------------ */
+
+const API = 'https://api.quran.com/api/v4';
+const AUDIO_BASE = 'https://verses.quran.com/';
+
+/* Verified live against api.quran.com on 2026-11-21. */
+const TRANSLATIONS = [
+  { id: 20, name: 'Saheeh International' },
+  { id: 22, name: 'Yusuf Ali' },
+  { id: 19, name: 'Pickthall' },
+  { id: 85, name: 'Abdel Haleem' },
+  { id: 84, name: 'Taqi Usmani' },
+];
+const RECITERS = [
+  { id: 7, name: 'Mishary Alafasy' },
+  { id: 2, name: 'Abdul Basit (Murattal)' },
+  { id: 3, name: 'Abdur-Rahman as-Sudais' },
+  { id: 9, name: 'Muhammad al-Minshawi' },
+  { id: 6, name: 'Mahmoud Al-Husary' },
+  { id: 4, name: 'Abu Bakr al-Shatri' },
+];
+const TAFSIR_ID = 169; // Ibn Kathir (Abridged), English — verified via /resources/tafsirs
+const TAFSIR_NAME = 'Tafsir Ibn Kathir (Abridged)';
+
+const BISMILLAH = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
+
+/* Verse of the Day — rotates by day-of-year, same pattern as the homepage. */
+const VOTD_KEYS = [
+  '94:6', '93:7', '2:152', '2:286', '49:13', '5:23',
+  '2:255', '36:58', '55:13', '1:5', '3:8', '17:23', '13:28', '39:53',
+];
+
+const JUZ_DATA: { juz: number; name: string; ar: string; start: string; surahs: number[] }[] = [
+  { juz: 1, name: 'Alif Lam Mim', ar: 'الٓمٓ', start: 'Al-Fatihah 1:1', surahs: [1, 2] },
+  { juz: 2, name: 'Sayaqool', ar: 'سَيَقُولُ', start: 'Al-Baqarah 2:142', surahs: [2] },
+  { juz: 3, name: 'Tilkal Rusul', ar: 'تِلْكَ الرُّسُلُ', start: 'Al-Baqarah 2:253', surahs: [2, 3] },
+  { juz: 4, name: 'Lan Tanaloo', ar: 'لَن تَنَالُوا', start: 'Ali Imran 3:93', surahs: [3, 4] },
+  { juz: 5, name: 'Wal Muhsanat', ar: 'وَالْمُحْصَنَاتُ', start: 'An-Nisa 4:24', surahs: [4] },
+  { juz: 6, name: 'La Yuhibbullah', ar: 'لَا يُحِبُّ اللَّهُ', start: 'An-Nisa 4:148', surahs: [4, 5] },
+  { juz: 7, name: 'Wa Iza Samiu', ar: 'وَإِذَا سَمِعُوا', start: 'Al-Maidah 5:83', surahs: [5, 6] },
+  { juz: 8, name: 'Wa Lau Annana', ar: 'وَلَوْ أَنَّنَا', start: 'Al-Anam 6:111', surahs: [6, 7] },
+  { juz: 9, name: 'Qalal Malau', ar: 'قَالَ الْمَلَأُ', start: 'Al-Araf 7:88', surahs: [7, 8] },
+  { juz: 10, name: 'Wa Alamu', ar: 'وَاعْلَمُوا', start: 'Al-Anfal 8:41', surahs: [8, 9] },
+  { juz: 11, name: 'Yatazeroon', ar: 'يَعْتَذِرُونَ', start: 'At-Tawbah 9:93', surahs: [9, 10, 11] },
+  { juz: 12, name: 'Wa Ma Min Dabbah', ar: 'وَمَا مِن دَابَّةٍ', start: 'Hud 11:6', surahs: [11, 12] },
+  { juz: 13, name: 'Wa Ma Ubarriu', ar: 'وَمَا أُبَرِّئُ', start: 'Yusuf 12:53', surahs: [12, 13, 14] },
+  { juz: 14, name: 'Rubama', ar: 'رُبَمَا', start: 'Al-Hijr 15:1', surahs: [15, 16] },
+  { juz: 15, name: 'Subhanallazi', ar: 'سُبْحَانَ الَّذِي', start: 'Al-Isra 17:1', surahs: [17, 18] },
+  { juz: 16, name: 'Qal Alam', ar: 'قَالَ أَلَمْ', start: 'Al-Kahf 18:75', surahs: [18, 19, 20] },
+  { juz: 17, name: 'Iqtaraba', ar: 'اقْتَرَبَ', start: 'Al-Anbiya 21:1', surahs: [21, 22] },
+  { juz: 18, name: 'Qad Aflaha', ar: 'قَدْ أَفْلَحَ', start: 'Al-Muminun 23:1', surahs: [23, 24, 25] },
+  { juz: 19, name: 'Wa Qalallazina', ar: 'وَقَالَ الَّذِينَ', start: 'Al-Furqan 25:21', surahs: [25, 26, 27] },
+  { juz: 20, name: 'Amman Khalaq', ar: 'أَمَّنْ خَلَقَ', start: 'An-Naml 27:56', surahs: [27, 28, 29] },
+  { juz: 21, name: 'Utlu Ma Uhiya', ar: 'اتْلُ مَا أُوحِيَ', start: 'Al-Ankabut 29:46', surahs: [29, 30, 31, 32, 33] },
+  { juz: 22, name: 'Wa Man Yaqnut', ar: 'وَمَن يَقْنُتْ', start: 'Al-Ahzab 33:31', surahs: [33, 34, 35, 36] },
+  { juz: 23, name: 'Wa Mali', ar: 'وَمَا لِيَ', start: 'Ya-Sin 36:28', surahs: [36, 37, 38, 39] },
+  { juz: 24, name: 'Faman Azlamu', ar: 'فَمَنْ أَظْلَمُ', start: 'Az-Zumar 39:32', surahs: [39, 40, 41] },
+  { juz: 25, name: 'Ilaihi Yuraddu', ar: 'إِلَيْهِ يُرَدُّ', start: 'Fussilat 41:47', surahs: [41, 42, 43, 44, 45] },
+  { juz: 26, name: 'Ha Mim', ar: 'حٰمٓ', start: 'Al-Ahqaf 46:1', surahs: [46, 47, 48, 49, 50, 51] },
+  { juz: 27, name: 'Qala Fama Khatbukum', ar: 'قَالَ فَمَا خَطْبُكُمْ', start: 'Adh-Dhariyat 51:31', surahs: [51, 52, 53, 54, 55, 56, 57] },
+  { juz: 28, name: 'Qad Sami Allah', ar: 'قَدْ سَمِعَ اللَّهُ', start: 'Al-Mujadila 58:1', surahs: [58, 59, 60, 61, 62, 63, 64, 65, 66] },
+  { juz: 29, name: 'Tabarakallazi', ar: 'تَبَارَكَ الَّذِي', start: 'Al-Mulk 67:1', surahs: [67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77] },
+  { juz: 30, name: 'Amma Yatasaaloon', ar: 'عَمَّ يَتَسَاءَلُونَ', start: 'An-Naba 78:1', surahs: [78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114] },
+];
+
+interface Chapter {
+  id: number;
+  revelation_place: string;
+  name_simple: string;
+  name_arabic: string;
+  verses_count: number;
+  translated_name: { name: string };
 }
 
 interface Verse {
-  number: number;
-  arabic: string;
-  translation: string;
-  transliteration?: string;
-  audio?: string;
+  verse_key: string;
+  verse_number: number;
+  text_indopak: string;
+  audio?: { url?: string };
+  translations?: { text: string }[];
 }
 
+/* Same localStorage shape the old reader used, so existing bookmarks survive. */
 interface Bookmark {
   surahNumber: number;
   surahName: string;
@@ -29,1434 +95,897 @@ interface Bookmark {
   timestamp: number;
 }
 
-const SURAHS: Surah[] = [
-  { number: 1, name: 'Al-Fatihah', arabic: 'الفاتحة', urduName: 'الفاتحہ', meaning: 'The Opening', meaningUrdu: 'افتتاحیہ', verses: 7, juz: 1, makki: true },
-  { number: 2, name: 'Al-Baqarah', arabic: 'البقرة', urduName: 'البقرہ', meaning: 'The Cow', meaningUrdu: 'گائے', verses: 286, juz: 1, makki: false },
-  { number: 3, name: 'Ali Imran', arabic: 'آل عمران', urduName: 'آل عمران', meaning: 'Family of Imran', meaningUrdu: 'عمران کا خاندان', verses: 200, juz: 3, makki: false },
-  { number: 4, name: 'An-Nisa', arabic: 'النساء', urduName: 'النساء', meaning: 'The Women', meaningUrdu: 'عورتیں', verses: 176, juz: 4, makki: false },
-  { number: 5, name: 'Al-Maidah', arabic: 'المائدة', urduName: 'المائدہ', meaning: 'The Table Spread', meaningUrdu: 'خوان', verses: 120, juz: 6, makki: false },
-  { number: 6, name: 'Al-Anam', arabic: 'الأنعام', urduName: 'الأنعام', meaning: 'The Cattle', meaningUrdu: 'چوپائے', verses: 165, juz: 7, makki: true },
-  { number: 7, name: 'Al-Araf', arabic: 'الأعراف', urduName: 'الأعراف', meaning: 'The Heights', meaningUrdu: 'اعراف', verses: 206, juz: 8, makki: true },
-  { number: 8, name: 'Al-Anfal', arabic: 'الأنفال', urduName: 'الأنفال', meaning: 'The Spoils of War', meaningUrdu: 'مال غنیمت', verses: 75, juz: 9, makki: false },
-  { number: 9, name: 'At-Tawbah', arabic: 'التوبة', urduName: 'التوبہ', meaning: 'The Repentance', meaningUrdu: 'توبہ', verses: 129, juz: 10, makki: false },
-  { number: 10, name: 'Yunus', arabic: 'يونس', urduName: 'یونس', meaning: 'Jonah', meaningUrdu: 'یونس علیہ السلام', verses: 109, juz: 11, makki: true },
-  { number: 11, name: 'Hud', arabic: 'هود', urduName: 'ھود', meaning: 'Hud', meaningUrdu: 'ھود علیہ السلام', verses: 123, juz: 12, makki: true },
-  { number: 12, name: 'Yusuf', arabic: 'يوسف', urduName: 'یوسف', meaning: 'Joseph', meaningUrdu: 'یوسف علیہ السلام', verses: 111, juz: 12, makki: true },
-  { number: 13, name: 'Ar-Rad', arabic: 'الرعد', urduName: 'الرعد', meaning: 'The Thunder', meaningUrdu: 'بادل کی گرج', verses: 43, juz: 13, makki: false },
-  { number: 14, name: 'Ibrahim', arabic: 'إبراهيم', urduName: 'ابراہیم', meaning: 'Abraham', meaningUrdu: 'ابراہیم علیہ السلام', verses: 52, juz: 13, makki: true },
-  { number: 15, name: 'Al-Hijr', arabic: 'الحجر', urduName: 'الحجر', meaning: 'The Rocky Tract', meaningUrdu: 'پتھر کی وادی', verses: 99, juz: 14, makki: true },
-  { number: 16, name: 'An-Nahl', arabic: 'النحل', urduName: 'النحل', meaning: 'The Bee', meaningUrdu: 'شہد کی مکھی', verses: 128, juz: 14, makki: false },
-  { number: 17, name: 'Al-Isra', arabic: 'الإسراء', urduName: 'الإسراء', meaning: 'The Night Journey', meaningUrdu: 'معراج', verses: 111, juz: 15, makki: true },
-  { number: 18, name: 'Al-Kahf', arabic: 'الكهف', urduName: 'الکہف', meaning: 'The Cave', meaningUrdu: 'غار', verses: 110, juz: 15, makki: true },
-  { number: 19, name: 'Maryam', arabic: 'مريم', urduName: 'مریم', meaning: 'Mary', meaningUrdu: 'مریم علیہا السلام', verses: 98, juz: 16, makki: true },
-  { number: 20, name: 'Ta-Ha', arabic: 'طه', urduName: 'طٰہٰ', meaning: 'Ta-Ha', meaningUrdu: 'طٰہٰ', verses: 135, juz: 16, makki: true },
-  { number: 21, name: 'Al-Anbiya', arabic: 'الأنبياء', urduName: 'الأنبیاء', meaning: 'The Prophets', meaningUrdu: 'انبیاء', verses: 112, juz: 17, makki: true },
-  { number: 22, name: 'Al-Hajj', arabic: 'الحج', urduName: 'الحج', meaning: 'The Pilgrimage', meaningUrdu: 'حج', verses: 78, juz: 17, makki: false },
-  { number: 23, name: 'Al-Muminun', arabic: 'المؤمنون', urduName: 'المؤمنون', meaning: 'The Believers', meaningUrdu: 'مومن', verses: 118, juz: 18, makki: true },
-  { number: 24, name: 'An-Nur', arabic: 'النور', urduName: 'النور', meaning: 'The Light', meaningUrdu: 'نور', verses: 64, juz: 18, makki: false },
-  { number: 25, name: 'Al-Furqan', arabic: 'الفرقان', urduName: 'الفرقان', meaning: 'The Criterion', meaningUrdu: 'فرقان', verses: 77, juz: 18, makki: true },
-  { number: 26, name: 'Ash-Shuara', arabic: 'الشعراء', urduName: 'الشعراء', meaning: 'The Poets', meaningUrdu: 'شاعر', verses: 227, juz: 19, makki: true },
-  { number: 27, name: 'An-Naml', arabic: 'النمل', urduName: 'النمل', meaning: 'The Ant', meaningUrdu: 'چیونٹی', verses: 93, juz: 19, makki: true },
-  { number: 28, name: 'Al-Qasas', arabic: 'القصص', urduName: 'القصص', meaning: 'The Stories', meaningUrdu: 'قصص', verses: 88, juz: 20, makki: true },
-  { number: 29, name: 'Al-Ankabut', arabic: 'العنكبوت', urduName: 'العنکبوت', meaning: 'The Spider', meaningUrdu: 'مکڑی', verses: 69, juz: 20, makki: true },
-  { number: 30, name: 'Ar-Rum', arabic: 'الروم', urduName: 'الروم', meaning: 'The Romans', meaningUrdu: 'رومی', verses: 60, juz: 21, makki: true },
-  { number: 31, name: 'Luqman', arabic: 'لقمان', urduName: 'لقمان', meaning: 'Luqman', meaningUrdu: 'لقمان علیہ السلام', verses: 34, juz: 21, makki: true },
-  { number: 32, name: 'As-Sajdah', arabic: 'السجدة', urduName: 'السجدہ', meaning: 'The Prostration', meaningUrdu: 'سجدہ', verses: 30, juz: 21, makki: true },
-  { number: 33, name: 'Al-Ahzab', arabic: 'الأحزاب', urduName: 'الأحزاب', meaning: 'The Combined Forces', meaningUrdu: 'اتحادی لشکر', verses: 73, juz: 21, makki: false },
-  { number: 34, name: 'Saba', arabic: 'سبأ', urduName: 'سبأ', meaning: 'Sheba', meaningUrdu: 'سبا', verses: 54, juz: 22, makki: true },
-  { number: 35, name: 'Fatir', arabic: 'فاطر', urduName: 'فاطر', meaning: 'Originator', meaningUrdu: 'خالق', verses: 45, juz: 22, makki: true },
-  { number: 36, name: 'Ya-Sin', arabic: 'يس', urduName: 'یٰسٓ', meaning: 'Ya-Sin', meaningUrdu: 'یٰسٓ', verses: 83, juz: 22, makki: true },
-  { number: 37, name: 'As-Saffat', arabic: 'الصافات', urduName: 'الصافات', meaning: 'Those Ranged in Ranks', meaningUrdu: 'صف باندھنے والے', verses: 182, juz: 23, makki: true },
-  { number: 38, name: 'Sad', arabic: 'ص', urduName: 'صٓ', meaning: 'Sad', meaningUrdu: 'صٓ', verses: 88, juz: 23, makki: true },
-  { number: 39, name: 'Az-Zumar', arabic: 'الزمر', urduName: 'الزمر', meaning: 'The Groups', meaningUrdu: 'گروہ', verses: 75, juz: 23, makki: true },
-  { number: 40, name: 'Ghafir', arabic: 'غافر', urduName: 'غافر', meaning: 'The Forgiver', meaningUrdu: 'بخش دینے والا', verses: 85, juz: 24, makki: true },
-  { number: 41, name: 'Fussilat', arabic: 'فصلت', urduName: 'فصلت', meaning: 'Explained in Detail', meaningUrdu: 'کھول کر بیان کیا', verses: 54, juz: 24, makki: true },
-  { number: 42, name: 'Ash-Shura', arabic: 'الشورى', urduName: 'الشوریٰ', meaning: 'The Consultation', meaningUrdu: 'مشورہ', verses: 53, juz: 25, makki: true },
-  { number: 43, name: 'Az-Zukhruf', arabic: 'الزخرف', urduName: 'الزخرف', meaning: 'The Gold Adornments', meaningUrdu: 'سونے کے زیورات', verses: 89, juz: 25, makki: true },
-  { number: 44, name: 'Ad-Dukhan', arabic: 'الدخان', urduName: 'الدخان', meaning: 'The Smoke', meaningUrdu: 'دھواں', verses: 59, juz: 25, makki: true },
-  { number: 45, name: 'Al-Jathiyah', arabic: 'الجاثية', urduName: 'الجاثیہ', meaning: 'The Crouching', meaningUrdu: 'گھٹنوں کے بل', verses: 37, juz: 25, makki: true },
-  { number: 46, name: 'Al-Ahqaf', arabic: 'الأحقاف', urduName: 'الأحقاف', meaning: 'The Wind-Curved Sandhills', meaningUrdu: 'ریگستانی ٹیلے', verses: 35, juz: 26, makki: true },
-  { number: 47, name: 'Muhammad', arabic: 'محمد', urduName: 'محمد', meaning: 'Muhammad', meaningUrdu: 'محمد ﷺ', verses: 38, juz: 26, makki: false },
-  { number: 48, name: 'Al-Fath', arabic: 'الفتح', urduName: 'الفتح', meaning: 'The Victory', meaningUrdu: 'فتح', verses: 29, juz: 26, makki: false },
-  { number: 49, name: 'Al-Hujurat', arabic: 'الحجرات', urduName: 'الحجرات', meaning: 'The Rooms', meaningUrdu: 'کمرے', verses: 18, juz: 26, makki: false },
-  { number: 50, name: 'Qaf', arabic: 'ق', urduName: 'قٓ', meaning: 'Qaf', meaningUrdu: 'قٓ', verses: 45, juz: 26, makki: true },
-  { number: 51, name: 'Adh-Dhariyat', arabic: 'الذاريات', urduName: 'الذاریات', meaning: 'The Winnowing Winds', meaningUrdu: 'اڑانے والی ہوائیں', verses: 60, juz: 26, makki: true },
-  { number: 52, name: 'At-Tur', arabic: 'الطور', urduName: 'الطور', meaning: 'The Mount', meaningUrdu: 'طور پہاڑ', verses: 49, juz: 27, makki: true },
-  { number: 53, name: 'An-Najm', arabic: 'النجم', urduName: 'النجم', meaning: 'The Star', meaningUrdu: 'ستارہ', verses: 62, juz: 27, makki: true },
-  { number: 54, name: 'Al-Qamar', arabic: 'القمر', urduName: 'القمر', meaning: 'The Moon', meaningUrdu: 'چاند', verses: 55, juz: 27, makki: true },
-  { number: 55, name: 'Ar-Rahman', arabic: 'الرحمن', urduName: 'الرحمن', meaning: 'The Most Gracious', meaningUrdu: 'نہایت رحم والا', verses: 78, juz: 27, makki: false },
-  { number: 56, name: 'Al-Waqiah', arabic: 'الواقعة', urduName: 'الواقعہ', meaning: 'The Inevitable', meaningUrdu: 'ہونے والی', verses: 96, juz: 27, makki: true },
-  { number: 57, name: 'Al-Hadid', arabic: 'الحديد', urduName: 'الحدید', meaning: 'The Iron', meaningUrdu: 'لوہا', verses: 29, juz: 27, makki: false },
-  { number: 58, name: 'Al-Mujadila', arabic: 'المجادلة', urduName: 'المجادلہ', meaning: 'The Pleading Woman', meaningUrdu: 'جھگڑنے والی عورت', verses: 22, juz: 28, makki: false },
-  { number: 59, name: 'Al-Hashr', arabic: 'الحشر', urduName: 'الحشر', meaning: 'The Exile', meaningUrdu: 'جلا وطن', verses: 24, juz: 28, makki: false },
-  { number: 60, name: 'Al-Mumtahanah', arabic: 'الممتحنة', urduName: 'الممتحنہ', meaning: 'She that is to be examined', meaningUrdu: 'آزمائش کرنے والی', verses: 13, juz: 28, makki: false },
-  { number: 61, name: 'As-Saf', arabic: 'الصف', urduName: 'الصف', meaning: 'The Ranks', meaningUrdu: 'صف', verses: 14, juz: 28, makki: false },
-  { number: 62, name: 'Al-Jumuah', arabic: 'الجمعة', urduName: 'الجمعہ', meaning: 'The Congregation', meaningUrdu: 'جمعہ', verses: 11, juz: 28, makki: false },
-  { number: 63, name: 'Al-Munafiqun', arabic: 'المنافقون', urduName: 'المنافقون', meaning: 'The Hypocrites', meaningUrdu: 'منافق', verses: 11, juz: 28, makki: false },
-  { number: 64, name: 'At-Taghabun', arabic: 'التغابن', urduName: 'التغابن', meaning: 'The Mutual Disillusion', meaningUrdu: 'دھوکا دینے والا', verses: 18, juz: 28, makki: false },
-  { number: 65, name: 'At-Talaq', arabic: 'الطلاق', urduName: 'الطلاق', meaning: 'The Divorce', meaningUrdu: 'طلاق', verses: 12, juz: 28, makki: false },
-  { number: 66, name: 'At-Tahrim', arabic: 'التحريم', urduName: 'التحریم', meaning: 'The Prohibition', meaningUrdu: 'حرام', verses: 12, juz: 28, makki: false },
-  { number: 67, name: 'Al-Mulk', arabic: 'الملك', urduName: 'الملک', meaning: 'The Sovereignty', meaningUrdu: 'بادشاہت', verses: 30, juz: 29, makki: true },
-  { number: 68, name: 'Al-Qalam', arabic: 'القلم', urduName: 'القلم', meaning: 'The Pen', meaningUrdu: 'قلم', verses: 52, juz: 29, makki: true },
-  { number: 69, name: 'Al-Haqqah', arabic: 'الحاقة', urduName: 'الحاقہ', meaning: 'The Reality', meaningUrdu: 'مستقل', verses: 52, juz: 29, makki: true },
-  { number: 70, name: 'Al-Maarij', arabic: 'المعارج', urduName: 'المعارج', meaning: 'The Ascending Stairways', meaningUrdu: 'چڑھنے کے سیڑھ', verses: 44, juz: 29, makki: true },
-  { number: 71, name: 'Nuh', arabic: 'نوح', urduName: 'نوح', meaning: 'Noah', meaningUrdu: 'نوح علیہ السلام', verses: 28, juz: 29, makki: true },
-  { number: 72, name: 'Al-Jinn', arabic: 'الجن', urduName: 'الجن', meaning: 'The Jinn', meaningUrdu: 'جن', verses: 28, juz: 29, makki: true },
-  { number: 73, name: 'Al-Muzzammil', arabic: 'المزمل', urduName: 'المزمل', meaning: 'The Enshrouded One', meaningUrdu: 'کملی اوڑھے ہوئے', verses: 20, juz: 29, makki: true },
-  { number: 74, name: 'Al-Muddaththir', arabic: 'المدثر', urduName: 'المدثر', meaning: 'The Cloaked One', meaningUrdu: 'چادر اوڑھے ہوئے', verses: 56, juz: 29, makki: true },
-  { number: 75, name: 'Al-Qiyamah', arabic: 'القيامة', urduName: 'القیامہ', meaning: 'The Resurrection', meaningUrdu: 'قیامت', verses: 40, juz: 29, makki: true },
-  { number: 76, name: 'Al-Insan', arabic: 'الإنسان', urduName: 'الانسان', meaning: 'The Human', meaningUrdu: 'انسان', verses: 31, juz: 29, makki: false },
-  { number: 77, name: 'Al-Mursalat', arabic: 'المرسلات', urduName: 'المرسلات', meaning: 'The Emissaries', meaningUrdu: 'بھیجی ہوئی ہوائیں', verses: 50, juz: 29, makki: true },
-  { number: 78, name: 'An-Naba', arabic: 'النبأ', urduName: 'النبأ', meaning: 'The Tidings', meaningUrdu: 'خبر', verses: 40, juz: 30, makki: true },
-  { number: 79, name: 'An-Naziat', arabic: 'النازعات', urduName: 'النازعات', meaning: 'Those who drag forth', meaningUrdu: 'نکالنے والے', verses: 46, juz: 30, makki: true },
-  { number: 80, name: 'Abasa', arabic: 'عبس', urduName: 'عبس', meaning: 'He Frowned', meaningUrdu: 'ترش رو', verses: 42, juz: 30, makki: true },
-  { number: 81, name: 'At-Takwir', arabic: 'التكوير', urduName: 'التکویر', meaning: 'The Overthrowing', meaningUrdu: 'لپیٹنا', verses: 29, juz: 30, makki: true },
-  { number: 82, name: 'Al-Infitar', arabic: 'الانفطار', urduName: 'الانفطار', meaning: 'The Cleaving', meaningUrdu: 'بکھر جانا', verses: 19, juz: 30, makki: true },
-  { number: 83, name: 'Al-Mutaffifin', arabic: 'المطففين', urduName: 'المطففین', meaning: 'The Defrauding', meaningUrdu: 'ناپ تول میں کمی کرنے والے', verses: 36, juz: 30, makki: true },
-  { number: 84, name: 'Al-Inshiqaq', arabic: 'الانشقاق', urduName: 'الانشقاق', meaning: 'The Sundering', meaningUrdu: 'پھٹ جانا', verses: 25, juz: 30, makki: true },
-  { number: 85, name: 'Al-Buruj', arabic: 'البروج', urduName: 'البروج', meaning: 'The Mansions of the Stars', meaningUrdu: 'ستاروں کے برج', verses: 22, juz: 30, makki: true },
-  { number: 86, name: 'At-Tariq', arabic: 'الطارق', urduName: 'الطارق', meaning: 'The Morning Star', meaningUrdu: 'رات کا آنے والا', verses: 17, juz: 30, makki: true },
-  { number: 87, name: 'Al-Ala', arabic: 'الأعلى', urduName: 'الأعلیٰ', meaning: 'The Most High', meaningUrdu: 'بہت اعلیٰ', verses: 19, juz: 30, makki: true },
-  { number: 88, name: 'Al-Ghashiyah', arabic: 'الغاشية', urduName: 'الغاشیہ', meaning: 'The Overwhelming', meaningUrdu: 'چھا جانے والی', verses: 26, juz: 30, makki: true },
-  { number: 89, name: 'Al-Fajr', arabic: 'الفجر', urduName: 'الفجر', meaning: 'The Dawn', meaningUrdu: 'صبح', verses: 30, juz: 30, makki: true },
-  { number: 90, name: 'Al-Balad', arabic: 'البلد', urduName: 'البلد', meaning: 'The City', meaningUrdu: 'شہر', verses: 20, juz: 30, makki: true },
-  { number: 91, name: 'Ash-Shams', arabic: 'الشمس', urduName: 'الشمس', meaning: 'The Sun', meaningUrdu: 'سورج', verses: 15, juz: 30, makki: true },
-  { number: 92, name: 'Al-Layl', arabic: 'الليل', urduName: 'اللیل', meaning: 'The Night', meaningUrdu: 'رات', verses: 21, juz: 30, makki: true },
-  { number: 93, name: 'Ad-Duha', arabic: 'الضحى', urduName: 'الضحیٰ', meaning: 'The Morning Hours', meaningUrdu: 'چاشت کا وقت', verses: 11, juz: 30, makki: true },
-  { number: 94, name: 'Ash-Sharh', arabic: 'الشرح', urduName: 'الشرح', meaning: 'The Relief', meaningUrdu: 'کھول دینا', verses: 8, juz: 30, makki: true },
-  { number: 95, name: 'At-Tin', arabic: 'التين', urduName: 'التین', meaning: 'The Fig', meaningUrdu: 'انجیر', verses: 8, juz: 30, makki: true },
-  { number: 96, name: 'Al-Alaq', arabic: 'العلق', urduName: 'العلق', meaning: 'The Clot', meaningUrdu: 'جما ہوا خون', verses: 19, juz: 30, makki: true },
-  { number: 97, name: 'Al-Qadr', arabic: 'القدر', urduName: 'القدر', meaning: 'The Power', meaningUrdu: 'قدر و منزلت', verses: 5, juz: 30, makki: true },
-  { number: 98, name: 'Al-Bayyinah', arabic: 'البينة', urduName: 'البینہ', meaning: 'The Clear Proof', meaningUrdu: 'واضح دلیل', verses: 8, juz: 30, makki: false },
-  { number: 99, name: 'Az-Zalzalah', arabic: 'الزلزلة', urduName: 'الزلزلہ', meaning: 'The Earthquake', meaningUrdu: 'زلزلہ', verses: 8, juz: 30, makki: false },
-  { number: 100, name: 'Al-Adiyat', arabic: 'العاديات', urduName: 'العادیات', meaning: 'The Courser', meaningUrdu: 'دور دوڑنے والے', verses: 11, juz: 30, makki: true },
-  { number: 101, name: 'Al-Qariah', arabic: 'القارعة', urduName: 'القارعہ', meaning: 'The Calamity', meaningUrdu: 'کھڑکھڑانے والی', verses: 11, juz: 30, makki: true },
-  { number: 102, name: 'At-Takathur', arabic: 'التكاثر', urduName: 'التکاثر', meaning: 'The Rivalry in World Increase', meaningUrdu: 'زیادہ کرنے کا مقابلہ', verses: 8, juz: 30, makki: true },
-  { number: 103, name: 'Al-Asr', arabic: 'العصر', urduName: 'العصر', meaning: 'The Declining Day', meaningUrdu: 'عصر کا وقت', verses: 3, juz: 30, makki: true },
-  { number: 104, name: 'Al-Humazah', arabic: 'الهمزة', urduName: 'الھمزہ', meaning: 'The Traducer', meaningUrdu: 'عیب جو', verses: 9, juz: 30, makki: true },
-  { number: 105, name: 'Al-Fil', arabic: 'الفيل', urduName: 'الفیل', meaning: 'The Elephant', meaningUrdu: 'ہاتھی', verses: 5, juz: 30, makki: true },
-  { number: 106, name: 'Quraysh', arabic: 'قريش', urduName: 'قریش', meaning: 'Quraysh', meaningUrdu: 'قریش', verses: 4, juz: 30, makki: true },
-  { number: 107, name: 'Al-Maun', arabic: 'الماعون', urduName: 'الماعون', meaning: 'The Small Kindnesses', meaningUrdu: 'برتن', verses: 7, juz: 30, makki: true },
-  { number: 108, name: 'Al-Kawthar', arabic: 'الكوثر', urduName: 'الکوثر', meaning: 'Abundance', meaningUrdu: 'کثرت', verses: 3, juz: 30, makki: true },
-  { number: 109, name: 'Al-Kafirun', arabic: 'الكافرون', urduName: 'الکافرون', meaning: 'The Disbelievers', meaningUrdu: 'کافر', verses: 6, juz: 30, makki: true },
-  { number: 110, name: 'An-Nasr', arabic: 'النصر', urduName: 'النصر', meaning: 'The Divine Support', meaningUrdu: 'مدد', verses: 3, juz: 30, makki: false },
-  { number: 111, name: 'Al-Masad', arabic: 'المسد', urduName: 'المسد', meaning: 'The Palm Fibre', meaningUrdu: 'کھجور کی رسی', verses: 5, juz: 30, makki: true },
-  { number: 112, name: 'Al-Ikhlas', arabic: 'الإخلاص', urduName: 'الإخلاص', meaning: 'Sincerity', meaningUrdu: 'اخلاص', verses: 4, juz: 30, makki: true },
-  { number: 113, name: 'Al-Falaq', arabic: 'الفلق', urduName: 'الفلق', meaning: 'The Daybreak', meaningUrdu: 'صبح', verses: 5, juz: 30, makki: true },
-  { number: 114, name: 'An-Nas', arabic: 'الناس', urduName: 'الناس', meaning: 'Mankind', meaningUrdu: 'لوگ', verses: 6, juz: 30, makki: true },
-];
-
-const FONT_SIZES = [
-  { label: 'S', arabicSize: '22px', transSize: '14px' },
-  { label: 'M', arabicSize: '26px', transSize: '15px' },
-  { label: 'L', arabicSize: '30px', transSize: '16px' },
-  { label: 'XL', arabicSize: '34px', transSize: '17px' },
-];
-
-const toArabicNum = (n: number): string =>
-  n.toString().split('').map(d => String.fromCharCode(0x0660 + parseInt(d))).join('');
-
-// Nuclear Bismillah stripper: removes ALL diacritics then checks for the
-// bare consonantal skeleton "بسم الله الرحمن الرحيم" at the start.
-// Works regardless of which Unicode diacritic variant the API returns.
-function removeDiacritics(s: string): string {
-  // Strip Arabic diacritics (harakat), tatweel, and other combining marks
-  return s.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E4\u06E7\u06E8\u06EA-\u06ED\u0640]/g, '');
+interface SearchHit {
+  verse_key: string;
+  surahNumber: number;
+  verseNumber: number;
+  arabic: string;
+  translation: string;
 }
 
-function stripBismillah(text: string): string {
-  const t = text.trim();
-  const bare = removeDiacritics(t);
-  // The bare skeleton of Bismillah (no diacritics, normalised spaces)
-  const skeleton = 'بسم الله الرحمن الرحيم';
-  if (bare.startsWith(skeleton)) {
-    // Find how many characters in the original string correspond to the skeleton
-    // We walk the original string, skipping diacritic-only chars until we've
-    // matched all skeleton consonants
-    let origIdx = 0;
-    let skelIdx = 0;
-    while (origIdx < t.length && skelIdx < skeleton.length) {
-      const ch = t[origIdx];
-      const isMark = /[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E4\u06E7\u06E8\u06EA-\u06ED\u0640]/.test(ch);
-      if (isMark) {
-        origIdx++;
-      } else if (ch === skeleton[skelIdx]) {
-        origIdx++;
-        skelIdx++;
-      } else {
-        break;
-      }
-    }
-    // Skip any trailing whitespace / marks
-    while (origIdx < t.length && /[\s\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E4\u06E7\u06E8\u06EA-\u06ED\u0640]/.test(t[origIdx])) {
-      origIdx++;
-    }
-    return t.slice(origIdx).trim();
-  }
-  return t;
+type Tab = 'surahs' | 'juz' | 'search' | 'bookmarks' | 'plan';
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '').replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').trim();
 }
 
-const COLORS = {
-  skyBlue: '#e3f2fd',
-  skyBlueDark: '#0277bd',
-  skyBlueMid: '#039be5',
-  skyBlueLight: '#4fc3f7',
-  gold: '#c8a96e',
-  white: '#ffffff',
-  // Mushaf page colors
-  mushafPage: '#fdf8f0',
-  mushafBorder: '#8B6914',
-  mushafText: '#1a0a00',
-  mushafGold: '#B8860B',
-  mushafLight: '#f5ede0',
-};
-
-// ─── Indo-Pak Mushaf Page Component ───────────────────────────────────────────
-function MushafPage({
-  surah,
-  verses,
-  fontSize,
-  playingAudio,
-  dark,
-  onPlayAudio,
-  onToggleContinuous,
-  onStopAudio,
-  isPaused,
-  continuousAudio,
-  showTranslation,
-  lang,
-  onToggleBookmark,
-  isBookmarked,
-}: {
-  surah: Surah;
-  verses: Verse[];
-  fontSize: number;
-  playingAudio: number | null;
-  dark: boolean;
-  onPlayAudio: (v: Verse, continuous: boolean) => void;
-  onToggleContinuous: () => void;
-  onStopAudio: () => void;
-  isPaused: boolean;
-  continuousAudio: boolean;
-  showTranslation: boolean;
-  lang: 'en' | 'ur';
-  onToggleBookmark: (v: number) => void;
-  isBookmarked: (v: number) => boolean;
-}) {
-  const pageBg = dark ? '#1a1000' : COLORS.mushafPage;
-  const pageText = dark ? '#f0e6cc' : COLORS.mushafText;
-  const borderColor = dark ? '#8B6914' : COLORS.mushafBorder;
-  const goldColor = dark ? '#d4a843' : COLORS.mushafGold;
-  const innerBg = dark ? '#120b00' : '#faf3e8';
-
-  return (
-    <div style={{
-      background: pageBg,
-      border: `3px solid ${borderColor}`,
-      borderRadius: 4,
-      padding: '0',
-      boxShadow: dark
-        ? '0 4px 30px rgba(0,0,0,0.7), inset 0 0 40px rgba(0,0,0,0.3)'
-        : '0 4px 30px rgba(139,105,20,0.25), inset 0 0 40px rgba(139,105,20,0.05)',
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
-      {/* Decorative double-border inner frame */}
-      <div style={{
-        margin: 6,
-        border: `1px solid ${borderColor}`,
-        borderRadius: 2,
-        padding: '0',
-      }}>
-        {/* ── Ornate Header Banner ── */}
-        <div style={{
-          background: dark
-            ? 'linear-gradient(180deg, #2a1800 0%, #1a1000 100%)'
-            : 'linear-gradient(180deg, #fdf3d8 0%, #f5e8c0 100%)',
-          borderBottom: `2px solid ${borderColor}`,
-          padding: '8px 12px',
-          position: 'relative',
-        }}>
-          {/* Top decorative strip */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 6,
-          }}>
-            {/* Left badge: Ayah count */}
-            <div style={{
-              border: `1.5px solid ${borderColor}`,
-              borderRadius: 3,
-              padding: '3px 10px',
-              fontSize: 11,
-              fontWeight: 700,
-              color: pageText,
-              background: dark ? '#1a1000' : '#fff8e8',
-              fontFamily: 'serif',
-              direction: 'rtl',
-            }}>
-              آیاتہا {toArabicNum(surah.verses)}
-            </div>
-
-            {/* Center: Surah name box */}
-            <div style={{
-              border: `2px solid ${borderColor}`,
-              borderRadius: 3,
-              padding: '6px 24px',
-              textAlign: 'center',
-              position: 'relative',
-              background: dark ? '#1a1000' : '#fff8e8',
-            }}>
-              {/* Corner ornaments */}
-              <span style={{ position: 'absolute', top: -1, left: -1, fontSize: 10, color: goldColor }}>❖</span>
-              <span style={{ position: 'absolute', top: -1, right: -1, fontSize: 10, color: goldColor }}>❖</span>
-              <span style={{ position: 'absolute', bottom: -1, left: -1, fontSize: 10, color: goldColor }}>❖</span>
-              <span style={{ position: 'absolute', bottom: -1, right: -1, fontSize: 10, color: goldColor }}>❖</span>
-
-              <div style={{
-                fontFamily: '"PDMS_Saleem_QuranFont", "Scheherazade New", "Noto Naskh Arabic", serif',
-                fontSize: 17,
-                fontWeight: 900,
-                color: pageText,
-                letterSpacing: 1,
-                direction: 'rtl',
-              }}>
-                سُوْرَةُ {surah.arabic}
-              </div>
-              <div style={{ fontSize: 10, color: goldColor, marginTop: 2, fontFamily: 'serif' }}>
-                {surah.makki ? 'مَكِّيَّة' : 'مَدَنِيَّة'} • {surah.name}
-              </div>
-            </div>
-
-            {/* Right badge: Juz */}
-            <div style={{
-              border: `1.5px solid ${borderColor}`,
-              borderRadius: 3,
-              padding: '3px 10px',
-              fontSize: 11,
-              fontWeight: 700,
-              color: pageText,
-              background: dark ? '#1a1000' : '#fff8e8',
-              fontFamily: 'serif',
-              direction: 'rtl',
-            }}>
-              جُزء {toArabicNum(surah.juz)}
-            </div>
-          </div>
-
-          {/* Decorative divider line with diamond */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '4px 0' }}>
-            <div style={{ flex: 1, height: 1, background: borderColor }} />
-            <span style={{ color: goldColor, fontSize: 12 }}>◆</span>
-            <div style={{ flex: 1, height: 1, background: borderColor }} />
-          </div>
-
-          {/* Audio controls row */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 4 }}>
-            <button onClick={onToggleContinuous} style={{
-              padding: '4px 14px', borderRadius: 20,
-              background: goldColor, color: '#fff',
-              border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 11,
-            }}>
-              {playingAudio !== null && !isPaused ? '⏸ Pause' : '▶ Play'}
-            </button>
-            {playingAudio !== null && (
-              <button onClick={onStopAudio} style={{
-                padding: '4px 12px', borderRadius: 20,
-                background: dark ? '#333' : '#e0d0b0', color: pageText,
-                border: `1px solid ${borderColor}`, cursor: 'pointer', fontWeight: 700, fontSize: 11,
-              }}>
-                ⏹ Stop
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* ── Bismillah ── */}
-        {surah.number !== 9 && (
-          <div style={{
-            textAlign: 'center',
-            padding: '14px 16px 6px',
-            borderBottom: `1px solid ${borderColor}44`,
-          }}>
-            <span style={{
-              fontFamily: '"PDMS_Saleem_QuranFont", "Scheherazade New", "Noto Naskh Arabic", "Arabic Typesetting", serif',
-              fontSize: FONT_SIZES[fontSize].arabicSize,
-              fontWeight: 900,
-              color: pageText,
-              lineHeight: 2.2,
-              direction: 'rtl',
-              letterSpacing: 0,
-            }}>
-              بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-            </span>
-          </div>
-        )}
-
-        {/* ── Mushaf Body ── */}
-        <div style={{
-          padding: '10px 16px 16px',
-          background: innerBg,
-          direction: 'rtl',
-        }}>
-          <p style={{
-            fontFamily: '"PDMS_Saleem_QuranFont", "Scheherazade New", "Noto Naskh Arabic", "Arabic Typesetting", "Amiri Quran", serif',
-            fontSize: FONT_SIZES[fontSize].arabicSize,
-            color: pageText,
-            textAlign: 'justify',
-            textAlignLast: 'right',
-            lineHeight: 2.6,
-            margin: 0,
-            wordSpacing: 4,
-            letterSpacing: 0,
-            fontWeight: 700,
-          }}>
-            {verses.map(v => (
-              <span key={v.number} id={`verse-${v.number}`}
-                style={{
-                  background: isBookmarked(v.number)
-                    ? (dark ? '#3a1a0044' : '#fff0a844')
-                    : playingAudio === v.number
-                      ? (dark ? '#d4a84340' : '#d4a84328')
-                      : 'transparent',
-                  borderRadius: 4,
-                  padding: (playingAudio === v.number || isBookmarked(v.number)) ? '2px 4px' : '0',
-                  transition: 'background 0.3s ease',
-                  cursor: 'pointer',
-                  outline: isBookmarked(v.number) ? `1.5px solid ${goldColor}` : 'none',
-                  position: 'relative',
-                }}
-                onClick={() => onPlayAudio(v, false)}
-                onDoubleClick={(e) => { e.stopPropagation(); onToggleBookmark(v.number); }}
-                title={`Tap to play · Double-tap to ${isBookmarked(v.number) ? 'remove' : 'add'} bookmark`}
-              >
-                {isBookmarked(v.number) && (
-                  <span style={{
-                    fontSize: '0.45em',
-                    verticalAlign: 'super',
-                    marginLeft: 2,
-                    color: goldColor,
-                  }}>🔖</span>
-                )}
-                {v.arabic}
-                {/* Floral ayah marker with Arabic number */}
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '1.9em',
-                  height: '1.9em',
-                  position: 'relative',
-                  margin: '0 6px',
-                  verticalAlign: 'middle',
-                  fontSize: '0.6em',
-                  color: pageText,
-                  fontWeight: 900,
-                  fontFamily: '"Scheherazade New", serif',
-                }}>
-                  {/* SVG rosette marker */}
-                  <svg
-                    viewBox="0 0 40 40"
-                    width="1.9em"
-                    height="1.9em"
-                    style={{ position: 'absolute', top: 0, left: 0 }}
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <circle cx="20" cy="20" r="18" fill="none" stroke={goldColor} strokeWidth="1.5" />
-                    <circle cx="20" cy="20" r="13" fill="none" stroke={goldColor} strokeWidth="0.8" />
-                    {/* 8 petal rosette */}
-                    {[0,45,90,135,180,225,270,315].map((deg, i) => (
-                      <ellipse
-                        key={i}
-                        cx={20 + 15 * Math.cos(deg * Math.PI / 180)}
-                        cy={20 + 15 * Math.sin(deg * Math.PI / 180)}
-                        rx="3" ry="2"
-                        fill={goldColor}
-                        transform={`rotate(${deg} 20 20)`}
-                        opacity="0.6"
-                      />
-                    ))}
-                    <circle cx="20" cy="20" r="11" fill={dark ? '#1a1000' : '#fff8e8'} />
-                  </svg>
-                  <span style={{ position: 'relative', zIndex: 1, fontSize: '1em', lineHeight: 1 }}>
-                    {toArabicNum(v.number)}
-                  </span>
-                </span>
-              </span>
-            ))}
-          </p>
-
-          {/* Sadaqallah ul Azeem footer */}
-          <div style={{
-            textAlign: 'center',
-            marginTop: 18,
-            paddingTop: 10,
-            borderTop: `1px solid ${borderColor}66`,
-          }}>
-            <span style={{
-              fontFamily: '"Scheherazade New", "Noto Naskh Arabic", serif',
-              fontSize: 18,
-              color: goldColor,
-              fontWeight: 700,
-            }}>
-              ۝ صَدَقَ اللَّهُ الْعَظِيمُ ۝
-            </span>
-          </div>
-
-          {/* Bookmark hint */}
-          <p style={{
-            textAlign: 'center', marginTop: 10,
-            fontSize: 11, color: dark ? '#6b4f1a' : '#b89040',
-            fontStyle: 'italic',
-          }}>
-            Tap an ayah to play · Double-tap to bookmark 🔖
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+function dayOfYear(d: Date): number {
+  return Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 86400000);
 }
 
-// ─── Verse-by-Verse Component ─────────────────────────────────────────────────
-function VerseView({
-  surah,
-  verses,
-  fontSize,
-  playingAudio,
-  isPaused,
-  dark,
-  showTranslation,
-  showTransliteration,
-  lang,
-  onPlayAudio,
-  onToggleBookmark,
-  isBookmarked,
-  onShareVerse,
-}: {
-  surah: Surah;
-  verses: Verse[];
-  fontSize: number;
-  playingAudio: number | null;
-  isPaused: boolean;
-  dark: boolean;
-  showTranslation: boolean;
-  showTransliteration: boolean;
-  lang: 'en' | 'ur';
-  onPlayAudio: (v: Verse, continuous: boolean) => void;
-  onToggleBookmark: (v: number) => void;
-  isBookmarked: (v: number) => boolean;
-  onShareVerse: (v: Verse) => void;
-}) {
-  const pageBg = dark ? '#1a1000' : COLORS.mushafPage;
-  const pageText = dark ? '#f0e6cc' : COLORS.mushafText;
-  const borderColor = dark ? '#8B6914' : COLORS.mushafBorder;
-  const goldColor = dark ? '#d4a843' : COLORS.mushafGold;
-  const cardBg = dark ? '#120b00' : '#faf3e8';
-  const cardActive = dark ? '#2a1800' : '#fef5dc';
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {verses.map(v => (
-        <div key={v.number} id={`verse-${v.number}`} style={{
-          background: playingAudio === v.number ? cardActive : cardBg,
-          borderRadius: 6,
-          border: `1.5px solid ${playingAudio === v.number ? goldColor : borderColor + '55'}`,
-          padding: '12px 14px',
-          transition: 'all 0.3s ease',
-          boxShadow: playingAudio === v.number ? `0 0 12px ${goldColor}44` : 'none',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            {/* Ayah number badge */}
-            <div style={{
-              width: 34, height: 34, borderRadius: '50%',
-              border: `2px solid ${goldColor}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: dark ? '#2a1800' : '#fff8e8',
-              fontFamily: '"Scheherazade New", serif',
-              fontSize: 14, fontWeight: 900, color: pageText,
-              direction: 'rtl',
-            }}>
-              {toArabicNum(v.number)}
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => onPlayAudio(v, false)} style={{
-                background: 'none', border: 'none', cursor: 'pointer', fontSize: 16,
-              }}>
-                {playingAudio === v.number && !isPaused ? '⏸️' : '▶️'}
-              </button>
-              <button onClick={() => onShareVerse(v)} style={{
-                background: 'none', border: 'none', cursor: 'pointer', fontSize: 16,
-              }} title="Share this verse">
-                📤
-              </button>
-              <button onClick={() => onToggleBookmark(v.number)} style={{
-                background: 'none', border: 'none', cursor: 'pointer', fontSize: 16,
-                color: isBookmarked(v.number) ? goldColor : pageText,
-              }}>
-                {isBookmarked(v.number) ? '🔖' : '📑'}
-              </button>
-            </div>
-          </div>
-
-          <p dir="rtl" style={{
-            fontFamily: '"PDMS_Saleem_QuranFont", "Scheherazade New", "Noto Naskh Arabic", "Arabic Typesetting", serif',
-            fontSize: FONT_SIZES[fontSize].arabicSize,
-            color: pageText,
-            lineHeight: 2.5,
-            textAlign: 'right',
-            margin: 0,
-            fontWeight: 700,
-          }}>
-            {v.arabic}
-          </p>
-
-          {showTransliteration && v.transliteration && (
-            <p style={{
-              marginTop: 6, color: dark ? '#a0c4ff' : '#1565c0',
-              fontSize: '13px', lineHeight: 1.7, margin: '6px 0 0', fontStyle: 'italic',
-            }}>
-              {v.transliteration}
-            </p>
-          )}
-
-          {showTranslation && v.translation && (
-            <div style={{
-              marginTop: 8, paddingTop: 8,
-              borderTop: `1px solid ${borderColor}44`,
-            }}>
-              <p
-                className={lang === 'ur' ? 'urdu-font' : ''}
-                dir={lang === 'ur' ? 'rtl' : 'ltr'}
-                style={{
-                  color: dark ? '#c8b89a' : '#3a2800',
-                  fontSize: FONT_SIZES[fontSize].transSize,
-                  lineHeight: 1.9,
-                  margin: 0,
-                  fontStyle: lang === 'en' ? 'italic' : 'normal',
-                }}
-              >
-                {v.translation}
-              </p>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
+function networkErrorMessage(err: unknown): string {
+  if (err instanceof TypeError) return 'You appear to be offline. Check your connection and try again.';
+  return 'Could not load the Quran text. Please try again.';
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
-export default function QuranReader() {
-  const [selectedSurah, setSelectedSurah] = useState<Surah | null>(null);
+export default function QuranPage() {
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [chaptersLoading, setChaptersLoading] = useState(true);
+  const [chaptersError, setChaptersError] = useState('');
+  const [tab, setTab] = useState<Tab>('surahs');
+  const [surahFilter, setSurahFilter] = useState('');
+
+  const [currentSurah, setCurrentSurah] = useState<Chapter | null>(null);
+  const [currentJuz, setCurrentJuz] = useState<number | null>(null);
   const [verses, setVerses] = useState<Verse[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  const [mode, setMode] = useState('mushaf');
-  const [fontSize, setFontSize] = useState(1);
-  const [showTranslation, setShowTranslation] = useState(true);
-  const [lang, setLang] = useState<'en' | 'ur'>('ur');
-  const [dark, setDark] = useState(false);
+  const [versesLoading, setVersesLoading] = useState(false);
+  const [versesError, setVersesError] = useState('');
+  const [targetVerse, setTargetVerse] = useState(1);
+
+  const [translationId, setTranslationId] = useState(20);
+  const [reciterId, setReciterId] = useState(7);
+  const [fontScale, setFontScale] = useState(1);
+
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [lastRead, setLastRead] = useState<Bookmark | null>(null);
-  const [playingAudio, setPlayingAudio] = useState<number | null>(null);
+
+  const [votd, setVotd] = useState<Verse | null>(null);
+  const [votdKey, setVotdKey] = useState('');
+
+  const [playingKey, setPlayingKey] = useState<string | null>(null);
   const [isPaused, setIsPaused] = useState(false);
-  const [continuousAudio, setContinuousAudio] = useState(false);
-  const [browseMode, setBrowseMode] = useState<'surah' | 'juz' | 'search'>('surah');
-  const [reciter, setReciter] = useState<'alafasy' | 'sudais' | 'husary' | 'minshawi'>('alafasy');
-  const [verseSearch, setVerseSearch] = useState('');
-  const [verseSearchResults, setVerseSearchResults] = useState<{ surah: number; surahName: string; verse: number; text: string }[]>([]);
-  const [verseSearchLoading, setVerseSearchLoading] = useState(false);
-  const [showTransliteration, setShowTransliteration] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const topRef = useRef<HTMLDivElement>(null);
+  const queueRef = useRef<string[]>([]);
+  const queueIndexRef = useRef(0);
 
-  // Reciter audio paths
-  const RECITERS: Record<string, { name: string; folder: string }> = {
-    alafasy: { name: 'Mishary Alafasy', folder: 'ar.alafasy' },
-    sudais: { name: 'Abdurrahman Sudais', folder: 'ar.abdurrahmaansudais' },
-    husary: { name: 'Mahmoud Husary', folder: 'ar.husary' },
-    minshawi: { name: 'Mohamed Minshawi', folder: 'ar.minshawi' },
-  };
+  const [tafsirs, setTafsirs] = useState<Record<string, { open: boolean; loading: boolean; text: string; error: string }>>({});
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // Juz to Surah mapping (which surahs start in each juz)
-  const JUZ_DATA = [
-    { juz: 1, name: 'Alif Lam Mim', ar: 'الٓمٓ', start: 'Al-Fatihah 1:1', surahs: [1, 2] },
-    { juz: 2, name: 'Sayaqool', ar: 'سَيَقُولُ', start: 'Al-Baqarah 2:142', surahs: [2] },
-    { juz: 3, name: 'Tilkal Rusul', ar: 'تِلْكَ الرُّسُلُ', start: 'Al-Baqarah 2:253', surahs: [2, 3] },
-    { juz: 4, name: 'Lan Tanaloo', ar: 'لَن تَنَالُوا', start: 'Ali Imran 3:93', surahs: [3, 4] },
-    { juz: 5, name: 'Wal Muhsanat', ar: 'وَالْمُحْصَنَاتُ', start: 'An-Nisa 4:24', surahs: [4] },
-    { juz: 6, name: 'La Yuhibbullah', ar: 'لَا يُحِبُّ اللَّهُ', start: 'An-Nisa 4:148', surahs: [4, 5] },
-    { juz: 7, name: 'Wa Iza Samiu', ar: 'وَإِذَا سَمِعُوا', start: 'Al-Maidah 5:83', surahs: [5, 6] },
-    { juz: 8, name: 'Wa Lau Annana', ar: 'وَلَوْ أَنَّنَا', start: 'Al-Anam 6:111', surahs: [6, 7] },
-    { juz: 9, name: 'Qalal Malau', ar: 'قَالَ الْمَلَأُ', start: 'Al-Araf 7:88', surahs: [7, 8] },
-    { juz: 10, name: 'Wa Alamu', ar: 'وَاعْلَمُوا', start: 'Al-Anfal 8:41', surahs: [8, 9] },
-    { juz: 11, name: 'Yatazeroon', ar: 'يَعْتَذِرُونَ', start: 'At-Tawbah 9:93', surahs: [9, 10, 11] },
-    { juz: 12, name: 'Wa Ma Min Dabbah', ar: 'وَمَا مِن دَابَّةٍ', start: 'Hud 11:6', surahs: [11, 12] },
-    { juz: 13, name: 'Wa Ma Ubarriu', ar: 'وَمَا أُبَرِّئُ', start: 'Yusuf 12:53', surahs: [12, 13, 14] },
-    { juz: 14, name: 'Rubama', ar: 'رُبَمَا', start: 'Al-Hijr 15:1', surahs: [15, 16] },
-    { juz: 15, name: 'Subhanallazi', ar: 'سُبْحَانَ الَّذِي', start: 'Al-Isra 17:1', surahs: [17, 18] },
-    { juz: 16, name: 'Qal Alam', ar: 'قَالَ أَلَمْ', start: 'Al-Kahf 18:75', surahs: [18, 19, 20] },
-    { juz: 17, name: 'Iqtaraba', ar: 'اقْتَرَبَ', start: 'Al-Anbiya 21:1', surahs: [21, 22] },
-    { juz: 18, name: 'Qad Aflaha', ar: 'قَدْ أَفْلَحَ', start: 'Al-Muminun 23:1', surahs: [23, 24, 25] },
-    { juz: 19, name: 'Wa Qalallazina', ar: 'وَقَالَ الَّذِينَ', start: 'Al-Furqan 25:21', surahs: [25, 26, 27] },
-    { juz: 20, name: 'Amman Khalaq', ar: 'أَمَّنْ خَلَقَ', start: 'An-Naml 27:56', surahs: [27, 28, 29] },
-    { juz: 21, name: 'Utlu Ma Uhiya', ar: 'اتْلُ مَا أُوحِيَ', start: 'Al-Ankabut 29:46', surahs: [29, 30, 31, 32, 33] },
-    { juz: 22, name: 'Wa Man Yaqnut', ar: 'وَمَن يَقْنُتْ', start: 'Al-Ahzab 33:31', surahs: [33, 34, 35, 36] },
-    { juz: 23, name: 'Wa Mali', ar: 'وَمَا لِيَ', start: 'Ya-Sin 36:28', surahs: [36, 37, 38, 39] },
-    { juz: 24, name: 'Faman Azlamu', ar: 'فَمَنْ أَظْلَمُ', start: 'Az-Zumar 39:32', surahs: [39, 40, 41] },
-    { juz: 25, name: 'Ilaihi Yuraddu', ar: 'إِلَيْهِ يُرَدُّ', start: 'Fussilat 41:47', surahs: [41, 42, 43, 44, 45] },
-    { juz: 26, name: 'Ha Mim', ar: 'حٰمٓ', start: 'Al-Ahqaf 46:1', surahs: [46, 47, 48, 49, 50, 51] },
-    { juz: 27, name: 'Qala Fama Khatbukum', ar: 'قَالَ فَمَا خَطْبُكُمْ', start: 'Adh-Dhariyat 51:31', surahs: [51, 52, 53, 54, 55, 56, 57] },
-    { juz: 28, name: 'Qad Sami Allah', ar: 'قَدْ سَمِعَ اللَّهُ', start: 'Al-Mujadila 58:1', surahs: [58, 59, 60, 61, 62, 63, 64, 65, 66] },
-    { juz: 29, name: 'Tabarakallazi', ar: 'تَبَارَكَ الَّذِي', start: 'Al-Mulk 67:1', surahs: [67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77] },
-    { juz: 30, name: 'Amma Yatasaaloon', ar: 'عَمَّ يَتَسَاءَلُونَ', start: 'An-Naba 78:1', surahs: [78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114] },
-  ];
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchHit[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [searchDone, setSearchDone] = useState(false);
 
+  const [juzDone, setJuzDone] = useState<number[]>([]);
+
+  const chapterById = useMemo(() => {
+    const map = new Map<number, Chapter>();
+    chapters.forEach((c) => map.set(c.id, c));
+    return map;
+  }, [chapters]);
+
+  const filteredChapters = useMemo(() => {
+    const q = surahFilter.trim().toLowerCase();
+    if (!q) return chapters;
+    return chapters.filter((c) =>
+      c.name_simple.toLowerCase().includes(q) ||
+      c.translated_name.name.toLowerCase().includes(q) ||
+      c.name_arabic.includes(surahFilter.trim()) ||
+      String(c.id) === q,
+    );
+  }, [chapters, surahFilter]);
+
+  /* ---------- load surah list + saved state ---------- */
   useEffect(() => {
+    let cancelled = false;
+    async function loadChapters() {
+      try {
+        const res = await fetch(`${API}/chapters?language=en`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!cancelled) setChapters(data.chapters as Chapter[]);
+      } catch (err) {
+        if (!cancelled) setChaptersError(networkErrorMessage(err));
+      } finally {
+        if (!cancelled) setChaptersLoading(false);
+      }
+    }
+    loadChapters();
     try {
       const b = localStorage.getItem('quran_bookmarks_v2');
-      if (b) setBookmarks(JSON.parse(b));
+      if (b) {
+        const raw = JSON.parse(b) as Record<string, unknown>[];
+        setBookmarks(raw.map((item) => ({
+          surahNumber: Number(item.surahNumber ?? item.surah ?? 1),
+          surahName: String(item.surahName ?? ''),
+          verseNumber: Number(item.verseNumber ?? item.ayah ?? 1),
+          timestamp: Number(item.timestamp ?? Date.now()),
+        })));
+      }
       const lr = localStorage.getItem('quran_last_read');
-      if (lr) setLastRead(JSON.parse(lr));
-    } catch {}
+      if (lr) setLastRead(JSON.parse(lr) as Bookmark);
+      const plan = localStorage.getItem('ili_reading_plan');
+      if (plan) {
+        const parsed = JSON.parse(plan) as { juzDone?: number[] };
+        if (Array.isArray(parsed.juzDone)) setJuzDone(parsed.juzDone);
+      }
+    } catch {
+      /* corrupted local data — start fresh */
+    }
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('quran_bookmarks_v2', JSON.stringify(bookmarks));
+    try { localStorage.setItem('quran_bookmarks_v2', JSON.stringify(bookmarks)); } catch { /* storage full/blocked */ }
   }, [bookmarks]);
 
   useEffect(() => {
-    if (lastRead) localStorage.setItem('quran_last_read', JSON.stringify(lastRead));
+    if (lastRead) {
+      try { localStorage.setItem('quran_last_read', JSON.stringify(lastRead)); } catch { /* ignore */ }
+    }
   }, [lastRead]);
 
-  const isBookmarked = useCallback((surahNumber: number, verseNumber: number): boolean => {
-    return bookmarks.some(b => b.surahNumber === surahNumber && b.verseNumber === verseNumber);
-  }, [bookmarks]);
+  useEffect(() => {
+    try { localStorage.setItem('ili_reading_plan', JSON.stringify({ juzDone })); } catch { /* ignore */ }
+  }, [juzDone]);
 
-  const toggleBookmark = useCallback((surah: Surah, verseNumber: number) => {
-    const exists = bookmarks.some(b => b.surahNumber === surah.number && b.verseNumber === verseNumber);
-    if (exists) {
-      setBookmarks(prev => prev.filter(b => !(b.surahNumber === surah.number && b.verseNumber === verseNumber)));
-    } else {
-      setBookmarks(prev => [...prev, {
-        surahNumber: surah.number,
-        surahName: surah.name,
-        verseNumber,
-        timestamp: Date.now(),
-      }]);
-    }
-  }, [bookmarks]);
+  /* ---------- Verse of the Day ---------- */
+  useEffect(() => {
+    const key = VOTD_KEYS[dayOfYear(new Date()) % VOTD_KEYS.length];
+    setVotdKey(key);
+    let cancelled = false;
+    fetch(`${API}/verses/by_key/${key}?fields=text_indopak&translations=20`)
+      .then((res) => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
+      .then((data) => { if (!cancelled) setVotd(data.verse as Verse); })
+      .catch(() => { /* VOTD is decorative — fail silently */ });
+    return () => { cancelled = true; };
+  }, []);
 
-  const loadSurah = useCallback(async (surah: Surah, targetVerse: number = 1) => {
-    setSelectedSurah(surah);
-    setVerses([]);
-    setLoading(true);
-    setError('');
-    setPlayingAudio(null);
+  /* ---------- audio queue ---------- */
+  const versesRef = useRef<Verse[]>([]);
+  versesRef.current = verses;
+
+  const playAudioUrl = useCallback((url: string, key: string) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.src = `${AUDIO_BASE}${url}`;
+    audio.play().catch(() => { setPlayingKey(null); });
+    setPlayingKey(key);
     setIsPaused(false);
-    setContinuousAudio(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
-    try {
-      const arabicEdition = 'quran-indopak';
-      const translationEdition = lang === 'en' ? 'en.asad' : 'ur.jalandhry';
-      const transliterationEdition = 'en.transliteration';
-
-      const [arabicRes, transRes, translitRes] = await Promise.all([
-        fetch(`https://api.alquran.cloud/v1/surah/${surah.number}/${arabicEdition}`),
-        fetch(`https://api.alquran.cloud/v1/surah/${surah.number}/${translationEdition}`),
-        fetch(`https://api.alquran.cloud/v1/surah/${surah.number}/${transliterationEdition}`),
-      ]);
-
-      const arabicData = await arabicRes.json();
-      const transData = await transRes.json();
-      const translitData = await translitRes.json();
-
-      if (arabicData.code === 200 && transData.code === 200) {
-        const versesData: Verse[] = arabicData.data.ayahs.map((ayah: any, idx: number) => {
-          let arabicText = ayah.text;
-          if (surah.number !== 1 && surah.number !== 9 && ayah.numberInSurah === 1) {
-            arabicText = stripBismillah(ayah.text);
-          }
-          return {
-            number: ayah.numberInSurah,
-            arabic: arabicText,
-            translation: transData.data?.ayahs?.[idx]?.text || '',
-            transliteration: translitData.code === 200 ? (translitData.data?.ayahs?.[idx]?.text || '') : '',
-            audio: `https://cdn.islamic.network/quran/audio/128/${RECITERS[reciter].folder}/${ayah.number}.mp3`
-          };
-        });
-        setVerses(versesData);
-        setLastRead({ surahNumber: surah.number, surahName: surah.name, verseNumber: targetVerse, timestamp: Date.now() });
-
-        if (targetVerse > 1) {
-          setTimeout(() => {
-            const el = document.getElementById(`verse-${targetVerse}`);
-            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }, 500);
-        }
-      } else {
-        setError('Failed to load Surah content.');
-      }
-    } catch {
-      setError('Network error. Please check your connection.');
-    } finally {
-      setLoading(false);
+  const handleAudioEnded = useCallback(() => {
+    const next = queueIndexRef.current + 1;
+    if (next < queueRef.current.length) {
+      queueIndexRef.current = next;
+      const key = queueRef.current[next];
+      const verse = versesRef.current.find((v) => v.verse_key === key);
+      if (verse?.audio?.url) { playAudioUrl(verse.audio.url, key); return; }
     }
-  }, [lang]);
+    queueRef.current = [];
+    setPlayingKey(null);
+    setIsPaused(false);
+  }, [playAudioUrl]);
 
   useEffect(() => {
-    if (selectedSurah) {
-      loadSurah(selectedSurah, 1);
-    }
-  }, [lang]);
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.addEventListener('ended', handleAudioEnded);
+    return () => audio.removeEventListener('ended', handleAudioEnded);
+  }, [handleAudioEnded]);
 
-  const playAudio = (verse: Verse, continuous: boolean = false) => {
-    setContinuousAudio(continuous);
-
-    if (playingAudio === verse.number) {
-      if (isPaused) {
-        audioRef.current?.play();
-        setIsPaused(false);
-      } else {
-        audioRef.current?.pause();
-        setIsPaused(true);
-      }
-    } else {
-      if (audioRef.current) {
-        audioRef.current.src = verse.audio || '';
-        audioRef.current.play();
-        setPlayingAudio(verse.number);
-        setIsPaused(false);
-
-        if (mode === 'mushaf') {
-          const el = document.getElementById(`verse-${verse.number}`);
-          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }
-    }
-  };
-
-  const toggleContinuous = () => {
-    if (playingAudio !== null) {
-      const currentVerse = verses[playingAudio - 1];
-      playAudio(currentVerse, true);
-    } else {
-      if (verses.length > 0) playAudio(verses[0], true);
-    }
-  };
-
-  const stopAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-    setPlayingAudio(null);
+  const stopAudio = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio) { audio.pause(); audio.removeAttribute('src'); }
+    queueRef.current = [];
+    setPlayingKey(null);
     setIsPaused(false);
-    setContinuousAudio(false);
-  };
+  }, []);
 
-  const handleAudioEnd = () => {
-    if (continuousAudio && playingAudio !== null && playingAudio < verses.length) {
-      const nextVerse = verses[playingAudio];
-      playAudio(nextVerse, true);
-    } else {
-      setPlayingAudio(null);
-      setIsPaused(false);
-      setContinuousAudio(false);
+  const toggleVerseAudio = useCallback((verse: Verse) => {
+    const audio = audioRef.current;
+    if (!audio || !verse.audio?.url) return;
+    if (playingKey === verse.verse_key) {
+      if (isPaused) { audio.play().catch(() => {}); setIsPaused(false); }
+      else { audio.pause(); setIsPaused(true); }
+      return;
     }
-  };
+    queueRef.current = [];
+    playAudioUrl(verse.audio.url, verse.verse_key);
+  }, [playingKey, isPaused, playAudioUrl]);
 
-  // ── Verse Search (across all translations) ──
-  const searchVerses = useCallback(async (query: string) => {
-    if (!query || query.trim().length < 3) { setVerseSearchResults([]); return; }
-    setVerseSearchLoading(true);
+  const playWholeSurah = useCallback(() => {
+    const playable = verses.filter((v) => v.audio?.url);
+    if (playable.length === 0) return;
+    queueRef.current = playable.map((v) => v.verse_key);
+    queueIndexRef.current = 0;
+    playAudioUrl(playable[0].audio!.url!, playable[0].verse_key);
+  }, [verses, playAudioUrl]);
+
+  /* ---------- loading verses ---------- */
+  const loadSurah = useCallback(async (surah: Chapter, verse = 1) => {
+    stopAudio();
+    setCurrentSurah(surah);
+    setCurrentJuz(null);
+    setVerses([]);
+    setVersesLoading(true);
+    setVersesError('');
+    setTargetVerse(verse);
+    setTafsirs({});
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     try {
-      const edition = lang === 'en' ? 'en.asad' : 'ur.jalandhry';
-      const res = await fetch(`https://api.alquran.cloud/v1/search/${encodeURIComponent(query.trim())}/${edition}`);
+      const res = await fetch(`${API}/verses/by_chapter/${surah.id}?fields=text_indopak&translations=${translationId}&audio=${reciterId}&per_page=all`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      if (data.code === 200 && data.data?.matches) {
-        const results = data.data.matches.slice(0, 20).map((m: any) => ({
-          surah: m.surah.number,
-          surahName: m.surah.englishName,
-          verse: m.numberInSurah,
-          text: m.text,
-        }));
-        setVerseSearchResults(results);
-      } else {
-        setVerseSearchResults([]);
-      }
-    } catch { setVerseSearchResults([]); }
-    setVerseSearchLoading(false);
-  }, [lang]);
-
-  // ── Share Verse ──
-  const shareVerse = (verse: Verse, surah: Surah) => {
-    const text = `${verse.arabic}\n\n"${verse.translation}"\n\n— Surah ${surah.name} (${surah.number}:${verse.number})\n\niloveislam.life/quran`;
-    if (navigator.share) {
-      navigator.share({ title: `Quran ${surah.number}:${verse.number}`, text });
-    } else {
-      navigator.clipboard.writeText(text);
+      setVerses(data.verses as Verse[]);
+      setLastRead({ surahNumber: surah.id, surahName: surah.name_simple, verseNumber: verse, timestamp: Date.now() });
+    } catch (err) {
+      setVersesError(networkErrorMessage(err));
+    } finally {
+      setVersesLoading(false);
     }
+  }, [translationId, reciterId, stopAudio]);
+
+  const loadJuz = useCallback(async (juz: number) => {
+    stopAudio();
+    setCurrentSurah(null);
+    setCurrentJuz(juz);
+    setVerses([]);
+    setVersesLoading(true);
+    setVersesError('');
+    setTargetVerse(1);
+    setTafsirs({});
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    try {
+      const res = await fetch(`${API}/verses/by_juz/${juz}?fields=text_indopak&translations=${translationId}&audio=${reciterId}&per_page=all`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setVerses(data.verses as Verse[]);
+      const first = (data.verses as Verse[])[0];
+      if (first) {
+        const s = Number(first.verse_key.split(':')[0]);
+        const ch = chapterById.get(s);
+        setLastRead({ surahNumber: s, surahName: ch?.name_simple ?? '', verseNumber: first.verse_number, timestamp: Date.now() });
+      }
+    } catch (err) {
+      setVersesError(networkErrorMessage(err));
+    } finally {
+      setVersesLoading(false);
+    }
+  }, [translationId, reciterId, stopAudio, chapterById]);
+
+  /* Refetch verses when translation or reciter changes while reading. */
+  const readingRef = useRef({ surah: null as Chapter | null, juz: null as number | null });
+  readingRef.current = { surah: currentSurah, juz: currentJuz };
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return; }
+    const { surah, juz } = readingRef.current;
+    if (surah) void loadSurah(surah, targetVerse);
+    else if (juz) void loadJuz(juz);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [translationId, reciterId]);
+
+  /* Scroll to a target verse once verses load. */
+  useEffect(() => {
+    if (verses.length > 0 && targetVerse > 1) {
+      const el = document.getElementById(`verse-${targetVerse}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [verses, targetVerse]);
+
+  /* ---------- bookmarks ---------- */
+  const isBookmarked = useCallback((surahNumber: number, verseNumber: number) =>
+    bookmarks.some((b) => b.surahNumber === surahNumber && b.verseNumber === verseNumber),
+  [bookmarks]);
+
+  const toggleBookmark = useCallback((surahNumber: number, surahName: string, verseNumber: number) => {
+    setBookmarks((prev) => {
+      const exists = prev.some((b) => b.surahNumber === surahNumber && b.verseNumber === verseNumber);
+      if (exists) return prev.filter((b) => !(b.surahNumber === surahNumber && b.verseNumber === verseNumber));
+      return [...prev, { surahNumber, surahName, verseNumber, timestamp: Date.now() }];
+    });
+  }, []);
+
+  const openBookmark = useCallback((b: Bookmark) => {
+    const ch = chapterById.get(b.surahNumber);
+    if (ch) void loadSurah(ch, b.verseNumber);
+  }, [chapterById, loadSurah]);
+
+  /* ---------- tafsir ---------- */
+  const toggleTafsir = useCallback(async (verseKey: string) => {
+    const existing = tafsirs[verseKey];
+    if (existing?.open) {
+      setTafsirs((prev) => ({ ...prev, [verseKey]: { ...prev[verseKey], open: false } }));
+      return;
+    }
+    if (existing?.text) {
+      setTafsirs((prev) => ({ ...prev, [verseKey]: { ...prev[verseKey], open: true } }));
+      return;
+    }
+    setTafsirs((prev) => ({ ...prev, [verseKey]: { open: true, loading: true, text: '', error: '' } }));
+    try {
+      const res = await fetch(`${API}/tafsirs/${TAFSIR_ID}/by_ayah/${verseKey}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const text = stripHtml(String(data.tafsir?.text ?? ''));
+      setTafsirs((prev) => ({ ...prev, [verseKey]: { open: true, loading: false, text: text || 'No tafsir text was returned for this verse.', error: '' } }));
+    } catch {
+      setTafsirs((prev) => ({ ...prev, [verseKey]: { open: true, loading: false, text: '', error: 'Could not load the tafsir. Check your connection and try again.' } }));
+    }
+  }, [tafsirs]);
+
+  /* ---------- share ---------- */
+  const shareVerse = useCallback(async (verse: Verse, surahName: string) => {
+    const translation = stripHtml(verse.translations?.[0]?.text ?? '');
+    const text = `${verse.text_indopak}\n\n"${translation}"\n\n— ${surahName} (${verse.verse_key})\n\niloveislam.life/quran`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ text });
+        return;
+      }
+      throw new Error('no share API');
+    } catch {
+      try {
+        await navigator.clipboard.writeText(text);
+        setCopiedKey(verse.verse_key);
+        window.setTimeout(() => setCopiedKey((k) => (k === verse.verse_key ? null : k)), 2000);
+      } catch { /* clipboard unavailable */ }
+    }
+  }, []);
+
+  /* ---------- in-Quran search ---------- */
+  const runSearch = useCallback(async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const q = searchQuery.trim();
+    if (q.length < 2) return;
+    setSearchLoading(true);
+    setSearchError('');
+    setSearchDone(false);
+    setSearchResults([]);
+    try {
+      const res = await fetch(`${API}/search?q=${encodeURIComponent(q)}&size=20&language=en`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const raw = (data.search?.results ?? []) as { verse_key: string }[];
+      /* Enrich each hit with Indo-Pak text + translation so search results never show Uthmani text. */
+      const enriched = await Promise.all(raw.map(async (r) => {
+        const [s, a] = r.verse_key.split(':').map(Number);
+        try {
+          const vr = await fetch(`${API}/verses/by_key/${r.verse_key}?fields=text_indopak&translations=${translationId}`);
+          if (!vr.ok) throw new Error('verse fetch failed');
+          const vd = await vr.json();
+          const v = vd.verse as Verse;
+          return {
+            verse_key: r.verse_key, surahNumber: s, verseNumber: a,
+            arabic: v.text_indopak, translation: stripHtml(v.translations?.[0]?.text ?? ''),
+          } as SearchHit;
+        } catch {
+          return { verse_key: r.verse_key, surahNumber: s, verseNumber: a, arabic: '', translation: '' } as SearchHit;
+        }
+      }));
+      setSearchResults(enriched);
+      setSearchDone(true);
+    } catch (err) {
+      setSearchError(networkErrorMessage(err));
+    } finally {
+      setSearchLoading(false);
+    }
+  }, [searchQuery, translationId]);
+
+  const openSearchHit = useCallback((hit: SearchHit) => {
+    const ch = chapterById.get(hit.surahNumber);
+    if (ch) void loadSurah(ch, hit.verseNumber);
+  }, [chapterById, loadSurah]);
+
+  /* ---------- reading plan ---------- */
+  const toggleJuzDone = useCallback((juz: number) => {
+    setJuzDone((prev) => (prev.includes(juz) ? prev.filter((j) => j !== juz) : [...prev, juz]));
+  }, []);
+
+  const readerTitle = currentSurah
+    ? `${currentSurah.name_simple} — ${currentSurah.translated_name.name}`
+    : currentJuz
+      ? `Juz ${currentJuz} — ${JUZ_DATA[currentJuz - 1].name}`
+      : '';
+  const reading = currentSurah !== null || currentJuz !== null;
+  const translationName = TRANSLATIONS.find((t) => t.id === translationId)?.name ?? 'Saheeh International';
+  const arabicSize = fontScale <= 0.85 ? 'text-2xl sm:text-3xl' : fontScale >= 1.15 ? 'text-4xl sm:text-5xl' : 'text-3xl sm:text-4xl';
+  const surahNameForVerse = (v: Verse): string => {
+    if (currentSurah) return currentSurah.name_simple;
+    const s = Number(v.verse_key.split(':')[0]);
+    return chapterById.get(s)?.name_simple ?? '';
   };
 
-  const filtered = SURAHS.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.arabic.includes(search) ||
-    s.urduName.includes(search) ||
-    s.meaning.toLowerCase().includes(search.toLowerCase()) ||
-    s.number.toString() === search.trim()
-  );
-
-  // ── Theme colors (list page) — parchment to match mushaf ──
-  const bgCol = dark ? '#0d0800' : '#ede4cc';
-  const cardBg = dark ? '#1a1000' : '#fdf8f0';
-  const textCol = dark ? '#f0e6cc' : COLORS.mushafText;
-  const borderCol = dark ? '#8B6914' : '#c8a96e';
-
-  // ── Mushaf page theme ──
-  const mushafBg = dark ? '#0d0800' : '#ede4cc';
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'surahs', label: 'Surahs' },
+    { id: 'juz', label: 'Juz' },
+    { id: 'search', label: 'Search' },
+    { id: 'bookmarks', label: `Bookmarks${bookmarks.length ? ` (${bookmarks.length})` : ''}` },
+    { id: 'plan', label: 'Reading Plan' },
+  ];
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: selectedSurah ? mushafBg : bgCol,
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      color: textCol,
-      transition: 'background 0.3s ease',
-    }}>
-      <audio ref={audioRef} onEnded={handleAudioEnd} />
+    <main className="min-h-screen bg-[#F7F5EF] text-[#1C2420]">
+      <audio ref={audioRef} preload="none" className="hidden" />
 
-      <style dangerouslySetInnerHTML={{ __html: `
-        @import url('https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&family=Amiri+Quran&family=Noto+Naskh+Arabic:wght@400;700&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
-
-        /* Try to load PDMS Saleem font from a CDN if available */
-        @font-face {
-          font-family: 'PDMS_Saleem_QuranFont';
-          src: url('https://fonts.gstatic.com/s/scheherazadenew/v21/4UaZrFhTvxVnHDvUkULCpKZnAhB5C_OwMU4=.woff2') format('woff2');
-          font-weight: 700;
-        }
-
-        .mushaf-arabic {
-          font-family: 'Scheherazade New', 'Noto Naskh Arabic', 'Amiri Quran', serif;
-          font-weight: 700;
-          direction: rtl;
-          word-spacing: 4px;
-          letter-spacing: 0;
-        }
-        .urdu-font {
-          font-family: 'Noto Nastaliq Urdu', serif;
-        }
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Mushaf page paper texture */
-        .mushaf-page-wrap {
-          animation: fadeIn 0.4s ease;
-        }
-
-        /* Responsive */
-        @media (max-width: 600px) {
-          .reader-controls-bar { flex-wrap: wrap; gap: 6px; }
-          .font-btn-group { gap: 3px; }
-        }
-      `}} />
-
-      {/* ═══════════════════════════════════════════════════════
-          SURAH LIST PAGE
-      ═══════════════════════════════════════════════════════ */}
-      {!selectedSurah ? (
-        <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 20px' }}>
-          <button
-            onClick={() => window.location.href = '/'}
-            style={{
-              padding: '12px 24px', background: COLORS.mushafGold, color: '#fff',
-              border: 'none', borderRadius: 30, cursor: 'pointer', fontWeight: 700, marginBottom: 30,
-            }}
-          >
-            ← Back to Main Menu
-          </button>
-
-          <header style={{ textAlign: 'center', marginBottom: 40 }}>
-            {/* Ornate title matching Mushaf style */}
-            <div style={{ display: 'inline-block', border: `2px solid ${dark ? '#8B6914' : COLORS.mushafBorder}`, borderRadius: 6, padding: '14px 40px', background: cardBg, position: 'relative' }}>
-              <span style={{ position: 'absolute', top: -1, left: -1, fontSize: 12, color: dark ? '#d4a843' : COLORS.mushafGold }}>❖</span>
-              <span style={{ position: 'absolute', top: -1, right: -1, fontSize: 12, color: dark ? '#d4a843' : COLORS.mushafGold }}>❖</span>
-              <span style={{ position: 'absolute', bottom: -1, left: -1, fontSize: 12, color: dark ? '#d4a843' : COLORS.mushafGold }}>❖</span>
-              <span style={{ position: 'absolute', bottom: -1, right: -1, fontSize: 12, color: dark ? '#d4a843' : COLORS.mushafGold }}>❖</span>
-              <h1 style={{ fontSize: 32, color: dark ? '#d4a843' : COLORS.mushafBorder, margin: 0, fontWeight: 800, fontFamily: '"Scheherazade New", serif' }}>
-                Al-Quran Al-Kareem
-              </h1>
-              <p style={{ fontFamily: '"Scheherazade New", serif', fontSize: 22, color: dark ? '#f0e6cc' : COLORS.mushafText, margin: '4px 0 0', fontWeight: 700, direction: 'rtl' }}>
-                القرآن الكريم
-              </p>
-            </div>
-
-            <div style={{ marginTop: 24, position: 'relative', maxWidth: 500, margin: '24px auto 0' }}>
-              <input
-                type="text"
-                placeholder={browseMode === 'surah' ? "Search Surah by name or number..." : "Search Juz..."}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{
-                  width: '100%', padding: '14px 22px', borderRadius: 8,
-                  border: `1.5px solid ${borderCol}`, fontSize: 15, outline: 'none',
-                  background: cardBg, color: textCol,
-                  boxShadow: '0 2px 8px rgba(139,105,20,0.1)',
-                  fontFamily: 'system-ui, sans-serif',
-                }}
-              />
-            </div>
-
-            {/* Browse mode toggle: Surah / Juz / Search */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16 }}>
-              <button onClick={() => setBrowseMode('surah')} style={{
-                padding: '8px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                background: browseMode === 'surah' ? COLORS.mushafGold : (dark ? '#2a1800' : '#fff8e8'),
-                color: browseMode === 'surah' ? '#fff' : textCol,
-                border: `1.5px solid ${browseMode === 'surah' ? COLORS.mushafGold : borderCol}`,
-              }}>📖 Surah</button>
-              <button onClick={() => setBrowseMode('juz')} style={{
-                padding: '8px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                background: browseMode === 'juz' ? COLORS.mushafGold : (dark ? '#2a1800' : '#fff8e8'),
-                color: browseMode === 'juz' ? '#fff' : textCol,
-                border: `1.5px solid ${browseMode === 'juz' ? COLORS.mushafGold : borderCol}`,
-              }}>📚 Juz</button>
-              <button onClick={() => setBrowseMode('search')} style={{
-                padding: '8px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                background: browseMode === 'search' ? COLORS.mushafGold : (dark ? '#2a1800' : '#fff8e8'),
-                color: browseMode === 'search' ? '#fff' : textCol,
-                border: `1.5px solid ${browseMode === 'search' ? COLORS.mushafGold : borderCol}`,
-              }}>🔍 Search Verses</button>
-            </div>
-
-            {/* Reciter selector */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
-              <select value={reciter} onChange={(e) => setReciter(e.target.value as any)} style={{
-                padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-                border: `1.5px solid ${borderCol}`, background: cardBg, color: textCol, cursor: 'pointer',
-              }}>
-                {Object.entries(RECITERS).map(([key, val]) => (
-                  <option key={key} value={key}>🎙️ {val.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
-              {lastRead && (
-                <button
-                  onClick={() => loadSurah(SURAHS[lastRead.surahNumber - 1], lastRead.verseNumber)}
-                  style={{
-                    padding: '9px 18px', borderRadius: 6, background: COLORS.mushafGold,
-                    color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12,
-                  }}
-                >
-                  📖 Last Read: {lastRead.surahName}
-                </button>
-              )}
-              {bookmarks.length > 0 && (
-                <button style={{
-                  padding: '9px 18px', borderRadius: 6, background: dark ? '#2a1800' : '#fff8e8',
-                  color: dark ? '#d4a843' : COLORS.mushafBorder,
-                  border: `1.5px solid ${dark ? '#8B6914' : COLORS.mushafBorder}`,
-                  cursor: 'pointer', fontWeight: 700, fontSize: 12,
-                }}>
-                  🔖 Bookmarks ({bookmarks.length})
-                </button>
-              )}
-              {/* Dark mode toggle on list page */}
-              <button onClick={() => setDark(!dark)} style={{
-                padding: '9px 14px', borderRadius: 6,
-                border: `1.5px solid ${borderCol}`,
-                background: cardBg, color: textCol,
-                cursor: 'pointer', fontSize: 14,
-              }}>
-                {dark ? '☀️' : '🌙'}
-              </button>
-            </div>
-          </header>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-            {browseMode === 'search' ? (
-              // VERSE SEARCH VIEW
-              <div style={{ gridColumn: '1 / -1' }}>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                  <input
-                    type="text"
-                    placeholder="Search verses (e.g. patience, mercy, forgiveness)..."
-                    value={verseSearch}
-                    onChange={(e) => setVerseSearch(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && searchVerses(verseSearch)}
-                    style={{
-                      flex: 1, padding: '12px 18px', borderRadius: 8,
-                      border: `1.5px solid ${borderCol}`, fontSize: 14, outline: 'none',
-                      background: cardBg, color: textCol,
-                    }}
-                  />
-                  <button onClick={() => searchVerses(verseSearch)} style={{
-                    padding: '12px 20px', borderRadius: 8, background: COLORS.mushafGold,
-                    color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13,
-                  }}>
-                    {verseSearchLoading ? '...' : '🔍'}
-                  </button>
-                </div>
-                {verseSearchResults.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <p style={{ fontSize: 12, color: dark ? '#c8a96e' : '#888', margin: 0 }}>
-                      {verseSearchResults.length} result{verseSearchResults.length > 1 ? 's' : ''} found
-                    </p>
-                    {verseSearchResults.map((r, i) => (
-                      <div key={i} onClick={() => { const s = SURAHS[r.surah - 1]; if (s) loadSurah(s, r.verse); }}
-                        style={{
-                          background: cardBg, padding: '14px 16px', borderRadius: 8,
-                          border: `1px solid ${borderCol}`, cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = COLORS.mushafGold; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = borderCol; }}
-                      >
-                        <p style={{ fontSize: 11, color: dark ? '#c8a96e' : COLORS.mushafGold, margin: '0 0 4px', fontWeight: 700 }}>
-                          {r.surahName} ({r.surah}:{r.verse})
-                        </p>
-                        <p style={{ fontSize: 13, color: textCol, margin: 0, lineHeight: 1.6 }}>
-                          {r.text.length > 200 ? r.text.substring(0, 200) + '...' : r.text}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {verseSearchResults.length === 0 && verseSearch.trim().length >= 3 && !verseSearchLoading && (
-                  <p style={{ textAlign: 'center', color: dark ? '#666' : '#999', fontSize: 13, padding: '20px 0' }}>
-                    No verses found. Try a different keyword.
-                  </p>
-                )}
-                {verseSearch.trim().length < 3 && (
-                  <p style={{ textAlign: 'center', color: dark ? '#666' : '#999', fontSize: 13, padding: '20px 0' }}>
-                    Type at least 3 characters and press Enter or 🔍 to search across all verses.
-                  </p>
-                )}
-              </div>
-            ) : browseMode === 'juz' ? (
-              // JUZ VIEW
-              <>
-                {JUZ_DATA.filter(j => !search.trim() || j.juz.toString().includes(search) || j.name.toLowerCase().includes(search.toLowerCase()) || j.start.toLowerCase().includes(search.toLowerCase())).map(j => (
-                  <div
-                    key={j.juz}
-                    onClick={() => { const firstSurah = SURAHS[j.surahs[0] - 1]; if (firstSurah) loadSurah(firstSurah); }}
-                    style={{
-                      background: cardBg, padding: '14px 16px', borderRadius: 8,
-                      border: `1px solid ${borderCol}`, cursor: 'pointer',
-                      transition: 'all 0.2s ease', display: 'flex', alignItems: 'center',
-                      gap: 14, boxShadow: '0 2px 6px rgba(139,105,20,0.06)',
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = COLORS.mushafGold; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = borderCol; }}
-                  >
-                    <div style={{
-                      width: 40, height: 40, borderRadius: '50%',
-                      border: `2px solid ${dark ? '#8B6914' : COLORS.mushafGold}`,
-                      background: dark ? '#2a1800' : '#fff8e8',
-                      color: dark ? '#d4a843' : COLORS.mushafBorder,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontWeight: 800, fontSize: 14, flexShrink: 0,
-                    }}>
-                      {j.juz}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: textCol }}>{j.name}</h3>
-                      <p style={{ margin: '2px 0 0', fontSize: 11, color: dark ? '#c8a96e' : COLORS.mushafGold }}>
-                        {j.surahs.length} surah{j.surahs.length > 1 ? 's' : ''} · {j.start}
-                      </p>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{
-                        fontFamily: '"Scheherazade New", "Noto Naskh Arabic", serif',
-                        margin: 0, fontSize: 18, color: dark ? '#f0e6cc' : COLORS.mushafText,
-                        fontWeight: 700, direction: 'rtl',
-                      }}>
-                        {j.ar}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </>
-            ) : (
-              // SURAH VIEW (existing)
-              <>
-            {filtered.map(s => (
-              <div
-                key={s.number}
-                onClick={() => loadSurah(s)}
-                style={{
-                  background: cardBg, padding: '14px 16px', borderRadius: 8,
-                  border: `1px solid ${borderCol}`, cursor: 'pointer',
-                  transition: 'all 0.2s ease', display: 'flex', alignItems: 'center',
-                  gap: 14, boxShadow: '0 2px 6px rgba(139,105,20,0.06)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(139,105,20,0.14)';
-                  e.currentTarget.style.borderColor = COLORS.mushafGold;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'none';
-                  e.currentTarget.style.boxShadow = '0 2px 6px rgba(139,105,20,0.06)';
-                  e.currentTarget.style.borderColor = borderCol;
-                }}
-              >
-                {/* Number badge — rosette style */}
-                <div style={{
-                  width: 40, height: 40, borderRadius: '50%',
-                  border: `2px solid ${dark ? '#8B6914' : COLORS.mushafGold}`,
-                  background: dark ? '#2a1800' : '#fff8e8',
-                  color: dark ? '#d4a843' : COLORS.mushafBorder,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontWeight: 800, fontSize: 14, flexShrink: 0,
-                  fontFamily: '"Scheherazade New", serif',
-                }}>
-                  {toArabicNum(s.number)}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: textCol }}>{s.name}</h3>
-                  <p style={{ margin: '2px 0 0', fontSize: 11, color: dark ? '#c8a96e' : COLORS.mushafGold }}>{s.meaning} · {s.verses} verses</p>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <p style={{
-                    fontFamily: '"Scheherazade New", "Noto Naskh Arabic", serif',
-                    margin: 0, fontSize: 20, color: dark ? '#f0e6cc' : COLORS.mushafText,
-                    fontWeight: 700, direction: 'rtl',
-                  }}>
-                    {s.arabic}
-                  </p>
-                  <p style={{ margin: '2px 0 0', fontSize: 10, color: dark ? '#8B6914' : '#a08030', textAlign: 'right' }}>
-                    {s.makki ? 'Makki' : 'Madani'} · Juz {s.juz}
-                  </p>
-                </div>
-              </div>
-            ))}
-              </>
-            )}
-          </div>
-        </div>
-
-      ) : (
-        /* ═══════════════════════════════════════════════════════
-            READER PAGE
-        ═══════════════════════════════════════════════════════ */
-        <div ref={topRef} style={{ maxWidth: 900, margin: '0 auto', padding: '10px 12px 30px' }}>
-
-          {/* Sticky Controls Bar */}
-          <div
-            className="reader-controls-bar"
-            style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              marginBottom: 12,
-              background: dark ? '#1a1200' : '#fdf8f0',
-              padding: '8px 14px', borderRadius: 10,
-              border: `1.5px solid ${dark ? '#8B6914' : COLORS.mushafBorder}`,
-              position: 'sticky', top: 6, zIndex: 100,
-              boxShadow: '0 4px 16px rgba(139,105,20,0.15)',
-            }}
-          >
+      {/* Header */}
+      <header className="bg-[#0B3D2E] text-white">
+        <div className="max-w-3xl mx-auto px-4 pt-10 pb-8 sm:pt-14 sm:pb-10 text-center">
+          <p className="font-arabic text-3xl sm:text-4xl text-[#C9A227] leading-relaxed">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
+          <h1 className="mt-4 text-3xl sm:text-4xl font-bold tracking-tight">Quran Reader</h1>
+          <p className="mt-2 text-sm sm:text-base text-emerald-100/90 max-w-xl mx-auto">
+            Read the Holy Quran in the Indo-Pak script — the 15-line Mushaf style read across
+            Pakistan, India and Bangladesh — with English translation, audio recitation and tafsir.
+          </p>
+          {lastRead && !reading && (
             <button
-              onClick={() => setSelectedSurah(null)}
-              style={{
-                background: 'none', border: 'none',
-                color: dark ? '#d4a843' : COLORS.mushafBorder,
-                cursor: 'pointer', fontWeight: 700,
-                display: 'flex', alignItems: 'center', gap: 4, fontSize: 14,
-              }}
+              type="button"
+              onClick={() => openBookmark(lastRead)}
+              className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#C9A227] px-5 py-2.5 text-sm font-semibold text-[#0B3D2E] shadow hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
-              ← Back
+              ▶ Continue reading — {lastRead.surahName || `Surah ${lastRead.surahNumber}`} {lastRead.surahNumber}:{lastRead.verseNumber}
             </button>
-
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-              <select
-                value={mode}
-                onChange={(e) => setMode(e.target.value)}
-                style={{
-                  padding: '5px 8px', borderRadius: 6,
-                  border: `1px solid ${dark ? '#8B6914' : COLORS.mushafBorder}`,
-                  background: dark ? '#2a1800' : '#fff8e8',
-                  color: dark ? '#f0e6cc' : COLORS.mushafText,
-                  fontWeight: 600, fontSize: 12,
-                }}
-              >
-                <option value="mushaf">Mushaf</option>
-                <option value="verse">Verse</option>
-              </select>
-
-              {/* Font Size Buttons */}
-              <div className="font-btn-group" style={{ display: 'flex', gap: 3 }}>
-                {FONT_SIZES.map((f, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setFontSize(i)}
-                    style={{
-                      padding: '4px 9px', borderRadius: 5,
-                      border: `1px solid ${fontSize === i ? COLORS.mushafGold : (dark ? '#8B6914' : COLORS.mushafBorder)}`,
-                      background: fontSize === i ? COLORS.mushafGold : (dark ? '#2a1800' : '#fff8e8'),
-                      color: fontSize === i ? '#fff' : (dark ? '#f0e6cc' : COLORS.mushafText),
-                      fontWeight: 700, fontSize: 12, cursor: 'pointer',
-                    }}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-
-              {mode === 'verse' && (
-                <button
-                  onClick={() => setShowTranslation(!showTranslation)}
-                  style={{
-                    padding: '4px 9px', borderRadius: 5,
-                    border: `1px solid ${dark ? '#8B6914' : COLORS.mushafBorder}`,
-                    background: showTranslation ? COLORS.mushafGold : (dark ? '#2a1800' : '#fff8e8'),
-                    color: showTranslation ? '#fff' : (dark ? '#f0e6cc' : COLORS.mushafText),
-                    fontWeight: 700, fontSize: 11, cursor: 'pointer',
-                  }}
-                >
-                  {showTranslation ? 'Hide Trans.' : 'Show Trans.'}
-                </button>
-              )}
-
-              {/* Transliteration toggle */}
-              <button
-                onClick={() => setShowTransliteration(!showTransliteration)}
-                style={{
-                  padding: '4px 9px', borderRadius: 5,
-                  border: `1px solid ${dark ? '#8B6914' : COLORS.mushafBorder}`,
-                  background: showTransliteration ? '#6366f1' : (dark ? '#2a1800' : '#fff8e8'),
-                  color: showTransliteration ? '#fff' : (dark ? '#f0e6cc' : COLORS.mushafText),
-                  fontWeight: 700, fontSize: 11, cursor: 'pointer',
-                }}
-              >
-                {showTransliteration ? 'Hide Translit.' : 'Transliteration'}
-              </button>
-
-              <button
-                onClick={() => setLang(lang === 'en' ? 'ur' : 'en')}
-                style={{
-                  padding: '4px 9px', borderRadius: 5,
-                  border: 'none', background: COLORS.skyBlueDark,
-                  color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 11,
-                }}
-              >
-                {lang === 'en' ? 'اردو' : 'English'}
-              </button>
-
-              <button
-                onClick={() => setDark(!dark)}
-                style={{
-                  padding: '4px 8px', borderRadius: 5,
-                  border: `1px solid ${dark ? '#8B6914' : COLORS.mushafBorder}`,
-                  background: dark ? '#2a1800' : '#fff8e8',
-                  color: dark ? '#f0e6cc' : COLORS.mushafText,
-                  cursor: 'pointer', fontSize: 13,
-                }}
-              >
-                {dark ? '☀️' : '🌙'}
-              </button>
-            </div>
-          </div>
-
-          {/* Loading */}
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '80px 0' }}>
-              <div style={{
-                width: 35, height: 35,
-                border: `3px solid ${COLORS.mushafGold}33`,
-                borderTopColor: COLORS.mushafGold,
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-                margin: '0 auto 15px',
-              }} />
-              <p style={{ color: COLORS.mushafGold, fontWeight: 700, fontSize: 14 }}>
-                Loading Surah...
-              </p>
-            </div>
-          ) : error ? (
-            <div style={{ textAlign: 'center', padding: 40, color: '#c62828' }}>
-              <p>{error}</p>
-            </div>
-          ) : (
-            <div className="mushaf-page-wrap">
-              {mode === 'mushaf' ? (
-                <MushafPage
-                  surah={selectedSurah}
-                  verses={verses}
-                  fontSize={fontSize}
-                  playingAudio={playingAudio}
-                  dark={dark}
-                  onPlayAudio={playAudio}
-                  onToggleContinuous={toggleContinuous}
-                  onStopAudio={stopAudio}
-                  isPaused={isPaused}
-                  continuousAudio={continuousAudio}
-                  showTranslation={showTranslation}
-                  lang={lang}
-                  onToggleBookmark={(v) => toggleBookmark(selectedSurah, v)}
-                  isBookmarked={(v) => isBookmarked(selectedSurah.number, v)}
-                />
-              ) : (
-                <VerseView
-                  surah={selectedSurah}
-                  verses={verses}
-                  fontSize={fontSize}
-                  playingAudio={playingAudio}
-                  isPaused={isPaused}
-                  dark={dark}
-                  showTranslation={showTranslation}
-                  showTransliteration={showTransliteration}
-                  lang={lang}
-                  onPlayAudio={playAudio}
-                  onToggleBookmark={(v) => toggleBookmark(selectedSurah, v)}
-                  isBookmarked={(v) => isBookmarked(selectedSurah.number, v)}
-                  onShareVerse={(v) => shareVerse(v, selectedSurah)}
-                />
-              )}
-
-              {/* Prev / Next navigation */}
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 20 }}>
-                {selectedSurah.number > 1 && (
-                  <button
-                    onClick={() => loadSurah(SURAHS[selectedSurah.number - 2])}
-                    style={{
-                      padding: '10px 20px', borderRadius: 40,
-                      border: `1.5px solid ${dark ? '#8B6914' : COLORS.mushafBorder}`,
-                      background: dark ? '#2a1800' : '#fff8e8',
-                      color: dark ? '#f0e6cc' : COLORS.mushafText,
-                      cursor: 'pointer', fontSize: 12, fontWeight: 700,
-                    }}
-                  >
-                    ← Previous
-                  </button>
-                )}
-                {selectedSurah.number < 114 && (
-                  <button
-                    onClick={() => loadSurah(SURAHS[selectedSurah.number])}
-                    style={{
-                      padding: '10px 24px', borderRadius: 40, border: 'none',
-                      background: COLORS.mushafGold, color: '#fff',
-                      cursor: 'pointer', fontSize: 12, fontWeight: 700,
-                    }}
-                  >
-                    Next Surah →
-                  </button>
-                )}
-              </div>
-            </div>
           )}
         </div>
-      )}
-    </div>
+      </header>
+
+      <div className="max-w-3xl mx-auto px-4 pb-16">
+        {/* Tabs */}
+        {!reading && (
+          <nav aria-label="Quran sections" className="mt-6 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                aria-current={tab === t.id ? 'page' : undefined}
+                className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D] ${
+                  tab === t.id ? 'bg-[#0B3D2E] text-white' : 'bg-white text-[#1C2420] border border-[#e5e0d3] hover:border-[#146B4D]'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </nav>
+        )}
+
+        {/* ============ READER VIEW ============ */}
+        {reading && (
+          <section aria-label="Quran reader" className="mt-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => { stopAudio(); setCurrentSurah(null); setCurrentJuz(null); setVerses([]); setVersesError(''); }}
+                className="rounded-full bg-white border border-[#e5e0d3] px-4 py-2 text-sm font-semibold hover:border-[#146B4D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+              >
+                ← All Surahs
+              </button>
+              <span className="text-sm text-[#1C2420]/60">{verses.length > 0 ? `${verses.length} verses` : ''}</span>
+            </div>
+
+            <div className="mt-4 rounded-2xl bg-[#0B3D2E] px-5 py-6 text-center text-white shadow-sm">
+              <p className="font-arabic text-2xl sm:text-3xl text-[#C9A227]">{currentSurah?.name_arabic ?? (currentJuz ? JUZ_DATA[currentJuz - 1].ar : '')}</p>
+              <h2 className="mt-2 text-xl sm:text-2xl font-bold">{readerTitle}</h2>
+              {currentSurah && (
+                <p className="mt-1 text-sm text-emerald-100/80">
+                  {currentSurah.verses_count} verses · {currentSurah.revelation_place === 'makkah' ? 'Makki' : 'Madani'} · Surah {currentSurah.id} of 114
+                </p>
+              )}
+              {currentSurah && currentSurah.id !== 1 && currentSurah.id !== 9 && (
+                <p className="font-arabic mt-4 text-xl sm:text-2xl leading-relaxed">{BISMILLAH}</p>
+              )}
+            </div>
+
+            {/* Reader controls */}
+            <div className="mt-4 rounded-2xl bg-white border border-[#e5e0d3] p-4 shadow-sm">
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={playingKey ? stopAudio : playWholeSurah}
+                  disabled={verses.length === 0}
+                  className="rounded-full bg-[#146B4D] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0B3D2E] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+                >
+                  {playingKey ? '■ Stop audio' : '▶ Play whole surah'}
+                </button>
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  Translation
+                  <select
+                    value={translationId}
+                    onChange={(e) => setTranslationId(Number(e.target.value))}
+                    className="rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+                  >
+                    {TRANSLATIONS.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  Reciter
+                  <select
+                    value={reciterId}
+                    onChange={(e) => setReciterId(Number(e.target.value))}
+                    className="rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+                  >
+                    {RECITERS.map((r) => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <span className="ml-auto flex items-center gap-1 text-sm font-medium" aria-label="Arabic font size">
+                  <button type="button" aria-label="Smaller Arabic text" onClick={() => setFontScale((s) => Math.max(0.8, +(s - 0.15).toFixed(2)))} className="rounded-lg border border-[#e5e0d3] px-2.5 py-1 hover:border-[#146B4D]">A−</button>
+                  <button type="button" aria-label="Larger Arabic text" onClick={() => setFontScale((s) => Math.min(1.3, +(s + 0.15).toFixed(2)))} className="rounded-lg border border-[#e5e0d3] px-2.5 py-1 hover:border-[#146B4D]">A+</button>
+                </span>
+              </div>
+            </div>
+
+            {versesLoading && (
+              <div className="mt-6 space-y-3" aria-live="polite">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="animate-pulse rounded-2xl bg-white border border-[#e5e0d3] p-5">
+                    <div className="h-8 w-3/4 ml-auto rounded bg-[#e5e0d3]" />
+                    <div className="mt-4 h-4 w-full rounded bg-[#e5e0d3]" />
+                    <div className="mt-2 h-4 w-2/3 rounded bg-[#e5e0d3]" />
+                  </div>
+                ))}
+                <p className="text-center text-sm text-[#1C2420]/60">Loading verses…</p>
+              </div>
+            )}
+
+            {versesError && (
+              <div className="mt-6 rounded-2xl bg-white border border-red-200 p-5 text-center shadow-sm" role="alert">
+                <p className="text-sm text-red-700">{versesError}</p>
+                <button
+                  type="button"
+                  onClick={() => { if (currentSurah) void loadSurah(currentSurah, targetVerse); else if (currentJuz) void loadJuz(currentJuz); }}
+                  className="mt-3 rounded-full bg-[#0B3D2E] px-5 py-2 text-sm font-semibold text-white hover:bg-[#146B4D]"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+
+            {!versesLoading && !versesError && verses.map((v) => {
+              const sNum = Number(v.verse_key.split(':')[0]);
+              const bookmarked = isBookmarked(sNum, v.verse_number);
+              const tafsir = tafsirs[v.verse_key];
+              const translation = stripHtml(v.translations?.[0]?.text ?? '');
+              const isPlaying = playingKey === v.verse_key;
+              return (
+                <article
+                  key={v.verse_key}
+                  id={`verse-${v.verse_number}`}
+                  className={`mt-4 rounded-2xl bg-white border p-5 shadow-sm scroll-mt-24 ${isPlaying ? 'border-[#C9A227] ring-1 ring-[#C9A227]' : 'border-[#e5e0d3]'}`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0B3D2E] text-xs font-bold text-white">
+                      {v.verse_key}
+                    </span>
+                    {currentJuz && (
+                      <span className="text-xs font-semibold text-[#146B4D]">{surahNameForVerse(v)}</span>
+                    )}
+                  </div>
+
+                  <p dir="rtl" lang="ar" className={`font-arabic mt-4 text-right leading-[2.1] ${arabicSize}`}>
+                    {v.text_indopak}
+                  </p>
+                  {translation && (
+                    <p className="mt-4 text-[15px] leading-relaxed text-[#1C2420]/85">{translation}</p>
+                  )}
+                  <p className="mt-2 text-xs text-[#1C2420]/50">Translation: {translationName}</p>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#f0ede4] pt-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleVerseAudio(v)}
+                      disabled={!v.audio?.url}
+                      aria-label={isPlaying && !isPaused ? `Pause verse ${v.verse_key}` : `Play verse ${v.verse_key}`}
+                      className="rounded-full bg-[#146B4D] px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-[#0B3D2E] disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+                    >
+                      {isPlaying ? (isPaused ? '▶ Resume' : '⏸ Pause') : '▶ Listen'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleBookmark(sNum, surahNameForVerse(v), v.verse_number)}
+                      aria-pressed={bookmarked}
+                      className={`rounded-full border px-3.5 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D] ${bookmarked ? 'border-[#C9A227] bg-[#C9A227]/15 text-[#7a6414]' : 'border-[#e5e0d3] hover:border-[#146B4D]'}`}
+                    >
+                      {bookmarked ? '★ Bookmarked' : '☆ Bookmark'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void toggleTafsir(v.verse_key)}
+                      aria-expanded={tafsir?.open ?? false}
+                      className="rounded-full border border-[#e5e0d3] px-3.5 py-1.5 text-sm font-semibold hover:border-[#146B4D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+                    >
+                      {tafsir?.open ? 'Hide Tafsir' : 'Tafsir'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void shareVerse(v, surahNameForVerse(v))}
+                      className="rounded-full border border-[#e5e0d3] px-3.5 py-1.5 text-sm font-semibold hover:border-[#146B4D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+                    >
+                      {copiedKey === v.verse_key ? '✓ Copied!' : '↗ Share'}
+                    </button>
+                  </div>
+
+                  {tafsir?.open && (
+                    <div className="mt-4 rounded-xl bg-[#F7F5EF] border border-[#e5e0d3] p-4">
+                      <p className="text-xs font-bold uppercase tracking-wide text-[#146B4D]">{TAFSIR_NAME}</p>
+                      {tafsir.loading && <p className="mt-2 text-sm text-[#1C2420]/60">Loading tafsir…</p>}
+                      {tafsir.error && <p className="mt-2 text-sm text-red-700" role="alert">{tafsir.error}</p>}
+                      {tafsir.text && <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#1C2420]/85">{tafsir.text}</p>}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </section>
+        )}
+
+        {/* ============ SURAH LIST ============ */}
+        {!reading && tab === 'surahs' && (
+          <section aria-label="Surah list" className="mt-6">
+            {/* Verse of the Day */}
+            {votd && (
+              <article className="rounded-2xl bg-[#0B3D2E] p-5 text-white shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-widest text-[#C9A227]">Verse of the Day · {votdKey}</p>
+                <p dir="rtl" lang="ar" className="font-arabic mt-3 text-right text-2xl sm:text-3xl leading-[2]">{votd.text_indopak}</p>
+                {votd.translations?.[0] && (
+                  <p className="mt-3 text-sm leading-relaxed text-emerald-100/90">“{stripHtml(votd.translations[0].text)}”</p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const ch = chapterById.get(Number(votdKey.split(':')[0]));
+                    if (ch) void loadSurah(ch, Number(votdKey.split(':')[1]));
+                  }}
+                  className="mt-3 rounded-full bg-[#C9A227] px-4 py-1.5 text-sm font-semibold text-[#0B3D2E] hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                >
+                  Read in context →
+                </button>
+              </article>
+            )}
+
+            <label className="mt-5 block">
+              <span className="sr-only">Search surahs by name or number</span>
+              <input
+                type="search"
+                value={surahFilter}
+                onChange={(e) => setSurahFilter(e.target.value)}
+                placeholder="Search surahs by name or number…"
+                className="w-full rounded-xl border border-[#e5e0d3] bg-white px-4 py-3 text-sm shadow-sm focus:border-[#146B4D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+              />
+            </label>
+
+            {chaptersLoading && (
+              <div className="mt-4 space-y-2" aria-live="polite">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <div key={i} className="animate-pulse rounded-xl bg-white border border-[#e5e0d3] p-4">
+                    <div className="h-4 w-1/2 rounded bg-[#e5e0d3]" />
+                  </div>
+                ))}
+                <p className="text-center text-sm text-[#1C2420]/60">Loading surahs…</p>
+              </div>
+            )}
+
+            {chaptersError && (
+              <div className="mt-4 rounded-2xl bg-white border border-red-200 p-5 text-center shadow-sm" role="alert">
+                <p className="text-sm text-red-700">{chaptersError}</p>
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="mt-3 rounded-full bg-[#0B3D2E] px-5 py-2 text-sm font-semibold text-white hover:bg-[#146B4D]"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+
+            {!chaptersLoading && !chaptersError && filteredChapters.length === 0 && (
+              <p className="mt-6 text-center text-sm text-[#1C2420]/60">No surah matches “{surahFilter}”.</p>
+            )}
+
+            <ul className="mt-4 space-y-2">
+              {filteredChapters.map((c) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    onClick={() => void loadSurah(c)}
+                    className="flex w-full items-center gap-3 rounded-xl border border-[#e5e0d3] bg-white p-4 text-left shadow-sm transition hover:border-[#146B4D] hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0B3D2E] text-sm font-bold text-white">{c.id}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold">{c.name_simple} <span className="font-normal text-[#1C2420]/50">· {c.translated_name.name}</span></span>
+                      <span className="block text-xs text-[#1C2420]/55">{c.revelation_place === 'makkah' ? 'Makki' : 'Madani'} · {c.verses_count} verses</span>
+                    </span>
+                    <span dir="rtl" lang="ar" className="font-arabic shrink-0 text-xl text-[#146B4D]">{c.name_arabic}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* ============ JUZ LIST ============ */}
+        {!reading && tab === 'juz' && (
+          <section aria-label="Juz list" className="mt-6">
+            <p className="text-sm text-[#1C2420]/65">
+              The Quran is divided into 30 Juz (Para). Tap one to read it in the Indo-Pak script.
+            </p>
+            <ul className="mt-4 space-y-2">
+              {JUZ_DATA.map((j) => (
+                <li key={j.juz}>
+                  <button
+                    type="button"
+                    onClick={() => void loadJuz(j.juz)}
+                    className="flex w-full items-center gap-3 rounded-xl border border-[#e5e0d3] bg-white p-4 text-left shadow-sm transition hover:border-[#146B4D] hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0B3D2E] text-sm font-bold text-white">{j.juz}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold">Juz {j.juz} · {j.name}</span>
+                      <span className="block text-xs text-[#1C2420]/55">Starts at {j.start} · Surahs {j.surahs.join(', ')}</span>
+                    </span>
+                    <span dir="rtl" lang="ar" className="font-arabic shrink-0 text-xl text-[#146B4D]">{j.ar}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* ============ SEARCH ============ */}
+        {!reading && tab === 'search' && (
+          <section aria-label="Search the Quran" className="mt-6">
+            <form onSubmit={(e) => void runSearch(e)} className="flex gap-2">
+              <label className="flex-1">
+                <span className="sr-only">Search the Quran in English</span>
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search for a word or phrase, e.g. mercy, patience…"
+                  className="w-full rounded-xl border border-[#e5e0d3] bg-white px-4 py-3 text-sm shadow-sm focus:border-[#146B4D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={searchLoading || searchQuery.trim().length < 2}
+                className="shrink-0 rounded-xl bg-[#0B3D2E] px-5 py-3 text-sm font-semibold text-white hover:bg-[#146B4D] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+              >
+                {searchLoading ? 'Searching…' : 'Search'}
+              </button>
+            </form>
+            <p className="mt-2 text-xs text-[#1C2420]/55">Searches the English translation across all 114 surahs. Results open in the Indo-Pak script reader.</p>
+
+            {searchError && (
+              <div className="mt-4 rounded-2xl bg-white border border-red-200 p-5 text-center shadow-sm" role="alert">
+                <p className="text-sm text-red-700">{searchError}</p>
+                <button type="button" onClick={() => void runSearch()} className="mt-3 rounded-full bg-[#0B3D2E] px-5 py-2 text-sm font-semibold text-white hover:bg-[#146B4D]">Try again</button>
+              </div>
+            )}
+
+            {searchDone && searchResults.length === 0 && (
+              <p className="mt-6 text-center text-sm text-[#1C2420]/60">No verses found for “{searchQuery}”. Try a different word.</p>
+            )}
+
+            <ul className="mt-4 space-y-3">
+              {searchResults.map((hit) => (
+                <li key={hit.verse_key}>
+                  <button
+                    type="button"
+                    onClick={() => openSearchHit(hit)}
+                    className="block w-full rounded-2xl border border-[#e5e0d3] bg-white p-5 text-left shadow-sm transition hover:border-[#146B4D] hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+                  >
+                    <span className="text-xs font-bold uppercase tracking-wide text-[#146B4D]">
+                      {chapterById.get(hit.surahNumber)?.name_simple ?? `Surah ${hit.surahNumber}`} · {hit.verse_key}
+                    </span>
+                    {hit.arabic && (
+                      <span dir="rtl" lang="ar" className="font-arabic mt-2 block text-right text-2xl leading-[1.9]">{hit.arabic}</span>
+                    )}
+                    {hit.translation && (
+                      <span className="mt-2 block text-sm leading-relaxed text-[#1C2420]/85">“{hit.translation}”</span>
+                    )}
+                    <span className="mt-2 block text-xs font-semibold text-[#C9A227]">Tap to read in context →</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* ============ BOOKMARKS ============ */}
+        {!reading && tab === 'bookmarks' && (
+          <section aria-label="Bookmarks" className="mt-6">
+            {bookmarks.length === 0 ? (
+              <div className="rounded-2xl bg-white border border-[#e5e0d3] p-6 text-center shadow-sm">
+                <p className="text-3xl">☆</p>
+                <p className="mt-2 font-semibold">No bookmarks yet</p>
+                <p className="mt-1 text-sm text-[#1C2420]/60">Tap “Bookmark” on any verse to save it here. Bookmarks are stored on this device.</p>
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {[...bookmarks].sort((a, b) => b.timestamp - a.timestamp).map((b) => (
+                  <li key={`${b.surahNumber}:${b.verseNumber}`} className="flex items-center gap-3 rounded-xl border border-[#e5e0d3] bg-white p-4 shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => openBookmark(b)}
+                      className="min-w-0 flex-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D] rounded"
+                    >
+                      <span className="block truncate font-semibold">{b.surahName || `Surah ${b.surahNumber}`} · {b.surahNumber}:{b.verseNumber}</span>
+                      <span className="block text-xs text-[#1C2420]/55">{new Date(b.timestamp).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleBookmark(b.surahNumber, b.surahName, b.verseNumber)}
+                      aria-label={`Remove bookmark ${b.surahNumber}:${b.verseNumber}`}
+                      className="shrink-0 rounded-full border border-[#e5e0d3] px-3 py-1.5 text-sm font-semibold text-red-700 hover:border-red-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+
+        {/* ============ READING PLAN ============ */}
+        {!reading && tab === 'plan' && (
+          <section aria-label="30 Juz reading plan" className="mt-6">
+            <div className="rounded-2xl bg-white border border-[#e5e0d3] p-5 shadow-sm">
+              <h2 className="text-lg font-bold">Read the Quran in 30 Days</h2>
+              <p className="mt-1 text-sm text-[#1C2420]/65">One Juz a day. Tick each Juz off as you finish it — your progress is saved on this device.</p>
+              <div className="mt-4 flex items-center gap-3">
+                <div className="h-3 flex-1 overflow-hidden rounded-full bg-[#e5e0d3]" role="progressbar" aria-valuenow={juzDone.length} aria-valuemin={0} aria-valuemax={30} aria-label="Reading plan progress">
+                  <div className="h-full rounded-full bg-[#146B4D] transition-all" style={{ width: `${(juzDone.length / 30) * 100}%` }} />
+                </div>
+                <span className="shrink-0 text-sm font-bold text-[#146B4D]">{juzDone.length}/30 juz done</span>
+              </div>
+              {juzDone.length === 30 && (
+                <p className="mt-3 rounded-xl bg-[#C9A227]/15 px-4 py-2 text-sm font-semibold text-[#7a6414]">MashaAllah — you have completed all 30 Juz! 🌙</p>
+              )}
+            </div>
+            <ul className="mt-4 space-y-2">
+              {JUZ_DATA.map((j) => {
+                const done = juzDone.includes(j.juz);
+                return (
+                  <li key={j.juz} className="flex items-center gap-3 rounded-xl border border-[#e5e0d3] bg-white p-4 shadow-sm">
+                    <input
+                      type="checkbox"
+                      id={`juz-plan-${j.juz}`}
+                      checked={done}
+                      onChange={() => toggleJuzDone(j.juz)}
+                      className="h-5 w-5 shrink-0 accent-[#146B4D]"
+                    />
+                    <label htmlFor={`juz-plan-${j.juz}`} className={`min-w-0 flex-1 cursor-pointer ${done ? 'line-through text-[#1C2420]/45' : ''}`}>
+                      <span className="block truncate font-semibold">Juz {j.juz} · {j.name}</span>
+                      <span className="block text-xs text-[#1C2420]/55">Starts at {j.start}</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => void loadJuz(j.juz)}
+                      className="shrink-0 rounded-full border border-[#e5e0d3] px-3 py-1.5 text-sm font-semibold hover:border-[#146B4D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+                    >
+                      Read →
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        {/* Footer note */}
+        {!reading && (
+          <p className="mt-8 text-center text-xs leading-relaxed text-[#1C2420]/50">
+            Arabic text in the Indo-Pak Mushaf script, with English translation, audio and tafsir
+            from Quran.com. Translations: Saheeh International, Yusuf Ali, Pickthall, Abdel Haleem, Taqi Usmani.
+            Tafsir: Ibn Kathir (Abridged).
+          </p>
+        )}
+      </div>
+    </main>
   );
 }

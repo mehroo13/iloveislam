@@ -36,7 +36,7 @@ interface PrayerData {
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TABS: { id: TabId; label: string; icon: string; href?: string }[] = [
   { id: 'food',   label: 'Halal Food',   icon: '🍱' },
-  { id: 'mosque', label: 'Mosques',      icon: '🕌', href: '/mosque' },
+  { id: 'mosque', label: 'Mosques',      icon: '🕌' },
   { id: 'hotel',  label: 'Hotels',       icon: '🏨' },
   { id: 'prayer', label: 'Prayer Times', icon: '🕐', href: '/prayer-times' },
   { id: 'qibla',  label: 'Qibla',        icon: '🧭', href: '/qibla' },

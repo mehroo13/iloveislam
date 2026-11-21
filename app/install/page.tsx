@@ -147,7 +147,7 @@ export default function InstallPage() {
             <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl p-4 border border-emerald-200 dark:border-emerald-800">
               <h3 className="font-semibold text-emerald-800 dark:text-emerald-300 text-sm mb-2">🟢 Works Fully Offline</h3>
               <div className="flex flex-wrap gap-2">
-                {['Dhikr Counter', 'Zakat Calculator', '99 Names', 'Hijri Calendar', 'Dua Generator', 'Kids Games', 'Ramadan Planner', 'Sadaqah Tracker', 'Islamic Will', 'Inheritance Calc', 'Halal Finance', 'Kaffarah Calc', 'Name Finder', 'Hadith Search', 'Night Recitation'].map((tool) => (
+                {['Dhikr Counter', 'Zakat Calculator', '99 Names', 'Hijri Calendar', 'Dua Generator', 'Ramadan Planner', 'Sadaqah Tracker', 'Inheritance Calc', 'Halal Finance', 'Kaffarah Calc', 'Name Finder', 'Hadith Search', 'Night Recitation'].map((tool) => (
                   <span key={tool} className="bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-400 text-xs px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-700">{tool}</span>
                 ))}
               </div>
@@ -160,7 +160,6 @@ export default function InstallPage() {
                 {[
                   { name: 'Prayer Times', note: 'cached last location' },
                   { name: 'Qibla Finder', note: 'cached last location' },
-                  { name: 'Halal Scanner', note: 'local database only' },
                   { name: 'Quran Reader', note: 'cached last surahs' },
                 ].map((tool) => (
                   <span key={tool.name} className="bg-white dark:bg-gray-800 text-amber-700 dark:text-amber-400 text-xs px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-700">
@@ -174,7 +173,7 @@ export default function InstallPage() {
             <div className="bg-red-50 dark:bg-red-900/20 rounded-2xl p-4 border border-red-200 dark:border-red-800">
               <h3 className="font-semibold text-red-800 dark:text-red-300 text-sm mb-2">🔴 Needs Internet</h3>
               <div className="flex flex-wrap gap-2">
-                {['Mosque Finder', 'Halal Travel Guide', 'Hajj Checklist'].map((tool) => (
+                {['Halal Travel Guide', 'Hajj Checklist'].map((tool) => (
                   <span key={tool} className="bg-white dark:bg-gray-800 text-red-700 dark:text-red-400 text-xs px-2.5 py-1 rounded-lg border border-red-200 dark:border-red-700">{tool}</span>
                 ))}
               </div>

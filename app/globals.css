@@ -3,19 +3,30 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== I Love Islam — design system (emerald + gold on warm paper) ===== */
 :root {
-  --green-dark: #0a3d2e;
-  --green-mid: #1a5c44;
-  --gold: #c8a96e;
-  
+  --emerald-deep: #0b3d2e;
+  --emerald-mid: #146b4d;
+  --emerald-soft: #eaf3ee;
+  --gold: #c9a227;
+  --gold-light: #e7d9a8;
+  --paper: #f7f5ef;
+  --ink: #1c2420;
+  --ink-muted: #5b6b62;
+
+  /* Legacy aliases kept for existing pages */
+  --green-dark: #0b3d2e;
+  --green-mid: #146b4d;
+  --gold-old: #c9a227;
+
   /* Compare Religions Tool Variables */
-  --bg-page: #f8f9f5;
+  --bg-page: #f7f5ef;
   --card-bg: #ffffff;
-  --border-color: #e4ebe4;
-  --text-body: #2a3a2c;
-  --text-muted: #5a6b5c;
-  --islam-green: #0a3d2e;
-  --islam-green-light: #f0f7f3;
+  --border-color: #e5e1d5;
+  --text-body: #1c2420;
+  --text-muted: #5b6b62;
+  --islam-green: #0b3d2e;
+  --islam-green-light: #eaf3ee;
 }
 
 * {
@@ -24,12 +35,23 @@
 
 body {
   font-family: 'DM Sans', sans-serif;
-  background: #f5f4f0;
-  color: #1a1a1a;
+  background: #f7f5ef;
+  color: #1c2420;
 }
 
 .font-arabic {
   font-family: 'Amiri', serif;
+}
+
+/* Brand selection + focus */
+::selection {
+  background: #c9a227;
+  color: #0b3d2e;
+}
+
+:focus-visible {
+  outline: 2px solid #c9a227;
+  outline-offset: 2px;
 }
 
 /* Visible skip link when focused */

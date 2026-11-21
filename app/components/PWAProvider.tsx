@@ -18,18 +18,18 @@ interface PWAContextType {
 
 // ==================== OFFLINE STATUS MAP ====================
 const FULL_OFFLINE_TOOLS = [
-  '/dhikr', '/zakat', '/names', '/hijri', '/dua', '/kids',
-  '/ramadan', '/sadaqah', '/will', '/inheritance', '/halal-finance',
+  '/dhikr', '/zakat', '/names', '/hijri', '/dua',
+  '/ramadan', '/sadaqah', '/inheritance', '/halal-finance',
   '/kaffarah', '/names-finder', '/eid', '/eid-adha', '/hadith',
   '/night', '/mizan',
 ];
 
 const LIMITED_OFFLINE_TOOLS = [
-  '/prayer-times', '/qibla', '/halal-scanner', '/quran',
+  '/prayer-times', '/qibla', '/quran',
 ];
 
 const NEEDS_INTERNET_TOOLS = [
-  '/mosque', '/travel', '/hajj',
+  '/travel', '/hajj',
 ];
 
 // ==================== CONTEXT ====================

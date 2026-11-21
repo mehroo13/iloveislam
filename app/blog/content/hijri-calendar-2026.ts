@@ -2,7 +2,7 @@
 export const hijriCalendar2026 = {
   slug: "hijri-calendar-2026-islamic-dates",
   title: "Hijri Calendar 2026 (1447-1448 AH): Complete Islamic Date Guide",
-  excerpt: "Complete Hijri calendar 2026 with Islamic date conversions, key religious dates, and month-by-month guide for 1447-1448 AH. Plan your Islamic year.",
+  excerpt: "Hijri calendar 2026 (1447–1448 AH): month-by-month Islamic dates, conversions and key religious dates for this year — plan your Islamic year.",
   category: "Calendar",
   emoji: "🌙",
   readTime: "15 min read",
@@ -12,7 +12,7 @@ export const hijriCalendar2026 = {
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Hijri Calendar 2026: Complete Islamic Date Conversion Guide</h2>
 
-<p>The <strong>Hijri calendar 2026</strong> corresponds to the Islamic years 1447-1448 AH (After Hijrah). As Muslims, the Hijri calendar governs our religious obligations including fasting, Hajj, Eid celebrations, and other significant Islamic events. This complete guide provides month-by-month conversions between the Hijri calendar 2026 and the Gregorian calendar, along with all important Islamic dates you need to plan for.</p>
+<p>The <strong>Hijri calendar 2026</strong> corresponds to the Islamic years 1447-1448 AH (After Hijrah). As Muslims, the Hijri calendar governs our religious obligations including fasting, Hajj, Eid celebrations, and other significant Islamic events. This complete guide provides month-by-month conversions between the Hijri calendar 2026 and the Gregorian calendar, along with all important Islamic dates you need to plan for. To understand how the lunar calendar itself works, see our <a href="/blog/islamic-hijri-calendar-explained" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">explainer on the Hijri calendar</a>.</p>
 
 <p class="text-right text-xl my-4 font-arabic leading-loose" dir="rtl">يَسْأَلُونَكَ عَنِ الْأَهِلَّةِ قُلْ هِيَ مَوَاقِيتُ لِلنَّاسِ وَالْحَجِّ</p>
 

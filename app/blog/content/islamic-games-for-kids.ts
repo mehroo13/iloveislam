@@ -20,7 +20,7 @@ export const islamicGamesForKids = {
 
 <blockquote>"O you who believe, protect yourselves and your families from a Fire." (Quran 66:6)</blockquote>
 
-<p>Teaching our children Islam is a sacred responsibility. Islamic games for kids provide an engaging way to fulfill this duty while keeping children entertained. Visit our <a href="/kids" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Islamic Kids Games Section</a> to access all games instantly.</p>
+<p>Teaching our children Islam is a sacred responsibility. Islamic games for kids provide an engaging way to fulfill this duty while keeping children entertained. Pair play with real learning — explore our <a href="/quran" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Quran Reader</a> and <a href="/dua" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Dua Library</a> to help children learn the Quran and daily duas.</p>
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Why Islamic Games for Kids Are Important</h2>
 
@@ -191,8 +191,8 @@ export const islamicGamesForKids = {
 </ul>
 
 <p class="text-center my-8">
-  <a href="/kids" class="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg px-10 py-4 rounded-2xl transition-all hover:scale-105">
-    Play All Islamic Games for Kids Free →
+  <a href="/dua" class="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg px-10 py-4 rounded-2xl transition-all hover:scale-105">
+    Explore Duas for Children →
   </a>
 </p>
 
@@ -247,7 +247,7 @@ export const islamicGamesForKids = {
 
 <details class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
   <summary class="font-semibold cursor-pointer">Are these Islamic games for kids really free?</summary>
-  <p class="mt-2 text-gray-600 dark:text-gray-400">Yes, all 17 games listed are completely free to play on our <a href="/kids" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Kids Section</a>. No downloads, no subscriptions, no in-app purchases. We believe Islamic education should be accessible to every Muslim family regardless of financial situation.</p>
+  <p class="mt-2 text-gray-600 dark:text-gray-400">Yes, the 17 games described in this guide are free online games. We recommend parents preview any game before letting children play, and pair screen time with real Quran and dua practice — see our <a href="/quran" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Quran Reader</a> and <a href="/dua" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Dua Library</a>. We believe Islamic education should be accessible to every Muslim family regardless of financial situation.</p>
 </details>
 
 <details class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
@@ -276,8 +276,8 @@ export const islamicGamesForKids = {
 </details>
 
 <p class="text-center my-8">
-  <a href="/kids" class="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg px-10 py-4 rounded-2xl transition-all hover:scale-105">
-    Start Playing Islamic Games Now →
+  <a href="/quran" class="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg px-10 py-4 rounded-2xl transition-all hover:scale-105">
+    Read the Quran with Your Children →
   </a>
 </p>
 

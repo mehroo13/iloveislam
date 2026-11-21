@@ -2,18 +2,32 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { articlesMap, allArticles } from '../content';
+import { blogSeo } from '../content/seo';
 import RelatedArticles from './RelatedArticles';
 import BackButton from './BackButton';
 import Breadcrumbs from '../../components/Breadcrumbs';
 import { processAnchors } from '../../lib/linkUtils';
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const article = articlesMap[params.slug];
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  // Next 16 passes params as a Promise: it must be awaited before use.
+  // (Previously `params.slug` was read off the unresolved Promise, so it was
+  // always undefined, the lookup missed, and every post fell back to the
+  // blog layout's single generic title.)
+  const { slug } = await params;
+  const article = articlesMap[slug];
   if (!article) return {} as Metadata;
+  // Unique per-post SEO title/description; fall back to the article's own
+  // title/excerpt if a slug is missing from the map.
+  const seo = blogSeo[slug];
+  const title = seo?.title ?? article.title;
+  const description = seo?.description ?? article.excerpt;
   const url = `https://www.iloveislam.life/blog/${article.slug}`;
   return {
-    title: `${article.title} | I Love Islam Blog`,
-    description: article.excerpt,
+    // `absolute` bypasses the blog layout's '%s | I Love Islam' template:
+    // the tabled titles already carry the suffix where they have one, so
+    // without this they would render doubled ("… | I Love Islam | I Love Islam").
+    title: { absolute: title },
+    description,
     keywords: [article.category, 'islamic guide', 'muslim tips', article.slug.replace(/-/g, ' ')],
     alternates: { canonical: url },
     robots: {
@@ -21,20 +35,20 @@ export async function generateMetadata({ params }: { params: { slug: string } })
       googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large' },
     },
     openGraph: {
-      title: article.title,
-      description: article.excerpt,
+      title,
+      description,
       url,
       type: 'article',
       siteName: 'I Love Islam',
       locale: 'en_US',
       publishedTime: article.date,
       authors: ['I Love Islam'],
-      images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: article.title }],
+      images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: title }],
     },
     twitter: {
       card: 'summary_large_image',
-      title: article.title,
-      description: article.excerpt,
+      title,
+      description,
       images: ['/optimized/og-image.webp'],
       creator: '@iloveislam_life',
     },

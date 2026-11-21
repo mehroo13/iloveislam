@@ -2,7 +2,7 @@
 export const laylatulQadr2027 = {
   slug: "laylatul-qadr-2027-night-of-power",
   title: "Laylatul Qadr 2027: When Is the Night of Power & How to Worship",
-  excerpt: "Discover when Laylatul Qadr 2027 falls, its signs, and how to worship on the Night of Power. Complete guide with duas, last 10 nights schedule, and worship tips.",
+  excerpt: "When Laylatul Qadr 2027 falls, its signs, and how to worship on the Night of Power — duas and the last 10 nights schedule for Ramadan 2027.",
   category: "Ramadan",
   emoji: "✨",
   readTime: "17 min read",
@@ -14,7 +14,7 @@ export const laylatulQadr2027 = {
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">What is Laylatul Qadr 2027?</h2>
 
-<p>Laylatul Qadr 2027 (the Night of Power or Night of Decree) is the most blessed night in the Islamic calendar. It falls during the last ten nights of Ramadan 2027, which is expected to begin in late January or early February 2027. Laylatul Qadr 2027 is a night that is better than a thousand months — meaning worship on this single night earns more reward than 83 years of worship. Every Muslim should strive to catch this extraordinary night.</p>
+<p>Laylatul Qadr 2027 (the Night of Power or Night of Decree) is the most blessed night in the Islamic calendar. It falls during the last ten nights of Ramadan 2027, which is expected to begin in late January or early February 2027. Laylatul Qadr 2027 is a night that is better than a thousand months — meaning worship on this single night earns more reward than 83 years of worship. Every Muslim should strive to catch this extraordinary night. For the timeless virtues and signs of the Night of Power, see our <a href="/blog/laylatul-qadr-night-of-power" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">evergreen guide to Laylat al-Qadr</a>.</p>
 
 <p class="text-right text-xl my-4 font-arabic leading-loose" dir="rtl">إِنَّا أَنزَلْنَاهُ فِي لَيْلَةِ الْقَدْرِ ۝ وَمَا أَدْرَاكَ مَا لَيْلَةُ الْقَدْرِ ۝ لَيْلَةُ الْقَدْرِ خَيْرٌ مِّنْ أَلْفِ شَهْرٍ ۝ تَنَزَّلُ الْمَلَائِكَةُ وَالرُّوحُ فِيهَا بِإِذْنِ رَبِّهِم مِّن كُلِّ أَمْرٍ ۝ سَلَامٌ هِيَ حَتَّىٰ مَطْلَعِ الْفَجْرِ</p>
 

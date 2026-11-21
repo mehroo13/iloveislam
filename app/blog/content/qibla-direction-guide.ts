@@ -1,7 +1,7 @@
 export const qiblaDirectionGuide = {
   slug: "qibla-direction-how-to-find",
   title: "Qibla Direction: How to Find It from Anywhere in the World",
-  excerpt: "Learn how to find the qibla direction from any location using compass, sun position, and our free online Qibla Finder tool. Includes methods for when you have no tools.",
+  excerpt: "No app or compass to hand? Find the Qibla direction from anywhere using the sun, shadows and other no-tool methods — plus our free Qibla Finder when you are back online.",
   category: "Prayer",
   emoji: "🧭",
   readTime: "10 min read",
@@ -11,7 +11,7 @@ export const qiblaDirectionGuide = {
 <img src="/blog/qibla-direction-guide.jpg" alt="qibla direction guide" class="w-full rounded-2xl mb-8 shadow-lg" width="1200" height="630" loading="lazy" />
 
 
-<p>Finding the correct <strong>qibla direction</strong> is essential for every Muslim before performing salah. The qibla is the direction of the Kaaba in Makkah, Saudi Arabia, and all Muslims around the world face this direction during their five daily prayers. Whether you are at home, traveling, or in an unfamiliar location, knowing how to determine the qibla direction accurately is a fundamental skill.</p>
+<p>Finding the correct <strong>qibla direction</strong> is essential for every Muslim before performing salah. The qibla is the direction of the Kaaba in Makkah, Saudi Arabia, and all Muslims around the world face this direction during their five daily prayers. Whether you are at home, traveling, or in an unfamiliar location, knowing how to determine the qibla direction accurately is a fundamental skill. For the full picture — including our free Qibla Finder tool — see our <a href="/blog/how-to-find-qibla-direction" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">guide to finding the Qibla direction anywhere</a>.</p>
 
 <p>Use our free <a href="/qibla" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Qibla Finder</a> tool to instantly find the qibla direction from your current location using GPS.</p>
 

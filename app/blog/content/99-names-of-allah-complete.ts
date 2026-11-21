@@ -2,7 +2,7 @@
 export const ninetyNineNamesComplete = {
   slug: "99-names-of-allah-with-meanings",
   title: "99 Names of Allah (Asma ul Husna): Complete List with Meanings",
-  excerpt: "Discover the complete list of 99 names of Allah with Arabic text, English meanings, and spiritual benefits. Learn Asma ul Husna for daily recitation.",
+  excerpt: "The complete reference list of Allah's 99 names with Arabic text, English meanings and spiritual benefits — the full Asma ul Husna list for daily recitation.",
   category: "Worship",
   emoji: "⭐",
   readTime: "18 min read",
@@ -14,7 +14,7 @@ export const ninetyNineNamesComplete = {
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">The Complete 99 Names of Allah (Asma ul Husna)</h2>
 
-<p>The <strong>99 names of Allah</strong>, known in Arabic as <em>Asma ul Husna</em> (الأسماء الحسنى), represent the most beautiful and perfect attributes of our Creator. Every Muslim should strive to learn, understand, and live by these divine names, as they form the foundation of our relationship with Allah subhanahu wa ta'ala. The 99 names of Allah encompass His mercy, power, wisdom, justice, and love — offering believers a comprehensive understanding of who their Lord truly is.</p>
+<p>The <strong>99 names of Allah</strong>, known in Arabic as <em>Asma ul Husna</em> (الأسماء الحسنى), represent the most beautiful and perfect attributes of our Creator. Every Muslim should strive to learn, understand, and live by these divine names, as they form the foundation of our relationship with Allah subhanahu wa ta'ala. The 99 names of Allah encompass His mercy, power, wisdom, justice, and love — offering believers a comprehensive understanding of who their Lord truly is. To learn how to call upon Allah by these names in daily dua, see our <a href="/blog/99-names-of-allah-asma-ul-husna" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">guide to the meanings, benefits and use of Asma ul Husna</a>.</p>
 
 <p class="text-right text-xl my-4 font-arabic leading-loose" dir="rtl">وَلِلَّهِ الْأَسْمَاءُ الْحُسْنَىٰ فَادْعُوهُ بِهَا</p>
 

@@ -1,324 +1,297 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { DUAS, DUA_CATEGORIES, type Dua } from '@/lib/duaDatabase';
+import { DUAS, searchDuas, type Dua } from '@/lib/duas';
 
-const MOODS = [
-  { id: 'anxious', label: 'Anxious', emoji: '😰', categories: ['anxiety', 'protection'] },
-  { id: 'sad', label: 'Sad', emoji: '😢', categories: ['anxiety', 'forgiveness'] },
-  { id: 'grateful', label: 'Grateful', emoji: '🤲', categories: ['morning', 'prayer'] },
-  { id: 'sick', label: 'Sick', emoji: '🤒', categories: ['health'] },
-  { id: 'scared', label: 'Scared', emoji: '😨', categories: ['protection', 'anxiety'] },
-  { id: 'hopeful', label: 'Hopeful', emoji: '🌟', categories: ['prayer', 'rizq'] },
-  { id: 'travelling', label: 'Travelling', emoji: '✈️', categories: ['travel'] },
-  { id: 'studying', label: 'Studying', emoji: '📚', categories: ['knowledge'] },
+// ─── Situation chips (same set as Dua for This Moment) ────────────────────────
+const CHIPS: { label: string; query: string }[] = [
+  { label: 'Anxious', query: 'anxiety' },
+  { label: "Can't sleep", query: 'sleep' },
+  { label: 'Waking up', query: 'waking' },
+  { label: 'Travelling', query: 'travel' },
+  { label: 'Eating', query: 'food' },
+  { label: 'At home', query: 'home' },
+  { label: 'Need forgiveness', query: 'forgiveness' },
+  { label: 'Need patience', query: 'patience' },
+  { label: 'Someone is sick', query: 'sick' },
+  { label: 'Marriage & family', query: 'marriage' },
+  { label: 'Money & work', query: 'provision' },
+  { label: 'Angry', query: 'anger' },
+  { label: 'Exams', query: 'exams' },
+  { label: 'Grateful', query: 'gratitude' },
+  { label: 'Starting something hard', query: 'ease' },
+  { label: 'Parents', query: 'parents' },
+  { label: 'Learning', query: 'knowledge' },
 ];
 
-function loadFavorites(): number[] {
-  try { return JSON.parse(localStorage.getItem('dua_favorites') || '[]'); } catch { return []; }
-}
-function saveFavorites(ids: number[]) {
-  try { localStorage.setItem('dua_favorites', JSON.stringify(ids)); } catch {}
+const FAVORITES_KEY = 'ili_dua_favorites';
+
+function loadFavorites(): string[] {
+  try {
+    const raw = localStorage.getItem(FAVORITES_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
 }
 
-export default function DuaGenerator() {
+function saveFavorites(ids: string[]) {
+  try {
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(ids));
+  } catch {
+    // Storage unavailable (private mode etc.) — favorites just won't persist.
+  }
+}
+
+// ─── Dua card (same design as Dua for This Moment) ────────────────────────────
+function DuaCard({
+  dua,
+  isFavorite,
+  onToggleFavorite,
+}: {
+  dua: Dua;
+  isFavorite: boolean;
+  onToggleFavorite: (id: string) => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+
+  const listen = () => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(dua.arabic);
+    utterance.lang = 'ar-SA';
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+    setSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const copy = async () => {
+    const text = `${dua.title}\n\n${dua.arabic}\n\n${dua.transliteration}\n\n${dua.translation}\n\nSource: ${dua.source}`;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      return;
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  };
+
+  const share = async () => {
+    const text = `${dua.title}\n\n${dua.arabic}\n\n${dua.transliteration}\n\n${dua.translation}\n\nSource: ${dua.source}`;
+    if (typeof navigator !== 'undefined' && 'share' in navigator) {
+      try {
+        await navigator.share({ title: dua.title, text });
+        return;
+      } catch {
+        // User cancelled the share sheet, or sharing failed — fall back to copy.
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setShared(true);
+      window.setTimeout(() => setShared(false), 2000);
+    } catch {
+      // Clipboard unavailable — nothing more we can do.
+    }
+  };
+
+  const speechSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+
+  return (
+    <article className="bg-white rounded-2xl border border-[#E7E2D5] shadow-sm p-5 sm:p-6">
+      <h3 className="text-lg font-bold text-[#1C2420]">{dua.title}</h3>
+
+      <p dir="rtl" lang="ar" className="font-arabic text-2xl sm:text-[1.75rem] leading-[2.2] text-[#0B3D2E] text-right mt-4">
+        {dua.arabic}
+      </p>
+
+      <p className="text-[#146B4D] italic mt-3 leading-relaxed">{dua.transliteration}</p>
+      <p className="text-[#1C2420] mt-2 leading-relaxed">{dua.translation}</p>
+      <p className="text-xs text-[#6B7280] mt-3">Source: {dua.source}</p>
+
+      <div className="flex flex-wrap gap-2 mt-5">
+        {speechSupported && (
+          <button
+            type="button"
+            onClick={listen}
+            className="px-3 py-2 rounded-full text-sm font-medium bg-[#0B3D2E] text-white hover:bg-[#146B4D] transition-colors"
+          >
+            {speaking ? 'Listening…' : 'Listen'}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={copy}
+          className="px-3 py-2 rounded-full text-sm font-medium bg-[#F7F5EF] text-[#0B3D2E] border border-[#E7E2D5] hover:border-[#C9A227] transition-colors"
+        >
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+        <button
+          type="button"
+          onClick={share}
+          className="px-3 py-2 rounded-full text-sm font-medium bg-[#F7F5EF] text-[#0B3D2E] border border-[#E7E2D5] hover:border-[#C9A227] transition-colors"
+        >
+          {shared ? 'Copied to share!' : 'Share'}
+        </button>
+        <button
+          type="button"
+          onClick={() => onToggleFavorite(dua.id)}
+          aria-pressed={isFavorite}
+          className={`px-3 py-2 rounded-full text-sm font-medium border transition-colors ${
+            isFavorite
+              ? 'bg-[#C9A227] text-white border-[#C9A227]'
+              : 'bg-[#F7F5EF] text-[#0B3D2E] border-[#E7E2D5] hover:border-[#C9A227]'
+          }`}
+        >
+          {isFavorite ? 'Saved ✓' : 'Save'}
+        </button>
+      </div>
+    </article>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+export default function DuaLibraryPage() {
+  const [activeChip, setActiveChip] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [activeMood, setActiveMood] = useState<string | null>(null);
-  const [favorites, setFavorites] = useState<number[]>([]);
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const [fontSize, setFontSize] = useState(1); // 0=S, 1=M, 2=L, 3=XL
-  const [copied, setCopied] = useState<number | null>(null);
-  const [showCategories, setShowCategories] = useState(true);
-  const [dark, setDark] = useState(false);
-  const resultsRef = typeof window !== 'undefined' ? { current: null as HTMLDivElement | null } : { current: null };
+  const [favorites, setFavorites] = useState<string[]>([]);
 
-  useEffect(() => { setFavorites(loadFavorites()); }, []);
+  useEffect(() => {
+    setFavorites(loadFavorites());
+  }, []);
 
-  const toggleFavorite = (id: number) => {
-    setFavorites(prev => {
-      const next = prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id];
+  const toggleFavorite = (id: string) => {
+    setFavorites((prev) => {
+      const next = prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id];
       saveFavorites(next);
       return next;
     });
   };
 
-  // Daily dua — changes each day
-  const dailyDua = useMemo(() => {
-    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-    return DUAS[dayOfYear % DUAS.length];
-  }, []);
-
-  // Filtered duas
-  const filtered = useMemo(() => {
-    let list = DUAS;
-    if (showFavoritesOnly) list = list.filter(d => favorites.includes(d.id));
-    if (activeCategory) list = list.filter(d => d.category === activeCategory);
-    if (activeMood) {
-      const mood = MOODS.find(m => m.id === activeMood);
-      if (mood) list = list.filter(d => mood.categories.includes(d.category));
+  const results = useMemo(() => {
+    if (search.trim()) return searchDuas(search);
+    if (activeChip) {
+      const chip = CHIPS.find((c) => c.label === activeChip);
+      return chip ? searchDuas(chip.query) : DUAS;
     }
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(d =>
-        d.translation.toLowerCase().includes(q) ||
-        d.transliteration.toLowerCase().includes(q) ||
-        d.arabic.includes(search) ||
-        d.occasion.toLowerCase().includes(q) ||
-        d.tags.some(t => t.includes(q))
-      );
-    }
-    return list;
-  }, [search, activeCategory, activeMood, showFavoritesOnly, favorites]);
+    return DUAS;
+  }, [search, activeChip]);
 
-  const copyDua = (dua: Dua) => {
-    const text = `${dua.arabic}\n\n${dua.transliteration}\n\n"${dua.translation}"\n\n— ${dua.reference}\n\niloveislam.life/dua`;
-    navigator.clipboard?.writeText(text);
-    setCopied(dua.id);
-    setTimeout(() => setCopied(null), 2000);
+  const pickChip = (label: string) => {
+    setSearch('');
+    setActiveChip((prev) => (prev === label ? null : label));
   };
-
-  const shareDua = (dua: Dua) => {
-    const text = `${dua.arabic}\n\n"${dua.translation}"\n\n— ${dua.reference}\n\niloveislam.life/dua`;
-    if (navigator.share) navigator.share({ title: 'Dua', text });
-    else copyDua(dua);
-  };
-
-  const clearFilters = () => { setActiveCategory(null); setActiveMood(null); setShowFavoritesOnly(false); setSearch(''); setShowCategories(true); };
-
-  const selectCategory = (catId: string) => {
-    setActiveCategory(activeCategory === catId ? null : catId);
-    setActiveMood(null);
-    setShowCategories(false);
-    setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-  };
-
-  const selectMood = (moodId: string) => {
-    setActiveMood(activeMood === moodId ? null : moodId);
-    setActiveCategory(null);
-    setShowCategories(false);
-    setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-  };
-
-  const arabicSizes = ['text-xl', 'text-2xl', 'text-3xl', 'text-4xl'];
-  const transSizes = ['text-xs', 'text-sm', 'text-base', 'text-lg'];
 
   return (
-    <div style={{ minHeight: '100vh', background: dark ? '#0f172a' : '#f9fafb' }}>
-      {/* Header */}
-      <header style={{ background: 'linear-gradient(135deg, #071e14, #0a3d2e)' }} className="px-4 py-4">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <Link href="/" className="text-white/50 hover:text-white text-sm">← Home</Link>
-          <h1 className="text-white font-bold text-base">🤲 Dua Collection</h1>
-          <button onClick={() => setDark(!dark)} className="text-white/60 hover:text-white text-lg">
-            {dark ? '☀️' : '🌙'}
-          </button>
-        </div>
-      </header>
-
-      <main className="max-w-3xl mx-auto px-4 py-5 space-y-4">
-
-        {/* Daily Dua */}
-        <div style={{ background: 'linear-gradient(135deg, #071e14, #0a3d2e)' }} className="rounded-2xl p-5">
-          <p className="text-white/40 text-xs uppercase tracking-widest mb-2">✨ Dua of the Day</p>
-          <p className="text-white text-lg font-bold leading-relaxed text-right" dir="rtl" style={{ fontFamily: '"Scheherazade New", serif', lineHeight: 2.2 }}>
-            {dailyDua.arabic}
+    <main className="min-h-screen bg-[#F7F5EF] text-[#1C2420]">
+      {/* Hero */}
+      <section className="bg-[#0B3D2E] text-white px-4 pt-12 pb-10 sm:pt-16 sm:pb-14">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-[#C9A227] text-sm font-semibold tracking-widest uppercase">Dua Library</p>
+          <h1 className="text-3xl sm:text-4xl font-bold mt-3 leading-tight">Every dua, in one place</h1>
+          <p className="text-white/80 mt-3 leading-relaxed">
+            18 authentic duas from the Quran and Sunnah — Arabic, transliteration and translation —
+            for the moments that matter most.
           </p>
-          <p className="text-emerald-300/80 text-sm italic mt-2">{dailyDua.translation}</p>
-          <p className="text-white/30 text-xs mt-2">— {dailyDua.reference}</p>
+          <div className="mt-6">
+            <Link
+              href="/dua-for-this-moment"
+              className="inline-block px-5 py-2.5 rounded-full bg-[#C9A227] text-[#0B3D2E] text-sm font-bold hover:opacity-90 transition-opacity"
+            >
+              Not sure which dua you need? Find it by how you feel →
+            </Link>
+          </div>
         </div>
+      </section>
 
-        {/* Search */}
-        <div className="relative">
-          <input
-            type="text"
-            value={search}
-            onChange={e => {
-              setSearch(e.target.value);
-              if (e.target.value.trim().length >= 2) {
-                setShowCategories(false);
-                setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
-              } else if (e.target.value.trim().length === 0) {
-                setShowCategories(true);
-              }
-            }}
-            placeholder="Search duas (e.g. anxiety, forgiveness, morning)..."
-            className="w-full px-4 py-3 pl-10 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
-          />
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-          {(search || activeCategory || activeMood || showFavoritesOnly) && (
-            <button onClick={clearFilters} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-emerald-600 font-semibold">Clear</button>
-          )}
-        </div>
-
-        {/* Mood selector */}
-        <div>
-          <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">How are you feeling?</p>
-          <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-            {MOODS.map(mood => (
+      <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+        {/* Filters */}
+        <section aria-label="Filter duas">
+          <div className="flex flex-wrap gap-2">
+            {CHIPS.map((chip) => (
               <button
-                key={mood.id}
-                onClick={() => selectMood(mood.id)}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
-                  activeMood === mood.id
-                    ? 'bg-emerald-600 text-white shadow'
-                    : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300'
+                key={chip.label}
+                type="button"
+                onClick={() => pickChip(chip.label)}
+                aria-pressed={activeChip === chip.label}
+                className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                  activeChip === chip.label
+                    ? 'bg-[#146B4D] text-white border-[#146B4D]'
+                    : 'bg-white text-[#0B3D2E] border-[#E7E2D5] hover:border-[#C9A227]'
                 }`}
               >
-                <span>{mood.emoji}</span>
-                <span>{mood.label}</span>
+                {chip.label}
               </button>
             ))}
           </div>
-        </div>
 
-        {/* Categories */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <button onClick={() => setShowCategories(!showCategories)} className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider flex items-center gap-1">
-              Categories {showCategories ? '▾' : '▸'}
-            </button>
-            <button
-              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-              className={`text-xs font-semibold px-3 py-1 rounded-full transition-all ${
-                showFavoritesOnly ? 'bg-amber-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
-              }`}
-            >
-              ❤️ Favorites ({favorites.length})
-            </button>
-          </div>
-          {showCategories && (
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-              {DUA_CATEGORIES.map(cat => (
+          <label htmlFor="dua-library-search" className="sr-only">
+            Search the dua library
+          </label>
+          <input
+            id="dua-library-search"
+            type="search"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setActiveChip(null);
+            }}
+            placeholder="Search in plain words — e.g. “insomnia”, “money”, “thankful”…"
+            className="w-full mt-4 px-4 py-3 rounded-xl border border-[#E7E2D5] bg-white text-[#1C2420] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#C9A227]"
+          />
+        </section>
+
+        {/* Results */}
+        <section aria-label="Duas">
+          {results.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-[#E7E2D5] p-6 text-center">
+              <p className="font-bold text-lg">No dua matches that — try one of these situations</p>
+              <p className="text-[#6B7280] mt-2 leading-relaxed">
+                Tap a situation above, or{' '}
                 <button
-                  key={cat.id}
-                  onClick={() => selectCategory(cat.id)}
-                  className={`flex flex-col items-center gap-1 p-2.5 rounded-xl text-center transition-all ${
-                    activeCategory === cat.id
-                      ? 'bg-emerald-600 text-white shadow'
-                      : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:border-emerald-300'
-                  }`}
+                  type="button"
+                  onClick={() => {
+                    setSearch('');
+                    setActiveChip(null);
+                  }}
+                  className="text-[#146B4D] font-semibold underline underline-offset-2"
                 >
-                  <span className="text-lg">{cat.icon}</span>
-                  <span className="text-[10px] font-medium leading-tight">{cat.name}</span>
-                  <span className="text-[9px] opacity-60">{cat.count}</span>
+                  show all 18 duas
                 </button>
-              ))}
+                .
+              </p>
             </div>
+          ) : (
+            <>
+              <p className="text-sm text-[#6B7280] mb-4">
+                Showing {results.length} of {DUAS.length} duas
+              </p>
+              <div className="space-y-5">
+                {results.map((dua) => (
+                  <DuaCard
+                    key={dua.id}
+                    dua={dua}
+                    isFavorite={favorites.includes(dua.id)}
+                    onToggleFavorite={toggleFavorite}
+                  />
+                ))}
+              </div>
+            </>
           )}
-          {/* Active filter badge */}
-          {(activeCategory || activeMood) && (
-            <div className="mt-3 flex items-center gap-2">
-              <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-                {activeCategory ? `📂 ${DUA_CATEGORIES.find(c => c.id === activeCategory)?.name}` : ''}
-                {activeMood ? `${MOODS.find(m => m.id === activeMood)?.emoji} ${MOODS.find(m => m.id === activeMood)?.label}` : ''}
-              </span>
-              <button onClick={clearFilters} className="text-xs text-red-500 font-medium">✕ Clear</button>
-            </div>
-          )}
-        </div>
+        </section>
 
-        {/* Results count */}
-        <div ref={(el) => { resultsRef.current = el; }}>
-          <p className="text-xs text-gray-400 dark:text-gray-500">
-            Showing {filtered.length} dua{filtered.length !== 1 ? 's' : ''}
-            {activeCategory && ` in ${DUA_CATEGORIES.find(c => c.id === activeCategory)?.name}`}
-            {activeMood && ` for "${MOODS.find(m => m.id === activeMood)?.label}"`}
-          </p>
-        </div>
-
-        {/* Dua Cards */}
-        <div className="space-y-4">
-          {filtered.map(dua => (
-            <DuaCard
-              key={dua.id}
-              dua={dua}
-              isFavorite={favorites.includes(dua.id)}
-              onToggleFavorite={() => toggleFavorite(dua.id)}
-              onCopy={() => copyDua(dua)}
-              onShare={() => shareDua(dua)}
-              copied={copied === dua.id}
-              arabicSize={arabicSizes[fontSize]}
-              transSize={transSizes[fontSize]}
-              isDark={dark}
-            />
-          ))}
-        </div>
-
-        {filtered.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-4xl mb-3">🤲</p>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">No duas found for this filter.</p>
-            <button onClick={clearFilters} className="mt-3 text-emerald-600 text-sm font-semibold">Show all duas</button>
-          </div>
-        )}
-
-        <p className="text-center text-xs text-gray-300 dark:text-gray-600 pb-8">
-          All duas from Quran and authenticated Hadith collections
-        </p>
-      </main>
-    </div>
-  );
-}
-
-// ── Dua Card Component ──
-function DuaCard({ dua, isFavorite, onToggleFavorite, onCopy, onShare, copied, arabicSize, transSize, isDark }: {
-  dua: Dua; isFavorite: boolean; onToggleFavorite: () => void;
-  onCopy: () => void; onShare: () => void; copied: boolean;
-  arabicSize: string; transSize: string; isDark: boolean;
-}) {
-  return (
-    <div style={{ background: isDark ? '#1e293b' : '#fff', border: `1px solid ${isDark ? '#475569' : '#f1f5f9'}` }} className="rounded-2xl overflow-hidden shadow-sm">
-      {/* Arabic text */}
-      <div className="p-5 pb-3">
-        <p className={`${arabicSize} text-right leading-[2.4] font-bold`} dir="rtl" style={{ fontFamily: '"Scheherazade New", "Amiri", "Noto Naskh Arabic", serif', color: isDark ? '#ffffff' : '#1f2937' }}>
-          {dua.arabic}
+        <p className="text-center text-sm text-[#6B7280] pb-4">
+          Looking for the dua that fits this exact moment?{' '}
+          <Link href="/dua-for-this-moment" className="text-[#146B4D] font-semibold underline underline-offset-2">
+            Try Dua for This Moment →
+          </Link>
         </p>
       </div>
-
-      {/* Transliteration */}
-      <div className="px-5 pb-2">
-        <p className="text-sm italic leading-relaxed" style={{ color: isDark ? '#93c5fd' : '#2563eb' }}>
-          {dua.transliteration}
-        </p>
-      </div>
-
-      {/* Translation */}
-      <div className="px-5 pb-3">
-        <p className={`${transSize} leading-relaxed`} style={{ color: isDark ? '#e2e8f0' : '#4b5563' }}>
-          {dua.translation}
-        </p>
-      </div>
-
-      {/* Meta info */}
-      <div className="px-5 pb-3 flex flex-wrap gap-2">
-        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: isDark ? '#064e3b' : '#ecfdf5', color: isDark ? '#6ee7b7' : '#047857' }}>
-          {dua.reference}
-        </span>
-        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: isDark ? '#374151' : '#f3f4f6', color: isDark ? '#d1d5db' : '#6b7280' }}>
-          {dua.occasion}
-        </span>
-        {dua.virtue && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: isDark ? '#451a03' : '#fffbeb', color: isDark ? '#fcd34d' : '#b45309' }}>
-            {dua.virtue.substring(0, 60)}{dua.virtue.length > 60 ? '...' : ''}
-          </span>
-        )}
-      </div>
-
-      {/* Actions */}
-      <div className="px-5 py-3 flex items-center gap-2" style={{ borderTop: `1px solid ${isDark ? '#475569' : '#f9fafb'}` }}>
-        <button onClick={onToggleFavorite} className="text-lg" style={{ color: isFavorite ? '#ef4444' : (isDark ? '#6b7280' : '#d1d5db') }} title="Favorite">
-          {isFavorite ? '❤️' : '🤍'}
-        </button>
-        <button onClick={onCopy} className="text-xs px-3 py-1.5 rounded-lg font-medium" style={{ background: isDark ? '#374151' : '#f3f4f6', color: isDark ? '#e2e8f0' : '#4b5563' }}>
-          {copied ? '✅ Copied' : '📋 Copy'}
-        </button>
-        <button onClick={onShare} className="text-xs px-3 py-1.5 rounded-lg font-medium" style={{ background: isDark ? '#374151' : '#f3f4f6', color: isDark ? '#e2e8f0' : '#4b5563' }}>
-          📤 Share
-        </button>
-        <span className="ml-auto text-[9px]" style={{ color: isDark ? '#4b5563' : '#d1d5db' }}>#{dua.id}</span>
-      </div>
-    </div>
+    </main>
   );
 }

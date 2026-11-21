@@ -13,7 +13,7 @@ const sections = [
     icon: '🛠️',
     title: '2. Description of Service',
     content:
-      'I Love Islam is a free collection of Islamic tools designed for Muslims worldwide. Our tools include but are not limited to: Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Hijri Calendar, Dhikr Counter, 99 Names of Allah, Hadith Search, Ramadan Planner, Sadaqah Tracker, Inheritance Calculator, Halal Finance Check, Kaffarah Calculator, Mosque Finder, Hajj Checklist, Islamic Will generator, Halal Travel guide, Islamic Name Finder, Dua Generator, and Mizan Islamic Life Blueprint. All tools are provided free of charge with no registration required.',
+      'I Love Islam is a free collection of Islamic tools designed for Muslims worldwide. Our tools include but are not limited to: Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Hijri Calendar, Dhikr Counter, 99 Names of Allah, Hadith Search, Ramadan Planner, Sadaqah Tracker, Inheritance Calculator, Halal Finance Check, Kaffarah Calculator, Hajj Checklist, Halal Travel guide, Islamic Name Finder, Dua Generator, and Mizan Islamic Life Blueprint. All tools are provided free of charge with no registration required.',
   },
   {
     icon: '📖',
@@ -37,7 +37,7 @@ const sections = [
     icon: '🔗',
     title: '6. Third-Party APIs and Services',
     content:
-      'Our tools use several third-party APIs to function, including:\n• Aladhan API — for prayer times and Hijri calendar\n• AlQuran.cloud — for Quran text and translations\n• Sunnah.com API — for Hadith search\n• Google Maps — for Mosque Finder and location services\n\nWe are not responsible for the availability, accuracy, or content of these third-party services. Interruptions in these services may temporarily affect tool functionality.',
+      'Our tools use several third-party APIs to function, including:\n• Aladhan API — for prayer times and Hijri calendar\n• AlQuran.cloud — for Quran text and translations\n• Sunnah.com API — for Hadith search\n• Google Maps — for directions and location services\n\nWe are not responsible for the availability, accuracy, or content of these third-party services. Interruptions in these services may temporarily affect tool functionality.',
   },
   {
     icon: '⚠️',

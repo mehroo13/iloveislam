@@ -2,7 +2,7 @@
 export const prayerTimesGuide = {
   slug: "prayer-times-complete-guide",
   title: "Prayer Times: Complete Guide to the 5 Daily Salah Times",
-  excerpt: "Complete guide to prayer times for the 5 daily salah. Learn Fajr, Dhuhr, Asr, Maghrib, and Isha times, calculation methods, and how to never miss a prayer.",
+  excerpt: "Your practical guide to the five daily prayer times — Fajr, Dhuhr, Asr, Maghrib and Isha — with calculation methods explained and tips to never miss a prayer.",
   category: "Prayer",
   emoji: "🕐",
   readTime: "16 min read",
@@ -14,7 +14,7 @@ export const prayerTimesGuide = {
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-12 mb-6">Prayer Times: Understanding the 5 Daily Salah</h2>
 
-<p>Knowing the correct <strong>prayer times</strong> is fundamental to every Muslim's daily worship. The five daily prayers (salawat) are the second pillar of Islam and the most important obligation after the testimony of faith. Each prayer has a specific time window determined by the position of the sun, and understanding these prayer times ensures you never miss this vital connection with Allah.</p>
+<p>Knowing the correct <strong>prayer times</strong> is fundamental to every Muslim's daily worship. The five daily prayers (salawat) are the second pillar of Islam and the most important obligation after the testimony of faith. Each prayer has a specific time window determined by the position of the sun, and understanding these prayer times ensures you never miss this vital connection with Allah. To understand what each prayer time means and its virtues, see our <a href="/blog/islamic-prayer-times-fajr-dhuhr-asr-maghrib-isha" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">guide to the five daily prayers</a>.</p>
 
 <p class="text-right text-xl my-4 font-arabic leading-loose" dir="rtl">إِنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَّوْقُوتًا</p>
 

@@ -1,34 +1,54 @@
 'use client';
 
-// app/HomeClient.tsx — All interactive logic lives here
-// Changes from original page.tsx:
-//  ✅ HalalScan promo strip REMOVED
-//  ✅ HalalScan removed from Travel category
-//  ✅ HalalScan removed from footer links
-//  ✅ Tools grid stays 3-col on mobile (grid-cols-3) — per request
-//  ✅ Tools section moved UP — quote/banner pushed below fold on mobile
-//  ✅ Mobile spacing tightened throughout
-//  ✅ SSR-extracted to HomeClient; page.tsx is now a server component
-//  ✅ Lazy loading for Newsletter, BackToTop, FeaturedBanner
-//  ✅ Proper <main>, <header>, <footer> landmarks
-//  ✅ h1 on site title, h2 on sections
-//  ✅ DailyStrip tabbed component — Featured Tool + Verse/Hadith at top, no extra space on mobile
-//  ✅ Newsletter removed from sidebar — only shown once in footer
-//  ✅ Footer links on one line with | separators, sitemap removed
+// app/HomeClient.tsx — Homepage "living dashboard" (client component).
+// No header/footer here: app/layout.tsx owns those landmarks.
+// All external fetches happen client-side in useEffect — nothing here
+// runs at build time, so the page builds with no network.
 
 import Link from 'next/link';
-import Image from 'next/image';
-import dynamic from 'next/dynamic';
-import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import Script from 'next/script';
+import { useEffect, useMemo, useState } from 'react';
+import { TOOLS_DATA } from './lib/toolsData';
+import { getDuaOfTheDay, type Dua } from '../lib/duas';
 
-// Lazy-load below-fold components
-const Newsletter = dynamic(() => import('./components/Newsletter'), { ssr: false });
-const FeaturedBanner = dynamic(() => import('./components/FeaturedBanner'), { ssr: false });
-const BackToTop = dynamic(() => import('./components/BackToTop'), { ssr: false });
+// ==================== CONSTANTS ====================
+const CITY_KEY = 'ili_city';
+const METHOD_KEY = 'ili_prayer_method';
+const PRAYER_MARKS_KEY = 'ili_prayer_marks_v1';
+const DHIKR_KEY = 'ili_dhikr_today';
+const READING_KEY = 'ili_reading_plan';
+
+const DEFAULT_CITY = 'Sydney';
+const DEFAULT_COUNTRY = 'Australia';
+
+const PRAYER_METHODS = [
+  { id: 3, label: 'Muslim World League' },
+  { id: 2, label: 'ISNA (North America)' },
+  { id: 4, label: 'Umm al-Qura (Makkah)' },
+  { id: 5, label: 'Egyptian General Authority' },
+  { id: 1, label: 'Univ. of Islamic Sciences, Karachi' },
+];
+
+const PRAYER_ORDER = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'] as const;
+
+const VERSE_KEYS = ['94:6', '2:152', '13:28', '39:53', '65:3', '2:186', '16:97', '3:139'];
+
+const FALLBACK_VERSE = {
+  arabic: 'إِنَّ مَعَ الْعُسْرِ يُسْرًا',
+  translation: 'Indeed, with hardship comes ease.',
+  reference: 'Quran 94:6',
+};
 
 // ==================== TYPES ====================
-interface Tool {
+interface Timings {
+  Fajr: string;
+  Sunrise: string;
+  Dhuhr: string;
+  Asr: string;
+  Maghrib: string;
+  Isha: string;
+}
+
+interface ToolItem {
   name: string;
   desc: string;
   icon: string;
@@ -36,984 +56,567 @@ interface Tool {
   color: string;
 }
 
-interface StatsType {
-  tools: string;
-  free: string;
-  noSignup: string;
-  mobile: string;
-  world: string;
-  fast: string;
+interface ToolSection {
+  category: string;
+  emoji: string;
+  items: ToolItem[];
 }
 
-interface TranslationsType {
-  tagline: string;
-  search: string;
-  found: string;
-  results: string;
-  noTools: string;
-  noToolsSub: string;
-  clear: string;
-  about: string;
-  blog: string;
-  privacy: string;
-  contact: string;
-  faq: string;
-  terms: string;
-  mostUsed: string;
-  daily: string;
-  finance: string;
-  travel: string;
-  kids: string;
-  footerMade: string;
-  footerFree: string;
-  stats: StatsType;
-  aboutTitle: string;
-  aboutText1: string;
-  aboutText2: string;
-  newsletterTitle: string;
-  newsletterSubtitle: string;
-  newsletterPlaceholder: string;
-  newsletterButton: string;
+interface VerseState {
+  arabic: string;
+  translation: string;
+  reference: string;
 }
 
-const GA_MEASUREMENT_ID = 'G-4BDTXNC58M';
-
-// ==================== TRANSLATIONS ====================
-const TRANSLATIONS: Record<string, TranslationsType> = {
-  en: {
-    tagline: 'The complete toolkit for every Muslim',
-    search: 'Search tools — zakat, qibla, quran...',
-    found: 'Found', results: 'result',
-    noTools: 'No tools found', noToolsSub: 'Try: zakat, prayer, quran, qibla...',
-    clear: 'Clear Search',
-    about: 'About', blog: 'Blog', privacy: 'Privacy', contact: 'Contact', faq: 'FAQ', terms: 'Terms',
-    mostUsed: 'Most Used', daily: 'Daily Practice', finance: 'Finance & Giving', travel: 'Travel & Knowledge', kids: '🧒 Kids Corner',
-    footerMade: 'Made with ❤️ for the Ummah', footerFree: 'Always Free · No Sign-up',
-    stats: { tools: '26 Free Tools', free: '100% Free', noSignup: 'No Sign-up', mobile: 'Works on Mobile', world: 'Works Worldwide', fast: 'Always Fast' },
-    aboutTitle: 'About I Love Islam Tools',
-    aboutText1: 'I Love Islam is a free collection of Islamic tools for Muslims worldwide — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Hijri Calendar, Kaffarah Calculator, HalalScan and much more. Everything in one place, completely free.',
-    aboutText2: 'Our tools include Dhikr counter, 99 Names of Allah, Halal Travel guide, Mosque Finder, Islamic Inheritance Calculator, Sadaqah Tracker, Eid ul Adha toolkit, Islamic Alarm, Night Recitation player, and our unique Mizan Islamic Life Blueprint.',
-    newsletterTitle: 'Weekly Islamic Guidance',
-    newsletterSubtitle: 'Spiritual reminders and tool updates.',
-    newsletterPlaceholder: 'Your email',
-    newsletterButton: 'Subscribe',
-  },
-  ar: {
-    tagline: 'مجموعة أدوات إسلامية مجانية لكل مسلم',
-    search: 'ابحث — زكاة، قبلة، قرآن...',
-    found: 'وجد', results: 'نتيجة',
-    noTools: 'لم يتم العثور على أدوات', noToolsSub: 'جرب: زكاة، صلاة، قرآن...',
-    clear: 'مسح البحث',
-    about: 'عن الموقع', blog: 'مدونة', privacy: 'الخصوصية', contact: 'تواصل معنا', faq: 'الأسئلة الشائعة', terms: 'الشروط',
-    mostUsed: 'الأكثر استخداماً', daily: 'الممارسة اليومية', finance: 'المال والعطاء', travel: 'السفر والمعرفة', kids: '🧒 ركن الأطفال',
-    footerMade: 'صُنع بمحبة للأمة الإسلامية', footerFree: 'مجاني دائماً · لا تسجيل',
-    stats: { tools: '٢٦ أداة', free: '١٠٠٪ مجاني', noSignup: 'لا تسجيل', mobile: 'يعمل على الجوال', world: 'يعمل في كل مكان', fast: 'سريع دائماً' },
-    aboutTitle: 'عن أدوات أحب الإسلام',
-    aboutText1: 'أحب الإسلام مجموعة مجانية من الأدوات الإسلامية للمسلمين في جميع أنحاء العالم.',
-    aboutText2: 'تشمل أدواتنا عداد الذكر وأسماء الله الحسنى ودليل السفر الحلال وأدوات عيد الأضحى ومنبه إسلامي وتلاوة ليلية والمزيد.',
-    newsletterTitle: 'توجيه إسلامي أسبوعي',
-    newsletterSubtitle: 'تذكيرات روحية وتحديثات الأدوات.',
-    newsletterPlaceholder: 'بريدك الإلكتروني',
-    newsletterButton: 'اشتراك',
-  },
-  ur: {
-    tagline: 'ہر مسلمان کے لیے مکمل اسلامی ٹول کٹ',
-    search: 'تلاش کریں — زکوٰۃ، قبلہ، قرآن...',
-    found: 'ملا', results: 'نتیجہ',
-    noTools: 'کوئی ٹول نہیں ملا', noToolsSub: 'تلاش: زکوٰۃ، نماز، قرآن...',
-    clear: 'صاف کریں',
-    about: 'ہمارے بارے میں', blog: 'بلاگ', privacy: 'رازداری', contact: 'رابطہ', faq: 'سوالات', terms: 'شرائط',
-    mostUsed: 'سب سے زیادہ', daily: 'روزانہ عبادت', finance: 'مال اور صدقہ', travel: 'سفر اور علم', kids: '🧒 بچوں کا کونا',
-    footerMade: 'امت کے لیے محبت سے', footerFree: 'ہمیشہ مفت · کوئی رجسٹریشن نہیں',
-    stats: { tools: '٢٦ مفت ٹولز', free: '١٠٠٪ مفت', noSignup: 'سائن اپ نہیں', mobile: 'موبائل پر', world: 'دنیا بھر میں', fast: 'تیز' },
-    aboutTitle: 'I Love Islam کے بارے میں',
-    aboutText1: 'I Love Islam دنیا بھر کے مسلمانوں کے لیے مفت اسلامی ٹولز کا مجموعہ ہے۔',
-    aboutText2: 'ذکر کاؤنٹر، اللہ کے ۹۹ نام، عید الاضحیٰ ٹول کٹ، اسلامی الارم، رات کی تلاوت اور بہت کچھ۔',
-    newsletterTitle: 'ہفتہ وار اسلامی رہنمائی',
-    newsletterSubtitle: 'روحانی یاد دہانیاں اور اپ ڈیٹس۔',
-    newsletterPlaceholder: 'آپ کا ای میل',
-    newsletterButton: 'سبسکرائب',
-  },
-  fr: {
-    tagline: 'La boîte à outils islamique pour chaque Muslim',
-    search: 'Rechercher — zakat, qibla, coran...',
-    found: 'Trouvé', results: 'résultat',
-    noTools: 'Aucun outil trouvé', noToolsSub: 'Essayez: zakat, prière, coran...',
-    clear: 'Effacer',
-    about: 'À propos', blog: 'Blog', privacy: 'Confidentialité', contact: 'Contact', faq: 'FAQ', terms: 'Conditions',
-    mostUsed: 'Les plus utilisés', daily: 'Pratique quotidienne', finance: 'Finance & Dons', travel: 'Voyage & Savoir', kids: '🧒 Coin des enfants',
-    footerMade: 'Fait avec ❤️ pour la Oumma', footerFree: 'Toujours gratuit · Sans inscription',
-    stats: { tools: '26 Outils', free: '100% Gratuit', noSignup: 'Sans inscription', mobile: 'Mobile', world: 'Mondial', fast: 'Rapide' },
-    aboutTitle: 'À propos de I Love Islam',
-    aboutText1: "I Love Islam est une collection gratuite d'outils islamiques — Zakat, horaires de prière, Qibla, Coran et bien plus.",
-    aboutText2: "Compteur de Dhikr, 99 noms d'Allah, guide de voyage halal, kit Aïd el-Adha, alarme islamique, récitation nocturne, et notre outil unique Mizan.",
-    newsletterTitle: 'Guidance islamique hebdomadaire',
-    newsletterSubtitle: 'Rappels spirituels et mises à jour.',
-    newsletterPlaceholder: 'Votre email',
-    newsletterButton: "S'abonner",
-  },
-  tr: {
-    tagline: 'Her Müslüman için tam İslami araç seti',
-    search: 'Ara — zekat, kıble, kuran...',
-    found: 'Bulundu', results: 'sonuç',
-    noTools: 'Araç bulunamadı', noToolsSub: 'Deneyin: zekat, namaz, kuran...',
-    clear: 'Temizle',
-    about: 'Hakkında', blog: 'Blog', privacy: 'Gizlilik', contact: 'İletişim', faq: 'SSS', terms: 'Şartlar',
-    mostUsed: 'En Çok Kullanılan', daily: 'Günlük İbadet', finance: 'Finans & Sadaka', travel: 'Seyahat & Bilgi', kids: '🧒 Çocuk Köşesi',
-    footerMade: 'Ümmet için sevgiyle', footerFree: 'Her zaman ücretsiz',
-    stats: { tools: '26 Araç', free: '%100 Ücretsiz', noSignup: 'Kayıt yok', mobile: 'Mobil', world: 'Dünya geneli', fast: 'Hızlı' },
-    aboutTitle: 'I Love Islam Hakkında',
-    aboutText1: "I Love Islam, Müslümanlar için ücretsiz İslami araçlar — Zekat, namaz vakitleri, kıble, Kuran ve daha fazlası.",
-    aboutText2: "Dhikr sayacı, Allah'ın 99 ismi, helal seyahat rehberi, Kurban Bayramı araç seti, İslami alarm, gece tilaveti ve Mizan aracımız.",
-    newsletterTitle: 'Haftalık İslami Rehberlik',
-    newsletterSubtitle: 'Manevi hatırlatmalar ve güncellemeler.',
-    newsletterPlaceholder: 'E-postanız',
-    newsletterButton: 'Abone ol',
-  },
-  id: {
-    tagline: 'Perangkat Islam lengkap untuk setiap Muslim',
-    search: 'Cari — zakat, kiblat, quran...',
-    found: 'Ditemukan', results: 'hasil',
-    noTools: 'Tidak ada alat', noToolsSub: 'Coba: zakat, shalat, quran...',
-    clear: 'Hapus',
-    about: 'Tentang', blog: 'Blog', privacy: 'Privasi', contact: 'Kontak', faq: 'FAQ', terms: 'Ketentuan',
-    mostUsed: 'Paling Sering', daily: 'Ibadah Harian', finance: 'Keuangan & Sedekah', travel: 'Perjalanan & Ilmu', kids: '🧒 Sudut Anak',
-    footerMade: 'Dibuat dengan ❤️ untuk Umat', footerFree: 'Selalu Gratis',
-    stats: { tools: '26 Alat', free: '100% Gratis', noSignup: 'Tanpa Daftar', mobile: 'Mobile', world: 'Seluruh Dunia', fast: 'Cepat' },
-    aboutTitle: 'Tentang I Love Islam',
-    aboutText1: 'I Love Islam adalah kumpulan alat Islam gratis — Kalkulator zakat, waktu shalat, kiblat, Al-Quran dan masih banyak lagi.',
-    aboutText2: 'Penghitung dzikir, 99 Nama Allah, panduan halal, kit Idul Adha, alarm Islam, tilawah malam, dan Mizan Blueprint.',
-    newsletterTitle: 'Bimbingan Islam Mingguan',
-    newsletterSubtitle: 'Pengingat spiritual dan pembaruan.',
-    newsletterPlaceholder: 'Email Anda',
-    newsletterButton: 'Berlangganan',
-  },
-  ms: {
-    tagline: 'Kit alat Islam lengkap untuk setiap Muslim',
-    search: 'Cari — zakat, kiblat, quran...',
-    found: 'Dijumpai', results: 'keputusan',
-    noTools: 'Tiada alat', noToolsSub: 'Cuba: zakat, solat, quran...',
-    clear: 'Padam',
-    about: 'Tentang', blog: 'Blog', privacy: 'Privasi', contact: 'Hubungi', faq: 'Soalan Lazim', terms: 'Terma',
-    mostUsed: 'Paling Kerap', daily: 'Amalan Harian', finance: 'Kewangan & Sedekah', travel: 'Perjalanan & Ilmu', kids: '🧒 Sudut Kanak-kanak',
-    footerMade: 'Dibuat dengan ❤️ untuk Umat', footerFree: 'Sentiasa Percuma',
-    stats: { tools: '26 Alat', free: '100% Percuma', noSignup: 'Tanpa Daftar', mobile: 'Mudah alih', world: 'Seluruh Dunia', fast: 'Laju' },
-    aboutTitle: 'Tentang I Love Islam',
-    aboutText1: 'I Love Islam ialah koleksi alat Islam percuma — kalkulator zakat, waktu solat, kiblat, Al-Quran dan banyak lagi.',
-    aboutText2: 'Pembilang zikir, 99 Nama Allah, panduan halal, kit Hari Raya Aidiladha, penggera Islam, bacaan malam dan Mizan Blueprint.',
-    newsletterTitle: 'Panduan Islam Mingguan',
-    newsletterSubtitle: 'Peringatan rohani dan kemas kini.',
-    newsletterPlaceholder: 'E-mel anda',
-    newsletterButton: 'Langgan',
-  },
-  bn: {
-    tagline: 'প্রতিটি মুসলিমের জন্য সম্পূর্ণ ইসলামিক টুলকিট',
-    search: 'খুঁজুন — যাকাত, কিবলা, কোরআন...',
-    found: 'পাওয়া গেছে', results: 'ফলাফল',
-    noTools: 'কোনো টুল পাওয়া যায়নি', noToolsSub: 'চেষ্টা: যাকাত, নামাজ, কোরআন...',
-    clear: 'মুছুন',
-    about: 'সম্পর্কে', blog: 'ব্লগ', privacy: 'গোপনীয়তা', contact: 'যোগাযোগ', faq: 'প্রশ্নোত্তর', terms: 'শর্তাবলী',
-    mostUsed: 'সর্বাধিক ব্যবহৃত', daily: 'দৈনিক ইবাদত', finance: 'অর্থ ও দান', travel: 'ভ্রমণ ও জ্ঞান', kids: '🧒 বাচ্চাদের কর্নার',
-    footerMade: 'উম্মতের জন্য ভালোবাসায়', footerFree: 'সর্বদা বিনামূল্যে',
-    stats: { tools: '২৬ টুল', free: '১০০% বিনামূল্যে', noSignup: 'নিবন্ধন নেই', mobile: 'মোবাইলে', world: 'বিশ্বজুড়ে', fast: 'দ্রুত' },
-    aboutTitle: 'I Love Islam সম্পর্কে',
-    aboutText1: 'I Love Islam বিশ্বজুড়ে মুসলিমদের জন্য বিনামূল্যে ইসলামিক টুলের সংগ্রহ।',
-    aboutText2: 'ধিকর কাউন্টার, আল্লাহর ৯৯ নাম, হালাল ভ্রমণ গাইড, ঈদুল আযহা টুলকিট, রাতের তিলাওয়াত, ইসলামিক অ্যালার্ম এবং মিযান ব্লুপ্রিন্ট।',
-    newsletterTitle: 'সাপ্তাহিক ইসলামিক গাইডেন্স',
-    newsletterSubtitle: 'আধ্যাত্মিক স্মরণ এবং আপডেট।',
-    newsletterPlaceholder: 'আপনার ইমেইল',
-    newsletterButton: 'সাবস্ক্রাইব',
-  },
-};
-
-const LANGUAGES = [
-  { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'ar', label: 'عربي', flag: '🇸🇦' },
-  { code: 'ur', label: 'اردو', flag: '🇵🇰' },
-  { code: 'fr', label: 'Français', flag: '🇫🇷' },
-  { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
-  { code: 'id', label: 'Indonesia', flag: '🇮🇩' },
-  { code: 'ms', label: 'Melayu', flag: '🇲🇾' },
-  { code: 'bn', label: 'বাংলা', flag: '🇧🇩' },
-];
-
-const RTL_LANGS = ['ar', 'ur'];
-
-const DAILY_QUOTES = [
-  { text: "Indeed, with hardship will be ease.", source: "Quran 94:6", arabic: "فَإِنَّ مَعَ الْعُسْرِ يُسْرًا" },
-  { text: "And He found you lost and guided you.", source: "Quran 93:7", arabic: "وَوَجَدَكَ ضَالًّا فَهَدَىٰ" },
-  { text: "So remember Me; I will remember you.", source: "Quran 2:152", arabic: "فَاذْكُرُونِي أَذْكُرْكُمْ" },
-  { text: "Allah does not burden a soul beyond that it can bear.", source: "Quran 2:286", arabic: "لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا" },
-  { text: "Verily, the most honoured of you in the sight of Allah is the most righteous.", source: "Quran 49:13", arabic: "إِنَّ أَكْرَمَكُمْ عِندَ اللَّهِ أَتْقَاكُمْ" },
-  { text: "And put your trust in Allah if you are believers.", source: "Quran 5:23", arabic: "وَعَلَى اللَّهِ فَتَوَكَّلُوا إِن كُنتُم مُّؤْمِنِينَ" },
-  { text: "The strong person is one who controls himself when angry.", source: "Bukhari & Muslim", arabic: "لَيْسَ الشَّدِيدُ بِالصُّرَعَةِ" },
-  { text: "Make things easy and do not make them difficult.", source: "Bukhari", arabic: "يَسِّرُوا وَلَا تُعَسِّرُوا" },
-  { text: "The best of people are those who are most beneficial to others.", source: "Al-Mu'jam al-Awsat", arabic: "خَيْرُ النَّاسِ أَنْفَعُهُمْ لِلنَّاسِ" },
-  { text: "None of you truly believes until he loves for his brother what he loves for himself.", source: "Bukhari & Muslim", arabic: "لَا يُؤْمِنُ أَحَدُكُمْ حَتَّى يُحِبَّ لِأَخِيهِ مَا يُحِبُّ لِنَفْسِهِ" },
-  { text: "Speak good or remain silent.", source: "Bukhari & Muslim", arabic: "" },
-  { text: "Smiling at your brother is an act of charity.", source: "Tirmidhi", arabic: "تَبَسُّمُكَ فِي وَجْهِ أَخِيكَ لَكَ صَدَقَةٌ" },
-  { text: "The most beloved deeds to Allah are those done consistently, even if they are small.", source: "Bukhari & Muslim", arabic: "" },
-  { text: "Verily, Allah does not look at your appearance or wealth, but He looks at your hearts and deeds.", source: "Muslim", arabic: "" },
-  { text: "Be in this world as if you were a stranger or a traveller.", source: "Bukhari", arabic: "كُنْ فِي الدُّنْيَا كَأَنَّكَ غَرِيبٌ أَوْ عَابِرُ سَبِيلٍ" },
-  { text: "O Allah, You are Forgiving and love forgiveness, so forgive me.", source: "Tirmidhi", arabic: "اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي" },
-  { text: "The world is a prison for the believer and a paradise for the disbeliever.", source: "Muslim", arabic: "الدُّنْيَا سِجْنُ الْمُؤْمِنِ وَجَنَّةُ الْكَافِرِ" },
-  { text: "Fear Allah wherever you are, and follow a bad deed with a good one to erase it.", source: "Tirmidhi", arabic: "" },
-  { text: "Give charity without delay, for it stands in the way of calamity.", source: "Tirmidhi", arabic: "" },
-  { text: "Allah is beautiful and He loves beauty.", source: "Muslim", arabic: "إِنَّ اللَّهَ جَمِيلٌ يُحِبُّ الْجَمَالَ" },
-  { text: "The heaviest thing on the scale of deeds is good character.", source: "Abu Dawud & Tirmidhi", arabic: "" },
-  { text: "Tie your camel, then put your trust in Allah.", source: "Tirmidhi", arabic: "" },
-  { text: "Seek knowledge from the cradle to the grave.", source: "Attributed tradition", arabic: "اطْلُبُوا الْعِلْمَ مِنَ الْمَهْدِ إِلَى اللَّحْدِ" },
-  { text: "Take benefit of five before five: your youth, your health, your wealth, your free time, and your life.", source: "Al-Hakim", arabic: "" },
-  { text: "Whoever does not show mercy to people, Allah will not show mercy to him.", source: "Bukhari & Muslim", arabic: "مَنْ لَا يَرْحَمُ لَا يُرْحَمُ" },
-  { text: "Do not look at how small the sin is, but look at how great is the One you are sinning against.", source: "Ibn Mas'ud", arabic: "" },
-  { text: "Whoever teaches good, Allah and His angels and all creation send blessings upon him.", source: "Tirmidhi", arabic: "" },
-  { text: "The best of you are those who are best to their families.", source: "Tirmidhi", arabic: "" },
-  { text: "He who has no mercy for others will receive no mercy.", source: "Bukhari", arabic: "" },
-  { text: "None of you will enter Paradise by his deeds alone — except by the Mercy of Allah.", source: "Bukhari", arabic: "" },
-];
-
-const ALL_FEATURED_TOOLS = [
-  { href: '/compare-religions', badge: '🆕 New Tool', title: 'Islam & World Religions', desc: 'Interactive comparison tool with 6 religions & 10 topics', icon: '⚖️', gradient: 'linear-gradient(135deg, #1a0a14, #3d1028)', accent: '#c8a96e' },
-  { href: '/mizan', badge: '✨ Featured', title: 'Mizan — Islamic Life Blueprint', desc: 'Discover your purpose through Islamic numerology', icon: '✦', gradient: 'linear-gradient(135deg, #1a0a00, #3d1f00)', accent: '#c8a96e' },
-  { href: '/halal-scanner', badge: '🆕 New Tool', title: 'HalalScan — Halal Food Scanner', desc: "Scan barcodes & photos — instantly know if it's Halal, Haram or Mashbooh", icon: '📷', gradient: 'linear-gradient(135deg, #071a0d, #0a3d1a)', accent: '#4ade80' },
-  { href: '/zakat', badge: '💰 Finance', title: 'Zakat Calculator', desc: 'Calculate your annual Zakat with precision', icon: '💰', gradient: 'linear-gradient(135deg, #0a1f0a, #0d3d1a)', accent: '#4ade80' },
-  { href: '/prayer-times', badge: '🕐 Daily', title: 'Prayer Times', desc: 'Accurate salah times for your location', icon: '🕐', gradient: 'linear-gradient(135deg, #0a0a2e, #1a1a5c)', accent: '#818cf8' },
-  { href: '/qibla', badge: '🧭 Travel', title: 'Qibla Finder', desc: 'Find the direction of Mecca instantly', icon: '🧭', gradient: 'linear-gradient(135deg, #1a1000, #3d2800)', accent: '#fbbf24' },
-  { href: '/quran', badge: '📖 Quran', title: 'Quran Reader', desc: 'Read and listen with full translation', icon: '📖', gradient: 'linear-gradient(135deg, #0f1a0a, #1a3d10)', accent: '#86efac' },
-  { href: '/dhikr', badge: '📿 Worship', title: 'Dhikr Counter', desc: 'Your digital tasbih for daily remembrance', icon: '📿', gradient: 'linear-gradient(135deg, #1a0a1a, #2d1040)', accent: '#c084fc' },
-  { href: '/hijri', badge: '🌙 Calendar', title: 'Hijri Calendar', desc: 'Convert Islamic and Gregorian dates', icon: '🌙', gradient: 'linear-gradient(135deg, #0a0f1a, #101a3d)', accent: '#7dd3fc' },
-  { href: '/night', badge: '🌙 Sleep', title: 'Night Recitation', desc: 'Sleep with Al-Sudais — Mulk, Ya-Sin & more', icon: '🌙', gradient: 'linear-gradient(135deg, #050d14, #0d1f2d)', accent: '#60a5fa' },
-  { href: '/kids', badge: '🎮 Kids!', title: 'Islamic Games Hub', desc: '17 fun educational games for children', icon: '🧒', gradient: 'linear-gradient(135deg, #1a0a14, #3d1028)', accent: '#f9a8d4' },
-  { href: '/names', badge: '⭐ Asma', title: '99 Names of Allah', desc: 'Explore and reflect on Asma ul Husna', icon: '⭐', gradient: 'linear-gradient(135deg, #1a0800, #3d1400)', accent: '#fb923c' },
-  { href: '/ramadan', badge: '🌙 Ramadan', title: 'Ramadan Planner', desc: 'Suhoor, Iftar & worship tracker', icon: '🌙', gradient: 'linear-gradient(135deg, #080a1a, #101840)', accent: '#a5b4fc' },
-  { href: '/hadith', badge: '🔍 Knowledge', title: 'Hadith Search', desc: 'Search authenticated hadith collections', icon: '🔍', gradient: 'linear-gradient(135deg, #0a1010, #103030)', accent: '#67e8f9' },
-  { href: '/sadaqah', badge: '❤️ Giving', title: 'Sadaqah Tracker', desc: 'Log your charity and track your giving', icon: '❤️', gradient: 'linear-gradient(135deg, #1a0808, #3d1010)', accent: '#fca5a5' },
-  { href: '/inheritance', badge: '⚖️ Finance', title: 'Inheritance Calculator', desc: 'Calculate Islamic inheritance shares', icon: '⚖️', gradient: 'linear-gradient(135deg, #100a00, #281800)', accent: '#fcd34d' },
-  { href: '/halal-finance', badge: '✅ Finance', title: 'Halal Finance Check', desc: 'Verify if your investment is Riba-free', icon: '✅', gradient: 'linear-gradient(135deg, #061a06, #0a2e0a)', accent: '#6ee7b7' },
-  { href: '/mosque', badge: '🕌 Travel', title: 'Mosque Finder', desc: 'Find the nearest masjid to you', icon: '🕌', gradient: 'linear-gradient(135deg, #081a0e, #103d1a)', accent: '#34d399' },
-  { href: '/dua', badge: '🤲 Dua', title: 'Dua Generator', desc: 'Supplications for every moment of life', icon: '🤲', gradient: 'linear-gradient(135deg, #1a1000, #302000)', accent: '#fde68a' },
-  { href: '/will', badge: '📜 Legal', title: 'Islamic Will', desc: 'Draft your Wasiyyah the right way', icon: '📜', gradient: 'linear-gradient(135deg, #0f0f0f, #252525)', accent: '#d1d5db' },
-  { href: '/travel', badge: '🌍 Travel', title: 'Halal Travel Guide', desc: 'Plan a halal-friendly journey anywhere', icon: '🌍', gradient: 'linear-gradient(135deg, #001a14, #003d2a)', accent: '#2dd4bf' },
-  { href: '/hajj', badge: '🕋 Hajj', title: 'Hajj Checklist', desc: 'Complete guide for your pilgrimage', icon: '🕋', gradient: 'linear-gradient(135deg, #100800, #301800)', accent: '#f59e0b' },
-  { href: '/kaffarah', badge: '📋 Fiqh', title: 'Kaffarah Calculator', desc: 'Expiation for broken oaths and fasts', icon: '📋', gradient: 'linear-gradient(135deg, #0f0a00, #1f1400)', accent: '#fbbf24' },
-  { href: '/names-finder', badge: '✏️ Names', title: 'Islamic Name Finder', desc: 'Beautiful names with meanings & origins', icon: '✏️', gradient: 'linear-gradient(135deg, #100a18, #201030)', accent: '#d8b4fe' },
-  { href: '/eid', badge: '🗓️ Events', title: 'Islamic Events', desc: 'Eid, Ramadan & key Islamic dates', icon: '🗓️', gradient: 'linear-gradient(135deg, #1a0c00, #3d1a00)', accent: '#fdba74' },
-  { href: '/eid-adha', badge: '🐄 Eid ul Adha', title: 'Eid ul Adha Toolkit', desc: 'Qurbani calc, takbeer, checklist & recipes', icon: '🐄', gradient: 'linear-gradient(135deg, #0d1a00, #1a3300)', accent: '#a3e635' },
-];
-
-// ==================== TOOLS DATA ====================
-const TOOLS_DATA = (t: TranslationsType) => [
-  {
-    category: t.mostUsed, emoji: '⭐',
-    items: [
-      { name: 'HalalScan', desc: 'Scan food — Halal or Haram?', icon: '📷', href: '/halal-scanner', color: 'bg-lime-100 text-lime-700' },
-      { name: 'Zakat Calculator', desc: 'Calculate your annual zakat', icon: '💰', href: '/zakat', color: 'bg-emerald-100 text-emerald-700' },
-      { name: 'Prayer Times', desc: 'Daily salah times', icon: '🕐', href: '/prayer-times', color: 'bg-blue-100 text-blue-700' },
-      { name: 'Qibla Finder', desc: 'Find Mecca direction', icon: '🧭', href: '/qibla', color: 'bg-amber-100 text-amber-700' },
-      { name: 'Hijri Calendar', desc: 'Islamic date converter', icon: '🌙', href: '/hijri', color: 'bg-purple-100 text-purple-700' },
-      { name: 'Quran Reader', desc: 'Read with translation', icon: '📖', href: '/quran', color: 'bg-green-100 text-green-700' },
-      { name: 'Night Recitation', desc: 'Sleep with Quran', icon: '🌙', href: '/night', color: 'bg-indigo-100 text-indigo-700' },
-      { name: 'Dhikr Counter', desc: 'Digital tasbih', icon: '📿', href: '/dhikr', color: 'bg-teal-100 text-teal-700' },
-    ],
-  },
-  {
-    category: t.daily, emoji: '🤲',
-    items: [
-      { name: 'Dua Generator', desc: 'Prayers for every moment', icon: '🤲', href: '/dua', color: 'bg-amber-100 text-amber-700' },
-      { name: '99 Names of Allah', desc: 'Asma ul Husna', icon: '⭐', href: '/names', color: 'bg-rose-100 text-rose-700' },
-      { name: 'Ramadan Planner', desc: 'Suhoor & iftar tracker', icon: '🌙', href: '/ramadan', color: 'bg-indigo-100 text-indigo-700' },
-      { name: 'Hadith Search', desc: 'Search hadith books', icon: '🔍', href: '/hadith', color: 'bg-cyan-100 text-cyan-700' },
-      { name: 'Mizan Blueprint', desc: 'Islamic life purpose', icon: '✦', href: '/mizan', color: 'bg-amber-100 text-amber-700' },
-    ],
-  },
-  {
-    category: t.finance, emoji: '💝',
-    items: [
-      { name: 'Sadaqah Tracker', desc: 'Log your charity', icon: '❤️', href: '/sadaqah', color: 'bg-pink-100 text-pink-700' },
-      { name: 'Islamic Will', desc: 'Draft your Wasiyyah', icon: '📜', href: '/will', color: 'bg-stone-100 text-stone-700' },
-      { name: 'Inheritance Calc', desc: 'Islamic shares', icon: '⚖️', href: '/inheritance', color: 'bg-orange-100 text-orange-700' },
-      { name: 'Halal Finance', desc: 'Riba-free check', icon: '✅', href: '/halal-finance', color: 'bg-lime-100 text-lime-700' },
-      { name: 'Kaffarah Calc', desc: 'Expiation for oaths', icon: '📋', href: '/kaffarah', color: 'bg-yellow-100 text-yellow-700' },
-    ],
-  },
-  {
-    category: t.travel, emoji: '📚',
-    items: [
-      { name: 'Islam vs Religions', desc: 'Compare Islam & other faiths', icon: '⚖️', href: '/compare-religions', color: 'bg-purple-100 text-purple-700' },
-      { name: 'Halal Travel', desc: 'Plan your journey', icon: '🌍', href: '/travel', color: 'bg-blue-100 text-blue-700' },
-      { name: 'Hajj Checklist', desc: 'Pilgrimage guide', icon: '🕋', href: '/hajj', color: 'bg-stone-100 text-stone-700' },
-      { name: 'Mosque Finder', desc: 'Nearest masjid', icon: '🕌', href: '/mosque', color: 'bg-emerald-100 text-emerald-700' },
-      { name: 'Islamic Names', desc: 'Name meanings', icon: '✏️', href: '/names-finder', color: 'bg-violet-100 text-violet-700' },
-      { name: 'Islamic Events', desc: 'Eid & Ramadan dates', icon: '🗓️', href: '/eid', color: 'bg-amber-100 text-amber-700' },
-      { name: 'Eid ul Adha Toolkit', desc: 'Qurbani, takbeer & more', icon: '🐄', href: '/eid-adha', color: 'bg-lime-100 text-lime-700' },
-    ],
-  },
-  {
-    category: t.kids, emoji: '🧒',
-    items: [
-      { name: 'Islamic Games Hub', desc: '17 fun Islamic games for kids', icon: '🎮', href: '/kids', color: 'bg-pink-100 text-pink-700' },
-    ],
-  },
-];
-
-const THEME_KEY = 'iloveislam_theme';
-const LANG_KEY = 'iloveislam_lang';
-const TOOL_CLICKS_KEY = 'iloveislam_tool_clicks';
-
-function useDarkMode() {
-  const [dark, setDark] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem(THEME_KEY);
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const isDark = saved === 'dark' || (!saved && prefersDark);
-    setDark(isDark);
-    document.documentElement.classList.toggle('dark', isDark);
-  }, []);
-  const toggle = useCallback(() => {
-    setDark(prev => {
-      const next = !prev;
-      document.documentElement.classList.toggle('dark', next);
-      localStorage.setItem(THEME_KEY, next ? 'dark' : 'light');
-      return next;
-    });
-  }, []);
-  return { dark, toggle, mounted };
+interface Progress {
+  prayers: number;
+  dhikr: number;
+  juzDone: number;
+  loaded: boolean;
 }
 
-function trackToolClick(toolName: string) {
-  try {
-    const clicks = JSON.parse(localStorage.getItem(TOOL_CLICKS_KEY) || '{}');
-    clicks[toolName] = (clicks[toolName] || 0) + 1;
-    localStorage.setItem(TOOL_CLICKS_KEY, JSON.stringify(clicks));
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'tool_click', { event_category: 'engagement', event_label: toolName, value: clicks[toolName] });
+// ==================== HELPERS ====================
+function localIsoDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function dayOfYear(d: Date): number {
+  const start = new Date(d.getFullYear(), 0, 0);
+  return Math.floor((d.getTime() - start.getTime()) / 86400000);
+}
+
+/** Aladhan returns times like "05:12 (AEST)" — strip the zone suffix. */
+function cleanTime(t: string): string {
+  return t.split(' ')[0];
+}
+
+function parseTimeToDate(timeStr: string, base: Date): Date | null {
+  const [h, m] = cleanTime(timeStr).split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  const d = new Date(base);
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+function formatPrayerTime(t: string): string {
+  const [h, m] = cleanTime(t).split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return cleanTime(t);
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+}
+
+function formatCountdown(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
+function stripHtml(s: string): string {
+  return s.replace(/<[^>]*>/g, '').trim();
+}
+
+/** TOOLS_DATA is exported as a zero-arg function in lib/toolsData.ts; resolve
+ *  defensively so a plain-array rewrite of that file still works. */
+function resolveToolsData(): ToolSection[] {
+  const data: unknown = TOOLS_DATA;
+  if (typeof data === 'function') {
+    try {
+      return (data as () => ToolSection[])();
+    } catch {
+      return [];
     }
-  } catch {}
-}
-
-const ScrollManager = {
-  save() {
-    try {
-      sessionStorage.setItem('scroll_' + window.location.pathname, String(Math.round(window.scrollY)));
-    } catch {}
-  },
-};
-
-// ==================== LIVE BAR ====================
-function LiveBar() {
-  const [time, setTime] = useState('');
-  const [hijri, setHijri] = useState('');
-  const [gregorian, setGregorian] = useState('');
-
-  useEffect(() => {
-    const tick = () => {
-      const now = new Date();
-      setTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-      setGregorian(now.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }));
-    };
-    tick();
-    const timer = setInterval(tick, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    const fetchHijri = async () => {
-      try {
-        const today = new Date();
-        const res = await fetch(`https://api.aladhan.com/v1/gToH/${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`);
-        const data = await res.json();
-        if (data.code === 200) {
-          const h = data.data.hijri;
-          setHijri(`${h.day} ${h.month.en} ${h.year} AH`);
-        }
-      } catch {}
-    };
-    fetchHijri();
-  }, []);
-
-  return (
-    <div className="flex items-center justify-center gap-3 flex-wrap text-white/60 text-xs mb-3">
-      {time && (
-        <span className="flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-          {time}
-        </span>
-      )}
-      {gregorian && <span>{gregorian}</span>}
-      {hijri && <span className="text-amber-300/70">{hijri}</span>}
-    </div>
-  );
-}
-
-// ==================== QUOTE OF THE DAY ====================
-function QuoteOfTheDay() {
-  const quote = useMemo(() => {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), 0, 0);
-    const dayOfYear = Math.floor((now.getTime() - start.getTime()) / 86400000);
-    return DAILY_QUOTES[dayOfYear % DAILY_QUOTES.length];
-  }, []);
-
-  return (
-    <div className="p-3 sm:p-4 relative overflow-hidden">
-      <div className="absolute -top-4 -right-4 text-[80px] opacity-[0.04] select-none pointer-events-none leading-none">✦</div>
-      <p className="text-[9px] font-bold tracking-[0.2em] uppercase mb-2" style={{ color: '#c8a96e' }}>
-        ✨ Verse / Hadith of the Day
-      </p>
-      {quote.arabic && (
-        <p className="hidden sm:block text-right text-sm leading-loose mb-2 font-medium" style={{ color: '#d4aa6e', direction: 'rtl', fontFamily: 'serif' }}>
-          {quote.arabic}
-        </p>
-      )}
-      <p className="text-white/75 text-[12px] sm:text-[13px] leading-relaxed italic mb-1.5">"{quote.text}"</p>
-      <p className="text-white/30 text-[10px]">— {quote.source}</p>
-    </div>
-  );
-}
-
-// ==================== DAILY STRIP (tabbed) ====================
-interface DailyStripProps {
-  allTools: typeof ALL_FEATURED_TOOLS;
-  onToolClick: (title: string) => void;
-}
-
-function DailyStrip({ allTools, onToolClick }: DailyStripProps) {
-  const [activeStripTab, setActiveStripTab] = useState<'featured' | 'verse'>('featured');
-
-  return (
-    <div className="mb-3 sm:mb-4">
-      <div
-        className="rounded-2xl overflow-hidden"
-        style={{
-          background: 'linear-gradient(135deg, #071510 0%, #0d2818 100%)',
-          border: '1px solid rgba(200,169,110,0.2)',
-        }}
-      >
-        {/* Tab bar */}
-        <div className="flex" style={{ borderBottom: '1px solid rgba(200,169,110,0.1)' }}>
-          <button
-            onClick={() => setActiveStripTab('featured')}
-            className="flex-1 py-2.5 sm:py-3 text-[11px] sm:text-[12px] font-bold tracking-[0.12em] uppercase transition-all duration-200"
-            style={{
-              background: activeStripTab === 'featured' ? 'rgba(200,169,110,0.12)' : 'transparent',
-              color: activeStripTab === 'featured' ? '#c8a96e' : 'rgba(255,255,255,0.3)',
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            ✨ Featured Tool
-          </button>
-          <div style={{ width: '1px', background: 'rgba(200,169,110,0.1)', flexShrink: 0 }} />
-          <button
-            onClick={() => setActiveStripTab('verse')}
-            className="flex-1 py-2.5 sm:py-3 text-[11px] sm:text-[12px] font-bold tracking-[0.12em] uppercase transition-all duration-200"
-            style={{
-              background: activeStripTab === 'verse' ? 'rgba(200,169,110,0.12)' : 'transparent',
-              color: activeStripTab === 'verse' ? '#c8a96e' : 'rgba(255,255,255,0.3)',
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            📖 Verse / Hadith
-          </button>
-        </div>
-
-        {/* Panels */}
-        {activeStripTab === 'featured' && (
-          <FeaturedBanner allTools={allTools} onToolClick={onToolClick} />
-        )}
-        {activeStripTab === 'verse' && (
-          <QuoteOfTheDay />
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ==================== TOOL CARD ====================
-function ToolCard({ tool }: { tool: Tool }) {
-  const handleClick = () => { trackToolClick(tool.name); ScrollManager.save(); };
-  return (
-    <Link
-      href={tool.href}
-      onClick={handleClick}
-      className="group bg-white dark:bg-gray-800 rounded-xl p-2 sm:p-3 border border-gray-100 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col items-center text-center active:scale-[0.92] active:shadow-inner relative"
-    >
-      {tool.href === '/halal-scanner' && (
-        <span className="absolute -top-1.5 -right-1.5 bg-emerald-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full leading-none z-10">
-          NEW
-        </span>
-      )}
-
-      <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-lg sm:text-xl mb-1 sm:mb-2 transition-transform duration-200 group-hover:scale-110 group-active:scale-95 ${tool.color}`}>
-        {tool.icon}
-      </div>
-      <p className="text-[10px] sm:text-xs font-semibold text-gray-800 dark:text-gray-200 leading-tight mb-0.5 line-clamp-1">{tool.name}</p>
-      <p className="text-[9px] sm:text-[11px] text-gray-400 dark:text-gray-500 leading-tight line-clamp-1 sm:line-clamp-2">{tool.desc}</p>
-    </Link>
-  );
-}
-
-// ==================== RECENTLY USED ====================
-function RecentlyUsed({ onToolClick }: { onToolClick: (name: string) => void }) {
-  const [recentTools, setRecentTools] = useState<{ name: string; icon: string; href: string; color: string }[]>([]);
-
-  useEffect(() => {
-    try {
-      const clicks = JSON.parse(localStorage.getItem(TOOL_CLICKS_KEY) || '{}');
-      if (Object.keys(clicks).length === 0) return;
-
-      // Build a flat lookup of all tools by name AND href
-      const dummyT = TRANSLATIONS['en'];
-      const toolSections = TOOLS_DATA(dummyT);
-      const flatTools = toolSections.flatMap(s => s.items);
-
-      // Create a map: tool name (lowercase) → tool data
-      const toolMap = new Map<string, typeof flatTools[0]>();
-      for (const t of flatTools) {
-        toolMap.set(t.name.toLowerCase(), t);
-      }
-
-      // Sort clicks by count descending
-      const sorted = Object.entries(clicks)
-        .sort(([, a], [, b]) => (b as number) - (a as number));
-
-      // Match clicked names to actual tools, deduplicate by href
-      const seen = new Set<string>();
-      const recent: typeof flatTools = [];
-
-      for (const [clickedName] of sorted) {
-        if (recent.length >= 6) break;
-        const key = clickedName.toLowerCase();
-        // Try exact match first
-        let match = toolMap.get(key);
-        // Try partial match if no exact
-        if (!match) {
-          for (const [mapKey, tool] of toolMap) {
-            if (key.includes(mapKey) || mapKey.includes(key)) {
-              match = tool;
-              break;
-            }
-          }
-        }
-        if (match && !seen.has(match.href)) {
-          seen.add(match.href);
-          recent.push(match);
-        }
-      }
-
-      if (recent.length > 0) setRecentTools(recent);
-    } catch {}
-  }, []);
-
-  if (recentTools.length === 0) return null;
-
-  return (
-    <div className="mb-3 sm:mb-4">
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-xs">⚡</span>
-        <p className="text-[10px] font-bold tracking-[0.14em] uppercase text-gray-400 dark:text-gray-500">Quick Access</p>
-      </div>
-      <div className="flex gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-        {recentTools.map(tool => (
-          <Link
-            key={tool.href}
-            href={tool.href}
-            onClick={() => { onToolClick(tool.name); ScrollManager.save(); }}
-            className="flex-shrink-0 flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl px-3 py-2 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-md transition-all active:scale-95"
-          >
-            <span className="text-base">{tool.icon}</span>
-            <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{tool.name}</span>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ==================== CATEGORY TABS ====================
-interface CategoryTabsProps {
-  categories: { category: string; emoji: string }[];
-  activeTab: string;
-  onSelect: (tab: string) => void;
-}
-
-function CategoryTabs({ categories, activeTab, onSelect }: CategoryTabsProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!scrollRef.current) return;
-    const active = scrollRef.current.querySelector('[data-active="true"]') as HTMLElement | null;
-    if (active) active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-  }, [activeTab]);
-
-  return (
-    <div
-      ref={scrollRef}
-      className="flex gap-1.5 overflow-x-auto pb-1 mb-3 sm:mb-4 relative"
-      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-    >
-      <button
-        data-active={activeTab === 'all'} onClick={() => onSelect('all')}
-        className={`flex-shrink-0 flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-semibold transition-all duration-150 whitespace-nowrap ${activeTab === 'all' ? 'text-white shadow-sm' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700'}`}
-        style={activeTab === 'all' ? { background: '#0a3d2e' } : {}}
-      >
-        🌟 All
-      </button>
-      {categories.map(({ category, emoji }) => (
-        <button
-          key={category} data-active={activeTab === category} onClick={() => onSelect(category)}
-          className={`flex-shrink-0 flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-semibold transition-all duration-150 whitespace-nowrap ${activeTab === category ? 'text-white shadow-sm' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700'}`}
-          style={activeTab === category ? { background: '#0a3d2e' } : {}}
-        >
-          {emoji} {category}
-        </button>
-      ))}
-    </div>
-  );
+  }
+  if (Array.isArray(data)) return data as ToolSection[];
+  return [];
 }
 
 // ==================== MAIN HOME CLIENT ====================
 export default function HomeClient() {
-  const [search, setSearch] = useState('');
-  const [lang, setLang] = useState('en');
-  const [showLangMenu, setShowLangMenu] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState('all');
-  const { dark, toggle: toggleDark, mounted: darkMounted } = useDarkMode();
-  const langMenuRef = useRef<HTMLDivElement>(null);
-  const langButtonRef = useRef<HTMLButtonElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
+  const [now, setNow] = useState(() => new Date());
 
-  const t = TRANSLATIONS[lang] || TRANSLATIONS['en'];
-  const isRTL = RTL_LANGS.includes(lang);
-  const tools = useMemo(() => TOOLS_DATA(t), [t]);
-  const isSearching = search.trim().length > 0;
+  // --- Prayer times state ---
+  const [city, setCity] = useState(DEFAULT_CITY);
+  const [country, setCountry] = useState(DEFAULT_COUNTRY);
+  const [cityInput, setCityInput] = useState(DEFAULT_CITY);
+  const [countryInput, setCountryInput] = useState(DEFAULT_COUNTRY);
+  const [method, setMethod] = useState(3);
+  const [timings, setTimings] = useState<Timings | null>(null);
+  const [hijri, setHijri] = useState('');
+  const [prayerError, setPrayerError] = useState(false);
 
-  useEffect(() => {
-    if (activeTab !== 'all' && !tools.find(s => s.category === activeTab)) setActiveTab('all');
-  }, [tools, activeTab]);
+  // --- Verse of the day ---
+  const [verse, setVerse] = useState<VerseState>(FALLBACK_VERSE);
 
-  useEffect(() => {
-    setMounted(true);
-    const savedLang = localStorage.getItem(LANG_KEY);
-    if (savedLang && TRANSLATIONS[savedLang]) setLang(savedLang);
+  // --- Progress strip ---
+  const [progress, setProgress] = useState<Progress>({ prayers: 0, dhikr: 0, juzDone: 0, loaded: false });
+
+  // Dua of the day (deterministic per day, from lib/duas)
+  const dua = useMemo<Dua | null>(() => {
+    try {
+      return getDuaOfTheDay();
+    } catch {
+      return null;
+    }
   }, []);
 
+  const sections = useMemo<ToolSection[]>(() => resolveToolsData(), []);
+
+  // Tick every second for the live countdown + greeting.
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (showLangMenu && langMenuRef.current && !langMenuRef.current.contains(e.target as Node) && langButtonRef.current && !langButtonRef.current.contains(e.target as Node)) setShowLangMenu(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showLangMenu]);
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
-  const switchLang = useCallback((code: string) => { setLang(code); localStorage.setItem(LANG_KEY, code); setShowLangMenu(false); }, []);
-
-  const filteredTools = useMemo(() => {
-    if (isSearching) {
-      const q = search.toLowerCase();
-      return tools.map(section => ({ ...section, items: section.items.filter(item => item.name.toLowerCase().includes(q) || item.desc.toLowerCase().includes(q) || section.category.toLowerCase().includes(q)) })).filter(s => s.items.length > 0);
+  // Load saved location + calculation method.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(CITY_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as { city?: string; country?: string };
+        if (typeof parsed.city === 'string' && parsed.city.trim()) {
+          setCity(parsed.city.trim());
+          setCityInput(parsed.city.trim());
+        }
+        if (typeof parsed.country === 'string' && parsed.country.trim()) {
+          setCountry(parsed.country.trim());
+          setCountryInput(parsed.country.trim());
+        }
+      }
+      const savedMethod = localStorage.getItem(METHOD_KEY);
+      if (savedMethod) {
+        const n = Number(savedMethod);
+        if (PRAYER_METHODS.some((pm) => pm.id === n)) setMethod(n);
+      }
+    } catch {
+      // Defaults stand.
     }
-    if (activeTab === 'all') return tools;
-    return tools.filter(s => s.category === activeTab);
-  }, [search, tools, activeTab, isSearching]);
+  }, []);
 
-  const totalResults = filteredTools.reduce((acc, s) => acc + s.items.length, 0);
-  const currentLang = LANGUAGES.find(l => l.code === lang);
-  const categoryList = useMemo(() => tools.map(({ category, emoji }) => ({ category, emoji })), [tools]);
+  // Fetch prayer times from Aladhan whenever location/method changes.
+  useEffect(() => {
+    let cancelled = false;
+    setPrayerError(false);
+    fetch(
+      `https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&method=${method}`,
+    )
+      .then((r) => {
+        if (!r.ok) throw new Error('Prayer times request failed');
+        return r.json();
+      })
+      .then((data) => {
+        if (cancelled) return;
+        const t = data?.data?.timings;
+        const h = data?.data?.date?.hijri;
+        if (t?.Fajr && t?.Dhuhr && t?.Asr && t?.Maghrib && t?.Isha) {
+          setTimings({
+            Fajr: String(t.Fajr),
+            Sunrise: t.Sunrise ? String(t.Sunrise) : '',
+            Dhuhr: String(t.Dhuhr),
+            Asr: String(t.Asr),
+            Maghrib: String(t.Maghrib),
+            Isha: String(t.Isha),
+          });
+        } else {
+          setPrayerError(true);
+        }
+        if (h?.day && h?.month?.en && h?.year) {
+          setHijri(`${h.day} ${h.month.en} ${h.year} AH`);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setPrayerError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [city, country, method]);
 
-  if (!mounted || !darkMounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#f7f6f2' }}>
-        <div className="flex flex-col items-center gap-3">
-          <div className="text-3xl" style={{ color: '#c8a96e' }}>♡</div>
-          <div className="text-emerald-700 text-xs tracking-widest uppercase animate-pulse">Loading…</div>
-        </div>
-      </div>
-    );
+  // Fetch verse of the day from Quran.com (rotates by day of year).
+  useEffect(() => {
+    let cancelled = false;
+    const key = VERSE_KEYS[dayOfYear(new Date()) % VERSE_KEYS.length];
+    fetch(`https://api.quran.com/api/v4/verses/by_key/${key}?fields=text_indopak&translations=20`)
+      .then((r) => {
+        if (!r.ok) throw new Error('Verse request failed');
+        return r.json();
+      })
+      .then((data) => {
+        if (cancelled) return;
+        const v = data?.verse;
+        const arabic: unknown = v?.text_indopak;
+        const translation: unknown = v?.translations?.[0]?.text;
+        if (typeof arabic === 'string' && arabic.trim() && typeof translation === 'string' && translation.trim()) {
+          setVerse({ arabic: arabic.trim(), translation: stripHtml(translation), reference: `Quran ${key}` });
+        }
+      })
+      .catch(() => {
+        // Keep the hardcoded fallback verse.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Read today's progress from localStorage (defensive — keys may not exist).
+  useEffect(() => {
+    const read = () => {
+      const today = localIsoDate(new Date());
+      let prayers = 0;
+      let dhikr = 0;
+      let juzDone = 0;
+      try {
+        const marks = JSON.parse(localStorage.getItem(PRAYER_MARKS_KEY) ?? 'null') as Record<string, unknown> | null;
+        const todayMarks = marks?.[today];
+        if (Array.isArray(todayMarks)) prayers = Math.min(todayMarks.length, 5);
+      } catch {
+        // No usable marks stored.
+      }
+      try {
+        const d = JSON.parse(localStorage.getItem(DHIKR_KEY) ?? 'null') as { date?: unknown; count?: unknown } | null;
+        if (d && d.date === today && typeof d.count === 'number') dhikr = d.count;
+      } catch {
+        // No usable dhikr stored.
+      }
+      try {
+        const r = JSON.parse(localStorage.getItem(READING_KEY) ?? 'null') as { juzDone?: unknown } | null;
+        if (r && Array.isArray(r.juzDone)) juzDone = r.juzDone.length;
+      } catch {
+        // No usable reading plan stored.
+      }
+      setProgress({ prayers, dhikr, juzDone, loaded: true });
+    };
+    read();
+    window.addEventListener('focus', read);
+    return () => window.removeEventListener('focus', read);
+  }, []);
+
+  // --- Derived values ---
+  const hour = now.getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const gregorian = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  const nextPrayer = useMemo<{ name: (typeof PRAYER_ORDER)[number]; time: Date; tomorrow: boolean } | null>(() => {
+    if (!timings) return null;
+    for (const name of PRAYER_ORDER) {
+      const d = parseTimeToDate(timings[name], now);
+      if (d && d.getTime() > now.getTime()) return { name, time: d, tomorrow: false };
+    }
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const d = parseTimeToDate(timings.Fajr, tomorrow);
+    return d ? { name: 'Fajr' as const, time: d, tomorrow: true } : null;
+  }, [timings, now]);
+
+  function applyLocation(e: React.FormEvent) {
+    e.preventDefault();
+    const c = cityInput.trim() || DEFAULT_CITY;
+    const co = countryInput.trim() || DEFAULT_COUNTRY;
+    setCity(c);
+    setCountry(co);
+    setCityInput(c);
+    setCountryInput(co);
+    try {
+      localStorage.setItem(CITY_KEY, JSON.stringify({ city: c, country: co }));
+    } catch {
+      // Storage unavailable — location still applies for this session.
+    }
+  }
+
+  function changeMethod(id: number) {
+    setMethod(id);
+    try {
+      localStorage.setItem(METHOD_KEY, String(id));
+    } catch {
+      // Storage unavailable — method still applies for this session.
+    }
   }
 
   return (
-    <>
-      <Script strategy="lazyOnload" src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} />
-      <Script id="google-analytics" strategy="lazyOnload" dangerouslySetInnerHTML={{ __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}',{page_path:window.location.pathname,send_page_view:true,transport_type:'beacon'});` }} />
+    <div className="bg-[#F7F5EF] text-[#1C2420]">
+      {/* ==================== HERO ==================== */}
+      <section className="bg-[#0B3D2E] text-white">
+        <div className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
+          <p className="text-sm font-semibold tracking-wide text-[#C9A227]">
+            {greeting} · Assalamu alaikum
+          </p>
+          <h1 className="mt-2 max-w-2xl text-3xl font-bold leading-tight sm:text-5xl">
+            Your day, with Allah at its centre
+          </h1>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/75 sm:text-base">
+            Prayer times, the Quran, and the right dua for this moment — your daily companion,
+            free forever and always here when you need it.
+          </p>
+          <div className="mt-5 flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+            <span className="rounded-full bg-white/10 px-3 py-1.5 text-white/85">{gregorian}</span>
+            {hijri && (
+              <span className="rounded-full bg-white/10 px-3 py-1.5 text-[#C9A227]">{hijri}</span>
+            )}
+          </div>
+        </div>
+      </section>
 
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300" dir={isRTL ? 'rtl' : 'ltr'}>
-
-        {/* ==================== HEADER ==================== */}
-        <header className="relative overflow-visible" style={{ background: 'linear-gradient(160deg, #071e14 0%, #0a3d2e 60%, #0d5238 100%)' }}>
-          <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
-            <div className="absolute top-0 left-0 w-48 h-48 rounded-full opacity-[0.04]" style={{ background: 'radial-gradient(circle, #c8a96e 0%, transparent 70%)', transform: 'translate(-30%, -30%)' }} />
-            <div className="absolute bottom-0 right-0 w-64 h-64 rounded-full opacity-[0.04]" style={{ background: 'radial-gradient(circle, #c8a96e 0%, transparent 70%)', transform: 'translate(30%, 30%)' }} />
-            <div className="absolute top-6 right-12 text-white/[0.03] text-7xl select-none">☽</div>
-            <div className="absolute bottom-4 left-10 text-white/[0.03] text-5xl select-none">✦</div>
+      <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:space-y-8 sm:py-8">
+        {/* ==================== NEXT PRAYER ==================== */}
+        <section aria-labelledby="prayer-heading" className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="prayer-heading" className="text-xl font-bold text-[#0B3D2E] sm:text-2xl">
+              Prayer times · {city}
+            </h2>
+            <Link href="/prayer-times" className="text-sm font-semibold text-[#146B4D] hover:text-[#0B3D2E] hover:underline">
+              Full prayer times →
+            </Link>
           </div>
 
-          <div className="relative z-10 px-3 sm:px-4 pt-2.5 sm:pt-3 pb-3 sm:pb-8 max-w-6xl mx-auto">
-            {/* Top nav row */}
-            <div className="flex items-center justify-between mb-3 sm:mb-6" dir="ltr">
-              <div className="flex items-center gap-0.5 sm:gap-1">
-                <Link href="/" aria-label="I Love Islam — Home" className="flex-shrink-0 mr-0.5 sm:mr-1 hover:opacity-80 transition-opacity">
-                  <Image src="/logo2.png" alt="I Love Islam" width={40} height={40} className="rounded-xl w-10 h-10 sm:w-11 sm:h-11 md:w-[44px] md:h-[44px]" priority />
-                </Link>
-                {[
-                  { href: '/about', label: t.about },
-                  { href: '/blog', label: t.blog },
-                  { href: '/faq', label: t.faq, hidden: true },
-                  { href: '/contact', label: t.contact, hidden: true },
-                ].map(link => (
-                  <Link key={link.href} href={link.href} className={`text-white/45 hover:text-white/80 text-[11px] sm:text-xs transition-colors px-2 sm:px-2.5 py-1.5 rounded-lg hover:bg-white/8 ${link.hidden ? 'hidden sm:inline-flex' : ''}`}>
-                    {link.label}
+          {prayerError && !timings && (
+            <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              We couldn&apos;t load prayer times for {city}, {country}. Check the spelling below and try again.
+            </p>
+          )}
+
+          {timings && nextPrayer && (
+            <div className="mt-4 rounded-xl bg-[#0B3D2E] px-4 py-4 text-white sm:px-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#C9A227]">
+                Next prayer · {nextPrayer.name}
+                {nextPrayer.tomorrow ? ' (tomorrow)' : ''}
+              </p>
+              <p className="mt-1 font-mono text-3xl font-bold tabular-nums sm:text-4xl">
+                {formatCountdown(nextPrayer.time.getTime() - now.getTime())}
+              </p>
+              <p className="mt-1 text-sm text-white/70">
+                {nextPrayer.name} at {formatPrayerTime(timings[nextPrayer.name])}
+              </p>
+            </div>
+          )}
+
+          {timings && (
+            <ul className="mt-4 divide-y divide-[#1C2420]/5">
+              {PRAYER_ORDER.map((name) => {
+                const isNext = nextPrayer?.name === name && !nextPrayer.tomorrow;
+                return (
+                  <li key={name} className={`flex items-center justify-between py-2.5 text-sm sm:text-base ${isNext ? 'font-bold text-[#0B3D2E]' : ''}`}>
+                    <span className="flex items-center gap-2">
+                      {name}
+                      {isNext && (
+                        <span className="rounded-full bg-[#C9A227] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#0B3D2E]">
+                          Next
+                        </span>
+                      )}
+                    </span>
+                    <span className="tabular-nums">{formatPrayerTime(timings[name])}</span>
+                  </li>
+                );
+              })}
+              {timings.Sunrise && (
+                <li className="flex items-center justify-between py-2.5 text-sm text-[#1C2420]/60 sm:text-base">
+                  <span>Sunrise</span>
+                  <span className="tabular-nums">{formatPrayerTime(timings.Sunrise)}</span>
+                </li>
+              )}
+            </ul>
+          )}
+
+          <form onSubmit={applyLocation} className="mt-4 flex flex-col gap-2 border-t border-[#1C2420]/5 pt-4 sm:flex-row sm:items-end">
+            <label className="flex-1 text-xs font-semibold text-[#1C2420]/70">
+              City
+              <input
+                type="text"
+                value={cityInput}
+                onChange={(e) => setCityInput(e.target.value)}
+                placeholder="Sydney"
+                className="mt-1 w-full rounded-lg border border-[#1C2420]/15 px-3 py-2 text-sm font-normal text-[#1C2420] outline-none focus:border-[#146B4D]"
+              />
+            </label>
+            <label className="flex-1 text-xs font-semibold text-[#1C2420]/70">
+              Country
+              <input
+                type="text"
+                value={countryInput}
+                onChange={(e) => setCountryInput(e.target.value)}
+                placeholder="Australia"
+                className="mt-1 w-full rounded-lg border border-[#1C2420]/15 px-3 py-2 text-sm font-normal text-[#1C2420] outline-none focus:border-[#146B4D]"
+              />
+            </label>
+            <label className="flex-1 text-xs font-semibold text-[#1C2420]/70">
+              Calculation method
+              <select
+                value={method}
+                onChange={(e) => changeMethod(Number(e.target.value))}
+                className="mt-1 w-full rounded-lg border border-[#1C2420]/15 bg-white px-3 py-2 text-sm font-normal text-[#1C2420] outline-none focus:border-[#146B4D]"
+              >
+                {PRAYER_METHODS.map((pm) => (
+                  <option key={pm.id} value={pm.id}>
+                    {pm.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="submit"
+              className="rounded-lg bg-[#0B3D2E] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#146B4D]"
+            >
+              Update
+            </button>
+          </form>
+        </section>
+
+        {/* ==================== VERSE + DUA ==================== */}
+        <div className="grid gap-6 md:grid-cols-2">
+          <section aria-labelledby="verse-heading" className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm sm:p-6">
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#C9A227]">Verse of the day</p>
+            <h2 id="verse-heading" className="sr-only">
+              Verse of the day
+            </h2>
+            <p dir="rtl" lang="ar" className="font-arabic mt-4 text-right text-2xl leading-loose text-[#0B3D2E] sm:text-3xl">
+              {verse.arabic}
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-[#1C2420]/80 sm:text-base">
+              &ldquo;{verse.translation}&rdquo;
+            </p>
+            <p className="mt-2 text-xs font-semibold text-[#1C2420]/50">— {verse.reference}</p>
+            <Link href="/quran" className="mt-4 inline-block text-sm font-semibold text-[#146B4D] hover:text-[#0B3D2E] hover:underline">
+              Read more in the Quran reader →
+            </Link>
+          </section>
+
+          {dua && (
+            <section aria-labelledby="dua-heading" className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm sm:p-6">
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#C9A227]">Dua of the day</p>
+              <h2 id="dua-heading" className="mt-2 text-lg font-bold text-[#0B3D2E] sm:text-xl">
+                {dua.title}
+              </h2>
+              {dua.situations.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {dua.situations.map((s) => (
+                    <span key={s} className="rounded-full bg-[#F7F5EF] px-2.5 py-1 text-[11px] font-semibold text-[#146B4D]">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <p dir="rtl" lang="ar" className="font-arabic mt-4 text-right text-2xl leading-loose text-[#0B3D2E] sm:text-3xl">
+                {dua.arabic}
+              </p>
+              {dua.transliteration && (
+                <p className="mt-3 text-sm italic leading-relaxed text-[#1C2420]/70">{dua.transliteration}</p>
+              )}
+              <p className="mt-2 text-sm leading-relaxed text-[#1C2420]/80 sm:text-base">{dua.translation}</p>
+              <p className="mt-2 text-xs font-semibold text-[#1C2420]/50">{dua.source}</p>
+              <Link href="/dua-for-this-moment" className="mt-4 inline-block text-sm font-semibold text-[#146B4D] hover:text-[#0B3D2E] hover:underline">
+                Find the dua for this moment →
+              </Link>
+            </section>
+          )}
+        </div>
+
+        {/* ==================== PROGRESS ==================== */}
+        <section aria-labelledby="progress-heading" className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm sm:p-6">
+          <h2 id="progress-heading" className="text-xl font-bold text-[#0B3D2E] sm:text-2xl">
+            Your progress today
+          </h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <Link href="/prayer-times" className="group rounded-xl bg-[#F7F5EF] p-4 transition hover:bg-[#0B3D2E]/5">
+              <p className="text-xs font-bold uppercase tracking-wide text-[#1C2420]/50">Prayers</p>
+              <p className="mt-1 text-2xl font-bold text-[#0B3D2E]">
+                {progress.loaded && progress.prayers > 0 ? `${progress.prayers}/5 prayed` : 'Start today'}
+              </p>
+              <p className="mt-1 text-sm text-[#146B4D] group-hover:underline">
+                {progress.loaded && progress.prayers > 0 ? 'Keep going →' : 'Mark your prayers →'}
+              </p>
+            </Link>
+            <Link href="/dhikr" className="group rounded-xl bg-[#F7F5EF] p-4 transition hover:bg-[#0B3D2E]/5">
+              <p className="text-xs font-bold uppercase tracking-wide text-[#1C2420]/50">Dhikr</p>
+              <p className="mt-1 text-2xl font-bold text-[#0B3D2E]">
+                {progress.loaded && progress.dhikr > 0 ? `Dhikr ${progress.dhikr}` : 'Start today'}
+              </p>
+              <p className="mt-1 text-sm text-[#146B4D] group-hover:underline">
+                {progress.loaded && progress.dhikr > 0 ? 'Continue counting →' : 'Open the dhikr counter →'}
+              </p>
+            </Link>
+            <Link href="/quran" className="group rounded-xl bg-[#F7F5EF] p-4 transition hover:bg-[#0B3D2E]/5">
+              <p className="text-xs font-bold uppercase tracking-wide text-[#1C2420]/50">Reading plan</p>
+              <p className="mt-1 text-2xl font-bold text-[#0B3D2E]">
+                {progress.loaded && progress.juzDone > 0 ? `Juz read ${progress.juzDone}/30` : 'Start today'}
+              </p>
+              <p className="mt-1 text-sm text-[#146B4D] group-hover:underline">
+                {progress.loaded && progress.juzDone > 0 ? 'Continue reading →' : 'Begin your reading plan →'}
+              </p>
+            </Link>
+          </div>
+        </section>
+
+        {/* ==================== TOOLS GRID ==================== */}
+        <section aria-labelledby="tools-heading">
+          <h2 id="tools-heading" className="text-xl font-bold text-[#0B3D2E] sm:text-2xl">
+            All tools
+          </h2>
+          <p className="mt-1 text-sm text-[#1C2420]/60">
+            Everything you need for your daily deen, in one place.
+          </p>
+          {sections.map((section) => (
+            <div key={section.category} className="mt-5">
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-[#1C2420]/60">
+                <span aria-hidden="true">{section.emoji}</span> {section.category}
+              </h3>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {section.items.map((tool) => (
+                  <Link
+                    key={tool.href}
+                    href={tool.href}
+                    className="group flex flex-col items-start rounded-xl border border-[#0B3D2E]/10 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#C9A227] hover:shadow-md"
+                  >
+                    <span className={`flex h-10 w-10 items-center justify-center rounded-xl text-xl ${tool.color}`}>
+                      {tool.icon}
+                    </span>
+                    <span className="mt-3 text-sm font-bold leading-tight text-[#1C2420] group-hover:text-[#0B3D2E]">
+                      {tool.name}
+                    </span>
+                    <span className="mt-0.5 text-xs leading-snug text-[#1C2420]/55">{tool.desc}</span>
                   </Link>
                 ))}
               </div>
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <button onClick={toggleDark} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/18 transition-all active:scale-90 text-base" aria-label="Toggle dark mode">
-                  {dark ? '☀️' : '🌙'}
-                </button>
-                <div className="relative">
-                  <button ref={langButtonRef} onClick={() => setShowLangMenu(v => !v)} className="flex items-center gap-1 sm:gap-1.5 bg-white/10 border border-white/15 rounded-xl px-2 sm:px-2.5 py-1.5 text-white/65 text-xs hover:bg-white/18 transition-all">
-                    <span>{currentLang?.flag}</span>
-                    <span className="hidden sm:inline">{currentLang?.label}</span>
-                    <span className="text-white/35 text-[10px]">▾</span>
-                  </button>
-                  {showLangMenu && (
-                    <div ref={langMenuRef} className="absolute top-10 right-0 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-[999] w-44 py-1" style={{ maxHeight: 320, overflowY: 'auto' }}>
-                      {LANGUAGES.map(l => (
-                        <button key={l.code} onClick={() => switchLang(l.code)} className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition hover:bg-gray-50 dark:hover:bg-gray-700 ${lang === l.code ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>
-                          <span>{l.flag}</span>
-                          <span className="flex-1">{l.label}</span>
-                          {lang === l.code && <span className="text-emerald-500 text-xs">✓</span>}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
+          ))}
+        </section>
 
-            {/* Hero */}
-            <div className="text-center">
-              <h1 className="inline-block text-3xl sm:text-5xl md:text-6xl mb-0.5 sm:mb-1 hover:opacity-80 transition-opacity cursor-pointer tracking-tight" style={{ color: '#c8a96e', fontFamily: 'serif' }}>
-                <Link href="/" aria-label="I Love Islam — Home">♡ I Love Islam</Link>
-              </h1>
-              <p className="text-white/55 text-[11px] sm:text-xs mb-1.5 sm:mb-4 tracking-wide">{t.tagline}</p>
-              <div className="hidden sm:block"><LiveBar /></div>
-
-              {/* Search bar */}
-              <div className="max-w-md mx-auto">
-                <div className="flex items-center gap-2 sm:gap-3 rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 focus-within:border-white/50 focus-within:bg-white/12 transition-all duration-200" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
-                  <span className="text-white/35 text-base flex-shrink-0">🔍</span>
-                  <input
-                    ref={searchRef} type="text" value={search} onChange={e => setSearch(e.target.value)}
-                    placeholder={t.search}
-                    className="bg-transparent text-white placeholder-white/25 text-sm outline-none flex-1 min-w-0"
-                    aria-label="Search Islamic tools"
-                  />
-                  {search && (
-                    <button onClick={() => { setSearch(''); searchRef.current?.focus(); }} className="text-white/35 hover:text-white/70 text-lg leading-none transition-colors flex-shrink-0" aria-label="Clear search">✕</button>
-                  )}
-                </div>
-                {search && (
-                  <div className="mt-1.5 text-center">
-                    {totalResults === 0 ? (
-                      <p className="text-white/50 text-xs">
-                        No matches for <span className="text-white font-medium">"{search}"</span>
-                        <span className="block text-white/25 text-[10px] mt-0.5">Try: zakat · prayer · quran · qibla · dhikr · halal · kids · eid</span>
-                      </p>
-                    ) : (
-                      <p className="text-white/50 text-xs"><span className="text-white font-semibold">{totalResults}</span> {totalResults === 1 ? 'tool' : 'tools'} found</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* ==================== MAIN ==================== */}
-        <main className="max-w-6xl mx-auto px-3 sm:px-4 py-3 sm:py-5">
-          <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
-
-            {/* LEFT COLUMN — Main content */}
-            <div className="flex-1 min-w-0">
-
-              {/* Recently Used — quick access for returning users */}
-              {!isSearching && activeTab === 'all' && (
-                <RecentlyUsed onToolClick={trackToolClick} />
-              )}
-
-              {/* DailyStrip — hidden on mobile, shown on sm+ above grid */}
-              {!isSearching && activeTab === 'all' && (
-                <div className="hidden sm:block">
-                  <DailyStrip
-                    allTools={ALL_FEATURED_TOOLS}
-                    onToolClick={(title: string) => { trackToolClick(title); ScrollManager.save(); }}
-                  />
-                </div>
-              )}
-
-              {/* Category tabs */}
-              {!isSearching && (
-                <CategoryTabs categories={categoryList} activeTab={activeTab} onSelect={setActiveTab} />
-              )}
-
-              {/* Tools grid — 3 cols on mobile, 3 on sm, 4 on md, 5 on lg */}
-              {filteredTools.length === 0 ? (
-                <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 sm:p-10 text-center border border-gray-100 dark:border-gray-700 mb-4">
-                  <p className="text-4xl mb-3">🔍</p>
-                  <p className="text-gray-700 dark:text-gray-300 font-semibold mb-1">{t.noTools} &ldquo;{search}&rdquo;</p>
-                  <p className="text-gray-400 text-sm mb-4">{t.noToolsSub}</p>
-                  <button onClick={() => setSearch('')} className="px-5 py-2 rounded-xl text-white text-sm transition hover:opacity-90 active:scale-95" style={{ background: '#0a3d2e' }}>{t.clear}</button>
-                </div>
-              ) : (
-                filteredTools.map(section => (
-                  <div key={section.category} className="mb-4 sm:mb-6">
-                    <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                      <span className="text-sm sm:text-base">{section.emoji}</span>
-                      <h2 className="text-[10px] font-bold tracking-[0.16em] uppercase text-gray-400 dark:text-gray-500">{section.category}</h2>
-                      <div className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent dark:from-gray-700" />
-                      <span className="text-[9px] text-gray-300 dark:text-gray-600 tabular-nums">{section.items.length}</span>
-                    </div>
-                    <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 sm:gap-2">
-                      {section.items.map(tool => (
-                        <ToolCard key={tool.name + tool.href} tool={tool} />
-                      ))}
-                    </div>
-                  </div>
-                ))
-              )}
-
-              {/* DailyStrip — shown on mobile BELOW the grid */}
-              {!isSearching && activeTab === 'all' && (
-                <div className="sm:hidden mb-4">
-                  <DailyStrip
-                    allTools={ALL_FEATURED_TOOLS}
-                    onToolClick={(title: string) => { trackToolClick(title); ScrollManager.save(); }}
-                  />
-                </div>
-              )}
-
-              {/* Stats + About — bottom of left column */}
-              {!isSearching && activeTab === 'all' && (
-                <>
-                  <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 my-4 sm:my-5">
-                    {Object.values(t.stats).map(label => (
-                      <span key={label} className="text-[10px] text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-2.5 sm:px-3 py-1 rounded-full border border-gray-100 dark:border-gray-700">{label}</span>
-                    ))}
-                  </div>
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 sm:p-5">
-                    <h2 className="font-semibold text-gray-800 dark:text-gray-200 text-sm mb-2">{t.aboutTitle}</h2>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed mb-2">{t.aboutText1}</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">{t.aboutText2}</p>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* ✅ RIGHT COLUMN — Sidebar (desktop only) — Newsletter REMOVED from here */}
-            {!isSearching && activeTab === 'all' && (
-              <div className="hidden md:block md:w-56 lg:w-64 xl:w-72 flex-shrink-0 space-y-4">
-
-                {/* HalalScan sidebar card */}
-                <Link
-                  href="/halal-scanner"
-                  onClick={() => { trackToolClick('HalalScan Sidebar Card'); ScrollManager.save(); }}
-                  className="group flex flex-col gap-2 rounded-2xl border border-emerald-700/40 p-4 hover:border-emerald-500/60 hover:shadow-lg transition-all duration-200 overflow-hidden relative"
-                  style={{ background: 'linear-gradient(135deg, #071a0d, #0a2e14)' }}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-800/50 border border-emerald-600/30 flex items-center justify-center text-lg flex-shrink-0">📷</div>
-                    <div>
-                      <p className="text-[9px] font-bold tracking-widest uppercase text-emerald-400">🆕 New</p>
-                      <p className="text-white font-semibold text-sm leading-tight">HalalScan</p>
-                    </div>
-                  </div>
-                  <p className="text-emerald-200/50 text-xs leading-relaxed">Scan any product barcode or photo — instantly check if it's Halal, Haram or Mashbooh. 100% free.</p>
-                  <span className="text-emerald-400 text-xs font-semibold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">Try it now →</span>
-                </Link>
-
-                {/* Popular tools list */}
-                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4">
-                  <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-3">⭐ Popular Tools</p>
-                  <div className="space-y-0.5">
-                    {[
-                      { label: '📷 HalalScan', href: '/halal-scanner' },
-                      { label: '💰 Zakat Calculator', href: '/zakat' },
-                      { label: '🕐 Prayer Times', href: '/prayer-times' },
-                      { label: '🧭 Qibla Finder', href: '/qibla' },
-                      { label: '📿 Dhikr Counter', href: '/dhikr' },
-                      { label: '📖 Quran Reader', href: '/quran' },
-                      { label: '🌙 Night Recitation', href: '/night' },
-                      { label: '🐄 Eid ul Adha', href: '/eid-adha' },
-                      { label: '🎮 Kids Games', href: '/kids' },
-                    ].map(link => (
-                      <Link key={link.href} href={link.href} onClick={() => { trackToolClick(link.label); ScrollManager.save(); }}
-                        className="flex items-center justify-between px-3 py-2 rounded-xl text-xs text-gray-600 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-700 dark:hover:text-emerald-400 transition-all group">
-                        <span>{link.label}</span>
-                        <span className="text-gray-300 dark:text-gray-600 group-hover:translate-x-0.5 transition-transform">→</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </main>
-
-        {/* ==================== FOOTER ==================== */}
-        <footer className="mt-6 sm:mt-8 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-          <div className="max-w-6xl mx-auto px-3 sm:px-4 py-6">
-
-            {/* Top row: logo + newsletter */}
-            <div className="flex flex-col md:flex-row md:items-start gap-5">
-              {/* Logo + tagline */}
-              <div className="flex flex-col items-center md:items-start flex-shrink-0">
-                <Link href="/" aria-label="I Love Islam — Home" className="inline-block hover:opacity-80 transition-opacity">
-                  <Image src="/logo.png" alt="I Love Islam" width={64} height={64} className="rounded-2xl sm:w-[72px] sm:h-[72px]" />
-                </Link>
-                <p className="text-emerald-700 dark:text-emerald-500 text-base mt-2" style={{ fontFamily: 'serif' }}>بسم الله الرحمن الرحيم</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 text-center md:text-left">{t.footerMade} · {t.footerFree}</p>
-              </div>
-
-              {/* Spacer pushes newsletter to the right on desktop */}
-              <div className="flex-1" />
-
-              {/* ✅ Newsletter — shown once here only (removed from sidebar) */}
-              <div className="w-full md:w-auto md:min-w-[220px] lg:min-w-[260px]">
-                <Newsletter t={t as any} />
-              </div>
-            </div>
-
-            {/* ✅ Footer nav — single line with | separators, sitemap removed */}
-            <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-col items-center gap-2">
-              <nav aria-label="Footer links" className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-gray-400 dark:text-gray-500">
-                <Link href="/about" className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.about}</Link>
-                <span className="text-gray-200 dark:text-gray-700 select-none">|</span>
-                <Link href="/blog" className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.blog}</Link>
-                <span className="text-gray-200 dark:text-gray-700 select-none">|</span>
-                <Link href="/contact" className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.contact}</Link>
-                <span className="text-gray-200 dark:text-gray-700 select-none">|</span>
-                <Link href="/faq" className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.faq}</Link>
-                <span className="text-gray-200 dark:text-gray-700 select-none">|</span>
-                <Link href="/install" className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">📲 Install</Link>
-                <span className="text-gray-200 dark:text-gray-700 select-none">|</span>
-                <Link href="/privacy" className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.privacy}</Link>
-                <span className="text-gray-200 dark:text-gray-700 select-none">|</span>
-                <Link href="/terms" className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">{t.terms}</Link>
-              </nav>
-              <p className="text-[10px] text-gray-300 dark:text-gray-600">
-                © {new Date().getFullYear()} iloveislam.life · All tools are free for the Ummah
+        {/* ==================== TRUST STRIP ==================== */}
+        <section aria-labelledby="why-heading" className="rounded-2xl bg-[#0B3D2E] p-5 text-white shadow-sm sm:p-6">
+          <h2 id="why-heading" className="text-xl font-bold sm:text-2xl">
+            Why I Love Islam
+          </h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <p className="font-bold text-[#C9A227]">✓ Free forever</p>
+              <p className="mt-1 text-sm leading-relaxed text-white/75">
+                No subscriptions, no premium tiers, no hidden costs. Every tool is completely free.
               </p>
             </div>
-
+            <div>
+              <p className="font-bold text-[#C9A227]">✓ No sign-up</p>
+              <p className="mt-1 text-sm leading-relaxed text-white/75">
+                Use any tool instantly — no account, no email, no personal information required.
+              </p>
+            </div>
+            <div>
+              <p className="font-bold text-[#C9A227]">✓ Privacy first</p>
+              <p className="mt-1 text-sm leading-relaxed text-white/75">
+                Your prayers, dhikr, and reading progress stay on your own device. We never collect or sell your data.
+              </p>
+            </div>
+            <div>
+              <p className="font-bold text-[#C9A227]">✓ Authentic sources</p>
+              <p className="mt-1 text-sm leading-relaxed text-white/75">
+                Quran text, translations, and duas drawn from verified sources and established Islamic references.
+              </p>
+            </div>
           </div>
-        </footer>
-
-        <BackToTop />
+        </section>
       </div>
-    </>
+    </div>
   );
 }

@@ -2,7 +2,7 @@
 export const halalTravelEssentialsArticle = {
   slug: "halal-travel-essentials",
   title: "Halal Travel Essentials: Eating and Praying on the Road",
-  excerpt: "Practical advice for Muslim travellers: finding halal meals, praying on the go, and using tech to stay confident when away from home.",
+  excerpt: "On the road with no halal restaurant or prayer space in sight? Practical advice for Muslim travellers: finding halal meals, praying on the go and staying confident away from home.",
   category: "Travel",
   emoji: "🧳",
   readTime: "6-9 min read",
@@ -14,7 +14,7 @@ export const halalTravelEssentialsArticle = {
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-10 mb-6">Planning Ahead</h2>
 
-<p>Good travel planning reduces stress. Before you leave, identify nearby halal restaurants or shops using local directories and maps. Save screenshots and offline maps when travelling to areas with limited connectivity. Pack small essentials: prayer mat, a compact tasbih (if you use one), and a list of common phrases to ask about ingredients in the local language or a translation app snippet.</p>
+<p>Good travel planning reduces stress. Before you leave, identify nearby halal restaurants or shops using local directories and maps. Save screenshots and offline maps when travelling to areas with limited connectivity. Pack small essentials: prayer mat, a compact tasbih (if you use one), and a list of common phrases to ask about ingredients in the local language or a translation app snippet. For the full checklist before you travel, see our <a href="/blog/halal-travel-tips-muslim-guide" class="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">10 essential halal travel tips</a>.</p>
 
 <h2 class="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-10 mb-6">Finding Halal Food Fast</h2>
 

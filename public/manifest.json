@@ -1,11 +1,11 @@
 {
-  "name": "I Love Islam - Islamic Tools",
+  "name": "I Love Islam — Your Daily Companion for Prayer, Quran & Duas",
   "short_name": "I Love Islam",
-  "description": "Free Islamic tools for every Muslim: Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Hijri Calendar, Dhikr Counter and 25+ more tools.",
+  "description": "Free Islamic tools for every Muslim: Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Hijri Calendar, Dhikr Counter and more tools.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a3d2e",
-  "theme_color": "#0a3d2e",
+  "theme_color": "#0B3D2E",
   "orientation": "portrait-primary",
   "scope": "/",
   "id": "/",
@@ -87,13 +87,6 @@
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Halal Scanner",
-      "short_name": "HalalScan",
-      "description": "Scan food products for halal status",
-      "url": "/halal-scanner",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    },
-    {
       "name": "99 Names of Allah",
       "short_name": "99 Names",
       "description": "Explore Asma ul Husna",
@@ -112,13 +105,6 @@
       "short_name": "Hijri",
       "description": "Islamic date converter",
       "url": "/hijri",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Kids Islamic Games",
-      "short_name": "Kids",
-      "description": "Fun educational Islamic games",
-      "url": "/kids",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ],
