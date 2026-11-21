@@ -694,7 +694,7 @@ export interface SurahStrength {
 }
 
 /**
- * Per-surah strength for every launch surah with any practice. Strength is
+ * Per-surah strength for every surah with any practice. Strength is
  * the share of the surah's ayahs memorised (full weight) or learning (half
  * weight) — a surah you have never touched scores nothing and is omitted.
  */
@@ -766,7 +766,7 @@ export function revisionDue(
  * Test Mode pool (spec §15): the ayahs a test draws from. Memorised ayahs
  * first (the real test is recall of what you claim to know), then learning
  * ayahs; if fewer than `count` practised ayahs exist, the pool is topped up
- * with unpractised ayahs from the launch set so a new user can still take
+ * with unpractised ayahs from the whole Quran so a new user can still take
  * a test. Shuffled, so the test drops you at random places with no cue.
  */
 export function pickTestPool(

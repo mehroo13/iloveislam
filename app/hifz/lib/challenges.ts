@@ -14,7 +14,7 @@
 // target, so joining with a bare code asks the joiner to pick the same
 // surah/target the group agreed — the code is the group's shared key,
 // the payload is the data.
-import type { LaunchSurah } from '../surahs';
+import type { HifzSurah } from '../surahs';
 
 const CHALLENGES_KEY = 'hifz_challenges_v1';
 
@@ -56,7 +56,7 @@ function randomCode(): string {
 
 export function createChallenge(opts: {
   name: string;
-  surah: LaunchSurah;
+  surah: HifzSurah;
   targetAyahs: number;
   days: number;
   myName: string;

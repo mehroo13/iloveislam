@@ -1,9 +1,9 @@
 // app/hifz/plans/page.tsx — all memorisation plans (spec §5.2).
-// 7-day (free) and 30-day (Premium-defined, free during testing) per launch
-// surah, plus the Juz Amma 90-day plan.
+// 7-day (free) and 30-day (Premium-defined, free during testing) per surah,
+// plus the Juz Amma 90-day plan.
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { LAUNCH_SURAHS } from '../surahs';
+import { ALL_SURAHS } from '../surahs';
 import { getPlan, JUZ_AMMA_90_DAY } from '../plans';
 import PlanCard from '../components/PlanCard';
 import { Breadcrumb, Attribution, PremiumSection } from '../components/HifzShared';
@@ -12,12 +12,12 @@ import { SITE_URL } from '../lib/fetch';
 export const metadata: Metadata = {
   title: 'Hifz Plans — 7-Day, 30-Day & 90-Day | I Love Islam',
   description:
-    'Memorisation plans for every launch surah: 7-day plans, 30-day plans and the Juz Amma 90-day plan, each paired with the recitation coach.',
+    'Memorisation plans for every surah: 7-day plans, 30-day plans and the Juz Amma 90-day plan, each paired with the recitation coach.',
   alternates: { canonical: `${SITE_URL}/hifz/plans` },
 };
 
 export default function PlansPage() {
-  const named = LAUNCH_SURAHS.filter((s) => s.juz !== 30);
+  const named = ALL_SURAHS.filter((s) => s.juz !== 30);
   return (
     <main className="mx-auto max-w-6xl px-4 pb-16 pt-6 sm:pt-8">
       <Breadcrumb

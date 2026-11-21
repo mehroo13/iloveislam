@@ -16,58 +16,24 @@
 - [Juz 30](https://www.iloveislam.life/hifz/juz/30): Juz 30 overview — same content as Juz Amma.
 - [Ayat al-Kursi](https://www.iloveislam.life/hifz/ayat-al-kursi): Ayat al-Kursi (2:255) — single-ayah study page; Quran text via Quran.com.
 - [Test Mode](https://www.iloveislam.life/hifz/test): Exam-style recall test — random ayahs from your memorised text, Arabic hidden, no cue; a reveal counts as a miss.
-- [Voice Search](https://www.iloveislam.life/hifz/voice-search): Recite a few words of any ayah and find it instantly; matches in the launch set open in the coach.
+- [Voice Search](https://www.iloveislam.life/hifz/voice-search): Recite a few words of any ayah and find it instantly; every match opens in the coach.
 - [Group Challenges](https://www.iloveislam.life/hifz/challenges): Memorise together — share a challenge code or link, track group progress. No accounts.
 
-## Launch surahs
+## The whole Quran
+
+All 114 surahs (6,236 ayahs) and all 30 juz are on the site — read, listen and memorise each one with the AI recitation coach. A few examples:
 
 - [Surah Al-Fatihah (1), 7 ayahs](https://www.iloveislam.life/hifz/al-fatihah): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
+- [Surah Al-Baqarah (2), 286 ayahs](https://www.iloveislam.life/hifz/al-baqarah): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
 - [Surah Al-Mulk (67), 30 ayahs](https://www.iloveislam.life/hifz/al-mulk): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Ya-Sin (36), 83 ayahs](https://www.iloveislam.life/hifz/ya-sin): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Kahf (18), 110 ayahs](https://www.iloveislam.life/hifz/al-kahf): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Ar-Rahman (55), 78 ayahs](https://www.iloveislam.life/hifz/ar-rahman): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Waqi'ah (56), 96 ayahs](https://www.iloveislam.life/hifz/al-waqiah): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah An-Naba (78), 40 ayahs](https://www.iloveislam.life/hifz/an-naba): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah An-Nazi'at (79), 46 ayahs](https://www.iloveislam.life/hifz/an-naziat): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah 'Abasa (80), 42 ayahs](https://www.iloveislam.life/hifz/abasa): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah At-Takwir (81), 29 ayahs](https://www.iloveislam.life/hifz/at-takwir): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Infitar (82), 19 ayahs](https://www.iloveislam.life/hifz/al-infitar): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Mutaffifin (83), 36 ayahs](https://www.iloveislam.life/hifz/al-mutaffifin): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Inshiqaq (84), 25 ayahs](https://www.iloveislam.life/hifz/al-inshiqaq): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Buruj (85), 22 ayahs](https://www.iloveislam.life/hifz/al-buruj): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah At-Tariq (86), 17 ayahs](https://www.iloveislam.life/hifz/at-tariq): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-A'la (87), 19 ayahs](https://www.iloveislam.life/hifz/al-ala): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Ghashiyah (88), 26 ayahs](https://www.iloveislam.life/hifz/al-ghashiyah): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Fajr (89), 30 ayahs](https://www.iloveislam.life/hifz/al-fajr): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Balad (90), 20 ayahs](https://www.iloveislam.life/hifz/al-balad): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Ash-Shams (91), 15 ayahs](https://www.iloveislam.life/hifz/ash-shams): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Layl (92), 21 ayahs](https://www.iloveislam.life/hifz/al-layl): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Ad-Duhaa (93), 11 ayahs](https://www.iloveislam.life/hifz/ad-duhaa): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Ash-Sharh (94), 8 ayahs](https://www.iloveislam.life/hifz/ash-sharh): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah At-Tin (95), 8 ayahs](https://www.iloveislam.life/hifz/at-tin): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-'Alaq (96), 19 ayahs](https://www.iloveislam.life/hifz/al-alaq): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Qadr (97), 5 ayahs](https://www.iloveislam.life/hifz/al-qadr): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Bayyinah (98), 8 ayahs](https://www.iloveislam.life/hifz/al-bayyinah): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Az-Zalzalah (99), 8 ayahs](https://www.iloveislam.life/hifz/az-zalzalah): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-'Adiyat (100), 11 ayahs](https://www.iloveislam.life/hifz/al-adiyat): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Qari'ah (101), 11 ayahs](https://www.iloveislam.life/hifz/al-qariah): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah At-Takathur (102), 8 ayahs](https://www.iloveislam.life/hifz/at-takathur): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-'Asr (103), 3 ayahs](https://www.iloveislam.life/hifz/al-asr): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Humazah (104), 9 ayahs](https://www.iloveislam.life/hifz/al-humazah): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Fil (105), 5 ayahs](https://www.iloveislam.life/hifz/al-fil): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Quraysh (106), 4 ayahs](https://www.iloveislam.life/hifz/quraysh): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Ma'un (107), 7 ayahs](https://www.iloveislam.life/hifz/al-maun): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Kawthar (108), 3 ayahs](https://www.iloveislam.life/hifz/al-kawthar): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Kafirun (109), 6 ayahs](https://www.iloveislam.life/hifz/al-kafirun): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah An-Nasr (110), 3 ayahs](https://www.iloveislam.life/hifz/an-nasr): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Masad (111), 5 ayahs](https://www.iloveislam.life/hifz/al-masad): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Ikhlas (112), 4 ayahs](https://www.iloveislam.life/hifz/al-ikhlas): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah Al-Falaq (113), 5 ayahs](https://www.iloveislam.life/hifz/al-falaq): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
-- [Surah An-Nas (114), 6 ayahs](https://www.iloveislam.life/hifz/an-nas): Read, listen and memorise; Arabic, translation and tafsir via Quran.com.
+- [Juz 1](https://www.iloveislam.life/hifz/juz/1): Alif Lam Mim — 148 ayahs.
+- [Juz Amma (Juz 30)](https://www.iloveislam.life/hifz/juz-amma): All 37 short surahs, shortest first, the beginner path.
+
+The full list of all 114 surah pages and all 6,236 ayah URLs is in llms-full.txt.
 
 ## Ayah pages
 
-- Every ayah has its own page at /hifz/[surah-slug]/[surah]-[ayah] — for example /hifz/al-mulk/67-1 — with Arabic, translation, word-by-word, audio and tafsir via Quran.com. The full list (969 ayah URLs) is in llms-full.txt.
+- Every ayah has its own page at /hifz/[surah-slug]/[surah]-[ayah] — for example /hifz/al-mulk/67-1 — with Arabic, translation, word-by-word, audio and tafsir via Quran.com. The full list (6,236 ayah URLs) is in llms-full.txt.
 
 ## Sources
 

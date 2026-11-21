@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { LAUNCH_SURAHS } from '../surahs';
+import { ALL_SURAHS } from '../surahs';
 import {
   loadChallenges, saveChallenges, createChallenge, mergeChallenge,
   decodeChallengeParam, shareLink, groupProgress, daysLeft, isEnded,
@@ -81,7 +81,7 @@ export default function ChallengesClient() {
   };
 
   const doCreate = () => {
-    const surah = LAUNCH_SURAHS.find((s) => s.slug === surahSlug) ?? LAUNCH_SURAHS[0];
+    const surah = ALL_SURAHS.find((s) => s.slug === surahSlug) ?? ALL_SURAHS[0];
     const c = createChallenge({
       name: name.trim() || `${surah.name} challenge`,
       surah,
@@ -101,7 +101,7 @@ export default function ChallengesClient() {
       setMsg(`${code} is already on this device.`);
       return;
     }
-    const surah = LAUNCH_SURAHS.find((s) => s.slug === joinSurahSlug) ?? LAUNCH_SURAHS[0];
+    const surah = ALL_SURAHS.find((s) => s.slug === joinSurahSlug) ?? ALL_SURAHS[0];
     const now = new Date();
     const c: GroupChallenge = {
       id: `${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`,
@@ -200,7 +200,7 @@ export default function ChallengesClient() {
                       I did 5 ayahs
                     </button>
                     <Link
-                      href={`/hifz/${LAUNCH_SURAHS.find((s) => s.id === c.surahId)?.slug ?? 'al-mulk'}?mode=recite`}
+                      href={`/hifz/${ALL_SURAHS.find((s) => s.id === c.surahId)?.slug ?? 'al-mulk'}?mode=recite`}
                       className="rounded-full border border-[#e5e0d3] px-4 py-2 text-sm font-semibold hover:border-[#146B4D]"
                     >
                       Recite with the coach →
@@ -273,7 +273,7 @@ export default function ChallengesClient() {
                 onChange={(e) => setSurahSlug(e.target.value)}
                 className="mt-1 block rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-3 py-2.5 text-sm"
               >
-                {LAUNCH_SURAHS.map((s) => (
+                {ALL_SURAHS.map((s) => (
                   <option key={s.slug} value={s.slug}>{s.name} ({s.ayahCount} ayahs)</option>
                 ))}
               </select>
@@ -349,7 +349,7 @@ export default function ChallengesClient() {
                 onChange={(e) => setJoinSurahSlug(e.target.value)}
                 className="mt-1 block rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-3 py-2.5 text-sm"
               >
-                {LAUNCH_SURAHS.map((s) => (
+                {ALL_SURAHS.map((s) => (
                   <option key={s.slug} value={s.slug}>{s.name} ({s.ayahCount} ayahs)</option>
                 ))}
               </select>

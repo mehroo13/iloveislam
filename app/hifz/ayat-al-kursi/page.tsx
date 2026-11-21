@@ -1,10 +1,9 @@
 // app/hifz/ayat-al-kursi/page.tsx — special single-ayah study page (spec §1.1, §4.2).
 // Canonical ayah content lives at /hifz/al-baqarah/2-255; this page links there.
-// Al-Baqarah as a whole is NOT in v1.
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { AYAT_AL_KURSI } from '../surahs';
-import { fetchVerseByKey, fetchVerseWords, fetchTafsir, ayahJsonLd, SITE_URL, AL_BAQARAH } from '../lib/fetch';
+import { AYAT_AL_KURSI, getSurahBySlug } from '../surahs';
+import { fetchVerseByKey, fetchVerseWords, fetchTafsir, ayahJsonLd, SITE_URL } from '../lib/fetch';
 import { getVirtue } from '../virtues';
 import AyahClient from '../components/AyahClient';
 import VirtuesBlock from '../components/VirtuesBlock';
@@ -12,6 +11,7 @@ import { Breadcrumb, Attribution, PremiumSection } from '../components/HifzShare
 import { stripHtml, cleanIndopak } from '../../quran/lib';
 
 const KEY = AYAT_AL_KURSI.key; // "2:255"
+const BAQARAH = getSurahBySlug('al-baqarah')!;
 
 export const metadata: Metadata = {
   title: 'Ayat al-Kursi (2:255) — Memorise | I Love Islam',
@@ -46,7 +46,7 @@ export default async function AyatAlKursiPage() {
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(
               ayahJsonLd({
-                surah: AL_BAQARAH,
+                surah: BAQARAH,
                 ayah: 255,
                 key: KEY,
                 description,
@@ -84,7 +84,7 @@ export default async function AyatAlKursiPage() {
       {verse && (
         <div className="mt-6">
           <AyahClient
-            surah={AL_BAQARAH}
+            surah={BAQARAH}
             ayah={255}
             initialVerse={verse}
             initialWords={words}

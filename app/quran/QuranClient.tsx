@@ -6,7 +6,7 @@ import {
   VOTD_KEYS, JUZ_DATA, stripHtml, cleanIndopak, dayOfYear, networkErrorMessage,
   type Chapter, type Verse, type Bookmark, type SearchHit, type Tab,
 } from './lib';
-import { LAUNCH_SURAHS_BY_SLUG } from '../hifz/surahs';
+import { ALL_SURAHS_BY_SLUG } from '../hifz/surahs';
 
 /* Quran Reader client — Indo-Pak script (Quran.com API v4, text_indopak).
    The surah list and Verse of the Day arrive server-rendered as props;
@@ -537,7 +537,7 @@ export default function QuranClient({
                 </p>
               )}
               {currentSurah && (() => {
-                const launch = Object.values(LAUNCH_SURAHS_BY_SLUG).find((s) => s.id === currentSurah.id);
+                const launch = Object.values(ALL_SURAHS_BY_SLUG).find((s) => s.id === currentSurah.id);
                 return launch ? (
                   <a
                     href={`/hifz/${launch.slug}`}

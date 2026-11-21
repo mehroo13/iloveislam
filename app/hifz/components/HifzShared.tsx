@@ -1,7 +1,7 @@
 // app/hifz/components/HifzShared.tsx — shared SERVER components for the hub:
 // breadcrumb, attribution footer, premium section, surah hero.
 import Link from 'next/link';
-import type { LaunchSurah } from '../surahs';
+import type { HifzSurah } from '../surahs';
 import { ATTRIBUTION } from '../lib/fetch';
 import { BISMILLAH } from '../../quran/lib';
 
@@ -61,7 +61,7 @@ export function SurahHero({
   surah,
   planDays,
 }: {
-  surah: LaunchSurah;
+  surah: HifzSurah;
   planDays?: number;
 }) {
   return (

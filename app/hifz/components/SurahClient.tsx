@@ -14,7 +14,7 @@ import {
   API, AUDIO_BASE, TRANSLATIONS, RECITERS, stripHtml, cleanIndopak, verseText,
   type Verse,
 } from '../../quran/lib';
-import type { LaunchSurah } from '../surahs';
+import type { HifzSurah } from '../surahs';
 import { useScriptPref, SCRIPT_LABELS } from '../lib/script';
 import {
   loadProgress, saveProgress, loadSettings, saveSettings,
@@ -66,7 +66,7 @@ export default function SurahClient({
   coachOpen: initialCoachOpen = false,
   initialAyah = 1,
 }: {
-  surah: LaunchSurah;
+  surah: HifzSurah;
   initialVerses: Verse[];
   coachOpen?: boolean;
   initialAyah?: number;
@@ -85,7 +85,7 @@ export default function SurahClient({
 
   /* ?mode=recite / ?ayah=N are read client-side (the server page stays
    * fully static — reading searchParams server-side would force dynamic
-   * rendering of all 969 ayah pages). */
+   * rendering of all 6,236 ayah pages). */
   useEffect(() => {
     try {
       const q = new URLSearchParams(window.location.search);

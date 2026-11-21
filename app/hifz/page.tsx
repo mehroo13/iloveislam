@@ -12,7 +12,7 @@ import { SITE_URL } from './lib/fetch';
 export const metadata: Metadata = {
   title: 'Memorise the Quran — Hifz Hub | I Love Islam',
   description:
-    'Recite Quran aloud and get instant word-by-word feedback. Memorise Surah Al-Mulk, Ya-Sin, Al-Kahf and Juz Amma with 7-day and 30-day hifz plans. Free, no sign-up.',
+    'Recite Quran aloud and get instant word-by-word feedback. Memorise the whole Quran — all 114 surahs and all 30 juz — with 7-day and 30-day hifz plans. Free, no sign-up.',
   alternates: { canonical: `${SITE_URL}/hifz` },
   openGraph: {
     title: 'Memorise the Quran — Hifz Hub | I Love Islam',
@@ -40,7 +40,7 @@ export default function HifzHubPage() {
     name: 'Memorise the Quran — Hifz Hub',
     url: `${SITE_URL}/hifz`,
     description:
-      'Recite Quran aloud and get instant word-by-word feedback. Memorise Surah Al-Mulk, Ya-Sin, Al-Kahf and Juz Amma with 7-day and 30-day hifz plans.',
+      'Recite Quran aloud and get instant word-by-word feedback. Memorise the whole Quran — all 114 surahs and all 30 juz — with 7-day and 30-day hifz plans.',
   };
   return (
     <main className="mx-auto max-w-3xl px-4 pb-16 pt-6 sm:pt-8">
@@ -59,10 +59,10 @@ export default function HifzHubPage() {
         </p>
         <div className="mt-5 flex flex-wrap justify-center gap-3">
           <Link
-            href="/hifz/al-mulk?mode=recite"
+            href="/hifz/recite"
             className="rounded-full bg-[#C9A227] px-6 py-3 text-sm font-bold text-[#0B3D2E] hover:brightness-110"
           >
-            Start reciting — Surah Al-Mulk
+            Start reciting
           </Link>
         </div>
       </header>

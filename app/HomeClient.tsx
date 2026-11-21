@@ -10,11 +10,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ToolIcon from './components/ToolIcon';
 import { RECITERS } from './quran/lib';
-import { LAUNCH_SURAHS, getSurahById } from './hifz/surahs';
+import { ALL_SURAHS, getSurahById } from './hifz/surahs';
 import ProgressWidget from './hifz/components/ProgressWidget';
 import SurahList from './hifz/components/SurahList';
 
-// Verse of the day — launch-set verses only, so every one links into the hub.
+// Verse of the day — rotates daily; every verse links into the hub.
 const VERSE_KEYS = ['67:1', '1:5', '55:13', '78:1', '94:6', '2:255', '112:1', '36:58'];
 
 const FALLBACK_VERSE = {
@@ -49,7 +49,7 @@ function verseHref(key: string): string {
 export default function HomeClient() {
   const router = useRouter();
   const [verse, setVerse] = useState<VerseState>(FALLBACK_VERSE);
-  const [coachSurah, setCoachSurah] = useState('al-mulk');
+  const [coachSurah, setCoachSurah] = useState('al-fatihah');
   const [coachReciter, setCoachReciter] = useState(7);
 
   const verseKey = VERSE_KEYS[dayOfYear(new Date()) % VERSE_KEYS.length];
@@ -100,7 +100,7 @@ export default function HomeClient() {
                 onChange={(e) => setCoachSurah(e.target.value)}
                 className="mt-1 block w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-sm text-white"
               >
-                {LAUNCH_SURAHS.map((s) => (
+                {ALL_SURAHS.map((s) => (
                   <option key={s.slug} value={s.slug} className="text-[#1C2420]">
                     {s.name} — {s.meaning} ({s.ayahCount} ayahs)
                   </option>

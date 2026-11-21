@@ -15,7 +15,7 @@ import {
   GOAL_TYPE_LABELS, GOAL_TYPE_DESCRIPTIONS, TYPE_GOAL_OPTIONS,
   type GoalType, type HifzProgress, type MistakeEntry, type HifzSettings,
 } from '../progress';
-import { getSurahById, LAUNCH_SURAHS } from '../surahs';
+import { getSurahById, ALL_SURAHS } from '../surahs';
 import ToolIcon from '../../components/ToolIcon';
 
 /** Small SVG progress ring for one per-type daily goal. */
@@ -100,7 +100,7 @@ export default function MyProgressClient() {
   const activity = activityByDate(progress);
   const weekDays = weekPracticeDays(progress);
   const WEEK_CHALLENGE_DAYS = 5;
-  const strengths = surahStrength(progress, LAUNCH_SURAHS);
+  const strengths = surahStrength(progress, ALL_SURAHS);
   const due = revisionDue(progress);
 
   // 12-week activity heatmap (Monday-first columns). Dates are local; a day
@@ -150,7 +150,7 @@ export default function MyProgressClient() {
       const urls: string[] = [
         '/', '/hifz', '/hifz/recite', '/hifz/test', '/hifz/voice-search',
         '/hifz/my-progress', '/hifz/challenges', '/hifz/juz-amma', '/hifz/plans',
-        ...LAUNCH_SURAHS.map(
+        ...ALL_SURAHS.map(
           (s) => `/api/quran/verses/by_chapter/${s.id}?fields=text_indopak,text_uthmani&translations=20&audio=7&per_page=all`,
         ),
       ];
@@ -510,7 +510,7 @@ export default function MyProgressClient() {
               : 'Checking offline support…'}
         </p>
         <p className="mt-2 text-sm text-[#5b6b62]">
-          Saving downloads the text of every launch surah plus the main pages, so the
+          Saving downloads the text of every surah in the whole Quran plus the main pages, so the
           coach works in airplane mode. The AI model itself downloads the first time
           you recite and is cached on this device after that.
         </p>

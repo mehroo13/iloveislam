@@ -1,11 +1,10 @@
 // app/hifz/[slug]/page.tsx — per-surah study page (spec §4.1 template).
 // Server component: fetches verses from Quran.com upstream, renders the hero
-// + client island. Al-Baqarah is NOT a launch surah (only 2:255 exists) —
-// /hifz/al-baqarah itself 404s.
+// + client island. All 114 surahs have pages (Phase 2, full Quran).
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { LAUNCH_SURAHS, getSurahBySlug } from '../surahs';
+import { ALL_SURAHS, getSurahBySlug } from '../surahs';
 import { getPlan } from '../plans';
 import { fetchSurahVerses, surahJsonLd, prevNextSurah, SITE_URL } from '../lib/fetch';
 import SurahClient from '../components/SurahClient';
@@ -14,7 +13,7 @@ import PlanCard from '../components/PlanCard';
 import { Breadcrumb, Attribution, PremiumSection, SurahHero } from '../components/HifzShared';
 
 export async function generateStaticParams() {
-  return LAUNCH_SURAHS.map((s) => ({ slug: s.slug }));
+  return ALL_SURAHS.map((s) => ({ slug: s.slug }));
 }
 
 export async function generateMetadata({
@@ -53,7 +52,7 @@ export default async function SurahPage({
   const verses = await fetchSurahVerses(surah.id);
   const plan7 = getPlan(surah.slug, 7);
   const plan30 = getPlan(surah.slug, 30);
-  const { prev, next } = prevNextSurah(LAUNCH_SURAHS, surah.id);
+  const { prev, next } = prevNextSurah(ALL_SURAHS, surah.id);
   const description = `Memorise Surah ${surah.name} (${surah.id}) — Arabic, translation, audio and a 30-day hifz plan. Recite aloud and get word-by-word feedback.`;
 
   return (
@@ -125,8 +124,8 @@ export default async function SurahPage({
             </li>
           ) : (
             <li>
-              <Link href="/hifz/juz-amma" className="font-semibold text-[#146B4D] hover:underline">
-                Juz Amma — the beginner path
+              <Link href={`/hifz/juz/${surah.juz}`} className="font-semibold text-[#146B4D] hover:underline">
+                Juz {surah.juz} overview
               </Link>
             </li>
           )}

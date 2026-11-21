@@ -14,7 +14,7 @@ import {
   pickTestPool,
   type HifzProgress,
 } from '../progress';
-import { LAUNCH_SURAHS, getSurahById, AYAT_AL_KURSI } from '../surahs';
+import { ALL_SURAHS, getSurahById } from '../surahs';
 
 type Scope = 'memorised' | 'practised' | 'any';
 type Phase = 'setup' | 'testing' | 'done';
@@ -33,12 +33,11 @@ function stripHtml(s: string): string {
   return s.replace(/<[^>]*>/g, '').trim();
 }
 
-function allLaunchAyahs(): TestQuestion[] {
+function allAyahs(): TestQuestion[] {
   const out: TestQuestion[] = [];
-  for (const s of LAUNCH_SURAHS) {
+  for (const s of ALL_SURAHS) {
     for (let a = 1; a <= s.ayahCount; a++) out.push({ surah: s.id, ayah: a });
   }
-  out.push({ surah: AYAT_AL_KURSI.surahId, ayah: AYAT_AL_KURSI.ayah });
   return out;
 }
 
@@ -88,12 +87,12 @@ export default function TestClient() {
       pool = pickTestPool({ ...progress, ayahs: Object.fromEntries(Object.entries(progress.ayahs).filter(([, a]) => a.status === 'memorised')) }, mem, length);
       if (pool.length < length) {
         // Not enough memorised ayahs yet — top up from learning, then new.
-        pool = pickTestPool(progress, allLaunchAyahs(), length);
+        pool = pickTestPool(progress, allAyahs(), length);
       }
     } else if (scope === 'practised') {
-      pool = pickTestPool(progress, allLaunchAyahs(), length);
+      pool = pickTestPool(progress, allAyahs(), length);
     } else {
-      pool = pickTestPool(progress, allLaunchAyahs(), length);
+      pool = pickTestPool(progress, allAyahs(), length);
       // 'any' deliberately mixes in fresh ayahs: pickTestPool already tops
       // up with unpractised ayahs when the practised pool is short.
     }
@@ -335,7 +334,7 @@ export default function TestClient() {
             >
               <option value="memorised">Memorised ayahs only — the strict test</option>
               <option value="practised">Memorised + learning ayahs</option>
-              <option value="any">Anything in the launch set, including new ayahs</option>
+              <option value="any">Anything in the whole Quran, including new ayahs</option>
             </select>
           </label>
           <label className="block text-sm font-semibold">
@@ -359,7 +358,7 @@ export default function TestClient() {
         </button>
         {counts.practised === 0 && (
           <p className="mt-3 text-sm text-[#5b6b62]">
-            Nothing practised yet — your first test will use new ayahs from the launch set.{' '}
+            Nothing practised yet — your first test will use new ayahs from the whole Quran.{' '}
             <Link href="/hifz/juz-amma" className="font-semibold text-[#146B4D] underline">
               Start with Juz Amma first →
             </Link>

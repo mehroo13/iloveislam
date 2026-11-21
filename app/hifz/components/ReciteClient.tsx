@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LAUNCH_SURAHS } from '../surahs';
+import { ALL_SURAHS } from '../surahs';
 import { RECITERS } from '../../quran/lib';
 
 export default function ReciteClient() {
@@ -12,7 +12,7 @@ export default function ReciteClient() {
   const [slug, setSlug] = useState('al-mulk');
   const [ayah, setAyah] = useState(1);
   const [reciterId, setReciterId] = useState(7);
-  const surah = LAUNCH_SURAHS.find((s) => s.slug === slug) ?? LAUNCH_SURAHS[0];
+  const surah = ALL_SURAHS.find((s) => s.slug === slug) ?? ALL_SURAHS[0];
 
   return (
     <div className="rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm sm:p-6">
@@ -26,7 +26,7 @@ export default function ReciteClient() {
           }}
           className="mt-1 block w-full rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-3 py-2.5 text-sm"
         >
-          {LAUNCH_SURAHS.map((s) => (
+          {ALL_SURAHS.map((s) => (
             <option key={s.slug} value={s.slug}>
               {s.name} — {s.meaning} ({s.ayahCount} ayahs)
             </option>

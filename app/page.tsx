@@ -11,7 +11,7 @@ export const revalidate = 3600; // ISR: revalidate every hour
 export const metadata: Metadata = {
   title: 'I Love Islam — Memorise the Quran with AI',
   description:
-    'Recite Quran aloud and get instant word-by-word feedback. Memorise Surah Al-Mulk, Ya-Sin, Al-Kahf and Juz Amma with 7-day and 30-day hifz plans. Free, no sign-up, your audio never leaves your device.',
+    'Recite Quran aloud and get instant word-by-word feedback. Memorise the whole Quran — all 114 surahs and all 30 juz — with 7-day and 30-day hifz plans. Free, no sign-up, your audio never leaves your device.',
   metadataBase: new URL('https://www.iloveislam.life'),
   keywords:
     'memorise quran, hifz, quran memorisation, recitation coach, surah al-mulk, surah ya-sin, surah al-kahf, juz amma, ayat al-kursi, learn quran, quran test mode, voice search quran',
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'I Love Islam — Memorise the Quran with AI',
     description:
-      'Recite Quran aloud and get instant word-by-word feedback. Memorise Surah Al-Mulk, Ya-Sin, Al-Kahf and Juz Amma with 7-day and 30-day hifz plans. Free, no sign-up.',
+      'Recite Quran aloud and get instant word-by-word feedback. Memorise the whole Quran — all 114 surahs and all 30 juz — with 7-day and 30-day hifz plans. Free, no sign-up.',
     url: 'https://www.iloveislam.life',
     siteName: 'I Love Islam',
     images: [{ url: 'https://www.iloveislam.life/og-image.png', width: 1200, height: 630 }],
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'I Love Islam — Memorise the Quran with AI',
     description:
-      'Recite Quran aloud and get instant word-by-word feedback. Memorise Surah Al-Mulk, Ya-Sin, Al-Kahf and Juz Amma with 7-day and 30-day hifz plans. Free, no sign-up.',
+      'Recite Quran aloud and get instant word-by-word feedback. Memorise the whole Quran — all 114 surahs and all 30 juz — with 7-day and 30-day hifz plans. Free, no sign-up.',
     images: ['https://www.iloveislam.life/og-image.png'],
   },
 };
@@ -50,7 +50,7 @@ const jsonLd = {
   name: 'I Love Islam',
   url: 'https://www.iloveislam.life',
   description:
-    'Memorise the Quran with an AI recitation coach: recite aloud and get instant word-by-word feedback, with 7-day and 30-day hifz plans for Surah Al-Mulk, Ya-Sin, Al-Kahf and Juz Amma. Free, no sign-up.',
+    'Memorise the Quran with an AI recitation coach: recite aloud and get instant word-by-word feedback, with 7-day and 30-day hifz plans for all 114 surahs and all 30 juz. Free, no sign-up.',
   featureList:
     'AI Recitation Coach with live word-by-word mistake detection, Memorisation Mode, Test Mode, Voice Search, Hifz Plans, Streaks and Mistake Review, Juz Amma, Tafsir and Translations',
   potentialAction: {
@@ -76,7 +76,7 @@ export default function Page() {
         />
         <div className="relative mx-auto max-w-3xl px-4 py-10 text-center sm:py-14">
           <p dir="rtl" lang="ar" className="font-quran text-3xl text-[#C9A227] sm:text-4xl">
-            تَبٰرَكَ الَّذِىۡ بِيَدِهِ الۡمُلۡكُ
+            بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
           </p>
           <h1 className="mt-4 text-3xl font-bold leading-tight sm:text-5xl">
             Memorise the Quran with AI
@@ -86,16 +86,16 @@ export default function Page() {
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link
-              href="/hifz/al-mulk?mode=recite"
+              href="/hifz/recite"
               className="rounded-full bg-[#C9A227] px-6 py-3 text-sm font-bold text-[#0B3D2E] shadow hover:brightness-110"
             >
-              Start reciting — Surah Al-Mulk
+              Start reciting
             </Link>
             <Link
               href="/hifz"
               className="rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10"
             >
-              Browse all surahs
+              Browse all 114 surahs
             </Link>
           </div>
         </div>

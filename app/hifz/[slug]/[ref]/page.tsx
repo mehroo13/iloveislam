@@ -1,13 +1,12 @@
 // app/hifz/[slug]/[ref]/page.tsx — per-ayah page (spec §4.3).
 // [ref] is SURAH-AYAH, e.g. 67-1; the page shows the canonical key 67:1.
-// Al-Baqarah as a surah page is NOT in v1, but /hifz/al-baqarah/2-255
-// (Ayat al-Kursi) must still exist and work as an ayah page.
+// All 114 surahs have ayah pages (Phase 2, full Quran — 6,236 ayahs).
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { LAUNCH_SURAHS, getSurahBySlug, AYAT_AL_KURSI } from '../../surahs';
+import { ALL_SURAHS, getSurahBySlug } from '../../surahs';
 import {
-  fetchVerseByKey, fetchVerseWords, fetchTafsir, ayahJsonLd, SITE_URL, AL_BAQARAH,
+  fetchVerseByKey, fetchVerseWords, fetchTafsir, ayahJsonLd, SITE_URL,
 } from '../../lib/fetch';
 import { stripHtml, cleanIndopak } from '../../../quran/lib';
 import AyahClient from '../../components/AyahClient';
@@ -15,13 +14,11 @@ import { Breadcrumb, Attribution, PremiumSection } from '../../components/HifzSh
 
 export async function generateStaticParams() {
   const params: { slug: string; ref: string }[] = [];
-  for (const s of LAUNCH_SURAHS) {
+  for (const s of ALL_SURAHS) {
     for (let ayah = 1; ayah <= s.ayahCount; ayah++) {
       params.push({ slug: s.slug, ref: `${s.id}-${ayah}` });
     }
   }
-  // Ayat al-Kursi — canonical ayah page under its surah.
-  params.push({ slug: AYAT_AL_KURSI.surahSlug, ref: AYAT_AL_KURSI.ref });
   return params;
 }
 
@@ -38,10 +35,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug, ref } = await params;
   const parsed = parseRef(ref);
-  const surah =
-    slug === 'al-baqarah' && parsed?.surahId === 2 && parsed.ayah === 255
-      ? AL_BAQARAH
-      : getSurahBySlug(slug);
+  const surah = getSurahBySlug(slug);
   if (!parsed || !surah || parsed.surahId !== surah.id) {
     return { title: 'Ayah not found | I Love Islam' };
   }
@@ -70,10 +64,8 @@ export default async function AyahPage({
   const { slug, ref } = await params;
   const parsed = parseRef(ref);
   const isKursi = slug === 'al-baqarah' && parsed?.surahId === 2 && parsed.ayah === 255;
-  const surah = isKursi ? AL_BAQARAH : getSurahBySlug(slug);
+  const surah = getSurahBySlug(slug);
   if (!parsed || !surah || parsed.surahId !== surah.id) notFound();
-  // Only 2:255 exists under al-baqarah in v1.
-  if (slug === 'al-baqarah' && !isKursi) notFound();
   if (parsed.ayah < 1 || parsed.ayah > surah.ayahCount) notFound();
 
   const key = `${surah.id}:${parsed.ayah}`;
@@ -93,13 +85,10 @@ export default async function AyahPage({
   }
 
   const description = `Read Surah ${surah.name} verse ${parsed.ayah} with Indo-Pak Arabic, Saheeh International translation, word-by-word, audio and tafsir.`;
-  const inLaunch = getSurahBySlug(slug) !== undefined;
   const prevKey = parsed.ayah > 1 ? `${surah.id}:${parsed.ayah - 1}` : null;
   const nextKey = parsed.ayah < surah.ayahCount ? `${surah.id}:${parsed.ayah + 1}` : null;
-  // Prev/next only link to ayah pages that exist in v1. Under al-baqarah
-  // only 2:255 exists, so Ayat al-Kursi has no prev/next ayah links.
-  const prevLink = prevKey && inLaunch ? prevKey : null;
-  const nextLink = nextKey && inLaunch ? nextKey : null;
+  const prevLink = prevKey;
+  const nextLink = nextKey;
 
   return (
     <main className="mx-auto max-w-3xl px-4 pb-16 pt-6 sm:pt-8">
@@ -121,9 +110,7 @@ export default async function AyahPage({
         items={[
           { label: 'Home', href: '/' },
           { label: 'Hifz', href: '/hifz' },
-          ...(inLaunch
-            ? [{ label: `Surah ${surah.name}`, href: `/hifz/${surah.slug}` }]
-            : [{ label: 'Ayat al-Kursi', href: '/hifz/ayat-al-kursi' }]),
+          { label: `Surah ${surah.name}`, href: `/hifz/${surah.slug}` },
           { label: `Ayah ${parsed.ayah} (${key})` },
         ]}
       />
@@ -156,13 +143,11 @@ export default async function AyahPage({
       <section aria-labelledby="more-heading" className="mt-10 rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm">
         <h2 id="more-heading" className="text-lg font-bold text-[#0B3D2E]">More from Surah {surah.name}</h2>
         <ul className="mt-3 space-y-2 text-sm">
-          {inLaunch && (
-            <li>
-              <Link href={`/hifz/${surah.slug}`} className="font-semibold text-[#146B4D] hover:underline">
-                Study the whole surah — read, listen and memorise →
-              </Link>
-            </li>
-          )}
+          <li>
+            <Link href={`/hifz/${surah.slug}`} className="font-semibold text-[#146B4D] hover:underline">
+              Study the whole surah — read, listen and memorise →
+            </Link>
+          </li>
           {isKursi && (
             <li>
               <Link href="/hifz/ayat-al-kursi" className="font-semibold text-[#146B4D] hover:underline">

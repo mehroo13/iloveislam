@@ -8,26 +8,13 @@
 
 import { UPSTREAM_API, TAFSIR_NAME, type Verse } from '../../quran/lib';
 import { cleanIndopak } from '../../quran/lib';
-import type { LaunchSurah } from '../surahs';
+import type { HifzSurah } from '../surahs';
 
 export const SITE_URL = 'https://www.iloveislam.life';
 
 /** Visible attribution — spec §9.2, on every hifz page. */
 export const ATTRIBUTION =
   'Quran text, translation (Saheeh International) and tafsir (Ibn Kathir Abridged) via Quran.com.';
-
-/** Al-Baqarah metadata for the Ayat al-Kursi pages (Al-Baqarah as a whole is NOT in v1). */
-export const AL_BAQARAH: LaunchSurah = {
-  id: 2,
-  slug: 'al-baqarah',
-  arabic: 'البقرة',
-  name: 'Al-Baqarah',
-  meaning: 'The Cow',
-  ayahCount: 286,
-  revelation: 'Madani',
-  juz: 1,
-  juzEnd: 3,
-};
 
 export interface WordInfo {
   position: number;
@@ -140,7 +127,7 @@ export function breadcrumbJsonLd(items: { name: string; url: string }[]) {
   };
 }
 
-export function surahJsonLd(surah: LaunchSurah, description: string) {
+export function surahJsonLd(surah: HifzSurah, description: string) {
   return [
     {
       '@context': 'https://schema.org',
@@ -161,7 +148,7 @@ export function surahJsonLd(surah: LaunchSurah, description: string) {
 }
 
 export function ayahJsonLd(opts: {
-  surah: LaunchSurah;
+  surah: HifzSurah;
   ayah: number;
   key: string;
   description: string;
@@ -198,8 +185,8 @@ export function ayahJsonLd(opts: {
   ];
 }
 
-/** Prev/next surah within the launch set, in mushaf order. */
-export function prevNextSurah(all: LaunchSurah[], currentId: number) {
+/** Prev/next surah within the whole Quran, in mushaf order. */
+export function prevNextSurah(all: HifzSurah[], currentId: number) {
   const sorted = [...all].sort((a, b) => a.id - b.id);
   const idx = sorted.findIndex((s) => s.id === currentId);
   return {

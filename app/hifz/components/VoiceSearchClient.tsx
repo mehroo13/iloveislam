@@ -5,8 +5,8 @@
 // (Quran.com search endpoint). Nothing is recorded or uploaded by us: the
 // transcription happens in the browser, and only the recognised text is sent
 // to the search API. A typed search box is the fallback when the browser has
-// no speech recognition. Results link into the Hifz hub when the surah is in
-// the launch set; other surahs show the verse with an honest note.
+// no speech recognition. Results link into the Hifz hub — every surah in
+// the whole Quran has a coach page, so every match opens in the coach.
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -238,22 +238,12 @@ export default function VoiceSearchClient() {
                     <p className="mt-2 text-sm leading-relaxed text-[#1C2420]/80">“{r.translation}”</p>
                   )}
                   <div className="mt-4">
-                    {surah ? (
-                      <Link
-                        href={`/hifz/${surah.slug}/${r.surah}-${r.ayah}`}
-                        className="rounded-full bg-[#0B3D2E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#146B4D]"
-                      >
-                        Open in the coach →
-                      </Link>
-                    ) : (
-                      <p className="text-sm text-[#5b6b62]">
-                        This surah is not in the memorisation launch set yet, so there is no
-                        coach page for it — the verse above is the match.{' '}
-                        <Link href="/hifz" className="font-semibold text-[#146B4D] underline">
-                          Browse the launch surahs →
-                        </Link>
-                      </p>
-                    )}
+                    <Link
+                      href={`/hifz/${surah?.slug ?? ''}/${r.surah}-${r.ayah}`}
+                      className="rounded-full bg-[#0B3D2E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#146B4D]"
+                    >
+                      Open in the coach →
+                    </Link>
                   </div>
                 </li>
               );
@@ -267,7 +257,7 @@ export default function VoiceSearchClient() {
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed text-[#5b6b62]">
           <li>Tap “Recite it” and say a few words of any ayah — the browser turns your voice into text on your device.</li>
           <li>Only the recognised text is searched, through the same Quran.com search the hub already uses. Your voice is never recorded or uploaded by us.</li>
-          <li>Matches in the launch set open straight into the recitation coach for that ayah.</li>
+          <li>Matches open straight into the recitation coach for that ayah.</li>
         </ul>
       </section>
     </div>

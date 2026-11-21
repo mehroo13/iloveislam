@@ -11,7 +11,7 @@ import {
   API, AUDIO_BASE, TRANSLATIONS, RECITERS, stripHtml, cleanIndopak, verseText,
   type Verse,
 } from '../../quran/lib';
-import type { LaunchSurah } from '../surahs';
+import type { HifzSurah } from '../surahs';
 import { loadProgress, saveProgress, type HifzProgress } from '../progress';
 import { useScriptPref, SCRIPT_LABELS } from '../lib/script';
 import ToolIcon from '../../components/ToolIcon';
@@ -34,7 +34,7 @@ export default function AyahClient({
   prevKey,
   nextKey,
 }: {
-  surah: LaunchSurah;
+  surah: HifzSurah;
   ayah: number;
   initialVerse: Verse;
   initialWords: WordInfo[];

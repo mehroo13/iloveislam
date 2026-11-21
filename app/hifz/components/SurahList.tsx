@@ -7,15 +7,15 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { LAUNCH_SURAHS } from '../surahs';
+import { ALL_SURAHS } from '../surahs';
 import { SurahProgressBar } from './ProgressWidget';
 
 export default function SurahList() {
   const [q, setQ] = useState('');
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    if (!needle) return LAUNCH_SURAHS;
-    return LAUNCH_SURAHS.filter(
+    if (!needle) return ALL_SURAHS;
+    return ALL_SURAHS.filter(
       (s) =>
         s.name.toLowerCase().includes(needle) ||
         s.meaning.toLowerCase().includes(needle) ||
@@ -76,7 +76,7 @@ export default function SurahList() {
         </ul>
       )}
       <p className="mt-3 text-sm text-[#5b6b62]">
-        {filtered.length} of {LAUNCH_SURAHS.length} surahs ·{' '}
+        {filtered.length} of {ALL_SURAHS.length} surahs ·{' '}
         <Link href="/hifz/plans" className="font-semibold text-[#146B4D] underline">
           Plans
         </Link>

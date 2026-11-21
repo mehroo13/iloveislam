@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { LAUNCH_SURAHS_BY_SLUG, JUZ_AMMA_SURAHS } from '../surahs';
+import { ALL_SURAHS_BY_SLUG, JUZ_AMMA_SURAHS } from '../surahs';
 import {
   loadProgress,
   currentStreakCount,
@@ -107,7 +107,7 @@ export default function ProgressWidget() {
   const practisedToday = ayahsPractisedOn(progress, today);
   const minutesToday = progress.minutesToday.date === today ? progress.minutesToday.minutes : 0;
   const activePlan = progress.activePlan;
-  const planSurah = activePlan ? LAUNCH_SURAHS_BY_SLUG[activePlan.surahSlug] : undefined;
+  const planSurah = activePlan ? ALL_SURAHS_BY_SLUG[activePlan.surahSlug] : undefined;
   const hasAnything = Object.keys(progress.ayahs).length > 0 || streak > 0 || activePlan !== null;
 
   if (!hasAnything) {
