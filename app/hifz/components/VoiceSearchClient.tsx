@@ -161,7 +161,7 @@ export default function VoiceSearchClient() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm sm:p-6">
+      <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -179,21 +179,21 @@ export default function VoiceSearchClient() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="e.g. تبارك الذي بيده الملك — or type the words in Arabic"
               dir="auto"
-              className="min-w-0 flex-1 rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-3 py-2.5 text-sm outline-none focus:border-[#146B4D]"
+              className="min-w-0 flex-1 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm outline-none focus:border-[#1FA36B]"
             />
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={startListening}
                 disabled={listening || !speechSupported}
-                className="rounded-full bg-[#C9A227] px-5 py-2.5 text-sm font-semibold text-[#0B3D2E] hover:brightness-110 disabled:opacity-50"
+                className="rounded-full bg-[#FFB800] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:brightness-110 disabled:opacity-50"
               >
                 {listening ? 'Listening…' : '🎙 Recite it'}
               </button>
               <button
                 type="submit"
                 disabled={searching || !query.trim()}
-                className="rounded-full bg-[#0B3D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#146B4D] disabled:opacity-50"
+                className="rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] disabled:opacity-50"
               >
                 {searching ? 'Searching…' : 'Find the ayah'}
               </button>
@@ -207,7 +207,7 @@ export default function VoiceSearchClient() {
           </p>
         )}
         {listening && (
-          <p role="status" className="mt-3 text-sm font-semibold text-[#146B4D]">
+          <p role="status" className="mt-3 text-sm font-semibold text-[#1FA36B]">
             Listening — recite a few words of the ayah now.
           </p>
         )}
@@ -218,19 +218,19 @@ export default function VoiceSearchClient() {
 
       {results !== null && results.length > 0 && (
         <section aria-labelledby="results-heading">
-          <h2 id="results-heading" className="text-xl font-bold text-[#0B3D2E]">
+          <h2 id="results-heading" className="text-xl font-bold text-[#102E26]">
             Matches for “{searchedQuery}”
           </h2>
           <ul className="mt-4 space-y-3">
             {results.map((r) => {
               const surah = getSurahById(r.surah);
               return (
-                <li key={r.verseKey} className="rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm">
-                  <p className="text-sm font-bold text-[#0B3D2E]">
+                <li key={r.verseKey} className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+                  <p className="text-sm font-bold text-[#102E26]">
                     {surah ? `Surah ${surah.name}` : `Surah ${r.surah}`} · {r.verseKey}
                   </p>
                   {r.text && (
-                    <p dir="rtl" lang="ar" className="font-quran mt-3 text-right text-2xl leading-loose text-[#0B3D2E]">
+                    <p dir="rtl" lang="ar" className="font-quran mt-3 text-right text-2xl leading-loose text-[#102E26]">
                       {r.text}
                     </p>
                   )}
@@ -240,7 +240,7 @@ export default function VoiceSearchClient() {
                   <div className="mt-4">
                     <Link
                       href={`/hifz/${surah?.slug ?? ''}/${r.surah}-${r.ayah}`}
-                      className="rounded-full bg-[#0B3D2E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#146B4D]"
+                      className="rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
                     >
                       Open in the coach →
                     </Link>
@@ -252,8 +252,8 @@ export default function VoiceSearchClient() {
         </section>
       )}
 
-      <section className="rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="text-xl font-bold text-[#0B3D2E]">How it works</h2>
+      <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+        <h2 className="text-xl font-bold text-[#102E26]">How it works</h2>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed text-[#5b6b62]">
           <li>Tap “Recite it” and say a few words of any ayah — the browser turns your voice into text on your device.</li>
           <li>Only the recognised text is searched, through the same Quran.com search the hub already uses. Your voice is never recorded or uploaded by us.</li>

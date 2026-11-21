@@ -56,8 +56,8 @@ export default function TafsirBlock({ verseKey }: { verseKey: string }) {
   }, [load]);
 
   return (
-    <div ref={ref} className="mt-4 rounded-xl bg-[#F7F5EF] border border-[#e5e0d3] p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-[#146B4D]">{TAFSIR_NAME}</p>
+    <div ref={ref} className="mt-4 rounded-xl bg-[#FFFBF2] border border-[#E5E7EB] p-4">
+      <p className="text-xs font-bold uppercase tracking-wide text-[#1FA36B]">{TAFSIR_NAME}</p>
       {state.loading && <p className="mt-2 text-sm text-[#1C2420]/60">Loading tafsir…</p>}
       {state.error && (
         <p className="mt-2 text-sm text-red-700" role="alert">

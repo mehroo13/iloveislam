@@ -23,7 +23,7 @@ export default function MyProgressPage() {
         ]}
       />
       <header className="mt-4">
-        <h1 className="text-3xl font-bold tracking-tight text-[#0B3D2E] sm:text-4xl">My progress</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-[#102E26] sm:text-4xl">My progress</h1>
         <p className="mt-2 text-sm leading-relaxed text-[#5b6b62] sm:text-base">
           Everything here is stored only on this device — nothing is uploaded. An ayah counts
           as memorised after 3 correct recitations in a row.

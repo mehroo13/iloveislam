@@ -26,10 +26,10 @@ export default function SurahList() {
   return (
     <section aria-labelledby="surahs-heading">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="surahs-heading" className="text-xl font-bold text-[#0B3D2E] sm:text-2xl">
+        <h2 id="surahs-heading" className="text-xl font-bold text-[#102E26] sm:text-2xl">
           Your surahs
         </h2>
-        <Link href="/hifz/juz-amma" className="text-sm font-semibold text-[#146B4D] hover:underline">
+        <Link href="/hifz/juz-amma" className="text-sm font-semibold text-[#1FA36B] hover:underline">
           Juz Amma — the beginner path →
         </Link>
       </div>
@@ -40,34 +40,34 @@ export default function SurahList() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search a surah — try “Mulk” or “36”"
-          className="w-full rounded-full border border-[#e5e0d3] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#146B4D]"
+          className="w-full rounded-full border border-[#E5E7EB] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#1FA36B]"
         />
       </label>
       {filtered.length === 0 ? (
         <p className="mt-4 text-sm text-[#5b6b62]">No surah matches “{q}”.</p>
       ) : (
-        <ul className="mt-3 divide-y divide-[#f0ede4] rounded-2xl border border-[#e5e0d3] bg-white shadow-sm">
+        <ul className="mt-3 divide-y divide-[#E5E7EB] rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
           {filtered.map((s) => (
             <li key={s.slug}>
               <Link
                 href={`/hifz/${s.slug}`}
-                className="flex min-w-0 items-center gap-3 px-4 py-3 hover:bg-[#F7F5EF]"
+                className="flex min-w-0 items-center gap-3 px-4 py-3 hover:bg-[#FFFBF2]"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eaf3ee] text-xs font-bold text-[#146B4D]">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E4FFF2] text-xs font-bold text-[#1FA36B]">
                   {s.id}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-semibold text-[#0B3D2E]">
+                  <span className="block truncate font-semibold text-[#102E26]">
                     {s.name} <span className="font-normal text-[#5b6b62]">— {s.meaning} · {s.ayahCount} ayahs</span>
                   </span>
                   <span className="mt-1 block max-w-40">
                     <SurahProgressBar surahId={s.id} ayahCount={s.ayahCount} />
                   </span>
                 </span>
-                <span dir="rtl" lang="ar" className="font-quran shrink-0 text-2xl text-[#146B4D]">
+                <span dir="rtl" lang="ar" className="font-quran shrink-0 text-2xl text-[#1FA36B]">
                   {s.arabic}
                 </span>
-                <span className="shrink-0 rounded-full bg-[#0B3D2E] px-3 py-1.5 text-xs font-semibold text-white">
+                <span className="shrink-0 rounded-full bg-[#102E26] px-3 py-1.5 text-xs font-semibold text-white">
                   Recite
                 </span>
               </Link>
@@ -77,19 +77,19 @@ export default function SurahList() {
       )}
       <p className="mt-3 text-sm text-[#5b6b62]">
         {filtered.length} of {ALL_SURAHS.length} surahs ·{' '}
-        <Link href="/hifz/plans" className="font-semibold text-[#146B4D] underline">
+        <Link href="/hifz/plans" className="font-semibold text-[#1FA36B] underline">
           Plans
         </Link>
         {' · '}
-        <Link href="/hifz/test" className="font-semibold text-[#146B4D] underline">
+        <Link href="/hifz/test" className="font-semibold text-[#1FA36B] underline">
           Test Mode
         </Link>
         {' · '}
-        <Link href="/hifz/voice-search" className="font-semibold text-[#146B4D] underline">
+        <Link href="/hifz/voice-search" className="font-semibold text-[#1FA36B] underline">
           Voice Search
         </Link>
         {' · '}
-        <Link href="/hifz/challenges" className="font-semibold text-[#146B4D] underline">
+        <Link href="/hifz/challenges" className="font-semibold text-[#1FA36B] underline">
           Challenges
         </Link>
       </p>

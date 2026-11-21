@@ -28,7 +28,7 @@ export default function PlansPage() {
         ]}
       />
       <header className="mt-4">
-        <h1 className="text-3xl font-bold tracking-tight text-[#0B3D2E] sm:text-4xl">Memorisation plans</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-[#102E26] sm:text-4xl">Memorisation plans</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5b6b62] sm:text-base">
           Every plan pairs each day&apos;s ayahs with the recitation coach, so the plan knows
           whether you recited them correctly. A day is only complete when its ayahs reach
@@ -37,14 +37,14 @@ export default function PlansPage() {
       </header>
 
       <section aria-labelledby="juz-amma-heading" className="mt-8">
-        <h2 id="juz-amma-heading" className="text-2xl font-bold text-[#0B3D2E]">Juz Amma — 90 days</h2>
+        <h2 id="juz-amma-heading" className="text-2xl font-bold text-[#102E26]">Juz Amma — 90 days</h2>
         <div className="mt-4 max-w-3xl">
           <PlanCard plan={JUZ_AMMA_90_DAY} surahName="Juz Amma" />
         </div>
       </section>
 
       <section aria-labelledby="surah-plans-heading" className="mt-10">
-        <h2 id="surah-plans-heading" className="text-2xl font-bold text-[#0B3D2E]">Per-surah plans</h2>
+        <h2 id="surah-plans-heading" className="text-2xl font-bold text-[#102E26]">Per-surah plans</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           Every plan is free — 7-day, 30-day and the Juz Amma 90-day plan.
         </p>
@@ -55,7 +55,7 @@ export default function PlansPage() {
             if (!p7 && !p30) return null;
             return (
               <div key={s.slug}>
-                <h3 className="text-lg font-bold text-[#0B3D2E]">
+                <h3 className="text-lg font-bold text-[#102E26]">
                   <Link href={`/hifz/${s.slug}`} className="hover:underline">
                     Surah {s.name} ({s.ayahCount} ayahs)
                   </Link>
@@ -70,7 +70,7 @@ export default function PlansPage() {
         </div>
         <p className="mt-6 text-sm text-[#5b6b62]">
           Juz Amma surahs each have their own 7-day and 30-day plans too — open any surah on the{' '}
-          <Link href="/hifz/juz-amma" className="font-semibold text-[#146B4D] underline">Juz Amma page</Link>{' '}
+          <Link href="/hifz/juz-amma" className="font-semibold text-[#1FA36B] underline">Juz Amma page</Link>{' '}
           to see them.
         </p>
       </section>

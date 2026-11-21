@@ -17,20 +17,36 @@ export const UPSTREAM_API = 'https://api.quran.com/api/v4';
 export const AUDIO_BASE = 'https://verses.quran.com/';
 
 /* Verified live against api.quran.com on 2026-11-21. */
+// Translation ids verified against api.quran.com/api/v4/resources/translations
+// 2026-11-21. EN/AR/FR/ID/MS/RU/HI/UR — see hifz-hub-spec §22.
 export const TRANSLATIONS = [
   { id: 20, name: 'Saheeh International' },
   { id: 22, name: 'Yusuf Ali' },
   { id: 19, name: 'Pickthall' },
   { id: 85, name: 'Abdel Haleem' },
   { id: 84, name: 'Taqi Usmani' },
+  { id: 31, name: 'Hamidullah (French)' },
+  { id: 33, name: 'Indonesian Ministry (Bahasa Indonesia)' },
+  { id: 39, name: 'Basmeih (Malay)' },
+  { id: 45, name: 'Kuliev (Russian)' },
+  { id: 234, name: 'Jalandhari (Urdu)' },
+  { id: 122, name: 'Azizul Haque (Hindi)' },
+  { id: 57, name: 'Transliteration' },
 ];
+// Reciter ids verified against api.quran.com/api/v4/resources/recitations 2026-11-21.
 export const RECITERS = [
   { id: 7, name: 'Mishary Alafasy' },
   { id: 2, name: 'Abdul Basit (Murattal)' },
+  { id: 1, name: 'Abdul Basit (Mujawwad)' },
   { id: 3, name: 'Abdur-Rahman as-Sudais' },
-  { id: 9, name: 'Muhammad al-Minshawi' },
+  { id: 9, name: 'Muhammad al-Minshawi (Murattal)' },
+  { id: 8, name: 'Muhammad al-Minshawi (Mujawwad)' },
   { id: 6, name: 'Mahmoud Al-Husary' },
+  { id: 12, name: 'Mahmoud Al-Husary (Muallim)' },
   { id: 4, name: 'Abu Bakr al-Shatri' },
+  { id: 5, name: 'Hani ar-Rifai' },
+  { id: 10, name: "Sa'ud ash-Shuraym" },
+  { id: 11, name: 'Mohamed al-Tablawi' },
 ];
 export const TAFSIR_ID = 169; // Ibn Kathir (Abridged), English — verified via /resources/tafsirs
 export const TAFSIR_NAME = 'Tafsir Ibn Kathir (Abridged)';

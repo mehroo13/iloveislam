@@ -23,10 +23,10 @@ export default function VoiceSearchPage() {
         ]}
       />
       <header className="mt-4">
-        <h1 className="text-3xl font-bold tracking-tight text-[#0B3D2E] sm:text-4xl">Voice Search</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-[#102E26] sm:text-4xl">Voice Search</h1>
         <p className="mt-2 text-sm leading-relaxed text-[#5b6b62] sm:text-base">
-          Heard an ayah and don&apos;t know where it is? Recite it — the “Shazam for Quran”
-          that Tarteel made famous, free here on the web. Your voice never leaves your
+          Heard an ayah and don&apos;t know where it is? Recite it and find it in seconds —
+          voice search, free here on the web. Your voice never leaves your
           device: only the recognised words are searched.
         </p>
       </header>

@@ -63,13 +63,13 @@ export default async function AyatAlKursiPage() {
           { label: 'Ayat al-Kursi' },
         ]}
       />
-      <header className="mt-4 rounded-2xl bg-[#0B3D2E] px-5 py-8 text-center text-white shadow-sm sm:px-8">
-        <p dir="rtl" lang="ar" className="font-quran text-4xl text-[#C9A227] sm:text-5xl">آية الكرسي</p>
+      <header className="mt-4 rounded-2xl bg-[#102E26] px-5 py-8 text-center text-white shadow-sm sm:px-8">
+        <p dir="rtl" lang="ar" className="font-quran text-4xl text-[#FFB800] sm:text-5xl">آية الكرسي</p>
         <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Ayat al-Kursi</h1>
         <p className="mt-1 text-base text-white/80">The Throne Verse · Surah Al-Baqarah, ayah 255 (2:255)</p>
         <p className="mt-2 text-sm text-white/70">
           One ayah · Madani · Juz 3 ·{' '}
-          <Link href="/hifz/al-baqarah/2-255" className="font-semibold text-[#E7D9A8] underline">
+          <Link href="/hifz/al-baqarah/2-255" className="font-semibold text-[#F2C94C] underline">
             Canonical ayah page: /hifz/al-baqarah/2-255
           </Link>
         </p>
@@ -103,15 +103,15 @@ export default async function AyatAlKursiPage() {
         </p>
       )}
 
-      <section aria-labelledby="plan-heading" className="mt-8 rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm">
-        <h2 id="plan-heading" className="text-lg font-bold text-[#0B3D2E]">Memorise it in 7 days</h2>
+      <section aria-labelledby="plan-heading" className="mt-8 rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+        <h2 id="plan-heading" className="text-lg font-bold text-[#102E26]">Memorise it in 7 days</h2>
         <p className="mt-1 text-sm leading-relaxed text-[#5b6b62]">
           One ayah, seven days: listen each morning, hide it, recite it, and let the coach check
           every word. By day 7, recite it three times correctly in a row — that is memorised.
         </p>
         <Link
           href="/hifz/al-baqarah/2-255?mode=recite"
-          className="mt-4 inline-block rounded-full bg-[#0B3D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#146B4D]"
+          className="mt-4 inline-block rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
         >
           Recite Ayat al-Kursi now
         </Link>

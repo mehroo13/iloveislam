@@ -13,17 +13,17 @@ function DayList({ days, surahSlug }: { days: PlanDay[]; surahSlug?: string }) {
     <ol className="mt-3 space-y-1.5">
       {days.map((d) => (
         <li key={d.day} className="flex items-baseline gap-2 text-sm">
-          <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#eaf3ee] text-xs font-bold text-[#146B4D]">
+          <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E4FFF2] text-xs font-bold text-[#1FA36B]">
             {d.day}
           </span>
-          <span className={d.isReview ? 'font-semibold text-[#146B4D]' : ''}>
+          <span className={d.isReview ? 'font-semibold text-[#1FA36B]' : ''}>
             {d.label}
             {d.isReview ? ' · Review' : ''}
           </span>
           {surahSlug && d.startAyah !== null && (
             <Link
               href={`/hifz/${surahSlug}?mode=recite`}
-              className="ml-auto shrink-0 text-xs font-semibold text-[#146B4D] underline"
+              className="ml-auto shrink-0 text-xs font-semibold text-[#1FA36B] underline"
             >
               Recite
             </Link>
@@ -68,9 +68,9 @@ export default function PlanCard({
   };
 
   return (
-    <article className="rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm">
+    <article className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-lg font-bold text-[#0B3D2E]">
+        <h3 className="text-lg font-bold text-[#102E26]">
           {plan.planDays}-day plan{surahName ? ` — ${surahName}` : ' — Juz Amma'}
         </h3>
       </div>
@@ -86,16 +86,16 @@ export default function PlanCard({
         <button
           type="button"
           onClick={startPlan}
-          className="rounded-full bg-[#0B3D2E] px-5 py-2 text-sm font-semibold text-white hover:bg-[#146B4D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+          className="rounded-full bg-[#102E26] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
         >
           {started ? 'Plan started — day 1' : 'Start this plan'}
         </button>
-        <Link href="/hifz/my-progress" className="text-sm font-semibold text-[#146B4D] underline">
+        <Link href="/hifz/my-progress" className="text-sm font-semibold text-[#1FA36B] underline">
           See my progress
         </Link>
       </div>
       {started && (
-        <p role="status" className="mt-3 rounded-lg bg-[#eaf3ee] px-3 py-2 text-sm">
+        <p role="status" className="mt-3 rounded-lg bg-[#E4FFF2] px-3 py-2 text-sm">
           This is now your active plan. Day 1 is ready on your progress page.
         </p>
       )}

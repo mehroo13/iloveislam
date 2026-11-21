@@ -115,8 +115,8 @@ export default async function AyahPage({
         ]}
       />
 
-      <header className="mt-4 rounded-2xl bg-[#0B3D2E] px-5 py-8 text-center text-white shadow-sm sm:px-8">
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#C9A227]">
+      <header className="mt-4 rounded-2xl bg-[#102E26] px-5 py-8 text-center text-white shadow-sm sm:px-8">
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#FFB800]">
           Surah {surah.name} · {key}
         </p>
         <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
@@ -140,28 +140,28 @@ export default async function AyahPage({
         />
       </div>
 
-      <section aria-labelledby="more-heading" className="mt-10 rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm">
-        <h2 id="more-heading" className="text-lg font-bold text-[#0B3D2E]">More from Surah {surah.name}</h2>
+      <section aria-labelledby="more-heading" className="mt-10 rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+        <h2 id="more-heading" className="text-lg font-bold text-[#102E26]">More from Surah {surah.name}</h2>
         <ul className="mt-3 space-y-2 text-sm">
           <li>
-            <Link href={`/hifz/${surah.slug}`} className="font-semibold text-[#146B4D] hover:underline">
+            <Link href={`/hifz/${surah.slug}`} className="font-semibold text-[#1FA36B] hover:underline">
               Study the whole surah — read, listen and memorise →
             </Link>
           </li>
           {isKursi && (
             <li>
-              <Link href="/hifz/ayat-al-kursi" className="font-semibold text-[#146B4D] hover:underline">
+              <Link href="/hifz/ayat-al-kursi" className="font-semibold text-[#1FA36B] hover:underline">
                 Ayat al-Kursi — the single-ayah study page →
               </Link>
             </li>
           )}
           <li>
-            <Link href="/hifz/test" className="font-semibold text-[#146B4D] hover:underline">
+            <Link href="/hifz/test" className="font-semibold text-[#1FA36B] hover:underline">
               Test yourself on this ayah in Test Mode →
             </Link>
           </li>
           <li>
-            <Link href="/hifz/my-progress" className="font-semibold text-[#146B4D] hover:underline">
+            <Link href="/hifz/my-progress" className="font-semibold text-[#1FA36B] hover:underline">
               My progress — streak, mistakes and export →
             </Link>
           </li>

@@ -56,14 +56,14 @@ export function SurahProgressBar({ surahId, ayahCount }: { surahId: number; ayah
   return (
     <div>
       <div
-        className="h-2 overflow-hidden rounded-full bg-[#e5e0d3]"
+        className="h-2 overflow-hidden rounded-full bg-[#E5E7EB]"
         role="progressbar"
         aria-valuenow={memorised}
         aria-valuemin={0}
         aria-valuemax={ayahCount}
         aria-label={`${memorised} of ${ayahCount} ayahs memorised`}
       >
-        <div className="h-full rounded-full bg-[#146B4D]" style={{ width: `${Math.round(frac * 100)}%` }} />
+        <div className="h-full rounded-full bg-[#1FA36B]" style={{ width: `${Math.round(frac * 100)}%` }} />
       </div>
       <p className="mt-1 text-xs text-[#5b6b62]">
         {progress === null
@@ -85,15 +85,15 @@ export default function ProgressWidget() {
 
   if (progress === null) {
     return (
-      <div className="rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="text-lg font-bold text-[#0B3D2E]">Start with Juz Amma</h2>
+      <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+        <h2 className="text-lg font-bold text-[#102E26]">Start with Juz Amma</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           The short surahs first — small wins, one ayah at a time. No account needed; your
           progress stays on this device.
         </p>
         <Link
           href="/hifz/juz-amma"
-          className="mt-4 inline-block rounded-full bg-[#0B3D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#146B4D]"
+          className="mt-4 inline-block rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
         >
           Start with Juz Amma
         </Link>
@@ -112,15 +112,15 @@ export default function ProgressWidget() {
 
   if (!hasAnything) {
     return (
-      <div className="rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="text-lg font-bold text-[#0B3D2E]">Start with Juz Amma</h2>
+      <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+        <h2 className="text-lg font-bold text-[#102E26]">Start with Juz Amma</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           The short surahs first — small wins, one ayah at a time. No account needed; your
           progress stays on this device.
         </p>
         <Link
           href="/hifz/juz-amma"
-          className="mt-4 inline-block rounded-full bg-[#0B3D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#146B4D]"
+          className="mt-4 inline-block rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
         >
           Start with Juz Amma
         </Link>
@@ -159,11 +159,11 @@ export default function ProgressWidget() {
   const memorisedCount = Object.values(progress.ayahs).filter((a) => a.status === 'memorised').length;
 
   return (
-    <div className="rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm sm:p-6">
+    <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-bold text-[#0B3D2E]">Continue where you left off</h2>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F7F5EF] px-3 py-1 text-sm font-bold text-[#0B3D2E]">
-          <ToolIcon name="flame" className="h-4 w-4 text-[#C9A227]" />
+        <h2 className="text-lg font-bold text-[#102E26]">Continue where you left off</h2>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FFFBF2] px-3 py-1 text-sm font-bold text-[#102E26]">
+          <ToolIcon name="flame" className="h-4 w-4 text-[#FFB800]" />
           {streak} day{streak === 1 ? '' : 's'} streak
         </span>
       </div>
@@ -181,13 +181,13 @@ export default function ProgressWidget() {
       <div className="mt-4 flex flex-wrap gap-2">
         <Link
           href={nextHref}
-          className="rounded-full bg-[#0B3D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#146B4D]"
+          className="rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
         >
           {nextLabel}
         </Link>
         <Link
           href="/hifz/my-progress"
-          className="rounded-full border border-[#0B3D2E] px-5 py-2.5 text-sm font-semibold text-[#0B3D2E] hover:bg-[#eaf3ee]"
+          className="rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
         >
           My progress
         </Link>

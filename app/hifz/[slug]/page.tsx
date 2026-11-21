@@ -77,7 +77,7 @@ export default async function SurahPage({
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <Link
           href={`/hifz/mushaf/${SURAH_FIRST_PAGE[surah.id]}`}
-          className="inline-block rounded-full bg-[#0B3D2E] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#146B4D]"
+          className="inline-block rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#1FA36B]"
         >
           Read as Mushaf — like the printed Quran →
         </Link>
@@ -101,55 +101,55 @@ export default async function SurahPage({
 
       {/* Memorisation plans */}
       <section aria-labelledby="plans-heading" className="mt-8">
-        <h2 id="plans-heading" className="text-2xl font-bold text-[#0B3D2E]">Memorisation plan</h2>
+        <h2 id="plans-heading" className="text-2xl font-bold text-[#102E26]">Memorisation plan</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           {plan7 && <PlanCard plan={plan7} surahSlug={surah.slug} surahName={surah.name} />}
           {plan30 && <PlanCard plan={plan30} surahSlug={surah.slug} surahName={surah.name} />}
         </div>
         <p className="mt-3 text-sm text-[#5b6b62]">
-          <Link href="/hifz/plans" className="font-semibold text-[#146B4D] underline">See all plans</Link>
+          <Link href="/hifz/plans" className="font-semibold text-[#1FA36B] underline">See all plans</Link>
           {' '}— including the Juz Amma 90-day plan.
         </p>
       </section>
 
       {/* Related */}
-      <nav aria-label="Related pages" className="mt-10 rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-bold text-[#0B3D2E]">Keep going</h2>
+      <nav aria-label="Related pages" className="mt-10 rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-bold text-[#102E26]">Keep going</h2>
         <ul className="mt-3 space-y-2 text-sm">
           {prev && (
             <li>
-              <Link href={`/hifz/${prev.slug}`} className="font-semibold text-[#146B4D] hover:underline">
+              <Link href={`/hifz/${prev.slug}`} className="font-semibold text-[#1FA36B] hover:underline">
                 ← Previous surah: {prev.name} ({prev.ayahCount} ayahs)
               </Link>
             </li>
           )}
           {next && (
             <li>
-              <Link href={`/hifz/${next.slug}`} className="font-semibold text-[#146B4D] hover:underline">
+              <Link href={`/hifz/${next.slug}`} className="font-semibold text-[#1FA36B] hover:underline">
                 Next surah: {next.name} ({next.ayahCount} ayahs) →
               </Link>
             </li>
           )}
           {surah.juz === 30 ? (
             <li>
-              <Link href="/hifz/juz-amma" className="font-semibold text-[#146B4D] hover:underline">
+              <Link href="/hifz/juz-amma" className="font-semibold text-[#1FA36B] hover:underline">
                 Juz 30 (Juz Amma) overview
               </Link>
             </li>
           ) : (
             <li>
-              <Link href={`/hifz/juz/${surah.juz}`} className="font-semibold text-[#146B4D] hover:underline">
+              <Link href={`/hifz/juz/${surah.juz}`} className="font-semibold text-[#1FA36B] hover:underline">
                 Juz {surah.juz} overview
               </Link>
             </li>
           )}
           <li>
-            <Link href="/hifz/test" className="font-semibold text-[#146B4D] hover:underline">
+            <Link href="/hifz/test" className="font-semibold text-[#1FA36B] hover:underline">
               Test yourself on this surah
             </Link>
           </li>
           <li>
-            <Link href="/hifz/my-progress" className="font-semibold text-[#146B4D] hover:underline">
+            <Link href="/hifz/my-progress" className="font-semibold text-[#1FA36B] hover:underline">
               My progress — streak, mistakes and export
             </Link>
           </li>

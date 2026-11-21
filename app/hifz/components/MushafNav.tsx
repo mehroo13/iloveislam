@@ -24,14 +24,14 @@ export default function MushafNav({ page }: { page: number }) {
       {page > 1 ? (
         <Link
           href={`/hifz/mushaf/${page - 1}`}
-          className="rounded-full border border-[#e5e0d3] bg-white px-4 py-2 text-sm font-semibold text-[#0B3D2E] hover:bg-[#F7F5EF]"
+          className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
         >
           ← Previous page
         </Link>
       ) : (
         <span />
       )}
-      <span className="text-sm font-semibold text-[#0B3D2E]">
+      <span className="text-sm font-semibold text-[#102E26]">
         Page {page} of {MUSHAF_TOTAL_PAGES}
       </span>
       <form onSubmit={go} className="flex items-center gap-2">
@@ -46,11 +46,11 @@ export default function MushafNav({ page }: { page: number }) {
           value={jump}
           onChange={(e) => setJump(e.target.value)}
           placeholder="Page #"
-          className="w-24 rounded-full border border-[#e5e0d3] bg-white px-3 py-2 text-sm outline-none focus:border-[#146B4D]"
+          className="w-24 rounded-full border border-[#E5E7EB] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
         />
         <button
           type="submit"
-          className="rounded-full bg-[#0B3D2E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#146B4D]"
+          className="rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
         >
           Go
         </button>
@@ -58,7 +58,7 @@ export default function MushafNav({ page }: { page: number }) {
       {page < MUSHAF_TOTAL_PAGES ? (
         <Link
           href={`/hifz/mushaf/${page + 1}`}
-          className="rounded-full border border-[#e5e0d3] bg-white px-4 py-2 text-sm font-semibold text-[#0B3D2E] hover:bg-[#F7F5EF]"
+          className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
         >
           Next page →
         </Link>

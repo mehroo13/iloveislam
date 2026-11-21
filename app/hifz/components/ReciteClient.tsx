@@ -15,7 +15,7 @@ export default function ReciteClient() {
   const surah = ALL_SURAHS.find((s) => s.slug === slug) ?? ALL_SURAHS[0];
 
   return (
-    <div className="rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm sm:p-6">
+    <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
       <label className="block text-sm font-semibold">
         Surah
         <select
@@ -24,7 +24,7 @@ export default function ReciteClient() {
             setSlug(e.target.value);
             setAyah(1);
           }}
-          className="mt-1 block w-full rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-3 py-2.5 text-sm"
+          className="mt-1 block w-full rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
         >
           {ALL_SURAHS.map((s) => (
             <option key={s.slug} value={s.slug}>
@@ -38,7 +38,7 @@ export default function ReciteClient() {
         <select
           value={ayah}
           onChange={(e) => setAyah(Number(e.target.value))}
-          className="mt-1 block w-full max-w-xs rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-3 py-2.5 text-sm"
+          className="mt-1 block w-full max-w-xs rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
         >
           {Array.from({ length: surah.ayahCount }, (_, i) => i + 1).map((a) => (
             <option key={a} value={a}>
@@ -52,7 +52,7 @@ export default function ReciteClient() {
         <select
           value={reciterId}
           onChange={(e) => setReciterId(Number(e.target.value))}
-          className="mt-1 block w-full max-w-xs rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-3 py-2.5 text-sm"
+          className="mt-1 block w-full max-w-xs rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
         >
           {RECITERS.map((r) => (
             <option key={r.id} value={r.id}>{r.name}</option>
@@ -62,7 +62,7 @@ export default function ReciteClient() {
       <button
         type="button"
         onClick={() => router.push(`/hifz/${slug}?mode=recite&ayah=${ayah}`)}
-        className="mt-6 rounded-full bg-[#0B3D2E] px-6 py-3 text-sm font-semibold text-white hover:bg-[#146B4D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+        className="mt-6 rounded-full bg-[#102E26] px-6 py-3 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
       >
         Start reciting {surah.name} {surah.id}:{ayah}
       </button>

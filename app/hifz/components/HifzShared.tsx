@@ -13,7 +13,7 @@ export function Breadcrumb({ items }: { items: { label: string; href?: string }[
           <li key={i} className="flex items-center gap-1.5">
             {i > 0 && <span aria-hidden="true">›</span>}
             {item.href ? (
-              <Link href={item.href} className="font-semibold text-[#146B4D] hover:underline">
+              <Link href={item.href} className="font-semibold text-[#1FA36B] hover:underline">
                 {item.label}
               </Link>
             ) : (
@@ -43,8 +43,8 @@ export function SurahHero({
   planDays?: number;
 }) {
   return (
-    <header className="rounded-2xl bg-[#0B3D2E] px-5 py-8 text-center text-white shadow-sm sm:px-8 sm:py-10">
-      <p dir="rtl" lang="ar" className="font-quran text-5xl text-[#C9A227] sm:text-6xl">
+    <header className="rounded-2xl bg-[#102E26] px-5 py-8 text-center text-white shadow-sm sm:px-8 sm:py-10">
+      <p dir="rtl" lang="ar" className="font-quran text-5xl text-[#FFB800] sm:text-6xl">
         {surah.arabic}
       </p>
       <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Surah {surah.name}</h1>

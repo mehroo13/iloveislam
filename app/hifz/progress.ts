@@ -105,6 +105,32 @@ export interface HifzSettings {
   translationId: number;
   dailyGoalMinutes: number;
   hideTranslation: boolean;
+  /** Screenshot/spec rebuild 2026-11-21 (§22) — all optional for old saves. */
+  /** Mistake detection on/off (coach). */
+  detectMistakes?: boolean;
+  /** Harakat (tashkeel) strictness: true = a harakat-only difference counts
+      as a mistake; false = ignore harakat differences (checker + self-mark). */
+  harakatStrict?: boolean;
+  /** "Don't progress until mistake is fixed" — hold on a mistaken ayah. */
+  dontProgress?: boolean;
+  /** Mistake-history pastel washes on the page. */
+  highlightMistakes?: boolean;
+  /** Show the washes even over still-hidden words. */
+  showForHidden?: boolean;
+  /** Tajweed colours (display only — never detection). */
+  tajweedColors?: boolean;
+  /** Hide ayah-end markers (rosettes) for a true memory test. */
+  hideAyahMarkers?: boolean;
+  /** Save session audio data (on-device only) so recordings can play back. */
+  saveAudio?: boolean;
+  /** Sound + vibration on test-question completion. */
+  testSound?: boolean;
+  /** Mushaf layout: 15 lines (Madani) or 16 lines. */
+  mushafLines?: 15 | 16;
+  /** Theme: light / dark / sepia. */
+  theme?: 'light' | 'dark' | 'sepia';
+  /** UI language (EN/AR/FR/ID/MS/RU/HI/UR). AR + UR render full RTL. */
+  language?: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -196,6 +222,18 @@ export function createDefaultSettings(now: Date = new Date()): HifzSettings {
     translationId: DEFAULT_TRANSLATION_ID,
     dailyGoalMinutes: DEFAULT_DAILY_GOAL_MINUTES,
     hideTranslation: false,
+    detectMistakes: true,
+    harakatStrict: false,
+    dontProgress: false,
+    highlightMistakes: true,
+    showForHidden: false,
+    tajweedColors: false,
+    hideAyahMarkers: false,
+    saveAudio: true,
+    testSound: true,
+    mushafLines: 15,
+    theme: 'light',
+    language: 'en',
   };
 }
 

@@ -23,11 +23,10 @@ export default function TestPage() {
         ]}
       />
       <header className="mt-4">
-        <h1 className="text-3xl font-bold tracking-tight text-[#0B3D2E] sm:text-4xl">Test Mode</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-[#102E26] sm:text-4xl">Test Mode</h1>
         <p className="mt-2 text-sm leading-relaxed text-[#5b6b62] sm:text-base">
-          Random ayahs, no cue, no peeking without cost. This is the exam Tarteel added
-          in 2026 — here it is free, and a reveal counts as a miss, like a peek in the
-          coach. The coach checks words, not tajweed; a teacher is still needed for
+          Random ayahs, no cue, no peeking without cost. A reveal counts as a miss, like
+          a peek in the coach — this is your exam, free and unlimited. The coach checks words, not tajweed; a teacher is still needed for
           tajweed.
         </p>
       </header>

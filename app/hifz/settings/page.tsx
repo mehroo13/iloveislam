@@ -1,0 +1,37 @@
+// app/hifz/settings/page.tsx — Settings (spec §22).
+import type { Metadata } from 'next';
+import SettingsClient from '../components/SettingsClient';
+import { Breadcrumb, Attribution } from '../components/HifzShared';
+import { SITE_URL } from '../lib/fetch';
+
+export const metadata: Metadata = {
+  title: 'Settings — Language, Theme & Privacy | I Love Islam',
+  description:
+    'Hifz settings: language, theme, mushaf layout, recitation and privacy. Everything stays on your device.',
+  alternates: { canonical: `${SITE_URL}/hifz/settings` },
+  robots: { index: false, follow: true },
+};
+
+export default function SettingsPage() {
+  return (
+    <main className="mx-auto max-w-3xl px-4 pb-16 pt-6 sm:pt-8">
+      <Breadcrumb
+        items={[
+          { label: 'Home', href: '/' },
+          { label: 'Hifz', href: '/hifz' },
+          { label: 'Settings' },
+        ]}
+      />
+      <header className="mt-4">
+        <h1 className="text-3xl font-bold tracking-tight text-[#102E26] sm:text-4xl">Settings</h1>
+        <p className="mt-2 text-sm leading-relaxed text-[#5b6b62] sm:text-base">
+          Language, theme, mushaf, recitation and your data — all on this device.
+        </p>
+      </header>
+      <div className="mt-6">
+        <SettingsClient />
+      </div>
+      <Attribution reciterName="Mishary Alafasy" />
+    </main>
+  );
+}

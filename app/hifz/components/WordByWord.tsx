@@ -79,9 +79,9 @@ export default function WordByWord({
         {words.map((w, i) => (
           <li
             key={i}
-            className="rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-2.5 py-1.5 text-center"
+            className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2.5 py-1.5 text-center"
           >
-            <span dir="rtl" lang="ar" className="font-quran block text-xl leading-snug text-[#0B3D2E]">
+            <span dir="rtl" lang="ar" className="font-quran block text-xl leading-snug text-[#102E26]">
               {w.arabic}
             </span>
             {w.transliteration && (
@@ -98,7 +98,7 @@ export default function WordByWord({
                   audio.play().catch(() => setPlaying(null));
                   audio.addEventListener('ended', () => setPlaying(null), { once: true });
                 }}
-                className="mt-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#146B4D] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+                className="mt-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#1FA36B] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
               >
                 {playing === i ? 'Playing…' : 'Hear it'}
               </button>

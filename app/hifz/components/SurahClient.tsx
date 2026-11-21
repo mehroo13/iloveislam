@@ -14,7 +14,7 @@ import {
   API, AUDIO_BASE, TRANSLATIONS, RECITERS, stripHtml, cleanIndopak, verseText,
   type Verse,
 } from '../../quran/lib';
-import type { HifzSurah } from '../surahs';
+import { ALL_SURAHS, type HifzSurah } from '../surahs';
 import { useScriptPref, SCRIPT_LABELS } from '../lib/script';
 import {
   loadProgress, saveProgress, loadSettings, saveSettings,
@@ -23,6 +23,7 @@ import {
 import ToolIcon from '../../components/ToolIcon';
 import TafsirBlock from './TafsirBlock';
 import WordByWord from './WordByWord';
+import { TajweedGuide, HiddenWords, tajweedClass } from './SharedSheets';
 import type { CoachAyah } from './RecitationCoach';
 
 const RecitationCoach = dynamic(() => import('./RecitationCoach'), { ssr: false });
@@ -100,6 +101,16 @@ export default function SurahClient({
   const [bookmarks, setBookmarks] = useState<{ surahNumber: number; verseNumber: number }[]>([]);
   const [progress, setProgress] = useState<HifzProgress | null>(null);
   const [wordsOpen, setWordsOpen] = useState<Record<string, boolean>>({});
+  // Screenshot-spec rebuild (§22): Adaptive Mode, Tajweed colours (display
+  // only), hide ayah markers, memorisation hide per ayah.
+  const [adaptive, setAdaptive] = useState(false);
+  const [adaptiveFont, setAdaptiveFont] = useState(28);
+  const [tajweedOn, setTajweedOn] = useState(false);
+  const [showTajweedGuide, setShowTajweedGuide] = useState(false);
+  const [hideMarkers, setHideMarkers] = useState(false);
+  const [hiddenAyahs, setHiddenAyahs] = useState<Set<number>>(new Set());
+  const [revealedAyah, setRevealedAyah] = useState<Record<number, number>>({});
+  const [memoriseMode, setMemoriseMode] = useState(false);
   const [listen, setListen] = useState<ListenSettings>(() =>
     typeof window === 'undefined'
       ? { repeat: 1, pauseSec: 0, speed: 1, fromAyah: 1, toAyah: surah.ayahCount }
@@ -126,10 +137,17 @@ export default function SurahClient({
       const s = loadSettings();
       setReciterId(s.reciterId);
       setTranslationId(s.translationId);
+      setTajweedOn(s.tajweedColors ?? false);
+      setHideMarkers(s.hideAyahMarkers ?? false);
+      // Last-read marker (spec §22.4): Progress shows "Continue where you left off".
+      localStorage.setItem(
+        'ili_last_read_v1',
+        JSON.stringify({ surah: surah.id, name: surah.name, slug: surah.slug, at: Date.now() }),
+      );
     } catch {
       /* storage unavailable — reading still works */
     }
-  }, []);
+  }, [surah.id, surah.name, surah.slug]);
 
   useEffect(() => {
     try {
@@ -325,18 +343,151 @@ export default function SurahClient({
   const safePage = Math.min(page, totalPages);
   const pageVerses = verses.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
+  /* ---------- follow-along auto-scroll (spec §22.5) ---------- */
+  useEffect(() => {
+    if (!listenPlaying || !playingKey) return;
+    const n = Number(playingKey.split(':')[1]);
+    if (!n) return;
+    const idx = verses.findIndex((v) => v.verse_number === n);
+    if (idx >= 0) {
+      const targetPage = Math.floor(idx / PAGE_SIZE) + 1;
+      if (targetPage !== safePage) {
+        setPage(targetPage);
+        return;
+      }
+    }
+    document.querySelector(`#ayah-${n}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [playingKey, listenPlaying, verses, safePage]);
+
+
   const toggleWords = (key: string) =>
     setWordsOpen((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const toggleHiddenAyah = (ayah: number) => {
+    setHiddenAyahs((prev) => {
+      const next = new Set(prev);
+      if (next.has(ayah)) next.delete(ayah);
+      else next.add(ayah);
+      return next;
+    });
+  };
+
+  const renderArabic = (text: string) => {
+    if (!tajweedOn) return text;
+    return (
+      <>
+        {text.split(' ').map((w, i) => (
+          <span key={i} className={tajweedClass(w)}>
+            {w}{' '}
+          </span>
+        ))}
+      </>
+    );
+  };
 
   return (
     <div>
       <audio ref={audioRef} preload="none" className="hidden" />
 
+      {/* ---------- READER HEADER (variant A: hamburger · search · centred
+           Chapter / Verse title + chevrons · bookmark · gear) ---------- */}
+      <header className="mt-4 flex items-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-3 py-2 shadow-sm" aria-label="Reader header">
+        <Link href="/hifz" aria-label="Open the Hifz menu" className="rounded-full p-2 text-lg font-bold hover:bg-[#FFFBF2]">☰</Link>
+        <Link href="/hifz/search" aria-label="Search the Quran" className="rounded-full p-2 text-lg font-bold hover:bg-[#FFFBF2]">⌕</Link>
+        <div className="min-w-0 flex-1 text-center">
+          <p className="truncate text-sm font-bold text-[#102E26]">Chapter {surah.name}</p>
+          <p className="truncate text-xs text-[#5b6b62]">
+            Chapter {surah.id} | Verse {coachAyahIndex + 1}
+          </p>
+        </div>
+        <span className="flex flex-col leading-none" aria-hidden="true">
+          <Link href={surah.id > 1 ? `/hifz/${ALL_SURAHS[surah.id - 2]?.slug ?? 'al-fatihah'}` : '#'} aria-label="Previous surah" className="px-1 text-xs text-[#5b6b62]">⌃</Link>
+          <Link href={surah.id < 114 ? `/hifz/${ALL_SURAHS[surah.id]?.slug ?? 'an-nas'}` : '#'} aria-label="Next surah" className="px-1 text-xs text-[#5b6b62]">⌄</Link>
+        </span>
+        <button
+          type="button"
+          onClick={() => toggleBookmark(coachAyahIndex + 1)}
+          aria-label="Bookmark this ayah"
+          aria-pressed={isBookmarked(coachAyahIndex + 1)}
+          className="rounded-full p-2 text-lg hover:bg-[#FFFBF2]"
+        >
+          {isBookmarked(coachAyahIndex + 1) ? '🔖' : '📑'}
+        </button>
+        <Link href="/hifz/settings" aria-label="Settings" className="rounded-full p-2 text-lg hover:bg-[#FFFBF2]">⚙</Link>
+      </header>
+
+      {/* ---------- MODE SWITCHER: Reading / Recitation / Listening /
+           Memorisation / Test (long-press the green button in the app;
+           here as a row — same five modes) ---------- */}
+      <nav aria-label="Reading mode" className="mt-4 flex flex-wrap gap-2">
+        {(
+          [
+            ['reading', 'Reading'],
+            ['recitation', 'Recitation'],
+            ['listening', 'Listening'],
+            ['memorisation', 'Memorisation'],
+            ['test', 'Test'],
+          ] as const
+        ).map(([m, label]) => {
+          const active =
+            (m === 'reading' && !coachOpen && !memoriseMode) ||
+            (m === 'recitation' && coachOpen) ||
+            (m === 'memorisation' && memoriseMode);
+          if (m === 'test') {
+            return (
+              <Link key={m} href="/hifz/test" className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]">
+                {label}
+              </Link>
+            );
+          }
+          if (m === 'listening') {
+            return (
+              <button
+                key={m}
+                type="button"
+                onClick={() => {
+                  document.querySelector('[aria-labelledby="listen-heading"]')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
+              >
+                {label}
+              </button>
+            );
+          }
+          return (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={active}
+              onClick={() => {
+                if (m === 'recitation') {
+                  setMemoriseMode(false);
+                  setCoachOpen(true);
+                  document.querySelector('[aria-label="Recitation coach"]')?.scrollIntoView({ behavior: 'smooth' });
+                } else if (m === 'memorisation') {
+                  setMemoriseMode(true);
+                  setCoachOpen(true);
+                  setHiddenAyahs(new Set(verses.map((v) => v.verse_number)));
+                  document.querySelector('[aria-label="Recitation coach"]')?.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                  setCoachOpen(false);
+                  setMemoriseMode(false);
+                  setHiddenAyahs(new Set());
+                }
+              }}
+              className={`rounded-full px-4 py-2 text-sm font-semibold ${active ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white hover:border-[#1FA36B]'}`}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </nav>
+
       {/* ---------- COACH ENTRY (first interactive element, spec §4.1.2) ---------- */}
-      <section aria-label="Recitation coach" className="mt-6 rounded-2xl bg-[#0B3D2E] p-5 text-white shadow-sm sm:p-6">
+      <section aria-label="Recitation coach" className="mt-6 rounded-2xl bg-[#102E26] p-5 text-white shadow-sm sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-[#C9A227]">
+            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-[#FFB800]">
               <ToolIcon name="mic" className="h-4 w-4" /> Recitation coach
             </p>
             <h2 className="mt-2 text-xl font-bold sm:text-2xl">Recite Surah {surah.name} aloud</h2>
@@ -349,7 +500,7 @@ export default function SurahClient({
             <button
               type="button"
               onClick={() => setCoachOpen(true)}
-              className="shrink-0 rounded-full bg-[#C9A227] px-5 py-2.5 text-sm font-semibold text-[#0B3D2E] hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="shrink-0 rounded-full bg-[#FFB800] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               Recite this surah
             </button>
@@ -375,7 +526,7 @@ export default function SurahClient({
       </section>
 
       {/* ---------- READER CONTROLS ---------- */}
-      <section aria-label="Reading controls" className="mt-6 rounded-2xl border border-[#e5e0d3] bg-white p-4 shadow-sm">
+      <section aria-label="Reading controls" className="mt-6 rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="View mode">
           <span className="text-sm font-medium">View</span>
           {(
@@ -390,13 +541,65 @@ export default function SurahClient({
               type="button"
               aria-pressed={viewMode === id}
               onClick={() => setViewMode(id)}
-              className={`rounded-full px-3.5 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D] ${
-                viewMode === id ? 'bg-[#0B3D2E] text-white' : 'border border-[#e5e0d3] hover:border-[#146B4D]'
+              className={`rounded-full px-3.5 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${
+                viewMode === id ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'
               }`}
             >
               {label}
             </button>
           ))}
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label="Reader display options">
+          <button
+            type="button"
+            onClick={() => setAdaptive((a) => !a)}
+            aria-pressed={adaptive}
+            title="Adaptive Mode: ayah-based flow, Arabic + translation together"
+            className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${adaptive ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+          >
+            {adaptive ? 'Adaptive ✓' : 'Adaptive Mode'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setTajweedOn((t) => !t)}
+            aria-pressed={tajweedOn}
+            title="Tajweed colours — display only, never detection"
+            className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${tajweedOn ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+          >
+            {tajweedOn ? 'Tajweed colours ✓' : 'Tajweed colours'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowTajweedGuide(true)}
+            className="rounded-full border border-[#E5E7EB] px-3 py-1.5 text-sm font-semibold hover:border-[#1FA36B]"
+            aria-label="About Tajweed colours"
+          >
+            ⓘ
+          </button>
+          <button
+            type="button"
+            onClick={() => setHideMarkers((h) => !h)}
+            aria-pressed={hideMarkers}
+            title="Hide ayah-end markers for a true test of memory"
+            className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${hideMarkers ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+          >
+            {hideMarkers ? 'Markers hidden ✓' : 'Hide ayah markers'}
+          </button>
+          {adaptive && (
+            <label className="flex items-center gap-2 text-sm font-medium">
+              Text size
+              <input
+                type="range"
+                min={20}
+                max={40}
+                value={adaptiveFont}
+                onChange={(e) => setAdaptiveFont(Number(e.target.value))}
+                aria-label="Adaptive Mode text size"
+                className="w-28"
+              />
+              <span className="text-xs text-[#5b6b62]">{adaptiveFont}px</span>
+            </label>
+          )}
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-sm font-medium">
@@ -404,7 +607,7 @@ export default function SurahClient({
             <select
               value={translationId}
               onChange={(e) => setTranslationId(Number(e.target.value))}
-              className="rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+              className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
               {TRANSLATIONS.map((t) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
@@ -416,7 +619,7 @@ export default function SurahClient({
             <select
               value={reciterId}
               onChange={(e) => setReciterId(Number(e.target.value))}
-              className="rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+              className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
               {RECITERS.map((r) => (
                 <option key={r.id} value={r.id}>{r.name}</option>
@@ -428,7 +631,7 @@ export default function SurahClient({
             <select
               value={script}
               onChange={(e) => setScript(e.target.value as 'indopak' | 'uthmani')}
-              className="rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+              className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
               {(Object.keys(SCRIPT_LABELS) as ('indopak' | 'uthmani')[]).map((s) => (
                 <option key={s} value={s}>{SCRIPT_LABELS[s]}</option>
@@ -437,7 +640,7 @@ export default function SurahClient({
           </label>
           <Link
             href={`/hifz/${surah.slug}/${surah.id}-1`}
-            className="ml-auto text-sm font-semibold text-[#146B4D] underline"
+            className="ml-auto text-sm font-semibold text-[#1FA36B] underline"
           >
             Open the first ayah
           </Link>
@@ -451,9 +654,9 @@ export default function SurahClient({
       </section>
 
       {/* ---------- LISTEN ---------- */}
-      <section aria-labelledby="listen-heading" className="mt-6 rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="listen-heading" className="flex items-center gap-2 text-lg font-bold text-[#0B3D2E]">
-          <ToolIcon name="ear" className="h-5 w-5 text-[#146B4D]" /> Listen
+      <section aria-labelledby="listen-heading" className="mt-6 rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+        <h2 id="listen-heading" className="flex items-center gap-2 text-lg font-bold text-[#102E26]">
+          <ToolIcon name="ear" className="h-5 w-5 text-[#1FA36B]" /> Listen
         </h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           Reciter: {reciterName}. Repeat any ayah or range, with a pause between repeats and
@@ -468,7 +671,7 @@ export default function SurahClient({
               max={surah.ayahCount}
               value={listen.fromAyah}
               onChange={(e) => setListen((p) => ({ ...p, fromAyah: Number(e.target.value) || 1 }))}
-              className="mt-1 block w-20 rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-2 py-1.5 text-sm"
+              className="mt-1 block w-20 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             />
           </label>
           <label className="text-xs font-semibold text-[#5b6b62]">
@@ -479,7 +682,7 @@ export default function SurahClient({
               max={surah.ayahCount}
               value={listen.toAyah}
               onChange={(e) => setListen((p) => ({ ...p, toAyah: Number(e.target.value) || surah.ayahCount }))}
-              className="mt-1 block w-20 rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-2 py-1.5 text-sm"
+              className="mt-1 block w-20 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             />
           </label>
           <label className="text-xs font-semibold text-[#5b6b62]">
@@ -490,7 +693,7 @@ export default function SurahClient({
               max={100}
               value={listen.repeat}
               onChange={(e) => setListen((p) => ({ ...p, repeat: Math.min(100, Math.max(1, Number(e.target.value) || 1)) }))}
-              className="mt-1 block w-20 rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-2 py-1.5 text-sm"
+              className="mt-1 block w-20 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             />
           </label>
           <label className="text-xs font-semibold text-[#5b6b62]">
@@ -501,7 +704,7 @@ export default function SurahClient({
               max={10}
               value={listen.pauseSec}
               onChange={(e) => setListen((p) => ({ ...p, pauseSec: Math.min(10, Math.max(0, Number(e.target.value) || 0)) }))}
-              className="mt-1 block w-20 rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-2 py-1.5 text-sm"
+              className="mt-1 block w-20 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             />
           </label>
           <label className="text-xs font-semibold text-[#5b6b62]">
@@ -509,7 +712,7 @@ export default function SurahClient({
             <select
               value={listen.speed}
               onChange={(e) => setListen((p) => ({ ...p, speed: Number(e.target.value) }))}
-              className="mt-1 block rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-2 py-1.5 text-sm"
+              className="mt-1 block rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             >
               {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((s) => (
                 <option key={s} value={s}>{s}×</option>
@@ -520,13 +723,13 @@ export default function SurahClient({
             type="button"
             onClick={listenPlaying ? stopListen : startListen}
             disabled={verses.length === 0}
-            className="rounded-full bg-[#146B4D] px-5 py-2 text-sm font-semibold text-white hover:bg-[#0B3D2E] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+            className="rounded-full bg-[#1FA36B] px-5 py-2 text-sm font-semibold text-white hover:bg-[#102E26] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
           >
             {listenPlaying ? 'Stop listening' : `Play ayahs ${Math.min(listen.fromAyah, listen.toAyah)}–${Math.max(listen.fromAyah, listen.toAyah)}`}
           </button>
         </div>
         {listenPlaying && playingKey && (
-          <p role="status" className="mt-3 text-sm font-semibold text-[#146B4D]">
+          <p role="status" className="mt-3 text-sm font-semibold text-[#1FA36B]">
             Playing {playingKey} · {listen.repeat}× per ayah · {listen.speed}× speed
           </p>
         )}
@@ -534,7 +737,7 @@ export default function SurahClient({
 
       {/* ---------- READ ---------- */}
       <section aria-labelledby="read-heading" className="mt-6">
-        <h2 id="read-heading" className="text-lg font-bold text-[#0B3D2E]">
+        <h2 id="read-heading" className="text-lg font-bold text-[#102E26]">
           Read — Surah {surah.name} ({verses.length} ayahs)
         </h2>
         {versesError && (
@@ -554,35 +757,72 @@ export default function SurahClient({
             <article
               key={v.verse_key}
               id={`ayah-${v.verse_number}`}
-              className={`mt-4 scroll-mt-24 rounded-2xl border bg-white p-5 shadow-sm ${isPlaying ? 'border-[#C9A227] ring-1 ring-[#C9A227]' : 'border-[#e5e0d3]'}`}
+              className={adaptive
+                ? `mt-2 scroll-mt-24 border-b border-[#E5E7EB] bg-white px-1 py-4 ${isPlaying ? 'bg-[#FFFBF2]' : ''}`
+                : `mt-4 scroll-mt-24 rounded-2xl border bg-white p-5 shadow-sm ${isPlaying ? 'border-[#FFB800] ring-1 ring-[#FFB800]' : 'border-[#E5E7EB]'}`}
             >
               <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0B3D2E] text-xs font-bold text-white">
-                  {v.verse_key}
-                </span>
+                {!hideMarkers && (
+                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#102E26] text-xs font-bold text-white">
+                    {v.verse_key}
+                  </span>
+                )}
+                {hiddenAyahs.has(v.verse_number) && (
+                  <span className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRevealedAyah((prev) => ({
+                          ...prev,
+                          [v.verse_number]: (prev[v.verse_number] ?? 0) + 1,
+                        }))
+                      }
+                      className="rounded-full border border-[#FFB800] px-3 py-1 text-xs font-bold text-[#102E26] hover:bg-[#FFFBF2]"
+                    >
+                      ‹ Next word
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleHiddenAyah(v.verse_number)}
+                      className="rounded-full border border-[#E5E7EB] px-3 py-1 text-xs font-bold hover:border-[#1FA36B]"
+                    >
+                      Show ayah
+                    </button>
+                  </span>
+                )}
                 {status === 'memorised' && (
-                  <span className="rounded-full bg-[#eaf3ee] px-2.5 py-1 text-xs font-bold text-[#146B4D]">Memorised</span>
+                  <span className="rounded-full bg-[#E4FFF2] px-2.5 py-1 text-xs font-bold text-[#1FA36B]">Memorised</span>
                 )}
                 {status === 'learning' && (
-                  <span className="rounded-full bg-[#F7F5EF] px-2.5 py-1 text-xs font-bold text-[#5b6b62]">Learning</span>
+                  <span className="rounded-full bg-[#FFFBF2] px-2.5 py-1 text-xs font-bold text-[#5b6b62]">Learning</span>
                 )}
               </div>
-              <p dir="rtl" lang="ar" className={`font-quran ${script === 'uthmani' ? 'font-quran-madani' : ''} mt-4 text-right text-[28px] sm:text-4xl`}>
-                {verseText(v, script)}
-              </p>
+              {hiddenAyahs.has(v.verse_number) ? (
+                <p dir="rtl" lang="ar" className={`font-quran ${script === 'uthmani' ? 'font-quran-madani' : ''} mt-4 text-right ${adaptive ? '' : 'text-[28px] sm:text-4xl'}`} style={adaptive ? { fontSize: `${adaptiveFont}px`, lineHeight: 2 } : undefined}>
+                  <HiddenWords
+                    words={verseText(v, script).split(' ')}
+                    revealed={revealedAyah[v.verse_number] ?? 0}
+                    rosette={hideMarkers ? undefined : ` ﴿${v.verse_number}﴾`}
+                  />
+                </p>
+              ) : (
+                <p dir="rtl" lang="ar" className={`font-quran ${script === 'uthmani' ? 'font-quran-madani' : ''} mt-4 text-right ${adaptive ? '' : 'text-[28px] sm:text-4xl'}`} style={adaptive ? { fontSize: `${adaptiveFont}px`, lineHeight: 2 } : undefined}>
+                  {renderArabic(verseText(v, script))}
+                </p>
+              )}
               {viewMode !== 'arabic' && translation && (
                 <p className="mt-4 text-[15px] leading-relaxed text-[#1C2420]/85">{translation}</p>
               )}
               {viewMode !== 'arabic' && (
                 <p className="mt-2 text-xs text-[#1C2420]/50">Translation: {translationName}</p>
               )}
-              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#f0ede4] pt-3">
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#E5E7EB] pt-3">
                 <button
                   type="button"
                   onClick={() => playVerseAudio(v)}
                   disabled={!v.audio?.url}
                   aria-label={`Play verse ${v.verse_key}`}
-                  className="rounded-full bg-[#146B4D] px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-[#0B3D2E] disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+                  className="rounded-full bg-[#1FA36B] px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-[#102E26] disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
                 >
                   {isPlaying ? 'Playing…' : 'Listen'}
                 </button>
@@ -590,7 +830,7 @@ export default function SurahClient({
                   type="button"
                   onClick={() => toggleWords(v.verse_key)}
                   aria-expanded={!!wordsOpen[v.verse_key]}
-                  className="rounded-full border border-[#e5e0d3] px-3.5 py-1.5 text-sm font-semibold hover:border-[#146B4D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+                  className="rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
                 >
                   {wordsOpen[v.verse_key] ? 'Hide words' : 'Word-by-word'}
                 </button>
@@ -598,21 +838,29 @@ export default function SurahClient({
                   type="button"
                   onClick={() => toggleBookmark(v.verse_number)}
                   aria-pressed={bookmarked}
-                  className={`rounded-full border px-3.5 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D] ${bookmarked ? 'border-[#C9A227] bg-[#C9A227]/15 text-[#7a6414]' : 'border-[#e5e0d3] hover:border-[#146B4D]'}`}
+                  className={`rounded-full border px-3.5 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${bookmarked ? 'border-[#FFB800] bg-[#FFB800]/15 text-[#7A5C00]' : 'border-[#E5E7EB] hover:border-[#1FA36B]'}`}
                 >
                   {bookmarked ? 'Bookmarked' : 'Bookmark'}
                 </button>
                 <button
                   type="button"
+                  onClick={() => toggleHiddenAyah(v.verse_number)}
+                  aria-pressed={hiddenAyahs.has(v.verse_number)}
+                  className={`rounded-full border px-3.5 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${hiddenAyahs.has(v.verse_number) ? 'border-[#FFB800] bg-[#FFFBF2] text-[#102E26]' : 'border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+                >
+                  {hiddenAyahs.has(v.verse_number) ? 'Hidden — tap to show' : 'Hide this ayah'}
+                </button>
+                <button
+                  type="button"
                   onClick={() => toggleMemorised(v.verse_number)}
                   aria-pressed={status === 'memorised'}
-                  className={`rounded-full border px-3.5 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D] ${status === 'memorised' ? 'border-[#146B4D] bg-[#eaf3ee] text-[#146B4D]' : 'border-[#e5e0d3] hover:border-[#146B4D]'}`}
+                  className={`rounded-full border px-3.5 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${status === 'memorised' ? 'border-[#1FA36B] bg-[#E4FFF2] text-[#1FA36B]' : 'border-[#E5E7EB] hover:border-[#1FA36B]'}`}
                 >
                   {status === 'memorised' ? 'Memorised — tap to unmark' : 'Mark memorised'}
                 </button>
                 <Link
                   href={`/hifz/${surah.slug}/${surah.id}-${v.verse_number}`}
-                  className="rounded-full border border-[#e5e0d3] px-3.5 py-1.5 text-sm font-semibold hover:border-[#146B4D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+                  className="rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
                 >
                   Ayah page
                 </Link>
@@ -623,7 +871,7 @@ export default function SurahClient({
                     setCoachOpen(true);
                     document.querySelector('[aria-label="Recitation coach"]')?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="rounded-full border border-[#e5e0d3] px-3.5 py-1.5 text-sm font-semibold hover:border-[#146B4D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+                  className="rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
                 >
                   Recite this ayah
                 </button>
@@ -643,7 +891,7 @@ export default function SurahClient({
               type="button"
               disabled={safePage <= 1}
               onClick={() => setPage(safePage - 1)}
-              className="rounded-full border border-[#e5e0d3] bg-white px-4 py-2 text-sm font-semibold disabled:opacity-40"
+              className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold disabled:opacity-40"
             >
               Previous
             </button>
@@ -653,7 +901,7 @@ export default function SurahClient({
                 type="button"
                 aria-current={p === safePage ? 'page' : undefined}
                 onClick={() => setPage(p)}
-                className={`h-9 w-9 rounded-full text-sm font-bold ${p === safePage ? 'bg-[#0B3D2E] text-white' : 'border border-[#e5e0d3] bg-white'}`}
+                className={`h-9 w-9 rounded-full text-sm font-bold ${p === safePage ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white'}`}
               >
                 {p}
               </button>
@@ -662,7 +910,7 @@ export default function SurahClient({
               type="button"
               disabled={safePage >= totalPages}
               onClick={() => setPage(safePage + 1)}
-              className="rounded-full border border-[#e5e0d3] bg-white px-4 py-2 text-sm font-semibold disabled:opacity-40"
+              className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold disabled:opacity-40"
             >
               Next
             </button>
@@ -672,6 +920,8 @@ export default function SurahClient({
           </nav>
         )}
       </section>
+
+      {showTajweedGuide && <TajweedGuide onClose={() => setShowTajweedGuide(false)} />}
     </div>
   );
 }

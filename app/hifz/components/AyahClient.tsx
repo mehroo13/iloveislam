@@ -179,7 +179,7 @@ export default function AyahClient({
       <audio ref={audioRef} preload="none" className="hidden" />
 
       {/* Arabic + translation */}
-      <article className="rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm sm:p-6">
+      <article className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <p dir="rtl" lang="ar" className={`font-quran ${script === 'uthmani' ? 'font-quran-madani' : ''} text-right text-4xl sm:text-5xl`}>
           {verseText(verse, script)}
         </p>
@@ -190,12 +190,12 @@ export default function AyahClient({
           <p className="mt-2 text-xs text-[#1C2420]/50">Translation: {translationName}</p>
         )}
 
-        <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-[#f0ede4] pt-4">
+        <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-[#E5E7EB] pt-4">
           <button
             type="button"
             onClick={playAudio}
             disabled={!verse.audio?.url}
-            className="rounded-full bg-[#146B4D] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0B3D2E] disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+            className="rounded-full bg-[#1FA36B] px-4 py-2 text-sm font-semibold text-white hover:bg-[#102E26] disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
           >
             {playing ? 'Playing…' : `Listen — ${reciterName}`}
           </button>
@@ -203,7 +203,7 @@ export default function AyahClient({
             type="button"
             onClick={toggleBookmark}
             aria-pressed={bookmarked}
-            className="rounded-full border border-[#e5e0d3] px-3.5 py-2 text-sm font-semibold hover:border-[#146B4D]"
+            className="rounded-full border border-[#E5E7EB] px-3.5 py-2 text-sm font-semibold hover:border-[#1FA36B]"
           >
             {bookmarked ? 'Bookmarked' : 'Bookmark'}
           </button>
@@ -211,14 +211,14 @@ export default function AyahClient({
             type="button"
             onClick={toggleMemorised}
             aria-pressed={memorised}
-            className={`rounded-full border px-3.5 py-2 text-sm font-semibold ${memorised ? 'border-[#146B4D] bg-[#eaf3ee] text-[#146B4D]' : 'border-[#e5e0d3] hover:border-[#146B4D]'}`}
+            className={`rounded-full border px-3.5 py-2 text-sm font-semibold ${memorised ? 'border-[#1FA36B] bg-[#E4FFF2] text-[#1FA36B]' : 'border-[#E5E7EB] hover:border-[#1FA36B]'}`}
           >
             {memorised ? 'Memorised — tap to unmark' : 'Mark memorised'}
           </button>
           <button
             type="button"
             onClick={() => setCoachOpen(true)}
-            className="rounded-full bg-[#0B3D2E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#146B4D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#146B4D]"
+            className="rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
           >
             Recite this ayah
           </button>
@@ -239,7 +239,7 @@ export default function AyahClient({
                 type="button"
                 aria-pressed={viewMode === id}
                 onClick={() => setViewMode(id)}
-                className={`rounded-full px-3 py-1.5 text-sm font-semibold ${viewMode === id ? 'bg-[#0B3D2E] text-white' : 'border border-[#e5e0d3] hover:border-[#146B4D]'}`}
+                className={`rounded-full px-3 py-1.5 text-sm font-semibold ${viewMode === id ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
               >
                 {label}
               </button>
@@ -250,7 +250,7 @@ export default function AyahClient({
             <select
               value={translationId}
               onChange={(e) => setTranslationId(Number(e.target.value))}
-              className="rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-2 py-1.5 text-sm"
+              className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             >
               {TRANSLATIONS.map((t) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
@@ -262,7 +262,7 @@ export default function AyahClient({
             <select
               value={reciterId}
               onChange={(e) => setReciterId(Number(e.target.value))}
-              className="rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-2 py-1.5 text-sm"
+              className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             >
               {RECITERS.map((r) => (
                 <option key={r.id} value={r.id}>{r.name}</option>
@@ -274,7 +274,7 @@ export default function AyahClient({
             <select
               value={script}
               onChange={(e) => setScript(e.target.value as 'indopak' | 'uthmani')}
-              className="rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-2 py-1.5 text-sm"
+              className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             >
               {(Object.keys(SCRIPT_LABELS) as ('indopak' | 'uthmani')[]).map((s) => (
                 <option key={s} value={s}>{SCRIPT_LABELS[s]}</option>
@@ -293,8 +293,8 @@ export default function AyahClient({
         {viewMode === 'tafsir' && (
           <div className="mt-4">
             {initialTafsir ? (
-              <div className="rounded-xl bg-[#F7F5EF] border border-[#e5e0d3] p-4">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#146B4D]">Tafsir Ibn Kathir (Abridged)</p>
+              <div className="rounded-xl bg-[#FFFBF2] border border-[#E5E7EB] p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#1FA36B]">Tafsir Ibn Kathir (Abridged)</p>
                 <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#1C2420]/85">{initialTafsir}</p>
               </div>
             ) : (
@@ -305,15 +305,15 @@ export default function AyahClient({
       </article>
 
       {/* Word-by-word */}
-      <section aria-labelledby="wbw-heading" className="mt-6 rounded-2xl border border-[#e5e0d3] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="wbw-heading" className="text-lg font-bold text-[#0B3D2E]">Word-by-word</h2>
+      <section aria-labelledby="wbw-heading" className="mt-6 rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+        <h2 id="wbw-heading" className="text-lg font-bold text-[#102E26]">Word-by-word</h2>
         {words.length === 0 ? (
           <p className="mt-2 text-sm text-[#5b6b62]">Word-by-word is unavailable right now.</p>
         ) : (
           <ul className="mt-3 flex flex-wrap gap-2">
             {words.map((w, i) => (
-              <li key={i} className="rounded-lg border border-[#e5e0d3] bg-[#F7F5EF] px-2.5 py-1.5 text-center">
-                <span dir="rtl" lang="ar" className="font-quran block text-xl leading-snug text-[#0B3D2E]">{w.arabic}</span>
+              <li key={i} className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2.5 py-1.5 text-center">
+                <span dir="rtl" lang="ar" className="font-quran block text-xl leading-snug text-[#102E26]">{w.arabic}</span>
                 {w.transliteration && <span className="block text-[11px] italic text-[#5b6b62]">{w.transliteration}</span>}
                 {w.translation && <span className="block text-[11px] text-[#1C2420]/75">{w.translation}</span>}
                 {w.audioUrl && (
@@ -326,7 +326,7 @@ export default function AyahClient({
                       audio.play().catch(() => setPlayingWord(null));
                       audio.addEventListener('ended', () => setPlayingWord(null), { once: true });
                     }}
-                    className="mt-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#146B4D] hover:underline"
+                    className="mt-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#1FA36B] hover:underline"
                   >
                     {playingWord === i ? 'Playing…' : 'Hear it'}
                   </button>
@@ -354,7 +354,7 @@ export default function AyahClient({
         <button
           type="button"
           onClick={() => setCoachOpen(true)}
-          className="mt-6 flex items-center gap-2 rounded-full bg-[#0B3D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#146B4D]"
+          className="mt-6 flex items-center gap-2 rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
         >
           <ToolIcon name="mic" className="h-4 w-4" /> Recite this ayah with the coach
         </button>
@@ -363,14 +363,14 @@ export default function AyahClient({
       {/* Prev / next ayah */}
       <nav aria-label="Previous and next ayah" className="mt-8 flex flex-wrap justify-between gap-2">
         {prevKey ? (
-          <Link href={`/hifz/${surah.slug}/${prevKey.replace(':', '-')}`} className="rounded-full border border-[#e5e0d3] bg-white px-4 py-2 text-sm font-semibold hover:border-[#146B4D]">
+          <Link href={`/hifz/${surah.slug}/${prevKey.replace(':', '-')}`} className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]">
             ← Previous ayah ({prevKey})
           </Link>
         ) : (
           <span />
         )}
         {nextKey ? (
-          <Link href={`/hifz/${surah.slug}/${nextKey.replace(':', '-')}`} className="rounded-full border border-[#e5e0d3] bg-white px-4 py-2 text-sm font-semibold hover:border-[#146B4D]">
+          <Link href={`/hifz/${surah.slug}/${nextKey.replace(':', '-')}`} className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]">
             Next ayah ({nextKey}) →
           </Link>
         ) : (

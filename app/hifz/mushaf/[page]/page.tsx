@@ -89,7 +89,7 @@ export default async function MushafPage({
       />
 
       <header className="mt-4 text-center">
-        <h1 className="text-2xl font-bold tracking-tight text-[#0B3D2E] sm:text-3xl">
+        <h1 className="text-2xl font-bold tracking-tight text-[#102E26] sm:text-3xl">
           Mushaf — Page {n} of {MUSHAF_TOTAL_PAGES}
         </h1>
         <p className="mt-1 text-sm text-[#5b6b62]">

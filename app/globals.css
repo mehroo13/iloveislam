@@ -95,30 +95,47 @@ button {
   max-width: 100%;
 }
 
-/* ===== I Love Islam — design system (emerald + gold on warm paper) ===== */
+/* ===== I Love Islam — design system (Tarteel palette, our own brand) =====
+   Verified Tarteel tokens (research 2026-11-21, from Tarteel's shipped web
+   CSS): brand green #57D798, gold #FFB800 / #F2C94C, dark green #102E26,
+   pale mint #E4FFF2, warm cream #FFFBF2. #1FA36B is a deeper green derived
+   from #57D798 for text/buttons where the bright mint fails contrast.
+   Site name stays "I Love Islam"; logo mark stays our eight-point star. */
 :root {
-  --emerald-deep: #0b3d2e;
-  --emerald-mid: #146b4d;
-  --emerald-soft: #eaf3ee;
-  --gold: #c9a227;
-  --gold-light: #e7d9a8;
-  --paper: #f7f5ef;
+  --brand: #57D798;
+  --brand-mint: #71F3AD;
+  --brand-teal: #46E5BC;
+  --brand-deep: #102E26;
+  --brand-text: #1FA36B;
+  --gold-2: #F2C94C;
+  --gold-dark: #7A5C00;
+  --mint: #E4FFF2;
+  --cream: #FFFBF2;
+  --hairline: #E5E7EB;
+  --success: #16A34A;
+  --error: #DC2626;
+  --emerald-deep: #102E26;
+  --emerald-mid: #1FA36B;
+  --emerald-soft: #E4FFF2;
+  --gold: #FFB800;
+  --gold-light: #F2C94C;
+  --paper: #FFFBF2;
   --ink: #1c2420;
   --ink-muted: #5b6b62;
 
   /* Legacy aliases kept for existing pages */
-  --green-dark: #0b3d2e;
-  --green-mid: #146b4d;
-  --gold-old: #c9a227;
+  --green-dark: #102E26;
+  --green-mid: #1FA36B;
+  --gold-old: #FFB800;
 
   /* Compare Religions Tool Variables */
-  --bg-page: #f7f5ef;
+  --bg-page: #FFFBF2;
   --card-bg: #ffffff;
-  --border-color: #e5e1d5;
+  --border-color: #E5E7EB;
   --text-body: #1c2420;
   --text-muted: #5b6b62;
-  --islam-green: #0b3d2e;
-  --islam-green-light: #eaf3ee;
+  --islam-green: #102E26;
+  --islam-green-light: #E4FFF2;
 }
 
 * {
@@ -127,7 +144,7 @@ button {
 
 body {
   font-family: 'DM Sans', sans-serif;
-  background: #f7f5ef;
+  background: #ffffff;
   color: #1c2420;
 }
 
@@ -154,12 +171,12 @@ body {
 
 /* Brand selection + focus */
 ::selection {
-  background: #c9a227;
-  color: #0b3d2e;
+  background: #FFB800;
+  color: #102E26;
 }
 
 :focus-visible {
-  outline: 2px solid #c9a227;
+  outline: 2px solid #FFB800;
   outline-offset: 2px;
 }
 
@@ -343,3 +360,132 @@ body {
   position: absolute !important;
   left: -9999px !important;
 }
+
+/* ===== Tarteel-matching Hifz styles (reverse-engineering 2026-11-21) ===== */
+
+/* Dark theme (Settings → Themes). Near-black pages, dark navy test cards. */
+[data-theme="dark"] body {
+  background: #0a0f0d;
+  color: #e8f5ee;
+}
+[data-theme="dark"] .hifz-surface {
+  background: #102e26 !important;
+  border-color: #1e4a3a !important;
+  color: #e8f5ee !important;
+}
+
+/* Big green-gradient mic/mode button (Tarteel §2.3): pale mint top-left
+   → deeper green bottom-right, white icon. */
+.mic-btn {
+  background: linear-gradient(135deg, #71f3ad 0%, #57d798 45%, #1fa36b 100%);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(87, 215, 152, 0.45);
+}
+.mic-btn:hover { filter: brightness(1.05); }
+
+/* Primary pill — Tarteel's full-width mint-green pill, white bold text. */
+.btn-primary {
+  background: #57d798;
+  color: #102e26;
+  font-weight: 700;
+  border-radius: 9999px;
+}
+.btn-primary:hover { filter: brightness(1.03); }
+
+/* Hidden verses (memorisation mode, Tarteel §2.2): thin light-grey rules,
+   one per hidden word, with the faint ayah-end rosette still visible. */
+.hidden-word-rule {
+  display: inline-block;
+  height: 0.14em;
+  min-width: 1.6em;
+  border-radius: 9999px;
+  background: #d1d5db;
+  vertical-align: middle;
+  margin: 0 0.15em;
+}
+.hidden-ayah-rosette {
+  opacity: 0.35;
+}
+
+/* Live coach word colours (Tarteel §2.2/§3.2): green = correct/current,
+   red + dotted underline = mistake. The underline clears on correction;
+   the red remains for the rest of the session. */
+.live-word-correct { color: #16a34a; }
+.live-word-wrong {
+  color: #dc2626;
+  text-decoration: underline dotted #dc2626;
+  text-underline-offset: 4px;
+}
+.live-word-wrong-fixed { color: #dc2626; }
+
+/* Mistake-history pastel washes (Tarteel §2.2): red → orange → yellow →
+   green by how often the word was missed in the last 12 memory sessions. */
+.wash-most { background: rgba(239, 68, 68, 0.22); border-radius: 0.35em; padding: 0 0.2em; }
+.wash-often { background: rgba(249, 115, 22, 0.2); border-radius: 0.35em; padding: 0 0.2em; }
+.wash-some { background: rgba(250, 204, 21, 0.22); border-radius: 0.35em; padding: 0 0.2em; }
+.wash-few { background: rgba(34, 197, 94, 0.18); border-radius: 0.35em; padding: 0 0.2em; }
+
+/* Tajweed colours — DISPLAY ONLY, free (Tarteel §2.2). Word-level colouring
+   so Arabic letter-joining is never broken by per-letter spans. This is
+   NOT tajweed detection: neither Tarteel nor this app detects tajweed. */
+.tj-madd-laazim { color: #991b1b; }
+.tj-madd-wajib { color: #ea580c; }
+.tj-madd-aarid { color: #f59e0b; }
+.tj-madd-tabeei { color: #ca8a04; }
+.tj-ghunna { color: #16a34a; }
+.tj-qalqalah { color: #38bdf8; }
+.tj-tafkhim { color: #1d4ed8; }
+.tj-silent { color: #9ca3af; }
+
+/* Bottom sheets (Tarteel §4.5/§4.6): white, 24px top radius, grey drag
+   handle, dimmed page behind. */
+.sheet-backdrop {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(16, 46, 38, 0.55);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.sheet-panel {
+  width: 100%; max-width: 42rem; max-height: 85vh; overflow-y: auto;
+  background: #fff; border-radius: 24px 24px 0 0; padding: 0.75rem 1.25rem 2rem;
+  animation: sheet-up 0.25s ease-out;
+}
+.sheet-handle {
+  width: 2.5rem; height: 0.3rem; border-radius: 9999px;
+  background: #d1d5db; margin: 0 auto 0.75rem;
+}
+@keyframes sheet-up {
+  from { transform: translateY(40px); opacity: 0.6; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Testing Mode question card (Tarteel §4.2): dark navy card, deck layers
+   behind it, blue-gradient footer. */
+.test-card {
+  background: #0f2040;
+  color: #fff;
+  border-radius: 24px;
+  box-shadow: 0 0 0 6px rgba(15, 32, 64, 0.12), 0 0 0 12px rgba(15, 32, 64, 0.06);
+}
+.test-card-footer {
+  background: linear-gradient(90deg, #2563eb, #3b82f6 55%, #60a5fa);
+  border-radius: 0 0 24px 24px;
+}
+.test-card-correct { background: #15803d; }
+.test-card-wrong { background: #b91c1c; }
+
+/* Top tab row (Tarteel §1.1): scrollable, active tab black + 2px underline. */
+.hifz-tabs { scrollbar-width: none; }
+.hifz-tabs::-webkit-scrollbar { display: none; }
+
+/* Sepia theme (Settings → Themes). Warm paper page, brown ink. */
+[data-theme="sepia"] body {
+  background: #f4ecd8;
+  color: #433422;
+}
+[data-theme="sepia"] .hifz-surface {
+  background: #fdf6e3 !important;
+  border-color: #e3d5b3 !important;
+}
+
+/* Skipped / not-heard words: orange (screenshot-spec colours). */
+.live-word-skipped { color: #ea580c; }

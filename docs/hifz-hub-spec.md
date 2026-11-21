@@ -996,7 +996,7 @@ name, design and wording throughout.
 
 | # | Tarteel feature | What it is (evidence) | Our status on the web |
 |---|---|---|---|
-| 1 | Live Memorisation Mistake Detection (AI coach) | Hide verses, recite from memory; AI flags missed, added, changed words and incorrect tashkeel in real time; tap a mistake to see what you said vs the correct ayah (Play listing; tarteel.ai) | **SHIPPED.** Tilawa on-device coach (`RecitationCoach.tsx`): listen → hide → recite → word-by-word feedback, live correction tap, peek counted as a miss. Free daily (1 surah / 10 min, §3.3) — Tarteel paywalls it. Honest limit kept: word accuracy only, never tajweed; teacher disclaimer in the UI. |
+| 1 | Live Memorisation Mistake Detection (AI coach) | Hide verses, recite from memory; AI flags missed, added, changed words and incorrect tashkeel in real time; tap a mistake to see what you said vs the correct ayah (Play listing; tarteel.ai) | **SHIPPED.** Tilawa on-device coach (`RecitationCoach.tsx`): listen → hide → recite → word-by-word feedback, live correction tap, peek counted as a miss. **Unlimited and free** — the 1-surah/day and 10-min/day caps were removed 2026-11-21 (§19); Tarteel paywalls this. Honest limit kept: word accuracy only, never tajweed; teacher disclaimer in the UI. Rebuilt 2026-11-21 (§22): follow-along mode, harakat strict/ignore option, own-recording playback, session summary, retry-mistakes-only, mistake-history sheet, session-analytics sheet. |
 | 2 | Memorisation Mode (hide & recite) | Hide the verses on the mushaf, recite from memory, words reveal as you say them (Play listing) | **SHIPPED.** Hide-Arabic toggle + word-by-word reveal in the coach; translation stays as a prompt. |
 | 3 | Peeking / Hidden Verses Mode | Peek when stuck (Premium, Play listing) | **SHIPPED, stricter.** Peek button exists and the peek is **counted as a miss** for streak/accuracy — Tarteel's listing does not say peeking costs anything. |
 | 4 | Voice Search ("Shazam for Quran") | Recite any phrase, find the specific ayah and surah (Play listing) | **SHIPPED 2026-11-21 (§15.2).** Browser speech recognition → text → Quran.com search via the `/api/quran` proxy; matches in the launch set open in the coach. Was "not in v1" (§12) — now shipped. |
@@ -1006,7 +1006,7 @@ name, design and wording throughout.
 | 8 | Streaks | Daily streak tracking (Play listing) | **SHIPPED.** Local streak, goal-met day advances it, missed day resets it, never faked (§5.1). |
 | 9 | Advanced Analytics — heatmaps | Visualise progress with streaks and heatmaps (Play listing) | **SHIPPED 2026-11-21 (§15.3).** 12-week activity heatmap on My Progress, built from existing ayah records. Was "not in v1" (§12) — now shipped. |
 | 10 | Advanced Analytics — per-surah strength | See which surahs are strong and which ayahs need more work (Play listing) | **SHIPPED 2026-11-21 (§15.3).** Per-surah strength bars on My Progress (memorised full weight, learning half). Was "not in v1" (§12) — now shipped. |
-| 11 | Historical Mistakes / mistake log | Review a log of past recitation errors to identify patterns (Play listing) | **SHIPPED.** Mistake log on My Progress with ayah, word, heard-as, attempts, retry link; the full log is kept on this device (§5.1). Deliberate difference: we never store audio, so there is no playback of your own recording — a privacy trade, not a gap to close by storing recordings (§8.2). |
+| 11 | Historical Mistakes / mistake log | Review a log of past recitation errors to identify patterns (Play listing) | **SHIPPED.** Mistake log on My Progress with ayah, word, heard-as, attempts, retry link; the full log is kept on this device (§5.1). Rebuilt 2026-11-21 (§22): filters (All / Incorrect / Missed), weak-spots ranking with pastel washes by frequency (red→orange→yellow→green), practice-my-mistakes (Weakest Link test), Expected-vs-Recited mistake-history sheet with "See similar verses" and "Remove — I said it correctly". Own-recording playback now exists: the coach best-effort records a second mic stream (MediaRecorder, device-only blob, never uploaded) and plays it back in the session summary — the earlier "we never store audio" line is superseded. |
 | 12 | Reciters / Unlimited Listening | Listen to favourite qaris, follow along or in the background, free (Play listing) | **SHIPPED.** Reciter picker on every surah/ayah page; play-all with repeat 1–100, range loop, pause between repeats, 0.25×–2× speed (§4.1.4, Quran.com parity). |
 | 13 | Translations | Multiple translations (tarteel.ai / listing) | **SHIPPED.** Translation picker on surah pages; Saheeh International default; view modes Arabic / +translation / +tafsir. |
 | 14 | Tafsir | Tafsir on ayah/surah pages (app feature) | **SHIPPED.** Ibn Kathir Abridged via Quran.com proxy; renders **only** in Tafsir view mode (commit 12a3449 — do not regress). |
@@ -1014,20 +1014,26 @@ name, design and wording throughout.
 | 16 | Adaptive Mushaf — Madani / Indo-Pak scripts | Choose Madani or Indo-Pak script; hide ayah markers (Play listing) | **SHIPPED 2026-11-21 (§15.7).** Script picker (Indo-Pak / Madani-Uthmani) on surah and ayah pages, persisted per device; the reader fetches both Quran.com fields (`text_indopak`, `text_uthmani`) so switching needs no refetch, and Madani renders in Amiri. Scoped cleanly: the coach, Test Mode and word-by-word stay Indo-Pak — the word alignment is built on it (Uthmani word breaks differ) — and the reader says so when Madani is selected. |
 | 17 | Audio controls | Playback speed, repeat, looping (Quran.com parity, §12) | **SHIPPED.** See #12. |
 | 18 | Progress tracking | Streaks, goals, per-surah progress (Play listing) | **SHIPPED.** My Progress dashboard + homepage continue widget + per-surah progress bars; export/import JSON (no account, §5.1). |
-| 19 | Premium gating | Mistake detection, peeking, goals, analytics, history behind Premium; free trial; Family Plan; Alim $0 programme (tarteel.ai FAQ) | **DELIVERED DIFFERENTLY, deliberately.** Our free tier includes the live coach daily, goals, streaks and analytics — the things Tarteel paywalls. Premium ("coming soon") buys depth only: unlimited coach time, all 30-day plans, full mistake history (§3.3, §7). No billing exists yet; the free set is a promise and must never move behind a paywall later (§11.4 warning). Alim-style affordability path is a v2 item (§7, §12). |
+| 19 | Premium gating | Mistake detection, peeking, goals, analytics, history behind Premium; free trial; Family Plan; Alim $0 programme (tarteel.ai FAQ) | **DELIVERED DIFFERENTLY, deliberately — and superseded by §19 (2026-11-21): everything is free, no Premium tier, no paywall, no limits, ever.** The earlier "Premium (coming soon)" line is void. Mistake detection, peeking, goals, analytics and the full mistake history are all free and unlimited. No billing exists and none is planned. |
 | 20 | Challenges | In-app challenges / group challenges (app feature; Family Plan in FAQ) | **SHIPPED 2026-11-21 (§15.9).** Group challenges WITHOUT accounts (`/hifz/challenges`): create a challenge (surah, ayahs each, 7/14/30 days), share a code (`HIFZ-XXXX`) or a link that carries the challenge + member progress as a URL payload; opening a teammate's link merges their latest progress (newest update wins). Solo weekly challenge (§15.4) and 7-day plans stay as well. Honest limit: no live leaderboard — progress syncs through shared links, nothing is uploaded. |
 | 21 | Revision mode / spaced repetition | Smart Goals cover revision; Test Mode breaks cue-dependence (listing; release notes) | **SHIPPED 2026-11-21 (§15.5).** Performance-driven revision queue on My Progress: learning ayahs due after 2 days, memorised after 7 days, oldest first. Was "not in v1" (§12) — now shipped. |
 | 22 | Privacy | "Privacy First — does not sell your data" (Play listing); voice features need internet (listing) | **SHIPPED, stronger.** On-device processing, audio never leaves the device, no account, no ads on Hifz pages, no analytics event containing ayah text or mistake words (§5.1, §8.1.3). |
 | 23 | Offline use | Reciter audio downloadable; AI needs internet (listing; help centre) | **SHIPPED 2026-11-21 (§15.10).** Service worker v3: Quran proxy responses cached 7 days, Hifz pages network-first with cache fallback, Tilawa model + ONNX WASM cached (MODEL_CACHE), and a "Save surahs for offline use" button on My Progress that warms the cache for every launch surah. After one online recitation (model download) the coach works in airplane mode. Airplane-mode test on a real device is still owed (browser verification) — the mechanism is shipped, the device test is not yet run. |
 | 24 | Accessibility | Large-text breakage reported in reviews (§11.1) | **SHIPPED (static fixes) 2026-11-21 (§15.11).** The viewport no longer blocks scaling (`maximumScale`/`userScalable=false` removed), `text-size-adjust: 100%`, `overflow-x: clip` on html/body, and `max-width: 100%` on media and form controls; audit found no fixed-width overflow at 360px. A real-device 200% / 360px check is still owed (browser verification) — the fixes are in, the device test is not yet run. |
 
-**Honest summary (updated 2026-11-21):** of Tarteel's feature set, everything
-a web app can do without accounts is shipped — including Madani script (#16),
-per-type goals (#7), social challenges without accounts (#20) and the offline
-coach mechanism (#23). What remains is verification, not building: the
+**Honest summary (updated 2026-11-21, §22 rebuild):** of Tarteel's feature set,
+everything a web app can do without accounts is shipped — including Madani script
+(#16), per-type goals (#7), social challenges without accounts (#20) and the
+offline coach mechanism (#23) — and the 2026-11-21 screenshot-based rebuild (§22)
+closed the remaining interface gaps: bottom-tab navigation, the dark-navy Test
+Mode card, the mistake-history and session-analytics bottom sheets, the range
+wheel, the goals builder, the Add Session / streak-restore form, engagement
+charts, the memorised map of all 114 surahs, and the Quran League / RQGQ
+challenge surfaces. What remains is verification, not building: the
 airplane-mode test and the 200%-text / 360px device test (#23, #24) still need
-a real device/browser check, and group challenges sync through shared links
-rather than a live server (#20).
+a real device/browser check, group challenges sync through shared links
+rather than a live server (#20), and colour-coded-by-topic mushaf text is
+not built (no reliable topic taxonomy in the Quran.com API — see §22.6).
 
 ## 14. Single-purpose refocus (2026-11-21) — the tools site is gone
 
@@ -1569,3 +1575,225 @@ additional mode.
 - SEO: unique title/description per mushaf page, canonical, OG,
   BreadcrumbList JSON-LD; all 604 pages in the sitemap (priority 0.5).
   Sitemap total is now ~6,995 URLs.
+
+## 22. Screenshot-based rebuild — matching Tarteel screen by screen (2026-11-21)
+
+**Authority:** 7 screenshots from the owner's own phone (Tarteel v5.17, received
+2026-11-21 22:18) + 4 Play Store description screenshots (22:23) are the
+authoritative visual reference. The reverse-engineering report
+(`~/workspace/research_notes/tarteel-reverse-engineering-20261121/report.md`,
+89-row gap table) and the earlier deep study are supporting evidence; the
+screenshots + this section win where they disagree. Features, interface, design
+language and colours are copied; Tarteel's logo, brand name, artwork, exact
+wording and code are **not** — our own branding ("I Love Islam", our own mark)
+and our own words throughout. The word "Tarteel" appears nowhere in user-facing
+copy (two rendered mentions found during the rebuild were removed; it survives
+only in code comments documenting the source of the reverse-engineering).
+
+**Standing rules carried into this rebuild:** everything 100% free, no accounts,
+no Premium tier, no paywall, no limits (§19); no cross-device sync promised
+anywhere — device-local with export/import JSON; onboarding max 3 screens,
+skippable, never asks for email/password; the Mushaf fix (commit 35ea991 —
+kashida justification, attached pause marks, ornamental header, short-page
+centring, Indo-Pak script picker) is **not regressed**.
+
+### 22.1 Palette (verified from the screenshots + research report)
+
+Adopted as the app palette: brand green `#57D798`, gold `#FFB800`, dark green
+`#102E26`, pale mint `#E4FFF2`, warm cream `#FFFBF2`, gold `#F2C94C`
+(`app/globals.css` brand vars `--brand`, `--brand-mint`, `--brand-teal`,
+`--brand-deep`, `--brand-text #1FA36B` — a deeper green derived from #57D798 for
+text/button contrast — `--gold`, `--gold-2`, `--mint`, `--cream`). Body
+background is white; mushaf pages keep the mint-green gradient frame; dark theme
+(near-black pages) and sepia theme (warm paper `#f4ecd8`) added via
+`[data-theme]` on the document element. The old palette (#0B3D2E, #146B4D,
+#C9A227, #F7F5EF, #eaf3ee, #e5e0d3, #e7d9a8, #8a6d1b, #FFF9E6, #FBF0CC,
+#FDF8EC, #FFFDF6) was replaced by `sed` across `app/hifz/**` + `app/globals.css`
+— no old hex should remain in the Hifz UI.
+
+### 22.2 Screens matched (screenshot → our build)
+
+| Screenshot | Tarteel screen | Our build |
+|---|---|---|
+| 1 — Onboarding v5.17 | Dark green, white wordmark, "Quran Recitation Application powered by Artificial Intelligence", correct white bubble vs mistake red bubble, "NOW WITH MISTAKE DETECTION", "AUTOMATICALLY HIGHLIGHT: INCORRECT WORDS, EXTRA WORDS, MISSED WORDS", "GET STARTED →", "v5.17" | 3-screen onboarding (`AppShell.tsx` `Onboarding`, dark green `#102E26`, skippable, stored `ili_onboarded_v1`, our own mark + wording, speech bubbles correct white / mistake red, never asks email/password). Rendered on first visit only. |
+| 2 — Mushaf reader | White page, top bar hamburger / search / "Chapter Al-Baqarah / Chapter 2 \| Verse 8" / bookmark + settings; mistake word highlighted RED inline; mint-green gradient around the page; "Mistake Detection" | Reader header variant A in `SurahClient.tsx` (hamburger → /hifz, search → /hifz/search, centred "Chapter {name} / Chapter {id} \| Verse {current}", prev/next surah chevrons, bookmark toggle, gear → /hifz/settings). Live wrong words render red with a dotted underline (`.live-word-wrong`), correct green, skipped orange. Mushaf page keeps the mint gradient frame (§21). |
+| 3 — Mistakes review | "Check and learn from your past mistakes", "Mistakes" list — "2:7 Incorrect words" with Expected vs Recited rows (wrong word in red), black pill "See similar verses"; "2:8 Missed words"; "Fix Mistakes" | Mistake-history bottom sheet (`SharedSheets.tsx` `MistakeHistorySheet`): Expected vs Recited card, time chip, Incorrect/Missed labels, "See similar verses" link (→ /hifz/search?q=word), "Remove — I said it correctly" button, "N more correct recitations" line. Mistakes log on My Progress with filters (All / Incorrect / Missed), weak-spots ranking with pastel washes by frequency, practice-my-mistakes (Weakest Link test). |
+| 4 — Memorise mode | "Test your memorization by hiding and revealing words", mushaf page with first ayahs visible and rest hidden as THIN GREY RULES with faint ayah rosette markers | Hidden words render as thin grey rules with faint rosettes (`.hidden-word-rule`, `.hidden-ayah-rosette`, `HiddenWords` component) in the coach, the mushaf reader (`?memorize=1`), and per-ayah hide in the reader. Peek controls ‹ Next word / « Reveal rest, each peek counted and shown. |
+| 5 — Similar verses (Mutashabihat) | "Search Results" with the query, results like "2:10 Al-Baqarah" with Arabic + English translation, share/copy icons, "Continue Reading", more results (2:174, 3:77, 3:177) | `/hifz/search` (`SearchClient.tsx`): Arabic/English text search via `/api/quran/search` (proxy whitelist already allowed the `search` path; response shape verified live: `search.results[]` with `verse_key`, `text`, `translations[]`), results styled like the screenshot (verse_key chip, surah name, Arabic, translation, Share/Copy, "Continue Reading →" to the coach), plus jump to surah/juz/page and a Voice Search entry card. |
+| 6 — Scripts | "Madani, IndoPak, and Transliteration support", mushaf page with "Page 3 \| Juz 1 \| Hizb 1" indicator | Script picker (Madani / Indo-Pak) on surah, ayah and mushaf pages (§15.7, §21); transliteration available via the transliteration translation (ID 57). Mushaf pages show the Page / Juz / Hizb indicator. |
+| 7 — Progress | "Stay consistent with progress and rewards", "Progress" screen — "Current Streak 9 Days" with green "ADD SESSION" button, "Quran Activity Tracker" heatmap (months Oct–Jan, green squares), "Quran Engagement Time" chart with month selector | My Progress (`MyProgressClient.tsx`): streak with "ADD SESSION" form (date, type, ayahs, minutes; yesterday's session restores a missed day's streak; sessions stored in `ili_sessions_v1`), 12-week activity heatmap, engagement chart (time/ayahs by day/week/month, built only from recorded activity — never invented), memorised map of all 114 surahs (grid coloured by strength), mistakes log + weak spots, spaced-revision queue, per-type goal rings, per-surah strength. |
+
+### 22.3 Navigation — bottom tabs (supersedes the earlier top-tab brief)
+
+`AppShell.tsx` `BottomTabs`: fixed bottom bar **Home | Mushaf | Memorize |
+**Search | Progress**, active tab green with a mint underline, `usePathname`
+matching. `app/hifz/layout.tsx` renders `ThemeApplier` (applies saved theme +
+RTL `dir`/`lang` for Arabic/Urdu from settings; runs the IndexedDB migration
+once) + `Onboarding` + `BottomTabs`, content padded `pb-20`. The earlier
+top-tab brief (Goals · Memorization · Activity · Community) is superseded.
+Home (`/hifz`) keeps the mint "Start reciting" CTA, the New Goal hero (dark
+green card, "Bismillah — let's set your intention.", hadith quote, "Start a
+custom goal" → /hifz/goals) and Suggestions horizontal cards (Complete the
+Quran, Surah Al-Kahf every Friday, Juz Amma, Memorise a page a day).
+
+### 22.4 New pages + clients
+
+- **`/hifz/search`** — see §22.2 screenshot 5.
+- **`/hifz/memorize`** (`MemorizeClient.tsx`): hide-and-reveal practice picker
+  (surah select → `/hifz/mushaf/{firstPage}?memorize=1`, Test Mode link),
+  Memorization tracker with Chapter (114) / Juz (30) / Hizb (60) tabs, surah
+  rows expanding to per-page rows (PG. N → mushaf `?memorize=1`) with segmented
+  green/yellow-green strength bars. Hizb rows approximate a hizb as a half-juz
+  segment (documented approximation in code).
+- **`/hifz/goals`** (`GoalsClient.tsx`, `ili_goals_v1`): New Goal screen with
+  intention form (Name, Action Review/Memorize/Recite, Range, Portion,
+  Schedule, flexible vs portion-based, deadline, reverse-order, recurring),
+  auto daily-plan preview, session bars green/yellow/red, Suggestions
+  (Complete the Quran, Al-Kahf every Friday, Review Juz 30, Memorise Juz
+  Amma), saved-goals list with delete. Preset `?preset=kahf` pre-fills an
+  Al-Kahf goal.
+- **`/hifz/settings`** (`SettingsClient.tsx`): Language (EN/AR/FR/ID/MS/RU/HI/
+  UR, RTL for AR/UR applied to the document), Theme (light/dark/sepia),
+  Recitation toggles (Detect mistakes, Strict harakat, Don't progress until
+  mistake is fixed, Sound on test completion), Quran appearance (Highlight
+  mistake history, Show washes over hidden words, Tajweed colours, Hide ayah
+  markers, Mushaf layout 15/16 lines), Data usage (Save session audio on this
+  device; IndexedDB mirror note), Reminders (honest: no push — no
+  accounts/server; in-app reminders planned, nothing promised that isn't
+  built), Mic help, Export/Import JSON, Clear all data (clears `ili_*` +
+  bookmark keys, deletes the IndexedDB db), Privacy notice, Donation link
+  (Settings only, → /about#support).
+- **Translations / reciters extended** (`app/quran/lib.ts`, IDs verified
+  against api.quran.com 2026-11-21): FR 31 Hamidullah, ID 33 Indonesian
+  Ministry, MS 39 Basmeih, RU 45 Kuliev, UR 234 Jalandhari, HI 122 Azizul
+  Haque, transliteration 57; reciters 1 Abdul Basit Mujawwad, 5 Hani ar-Rifai,
+  8 Minshawi Mujawwad, 10 Shuraym, 11 Tablawi, 12 Husary Muallim (plus the
+  existing 7 Alafasy, 2 Abdul Basit Murattal, 3 Sudais, 9 Minshawi, 6 Husary,
+  4 Shatri).
+- **Favourites + last-read** (spec §22.4, built in the rebuild): the reader
+  records `ili_last_read_v1` on open; My Progress shows "Continue where you
+  left off" and a Favourites section from the existing bookmark store
+  (`quran_bookmarks_v2`).
+- **Sitemap:** `/hifz/search`, `/hifz/memorize`, `/hifz/goals` added at
+  priority 0.3 (same low priority as `/hifz/my-progress` and `/hifz/challenges`).
+  Sitemap total is now ~6,998 URLs. Settings stays unlisted (tool page).
+
+### 22.5 Coach, mushaf reader, Test Mode — what changed
+
+- **RecitationCoach** (`RecitationCoach.tsx`): modes `mic | self-mark |
+  follow` — follow-along highlights words live with no judgement, counts
+  minutes only, no mistake log/streak effect. `stripDiacritics` helper for
+  harakat-ignorant comparison; `harakatStrict` setting (default false) —
+  when off, a "wrong" word whose heard form equals the expected word ignoring
+  diacritics is re-scored correct. `dontProgress` gates Next ayah ("Fix these
+  words first"). Peek tracking (`‹ Next word`, `« Reveal rest`, peek count).
+  Live colours green/red-dotted/orange; hidden words as grey rules with faint
+  rosettes; global word index across scope ayahs. Bottom bar: live stat pills
+  (mistakes, % so far, timer), 4 circular buttons (translation prompt toggle,
+  hide/show Arabic, highlighter toggle with green ring + toast, share/copy
+  link). Session summary (accuracy %, correct/total, time, peeks, mistakes by
+  type from checker events `wrong_word`/`omitted_word`/`added_word`/
+  `skipped_passage`); own-recording `<audio>` playback when a MediaRecorder
+  blob exists (best-effort second mic stream, device only, failure is silent);
+  per-word feedback tappable → Expected-vs-Recited panel; "Remove — I said it
+  correctly" removes the word from the mistake log. MistakeHistorySheet +
+  SessionAnalyticsSheet rendered at the end. Retry-mistakes-only scope exists
+  via `retryScope` (mistake ayahs). `settings` (`HifzSettings`, extended in
+  `progress.ts` with `detectMistakes`, `harakatStrict`, `dontProgress`,
+  `highlightMistakes`, `showForHidden`, `tajweedColors`, `hideAyahMarkers`,
+  `saveAudio`, `testSound`, `mushafLines` 15|16, `theme`, `language` — all
+  optional, backward-compatible) loaded on mount.
+- **Mushaf reader** (`MushafPageView.tsx`): `?memorize=1` opens hidden;
+  `hideInitial`/`controlledHide`/`bare` props; "Hide verses — memorise" /
+  "Show verses" toggle, peek buttons with count, "Continuous scroll" /
+  "Page by page" toggle (continuous fetches the next 2 pages via
+  `/api/quran/verses/by_page/{n}?words=true…` and renders nested bare views),
+  "15 lines"/"16 lines" toggle (16-line uses a smaller font; driven by the
+  `mushafLines` setting). Global word counter across the page for in-order
+  peeking; hidden ayah-end markers become faint rosettes in hide mode.
+- **Surah reader** (`SurahClient.tsx`): reader header variant A (§22.2
+  screenshot 2); mode switcher Reading / Recitation / Listening / Memorisation
+  / Test; Adaptive Mode (borderless flow, font slider 20–40px), Tajweed colours
+  toggle + ⓘ guide (8 colours, **display-only** — never detection), Hide ayah
+  markers toggle, per-ayah "Hide this ayah" with ‹ Next word / Show ayah.
+  Follow-along auto-scroll: when the listening queue advances, the reader jumps
+  to the playing ayah's page and scrolls it into view; the playing ayah is
+  highlighted with a gold ring / cream background. Basmalah renders correctly
+  (constant in `app/quran/lib.ts`, shown in mushaf + reader headers; listening
+  audio files include the Basmalah as the surah's first ayah where applicable).
+- **Test Mode** (`TestClient.tsx`, rewritten): dark navy deck question card
+  (`.test-card`, blue-gradient footer with surah/verse + eye-off toggle),
+  prompt = first 3 words of the ayah (`/api/quran/verses/by_key/{s}:{a}`),
+  hidden lines as dark bars, "Round: N of 10", segmented progress bar, stat
+  pills (mistakes total, accuracy %, flame streak, timer mm:ss with red dot),
+  big green gradient stop button, ‹ Reveal a word / « Reveal the rest (each
+  +1 to the whole-session mistakes counter), Skip (counts as miss), self-mark
+  Correct/Missed. Scoring: correct only with zero mistakes (any reveal beyond
+  the prompt or a rest-reveal makes it a miss); correct streak → memorised via
+  existing `markAttempt` (3 in a row). Temporary Session toggle (hourglass,
+  "Temporary" label, toast, records nothing). Results screen with score,
+  mistakes total, Temporary note. Setup: scope pills (Your Memorization /
+  Memorised+learning / Weakest Link (N weak ayahs from mistake log) /
+  Anything), `RangeWheel` (Surah/Juz/Hizb/Rub/Page multi-select, Clear, save
+  named range + emoji to `ili_test_ranges_v1`, "Your Ranges" — device-local,
+  **never** synced), Session Duration (5/10/20 questions), Question Length
+  Short/Medium/Long (span 1/2/3 ayahs) + lines slider, "Extend Question to
+  Ayah's End" default on, Suggested for you (Weakest Link, Your Memorization),
+  scoring rules section. Questions never repeat within a session until the
+  range is covered, then recycle.
+- **Shared components** (`SharedSheets.tsx`, formerly `TarteelShared.tsx` —
+  renamed so the competitor name appears nowhere in the codebase except code
+  comments): `BottomSheet` (Esc to close), `MistakeHistorySheet`,
+  `SessionAnalyticsSheet` (CURRENT SESSION, lime accuracy circle, TREND PG/%
+  toggle, SVG trend line, SESSION HISTORY rows with coloured dots — history
+  derived from the mistake log by day, an approximation noted in code),
+  `TajweedGuide`, `tajweedClass(word)` word-level heuristic (word-level spans
+  only, to preserve Arabic letter-joining), `RangeWheel`, `HiddenWords`.
+- **Data** (`app/hifz/lib/store.ts`, new): IndexedDB mirror ("ili-hifz" db,
+  "kv" store) of the three localStorage keys, `migrateToIdb()` one-time
+  migration, write-through mirroring. localStorage stays the source of truth
+  for sync reads (honest scope documented in the file header). Existing
+  localStorage progress is migrated, never lost.
+- **Challenges** (`ChallengesClient.tsx`): "Accept a Challenge" list
+  (Complete the Quran/Khatm in 1/3/6/9/12 months, Daily reading — time, Daily
+  reading — pages, Surah Al-Kahf, Custom Challenge, Habit Building, 7-Day and
+  30-Day Streak Challenges) + RQGQ dashboard (0% progress, 30 days remaining,
+  604 pages total, 90% confirmation — live percentage appears once Ramadan
+  begins; reading, listening and recitation all count; off-platform sessions
+  logged on My Progress count too) + Quran League section (join → goal →
+  daily plan → points → leaderboard; leagues run on the existing no-account
+  group challenges, progress shared by link — no prizes promised, points and
+  places are the reward).
+
+### 22.6 What is still missing and why
+
+- **Colour-coded by topic** (spec: mushaf text coloured by topic): not built.
+  No reliable topic taxonomy exists in the Quran.com API (the `verses`
+  endpoints expose no per-ayah topic field); building it would need a
+  hand-curated 6,236-ayah topic dataset, which is a content project, not a UI
+  change. Translations/tafsir/word-by-word on tap already exist.
+- **Background playback for listening:** no separate implementation — HTML
+  `<audio>` continues in the background on mobile browsers, which is the
+  mechanism; verified only by the browser's behaviour, not by our code.
+- **RQGQ live percentage:** the dashboard is built, but the live % only
+  appears once Ramadan begins (the challenge is annual and Ramadan-gated);
+  the 0% starting state is honest, not a bug.
+- **Hizb rows in the Memorize tracker and the Test Mode Page range** are
+  approximations (hizb as half-juz; page range maps to the surah starting
+  there), documented in code — the API exposes no hizb endpoint.
+- **Session-analytics history** is derived from the mistake log by day (an
+  approximation, noted in code) because no per-session analytics store existed
+  before; the Add Session form now stores sessions in `ili_sessions_v1`, which
+  future analytics can use directly.
+- **Mic live-recitation scoring on a real phone** is still untested (needs the
+  owner's phone/computer — standing item, §18.3); likewise the airplane-mode
+  offline test, the 200%-text / 360px device test, and the onboarding visuals
+  on a real phone.
+- **Screens still needing the owner's phone screenshots** (from the research
+  report §10, carried over): the live mistake colour key image (exact red/
+  orange/green in the wild), the Test Mode results screen, the full Settings
+  list, the reciter list names, the tafsir view, the onboarding in-app flow
+  beyond the first screen, the dark-mode Quran page, the goal-detail screen,
+  the challenge-detail / leaderboard screen, the community screen, the
+  "What's new" / release-notes screen, and any screen the owner notices
+  differing from what was built here.

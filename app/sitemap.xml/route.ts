@@ -35,6 +35,10 @@ export async function GET() {
     { loc: '/hifz/my-progress', lastmod: REFOCUS_DATE, changefreq: 'monthly', priority: '0.3' },
     // Group challenges (spec §15.9) — same low priority as my-progress.
     { loc: '/hifz/challenges', lastmod: '2026-11-21', changefreq: 'monthly', priority: '0.3' },
+    // New bottom-tab hubs from the 2026-11-21 rebuild (spec §22) — tools, low priority.
+    { loc: '/hifz/search', lastmod: '2026-11-21', changefreq: 'monthly', priority: '0.3' },
+    { loc: '/hifz/memorize', lastmod: '2026-11-21', changefreq: 'monthly', priority: '0.3' },
+    { loc: '/hifz/goals', lastmod: '2026-11-21', changefreq: 'monthly', priority: '0.3' },
     // Trust pages — About, Contact, Privacy, Terms (AdSense reviewers look
     // for these; all four are live pages).
     { loc: '/about', lastmod: '2026-11-21', changefreq: 'monthly', priority: '0.5' },

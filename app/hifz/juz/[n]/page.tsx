@@ -71,8 +71,8 @@ export default async function JuzPage({ params }: { params: Promise<{ n: string 
         ]}
       />
 
-      <header className="mt-4 rounded-2xl bg-[#0B3D2E] px-5 py-8 text-center text-white shadow-sm sm:px-8">
-        <p dir="rtl" lang="ar" className="font-quran text-3xl text-[#C9A227]">
+      <header className="mt-4 rounded-2xl bg-[#102E26] px-5 py-8 text-center text-white shadow-sm sm:px-8">
+        <p dir="rtl" lang="ar" className="font-quran text-3xl text-[#FFB800]">
           {juz.arabic}
         </p>
         <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
@@ -86,7 +86,7 @@ export default async function JuzPage({ params }: { params: Promise<{ n: string 
           <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
             <Link
               href={`/hifz/${firstSurah.slug}?mode=recite`}
-              className="inline-block rounded-full bg-[#C9A227] px-6 py-3 text-sm font-bold text-[#0B3D2E] hover:brightness-110"
+              className="inline-block rounded-full bg-[#FFB800] px-6 py-3 text-sm font-bold text-[#102E26] hover:brightness-110"
             >
               Start reciting — Surah {firstSurah.name}
             </Link>
@@ -101,10 +101,10 @@ export default async function JuzPage({ params }: { params: Promise<{ n: string 
       </header>
 
       <section aria-labelledby="surahs-heading" className="mt-8">
-        <h2 id="surahs-heading" className="text-xl font-bold text-[#0B3D2E]">
+        <h2 id="surahs-heading" className="text-xl font-bold text-[#102E26]">
           Surahs in Juz {juz.n}
         </h2>
-        <ul className="mt-3 divide-y divide-[#f0ede4] rounded-2xl border border-[#e5e0d3] bg-white shadow-sm">
+        <ul className="mt-3 divide-y divide-[#E5E7EB] rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
           {juz.segments.map((seg) => {
             const surah = getSurahById(seg.surahId);
             if (!surah) return null;
@@ -118,20 +118,20 @@ export default async function JuzPage({ params }: { params: Promise<{ n: string 
               <li key={seg.surahId}>
                 <Link
                   href={`/hifz/${surah.slug}`}
-                  className="flex min-w-0 items-center gap-3 px-4 py-3 hover:bg-[#F7F5EF]"
+                  className="flex min-w-0 items-center gap-3 px-4 py-3 hover:bg-[#FFFBF2]"
                 >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eaf3ee] text-xs font-bold text-[#146B4D]">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E4FFF2] text-xs font-bold text-[#1FA36B]">
                     {surah.id}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold text-[#0B3D2E]">
+                    <span className="block truncate font-semibold text-[#102E26]">
                       Surah {surah.name}
                     </span>
                     <span className="block truncate text-sm text-[#5b6b62]">
                       {surah.meaning} · {range}
                     </span>
                   </span>
-                  <span aria-hidden="true" className="shrink-0 font-bold text-[#146B4D]">→</span>
+                  <span aria-hidden="true" className="shrink-0 font-bold text-[#1FA36B]">→</span>
                 </Link>
               </li>
             );
@@ -147,7 +147,7 @@ export default async function JuzPage({ params }: { params: Promise<{ n: string 
         {prev ? (
           <Link
             href={prev.n === 30 ? '/hifz/juz-amma' : `/hifz/juz/${prev.n}`}
-            className="rounded-full border border-[#0B3D2E]/15 bg-white px-4 py-2 text-sm font-semibold text-[#146B4D] hover:border-[#C9A227]"
+            className="rounded-full border border-[#102E26]/15 bg-white px-4 py-2 text-sm font-semibold text-[#1FA36B] hover:border-[#FFB800]"
           >
             ← Juz {prev.n} — {prev.name}
           </Link>
@@ -157,7 +157,7 @@ export default async function JuzPage({ params }: { params: Promise<{ n: string 
         {next ? (
           <Link
             href={next.n === 30 ? '/hifz/juz-amma' : `/hifz/juz/${next.n}`}
-            className="rounded-full border border-[#0B3D2E]/15 bg-white px-4 py-2 text-sm font-semibold text-[#146B4D] hover:border-[#C9A227]"
+            className="rounded-full border border-[#102E26]/15 bg-white px-4 py-2 text-sm font-semibold text-[#1FA36B] hover:border-[#FFB800]"
           >
             Juz {next.n} — {next.name} →
           </Link>

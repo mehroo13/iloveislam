@@ -23,7 +23,7 @@ export default function RecitePage() {
         ]}
       />
       <header className="mt-4">
-        <h1 className="text-3xl font-bold tracking-tight text-[#0B3D2E] sm:text-4xl">Recite with the coach</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-[#102E26] sm:text-4xl">Recite with the coach</h1>
         <p className="mt-2 text-sm leading-relaxed text-[#5b6b62] sm:text-base">
           Pick a surah and an ayah. Listen first, hide the verse, then recite it from memory.
         </p>
