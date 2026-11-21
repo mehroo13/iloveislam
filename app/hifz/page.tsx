@@ -48,7 +48,7 @@ export default function HifzHubPage() {
       <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Hifz' }]} />
 
       <header className="mt-4 text-center">
-        <p dir="rtl" lang="ar" className="font-quran text-3xl text-[#FFB800] sm:text-4xl">
+        <p dir="rtl" lang="ar" className="font-quran text-3xl text-[#57D798] sm:text-4xl">
           خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ
         </p>
         <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#102E26] sm:text-4xl">

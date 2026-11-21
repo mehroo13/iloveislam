@@ -237,48 +237,76 @@ export default function MushafPageView({
 
     // Full lines are justified like the mushaf (kashida stretching, not
     // wide word gaps); short lines are centred, as in the book.
+    // WHY THE WORDS ARE ONE TEXT RUN: the previous render wrapped every
+    // word in its own <span>, and the browser then justified by stretching
+    // the spaces BETWEEN the spans — the wide word gaps on the live site.
+    // Kashida (inter-character) stretching only works inside one text run,
+    // so the reading view joins each run of words into a single text node
+    // and only the ayah-end rosettes stay as elements. Hidden (memorise)
+    // mode still needs per-word spans for the grey rules.
     const shortLine = display.length < 8;
     const sizeCls = lines16 ? 'text-[1.6rem] leading-[2.2] sm:text-[1.85rem]' : 'text-[1.85rem] leading-[2.35] sm:text-[2.1rem]';
-    blocks.push(
-      <p
-        key={`l-${lineNo}`}
-        dir="rtl"
-        lang="ar"
-        className={`${fontClass} ${sizeCls} text-[#1C2420] ${
-          shortLine
-            ? 'text-center'
-            : 'text-justify [text-justify:inter-character] [text-align-last:justify]'
-        }`}
-      >
-        {display.map((w, i) => {
-          if (w.isEnd) {
-            return (
-              <span
-                key={`${w.verseKey}-${i}`}
-                className={`mx-1 inline-flex h-7 w-7 items-center justify-center rounded-full border align-middle text-[1rem] font-bold ${
-                  hidden ? 'hidden-ayah-rosette border-[#E5E7EB] text-[#9CA3AF]' : 'border-[#FFB800] text-[#7A5C00]'
-                }`}
-              >
-                {w.text}
-              </span>
-            );
-          }
-          // Memorisation mode: unrevealed words are thin grey rules.
-          if (hidden && w.globalIdx >= revealed) {
-            return (
-              <span
-                key={`${w.verseKey}-${i}`}
-                className="hidden-word-rule"
-                style={{ width: `${Math.max(1.2, w.text.length * 0.45)}em` }}
-              />
-            );
-          }
+    const lineClass = `${fontClass} ${sizeCls} text-[#1C2420] ${shortLine ? 'text-center' : 'mushaf-line'}`;
+    let lineContent: React.ReactNode;
+    if (hidden) {
+      lineContent = display.map((w, i) => {
+        if (w.isEnd) {
           return (
-            <span key={`${w.verseKey}-${i}`}>
-              {w.text}{' '}
+            <span
+              key={`${w.verseKey}-${i}`}
+              className="hidden-ayah-rosette mx-1 inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#E5E7EB] align-middle text-[1rem] font-bold text-[#9CA3AF]"
+            >
+              {w.text}
             </span>
           );
-        })}
+        }
+        // Memorisation mode: unrevealed words are thin grey rules.
+        if (w.globalIdx >= revealed) {
+          return (
+            <span
+              key={`${w.verseKey}-${i}`}
+              className="hidden-word-rule"
+              style={{ width: `${Math.max(1.2, w.text.length * 0.45)}em` }}
+            />
+          );
+        }
+        return (
+          <span key={`${w.verseKey}-${i}`}>
+            {w.text}{' '}
+          </span>
+        );
+      });
+    } else {
+      // One text run per stretch of words; rosettes stay as elements.
+      const nodes: React.ReactNode[] = [];
+      let run = '';
+      const flush = () => {
+        if (run) {
+          nodes.push(run);
+          run = '';
+        }
+      };
+      display.forEach((w, i) => {
+        if (w.isEnd) {
+          flush();
+          nodes.push(
+            <span
+              key={`${w.verseKey}-${i}`}
+              className="mx-1 inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#1FA36B] align-middle text-[1rem] font-bold text-[#1FA36B]"
+            >
+              {w.text}
+            </span>,
+          );
+        } else {
+          run += (run ? ' ' : '') + w.text;
+        }
+      });
+      flush();
+      lineContent = nodes;
+    }
+    blocks.push(
+      <p key={`l-${lineNo}`} dir="rtl" lang="ar" className={lineClass}>
+        {lineContent}
       </p>,
     );
   }
@@ -399,8 +427,8 @@ export default function MushafPageView({
 
       <div className="mt-4 rounded-2xl border-2 border-[#FFB800] bg-[#FFFBF2] p-2 shadow-sm sm:p-4">
         <div
-          className={`rounded-xl border border-[#FFB800]/60 bg-[#FFFFFF] px-3 py-4 sm:px-6 sm:py-6 ${
-            shortPage ? 'flex min-h-[55vh] flex-col justify-center' : ''
+          className={`flex min-h-[62vh] flex-col rounded-xl border border-[#FFB800]/60 bg-[#FFFBF2] px-3 py-4 sm:px-6 sm:py-6 ${
+            shortPage ? 'justify-center' : 'justify-start'
           }`}
         >
           {blocks.length > 0 ? (

@@ -1,9 +1,10 @@
 // app/hifz/layout.tsx — hub wrapper. Shared treatment for /hifz/*:
-// white pages (Tarteel look), centred reading column, bottom tab bar
-// (Home | Mushaf | Memorize | Search | Progress), skippable onboarding,
-// theme application + IndexedDB migration (see AppShell).
+// cream pages (Tarteel look), centred reading column, skippable
+// onboarding, theme application + IndexedDB migration (see AppShell).
+// The bottom tab bar lives in SiteChrome (root layout) so it also shows
+// on the homepage `/` — it is NOT rendered here (no double tabs).
 import type { Metadata } from 'next';
-import { BottomTabs, Onboarding, ThemeApplier } from './components/AppShell';
+import { Onboarding, ThemeApplier } from './components/AppShell';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.iloveislam.life'),
@@ -11,11 +12,10 @@ export const metadata: Metadata = {
 
 export default function HifzLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-white text-[#1C2420]">
+    <div className="min-h-screen bg-[#FFFBF2] text-[#1C2420]">
       <ThemeApplier />
       <Onboarding />
-      <div className="pb-20">{children}</div>
-      <BottomTabs />
+      {children}
     </div>
   );
 }

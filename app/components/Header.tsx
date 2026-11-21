@@ -22,12 +22,12 @@ export default function Header() {
   const linkClass = (href: string) =>
     `rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors ${
       pathname === href
-        ? 'bg-white/10 text-[#E7D9A8]'
+        ? 'bg-white/10 text-[#57D798]'
         : 'text-white/85 hover:bg-white/10 hover:text-white'
     }`;
 
   return (
-    <header className="sticky top-0 z-50 bg-[#0B3D2E] text-white shadow-md">
+    <header className="sticky top-0 z-50 bg-[#102E26] text-white shadow-md">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-3 sm:px-4">
         <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label="I Love Islam — home">
           <Image src="/logo.svg" alt="I Love Islam logo" width={36} height={36} priority />
@@ -65,7 +65,7 @@ export default function Header() {
         <nav
           id="mobile-nav"
           aria-label="Mobile navigation"
-          className="border-t border-white/10 bg-[#0B3D2E] px-3 pb-4 pt-2 md:hidden"
+          className="border-t border-white/10 bg-[#102E26] px-3 pb-4 pt-2 md:hidden"
         >
           <ul className="flex flex-col">
             {NAV_LINKS.map((link) => (
@@ -74,7 +74,7 @@ export default function Header() {
                   href={link.href}
                   className={`block rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
                     pathname === link.href
-                      ? 'bg-white/10 text-[#E7D9A8]'
+                      ? 'bg-white/10 text-[#57D798]'
                       : 'text-white/85 hover:bg-white/10 hover:text-white'
                   }`}
                   onClick={() => setOpen(false)}

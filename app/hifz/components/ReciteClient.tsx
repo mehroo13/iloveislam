@@ -62,7 +62,7 @@ export default function ReciteClient() {
       <button
         type="button"
         onClick={() => router.push(`/hifz/${slug}?mode=recite&ayah=${ayah}`)}
-        className="mt-6 rounded-full bg-[#102E26] px-6 py-3 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+        className="mt-6 rounded-full bg-[#57D798] px-6 py-3 text-sm font-semibold text-[#102E26] hover:brightness-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
       >
         Start reciting {surah.name} {surah.id}:{ayah}
       </button>

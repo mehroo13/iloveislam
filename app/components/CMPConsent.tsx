@@ -96,7 +96,7 @@ export default function CMPConsent() {
           We use cookies for advertising (Google AdSense) and analytics, so
           the app can stay free. You can accept or decline — the app works
           either way.{' '}
-          <a href="/privacy" className="font-semibold text-[#146B4D] underline">
+          <a href="/privacy" className="font-semibold text-[#1FA36B] underline">
             Privacy Policy
           </a>
         </p>
@@ -104,14 +104,14 @@ export default function CMPConsent() {
           <button
             type="button"
             onClick={() => choose(false)}
-            className="rounded-full border border-[#e5e0d3] bg-white px-4 py-2 text-sm font-semibold text-[#1C2420] hover:bg-[#F7F5EF]"
+            className="rounded-full border border-[#e5e0d3] bg-white px-4 py-2 text-sm font-semibold text-[#1C2420] hover:bg-[#FFFBF2]"
           >
             Decline
           </button>
           <button
             type="button"
             onClick={() => choose(true)}
-            className="rounded-full bg-[#0B3D2E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#146B4D]"
+            className="rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
           >
             Accept
           </button>

@@ -4,8 +4,7 @@ import { Geist } from 'next/font/google';
 import CMPConsent from './components/CMPConsent';
 import PWAProvider from './components/PWAProvider';
 import InstallPrompt from './components/InstallPrompt';
-import Header from './components/Header';
-import Footer from './components/Footer';
+import SiteChrome from './components/SiteChrome';
 import './globals.css';
 import ScrollRestorer from './ScrollRestorer';
 
@@ -14,7 +13,7 @@ const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#0B3D2E',
+  themeColor: '#102E26',
 };
 
 const SITE_TITLE = 'I Love Islam — Memorise the Quran with AI';
@@ -148,16 +147,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
 
-      <body className="min-h-full flex flex-col bg-[#F7F5EF] text-[#1C2420]">
+      <body className="min-h-full flex flex-col bg-[#FFFBF2] text-[#1C2420]">
         <a href="#main-content" className="sr-only-focusable absolute top-2 left-2 z-50 bg-white text-sm px-3 py-2 rounded-md shadow" aria-label="Skip to main content">Skip to content</a>
         <ScrollRestorer />
         <CMPConsent />
         <PWAProvider>
-          <Header />
-          <div className="flex-1">
-            {children}
-          </div>
-          <Footer />
+          <SiteChrome>{children}</SiteChrome>
           <InstallPrompt />
         </PWAProvider>
       </body>

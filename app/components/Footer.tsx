@@ -41,7 +41,7 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="bg-[#0B3D2E] text-white/80">
+    <footer className="bg-[#102E26] text-white/80">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
         {/* Brand */}
         <div className="lg:col-span-2">
@@ -56,13 +56,13 @@ export default function Footer() {
             word-by-word feedback, follow a plan, and test yourself — free, no
             sign-up, your audio never leaves your device.
           </p>
-          <p className="mt-4 text-sm font-semibold text-[#E7D9A8]">Free forever. No sign-up.</p>
+          <p className="mt-4 text-sm font-semibold text-[#57D798]">Free forever. No sign-up.</p>
         </div>
 
         {/* Link columns */}
         {COLUMNS.map((col) => (
           <nav key={col.title} aria-label={`Footer — ${col.title}`}>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[#C9A227]">{col.title}</h2>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-[#FFB800]">{col.title}</h2>
             <ul className="mt-3 space-y-2">
               {col.links.map((link) => (
                 <li key={link.href}>

@@ -169,6 +169,20 @@ body {
   font-family: 'Amiri', serif;
 }
 
+/* Mushaf line justification — kashida stretching, not wide word gaps.
+   Plain CSS (not a Tailwind arbitrary property) so it is always in the
+   bundle. `text-justify: inter-character` tells the browser to stretch
+   Arabic letters (tatweel) instead of the spaces between words — but it
+   only works inside one text run, so the mushaf renderer joins each run
+   of words into a single text node (see MushafPageView). Every mushaf
+   line is its own <p>, so each line is also the "last" line: without
+   `text-align-last: justify` nothing would justify at all. */
+.mushaf-line {
+  text-align: justify;
+  text-justify: inter-character;
+  text-align-last: justify;
+}
+
 /* Brand selection + focus */
 ::selection {
   background: #FFB800;

@@ -80,11 +80,11 @@ export default function HomeClient() {
   }, []);
 
   return (
-    <div className="bg-[#F7F5EF] text-[#1C2420]">
+    <div className="bg-[#FFFBF2] text-[#1C2420]">
       <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 sm:py-8">
         {/* Coach entry — the one primary action on this page. */}
-        <section aria-labelledby="coach-heading" className="rounded-2xl bg-[#0B3D2E] p-5 text-white shadow-sm sm:p-6">
-          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-[#C9A227]">
+        <section aria-labelledby="coach-heading" className="rounded-2xl bg-[#102E26] p-5 text-white shadow-sm sm:p-6">
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-[#57D798]">
             <ToolIcon name="mic" className="h-4 w-4" /> AI recitation coach
           </p>
           <h2 id="coach-heading" className="mt-2 text-xl font-bold sm:text-2xl">Recite right now</h2>
@@ -122,7 +122,7 @@ export default function HomeClient() {
             <button
               type="button"
               onClick={() => router.push(`/hifz/${coachSurah}?mode=recite`)}
-              className="rounded-full bg-[#C9A227] px-6 py-3 text-sm font-bold text-[#0B3D2E] hover:brightness-110"
+              className="rounded-full bg-[#57D798] px-6 py-3 text-sm font-bold text-[#102E26] hover:brightness-105"
             >
               Recite now
             </button>
@@ -139,17 +139,17 @@ export default function HomeClient() {
         <SurahList />
 
         {/* Verse of the day — one slim card */}
-        <section aria-labelledby="verse-heading" className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-5 shadow-sm sm:p-6">
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#C9A227]">Verse of the day</p>
+        <section aria-labelledby="verse-heading" className="rounded-2xl border border-[#102E26]/10 bg-white p-5 shadow-sm sm:p-6">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#1FA36B]">Verse of the day</p>
           <h3 id="verse-heading" className="sr-only">Verse of the day</h3>
-          <p dir="rtl" lang="ar" className="font-quran mt-4 text-right text-2xl text-[#0B3D2E] sm:text-3xl">
+          <p dir="rtl" lang="ar" className="font-quran mt-4 text-right text-2xl text-[#102E26] sm:text-3xl">
             {verse.arabic}
           </p>
           <p className="mt-3 text-sm leading-relaxed text-[#1C2420]/80 sm:text-base">
             &ldquo;{verse.translation}&rdquo;
           </p>
           <p className="mt-2 text-xs font-semibold text-[#1C2420]/50">— {verse.reference}</p>
-          <Link href={verseHref(verseKey)} className="mt-4 inline-block text-sm font-semibold text-[#146B4D] hover:text-[#0B3D2E] hover:underline">
+          <Link href={verseHref(verseKey)} className="mt-4 inline-block text-sm font-semibold text-[#1FA36B] hover:text-[#102E26] hover:underline">
             Open this ayah in the coach →
           </Link>
         </section>

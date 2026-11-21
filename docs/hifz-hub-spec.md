@@ -1552,6 +1552,19 @@ additional mode.
   plain box. Short pages (fewer than 9 lines of text) are vertically
   centred in the page frame instead of leaving a big empty area below
   the text.
+- Layout fix CORRECTION (2026-11-21, owner's phone screenshots): the
+  inter-character fix above did NOT work on the live site — the owner's
+  screenshots still showed wide word gaps. Root cause: every word was
+  rendered in its own `<span>`, and the browser justifies by stretching
+  the spaces between spans, so kashida never applied. Fixed by joining
+  each run of words into a single text node (only the ayah-end rosettes
+  stay as elements) and moving the justification into a plain-CSS
+  `.mushaf-line` rule in `globals.css` (`text-align: justify;
+  text-justify: inter-character; text-align-last: justify`). Ayah-end
+  rosettes changed from gold rings to green rings (#1FA36B). The page
+  itself is cream (#FFFBF2), not white. Short pages: the frame is now
+  always `min-h-[62vh]` and short pages are vertically centred in it.
+  See §23.
 - Scripts: a script picker (Indo-Pak / Madani-Uthmani) on every mushaf
   page, sharing the reader preference (`hifz_script_v1`). Words are
   fetched with both scripts at once (`word_fields=text_uthmani,
@@ -1797,3 +1810,56 @@ Quran, Surah Al-Kahf every Friday, Juz Amma, Memorise a page a day).
   the challenge-detail / leaderboard screen, the community screen, the
   "What's new" / release-notes screen, and any screen the owner notices
   differing from what was built here.
+
+## 23. Phone-screenshot round — the palette was never live on the homepage (2026-11-21)
+
+Ground truth: the owner's 3 phone screenshots of OUR site (homepage,
+recite page, mushaf page 2) plus a desktop live check. They showed the
+old emerald + gold branding still live: gold "Start reciting" button on
+a dark-green hero, dark-green coach card, cream recite page with a dark
+green button, mushaf with wide word gaps and gold-ring ayah markers,
+and no bottom tabs on the homepage.
+
+Root cause: §22.1's palette replacement ran `sed` across `app/hifz/**`
++ `app/globals.css` only. It never touched the root homepage
+(`app/page.tsx`, `app/HomeClient.tsx`) or the root layout, which renders
+the site `<Header />` / `<Footer />` on EVERY route — so every app page
+still showed the old dark-emerald header with the gold logo, and the
+homepage hero was still old emerald + gold. The "palette adopted
+app-wide" claim was wrong; the code said so in §22.1 all along.
+
+Fixes in this round (all verified by grep: zero `#0B3D2E` / `#C9A227` /
+`#F7F5EF` / `#146B4D` / `#E7D9A8` left on any live route):
+- Root hero (`app/page.tsx`): dark green `#0B3D2E` → `#102E26`; gold
+  Bismillah and gold "Start reciting" button → bright green `#57D798`
+  (button text `#102E26`). SEO section + pill links re-skinned the same way.
+- `HomeClient.tsx`: coach card `#0B3D2E` → `#102E26`, label gold →
+  `#57D798`, "Recite now" gold → `#57D798` / `#102E26`; page background
+  `#F7F5EF` → cream `#FFFBF2`; verse-of-the-day card re-skinned.
+- `app/layout.tsx`: body `#F7F5EF` → `#FFFBF2`; `themeColor`
+  `#0B3D2E` → `#102E26` (the phone browser-chrome tint).
+- New `app/components/SiteChrome.tsx`: app routes (`/` and every
+  `/hifz/*`) get NO website header/footer and the bottom tabs instead;
+  other pages (About, Contact, Privacy, Terms) keep header/footer.
+  `BottomTabs` moved out of `app/hifz/layout.tsx` into SiteChrome so
+  there is exactly one tab bar (the homepage previously had none).
+  Hifz layout background white → cream `#FFFBF2`.
+- Header/Footer/CMPConsent re-skinned to the Tarteel palette
+  (`#102E26`, `#57D798` active states, `#FFB800` gold headings) for the
+  non-app pages that still show them.
+- Recite page (`ReciteClient.tsx`): "Start reciting" dark green →
+  bright green `#57D798` / `#102E26`.
+- Hub (`app/hifz/page.tsx`): Bismillah gold `#FFB800` → `#57D798`, so
+  the hub hero matches the root hero.
+- Mushaf (`MushafPageView.tsx` + `globals.css`): see the §21 correction
+  — single text runs + `.mushaf-line` for real kashida justification;
+  page cream `#FFFBF2`; ayah-end rosettes green `#1FA36B`; frame
+  `min-h-[62vh]` with short pages centred.
+- Colour-coded Mushaf by topic + badges: in progress separately (topic
+  dataset + badges module being built; §22.6 items, no longer "not built"
+  once that lands).
+
+Still not verified by a real browser at phone width: the visual result
+of the kashida fix and the re-skin (a subagent cannot drive the live
+browser). The owner checking the site on his phone is the check that
+decides this round.

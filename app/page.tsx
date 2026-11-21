@@ -52,14 +52,14 @@ export default function Page() {
   return (
     <>
       {/* Hero — server-rendered, one primary action (spec §2.1.1). */}
-      <section className="relative overflow-hidden bg-[#0B3D2E] text-white">
+      <section className="relative overflow-hidden bg-[#102E26] text-white">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 opacity-25"
           style={{ backgroundImage: 'url(/hero-pattern.svg)', backgroundSize: '96px 96px' }}
         />
         <div className="relative mx-auto max-w-3xl px-4 py-10 text-center sm:py-14">
-          <p dir="rtl" lang="ar" className="font-quran text-3xl text-[#C9A227] sm:text-4xl">
+          <p dir="rtl" lang="ar" className="font-quran text-3xl text-[#57D798] sm:text-4xl">
             بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
           </p>
           <h1 className="mt-4 text-3xl font-bold leading-tight sm:text-5xl">
@@ -71,7 +71,7 @@ export default function Page() {
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link
               href="/hifz/recite"
-              className="rounded-full bg-[#C9A227] px-6 py-3 text-sm font-bold text-[#0B3D2E] shadow hover:brightness-110"
+              className="rounded-full bg-[#57D798] px-6 py-3 text-sm font-bold text-[#102E26] shadow hover:brightness-110"
             >
               Start reciting
             </Link>
@@ -86,8 +86,8 @@ export default function Page() {
       </section>
       <HomeClient />
       <section className="mx-auto max-w-3xl px-4 pb-16">
-        <div className="rounded-2xl border border-[#0B3D2E]/10 bg-white p-6 shadow-sm">
-          <h2 className="mb-3 text-xl font-bold text-[#0B3D2E]">Memorise the Quran with Hifz</h2>
+        <div className="rounded-2xl border border-[#102E26]/10 bg-white p-6 shadow-sm">
+          <h2 className="mb-3 text-xl font-bold text-[#102E26]">Memorise the Quran with Hifz</h2>
           <p className="text-sm leading-relaxed text-[#1C2420]/70">
             Hifz is a free AI companion for memorising the Quran: pick a surah, listen to a
             trusted reciter, hide the verse and recite it aloud — the coach follows your
@@ -116,7 +116,7 @@ export default function Page() {
               <Link
                 key={href}
                 href={href}
-                className="rounded-full border border-[#0B3D2E]/15 bg-[#F7F5EF] px-3 py-1.5 text-xs font-semibold text-[#146B4D] transition hover:border-[#C9A227] hover:text-[#0B3D2E]"
+                className="rounded-full border border-[#102E26]/15 bg-[#FFFBF2] px-3 py-1.5 text-xs font-semibold text-[#1FA36B] transition hover:border-[#57D798] hover:text-[#102E26]"
               >
                 {label}
               </Link>
