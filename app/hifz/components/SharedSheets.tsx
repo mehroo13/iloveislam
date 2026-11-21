@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { MistakeEntry } from '../progress';
 import { ALL_SURAHS } from '../surahs';
+import { ShareAudioButtons, type SharedRecording } from './ShareAudio';
 
 /* ---------------- Bottom sheet ---------------- */
 
@@ -154,12 +155,17 @@ export function SessionAnalyticsSheet({
   mistakesPerPage,
   words,
   history,
+  /** The just-finished session's recording, if one was captured. Only the
+   * current browser session can have audio — recordings are never saved,
+   * so past sessions have none (the UI says so below). */
+  latestSessionAudio,
   onClose,
 }: {
   accuracy: number;
   mistakesPerPage: number;
   words: number;
   history: HistoryRow[];
+  latestSessionAudio?: (SharedRecording & { range: string; date: string }) | null;
   onClose: () => void;
 }) {
   const [metric, setMetric] = useState<'pg' | 'pct'>('pg');
@@ -221,17 +227,35 @@ export function SessionAnalyticsSheet({
       <p className="text-xs text-[#5b6b62]">Long press on the graph to browse between sessions (web: hover a dot).</p>
 
       <p className="mt-5 text-xs font-bold uppercase tracking-wider text-[#5b6b62]">Session history</p>
+      {latestSessionAudio ? (
+        <div className="mt-2 rounded-xl border border-[#FFB800] bg-[#FFFBF2] p-3">
+          <p className="text-sm font-bold text-[#102E26]">
+            This session — {latestSessionAudio.range} · {latestSessionAudio.date}
+          </p>
+          <p className="mt-1 text-xs text-[#5b6b62]">
+            Your recording is still on this device. Share it with your teacher, or download it to send yourself.
+          </p>
+          <div className="mt-2">
+            <ShareAudioButtons recording={latestSessionAudio} />
+          </div>
+        </div>
+      ) : (
+        <p className="mt-2 text-xs text-[#5b6b62]">
+          Recordings are kept only in this browser session and are not saved, so past sessions have no audio to share. Recite with the microphone and the session you just finished will offer sharing here.
+        </p>
+      )}
       {history.length === 0 ? (
         <p className="mt-2 text-sm text-[#5b6b62]">No sessions yet.</p>
       ) : (
         <ul className="mt-2 space-y-2">
           {history.slice(0, 8).map((r, i) => (
-            <li key={i} className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] px-3 py-2 text-sm">
+            <li key={i} className="flex flex-wrap items-center gap-3 rounded-xl border border-[#E5E7EB] px-3 py-2 text-sm">
               <span className="w-20 shrink-0 font-semibold">{r.date}</span>
               <span className="min-w-0 flex-1 truncate text-[#5b6b62]">{r.range}</span>
               <span className="font-bold">{r.accuracy.toFixed(1)}%</span>
               <span className="text-xs text-[#5b6b62]">{r.mistakesPerPage.toFixed(1)} m/p</span>
               <span aria-hidden="true" className="h-3 w-3 shrink-0 rounded-full" style={{ background: dot(r.accuracy) }} />
+              <span className="w-full text-xs text-[#5b6b62]">No audio — recordings are not saved past the session.</span>
             </li>
           ))}
         </ul>

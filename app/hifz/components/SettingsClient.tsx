@@ -282,7 +282,7 @@ export default function SettingsClient() {
         <div className="divide-y divide-[#E5E7EB]">
           <Toggle
             label="Save session audio on this device"
-            hint="Keep your own recitation recordings on this device so you can listen back to them. Recordings never leave the device and are never uploaded."
+            hint="Keep your own recitation recordings on this device so you can listen back to them. Recordings never leave the device unless you choose to share one, and are never uploaded by the app."
             checked={settings.saveAudio ?? true}
             onChange={(v) => update({ saveAudio: v })}
           />

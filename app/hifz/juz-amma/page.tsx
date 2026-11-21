@@ -58,7 +58,7 @@ export default function JuzAmmaPage() {
             See the 90-day plan
           </Link>
         </div>
-        <p className="mt-4 text-sm text-white/70">Free · No sign-up · Your audio never leaves your device</p>
+        <p className="mt-4 text-sm text-white/70">Free · No sign-up · Your audio stays on your device unless you share it</p>
       </header>
 
       <section aria-labelledby="plan-heading" className="mt-8">

@@ -115,7 +115,7 @@ export function Onboarding() {
   const screens = [
     {
       title: 'Recite. Get checked, word by word.',
-      body: 'Recite aloud and the checker follows your voice — it highlights each word as you say it, on this device. Your audio never leaves your device.',
+      body: 'Recite aloud and the checker follows your voice — it highlights each word as you say it, on this device. Your audio never leaves your device unless you choose to share it.',
       bubbles: [
         { text: 'قُلْ هُوَ اللَّهُ أَحَدٌ', kind: 'correct' },
         { text: 'اللَّهُ الصَّمَدُ', kind: 'correct' },

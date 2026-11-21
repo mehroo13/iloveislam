@@ -14,9 +14,13 @@
  * download is always user-initiated and never in the first-paint bundle.
  *
  * ENGINE: Tilawa (`@tilawa/core`, MIT, on-device) via app/hifz/lib/tilawa.ts.
- * Audio never leaves the device; no audio is stored — the mistake log keeps
- * word references (surah:ayah:word) only (spec §8.2). The Web Speech API is
- * NOT used (research §3 forbids it as the core engine).
+ * Audio is processed on-device and never uploaded by the app. A recording
+ * of your recitation is kept only as an in-memory blob for this browser
+ * session, and leaves the device only if you choose to share or download
+ * it (see ShareAudio.tsx — explicit, per-recitation, user-initiated; no
+ * auto-share, no default-on toggle). The mistake log keeps word references
+ * (surah:ayah:word) only (spec §8.2). The Web Speech API is NOT used
+ * (research §3 forbids it as the core engine).
  *
  * FEEDBACK HONESTY (measured 2026-11-21, tools/test-tilawa.mjs, lite tier):
  *  - The checker confirms almost no wrong words on clean recitation (0
@@ -63,6 +67,7 @@ import {
 } from '../progress';
 import { splitWords } from '../lib/alignment';
 import { MistakeHistorySheet, SessionAnalyticsSheet, type HistoryRow } from './SharedSheets';
+import { ShareAudioButtons, audioExtension, recordingFileName, type SharedRecording } from './ShareAudio';
 import {
   autoTierLabel,
   engineSupport,
@@ -78,9 +83,13 @@ import {
 /*  Copy — research §6, verbatim where the research says verbatim.     */
 /* ------------------------------------------------------------------ */
 
-/** Teacher disclaimer — research §6, verbatim. Above the mic button AND on the feedback screen. */
+/** Teacher disclaimer — research §6, verbatim except the last sentence,
+ * updated 2026-11-22 for the teacher-share feature so it stays truthful:
+ * sharing a recording is an explicit choice the user makes after a
+ * session; nothing is sent automatically. Above the mic button AND on the
+ * feedback screen. */
 export const TEACHER_DISCLAIMER =
-  'This checks which words you said — it does not judge tajweed. It can miss words, especially in noise, and it can flag a word you said correctly. Use it to practise between lessons. A teacher is still needed for tajweed. Your voice never leaves this device.';
+  'This checks which words you said — it does not judge tajweed. It can miss words, especially in noise, and it can flag a word you said correctly. Use it to practise between lessons. A teacher is still needed for tajweed. Your voice never leaves this device unless you choose to share a recording with your teacher.';
 
 /** Low-confidence attempt — research §6, verbatim. */
 export const UNCLEAR_COPY =
@@ -218,6 +227,10 @@ export default function RecitationCoach({
   const [highlightOn, setHighlightOn] = useState(true);
   const [highlightToast, setHighlightToast] = useState<string | null>(null);
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
+  // The recording blob behind recordingUrl — kept in memory only, for the
+  // current browser session, so it can be shared with a teacher or
+  // downloaded (see ShareAudio.tsx). Never persisted, never uploaded.
+  const [recording, setRecording] = useState<SharedRecording | null>(null);
   const [pendingFix, setPendingFix] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recordChunksRef = useRef<Blob[]>([]);
@@ -407,6 +420,7 @@ export default function RecitationCoach({
     setPeekCount(0);
     setSelectedMistake(null);
     setRecordingUrl(null);
+    setRecording(null);
     setLiveWords({});
     setSelfMarks({});
     if (mode === 'mic' || mode === 'follow') void loadEngineNow();
@@ -541,8 +555,21 @@ export default function RecitationCoach({
           rec.onstop = () => resolve();
           try { rec.stop(); } catch { resolve(); }
         });
-        const blob = new Blob(recordChunksRef.current, { type: recorderRef.current?.mimeType || 'audio/webm' });
-        if (blob.size > 0) setRecordingUrl(URL.createObjectURL(blob));
+        const mimeType = recorderRef.current?.mimeType || 'audio/webm';
+        const blob = new Blob(recordChunksRef.current, { type: mimeType });
+        if (blob.size > 0) {
+          setRecordingUrl(URL.createObjectURL(blob));
+          const scope = scopeAyahs();
+          setRecording({
+            blob,
+            fileName: recordingFileName(
+              surah,
+              scope[0]?.ayah ?? 0,
+              scope[scope.length - 1]?.ayah ?? 0,
+              audioExtension(mimeType),
+            ),
+          });
+        }
       }
     } catch {
       /* recording unavailable — reciting still counts */
@@ -707,6 +734,7 @@ export default function RecitationCoach({
       setPeekCount(0);
       setSelectedMistake(null);
       setRecordingUrl(null);
+      setRecording(null);
       setStep('listen');
       onAyahChange?.(ayahs[clamped]?.ayah ?? 0);
     },
@@ -733,6 +761,7 @@ export default function RecitationCoach({
       setPeekCount(0);
       setSelectedMistake(null);
       setRecordingUrl(null);
+      setRecording(null);
       setLiveWords({});
       setSelfMarks({});
       setStep('recite');
@@ -1134,7 +1163,7 @@ export default function RecitationCoach({
 
               {engineState === 'ready' && micState !== 'recording' && micState !== 'checking' && (
                 <>
-                  <p className="text-sm text-[#5b6b62]">We need the microphone to hear your recitation. Audio is processed on your device and never uploaded.</p>
+                  <p className="text-sm text-[#5b6b62]">We need the microphone to hear your recitation. Audio is processed on your device and never uploaded. Sharing a recording with your teacher is always your choice, after the session — nothing is sent automatically.</p>
                   <p className="mt-1 text-sm text-[#5b6b62]">Take a breath, then begin — the checker needs about a second to start listening.</p>
                   {/* Bottom bar: live stat pills + 4 round buttons + big gradient mic */}
                   <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
@@ -1374,12 +1403,24 @@ export default function RecitationCoach({
             );
           })()}
 
-          {/* Listen back to your own recording (kept on this device only). */}
-          {recordingUrl && (
+          {/* Listen back to your own recording (kept on this device only)
+              and, if you choose, share it with your teacher. Self-marked
+              practice has no recording to share. */}
+          {mode !== 'self-mark' && (
             <div className="mt-4 rounded-xl border border-[#E5E7EB] p-4">
               <p className="text-sm font-bold text-[#102E26]">Listen back to your recitation</p>
-              <p className="mt-1 text-xs text-[#5b6b62]">Recorded on this device only — it is never uploaded.</p>
-              <audio controls src={recordingUrl} className="mt-2 w-full" />
+              <p className="mt-1 text-xs text-[#5b6b62]">Recorded on this device only. It stays here unless you choose to share or download it below — the app never uploads it, and it is not saved past this browser session.</p>
+              {recordingUrl && <audio controls src={recordingUrl} className="mt-2 w-full" />}
+              <div className="mt-3">
+                <ShareAudioButtons
+                  recording={recording}
+                  noRecordingReason={
+                    settings?.saveAudio === false
+                      ? 'Recording is turned off in Settings, so there is no audio for this session.'
+                      : 'No recording was captured for this session — the microphone may have been unavailable.'
+                  }
+                />
+              </div>
             </div>
           )}
           {mode === 'self-mark' && (
@@ -1585,7 +1626,7 @@ export default function RecitationCoach({
       )}
 
       <p className="mt-6 border-t border-[#E5E7EB] pt-3 text-xs text-[#5b6b62]">
-        Quran text, translation and audio via Quran.com. Your recitation audio never leaves your device. A teacher is still needed for tajweed — this tool checks words, not tajweed.
+        Quran text, translation and audio via Quran.com. Your recitation audio never leaves your device unless you choose to share it with your teacher. A teacher is still needed for tajweed — this tool checks words, not tajweed.
       </p>
 
       {showMistakeHistory && (
@@ -1601,6 +1642,11 @@ export default function RecitationCoach({
       )}
       {showAnalytics && result && (
         <SessionAnalyticsSheet
+          latestSessionAudio={
+            recording
+              ? { ...recording, range: scopeLabel, date: localDateString() }
+              : null
+          }
           accuracy={(() => {
             const reached = feedbackWords.filter((w) => w.status !== 'not-reached');
             const correct = feedbackWords.filter((w) => w.status === 'correct').length;
