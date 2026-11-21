@@ -9,7 +9,7 @@ import { RECITERS } from '../../quran/lib';
 
 export default function ReciteClient() {
   const router = useRouter();
-  const [slug, setSlug] = useState('al-mulk');
+  const [slug, setSlug] = useState('al-fatihah');
   const [ayah, setAyah] = useState(1);
   const [reciterId, setReciterId] = useState(7);
   const surah = ALL_SURAHS.find((s) => s.slug === slug) ?? ALL_SURAHS[0];

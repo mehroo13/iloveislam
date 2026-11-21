@@ -23,13 +23,13 @@ export default function ChallengesClient() {
   // Create form
   const [name, setName] = useState('');
   const [myName, setMyName] = useState('');
-  const [surahSlug, setSurahSlug] = useState('al-mulk');
+  const [surahSlug, setSurahSlug] = useState('al-fatihah');
   const [target, setTarget] = useState<number>(10);
   const [days, setDays] = useState<number>(7);
 
   // Join form (bare code — no payload)
   const [joinCode, setJoinCode] = useState('');
-  const [joinSurahSlug, setJoinSurahSlug] = useState('al-mulk');
+  const [joinSurahSlug, setJoinSurahSlug] = useState('al-fatihah');
   const [joinTarget, setJoinTarget] = useState<number>(10);
   const [joinDays, setJoinDays] = useState<number>(7);
   const [joinName, setJoinName] = useState('');
@@ -200,7 +200,7 @@ export default function ChallengesClient() {
                       I did 5 ayahs
                     </button>
                     <Link
-                      href={`/hifz/${ALL_SURAHS.find((s) => s.id === c.surahId)?.slug ?? 'al-mulk'}?mode=recite`}
+                      href={`/hifz/${ALL_SURAHS.find((s) => s.id === c.surahId)?.slug ?? 'al-fatihah'}?mode=recite`}
                       className="rounded-full border border-[#e5e0d3] px-4 py-2 text-sm font-semibold hover:border-[#146B4D]"
                     >
                       Recite with the coach →
