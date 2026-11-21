@@ -1285,3 +1285,151 @@ routes, the breadcrumb label "Hifz" for the hub, and the localStorage
 keys (`ili_hifz_*`, deliberately not renamed so existing users keep
 their progress). No domain was bought and no DNS or Vercel domain
 setting was changed; the domain stays iloveislam.life.
+
+## 18. Phase 2 — full Quran + better AI (2026-11-21)
+
+Mehran: the AI is not good enough, the app is still not exactly like
+Tarteel, and it only has some surahs and opens on Al-Mulk while Tarteel
+has the whole Quran. Phase 2: (1) deep Tarteel study, (2) full Quran,
+(3) better coach accuracy.
+
+### 18.1 Full Quran
+
+The 43-surah launch set is gone. The app now contains the complete
+Quran: **all 114 surahs, all 30 juz, all 6,236 ayahs**, browsable by
+surah and by juz. The app no longer starts from Surah Al-Mulk: homepage
+and hub hero CTAs point at `/hifz/recite` and the whole-Quran browser;
+the homepage coach default is Al-Fatihah.
+
+- `app/hifz/surahs.ts`: all 114 surahs from the live Quran.com
+  chapters API (6,236 ayahs). Launch-set slugs/names/meanings
+  preserved exactly (generator `tools/gen_full_quran.py`).
+  Renamed: `LAUNCH_SURAHS` → `ALL_SURAHS`,
+  `LAUNCH_SURAHS_BY_SLUG` → `ALL_SURAHS_BY_SLUG`,
+  `LaunchSurah` → `HifzSurah`, `NAMED_LAUNCH_SURAHS` →
+  `FEATURED_SURAHS`, `LAUNCH_AYAH_COUNT` → `TOTAL_AYAH_COUNT`.
+- `app/hifz/juz.ts` (new): all 30 juz with per-surah ayah segments
+  (135 segments) from the live Quran.com juz API.
+- `app/hifz/juz/[n]/page.tsx`: real juz overview pages 1–29; juz 30
+  still redirects to `/hifz/juz-amma`.
+- `app/hifz/[slug]/[ref]/page.tsx`: `generateStaticParams` over all
+  6,236 ayahs; Al-Baqarah special-casing and the Ayat al-Kursi extra
+  param removed — 2:255 is now a normal ayah page with prev/next.
+- `app/hifz/plans.ts`: 7-day/30-day per-surah plans are now GENERATED
+  at runtime from the ayah count (same algorithm as the old static
+  tables — verified byte-identical for all 43 launch surahs × both
+  lengths, `tools/verify_plans.mjs`). Juz Amma 90-day plan unchanged.
+- Sitemap: ~7,388 URLs (114 surah + 6,236 ayah + 30 juz + hub pages).
+- Voice Search, Test Mode, challenges, plans, progress and the
+  offline save all work over the whole Quran now (launch-set gates
+  removed); `llms.txt` / `llms-full.txt` regenerated (6,412 lines,
+  6,386 hifz links).
+- Build: 6,425/6,425 static pages, green, no 429s. Commit `822bbc1`.
+
+### 18.2 Tarteel deep study (2026-11-21)
+
+Full report: `~/workspace/research_notes/tarteel-deep-study-20261121/report.md`
+(48-row gap table). Headline findings:
+
+- Scale: 20M+ downloads claimed, 4.7 stars (App Store ~11K ratings;
+  Play ~115–124K reviews), ~12-person team, CTO on the TIME100 AI
+  list 2026.
+- Pricing — verified, and it differs by channel: web Premium is
+  **$7.50/mo billed annually** (~$90/yr), Family $13/mo billed
+  annually (5 accounts); App Store in-app prices are $12.99–$19.99/mo
+  and $99–$239.99/yr. The $12.99/mo / $99/yr figures used earlier are
+  the *store* prices, not the web prices. Free tier: unlimited
+  follow-along, Voice Search, Testing Mode with a daily limit, 152
+  translations (76 languages), 45 tafsirs (20 languages), 16
+  recitations from 13 reciters, 1 goal. Premium adds mistake
+  detection, unlimited Testing Mode, peeking, mistake history /
+  frequency / playback, advanced analytics, unlimited goals,
+  word-by-word listening highlight and mutashabihat colouring.
+- Biggest structural fact: Tarteel is phone/tablet only — its Help
+  Centre states it has **no desktop or web-browser version for
+  recitation**, and a web version is the most-voted feature request
+  since 2022. A web app with live mic coaching is already a place we
+  beat it.
+- AI limits, documented by Tarteel itself: word-level only,
+  Hafs-from-Asim only, **no tajweed detection at all** (roadmap only),
+  known weak spot on long madd (esp. madd lazim, 6 counts), plus
+  false positives/negatives from noise and Bluetooth/car mics.
+  Mistakes show red + dotted underline; tap to see what you said vs
+  the correct ayah; wrongly detected mistakes can be removed. No
+  public accuracy % exists.
+- Testing Mode is the most fully documented mode: random-start
+  "sheikh test" question cards (green/red on completion, swipe to
+  skip, eye icon hides surah/verse, three reveal options,
+  duration/question-length settings on Premium).
+- New (Nov 2026): Quran League — time-boxed, goal-led, points-based
+  competition with prizes and scholar-led teams, running up to
+  Ramadan 1448 — distinct from the older Groups/leaderboards (reset
+  each Islamic month, ranked by reading hours + khatms).
+- Users' top complaints (our openings): false positives/negatives
+  ("recited Fatiha correctly, still flagged wrong"), freezing/getting
+  stuck on one ayah and switching off for "inactivity", no
+  tajweed/teacher, Premium paywall for mistake detection, no web
+  version, poor iPad support (no landscape, mic fails), listening-mode
+  position resets, faint audio, failed translation downloads, and
+  large-text accessibility overlap.
+- Gap table (48 rows): Match 4 · Partial 20 · Missing 0 · Beats
+  Tarteel 3 · Unknown 21. Zero clean "Missing" is honest, not a
+  dodge: the real gap is **depth and coverage** — full Quran (done in
+  §18.1), counts behind translations/tafsirs/reciters, Testing Mode
+  details, peeking, mistake playback/frequency, and social/challenge
+  depth. The 3 "Beats Tarteel" rows to protect: web recitation with
+  live mic, genuinely offline coach, spaced-revision queue. The 21
+  unknowns need an in-app check (no live browser/account was used
+  for the study); see the report's verify-in-app checklist before
+  claiming any of them as matched or missing.
+
+### 18.3 Coach accuracy — false-flag rate 6.9%/9.4% → 0.0%
+
+Measured with `tools/test-tilawa.mjs` (clean professional recitation,
+Mishary Alafasy audio, same harness before and after):
+
+| Case | Before (lite) | After (lite) | After (full) |
+|---|---|---|---|
+| Al-Fatihah 1:1–7 (29 words) | 6.9% (2/29) | **0.0% (0/29)** | 0.0% (0/29) |
+| Al-Mulk 67:1–5 (64 words) | 9.4% (6/64) | **0.0% (0/64)** | 0.0% (0/64) |
+| Warm-up: 1:1 + 1.5 s silence | 25.0% (1/4) | **0.0% (0/4)** | 0.0% (0/4) |
+| Single ayah 1:1 alone | 25.0% (1/4) | **0.0% (0/4)** | 0.0% (0/4) |
+| Wrong ayah (detection) | intact | intact | intact |
+| Silence (detection) | intact | intact | intact |
+
+Root cause (found with `tools/tilawa-diag.mjs`, a position-event
+dump): the **checker confirms nothing** on clean recitation — every
+false flag was a word the tracker never observed. The full 68 MB
+model scores **identically** to the 25 MB lite model on every case
+(same words, same event counts) and is slower (0.11–0.14× real-time
+vs 0.08–0.10× lite), so the model tier was never the problem and
+**lite stays the default** (coach now requests `tier: 'lite'`
+explicitly instead of `auto`, which picked full on capable devices).
+
+Three systematic tracker blind spots, fixed in
+`app/hifz/lib/tilawa.ts` `buildResult()` as graces — a graced word is
+"not reached yet" (neutral, never in the mistake log, never blocks
+the 3-in-a-row memorised rule), never "missed"; a checker-CONFIRMED
+flag still beats every grace:
+
+- (A) TAKE-START: the tracker spends the first ~1–3 s in `ambiguous`
+  state, emitting positions for WRONG passages (7:54:29, 25:1:2)
+  before locking. Boundary: first LOCKED observation when the take
+  locks; first OBSERVED word when it never locks (single short ayahs
+  never reach `locked` — they track in `ambiguous` at conf ~0.5 for
+  the whole take).
+- (B) AYAH-BOUNDARY JUMP: the tracker sometimes jumps from an ayah's
+  penultimate word straight to the next ayah's first word, skipping
+  the boundary word (67:2:12 ٱلْغَفُورُ). A last word of an ayah whose
+  next ayah's first word WAS observed is graced.
+- (C) SANDWICH: a word between two tracked neighbours is routinely
+  merged with them (مِن; ٱللَّهِ inside the Basmala, which runs
+  together as "bismillah"). Limited to 1–2 letter particles when the
+  take locked; any sandwiched word when it never locked.
+
+Failure mode is safe by construction: a grace can only downgrade
+"missed" to "not reached yet" — it can never manufacture "correct",
+and a genuinely skipped word still shows as not-reached and still
+does not count toward memorised. The harness mirrors the shipped
+logic exactly (its `scoreTake` implements the same graces), so the
+measured rate IS the shipped rate. The `unclear` gate is unchanged.

@@ -124,7 +124,9 @@ async function scoreTake(tilawa, { surah, fromAyah, toAyah, expected, audioParts
   const endMs = now() - endT0;
   const wallMs = feedMs + endMs;
 
-  // Per-word summary, mirroring app/hifz/lib/tilawa.ts buildResult().
+  // Per-word summary, mirroring app/hifz/lib/tilawa.ts buildResult() —
+  // INCLUDING its false-flag graces (A take-start, B ayah-boundary jump,
+  // C short particle), so the measured rate is the shipped rate.
   const observed = new Map();
   const order = [];
   for (const p of positions) {
@@ -152,12 +154,69 @@ async function scoreTake(tilawa, { surah, fromAyah, toAyah, expected, audioParts
   const trackedElsewhere = observed.size > 0 && reachedInPassage.length === 0;
   const noSpeech = observed.size === 0;
   const coverage = orderedKeys.length ? reachedInPassage.length / orderedKeys.length : 0;
+
+  // --- graces (mirror of tilawa.ts) ---
+  const orderedIndex = new Map(orderedKeys.map((o, i) => [o.key, i]));
+  const observedSet = new Set(reachedInPassage);
+  // First OBSERVED expected word (any tracker state) + first LOCKED one +
+  // whether the tracker ever locked — mirror of tilawa.ts (see its grace
+  // comments). Grace A boundary: first locked when the take locks, else
+  // first observed.
+  let firstObservedIndex = null;
+  let firstLockedIndex = null;
+  let everLocked = false;
+  for (const p of positions) {
+    const k = `${p.word.surah}:${p.word.ayah}:${p.word.word}`;
+    if (!expectedKeySet.has(k)) continue;
+    if (p.state === 'locked') {
+      everLocked = true;
+      if (firstLockedIndex === null) firstLockedIndex = orderedIndex.get(k);
+    }
+    if (firstObservedIndex === null) firstObservedIndex = orderedIndex.get(k);
+  }
+  const ayahNums = [...new Set(orderedKeys.map((o) => o.ayah))];
+  const ayahFirst = new Map();
+  const ayahLast = new Map();
+  for (const o of orderedKeys) {
+    if (!ayahFirst.has(o.ayah)) ayahFirst.set(o.ayah, o.key);
+    ayahLast.set(o.ayah, o.key);
+  }
+  const normLen = (w) => w.normalize('NFC')
+    .replace(/[ؐ-ًؚ-ٰٟۖ-ۭـ]/g, '')
+    .replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه')
+    .replace(/[ھہ]/g, 'ه').replace(/ے/g, 'ي').replace(/ک/g, 'ك').replace(/ی/g, 'ي')
+    .replace(/[^\u0621-\u064A]/g, '').length;
+  const graced = new Set();
+  const lockBoundary = firstLockedIndex ?? firstObservedIndex;
+  if (lockBoundary !== null) {
+    for (let i = 0; i < lockBoundary; i++) graced.add(orderedKeys[i].key);
+  }
+  for (let ai = 0; ai < ayahNums.length - 1; ai++) {
+    const last = ayahLast.get(ayahNums[ai]);
+    const nextFirst = ayahFirst.get(ayahNums[ai + 1]);
+    if (!observedSet.has(last) && observedSet.has(nextFirst)) graced.add(last);
+  }
+  const maxGraceLen = everLocked ? 2 : Infinity;
+  for (let pass = 0; pass < 3; pass++) {
+    let changed = false;
+    for (let i = 0; i < orderedKeys.length; i++) {
+      const key = orderedKeys[i].key;
+      if (observedSet.has(key) || graced.has(key)) continue;
+      if (normLen(orderedKeys[i].display) > maxGraceLen) continue;
+      const prevOk = i === 0 || observedSet.has(orderedKeys[i - 1].key) || graced.has(orderedKeys[i - 1].key);
+      const nextOk = i === orderedKeys.length - 1 || observedSet.has(orderedKeys[i + 1].key) || graced.has(orderedKeys[i + 1].key);
+      if (prevOk && nextOk) { graced.add(key); changed = true; }
+    }
+    if (!changed) break;
+  }
+
   for (const { key, display, ayah } of orderedKeys) {
     const flag = flagged.get(key);
     const seen = observed.has(key);
     let status;
     if (flag) status = flag.errorClass === 'wrong_word' ? 'wrong' : 'missed';
     else if (seen) status = 'correct';
+    else if (graced.has(key)) status = 'not-reached';
     else if (lastReached && orderedKeys.findIndex((o) => o.key === key) < orderedKeys.findIndex((o) => o.key === lastReached)) status = 'missed';
     else status = 'not-reached';
     if (status === 'correct') correct++;
@@ -276,6 +335,15 @@ if (caseArg === 'all' || caseArg === 'warmup') {
   const r = await scoreTake(tilawa, { surah: 1, fromAyah: 1, toAyah: 1, expected: verses, audioParts: [{ wav: paddedWav }] });
   printResult('E: 1:1 with 1.5 s warm-up silence (expect 4/4 — the tracker needs ~1 s of audio context before the first word)', r);
   results.warmup = r;
+}
+
+if (caseArg === 'all' || caseArg === 'single') {
+  console.log('\nCASE F — single short ayah, no leading silence: Al-Fatihah 1:1 alone (the most common real coach take — one ayah, tap and recite)');
+  const verses = await fetchPassage(1, 1, 1);
+  const plain = await mp3ToWav(verses[0].audioUrl, 'fatihah-1-1');
+  const r = await scoreTake(tilawa, { surah: 1, fromAyah: 1, toAyah: 1, expected: verses, audioParts: [plain] });
+  printResult('F: 1:1 alone, no silence (expect 4/4 — single-ayah takes never reach "locked", so the graces must still hold)', r);
+  results.single = r;
 }
 
 await tilawa.dispose();

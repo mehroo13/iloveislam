@@ -267,13 +267,35 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       expectedByKey.set(`${ayah.surah}:${ayah.ayah}:${w.index + 1}`, { ayah, refWord: w });
     }
   }
+  // Passage order: ayahs in range order, words in index order.
+  const orderedKeys = [...expectedByKey.keys()].sort((a, b) => {
+    const [sa, aa, wa] = a.split(':').map(Number);
+    const [sb, ab, wb] = b.split(':').map(Number);
+    return sa - sb || aa - ab || wa - wb;
+  });
+  const orderedIndex = new Map(orderedKeys.map((k, i) => [k, i]));
+  // Ayah structure, for the boundary grace in buildResult().
+  const ayahKeys = [...new Set(orderedKeys.map((k) => k.split(':').slice(0, 2).join(':')))];
+  const ayahFirstWord = new Map<string, string>();
+  const ayahLastWord = new Map<string, string>();
+  for (const k of orderedKeys) {
+    const ak = k.split(':').slice(0, 2).join(':');
+    if (!ayahFirstWord.has(ak)) ayahFirstWord.set(ak, k);
+    ayahLastWord.set(ak, k);
+  }
 
   // Live state, updated from position + checker events.
-  const observed = new Map<string, { confidence: number; timeMs: number }>();
+  const observed = new Map<string, { confidence: number; timeMs: number; state: string }>();
   const flagged = new Map<string, CheckerEvent>();
   const orderOfKey = new Map<string, number>();
   let order = 0;
   let trackerState = 'acquiring';
+  /** Passage index of the first expected word the tracker observed, or null. */
+  let firstObservedIndex: number | null = null;
+  /** Passage index of the first expected word observed while LOCKED, or null. */
+  let firstLockedIndex: number | null = null;
+  /** True once any position event arrived with state 'locked'. */
+  let everLocked = false;
   let mic: Microphone | null = null;
   let stopped = false;
   let stopPromise: Promise<SessionResult> | null = null;
@@ -302,8 +324,19 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       const best = ev.observed[0];
       if (!best) return;
       const key = wordKey(best.word);
+      if (ev.state === 'locked') {
+        everLocked = true;
+        if (firstLockedIndex === null) {
+          const idx = orderedIndex.get(key);
+          if (idx !== undefined) firstLockedIndex = idx;
+        }
+      }
+      if (firstObservedIndex === null) {
+        const idx = orderedIndex.get(key);
+        if (idx !== undefined) firstObservedIndex = idx;
+      }
       if (!observed.has(key)) {
-        observed.set(key, { confidence: best.confidence, timeMs: ev.timeMs });
+        observed.set(key, { confidence: best.confidence, timeMs: ev.timeMs, state: ev.state });
         orderOfKey.set(key, order++);
       }
       // A word the tracker is locked on, with no checker flag, is correct
@@ -332,14 +365,6 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
   });
 
   const buildResult = (): SessionResult => {
-    // Passage order: ayahs in range order, words in index order.
-    const orderedKeys = [...expectedByKey.keys()].sort((a, b) => {
-      const [sa, aa, wa] = a.split(':').map(Number);
-      const [sb, ab, wb] = b.split(':').map(Number);
-      return sa - sb || aa - ab || wa - wb;
-    });
-    const orderedIndex = new Map(orderedKeys.map((k, i) => [k, i]));
-
     // Words the reciter reached, in passage order — counting ONLY expected
     // words. (FIX 2026-11-21: the tracker can follow words outside the
     // declared passage, e.g. a different ayah; those keys are not in
@@ -352,6 +377,73 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
     const lastReached = reachedKeys.length > 0 ? reachedKeys[reachedKeys.length - 1] : null;
     const trackedElsewhere = observed.size > 0 && reachedKeys.length === 0;
     const noSpeech = observed.size === 0;
+    const observedSet = new Set(reachedKeys);
+
+    // FALSE-FLAG GRACES (measured 2026-11-21, tools/test-tilawa.mjs +
+    // tools/tilawa-diag.mjs; lite AND full tiers identical). On clean
+    // professional recitation the checker confirms NOTHING — every false
+    // flag is a word the tracker never observed while later words were.
+    // The tracker has three systematic blind spots, and a word in one of
+    // them is "not reached yet" (neutral, never in the mistake log), not
+    // "missed". A checker-CONFIRMED flag still beats every grace below.
+    // (A) TAKE-START: the tracker spends the first ~1-3 s in `ambiguous`
+    //     state, emitting positions for WRONG passages (e.g. 7:54:29,
+    //     25:1:2) before it locks onto the declared passage. Words before
+    //     the first observed word were never listened to, not skipped.
+    //     The boundary is the first LOCKED observation when the take locks
+    //     at all (an `ambiguous` observation of an early word does not
+    //     prove the tracker was following — it may be a wrong-passage
+    //     guess, and using it as the boundary exposed 1:2:2 in testing);
+    //     on a single short ayah the tracker may NEVER lock at all (it
+    //     follows the words in `ambiguous` at conf ~0.5 for the whole
+    //     take), so there the boundary falls back to the first OBSERVED
+    //     word, or short takes could never use the grace.
+    // (B) AYAH-BOUNDARY JUMP: at an ayah boundary the tracker sometimes
+    //     jumps from the previous ayah's penultimate word straight to the
+    //     next ayah's first word, skipping the boundary word (e.g. 67:2:12
+    //     ٱلْغَفُورُ). A last word of an ayah whose next ayah's first word
+    //     WAS observed is a tracker jump, not a reciter skip.
+    // (C) SHORT PARTICLE / SANDWICH: a word sandwiched between two
+    //     tracked neighbours is routinely merged with them by the tracker
+    //     — e.g. مِن between two observed words, or ٱللَّهِ inside the
+    //     Basmala ("bismillah" runs together). On takes where the tracker
+    //     DID lock, the grace is limited to 1-2 letter particles (longer
+    //     words are reliable evidence when locked); on takes where it
+    //     NEVER locked, any sandwiched word is graced, because ambiguous
+    //     tracking is too weak to call a mid-take omission. Genuine skips
+    //     of such a word are the least important words to flag, and the
+    //     checker can still confirm one.
+    const graced = new Set<string>();
+    const lockBoundary = firstLockedIndex ?? firstObservedIndex;
+    if (lockBoundary !== null) {
+      for (let i = 0; i < lockBoundary; i++) graced.add(orderedKeys[i]);
+    }
+    for (let ai = 0; ai < ayahKeys.length - 1; ai++) {
+      const last = ayahLastWord.get(ayahKeys[ai])!;
+      const nextFirst = ayahFirstWord.get(ayahKeys[ai + 1])!;
+      if (!observedSet.has(last) && observedSet.has(nextFirst)) graced.add(last);
+    }
+    // (C) needs the (A)/(B) graces settled first, and can chain across two
+    // adjacent short words — iterate to a fixpoint (bounded, tiny).
+    const maxGraceLen = everLocked ? 2 : Infinity;
+    for (let pass = 0; pass < 3; pass++) {
+      let changed = false;
+      for (let i = 0; i < orderedKeys.length; i++) {
+        const key = orderedKeys[i];
+        if (observedSet.has(key) || graced.has(key)) continue;
+        const normLen = expectedByKey.get(key)!.refWord.normalised.length;
+        if (normLen > maxGraceLen) continue;
+        const prevOk = i === 0 || observedSet.has(orderedKeys[i - 1]) || graced.has(orderedKeys[i - 1]);
+        const nextOk =
+          i === orderedKeys.length - 1 ||
+          observedSet.has(orderedKeys[i + 1]) || graced.has(orderedKeys[i + 1]);
+        if (prevOk && nextOk) {
+          graced.add(key);
+          changed = true;
+        }
+      }
+      if (!changed) break;
+    }
 
     const words: SessionWordResult[] = [];
     let correctCount = 0;
@@ -368,6 +460,9 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
         status = flag.errorClass === 'wrong_word' ? 'wrong' : 'missed';
       } else if (seen) {
         status = 'correct';
+      } else if (graced.has(key)) {
+        // One of the tracker blind spots above: do not call it a mistake.
+        status = 'not-reached';
       } else if (lastReached !== null && (orderedIndex.get(key) ?? 0) < (orderedIndex.get(lastReached) ?? 0)) {
         // The reciter demonstrably went past this word (later words were
         // observed) without it being observed: missed.

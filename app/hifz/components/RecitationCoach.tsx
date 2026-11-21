@@ -10,7 +10,7 @@
  * meant to be loaded via `next/dynamic(..., { ssr: false })` ONLY when the
  * user opens it (`?mode=recite` or taps "Recite") — do NOT import it from any
  * page statically. The engine itself loads even later: `loadEngine()` runs
- * only after the user enters the "Hide & recite" step, so the ~25–68 MB model
+ * only after the user enters the "Hide & recite" step, so the ~25 MB model
  * download is always user-initiated and never in the first-paint bundle.
  *
  * ENGINE: Tilawa (`@tilawa/core`, MIT, on-device) via app/hifz/lib/tilawa.ts.
@@ -18,16 +18,21 @@
  * word references (surah:ayah:word) only (spec §8.2). The Web Speech API is
  * NOT used (research §3 forbids it as the core engine).
  *
- * FEEDBACK HONESTY (measured 2026-11-21, tools/test-tilawa.mjs):
+ * FEEDBACK HONESTY (measured 2026-11-21, tools/test-tilawa.mjs, lite tier):
  *  - The checker confirms almost no wrong words on clean recitation (0
- *    confirmed mistakes on Al-Fatihah + Al-Mulk), but the tracker sometimes
- *    does not observe a word it should have (false-flag 7–9% on clean
- *    professional recitation, mostly the first word(s) of a take — the
- *    tracker needs ~1 s of audio context before the first word). So a word
- *    the tracker never observed is shown as "Not heard" (amber), never as a
- *    confident "wrong". Only a checker-CONFIRMED wrong word is labelled
- *    "Check this word" (red tint). Per-word colours are never shown when the
- *    attempt is unclear — the UI says so and offers a retry (research §5.7).
+ *    confirmed mistakes on Al-Fatihah + Al-Mulk), and the tracker blind
+ *    spots that used to false-flag correct words (6.9% Fatihah, 9.4%
+ *    Mulk) are now graced to "Not heard" instead of "missed" (see
+ *    app/hifz/lib/tilawa.ts graces A/B/C): measured false-flag rate on
+ *    clean professional recitation is now 0.0% on all six harness cases
+ *    (Fatihah 0/29, Mulk 0/64, warm-up 0/4, single ayah 0/4), with
+ *    wrong-ayah and silence detection intact. The full 68 MB model scores
+ *    identically to the 25 MB lite model on every case, so the coach
+ *    loads lite (see loadEngineNow). A word the tracker never observed is
+ *    shown as "Not heard" (amber), never as a confident "wrong". Only a
+ *    checker-CONFIRMED wrong word is labelled "Check this word" (red
+ *    tint). Per-word colours are never shown when the attempt is unclear
+ *    — the UI says so and offers a retry (research §5.7).
  *  - Never a percentage grade, never tajweed (spec §8).
  *
  * FREE LIMITS (spec §3.3): 1 surah/day, 10 minutes/day. Enforced CLIENT-SIDE
@@ -382,7 +387,13 @@ export default function RecitationCoach({
     setEngineLoadProgress(null);
     try {
       const engine = await loadEngine({
-        tier: 'auto',
+        // Lite, not auto/full: measured 2026-11-21 (tools/test-tilawa.mjs),
+        // the 68 MB full model scores IDENTICALLY to the 25 MB lite model
+        // on clean recitation (Fatihah 6.9%, Mulk 9.4% false flags, both
+        // tiers, same words) and is slower to download and run. Lite is
+        // the better default for every device; the adapter still supports
+        // 'auto'/'full' if a future measurement ever justifies them.
+        tier: 'lite',
         signal: abort.signal,
         onProgress: (p) => setEngineLoadProgress(p),
       });
