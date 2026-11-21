@@ -1319,7 +1319,10 @@ the homepage coach default is Al-Fatihah.
   at runtime from the ayah count (same algorithm as the old static
   tables — verified byte-identical for all 43 launch surahs × both
   lengths, `tools/verify_plans.mjs`). Juz Amma 90-day plan unchanged.
-- Sitemap: ~7,388 URLs (114 surah + 6,236 ayah + 30 juz + hub pages).
+- Sitemap: 6,387 URLs (114 surah + 6,236 ayah + 30 juz + 7 hub/static
+  pages; verified live). Interactive tool pages (/hifz/recite,
+  /hifz/test, /hifz/voice-search) are noindex by their own metadata
+  and are deliberately not listed.
 - Voice Search, Test Mode, challenges, plans, progress and the
   offline save all work over the whole Quran now (launch-set gates
   removed); `llms.txt` / `llms-full.txt` regenerated (6,412 lines,
