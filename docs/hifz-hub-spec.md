@@ -1883,3 +1883,94 @@ Still not verified by a real browser at phone width: the visual result
 of the kashida fix and the re-skin (a subagent cannot drive the live
 browser). The owner checking the site on his phone is the check that
 decides this round.
+
+## 24. Mushaf justification, measured — and the "not showing" defects (2026-11-21)
+
+A live browser check at 23:31 AEDT confirmed the §23 build IS serving
+(green buttons, cream pages, bottom tabs) but found four things still
+wrong. Three of the four turned out to be deploy lag or SSR, not
+missing code — see below. One was a real rendering failure (kashida).
+
+### 24.1 Why CSS justification never filled the lines with kashida
+
+`.mushaf-line { text-align: justify; text-justify: inter-character }`
+is correct in principle, but Chrome caps how far it will stretch a
+line with kashida and puts the leftover shortfall into the word
+spaces anyway. On page 2, line 1 still justified full-width with wide
+gaps even though the text was one text run and kashida was visible in
+some words (e.g. الْكِتَـٰبُ). The single-text-run fix (§21/§23) was
+necessary but not sufficient: the browser will not measure and fill.
+
+Fix — measured kashida, `app/hifz/lib/kashida.ts`:
+- `eligibleOffsets(text)`: pure function returning the string offsets
+  where a tatweel (U+0640) may be inserted — only after a dual-joining
+  letter, after its diacritics, never at word start/end, never next to
+  a pause mark, max 3 per spot. Joining set covers Uthmani + Indo-Pak
+  (ڪ پ چ ٹ گ ھ included; ے ں ہ ة excluded). Small marks that ride on a
+  letter (Indo-Pak ۡ and friends) are stepped over, so the tatweel
+  lands after the mark, never between mark and letter; pause marks
+  (U+06D6–U+06ED) are never stepped over.
+- `fillMushafLine(line)`: measures the line's natural width on an
+  off-screen `width: max-content` clone (so justification/wrapping
+  cannot skew the measurement), computes the shortfall, and inserts
+  tatweels round-robin at eligible points in up to 4 re-measured
+  rounds. Centres the line if it needs >45% stretch; reverts if the
+  line wraps. Never throws; memorise-mode rule lines are skipped.
+- Wired into `MushafPageView.tsx` via a `frameRef` + `useEffect`
+  (rAF on mount, `document.fonts.ready`, `ResizeObserver`, re-run when
+  page/verses/script/lines/topic/hide/reveal/continuous change).
+- Unit test `tools/test-kashida.mjs` (run: `node
+  tools/test-kashida.mjs`): compiles the real file with the repo's
+  `tsc` and asserts 9 `eligibleOffsets` cases (plain, diacritics,
+  pause mark, Indo-Pak, tatweel cap) + `insertTatweel` exact/property
+  checks. All pass.
+- Still needs a real-browser check at phone width: the filler is
+  client-side JS, so curl cannot verify it. The owner checking the
+  site on his phone is the check that decides this.
+
+### 24.2 Rosette ordering bug (found in the live HTML)
+
+Line 1 of page 2 read "الٓمّٓ ذٰلِكَ١ الۡڪِتٰبُ" — the ayah-1 rosette
+after ذلك instead of after الم. Cause: `MushafPageView.tsx` sorted
+each line's words by `position`, but positions restart at 1 for every
+verse, so the sort interleaved verses. Fix: the sort is removed; the
+iteration already appends in verse order, then position.
+
+### 24.3 Short-line and short-page fixes (same file)
+
+- `shortLine` counted ayah-end rosettes as words (`display.length <
+  8`), so page-2 line 1 (7 words + 2 rosettes = 9 items) was treated
+  as a full line and justified with wide gaps. Now counts words only
+  (`display.filter(w => !w.isEnd).length < 5`).
+- Short pages were `justify-center` on a `min-h-[62vh]` frame, but the
+  content often filled the 62vh, leaving no free space to split — so
+  the empty cream still sat at the bottom. Short pages now also get
+  extra vertical padding (`py-10 sm:py-14` instead of `py-4 sm:py-6`),
+  so the cream is visibly split top and bottom.
+
+### 24.4 Topics and badges "not showing" — deploy lag, plus one SSR bug
+
+- **Topics:** the 23:31 check was 3 minutes after commit 2a9c70a was
+  pushed (23:28 AEDT) — Vercel was still building ~7,000 static
+  pages. Served HTML fetched afterwards DOES contain "Ayah topics",
+  all 12 topic wash hexes and the legend. The washes are pale by
+  design; rosettes carry the topic colour. No code change needed.
+- **Badges:** same deploy lag for the 23:31 check, AND a real SSR
+  gap: `MyProgressClient.tsx` rendered `<BadgesGrid>` only after
+  `progress` loaded from localStorage in `useEffect`, so the SSR HTML
+  was just "Loading your progress…" — curl showed 0 "Badges". Fix:
+  the badge snapshot is now computed before the loading branch, with
+  a fresh-default fallback (`createDefaultProgress()`, bestTestPct
+  null) so the server render and the client hydration render are
+  identical; the loading branch renders `<BadgesGrid>` with that
+  snapshot (all 20 locked, 0%) plus the loading note. The duplicate
+  snapshot computation below the branch is removed.
+- **Recite tab:** `AppShell.tsx` `BottomTabs` — Memorize matched
+  `/hifz/memorize` and `/hifz/test` only, so `/hifz/recite` had no
+  active tab. Now also matches `/hifz/recite`.
+
+Live verification (curl, after deploy propagates): /hifz/mushaf/2
+HTML contains "Ayah topics" + wash hexes; /hifz/my-progress HTML
+contains "Badges" (new — the SSR fix); /hifz/recite HTML shows
+`aria-current="page"` on the Memorize link. Kashida fill needs the
+phone-width browser check (§24.1).

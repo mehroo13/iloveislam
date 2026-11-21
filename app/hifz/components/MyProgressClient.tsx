@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
+  createDefaultProgress,
   loadProgress, saveProgress, loadMistakes, saveMistakes, loadSettings, saveSettings,
   exportProgress, importProgress, downloadProgressJson,
   currentStreakCount, localDateString, isDailyGoalMet, ayahsPractisedOn,
@@ -108,11 +109,26 @@ export default function MyProgressClient() {
     }
   }, [reload]);
 
+  // Badges (free achievements, §23): derived from stored progress. The
+  // snapshot is computed BEFORE the loading branch so the badges render
+  // server-side too — with no progress loaded yet, a fresh default (all
+  // 20 locked, 0% progress) is used. Otherwise the SSR HTML had no
+  // badges markup at all and the section only appeared after hydration.
+  // The fallback passes bestTestPct: null deliberately, so the server
+  // render and the client hydration render are identical.
+  const badgeSnapshot =
+    progress === null
+      ? buildBadgeSnapshot(createDefaultProgress(), { bestTestPct: null })
+      : buildBadgeSnapshot(progress, { bestTestPct: loadBestTestPct() });
+
   if (progress === null || settings === null) {
     return (
-      <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-        <p className="text-sm text-[#5b6b62]">Loading your progress…</p>
-        {notice && <p className="mt-2 text-sm text-[#5b6b62]">{notice}</p>}
+      <div className="space-y-4">
+        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+          <p className="text-sm text-[#5b6b62]">Loading your progress…</p>
+          {notice && <p className="mt-2 text-sm text-[#5b6b62]">{notice}</p>}
+        </div>
+        <BadgesGrid snapshot={badgeSnapshot} />
       </div>
     );
   }
@@ -125,8 +141,6 @@ export default function MyProgressClient() {
   const memorised = Object.entries(progress.ayahs).filter(([, a]) => a.status === 'memorised');
   const learning = Object.entries(progress.ayahs).filter(([, a]) => a.status === 'learning');
   const goalPct = Math.min(100, Math.round((minutesToday / progress.dailyGoalMinutes) * 100));
-  // Badges (free achievements, §23): derived from stored progress.
-  const badgeSnapshot = buildBadgeSnapshot(progress, { bestTestPct: loadBestTestPct() });
   // Per-type daily goals (§15.8): separate targets + counters.
   const typeGoals = getTypeGoals(progress);
 

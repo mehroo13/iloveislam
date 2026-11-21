@@ -28,7 +28,7 @@
 //     the Madani mushaf's in both scripts.
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { BISMILLAH } from '../../quran/lib';
 import { getSurahById, type HifzSurah } from '../surahs';
@@ -42,6 +42,7 @@ import {
 } from '../lib/fetch';
 import { SCRIPT_LABELS, useScriptPref } from '../lib/script';
 import { getAyahTopic, TOPIC_BY_ID, TOPICS } from '../topics';
+import { fillMushafFrame } from '../lib/kashida';
 
 interface WordWithVerse extends MushafWord {
   verseKey: string;
@@ -145,6 +146,37 @@ export default function MushafPageView({
   const revealed = controlledHide ? controlledHide.revealed : revealedCount;
   const [lines16, setLines16] = useState(false);
 
+  // Measured kashida justification. `text-align: justify` alone cannot
+  // fill a mushaf line with tatweel: Chrome stretches the word spaces
+  // instead, so lines come out with wide gaps. This effect measures each
+  // line's natural width and inserts tatweel (U+0640) at eligible join
+  // points until the line fills — the word spaces never stretch. It runs
+  // after mount, after fonts load, on resize, and whenever the rendered
+  // lines change. It skips memorise-mode rule lines (those are blank).
+  const frameRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const run = () => fillMushafFrame(frame);
+    const raf = requestAnimationFrame(run);
+    let observer: ResizeObserver | null = null;
+    let cancelled = false;
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      document.fonts.ready.then(() => {
+        if (!cancelled) run();
+      });
+    }
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(() => run());
+      observer.observe(frame);
+    }
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      observer?.disconnect();
+    };
+  }, [page, verses, script, lines16, topicColors, hidden, revealed, continuous, extraPages.length]);
+
   useEffect(() => {
     try {
       const q = new URLSearchParams(window.location.search);
@@ -187,9 +219,12 @@ export default function MushafPageView({
     };
   }, [continuous, bare, page]);
 
-  // Group words by mushaf line, in position order. A word that is only
-  // pause marks is merged into the previous word so it sits on the word
-  // it belongs to instead of floating above the line.
+  // Group words by mushaf line, in verse order. Do NOT re-sort by
+  // `position`: positions restart at 1 for every verse, so sorting by
+  // position alone interleaves verses on the same line — the ayah-end
+  // rosette of one verse landed after the first word of the next verse
+  // (live: "ذٰلِكَ١الۡڪِتٰبُ" instead of "الٓمّٓ١ ذٰلِكَ الۡڪِتٰبُ").
+  // The iteration below already appends in verse order, then position.
   const lines = new Map<number, WordWithVerse[]>();
   for (const v of verses) {
     for (const w of v.words ?? []) {
@@ -198,7 +233,6 @@ export default function MushafPageView({
       lines.set(w.line_number, arr);
     }
   }
-  for (const arr of lines.values()) arr.sort((a, b) => a.position - b.position);
 
   const renderedHeaders = new Set<number>();
   const renderedJuzMarkers = new Set<number>();
@@ -251,7 +285,11 @@ export default function MushafPageView({
     // so the reading view joins each run of words into a single text node
     // and only the ayah-end rosettes stay as elements. Hidden (memorise)
     // mode still needs per-word spans for the grey rules.
-    const shortLine = display.length < 8;
+    // Short lines (Bismillah, a single ayah fragment) stay centred.
+    // Count WORDS only — an ayah-end rosette is a marker, not a word:
+    // counting it made line 1 of page 2 (7 words + 2 rosettes) look
+    // "long" and justify it with wide gaps.
+    const shortLine = display.filter((w) => !w.isEnd).length < 5;
     const sizeCls = lines16 ? 'text-[1.6rem] leading-[2.2] sm:text-[1.85rem]' : 'text-[1.85rem] leading-[2.35] sm:text-[2.1rem]';
     const lineClass = `${fontClass} ${sizeCls} text-[#1C2420] ${shortLine ? 'text-center' : 'mushaf-line'}`;
     let lineContent: React.ReactNode;
@@ -488,8 +526,9 @@ export default function MushafPageView({
 
       <div className="mt-4 rounded-2xl border-2 border-[#FFB800] bg-[#FFFBF2] p-2 shadow-sm sm:p-4">
         <div
-          className={`flex min-h-[62vh] flex-col rounded-xl border border-[#FFB800]/60 bg-[#FFFBF2] px-3 py-4 sm:px-6 sm:py-6 ${
-            shortPage ? 'justify-center' : 'justify-start'
+          ref={frameRef}
+          className={`flex min-h-[62vh] flex-col rounded-xl border border-[#FFB800]/60 bg-[#FFFBF2] px-3 sm:px-6 ${
+            shortPage ? 'justify-center py-10 sm:py-14' : 'justify-start py-4 sm:py-6'
           }`}
         >
           {blocks.length > 0 ? (
