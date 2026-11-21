@@ -28,7 +28,7 @@
 //     the Madani mushaf's in both scripts.
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { BISMILLAH } from '../../quran/lib';
 import { getSurahById, type HifzSurah } from '../surahs';
@@ -43,6 +43,13 @@ import {
 import { SCRIPT_LABELS, useScriptPref } from '../lib/script';
 import { getAyahTopic, TOPIC_BY_ID, TOPICS } from '../topics';
 import { fillMushafFrame } from '../lib/kashida';
+import { loadMistakes } from '../progress';
+import { normalizeArabic } from '../lib/alignment';
+
+/** Missed this many times in total before a word counts as a weak word. */
+const FREQUENT_MISTAKE_MIN_ATTEMPTS = 2;
+/** Strong red for weak-word marking — the coach's wrong-word red. */
+const WEAK_WORD_RED = '#DC2626';
 
 interface WordWithVerse extends MushafWord {
   verseKey: string;
@@ -142,6 +149,57 @@ export default function MushafPageView({
   const [continuousError, setContinuousError] = useState<string | null>(null);
   // Colour-code the mushaf by ayah topic (study aid, §23). Default on.
   const [topicColors, setTopicColors] = useState(true);
+  // Mistake-history marking (Tarteel row 17, §5.1): words the user has
+  // missed repeatedly show in a stronger colour — red + dotted underline,
+  // the same marking the coach uses for a wrong word — and stay visible
+  // as red rules while verses are hidden. "Frequent" = missed 2+ times
+  // in total (addMistake merges same-day repeats into `attempts`, so the
+  // count is the sum of attempts across log entries for that word). One
+  // lone miss is not marked: a single flag can be a false positive, and
+  // Tarteel's own docs admit false positives happen. The marking is
+  // keyed "surah:ayah:normalised-word" — normalisation (diacritics,
+  // alef variants, Indo-Pak letters stripped the same way on both sides)
+  // is what lets a coach-logged word match the mushaf word, which may
+  // carry merged pause marks or be in the other script. Gated by the
+  // existing "Highlight mistake history" setting (default on); when it
+  // is off there is no marking and no legend.
+  const [frequentMistakes, setFrequentMistakes] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const [mistakeMarkingOn, setMistakeMarkingOn] = useState(true);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('ili_hifz_settings_v1');
+      if (raw) {
+        const parsed = JSON.parse(raw) as { highlightMistakes?: boolean };
+        if (parsed.highlightMistakes === false) {
+          setMistakeMarkingOn(false);
+          return;
+        }
+      }
+      const counts = new Map<string, number>();
+      for (const m of loadMistakes()) {
+        const word = normalizeArabic(m.expected || m.word || '');
+        if (!word || typeof m.surah !== 'number' || typeof m.ayah !== 'number') continue;
+        const key = `${m.surah}:${m.ayah}:${word}`;
+        counts.set(key, (counts.get(key) ?? 0) + Math.max(1, m.attempts || 1));
+      }
+      const frequent = new Set<string>();
+      for (const [key, total] of counts) {
+        if (total >= FREQUENT_MISTAKE_MIN_ATTEMPTS) frequent.add(key);
+      }
+      setFrequentMistakes(frequent);
+    } catch {
+      // Storage unreadable: no marking, the page still renders.
+    }
+  }, []);
+
+  const isFrequentMistake = (verseKey: string, text: string): boolean => {
+    if (!mistakeMarkingOn || frequentMistakes.size === 0) return false;
+    const norm = normalizeArabic(text);
+    if (!norm) return false;
+    return frequentMistakes.has(`${verseKey}:${norm}`);
+  };
   const hidden = controlledHide ? controlledHide.hidden : hideVerses;
   const revealed = controlledHide ? controlledHide.revealed : revealedCount;
   const [lines16, setLines16] = useState(false);
@@ -175,7 +233,7 @@ export default function MushafPageView({
       cancelAnimationFrame(raf);
       observer?.disconnect();
     };
-  }, [page, verses, script, lines16, topicColors, hidden, revealed, continuous, extraPages.length]);
+  }, [page, verses, script, lines16, topicColors, hidden, revealed, continuous, extraPages.length, frequentMistakes, mistakeMarkingOn]);
 
   useEffect(() => {
     try {
@@ -238,6 +296,8 @@ export default function MushafPageView({
   const renderedJuzMarkers = new Set<number>();
   const blocks: React.ReactNode[] = [];
   let key = 0;
+  // Weak (frequently missed) words on this page — drives the legend.
+  let weakOnPage = 0;
 
   for (const lineNo of [...lines.keys()].sort((a, b) => a - b)) {
     const words = lines.get(lineNo)!;
@@ -262,7 +322,7 @@ export default function MushafPageView({
 
     // Clean the display text for the chosen script, merging mark-only
     // words into the previous word.
-    const display: { text: string; isEnd: boolean; verseKey: string; globalIdx: number }[] = [];
+    const display: { text: string; isEnd: boolean; verseKey: string; globalIdx: number; weak: boolean }[] = [];
     for (const w of words) {
       const raw = script === 'uthmani' ? w.text_uthmani : w.text_indopak ?? w.text_uthmani;
       const text =
@@ -272,9 +332,19 @@ export default function MushafPageView({
         display[display.length - 1].text += text;
         continue;
       }
-      display.push({ text, isEnd: w.char_type_name === 'end', verseKey: w.verseKey, globalIdx: wordCounter.current++ });
+      display.push({
+        text,
+        isEnd: w.char_type_name === 'end',
+        verseKey: w.verseKey,
+        globalIdx: wordCounter.current++,
+        // Rosettes are markers, not words — never weak. The weak flag is
+        // checked on the bare word: merged pause marks normalise away,
+        // so a merged word still matches its mistake-log entry.
+        weak: w.char_type_name === 'end' ? false : isFrequentMistake(w.verseKey, text),
+      });
     }
     if (display.length === 0) continue;
+    weakOnPage += display.reduce((n, w) => n + (w.weak ? 1 : 0), 0);
 
     // Full lines are justified like the mushaf (kashida stretching, not
     // wide word gaps); short lines are centred, as in the book.
@@ -305,9 +375,23 @@ export default function MushafPageView({
             </span>
           );
         }
-        // Memorisation mode: unrevealed words are thin grey rules.
+        // Memorisation mode: unrevealed words are thin grey rules — except
+        // weak words, which show as thicker RED rules, so the user sees
+        // where their weak words are without the word being revealed.
+        // A revealed (peeked) weak word keeps the red dotted underline.
         if (w.globalIdx >= revealed) {
-          return (
+          return w.weak ? (
+            <span
+              key={`${w.verseKey}-${i}`}
+              className="hidden-word-rule"
+              style={{
+                width: `${Math.max(1.2, w.text.length * 0.45)}em`,
+                background: WEAK_WORD_RED,
+                height: '0.2em',
+              }}
+              title="Word you have missed 2 or more times"
+            />
+          ) : (
             <span
               key={`${w.verseKey}-${i}`}
               className="hidden-word-rule"
@@ -315,7 +399,11 @@ export default function MushafPageView({
             />
           );
         }
-        return (
+        return w.weak ? (
+          <span key={`${w.verseKey}-${i}`} className="live-word-wrong">
+            {w.text}{' '}
+          </span>
+        ) : (
           <span key={`${w.verseKey}-${i}`}>
             {w.text}{' '}
           </span>
@@ -325,34 +413,59 @@ export default function MushafPageView({
       // One text run per stretch of words; rosettes stay as elements.
       // Topic colours (§23): each run belongs to one ayah, so the run
       // gets that ayah's topic wash and the rosette its topic colour.
+      // Weak words split the run into segments — but only at weak words,
+      // and only when the run has one: an unmarked run stays a single
+      // plain string exactly as before, so kashida justification is
+      // untouched (the filler measures across text nodes either way).
+      // A weak word gets the red dotted underline (the coach's
+      // .live-word-wrong), never a topic tint, so the two markings
+      // cannot be confused even where a weak word sits on a wash.
       const nodes: React.ReactNode[] = [];
-      let run = '';
+      let runSegs: { text: string; weak: boolean }[] = [];
       let runKey = '';
       const flush = () => {
-        if (run) {
-          const [rs, ra] = runKey.split(':').map(Number);
-          const topic = topicColors ? TOPIC_BY_ID[getAyahTopic(rs, ra)] : null;
-          nodes.push(
-            topic ? (
-              <span
-                key={`r-${runKey}-${nodes.length}`}
-                style={{
-                  background: topic.wash,
-                  borderRadius: '0.25em',
-                  padding: '0 0.15em',
-                  WebkitBoxDecorationBreak: 'clone',
-                  boxDecorationBreak: 'clone',
-                }}
-              >
-                {run}
-              </span>
-            ) : (
-              run
-            ),
-          );
-          run = '';
-          runKey = '';
+        if (runSegs.length === 0) return;
+        const [rs, ra] = runKey.split(':').map(Number);
+        const topic = topicColors ? TOPIC_BY_ID[getAyahTopic(rs, ra)] : null;
+        let content: React.ReactNode;
+        if (!runSegs.some((s) => s.weak)) {
+          content = runSegs.map((s) => s.text).join(' ');
+        } else {
+          const children: React.ReactNode[] = [];
+          runSegs.forEach((s, si) => {
+            if (si > 0) children.push(' ');
+            children.push(
+              s.weak ? (
+                <span key={`${runKey}-w${si}`} className="live-word-wrong">
+                  {s.text}
+                </span>
+              ) : (
+                s.text
+              ),
+            );
+          });
+          content = <Fragment key={`r-${runKey}-${nodes.length}`}>{children}</Fragment>;
         }
+        nodes.push(
+          topic ? (
+            <span
+              key={`r-${runKey}-${nodes.length}`}
+              style={{
+                background: topic.wash,
+                borderRadius: '0.25em',
+                padding: '0 0.15em',
+                WebkitBoxDecorationBreak: 'clone',
+                boxDecorationBreak: 'clone',
+              }}
+            >
+              {content}
+            </span>
+          ) : (
+            content
+          ),
+        );
+        runSegs = [];
+        runKey = '';
       };
       display.forEach((w, i) => {
         if (w.isEnd) {
@@ -370,8 +483,8 @@ export default function MushafPageView({
             </span>,
           );
         } else {
-          if (!run) runKey = w.verseKey;
-          run += (run ? ' ' : '') + w.text;
+          if (runSegs.length === 0) runKey = w.verseKey;
+          runSegs.push({ text: w.text, weak: w.weak });
         }
       });
       flush();
@@ -468,6 +581,9 @@ export default function MushafPageView({
         <p className="mt-2 text-center text-sm text-[#5b6b62]">
           Words are hidden as thin grey rules. Recite from memory — reveal a word when you are
           stuck. A peek counts as a miss, like in the coach.
+          {mistakeMarkingOn && weakOnPage > 0
+            ? ' Words you have missed 2 or more times show as red rules.'
+            : ''}
         </p>
       )}
 
@@ -522,6 +638,17 @@ export default function MushafPageView({
             an automatic mapping, not tafsir — turn them off anytime in Settings.
           </p>
         </div>
+      )}
+
+      {/* Mistake-history legend — only when this page has weak words.
+          No mistakes yet (or marking off): no marking, no legend. */}
+      {!bare && mistakeMarkingOn && weakOnPage > 0 && (
+        <p className="mx-auto mt-3 max-w-3xl text-center text-xs text-[#5b6b62]">
+          <span className="live-word-wrong font-semibold">Red underlined words</span> —{' '}
+          {weakOnPage} {weakOnPage === 1 ? 'word' : 'words'} on this page you have missed 2 or
+          more times. When verses are hidden they show as red rules, so you can spot your weak
+          words without seeing them. Turn marking off in Settings → Quran appearance.
+        </p>
       )}
 
       <div className="mt-4 rounded-2xl border-2 border-[#FFB800] bg-[#FFFBF2] p-2 shadow-sm sm:p-4">
