@@ -4,16 +4,17 @@
 // scoped to this one ayah (dynamic import, only when opened).
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {
-  API, AUDIO_BASE, TRANSLATIONS, RECITERS, stripHtml, cleanIndopak, verseText,
+  API, AUDIO_BASE, TRANSLATIONS, RECITERS, TAFSIRS, TAFSIR_ID, groupByLanguage, stripHtml, cleanIndopak, verseText,
   type Verse,
 } from '../../quran/lib';
 import type { HifzSurah } from '../surahs';
 import { loadProgress, saveProgress, type HifzProgress } from '../progress';
 import { useScriptPref, SCRIPT_LABELS } from '../lib/script';
+import { attributionFor } from '../lib/fetch';
 import ToolIcon from '../../components/ToolIcon';
 import TafsirBlock from './TafsirBlock';
 import type { CoachAyah } from './RecitationCoach';
@@ -21,6 +22,8 @@ import type { WordInfo } from '../lib/fetch';
 import { pairWords } from '../lib/fetch';
 
 const RecitationCoach = dynamic(() => import('./RecitationCoach'), { ssr: false });
+
+const TAFSIR_KEY = 'ili_hifz_tafsir_v1';
 
 type ViewMode = 'arabic' | 'translation' | 'tafsir';
 
@@ -46,6 +49,9 @@ export default function AyahClient({
   const [verse, setVerse] = useState<Verse>(initialVerse);
   const [translationId, setTranslationId] = useState(20);
   const [reciterId, setReciterId] = useState(7);
+  const [tafsirId, setTafsirId] = useState(TAFSIR_ID);
+  const translationGroups = useMemo(() => groupByLanguage(TRANSLATIONS), []);
+  const tafsirGroups = useMemo(() => groupByLanguage(TAFSIRS), []);
   const [viewMode, setViewMode] = useState<ViewMode>('translation');
   const [coachOpen, setCoachOpen] = useState(initialCoachOpen);
   const [script, setScript] = useScriptPref();
@@ -67,11 +73,80 @@ export default function AyahClient({
   const [memorised, setMemorised] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  /* Sequential word-by-word playback: play each word's clip in turn,
+     highlighting the word card as it sounds. Words come from the
+     server-fetched initialWords (same payload as the list below), so no
+     extra fetch. Words without audio are skipped; if none has audio, a
+     note is shown instead of silence. */
+  const wbwAudioRef = useRef<HTMLAudioElement | null>(null);
+  const wbwQueueRef = useRef<number[]>([]);
+  const [wbwSeqPlaying, setWbwSeqPlaying] = useState(false);
+  const [wbwSeqNote, setWbwSeqNote] = useState('');
+
+  useEffect(() => {
+    const a = new Audio();
+    wbwAudioRef.current = a;
+    const onEnded = () => {
+      const next = wbwQueueRef.current.shift();
+      if (next === undefined) {
+        setWbwSeqPlaying(false);
+        setPlayingWord(null);
+        return;
+      }
+      playWbwIndex(next);
+    };
+    a.addEventListener('ended', onEnded);
+    return () => {
+      a.removeEventListener('ended', onEnded);
+      a.pause();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const playWbwIndex = (i: number) => {
+    const w = wordsRef.current[i];
+    const a = wbwAudioRef.current;
+    if (!w?.audioUrl || !a) return;
+    a.src = `${AUDIO_BASE}${w.audioUrl}`;
+    setPlayingWord(i);
+    a.play().catch(() => {
+      const next = wbwQueueRef.current.shift();
+      if (next !== undefined) playWbwIndex(next);
+      else {
+        setWbwSeqPlaying(false);
+        setPlayingWord(null);
+      }
+    });
+  };
+
+  const stopWbwSeq = () => {
+    wbwQueueRef.current = [];
+    wbwAudioRef.current?.pause();
+    setWbwSeqPlaying(false);
+    setPlayingWord(null);
+  };
+
+  const playAllWords = () => {
+    const idx = wordsRef.current.map((w, i) => (w.audioUrl ? i : -1)).filter((i) => i >= 0);
+    if (idx.length === 0) {
+      setWbwSeqNote('Word audio is unavailable for this ayah.');
+      return;
+    }
+    setWbwSeqNote('');
+    wbwQueueRef.current = idx.slice(1);
+    setWbwSeqPlaying(true);
+    playWbwIndex(idx[0]);
+  };
+
   const key = `${surah.id}:${ayah}`;
   const translation = stripHtml(verse.translations?.[0]?.text ?? '');
   const translationName = TRANSLATIONS.find((t) => t.id === translationId)?.name ?? 'Saheeh International';
   const reciterName = RECITERS.find((r) => r.id === reciterId)?.name ?? 'Mishary Alafasy';
   const words = pairWords(verse.text_indopak, initialWords);
+  /* Ref so the sequential-playback callbacks above always see the current
+     word list even though they were created on an earlier render. */
+  const wordsRef = useRef(words);
+  wordsRef.current = words;
 
   useEffect(() => {
     try {
@@ -82,10 +157,20 @@ export default function AyahClient({
       }
       const p = loadProgress();
       setMemorised(p.ayahs[key]?.status === 'memorised');
+      const storedTafsir = Number(localStorage.getItem(TAFSIR_KEY) ?? '');
+      if (TAFSIRS.some((t) => t.id === storedTafsir)) setTafsirId(storedTafsir);
     } catch {
       /* storage unavailable */
     }
   }, [surah.id, ayah, key]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(TAFSIR_KEY, String(tafsirId));
+    } catch {
+      /* ignore */
+    }
+  }, [tafsirId]);
 
   const refetch = useCallback(
     async (tId: number, rId: number) => {
@@ -116,6 +201,7 @@ export default function AyahClient({
   const playAudio = () => {
     const audio = audioRef.current;
     if (!audio || !verse.audio?.url) return;
+    stopWbwSeq();
     audio.src = `${AUDIO_BASE}${verse.audio.url}`;
     setPlaying(true);
     audio.play().catch(() => setPlaying(false));
@@ -252,8 +338,28 @@ export default function AyahClient({
               onChange={(e) => setTranslationId(Number(e.target.value))}
               className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             >
-              {TRANSLATIONS.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
+              {translationGroups.map((g) => (
+                <optgroup key={g.lang} label={g.lang}>
+                  {g.items.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-sm font-medium">
+            Tafsir
+            <select
+              value={tafsirId}
+              onChange={(e) => setTafsirId(Number(e.target.value))}
+              className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+            >
+              {tafsirGroups.map((g) => (
+                <optgroup key={g.lang} label={g.lang}>
+                  {g.items.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </label>
@@ -288,17 +394,20 @@ export default function AyahClient({
             against the Indo-Pak text — its word alignment is built on it.
           </p>
         )}
+        <p className="mt-3 text-xs leading-relaxed text-[#5b6b62]">
+          {TRANSLATIONS.length} translations · {TAFSIRS.length} tafsirs · {RECITERS.length} recitations — all free. {attributionFor(translationId, tafsirId)}
+        </p>
 
         {/* Tafsir renders ONLY in Tafsir mode (commit 12a3449 — do not regress). */}
         {viewMode === 'tafsir' && (
           <div className="mt-4">
-            {initialTafsir ? (
+            {tafsirId === TAFSIR_ID && initialTafsir ? (
               <div className="rounded-xl bg-[#FFFBF2] border border-[#E5E7EB] p-4">
                 <p className="text-xs font-bold uppercase tracking-wide text-[#1FA36B]">Tafsir Ibn Kathir (Abridged)</p>
                 <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#1C2420]/85">{initialTafsir}</p>
               </div>
             ) : (
-              <TafsirBlock verseKey={key} />
+              <TafsirBlock key={`${key}:${tafsirId}`} verseKey={key} tafsirId={tafsirId} />
             )}
           </div>
         )}
@@ -306,13 +415,27 @@ export default function AyahClient({
 
       {/* Word-by-word */}
       <section aria-labelledby="wbw-heading" className="mt-6 rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="wbw-heading" className="text-lg font-bold text-[#102E26]">Word-by-word</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="wbw-heading" className="text-lg font-bold text-[#102E26]">Word-by-word</h2>
+          {words.length > 0 && (
+            <button
+              type="button"
+              onClick={wbwSeqPlaying ? stopWbwSeq : playAllWords}
+              className="rounded-full bg-[#1FA36B] px-4 py-1.5 text-sm font-semibold text-white hover:bg-[#102E26] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+            >
+              {wbwSeqPlaying ? 'Stop' : 'Play all words'}
+            </button>
+          )}
+        </div>
+        {wbwSeqNote && (
+          <p role="status" className="mt-2 text-sm text-[#7A5C00]">{wbwSeqNote}</p>
+        )}
         {words.length === 0 ? (
           <p className="mt-2 text-sm text-[#5b6b62]">Word-by-word is unavailable right now.</p>
         ) : (
           <ul className="mt-3 flex flex-wrap gap-2">
             {words.map((w, i) => (
-              <li key={i} className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2.5 py-1.5 text-center">
+              <li key={i} className={`rounded-lg border px-2.5 py-1.5 text-center ${playingWord === i ? 'border-[#FFB800] bg-[#FFB800]/15 ring-1 ring-[#FFB800]' : 'border-[#E5E7EB] bg-[#FFFBF2]'}`}>
                 <span dir="rtl" lang="ar" className="font-quran block text-xl leading-snug text-[#102E26]">{w.arabic}</span>
                 {w.transliteration && <span className="block text-[11px] italic text-[#5b6b62]">{w.transliteration}</span>}
                 {w.translation && <span className="block text-[11px] text-[#1C2420]/75">{w.translation}</span>}
@@ -321,6 +444,7 @@ export default function AyahClient({
                     type="button"
                     aria-label={`Hear the word ${w.transliteration || w.arabic}`}
                     onClick={() => {
+                      stopWbwSeq();
                       const audio = new Audio(`${AUDIO_BASE}${w.audioUrl}`);
                       setPlayingWord(i);
                       audio.play().catch(() => setPlayingWord(null));

@@ -16,24 +16,155 @@ export const API = '/api/quran';
 export const UPSTREAM_API = 'https://api.quran.com/api/v4';
 export const AUDIO_BASE = 'https://verses.quran.com/';
 
-/* Verified live against api.quran.com on 2026-11-21. */
-// Translation ids verified against api.quran.com/api/v4/resources/translations
-// 2026-11-21. EN/AR/FR/ID/MS/RU/HI/UR — see hifz-hub-spec §22.
-export const TRANSLATIONS = [
-  { id: 20, name: 'Saheeh International' },
-  { id: 22, name: 'Yusuf Ali' },
-  { id: 19, name: 'Pickthall' },
-  { id: 85, name: 'Abdel Haleem' },
-  { id: 84, name: 'Taqi Usmani' },
-  { id: 31, name: 'Hamidullah (French)' },
-  { id: 33, name: 'Indonesian Ministry (Bahasa Indonesia)' },
-  { id: 39, name: 'Basmeih (Malay)' },
-  { id: 45, name: 'Kuliev (Russian)' },
-  { id: 234, name: 'Jalandhari (Urdu)' },
-  { id: 122, name: 'Azizul Haque (Hindi)' },
-  { id: 57, name: 'Transliteration' },
+/* Verified live against api.quran.com on 2026-11-22 (resources endpoints +
+   spot-check: every id below returned real text for Al-Fatihah 1:1).
+   The API returns 126 translations in total; this is a curated 104 across
+   65 languages + transliteration — the widely-used translation per language
+   (two where a language has two major ones). All are served freely by
+   Quran.com's public API with attribution (see ATTRIBUTION in
+   app/hifz/lib/fetch.ts); nothing is pasted into the repo. Tarteel's
+   published 152 is NOT reproducible from Quran.com v4 — do not claim it.
+   `lang` drives the <optgroup> grouping in the pickers. */
+export const TRANSLATIONS: { id: number; name: string; lang: string }[] = [
+  // English
+  { id: 20, name: 'Saheeh International', lang: 'English' },
+  { id: 22, name: 'Yusuf Ali', lang: 'English' },
+  { id: 19, name: 'Pickthall', lang: 'English' },
+  { id: 85, name: 'Abdel Haleem', lang: 'English' },
+  { id: 84, name: 'Taqi Usmani', lang: 'English' },
+  { id: 203, name: 'Al-Hilali & Khan', lang: 'English' },
+  { id: 149, name: 'Fadel Soliman (Bridges)', lang: 'English' },
+  { id: 95, name: 'Maududi (Tafhim)', lang: 'English' },
+  // French
+  { id: 31, name: 'Hamidullah', lang: 'French' },
+  { id: 779, name: 'Rashid Maash', lang: 'French' },
+  { id: 136, name: 'Montada Islamic Foundation', lang: 'French' },
+  // Indonesian
+  { id: 33, name: 'Indonesian Ministry', lang: 'Indonesian' },
+  { id: 134, name: 'King Fahad Quran Complex', lang: 'Indonesian' },
+  // Malay
+  { id: 39, name: 'Basmeih', lang: 'Malay' },
+  // Russian
+  { id: 45, name: 'Kuliev', lang: 'Russian' },
+  { id: 78, name: 'Ministry of Awqaf, Egypt', lang: 'Russian' },
+  { id: 79, name: 'Abu Adel', lang: 'Russian' },
+  // Urdu
+  { id: 234, name: 'Jalandhari', lang: 'Urdu' },
+  { id: 54, name: 'Junagarhi', lang: 'Urdu' },
+  { id: 97, name: 'Maududi (Tafheem)', lang: 'Urdu' },
+  { id: 819, name: 'Wahiduddin Khan', lang: 'Urdu' },
+  { id: 831, name: 'Maududi (Roman Urdu)', lang: 'Urdu' },
+  // Hindi
+  { id: 122, name: 'Azizul Haque', lang: 'Hindi' },
+  // Turkish
+  { id: 77, name: 'Diyanet', lang: 'Turkish' },
+  { id: 52, name: 'Elmalili Hamdi Yazir', lang: 'Turkish' },
+  // Persian
+  { id: 29, name: 'Hussein Taji Kal Dari', lang: 'Persian' },
+  { id: 135, name: 'IslamHouse.com', lang: 'Persian' },
+  // Bengali
+  { id: 161, name: 'Taisirul Quran', lang: 'Bengali' },
+  { id: 213, name: 'Abu Bakr Zakaria', lang: 'Bengali' },
+  { id: 163, name: 'Sheikh Mujibur Rahman', lang: 'Bengali' },
+  // Spanish
+  { id: 83, name: 'Isa Garcia', lang: 'Spanish' },
+  { id: 199, name: 'Noor International Center', lang: 'Spanish' },
+  // German
+  { id: 27, name: 'Bubenheim & Nadeem', lang: 'German' },
+  { id: 208, name: 'Abu Reda', lang: 'German' },
+  // Italian
+  { id: 153, name: 'Hamza Roberto Piccardo', lang: 'Italian' },
+  { id: 209, name: 'Othman al-Sharif', lang: 'Italian' },
+  // Portuguese
+  { id: 103, name: 'Helmi Nasr', lang: 'Portuguese' },
+  { id: 43, name: 'Samir El-Hayek', lang: 'Portuguese' },
+  // Chinese
+  { id: 56, name: 'Ma Jian', lang: 'Chinese' },
+  { id: 109, name: 'Muhammad Makin', lang: 'Chinese' },
+  // Japanese
+  { id: 35, name: 'Ryoichi Mita', lang: 'Japanese' },
+  { id: 218, name: 'Saeed Sato', lang: 'Japanese' },
+  // Korean
+  { id: 36, name: 'Korean Translation', lang: 'Korean' },
+  { id: 219, name: 'Hamed Choi', lang: 'Korean' },
+  // Tamil
+  { id: 50, name: 'Jan Trust Foundation', lang: 'Tamil' },
+  { id: 133, name: 'Abdul Hameed Baqavi', lang: 'Tamil' },
+  // Swahili
+  { id: 49, name: 'Ali Muhsin Al-Barwani', lang: 'Swahili' },
+  { id: 231, name: 'Abu Bakr & Khamis', lang: 'Swahili' },
+  // Dutch
+  { id: 235, name: 'Abdalsalaam', lang: 'Dutch' },
+  { id: 144, name: 'Sofian S. Siregar', lang: 'Dutch' },
+  // Bosnian
+  { id: 126, name: 'Besim Korkut', lang: 'Bosnian' },
+  { id: 25, name: 'Muhamed Mehanović', lang: 'Bosnian' },
+  // Albanian
+  { id: 88, name: 'Hasan Efendi Nahi', lang: 'Albanian' },
+  { id: 89, name: 'Sherif Ahmeti', lang: 'Albanian' },
+  // Uzbek
+  { id: 55, name: 'Muhammad Sodiq (Latin)', lang: 'Uzbek' },
+  { id: 127, name: 'Muhammad Sodik', lang: 'Uzbek' },
+  // Kurdish
+  { id: 81, name: 'Burhan Muhammad-Amin', lang: 'Kurdish' },
+  { id: 143, name: 'Muhammad Saleh Bamoki', lang: 'Kurdish' },
+  // Thai
+  { id: 51, name: 'King Fahad Quran Complex', lang: 'Thai' },
+  { id: 230, name: 'Society of Institutes and Universities', lang: 'Thai' },
+  // Vietnamese
+  { id: 220, name: 'Ruwwad Center', lang: 'Vietnamese' },
+  { id: 221, name: 'Hasan Abdul-Karim', lang: 'Vietnamese' },
+  // Malayalam
+  { id: 37, name: 'Abdul Hameed & Kunhi', lang: 'Malayalam' },
+  { id: 80, name: 'Karakunnu & Elayavoor', lang: 'Malayalam' },
+  // One widely-used translation per further language
+  { id: 87, name: 'Sadiq and Sani', lang: 'Amharic' },
+  { id: 236, name: 'Ramdane At Mansour', lang: 'Amazigh' },
+  { id: 120, name: 'Rafeequl Islam', lang: 'Assamese' },
+  { id: 75, name: 'Alikhan Musayev', lang: 'Azeri' },
+  { id: 795, name: 'Suliman Kanti', lang: 'Bambara' },
+  { id: 237, name: 'Tzvetan Theophanov', lang: 'Bulgarian' },
+  { id: 106, name: 'Magomed Magomedov', lang: 'Chechen' },
+  { id: 26, name: 'Czech Translation', lang: 'Czech' },
+  { id: 785, name: 'Badkhashani', lang: 'Dari' },
+  { id: 86, name: 'Office of the President of Maldives', lang: 'Divehi' },
+  { id: 30, name: 'Finnish Translation', lang: 'Finnish' },
+  { id: 232, name: 'African Development Foundation', lang: 'Ganda' },
+  { id: 225, name: 'Rabila Al-Umry', lang: 'Gujarati' },
+  { id: 32, name: 'Abubakar Gumi', lang: 'Hausa' },
+  { id: 233, name: 'Dar Al-Salam Center', lang: 'Hebrew' },
+  { id: 771, name: 'Kannada Translation', lang: 'Kannada' },
+  { id: 222, name: 'Khalifa Altay', lang: 'Kazakh' },
+  { id: 128, name: 'Cambodian Muslim Community', lang: 'Khmer' },
+  { id: 774, name: 'Rwanda Muslims Association', lang: 'Kinyarwanda' },
+  { id: 38, name: 'Maranao Translation', lang: 'Maranao' },
+  { id: 226, name: "Muhammad Shafi'i Ansari", lang: 'Marathi' },
+  { id: 108, name: 'Ahl Al-Hadith (Nepal)', lang: 'Nepali' },
+  { id: 41, name: 'Norwegian Translation', lang: 'Norwegian' },
+  { id: 111, name: 'Ghali Apapur Apaghuna', lang: 'Oromo' },
+  { id: 118, name: 'Zakaria Abulsalam', lang: 'Pashto' },
+  { id: 42, name: 'Józef Bielawski', lang: 'Polish' },
+  { id: 44, name: 'George Grigore', lang: 'Romanian' },
+  { id: 238, name: 'Taj Mehmood Amroti', lang: 'Sindhi' },
+  { id: 228, name: 'Ruwwad Center', lang: 'Sinhala' },
+  { id: 46, name: 'Mahmud Muhammad Abduh', lang: 'Somali' },
+  { id: 48, name: 'Knut Bernström', lang: 'Swedish' },
+  { id: 211, name: 'Dar Al-Salam Center', lang: 'Tagalog' },
+  { id: 53, name: 'Tatar Translation', lang: 'Tatar' },
+  { id: 227, name: 'Abder-Rahim ibn Muhammad', lang: 'Telugu' },
+  { id: 139, name: 'Khawaja Mirof & Khawaja Mir', lang: 'Tajik' },
+  { id: 74, name: 'Ayati', lang: 'Tajik' },
+  { id: 76, name: 'Muhammad Saleh', lang: 'Uighur' },
+  { id: 217, name: 'Mikhailo Yaqubovic', lang: 'Ukrainian' },
+  { id: 125, name: 'Mikael Aykyuni', lang: 'Yoruba' },
+  // Transliteration (Latin script, not a translation — grouped on its own)
+  { id: 57, name: 'Transliteration', lang: 'Transliteration' },
 ];
-// Reciter ids verified against api.quran.com/api/v4/resources/recitations 2026-11-21.
+/* Reciter ids verified against api.quran.com/api/v4/resources/recitations
+   2026-11-22. The endpoint returns exactly these 12 recitations from 8
+   reciters (probed ids 13–20: no audio) — that is the whole catalogue
+   Quran.com v4 offers, so 12 is our honest count. Tarteel's published 16
+   recitations are NOT reproducible from this API; do not claim 16. */
 export const RECITERS = [
   { id: 7, name: 'Mishary Alafasy' },
   { id: 2, name: 'Abdul Basit (Murattal)' },
@@ -48,8 +179,70 @@ export const RECITERS = [
   { id: 10, name: "Sa'ud ash-Shuraym" },
   { id: 11, name: 'Mohamed al-Tablawi' },
 ];
-export const TAFSIR_ID = 169; // Ibn Kathir (Abridged), English — verified via /resources/tafsirs
+/* Tafsirs — the FULL catalogue api.quran.com/api/v4/resources/tafsirs
+   returns (20 entries, 2026-11-22). Every id below was spot-checked live:
+   each returned real tafsir text for 2:255 (Ayat al-Kursi). Tarteel's
+   published 45 tafsirs are NOT reproducible from Quran.com v4; do not
+   claim 45. Served freely by Quran.com with attribution; text is never
+   pasted into the repo. */
+export const TAFSIRS: { id: number; name: string; lang: string }[] = [
+  // English
+  { id: 169, name: 'Tafsir Ibn Kathir (Abridged)', lang: 'English' },
+  { id: 168, name: "Ma'arif al-Qur'an", lang: 'English' },
+  { id: 817, name: 'Tazkirul Quran (Wahiduddin Khan)', lang: 'English' },
+  // Arabic
+  { id: 16, name: 'Tafsir Muyassar', lang: 'Arabic' },
+  { id: 91, name: "Al-Sa'di", lang: 'Arabic' },
+  { id: 93, name: 'Al-Tafsir al-Wasit (Tantawi)', lang: 'Arabic' },
+  { id: 14, name: 'Tafsir Ibn Kathir', lang: 'Arabic' },
+  { id: 15, name: 'Tafsir al-Tabari', lang: 'Arabic' },
+  { id: 90, name: 'Al-Qurtubi', lang: 'Arabic' },
+  { id: 94, name: 'Tafseer Al-Baghawi', lang: 'Arabic' },
+  // Bengali
+  { id: 381, name: 'Tafsir Fathul Majid', lang: 'Bengali' },
+  { id: 164, name: 'Tafseer ibn Kathir', lang: 'Bengali' },
+  { id: 165, name: 'Tafsir Ahsanul Bayaan', lang: 'Bengali' },
+  { id: 166, name: 'Tafsir Abu Bakr Zakaria', lang: 'Bengali' },
+  // Urdu
+  { id: 157, name: 'Fi Zilal al-Quran', lang: 'Urdu' },
+  { id: 159, name: 'Bayan ul Quran', lang: 'Urdu' },
+  { id: 160, name: 'Tafsir Ibn Kathir', lang: 'Urdu' },
+  { id: 818, name: 'Tazkir ul Quran (Wahiduddin Khan)', lang: 'Urdu' },
+  // Russian
+  { id: 170, name: "Al-Sa'di", lang: 'Russian' },
+  // Kurdish
+  { id: 804, name: 'Rebar Kurdish Tafsir', lang: 'Kurdish' },
+];
+export const TAFSIR_ID = 169; // Ibn Kathir (Abridged), English — the default tafsir
 export const TAFSIR_NAME = 'Tafsir Ibn Kathir (Abridged)';
+
+/** Group a lang-tagged list (translations / tafsirs) for <optgroup>
+ *  rendering, preserving first-appearance order of the languages. */
+export function groupByLanguage<T extends { lang: string }>(
+  items: readonly T[],
+): { lang: string; items: T[] }[] {
+  const order: string[] = [];
+  const map = new Map<string, T[]>();
+  for (const it of items) {
+    if (!map.has(it.lang)) {
+      map.set(it.lang, []);
+      order.push(it.lang);
+    }
+    map.get(it.lang)!.push(it);
+  }
+  return order.map((lang) => ({ lang, items: map.get(lang)! }));
+}
+
+/** Display name lookups (fall back to the site defaults). */
+export function translationName(id: number): string {
+  return TRANSLATIONS.find((t) => t.id === id)?.name ?? 'Saheeh International';
+}
+export function tafsirName(id: number): string {
+  return TAFSIRS.find((t) => t.id === id)?.name ?? TAFSIR_NAME;
+}
+export function reciterName(id: number): string {
+  return RECITERS.find((r) => r.id === id)?.name ?? 'Mishary Alafasy';
+}
 
 export const BISMILLAH = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
 

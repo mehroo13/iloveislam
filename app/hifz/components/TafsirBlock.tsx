@@ -1,27 +1,33 @@
-// app/hifz/components/TafsirBlock.tsx — lazy per-ayah tafsir (Ibn Kathir Abridged, id 169).
+// app/hifz/components/TafsirBlock.tsx — lazy per-ayah tafsir.
 // CRITICAL (commit 12a3449): tafsir blocks render ONLY in Tafsir view mode.
 // This component is only ever mounted when viewMode === 'tafsir' — callers
 // must not mount it in other modes. Loads on scroll-into-view like the reader.
+// tafsirId defaults to Ibn Kathir (Abridged, 169); any id from TAFSIRS works.
+// Callers pass key={`${verseKey}:${tafsirId}`} so a tafsir change remounts
+// with fresh state; the load-key guard below also reloads if the id changes
+// while mounted.
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { API, TAFSIR_NAME, stripHtml } from '../../quran/lib';
+import { API, TAFSIR_ID, TAFSIRS, TAFSIR_NAME, stripHtml } from '../../quran/lib';
 
-export default function TafsirBlock({ verseKey }: { verseKey: string }) {
+export default function TafsirBlock({ verseKey, tafsirId = TAFSIR_ID }: { verseKey: string; tafsirId?: number }) {
+  const name = TAFSIRS.find((t) => t.id === tafsirId)?.name ?? TAFSIR_NAME;
   const ref = useRef<HTMLDivElement | null>(null);
   const [state, setState] = useState<{ loading: boolean; text: string; error: string }>({
     loading: false,
     text: '',
     error: '',
   });
-  const loadedRef = useRef(false);
+  const loadedRef = useRef('');
 
   const load = useCallback(async () => {
-    if (loadedRef.current) return;
-    loadedRef.current = true;
+    const loadKey = `${tafsirId}:${verseKey}`;
+    if (loadedRef.current === loadKey) return;
+    loadedRef.current = loadKey;
     setState({ loading: true, text: '', error: '' });
     try {
-      const res = await fetch(`${API}/tafsirs/169/by_ayah/${verseKey}`);
+      const res = await fetch(`${API}/tafsirs/${tafsirId}/by_ayah/${verseKey}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const text = stripHtml(String(data.tafsir?.text ?? ''));
@@ -37,7 +43,7 @@ export default function TafsirBlock({ verseKey }: { verseKey: string }) {
         error: 'Could not load the tafsir. Check your connection and try again.',
       });
     }
-  }, [verseKey]);
+  }, [verseKey, tafsirId]);
 
   useEffect(() => {
     const el = ref.current;
@@ -57,7 +63,7 @@ export default function TafsirBlock({ verseKey }: { verseKey: string }) {
 
   return (
     <div ref={ref} className="mt-4 rounded-xl bg-[#FFFBF2] border border-[#E5E7EB] p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-[#1FA36B]">{TAFSIR_NAME}</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-[#1FA36B]">{name}</p>
       {state.loading && <p className="mt-2 text-sm text-[#1C2420]/60">Loading tafsir…</p>}
       {state.error && (
         <p className="mt-2 text-sm text-red-700" role="alert">

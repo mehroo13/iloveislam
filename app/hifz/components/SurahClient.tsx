@@ -11,12 +11,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {
-  API, AUDIO_BASE, TRANSLATIONS, RECITERS, stripHtml, cleanIndopak, verseText,
+  API, AUDIO_BASE, TRANSLATIONS, RECITERS, TAFSIRS, TAFSIR_ID, groupByLanguage, stripHtml, cleanIndopak, verseText,
   type Verse,
 } from '../../quran/lib';
 import { ALL_SURAHS, type HifzSurah } from '../surahs';
 import { getTopic } from '../topics';
 import { useScriptPref, SCRIPT_LABELS } from '../lib/script';
+import { attributionFor } from '../lib/fetch';
 import {
   loadProgress, saveProgress, loadSettings, saveSettings,
   type HifzProgress,
@@ -32,6 +33,7 @@ const RecitationCoach = dynamic(() => import('./RecitationCoach'), { ssr: false 
 type ViewMode = 'arabic' | 'translation' | 'tafsir';
 const PAGE_SIZE = 25;
 const LISTEN_KEY = 'ili_hifz_listen_v1';
+const TAFSIR_KEY = 'ili_hifz_tafsir_v1';
 
 interface ListenSettings {
   repeat: number;
@@ -39,6 +41,8 @@ interface ListenSettings {
   speed: number;
   fromAyah: number;
   toAyah: number;
+  /** Word-by-word listening: play each word's clip in turn, highlighting it. */
+  wordByWord: boolean;
 }
 
 function loadListenSettings(ayahCount: number): ListenSettings {
@@ -54,12 +58,13 @@ function loadListenSettings(ayahCount: number): ListenSettings {
           : 1,
         fromAyah: Math.min(ayahCount, Math.max(1, Number(p.fromAyah ?? 1) || 1)),
         toAyah: Math.min(ayahCount, Math.max(1, Number(p.toAyah ?? ayahCount) || ayahCount)),
+        wordByWord: p.wordByWord === true,
       };
     }
   } catch {
     /* defaults */
   }
-  return { repeat: 1, pauseSec: 0, speed: 1, fromAyah: 1, toAyah: ayahCount };
+  return { repeat: 1, pauseSec: 0, speed: 1, fromAyah: 1, toAyah: ayahCount, wordByWord: false };
 }
 
 export default function SurahClient({
@@ -78,6 +83,9 @@ export default function SurahClient({
   const [viewMode, setViewMode] = useState<ViewMode>('translation');
   const [translationId, setTranslationId] = useState(20);
   const [reciterId, setReciterId] = useState(7);
+  const [tafsirId, setTafsirId] = useState(TAFSIR_ID);
+  const translationGroups = useMemo(() => groupByLanguage(TRANSLATIONS), []);
+  const tafsirGroups = useMemo(() => groupByLanguage(TAFSIRS), []);
   const [script, setScript] = useScriptPref();
   const [page, setPage] = useState(1);
   const [coachOpen, setCoachOpen] = useState(initialCoachOpen);
@@ -116,7 +124,7 @@ export default function SurahClient({
   const [memoriseMode, setMemoriseMode] = useState(false);
   const [listen, setListen] = useState<ListenSettings>(() =>
     typeof window === 'undefined'
-      ? { repeat: 1, pauseSec: 0, speed: 1, fromAyah: 1, toAyah: surah.ayahCount }
+      ? { repeat: 1, pauseSec: 0, speed: 1, fromAyah: 1, toAyah: surah.ayahCount, wordByWord: false }
       : loadListenSettings(surah.ayahCount),
   );
   const [playingKey, setPlayingKey] = useState<string | null>(null);
@@ -140,6 +148,8 @@ export default function SurahClient({
       const s = loadSettings();
       setReciterId(s.reciterId);
       setTranslationId(s.translationId);
+      const storedTafsir = Number(localStorage.getItem(TAFSIR_KEY) ?? '');
+      if (TAFSIRS.some((t) => t.id === storedTafsir)) setTafsirId(storedTafsir);
       setTajweedOn(s.tajweedColors ?? false);
       setHideMarkers(s.hideAyahMarkers ?? false);
       setTopicColors(s.topicColors ?? true);
@@ -168,6 +178,14 @@ export default function SurahClient({
       /* ignore */
     }
   }, [listen]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(TAFSIR_KEY, String(tafsirId));
+    } catch {
+      /* ignore */
+    }
+  }, [tafsirId]);
 
   /* ---------- refetch when translation / reciter changes ---------- */
   const refetchVerses = useCallback(async (tId: number, rId: number) => {
@@ -269,8 +287,196 @@ export default function SurahClient({
     return () => audio.removeEventListener('ended', onEnded);
   }, []);
 
+  /* ---------- word-by-word listening: play each word's clip in turn,
+       highlighting it in the Arabic line. Uses a second audio element so
+       the whole-ayah listen queue is untouched. Word clips come from the
+       same words payload as WordByWord (verses.quran.com wbw/*.mp3, one
+       clip per word, fetched through the same-origin proxy and cached per
+       ayah). If an ayah has no word audio at all, that ayah falls back to
+       whole-ayah audio with a note — never a silent failure. Words without
+       a clip are skipped, not stalled on. Repeat / pause / speed apply per
+       ayah exactly as in whole-ayah listening. The three functions below
+       only touch refs and React setters (plus the stable fetchWbwWords),
+       so any render's copy is equivalent — they are driven from the
+       word-audio 'ended' handler via wbwNextRef. ---------- */
+  interface WbwWord {
+    arabic: string;
+    translation: string;
+    transliteration: string;
+    audioUrl?: string;
+  }
+
+  const wordAudioRef = useRef<HTMLAudioElement | null>(null);
+  const wbwCacheRef = useRef(new Map<string, WbwWord[]>());
+  const wbwRunRef = useRef<{
+    ayahs: { key: string; url: string; indopak: string }[];
+    pos: number;
+    repeat: number;
+    repeatsLeft: number;
+    pauseSec: number;
+    speed: number;
+    words: WbwWord[];
+    wordPos: number;
+  } | null>(null);
+  const wbwNextRef = useRef<(() => void) | null>(null);
+  const wbwTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [wbw, setWbw] = useState<{ key: string; index: number } | null>(null);
+  const [wbwNote, setWbwNote] = useState('');
+
+  const fetchWbwWords = useCallback(async (key: string, indopakText: string): Promise<WbwWord[]> => {
+    const cached = wbwCacheRef.current.get(key);
+    if (cached) return cached;
+    try {
+      const res = await fetch(`${API}/verses/by_key/${key}?fields=text_indopak&words=true`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const raw = (data?.verse?.words ?? []) as Record<string, unknown>[];
+      const infos = raw
+        .filter((w) => w.char_type_name === 'word')
+        .map((w) => ({
+          translation: String((w.translation as { text?: string } | undefined)?.text ?? ''),
+          transliteration: String(
+            (w.transliteration as { text?: string } | undefined)?.text ?? '',
+          ),
+          audioUrl: typeof w.audio_url === 'string' ? w.audio_url : undefined,
+        }));
+      const display = cleanIndopak(indopakText).split(/\s+/).filter(Boolean);
+      const words = display.map((arabic, i) => ({
+        arabic,
+        translation: infos[i]?.translation ?? '',
+        transliteration: infos[i]?.transliteration ?? '',
+        audioUrl: infos[i]?.audioUrl,
+      }));
+      wbwCacheRef.current.set(key, words);
+      return words;
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const wbwStop = useCallback(() => {
+    wbwRunRef.current = null;
+    wbwNextRef.current = null;
+    if (wbwTimerRef.current) {
+      clearTimeout(wbwTimerRef.current);
+      wbwTimerRef.current = null;
+    }
+    const a = wordAudioRef.current;
+    if (a) {
+      a.pause();
+      a.removeAttribute('src');
+    }
+    setWbw(null);
+    setWbwNote('');
+  }, []);
+
+  const wbwFinish = () => {
+    wbwRunRef.current = null;
+    wbwNextRef.current = null;
+    setListenPlaying(false);
+    setPlayingKey(null);
+    setWbw(null);
+    setWbwNote('');
+  };
+
+  const wbwAfterAyah = () => {
+    const run = wbwRunRef.current;
+    if (!run) return;
+    if (run.repeatsLeft > 1) {
+      run.repeatsLeft -= 1;
+    } else {
+      run.pos += 1;
+      if (run.pos >= run.ayahs.length) {
+        wbwFinish();
+        return;
+      }
+      run.repeatsLeft = run.repeat;
+    }
+    if (run.pauseSec > 0) {
+      wbwTimerRef.current = setTimeout(() => {
+        if (wbwRunRef.current) void wbwStartAyah();
+      }, run.pauseSec * 1000);
+    } else {
+      void wbwStartAyah();
+    }
+  };
+
+  const wbwPlayWord = () => {
+    const run = wbwRunRef.current;
+    const audio = wordAudioRef.current;
+    if (!run || !audio) return;
+    while (run.wordPos < run.words.length && !run.words[run.wordPos]?.audioUrl) {
+      run.wordPos += 1;
+    }
+    if (run.wordPos >= run.words.length) {
+      wbwAfterAyah();
+      return;
+    }
+    const ayah = run.ayahs[run.pos];
+    const word = run.words[run.wordPos];
+    audio.src = `${AUDIO_BASE}${word.audioUrl}`;
+    audio.playbackRate = run.speed;
+    setWbw({ key: ayah.key, index: run.wordPos });
+    wbwNextRef.current = () => {
+      const r = wbwRunRef.current;
+      if (r) r.wordPos += 1;
+      wbwPlayWord();
+    };
+    audio.play().catch(() => {
+      const r = wbwRunRef.current;
+      if (r) r.wordPos += 1;
+      wbwPlayWord();
+    });
+  };
+
+  const wbwStartAyah = async () => {
+    const run = wbwRunRef.current;
+    const audio = wordAudioRef.current;
+    if (!run || !audio) return;
+    const ayah = run.ayahs[run.pos];
+    if (!ayah) {
+      wbwFinish();
+      return;
+    }
+    const words = await fetchWbwWords(ayah.key, ayah.indopak);
+    if (wbwRunRef.current !== run) return; // stopped while fetching
+    setPlayingKey(ayah.key);
+    if (!words.some((w) => w.audioUrl)) {
+      // Fallback: no word audio for this ayah — whole-ayah audio instead.
+      setWbw(null);
+      setWbwNote('Word audio is unavailable for this ayah — playing the whole ayah instead.');
+      audio.src = `${AUDIO_BASE}${ayah.url}`;
+      audio.playbackRate = run.speed;
+      wbwNextRef.current = () => wbwAfterAyah();
+      audio.play().catch(() => wbwAfterAyah());
+      return;
+    }
+    setWbwNote('');
+    run.words = words;
+    run.wordPos = 0;
+    wbwPlayWord();
+  };
+
+  useEffect(() => {
+    const audio = wordAudioRef.current;
+    if (!audio) return;
+    const onEnded = () => {
+      wbwNextRef.current?.();
+    };
+    const onError = () => {
+      wbwNextRef.current?.();
+    };
+    audio.addEventListener('ended', onEnded);
+    audio.addEventListener('error', onError);
+    return () => {
+      audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('error', onError);
+    };
+  }, []);
+
   /* ---------- listen: play-all with repeat / range loop / pause / speed ---------- */
   const stopListen = useCallback(() => {
+    wbwStop();
     listenQueueRef.current = [];
     if (listenTimerRef.current) clearTimeout(listenTimerRef.current);
     const audio = audioRef.current;
@@ -280,7 +486,7 @@ export default function SurahClient({
     }
     setListenPlaying(false);
     setPlayingKey(null);
-  }, []);
+  }, [wbwStop]);
 
   const playNextInQueue = useCallback(() => {
     const audio = audioRef.current;
@@ -333,10 +539,28 @@ export default function SurahClient({
   const startListen = () => {
     const from = Math.min(listen.fromAyah, listen.toAyah);
     const to = Math.max(listen.fromAyah, listen.toAyah);
-    const items = verses
-      .filter((v) => v.verse_number >= from && v.verse_number <= to && v.audio?.url)
-      .map((v) => ({ key: v.verse_key, url: v.audio!.url!, repeatsLeft: listen.repeat }));
-    if (items.length === 0) return;
+    const inRange = verses.filter(
+      (v) => v.verse_number >= from && v.verse_number <= to && v.audio?.url,
+    );
+    if (inRange.length === 0) return;
+    if (listen.wordByWord) {
+      stopListen();
+      wbwRunRef.current = {
+        ayahs: inRange.map((v) => ({ key: v.verse_key, url: v.audio!.url!, indopak: v.text_indopak })),
+        pos: 0,
+        repeat: listen.repeat,
+        repeatsLeft: listen.repeat,
+        pauseSec: listen.pauseSec,
+        speed: listen.speed,
+        words: [],
+        wordPos: 0,
+      };
+      setListenPlaying(true);
+      setWbwNote('');
+      void wbwStartAyah();
+      return;
+    }
+    const items = inRange.map((v) => ({ key: v.verse_key, url: v.audio!.url!, repeatsLeft: listen.repeat }));
     listenQueueRef.current = items;
     setListenPlaying(true);
     playNextInQueue();
@@ -392,6 +616,7 @@ export default function SurahClient({
   return (
     <div>
       <audio ref={audioRef} preload="none" className="hidden" />
+      <audio ref={wordAudioRef} preload="none" className="hidden" />
 
       {/* ---------- READER HEADER (variant A: hamburger · search · centred
            Chapter / Verse title + chevrons · bookmark · gear) ---------- */}
@@ -497,7 +722,7 @@ export default function SurahClient({
             <h2 className="mt-2 text-xl font-bold sm:text-2xl">Recite Surah {surah.name} aloud</h2>
             <p className="mt-1 max-w-xl text-sm leading-relaxed text-white/80">
               Listen, hide the verse, then recite it from memory. The checker follows your
-              recitation word by word, on this device — your audio never leaves your device.
+              recitation word by word, on this device — your audio never leaves your device unless you choose to share it.
             </p>
           </div>
           {!coachOpen && (
@@ -613,8 +838,28 @@ export default function SurahClient({
               onChange={(e) => setTranslationId(Number(e.target.value))}
               className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
-              {TRANSLATIONS.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
+              {translationGroups.map((g) => (
+                <optgroup key={g.lang} label={g.lang}>
+                  {g.items.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-sm font-medium">
+            Tafsir
+            <select
+              value={tafsirId}
+              onChange={(e) => setTafsirId(Number(e.target.value))}
+              className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+            >
+              {tafsirGroups.map((g) => (
+                <optgroup key={g.lang} label={g.lang}>
+                  {g.items.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </label>
@@ -649,6 +894,9 @@ export default function SurahClient({
             Open the first ayah
           </Link>
         </div>
+        <p className="mt-3 text-xs leading-relaxed text-[#5b6b62]">
+          {TRANSLATIONS.length} translations · {TAFSIRS.length} tafsirs · {RECITERS.length} recitations — all free. {attributionFor(translationId, tafsirId)}
+        </p>
         {script === 'uthmani' && (
           <p className="mt-3 text-xs leading-relaxed text-[#5b6b62]">
             Reading in Madani (Uthmani) script. The recitation coach still checks
@@ -725,6 +973,18 @@ export default function SurahClient({
           </label>
           <button
             type="button"
+            aria-pressed={listen.wordByWord}
+            title="Play each word's audio in turn, highlighting it in the Arabic line as it sounds"
+            onClick={() => {
+              if (listenPlaying) stopListen();
+              setListen((p) => ({ ...p, wordByWord: !p.wordByWord }));
+            }}
+            className={`rounded-full border px-4 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${listen.wordByWord ? 'border-[#FFB800] bg-[#FFB800]/15 text-[#7A5C00]' : 'border-[#E5E7EB] bg-white hover:border-[#1FA36B]'}`}
+          >
+            {listen.wordByWord ? 'Word by word ✓' : 'Word by word'}
+          </button>
+          <button
+            type="button"
             onClick={listenPlaying ? stopListen : startListen}
             disabled={verses.length === 0}
             className="rounded-full bg-[#1FA36B] px-5 py-2 text-sm font-semibold text-white hover:bg-[#102E26] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
@@ -732,9 +992,21 @@ export default function SurahClient({
             {listenPlaying ? 'Stop listening' : `Play ayahs ${Math.min(listen.fromAyah, listen.toAyah)}–${Math.max(listen.fromAyah, listen.toAyah)}`}
           </button>
         </div>
+        {listen.wordByWord && (
+          <p className="mt-2 text-xs leading-relaxed text-[#5b6b62]">
+            Word by word: each word is played on its own and highlighted in the Arabic line as it
+            sounds. If an ayah has no word audio, the whole ayah plays instead.
+          </p>
+        )}
         {listenPlaying && playingKey && (
           <p role="status" className="mt-3 text-sm font-semibold text-[#1FA36B]">
             Playing {playingKey} · {listen.repeat}× per ayah · {listen.speed}× speed
+            {listen.wordByWord ? ' · Word by word' : ''}
+          </p>
+        )}
+        {listen.wordByWord && wbwNote && (
+          <p role="status" className="mt-2 text-sm text-[#7A5C00]">
+            {wbwNote}
           </p>
         )}
       </section>
@@ -757,6 +1029,7 @@ export default function SurahClient({
           const status = ayahStatus(v.verse_number);
           const bookmarked = isBookmarked(v.verse_number);
           const isPlaying = playingKey === v.verse_key;
+          const isWbwAyah = wbw?.key === v.verse_key;
           const topic = topicColors ? getTopic(surah.id, v.verse_number) : null;
           return (
             <article
@@ -822,7 +1095,19 @@ export default function SurahClient({
                 </p>
               ) : (
                 <p dir="rtl" lang="ar" className={`font-quran ${script === 'uthmani' ? 'font-quran-madani' : ''} mt-4 text-right ${adaptive ? '' : 'text-[28px] sm:text-4xl'}`} style={adaptive ? { fontSize: `${adaptiveFont}px`, lineHeight: 2 } : undefined}>
-                  {renderArabic(verseText(v, script))}
+                  {isWbwAyah && wbw ? (
+                    /* Word-by-word listening: the sounding word is highlighted. */
+                    verseText(v, script).split(' ').map((w, i) => (
+                      <span
+                        key={i}
+                        className={`${tajweedOn ? tajweedClass(w) : ''} ${i === wbw.index ? 'rounded bg-[#FFB800]/60 px-0.5' : ''}`}
+                      >
+                        {w}{' '}
+                      </span>
+                    ))
+                  ) : (
+                    renderArabic(verseText(v, script))
+                  )}
                 </p>
               )}
               {viewMode !== 'arabic' && translation && (
@@ -895,7 +1180,7 @@ export default function SurahClient({
                 <WordByWord surahId={surah.id} ayah={v.verse_number} indopakText={v.text_indopak} />
               )}
               {/* Tafsir renders ONLY in Tafsir mode (commit 12a3449 — do not regress). */}
-              {viewMode === 'tafsir' && <TafsirBlock verseKey={v.verse_key} />}
+              {viewMode === 'tafsir' && <TafsirBlock key={`${v.verse_key}:${tafsirId}`} verseKey={v.verse_key} tafsirId={tafsirId} />}
             </article>
           );
         })}

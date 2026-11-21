@@ -6,15 +6,27 @@
 // Indo-Pak text, split by whitespace, paired with the words payload by
 // position for translation + transliteration.
 
-import { UPSTREAM_API, TAFSIR_NAME, type Verse } from '../../quran/lib';
+import { UPSTREAM_API, TAFSIR_ID, TAFSIR_NAME, TRANSLATIONS, TAFSIRS, type Verse } from '../../quran/lib';
 import { cleanIndopak } from '../../quran/lib';
 import type { HifzSurah } from '../surahs';
 
 export const SITE_URL = 'https://www.iloveislam.life';
 
-/** Visible attribution — spec §9.2, on every hifz page. */
+/** Visible attribution — spec §9.2, on every hifz page. The default
+ *  (Saheeh International + Ibn Kathir Abridged); use attributionFor()
+ *  below when the reader picked a different translation/tafsir. */
 export const ATTRIBUTION =
   'Quran text, translation (Saheeh International) and tafsir (Ibn Kathir Abridged) via Quran.com.';
+
+/** Attribution naming the translation/tafsir actually selected, so the
+ *  credit always matches what is on screen. Quran text, translations and
+ *  tafsirs are served freely by Quran.com's public API with attribution;
+ *  nothing is pasted into the repo. */
+export function attributionFor(translationId = 20, tafsirId: number = TAFSIR_ID): string {
+  const tName = TRANSLATIONS.find((t) => t.id === translationId)?.name ?? 'Saheeh International';
+  const fName = TAFSIRS.find((t) => t.id === tafsirId)?.name ?? TAFSIR_NAME;
+  return `Quran text, translation (${tName}) and tafsir (${fName}) via Quran.com.`;
+}
 
 export interface WordInfo {
   position: number;
@@ -167,9 +179,11 @@ export function isPauseMarkOnly(text: string): boolean {
   return text.length > 0 && [...text].every((ch) => SMALL_HIGH_MARK.test(ch));
 }
 
-/** Tafsir (Ibn Kathir Abridged, id 169) for one ayah — server-side, for the ayah page. */
-export async function fetchTafsir(key: string): Promise<string> {
-  const data = await fetchJson(`${UPSTREAM_API}/tafsirs/169/by_ayah/${key}`);
+/** Tafsir for one ayah — server-side, for the ayah page. tafsirId defaults
+ *  to Ibn Kathir (Abridged, 169); any id from TAFSIRS in app/quran/lib.ts
+ *  works (all 20 were verified live to return text for 2:255). */
+export async function fetchTafsir(key: string, tafsirId: number = TAFSIR_ID): Promise<string> {
+  const data = await fetchJson(`${UPSTREAM_API}/tafsirs/${tafsirId}/by_ayah/${key}`);
   const text = String((data as { tafsir?: { text?: string } } | null)?.tafsir?.text ?? '');
   return text.replace(/<[^>]*>/g, '').replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').trim();
 }
