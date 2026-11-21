@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Dua Library — 18 Authentic Duas from Quran & Sunnah | I Love Islam',
   description:
-    'Browse all 18 authentic duas in our collection — for anxiety, sleep, travel, exams, parents, sickness and more. Arabic, transliteration, translation and source for every dua. Free, no sign-up.',
+    'Browse all 56 authentic duas in our collection — for anxiety, sleep, travel, exams, parents, sickness and more. Arabic, transliteration, translation and source for every dua. Free, no sign-up.',
   keywords: [
     'dua library',
     'islamic duas',
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Dua Library — 18 Authentic Duas from Quran & Sunnah | I Love Islam',
     description:
-      'Browse all 18 authentic duas — Arabic, transliteration, translation and source for every dua. Free, no sign-up.',
+      'Browse all 56 authentic duas — Arabic, transliteration, translation and source for every dua. Free, no sign-up.',
     url: 'https://www.iloveislam.life/dua',
     siteName: 'I Love Islam',
     locale: 'en_US',
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Dua Library — 18 Authentic Duas from Quran & Sunnah | I Love Islam',
     description:
-      'Browse all 18 authentic duas — Arabic, transliteration, translation and source for every dua. Free, no sign-up.',
+      'Browse all 56 authentic duas — Arabic, transliteration, translation and source for every dua. Free, no sign-up.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/dua' },
   robots: {
@@ -48,7 +48,7 @@ const jsonLd = {
       operatingSystem: 'Web',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       description:
-        'A curated collection of 18 authentic duas from the Quran and Sahih hadith. Each dua includes the original Arabic text, transliteration, translation and source reference.',
+        'A curated collection of 56 authentic duas from the Quran and Sahih hadith. Each dua includes the original Arabic text, transliteration, translation and source reference.',
       url: 'https://www.iloveislam.life/dua',
       provider: { '@type': 'Organization', name: 'I Love Islam', url: 'https://www.iloveislam.life' },
     },
@@ -95,7 +95,7 @@ export default function DuaLayout({ children }: { children: React.ReactNode }) {
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6">
           <h3 className="text-lg font-bold text-emerald-800 mb-3">About This Dua Library</h3>
           <ul className="space-y-2 text-sm text-emerald-700 leading-relaxed">
-            <li>• 18 authentic duas from the Quran and verified hadith collections</li>
+            <li>• 56 authentic duas from the Quran and verified hadith collections</li>
             <li>• Each dua includes Arabic text, transliteration, translation, and source</li>
             <li>• Listen to the Arabic, copy it, share it, or save it to your favorites</li>
             <li>• Find the dua for your exact moment with Dua for This Moment</li>
