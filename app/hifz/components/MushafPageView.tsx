@@ -41,6 +41,7 @@ import {
   type MushafWord,
 } from '../lib/fetch';
 import { SCRIPT_LABELS, useScriptPref } from '../lib/script';
+import { getAyahTopic, TOPIC_BY_ID, TOPICS } from '../topics';
 
 interface WordWithVerse extends MushafWord {
   verseKey: string;
@@ -138,6 +139,8 @@ export default function MushafPageView({
   const [continuous, setContinuous] = useState(false);
   const [extraPages, setExtraPages] = useState<{ page: number; verses: MushafVerse[] }[]>([]);
   const [continuousError, setContinuousError] = useState<string | null>(null);
+  // Colour-code the mushaf by ayah topic (study aid, §23). Default on.
+  const [topicColors, setTopicColors] = useState(true);
   const hidden = controlledHide ? controlledHide.hidden : hideVerses;
   const revealed = controlledHide ? controlledHide.revealed : revealedCount;
   const [lines16, setLines16] = useState(false);
@@ -147,7 +150,11 @@ export default function MushafPageView({
       const q = new URLSearchParams(window.location.search);
       if (q.get('memorize') === '1') setHideVerses(true);
       const raw = localStorage.getItem('ili_hifz_settings_v1');
-      if (raw && (JSON.parse(raw) as { mushafLines?: number }).mushafLines === 16) setLines16(true);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { mushafLines?: number; topicColors?: boolean };
+        if (parsed.mushafLines === 16) setLines16(true);
+        if (parsed.topicColors === false) setTopicColors(false);
+      }
     } catch {
       /* defaults */
     }
@@ -278,26 +285,54 @@ export default function MushafPageView({
       });
     } else {
       // One text run per stretch of words; rosettes stay as elements.
+      // Topic colours (§23): each run belongs to one ayah, so the run
+      // gets that ayah's topic wash and the rosette its topic colour.
       const nodes: React.ReactNode[] = [];
       let run = '';
+      let runKey = '';
       const flush = () => {
         if (run) {
-          nodes.push(run);
+          const [rs, ra] = runKey.split(':').map(Number);
+          const topic = topicColors ? TOPIC_BY_ID[getAyahTopic(rs, ra)] : null;
+          nodes.push(
+            topic ? (
+              <span
+                key={`r-${runKey}-${nodes.length}`}
+                style={{
+                  background: topic.wash,
+                  borderRadius: '0.25em',
+                  padding: '0 0.15em',
+                  WebkitBoxDecorationBreak: 'clone',
+                  boxDecorationBreak: 'clone',
+                }}
+              >
+                {run}
+              </span>
+            ) : (
+              run
+            ),
+          );
           run = '';
+          runKey = '';
         }
       };
       display.forEach((w, i) => {
         if (w.isEnd) {
           flush();
+          const [es, ea] = w.verseKey.split(':').map(Number);
+          const etopic = topicColors ? TOPIC_BY_ID[getAyahTopic(es, ea)] : null;
+          const ecolor = etopic ? etopic.color : '#1FA36B';
           nodes.push(
             <span
               key={`${w.verseKey}-${i}`}
-              className="mx-1 inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#1FA36B] align-middle text-[1rem] font-bold text-[#1FA36B]"
+              className="mx-1 inline-flex h-7 w-7 items-center justify-center rounded-full border align-middle text-[1rem] font-bold"
+              style={{ borderColor: ecolor, color: ecolor }}
             >
               {w.text}
             </span>,
           );
         } else {
+          if (!run) runKey = w.verseKey;
           run += (run ? ' ' : '') + w.text;
         }
       });
@@ -423,6 +458,32 @@ export default function MushafPageView({
         <p className="mt-2 text-center text-xs text-[#5b6b62]">
           Indo-Pak script on the Madani mushaf pages, as in Quran.com&apos;s reader.
         </p>
+      )}
+
+      {/* Topic legend (§23) — what each ayah colour means. */}
+      {!bare && topicColors && (
+        <div className="mx-auto mt-4 max-w-3xl rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
+            Ayah topics — colours on this page
+          </p>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {TOPICS.map((t) => (
+              <li
+                key={t.id}
+                className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold"
+                style={{ borderColor: t.color, color: t.color, background: t.wash }}
+                title={t.description}
+              >
+                <span className="h-2 w-2 rounded-full" style={{ background: t.color }} aria-hidden="true" />
+                {t.name}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-[#5b6b62]">
+            Topics are a study aid to help you see what each passage is about. They are
+            an automatic mapping, not tafsir — turn them off anytime in Settings.
+          </p>
+        </div>
       )}
 
       <div className="mt-4 rounded-2xl border-2 border-[#FFB800] bg-[#FFFBF2] p-2 shadow-sm sm:p-4">

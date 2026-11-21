@@ -18,6 +18,7 @@ import {
   type HifzProgress,
 } from '../progress';
 import { ALL_SURAHS, getSurahById } from '../surahs';
+import { saveBestTestPct } from '../badges';
 import { RangeWheel, type RangeSelection } from './SharedSheets';
 
 type Scope = 'memorised' | 'practised' | 'any' | 'weakest';
@@ -71,6 +72,16 @@ export default function TestClient() {
   const [elapsed, setElapsed] = useState(0);
   const [streak, setStreak] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Persist the best Test Mode score for the accuracy badges (see badges.ts).
+  // Temporary sessions record nothing — the test page says so.
+  useEffect(() => {
+    if (phase !== 'done' || temporary) return;
+    const total = results.length;
+    if (total === 0) return;
+    const pct = Math.round((results.filter(Boolean).length / total) * 100);
+    saveBestTestPct(pct);
+  }, [phase, results, temporary]);
 
   useEffect(() => {
     try {

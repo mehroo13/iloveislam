@@ -16,6 +16,8 @@ import {
   type GoalType, type HifzProgress, type MistakeEntry, type HifzSettings,
 } from '../progress';
 import { getSurahById, ALL_SURAHS } from '../surahs';
+import { buildBadgeSnapshot, loadBestTestPct } from '../badges';
+import BadgesGrid from './BadgesGrid';
 import ToolIcon from '../../components/ToolIcon';
 
 /** Small SVG progress ring for one per-type daily goal. */
@@ -123,6 +125,8 @@ export default function MyProgressClient() {
   const memorised = Object.entries(progress.ayahs).filter(([, a]) => a.status === 'memorised');
   const learning = Object.entries(progress.ayahs).filter(([, a]) => a.status === 'learning');
   const goalPct = Math.min(100, Math.round((minutesToday / progress.dailyGoalMinutes) * 100));
+  // Badges (free achievements, §23): derived from stored progress.
+  const badgeSnapshot = buildBadgeSnapshot(progress, { bestTestPct: loadBestTestPct() });
   // Per-type daily goals (§15.8): separate targets + counters.
   const typeGoals = getTypeGoals(progress);
 
@@ -343,6 +347,9 @@ export default function MyProgressClient() {
           )}
         </div>
       </section>
+
+      {/* Badges — free achievements earned by practice (§23) */}
+      <BadgesGrid snapshot={badgeSnapshot} />
 
       {/* Add Session — off-platform session / streak restore (screenshot 7) */}
       <section aria-labelledby="add-session-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">

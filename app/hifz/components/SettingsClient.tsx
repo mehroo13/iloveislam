@@ -252,6 +252,12 @@ export default function SettingsClient() {
             checked={settings.hideAyahMarkers ?? false}
             onChange={(v) => update({ hideAyahMarkers: v })}
           />
+          <Toggle
+            label="Colour the mushaf by topic"
+            hint="Tint each ayah by its topic (Allah & Tawhid, Prophets, Afterlife…) with a legend on the mushaf page. A study aid, not tafsir — every ayah is given one main topic by an automatic mapping."
+            checked={settings.topicColors ?? true}
+            onChange={(v) => update({ topicColors: v })}
+          />
         </div>
         <label className="mt-4 block text-sm font-semibold">
           Mushaf layout

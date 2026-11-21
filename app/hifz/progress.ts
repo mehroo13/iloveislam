@@ -127,6 +127,8 @@ export interface HifzSettings {
   testSound?: boolean;
   /** Mushaf layout: 15 lines (Madani) or 16 lines. */
   mushafLines?: 15 | 16;
+  /** Colour-code the mushaf by ayah topic (study aid, §23). */
+  topicColors?: boolean;
   /** Theme: light / dark / sepia. */
   theme?: 'light' | 'dark' | 'sepia';
   /** UI language (EN/AR/FR/ID/MS/RU/HI/UR). AR + UR render full RTL. */
@@ -232,6 +234,7 @@ export function createDefaultSettings(now: Date = new Date()): HifzSettings {
     saveAudio: true,
     testSound: true,
     mushafLines: 15,
+    topicColors: true,
     theme: 'light',
     language: 'en',
   };

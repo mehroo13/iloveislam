@@ -15,6 +15,7 @@ import {
   type Verse,
 } from '../../quran/lib';
 import { ALL_SURAHS, type HifzSurah } from '../surahs';
+import { getTopic } from '../topics';
 import { useScriptPref, SCRIPT_LABELS } from '../lib/script';
 import {
   loadProgress, saveProgress, loadSettings, saveSettings,
@@ -108,6 +109,8 @@ export default function SurahClient({
   const [tajweedOn, setTajweedOn] = useState(false);
   const [showTajweedGuide, setShowTajweedGuide] = useState(false);
   const [hideMarkers, setHideMarkers] = useState(false);
+  // Colour-code ayahs by topic (study aid, §23). Default on.
+  const [topicColors, setTopicColors] = useState(true);
   const [hiddenAyahs, setHiddenAyahs] = useState<Set<number>>(new Set());
   const [revealedAyah, setRevealedAyah] = useState<Record<number, number>>({});
   const [memoriseMode, setMemoriseMode] = useState(false);
@@ -139,6 +142,7 @@ export default function SurahClient({
       setTranslationId(s.translationId);
       setTajweedOn(s.tajweedColors ?? false);
       setHideMarkers(s.hideAyahMarkers ?? false);
+      setTopicColors(s.topicColors ?? true);
       // Last-read marker (spec §22.4): Progress shows "Continue where you left off".
       localStorage.setItem(
         'ili_last_read_v1',
@@ -753,6 +757,7 @@ export default function SurahClient({
           const status = ayahStatus(v.verse_number);
           const bookmarked = isBookmarked(v.verse_number);
           const isPlaying = playingKey === v.verse_key;
+          const topic = topicColors ? getTopic(surah.id, v.verse_number) : null;
           return (
             <article
               key={v.verse_key}
@@ -765,6 +770,16 @@ export default function SurahClient({
                 {!hideMarkers && (
                   <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#102E26] text-xs font-bold text-white">
                     {v.verse_key}
+                  </span>
+                )}
+                {topic && (
+                  <span
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold"
+                    style={{ borderColor: topic.color, color: topic.color, background: topic.wash }}
+                    title={topic.description}
+                  >
+                    <span className="h-2 w-2 rounded-full" style={{ background: topic.color }} aria-hidden="true" />
+                    {topic.name}
                   </span>
                 )}
                 {hiddenAyahs.has(v.verse_number) && (
