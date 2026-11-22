@@ -71,6 +71,10 @@ export default function MyProgressClient() {
   });
   // Mistake log filters + weak spots.
   const [mistakeFilter, setMistakeFilter] = useState<'all' | 'incorrect' | 'missed'>('all');
+  // Stage 5 (§11): delete-all-mistakes confirm step. This hook MUST live
+  // with the other hooks above the loading early-return — a useState below
+  // it changes the hook count between renders (React error #310).
+  const [confirmClearMistakes, setConfirmClearMistakes] = useState(false);
   // Last-read + favourites (bookmarks), spec §22.4.
   const [lastRead, setLastRead] = useState<{ surah: number; name: string; slug: string; at: number } | null>(null);
   const [bookmarks, setBookmarks] = useState<{ surahNumber: number; verseNumber: number; surahName?: string }[]>([]);
@@ -332,7 +336,6 @@ export default function MyProgressClient() {
   // session (in-memory blob only, gone when the coach closes), so there is
   // no stored audio file to delete. The control that matters is stopping
   // new recordings, which is the saveAudio setting below.
-  const [confirmClearMistakes, setConfirmClearMistakes] = useState(false);
   const clearAllMistakes = () => {
     saveMistakes([]);
     setMistakes([]);
