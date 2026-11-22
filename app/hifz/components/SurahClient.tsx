@@ -160,6 +160,12 @@ export default function SurahClient({
         'ili_last_read_v1',
         JSON.stringify({ surah: surah.id, name: surah.name, slug: surah.slug, at: Date.now() }),
       );
+      // Recently opened surahs (Stage 2): most recent first, max 5, for the
+      // homepage surah list. Same write, no extra render.
+      const rawRecent = localStorage.getItem('ili_hifz_recent_surahs_v1');
+      const prevRecent = rawRecent ? (JSON.parse(rawRecent) as { id?: number; at?: number }[]) : [];
+      const nextRecent = [{ id: surah.id, at: Date.now() }, ...prevRecent.filter((x) => x?.id !== surah.id)].slice(0, 5);
+      localStorage.setItem('ili_hifz_recent_surahs_v1', JSON.stringify(nextRecent));
     } catch {
       /* storage unavailable — reading still works */
     }
