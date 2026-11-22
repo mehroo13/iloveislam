@@ -1097,6 +1097,9 @@ const en: Dict = {
   'mpv.showVerses': 'Show verses',
   'mpv.viewGroup': 'Mushaf view',
   'mpv.zoomGroup': 'Mushaf page zoom',
+  'picker.noResults': 'No matches — try a different spelling.',
+  'picker.searchTafsirs': 'Search tafsirs…',
+  'picker.searchTranslations': 'Search translations…',
 };
 
 const ar: Dict = {
@@ -2131,6 +2134,9 @@ const ar: Dict = {
   'mpv.showVerses': 'أظهر الآيات',
   'mpv.viewGroup': 'عرض المصحف',
   'mpv.zoomGroup': 'تكبير صفحة المصحف',
+  'picker.noResults': 'لا نتائج — جرّب إملاءً آخر.',
+  'picker.searchTafsirs': 'ابحث في التفاسير…',
+  'picker.searchTranslations': 'ابحث في الترجمات…',
 };
 
 const ur: Dict = {
@@ -3165,6 +3171,9 @@ const ur: Dict = {
   'mpv.showVerses': 'آیات دکھائیں',
   'mpv.viewGroup': 'مصحف کا منظر',
   'mpv.zoomGroup': 'مصحف صفحہ زوم',
+  'picker.noResults': 'کوئی نتیجہ نہیں — کوئی اور ہجے آزمائیں۔',
+  'picker.searchTafsirs': 'تفاسیر تلاش کریں…',
+  'picker.searchTranslations': 'تراجم تلاش کریں…',
 };
 
 const fr: Dict = {
@@ -4199,6 +4208,9 @@ const fr: Dict = {
   'mpv.showVerses': 'Afficher les versets',
   'mpv.viewGroup': 'Vue du Moushaf',
   'mpv.zoomGroup': 'Zoom de la page du Moushaf',
+  'picker.noResults': 'Aucun résultat — essayez une autre orthographe.',
+  'picker.searchTafsirs': 'Rechercher un tafsir…',
+  'picker.searchTranslations': 'Rechercher une traduction…',
 };
 
 const id: Dict = {
@@ -5233,6 +5245,9 @@ const id: Dict = {
   'mpv.showVerses': 'Tampilkan ayat',
   'mpv.viewGroup': 'Tampilan Mushaf',
   'mpv.zoomGroup': 'Zoom halaman Mushaf',
+  'picker.noResults': 'Tidak ada yang cocok — coba ejaan lain.',
+  'picker.searchTafsirs': 'Cari tafsir…',
+  'picker.searchTranslations': 'Cari terjemahan…',
 };
 
 const ms: Dict = {
@@ -6267,6 +6282,9 @@ const ms: Dict = {
   'mpv.showVerses': 'Tunjukkan ayat',
   'mpv.viewGroup': 'Paparan Mushaf',
   'mpv.zoomGroup': 'Zum halaman Mushaf',
+  'picker.noResults': 'Tiada padanan — cuba ejaan lain.',
+  'picker.searchTafsirs': 'Cari tafsir…',
+  'picker.searchTranslations': 'Cari terjemahan…',
 };
 
 const ru: Dict = {
@@ -7302,6 +7320,9 @@ const ru: Dict = {
   'mpv.showVerses': 'Показать аяты',
   'mpv.viewGroup': 'Вид мусхафа',
   'mpv.zoomGroup': 'Масштаб страницы мусхафа',
+  'picker.noResults': 'Ничего не найдено — попробуйте другое написание.',
+  'picker.searchTafsirs': 'Найти тафсир…',
+  'picker.searchTranslations': 'Найти перевод…',
 };
 
 const hi: Dict = {
@@ -8336,6 +8357,9 @@ const hi: Dict = {
   'mpv.showVerses': 'आयतें दिखाएँ',
   'mpv.viewGroup': 'मुशफ़ दृश्य',
   'mpv.zoomGroup': 'मुशफ़ पन्ना ज़ूम',
+  'picker.noResults': 'कोई मिलान नहीं — कोई और वर्तनी आज़माएँ।',
+  'picker.searchTafsirs': 'तफ़सीर खोजें…',
+  'picker.searchTranslations': 'अनुवाद खोजें…',
 };
 
 /** Merged dictionaries: every language falls back to English per key. */

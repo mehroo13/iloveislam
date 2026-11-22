@@ -12,11 +12,12 @@ import {
   type Verse,
 } from '../../quran/lib';
 import type { HifzSurah } from '../surahs';
-import { loadProgress, saveProgress, type HifzProgress } from '../progress';
+import { loadProgress, saveProgress, loadSettings, saveSettings, type HifzProgress } from '../progress';
 import { useScriptPref, SCRIPT_LABELS } from '../lib/script';
 import { attributionFor } from '../lib/fetch';
 import ToolIcon from '../../components/ToolIcon';
 import TafsirBlock from './TafsirBlock';
+import SearchablePicker from './SearchablePicker';
 import SimilarVerses from './SimilarVerses';
 import { useT } from '../lib/i18n';
 import type { CoachAyah } from './RecitationCoach';
@@ -163,6 +164,13 @@ export default function AyahClient({
       setMemorised(p.ayahs[key]?.status === 'memorised');
       const storedTafsir = Number(localStorage.getItem(TAFSIR_KEY) ?? '');
       if (TAFSIRS.some((t) => t.id === storedTafsir)) setTafsirId(storedTafsir);
+      // Stage 8 (§26): the ayah page used to reset to Saheeh
+      // International on every load, ignoring the translation picked
+      // on the surah page. Read the same saved settings SurahClient
+      // writes, so the choice survives surah/ayah navigation.
+      const st = loadSettings();
+      if (TRANSLATIONS.some((x) => x.id === st.translationId)) setTranslationId(st.translationId);
+      if (RECITERS.some((r) => r.id === st.reciterId)) setReciterId(st.reciterId);
     } catch {
       /* storage unavailable */
     }
@@ -199,6 +207,12 @@ export default function AyahClient({
       return;
     }
     void refetch(translationId, reciterId);
+    try {
+      const st = loadSettings();
+      saveSettings({ ...st, translationId, reciterId });
+    } catch {
+      /* ignore */
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [translationId, reciterId]);
 
@@ -377,38 +391,28 @@ export default function AyahClient({
               </button>
             ))}
           </div>
-          <label className="flex min-w-0 items-center gap-2 text-sm font-medium">
-            {t('common.translation')}
-            <select
+          <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
+            <span className="shrink-0">{t('common.translation')}</span>
+            <SearchablePicker
+              label={t('common.translation')}
               value={translationId}
-              onChange={(e) => setTranslationId(Number(e.target.value))}
-              className="min-w-0 min-h-11 flex-1 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-2 text-sm"
-            >
-              {translationGroups.map((g) => (
-                <optgroup key={g.lang} label={g.lang}>
-                  {g.items.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </label>
-          <label className="flex min-w-0 items-center gap-2 text-sm font-medium">
-            {t('common.tafsir')}
-            <select
+              groups={translationGroups}
+              onChange={setTranslationId}
+              searchPlaceholder={t('picker.searchTranslations')}
+              noResults={t('picker.noResults')}
+            />
+          </div>
+          <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
+            <span className="shrink-0">{t('common.tafsir')}</span>
+            <SearchablePicker
+              label={t('common.tafsir')}
               value={tafsirId}
-              onChange={(e) => setTafsirId(Number(e.target.value))}
-              className="min-w-0 min-h-11 flex-1 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-2 text-sm"
-            >
-              {tafsirGroups.map((g) => (
-                <optgroup key={g.lang} label={g.lang}>
-                  {g.items.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </label>
+              groups={tafsirGroups}
+              onChange={setTafsirId}
+              searchPlaceholder={t('picker.searchTafsirs')}
+              noResults={t('picker.noResults')}
+            />
+          </div>
           <label className="flex min-w-0 items-center gap-2 text-sm font-medium">
             {t('common.reciter')}
             <select

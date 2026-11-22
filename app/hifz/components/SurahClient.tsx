@@ -28,6 +28,7 @@ import {
 } from '../lib/mode';
 import ToolIcon from '../../components/ToolIcon';
 import TafsirBlock from './TafsirBlock';
+import SearchablePicker from './SearchablePicker';
 import WordByWord from './WordByWord';
 import { TajweedGuide, HiddenWords, tajweedClass } from './SharedSheets';
 import type { CoachAyah } from './RecitationCoach';
@@ -1227,38 +1228,28 @@ export default function SurahClient({
           )}
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <label className="flex min-w-0 items-center gap-2 text-sm font-medium">
-            {t('surah.translation')}
-            <select
+          <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
+            <span className="shrink-0">{t('surah.translation')}</span>
+            <SearchablePicker
+              label={t('surah.translation')}
               value={translationId}
-              onChange={(e) => setTranslationId(Number(e.target.value))}
-              className="min-w-0 min-h-11 flex-1 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
-            >
-              {translationGroups.map((g) => (
-                <optgroup key={g.lang} label={g.lang}>
-                  {g.items.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </label>
-          <label className="flex min-w-0 items-center gap-2 text-sm font-medium">
-            {t('surah.tafsir')}
-            <select
+              groups={translationGroups}
+              onChange={setTranslationId}
+              searchPlaceholder={t('picker.searchTranslations')}
+              noResults={t('picker.noResults')}
+            />
+          </div>
+          <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
+            <span className="shrink-0">{t('surah.tafsir')}</span>
+            <SearchablePicker
+              label={t('surah.tafsir')}
               value={tafsirId}
-              onChange={(e) => setTafsirId(Number(e.target.value))}
-              className="min-w-0 min-h-11 flex-1 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
-            >
-              {tafsirGroups.map((g) => (
-                <optgroup key={g.lang} label={g.lang}>
-                  {g.items.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </label>
+              groups={tafsirGroups}
+              onChange={setTafsirId}
+              searchPlaceholder={t('picker.searchTafsirs')}
+              noResults={t('picker.noResults')}
+            />
+          </div>
           <label className="flex min-w-0 items-center gap-2 text-sm font-medium">
             {t('surah.reciter')}
             <select
@@ -1292,7 +1283,7 @@ export default function SurahClient({
         </div>
         </details>
         <p className="mt-3 text-xs leading-relaxed text-[#5b6b62]">
-          {TRANSLATIONS.length} translations · {TAFSIRS.length} tafsirs · {RECITERS.length} recitations — all free. {attributionFor(translationId, tafsirId)}
+          {TRANSLATIONS.length} {t('ayah.translationsCount')} · {TAFSIRS.length} {t('ayah.tafsirsCount')} · {RECITERS.length} {t('ayah.recitationsCount')} — {t('ayah.allFree')}. {attributionFor(translationId, tafsirId)}
         </p>
         {script === 'uthmani' && (
           <p className="mt-3 text-xs leading-relaxed text-[#5b6b62]">
