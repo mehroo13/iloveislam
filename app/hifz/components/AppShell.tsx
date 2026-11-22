@@ -15,7 +15,11 @@ import { migrateToIdb } from '../lib/store';
 import { useSyncUiPrefs, useT } from '../lib/i18n';
 
 const TABS: { href: string; labelKey: string; icon: string; match: (p: string) => boolean }[] = [
-  { href: '/hifz', labelKey: 'nav.home', icon: '⌂', match: (p) => p === '/hifz' },
+  // Home is the homepage `/` (the app's front page: Continue + surah list).
+  // It also stays highlighted on reader pages that belong to no other tab
+  // (surah / ayah / juz pages) — see the fallback in BottomTabs below.
+  // The old /hifz hub is still one tap away from the homepage.
+  { href: '/', labelKey: 'nav.home', icon: '⌂', match: (p) => p === '/' || p === '/hifz' },
   { href: '/hifz/mushaf', labelKey: 'nav.mushaf', icon: '▤', match: (p) => p.startsWith('/hifz/mushaf') },
   { href: '/hifz/memorize', labelKey: 'nav.memorize', icon: '◐', match: (p) => p.startsWith('/hifz/memorize') || p.startsWith('/hifz/test') || p.startsWith('/hifz/recite') },
   { href: '/hifz/search', labelKey: 'nav.search', icon: '⌕', match: (p) => p.startsWith('/hifz/search') || p.startsWith('/hifz/voice-search') },
@@ -25,6 +29,13 @@ const TABS: { href: string; labelKey: string; icon: string; match: (p: string) =
 export function BottomTabs() {
   const pathname = usePathname() ?? '';
   const t = useT();
+  // The tab whose match() fits this route, if any. Reader pages (surah,
+  // ayah, juz) match no tab — they belong to Home, so Home stays lit there
+  // instead of leaving the bar with nothing active. Non-app routes never
+  // render these tabs at all (SiteChrome), so the fallback only fires
+  // inside /hifz/*.
+  const matched = TABS.find((tab) => tab.match(pathname));
+  const activeHref = matched ? matched.href : pathname === '/' || pathname.startsWith('/hifz') ? '/' : null;
   // BottomTabs renders on `/` too (via SiteChrome in the root layout),
   // where the hifz layout — and ThemeApplier — never runs. So the tabs
   // themselves apply the saved theme + language on mount.
@@ -36,7 +47,7 @@ export function BottomTabs() {
     >
       <ul className="mx-auto flex max-w-3xl items-stretch justify-around">
         {TABS.map((tab) => {
-          const active = tab.match(pathname);
+          const active = tab.href === activeHref;
           return (
             <li key={tab.href} className="flex-1">
               <Link

@@ -780,7 +780,18 @@ export default function SurahClient({
             </button>
           ))}
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label="Reader display options">
+        {/* Advanced reader settings live in an expandable, not all on screen
+            at once: the view-mode pills above stay visible; the display
+            options and the four pickers open on demand. The summary shows
+            the current choices so the reader still knows what is active. */}
+        <details className="mt-3">
+          <summary className="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-2 rounded-full border border-[#E5E7EB] bg-[#FFFBF2] px-4 py-2 text-sm font-semibold text-[#102E26] hover:border-[#1FA36B]">
+            <span aria-hidden="true">⚙</span> {t('surah.settings')}
+            <span className="font-normal text-[#5b6b62]">
+              {translationName} · {reciterName} · {SCRIPT_LABELS[script]}
+            </span>
+          </summary>
+          <div className="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label="Reader display options">
           <button
             type="button"
             onClick={() => setAdaptive((a) => !a)}
@@ -896,6 +907,7 @@ export default function SurahClient({
             {t('surah.openFirstAyah')}
           </Link>
         </div>
+        </details>
         <p className="mt-3 text-xs leading-relaxed text-[#5b6b62]">
           {TRANSLATIONS.length} translations · {TAFSIRS.length} tafsirs · {RECITERS.length} recitations — all free. {attributionFor(translationId, tafsirId)}
         </p>
