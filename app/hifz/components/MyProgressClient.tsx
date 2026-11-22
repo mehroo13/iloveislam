@@ -975,8 +975,13 @@ export default function MyProgressClient() {
           {bookmarks.length > 0 && (
             <div className={lastRead ? 'mt-5' : ''}>
               <h3 className="text-sm font-bold text-[#102E26]">{t('prog.favourites')}</h3>
+              {/* Stage 6 (§19): the shared bookmark store also holds Mushaf
+                  page bookmarks (no surahNumber) — only ayah bookmarks
+                  belong in this list; page bookmarks show on /hifz/bookmarks. */}
               <ul className="mt-2 space-y-1 text-sm">
-                {bookmarks.slice(0, 10).map((b, i) => {
+                {bookmarks
+                  .filter((b) => typeof b.surahNumber === 'number')
+                  .slice(0, 10).map((b, i) => {
                   const bs = getSurahById(b.surahNumber);
                   return (
                     <li key={i} className="flex flex-wrap items-center gap-2 rounded-lg bg-[#FFFBF2] px-3 py-2">
@@ -990,8 +995,8 @@ export default function MyProgressClient() {
                   );
                 })}
               </ul>
-              {bookmarks.length > 10 && (
-                <p className="mt-2 text-xs text-[#5b6b62]">{t('prog.showingBookmarks').replace('{n}', String(bookmarks.length))}</p>
+              {bookmarks.filter((b) => typeof b.surahNumber === 'number').length > 10 && (
+                <p className="mt-2 text-xs text-[#5b6b62]">{t('prog.showingBookmarks').replace('{n}', String(bookmarks.filter((b) => typeof b.surahNumber === 'number').length))}</p>
               )}
               <Link href="/hifz/bookmarks" className="mt-3 inline-block font-semibold text-[#1FA36B] underline">
                 View all bookmarks →
