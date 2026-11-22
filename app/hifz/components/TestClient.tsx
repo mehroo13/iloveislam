@@ -20,6 +20,7 @@ import {
 import { ALL_SURAHS, getSurahById } from '../surahs';
 import { saveBestTestPct } from '../badges';
 import { RangeWheel, type RangeSelection } from './SharedSheets';
+import { useT } from '../lib/i18n';
 
 type Scope = 'memorised' | 'practised' | 'any' | 'weakest';
 type Phase = 'setup' | 'testing' | 'done';
@@ -61,6 +62,7 @@ export default function TestClient() {
   const [results, setResults] = useState<boolean[]>([]);
   const [mistakesTotal, setMistakesTotal] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
+  const t = useT();
 
   // Question card state
   const [prompt, setPrompt] = useState<string>('');
@@ -284,7 +286,7 @@ export default function TestClient() {
   if (progress === null) {
     return (
       <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-        <p className="text-sm text-[#5b6b62]">Loading your progress…</p>
+        <p className="text-sm text-[#5b6b62]">{t('test.loading')}</p>
       </div>
     );
   }
@@ -296,7 +298,7 @@ export default function TestClient() {
     return (
       <div className="space-y-6">
         <section className="rounded-2xl bg-[#102E26] p-6 text-center text-white shadow-sm sm:p-8">
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#FFB800]">Test complete</p>
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#FFB800]">{t('test.complete')}</p>
           <p className="mt-3 text-5xl font-bold">
             {score}<span className="text-2xl text-white/60"> / {total}</span>
           </p>
@@ -310,8 +312,8 @@ export default function TestClient() {
                   : 'A hard test is honest feedback, not a failure. Recite the missed ayahs with the coach and test again tomorrow.'}
           </p>
           <p className="mt-2 text-sm text-white/60">
-            {mistakesTotal} {mistakesTotal === 1 ? 'mistake' : 'mistakes'} in total this session
-            {temporary ? ' · Temporary session — nothing was recorded.' : ' · Saved to your progress and mistake history.'}
+            {mistakesTotal === 1 ? t('test.mistakeOne') : t('test.mistakesMany').replace('{n}', String(mistakesTotal))}
+            {temporary ? t('test.tempNote') : t('test.savedNote')}
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-2">
             <button
@@ -319,13 +321,13 @@ export default function TestClient() {
               onClick={() => setPhase('setup')}
               className="rounded-full bg-[#57D798] px-6 py-2.5 text-sm font-bold text-[#102E26] hover:brightness-105"
             >
-              Take another test
+              {t('test.takeAnother')}
             </button>
             <Link
               href="/hifz/my-progress"
               className="rounded-full border border-white/40 px-6 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
             >
-              See my revision queue →
+              {t('test.seeQueue')}
             </Link>
           </div>
         </section>
@@ -338,7 +340,7 @@ export default function TestClient() {
                 className="flex flex-wrap items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm shadow-sm"
               >
                 <span className={results[i] ? 'font-bold text-[#16A34A]' : 'font-bold text-[#DC2626]'}>
-                  {results[i] ? '✓ Correct' : '✗ Missed'}
+                  {results[i] ? t('test.correct') : t('test.missed')}
                 </span>
                 <span>
                   {surah ? surah.name : `Surah ${q.surah}`} {q.surah}:{q.ayah}
@@ -348,7 +350,7 @@ export default function TestClient() {
                   href={surah ? `/hifz/${surah.slug}?mode=recite&ayah=${q.ayah}` : '/hifz'}
                   className="ml-auto font-semibold text-[#1FA36B] underline"
                 >
-                  Recite with the coach →
+                  {t('test.reciteCoach')}
                 </Link>
               </li>
             );
@@ -371,19 +373,19 @@ export default function TestClient() {
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold text-[#5b6b62]">
-            {temporary ? 'Temporary · ' : ''}Round: {idx + 1} of {total}
+            {temporary ? `${t('test.temporary')} · ` : ''}{t('test.round').replace('{n}', String(idx + 1)).replace('{total}', String(total))}
           </p>
           <button
             type="button"
             onClick={() => setPhase('setup')}
-            aria-label="Stop the test"
+            aria-label={t('test.stopTest')}
             className="rounded-full border border-[#E5E7EB] px-3 py-1 text-sm font-semibold"
           >
-            End test
+            {t('test.endTest')}
           </button>
         </div>
         {/* Segmented progress bar — one segment per question */}
-        <div className="flex gap-1" role="progressbar" aria-valuenow={idx} aria-valuemin={0} aria-valuemax={total} aria-label="Test progress">
+        <div className="flex gap-1" role="progressbar" aria-valuenow={idx} aria-valuemin={0} aria-valuemax={total} aria-label={t('test.progressLabel')}>
           {questions.map((_, i) => (
             <span
               key={i}
@@ -396,7 +398,7 @@ export default function TestClient() {
         <section aria-label="Test question" className={`test-card overflow-hidden ${results.length > 0 && idx > 0 ? '' : ''}`}>
           <div className="p-6 sm:p-8">
             {loadingQ ? (
-              <p className="py-10 text-center text-white/70">Loading the question…</p>
+              <p className="py-10 text-center text-white/70">{t('test.loadingQuestion')}</p>
             ) : (
               <>
                 <p dir="rtl" lang="ar" className="font-quran text-right text-3xl leading-loose text-white sm:text-4xl">
@@ -424,7 +426,7 @@ export default function TestClient() {
             <p className="text-sm font-bold text-white">
               {eyeOff ? '—' : `${q.surah} ${surah ? surah.name : ''}`}
               <span className="block text-xs font-normal text-white/80">
-                {eyeOff ? 'Verse hidden' : `Verse ${q.ayah}${q.span > 1 ? `–${q.ayah + q.span - 1}` : ''}`}
+                {eyeOff ? t('test.verseHidden') : `Verse ${q.ayah}${q.span > 1 ? `–${q.ayah + q.span - 1}` : ''}`}
               </span>
             </p>
             <button
@@ -441,14 +443,14 @@ export default function TestClient() {
         </section>
 
         <p className="text-sm text-[#5b6b62]">
-          {eyeOff ? 'Surah and verse hidden.' : `${surah ? surah.name : `Surah ${q.surah}`} ${q.surah}:${q.ayah}`}
-          {q.span > 1 ? ` — this question runs ${q.span} ayahs.` : ''}
+          {eyeOff ? t('test.hiddenNote') : `${surah ? surah.name : `Surah ${q.surah}`} ${q.surah}:${q.ayah}`}
+          {q.span > 1 ? t('test.questionRuns').replace('{n}', String(q.span)) : ''}
         </p>
 
         {/* Stat pills + stop button */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full border border-[#E5E7EB] bg-white px-3 py-1.5 text-sm font-bold">
-            ✗ {mistakesTotal} mistakes
+            ✗ {mistakesTotal} {mistakesTotal === 1 ? t('test.mistake') : t('test.mistakes')}
           </span>
           <span className="rounded-full bg-[#57D798] px-3 py-1.5 text-sm font-bold text-[#102E26]">
             {acc}%
@@ -463,7 +465,7 @@ export default function TestClient() {
           <button
             type="button"
             onClick={() => setPhase('done')}
-            aria-label="Stop the test"
+            aria-label={t('test.stopTest')}
             className="mic-btn ml-auto flex h-14 w-14 items-center justify-center rounded-full text-xl font-bold text-white"
           >
             ■
@@ -478,7 +480,7 @@ export default function TestClient() {
             className="rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
             title="Reveal the next word — counts as a mistake"
           >
-            ‹ Reveal a word
+            {t('test.revealWord')}
           </button>
           <button
             type="button"
@@ -486,14 +488,14 @@ export default function TestClient() {
             className="rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
             title="Reveal the rest of the ayah — counts as a mistake"
           >
-            « Reveal the rest
+            {t('test.revealRest')}
           </button>
           <button
             type="button"
             onClick={skip}
             className="rounded-full border border-[#E5E7EB] px-5 py-2.5 text-sm font-semibold hover:border-[#1FA36B]"
           >
-            Skip →
+            {t('test.skip')}
           </button>
         </div>
         {notice && (
@@ -505,14 +507,14 @@ export default function TestClient() {
             onClick={() => answer(true)}
             className="rounded-full bg-[#102E26] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
           >
-            I recited it correctly
+            {t('test.correctBtn')}
           </button>
           <button
             type="button"
             onClick={() => answer(false)}
             className="rounded-full bg-[#DC2626] px-6 py-2.5 text-sm font-semibold text-white hover:bg-red-800"
           >
-            I missed it
+            {t('test.missedBtn')}
           </button>
         </div>
         <p className="text-center text-xs text-[#5b6b62]">
@@ -529,7 +531,7 @@ export default function TestClient() {
       {/* Setup */}
       <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-xl font-bold text-[#102E26]">Set up your test</h2>
+          <h2 className="text-xl font-bold text-[#102E26]">{t('test.setup')}</h2>
           <button
             type="button"
             onClick={() => {
@@ -540,7 +542,7 @@ export default function TestClient() {
             title="Temporary Session — nothing from this session is recorded"
             className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${temporary ? 'bg-[#FFB800] text-[#102E26]' : 'border border-[#E5E7EB]'}`}
           >
-            ⏳ Temporary{temporary ? ' ✓' : ''}
+            {t('test.temporaryBtn')}{temporary ? ' ✓' : ''}
           </button>
         </div>
         <p className="mt-2 text-sm leading-relaxed text-[#5b6b62]">
@@ -556,14 +558,14 @@ export default function TestClient() {
         )}
 
         <div className="mt-5">
-          <p className="text-sm font-semibold">What to test</p>
+          <p className="text-sm font-semibold">{t('test.whatToTest')}</p>
           <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Test scope">
             {(
               [
-                ['memorised', 'Your Memorization'],
-                ['practised', 'Memorised + learning'],
-                ['weakest', `Weakest Link (${weakestCount} weak ayahs)`],
-                ['any', 'Anything in the whole Quran'],
+                ['memorised', t('test.scopeMemorised')],
+                ['practised', t('test.scopePractised')],
+                ['weakest', t('test.scopeWeakest').replace('{n}', String(weakestCount))],
+                ['any', t('test.scopeAny')],
               ] as [Scope, string][]
             ).map(([v, label]) => (
               <button
@@ -584,7 +586,7 @@ export default function TestClient() {
         </div>
 
         <div className="mt-5">
-          <p className="text-sm font-semibold">Or build a custom range</p>
+          <p className="text-sm font-semibold">{t('test.customRange')}</p>
           <p className="text-xs text-[#5b6b62]">
             Pick by Surah, Juz, Hizb, Rub or Page — tap any number of sections, in any order,
             or combine them (e.g. Surah Al-Mulk + Juz 30). Saved ranges appear under “Your Ranges”.
@@ -596,7 +598,7 @@ export default function TestClient() {
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <div>
-            <p className="text-sm font-semibold">Session duration</p>
+            <p className="text-sm font-semibold">{t('test.duration')}</p>
             <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Session duration">
               {([5, 10, 20] as Duration[]).map((n) => (
                 <button
@@ -606,15 +608,17 @@ export default function TestClient() {
                   onClick={() => setDuration(n)}
                   className={`rounded-full px-4 py-2 text-sm font-semibold ${duration === n ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
                 >
-                  {n} questions
+                  {t('test.questions').replace('{n}', String(n))}
                 </button>
               ))}
             </div>
           </div>
           <div>
-            <p className="text-sm font-semibold">Question length</p>
+            <p className="text-sm font-semibold">{t('test.qLength')}</p>
             <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Question length">
-              {(['short', 'medium', 'long'] as QLength[]).map((l) => (
+              {(['short', 'medium', 'long'] as QLength[]).map((l) => {
+                const lengthLabel = l === 'short' ? t('test.lengthShort') : l === 'medium' ? t('test.lengthMedium') : t('test.lengthLong');
+                return (
                 <button
                   key={l}
                   type="button"
@@ -622,12 +626,13 @@ export default function TestClient() {
                   onClick={() => setQLength(l)}
                   className={`rounded-full px-4 py-2 text-sm font-semibold capitalize ${qLength === l ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
                 >
-                  {l} ({SPAN_BY_LENGTH[l]} {SPAN_BY_LENGTH[l] === 1 ? 'ayah' : 'ayahs'})
+                  {lengthLabel} ({SPAN_BY_LENGTH[l]} {SPAN_BY_LENGTH[l] === 1 ? t('common.ayah') : t('common.ayahs')})
                 </button>
-              ))}
+                );
+              })}
             </div>
             <label className="mt-2 flex items-center gap-2 text-xs font-semibold text-[#5b6b62]">
-              Lines per question
+              {t('test.linesPerQuestion')}
               <input
                 type="range"
                 min={1}
@@ -648,7 +653,7 @@ export default function TestClient() {
             checked={extendToEnd}
             onChange={(e) => setExtendToEnd(e.target.checked)}
           />
-          Extend question to the ayah’s end (on by default)
+          {t('test.extend')}
         </label>
         <p className="mt-1 text-xs text-[#5b6b62]">
           On: each question runs to the end of its final ayah, even past the line count.
@@ -660,7 +665,7 @@ export default function TestClient() {
           onClick={startTest}
           className="mt-6 rounded-full bg-[#57D798] px-6 py-3 text-sm font-bold text-[#102E26] hover:brightness-105"
         >
-          Start the test
+          {t('test.startTest')}
         </button>
         {counts.practised === 0 && (
           <p className="mt-3 text-sm text-[#5b6b62]">
@@ -674,7 +679,7 @@ export default function TestClient() {
 
       {/* Suggested for you */}
       <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="text-xl font-bold text-[#102E26]">Suggested for you</h2>
+        <h2 className="text-xl font-bold text-[#102E26]">{t('test.suggested')}</h2>
         <ul className="mt-3 space-y-2">
           <li>
             <button
@@ -685,7 +690,7 @@ export default function TestClient() {
               }}
               className="w-full rounded-xl border border-[#E5E7EB] px-4 py-3 text-left hover:border-[#1FA36B]"
             >
-              <span className="block font-bold">Weakest Link</span>
+              <span className="block font-bold">{t('test.weakestLink')}</span>
               <span className="block text-sm text-[#5b6b62]">
                 Tests you on the ayahs you miss most ({weakestCount} weak {weakestCount === 1 ? 'ayah' : 'ayahs'}).
               </span>
@@ -700,7 +705,7 @@ export default function TestClient() {
               }}
               className="w-full rounded-xl border border-[#E5E7EB] px-4 py-3 text-left hover:border-[#1FA36B]"
             >
-              <span className="block font-bold">Your Memorization</span>
+              <span className="block font-bold">{t('test.scopeMemorised')}</span>
               <span className="block text-sm text-[#5b6b62]">
                 The strict test: only what you claim to know ({counts.memorised} ayahs).
               </span>
@@ -715,7 +720,7 @@ export default function TestClient() {
 
       {/* How scoring works */}
       <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="text-xl font-bold text-[#102E26]">How a test is scored</h2>
+        <h2 className="text-xl font-bold text-[#102E26]">{t('test.howScored')}</h2>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed text-[#5b6b62]">
           <li>A question counts as correct only with zero mistakes.</li>
           <li>Revealing a word (‹) counts as a mistake; revealing the rest of the ayah («) counts as a mistake.</li>

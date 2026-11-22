@@ -20,6 +20,7 @@ import { getSurahById, ALL_SURAHS } from '../surahs';
 import { buildBadgeSnapshot, loadBestTestPct } from '../badges';
 import BadgesGrid from './BadgesGrid';
 import ToolIcon from '../../components/ToolIcon';
+import { useT } from '../lib/i18n';
 
 /** Small SVG progress ring for one per-type daily goal. */
 function GoalRing({ done, target }: { done: number; target: number }) {
@@ -46,6 +47,7 @@ export default function MyProgressClient() {
   const [mistakes, setMistakes] = useState<MistakeEntry[]>([]);
   const [settings, setSettings] = useState<HifzSettings | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const t = useT();
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const [offlineMsg, setOfflineMsg] = useState<string | null>(null);
   const [offlineSaving, setOfflineSaving] = useState(false);
@@ -90,9 +92,9 @@ export default function MyProgressClient() {
       setNotice(getStorageNotice());
     } catch {
       setProgress(null);
-      setNotice('Progress could not be loaded — browser storage is unavailable.');
+      setNotice(t('prog.loadError'));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     reload();
@@ -125,7 +127,7 @@ export default function MyProgressClient() {
     return (
       <div className="space-y-4">
         <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-          <p className="text-sm text-[#5b6b62]">Loading your progress…</p>
+          <p className="text-sm text-[#5b6b62]">{t('prog.loading')}</p>
           {notice && <p className="mt-2 text-sm text-[#5b6b62]">{notice}</p>}
         </div>
         <BadgesGrid snapshot={badgeSnapshot} />
@@ -311,19 +313,19 @@ export default function MyProgressClient() {
       <section aria-labelledby="streak-heading" className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
-            <ToolIcon name="flame" className="h-4 w-4 text-[#FFB800]" /> Streak
+            <ToolIcon name="flame" className="h-4 w-4 text-[#FFB800]" /> {t('prog.streak')}
           </p>
           <p className="mt-2 text-4xl font-bold text-[#102E26]">{streak}</p>
           <p className="mt-1 text-sm text-[#5b6b62]">
             {streak === 0
-              ? 'No active streak — practise today to start one.'
+              ? t('prog.noStreak')
               : streak === 1
-                ? 'day in a row'
-                : 'days in a row'}
+                ? t('prog.dayInRow')
+                : t('prog.daysInRow')}
           </p>
         </div>
         <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">Daily goal</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">{t('prog.dailyGoal')}</p>
           <p className="mt-2 text-4xl font-bold text-[#102E26]">
             {minutesToday}<span className="text-lg text-[#5b6b62]"> / {progress.dailyGoalMinutes} min</span>
           </p>
@@ -331,24 +333,24 @@ export default function MyProgressClient() {
             <div className="h-full rounded-full bg-[#1FA36B]" style={{ width: `${goalPct}%` }} />
           </div>
           <p className="mt-2 text-sm text-[#5b6b62]">
-            {practisedToday} {practisedToday === 1 ? 'ayah' : 'ayahs'} practised today
-            {goalMet ? ' — goal met.' : ' — goal not yet met.'}
+            {t('prog.practisedToday').replace('{n}', String(practisedToday)).replace('{ayahWord}', practisedToday === 1 ? t('common.ayah') : t('common.ayahs'))}
+            {goalMet ? t('prog.goalMet') : t('prog.goalNotMet')}
           </p>
           <label className="mt-3 flex items-center gap-2 text-sm font-medium">
-            Goal
+            {t('prog.goal')}
             <select
               value={progress.dailyGoalMinutes}
               onChange={(e) => changeGoal(Number(e.target.value))}
               className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             >
               {DAILY_GOAL_OPTIONS.map((m) => (
-                <option key={m} value={m}>{m} minutes</option>
+                <option key={m} value={m}>{t('prog.minutes').replace('{n}', String(m))}</option>
               ))}
             </select>
           </label>
         </div>
         <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">Memorised</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">{t('prog.memorised')}</p>
           <p className="mt-2 text-4xl font-bold text-[#102E26]">{memorised.length}</p>
           <p className="mt-1 text-sm text-[#5b6b62]">
             {learning.length} {learning.length === 1 ? 'ayah' : 'ayahs'} learning · an ayah counts
@@ -356,7 +358,7 @@ export default function MyProgressClient() {
           </p>
           {progress.activePlan && (
             <p className="mt-2 text-sm text-[#5b6b62]">
-              Active plan: {progress.activePlan.planDays}-day plan · day {progress.activePlan.currentDay}
+              {t('prog.activePlan').replace('{days}', String(progress.activePlan.planDays)).replace('{day}', String(progress.activePlan.currentDay))}
             </p>
           )}
         </div>
@@ -368,7 +370,7 @@ export default function MyProgressClient() {
       {/* Add Session — off-platform session / streak restore (screenshot 7) */}
       <section aria-labelledby="add-session-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 id="add-session-heading" className="text-xl font-bold text-[#102E26]">Add a session</h2>
+          <h2 id="add-session-heading" className="text-xl font-bold text-[#102E26]">{t('prog.addSession')}</h2>
           <span className="rounded-full bg-[#57D798] px-3 py-1 text-xs font-bold text-[#102E26]">+ ADD SESSION</span>
         </div>
         <p className="mt-1 text-sm text-[#5b6b62]">
@@ -377,7 +379,7 @@ export default function MyProgressClient() {
         </p>
         <div className="mt-4 flex flex-wrap items-end gap-3">
           <label className="text-xs font-semibold text-[#5b6b62]">
-            Date
+            {t('prog.date')}
             <input
               type="date"
               value={addDate}
@@ -386,7 +388,7 @@ export default function MyProgressClient() {
             />
           </label>
           <label className="text-xs font-semibold text-[#5b6b62]">
-            Type
+            {t('prog.type')}
             <select
               value={addType}
               onChange={(e) => setAddType(e.target.value as GoalType)}
@@ -398,7 +400,7 @@ export default function MyProgressClient() {
             </select>
           </label>
           <label className="text-xs font-semibold text-[#5b6b62]">
-            Ayahs
+            {t('prog.ayahs')}
             <input
               type="number"
               min={1}
@@ -409,7 +411,7 @@ export default function MyProgressClient() {
             />
           </label>
           <label className="text-xs font-semibold text-[#5b6b62]">
-            Minutes
+            {t('prog.minutesLabel')}
             <input
               type="number"
               min={1}
@@ -424,7 +426,7 @@ export default function MyProgressClient() {
             onClick={doAddSession}
             className="rounded-full bg-[#57D798] px-5 py-2 text-sm font-bold text-[#102E26] hover:brightness-105"
           >
-            Add session
+            {t('prog.addSessionBtn')}
           </button>
         </div>
         {addMsg && (
@@ -446,7 +448,7 @@ export default function MyProgressClient() {
       {/* Engagement chart — time / ayahs by day, week, month */}
       <section aria-labelledby="engagement-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 id="engagement-heading" className="text-xl font-bold text-[#102E26]">Quran Engagement Time</h2>
+          <h2 id="engagement-heading" className="text-xl font-bold text-[#102E26]">{t('prog.engagement')}</h2>
           <div className="flex gap-1" role="group" aria-label="Chart range">
             {(['day', 'week', 'month'] as const).map((r) => (
               <button
@@ -456,7 +458,7 @@ export default function MyProgressClient() {
                 onClick={() => setChartRange(r)}
                 className={`rounded-full px-3 py-1 text-xs font-bold capitalize ${chartRange === r ? 'bg-[#E5E7EB] text-[#102E26]' : 'border border-[#E5E7EB] text-[#5b6b62]'}`}
               >
-                {r}
+                {r === 'day' ? t('prog.day') : r === 'week' ? t('prog.week') : t('prog.month')}
               </button>
             ))}
           </div>
@@ -494,20 +496,20 @@ export default function MyProgressClient() {
           const max = Math.max(1, ...buckets.map((b) => b.value));
           return (
             <div>
-              <div className="mt-4 flex h-28 items-end gap-1" role="img" aria-label={`Ayahs practised per ${chartRange}`}>
+              <div className="mt-4 flex h-28 items-end gap-1" role="img" aria-label={`${t('prog.ayahsPractised')} — ${chartRange === 'day' ? t('prog.perDay') : chartRange === 'week' ? t('prog.perWeek') : t('prog.perMonth')}`}>
                 {buckets.map((b, i) => (
                   <div key={i} className="flex flex-1 flex-col items-center gap-1">
                     <div
                       className="w-full rounded-t bg-[#57D798]"
                       style={{ height: `${Math.max(b.value > 0 ? 8 : 2, (b.value / max) * 100)}%` }}
-                      title={`${b.label}: ${b.value} ayahs`}
+                      title={`${b.label}: ${b.value} ${b.value === 1 ? t('common.ayah') : t('common.ayahs')}`}
                     />
                     <span className="text-[10px] text-[#5b6b62]">{b.label}</span>
                   </div>
                 ))}
               </div>
               <p className="mt-2 text-xs text-[#5b6b62]">
-                Ayahs practised per {chartRange === 'day' ? 'day (last 14 days)' : chartRange === 'week' ? 'week (last 8 weeks)' : 'month (last 6 months)'}.
+                {t('prog.ayahsPractised')} — {chartRange === 'day' ? t('prog.perDay') : chartRange === 'week' ? t('prog.perWeek') : t('prog.perMonth')}.
                 Built from your ayah records — never invented.
               </p>
             </div>
@@ -517,7 +519,7 @@ export default function MyProgressClient() {
 
       {/* Memorised map — all 114 surahs */}
       <section aria-labelledby="map-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="map-heading" className="text-xl font-bold text-[#102E26]">Memorised map — all 114 surahs</h2>
+        <h2 id="map-heading" className="text-xl font-bold text-[#102E26]">{t('prog.mapHeading')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           One square per surah, darker as it gets stronger. Tap a square to open the surah.
         </p>
@@ -531,8 +533,8 @@ export default function MyProgressClient() {
                 key={s.id}
                 href={`/hifz/${s.slug}`}
                 role="listitem"
-                title={`${s.name} — ${pct}% strong (${st?.memorised ?? 0} memorised of ${s.ayahCount})`}
-                aria-label={`${s.name}, ${pct} percent strong`}
+                title={t('prog.mapTitle').replace('{name}', s.name).replace('{pct}', String(pct)).replace('{m}', String(st?.memorised ?? 0)).replace('{total}', String(s.ayahCount))}
+                aria-label={t('prog.mapAria').replace('{name}', s.name).replace('{pct}', String(pct))}
                 className="flex h-9 items-center justify-center rounded-md text-xs font-bold text-white"
                 style={{ background: bg, color: pct === 0 ? '#5b6b62' : '#fff' }}
               >
@@ -545,7 +547,7 @@ export default function MyProgressClient() {
 
       {/* Per-type daily goals (§15.8) — memorisation, revision, reading separately */}
       <section aria-labelledby="goals-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="goals-heading" className="text-xl font-bold text-[#102E26]">Today&apos;s goals — by type</h2>
+        <h2 id="goals-heading" className="text-xl font-bold text-[#102E26]">{t('prog.goalsHeading')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           One goal per kind of practice, in ayahs per day. Coach attempts count toward
           memorisation, test questions toward revision; reading is logged by hand below.
@@ -561,14 +563,14 @@ export default function MyProgressClient() {
                   <div className="min-w-0">
                     <p className="font-bold text-[#102E26]">{GOAL_TYPE_LABELS[type]}</p>
                     <p className="text-sm text-[#5b6b62]">
-                      {g.done} / {g.target} ayahs {met ? '— goal met.' : 'today'}
+                      {g.done} / {g.target} {t('common.ayahs')} {met ? t('prog.goalMetShort') : t('prog.today')}
                     </p>
                   </div>
                 </div>
                 <p className="mt-2 text-xs leading-relaxed text-[#5b6b62]">{GOAL_TYPE_DESCRIPTIONS[type]}</p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <label className="flex items-center gap-1.5 text-xs font-semibold text-[#5b6b62]">
-                    Target
+                    {t('prog.target')}
                     <select
                       value={g.target}
                       onChange={(e) => changeTypeTarget(type, Number(e.target.value))}
@@ -576,7 +578,7 @@ export default function MyProgressClient() {
                       aria-label={`${GOAL_TYPE_LABELS[type]} daily target in ayahs`}
                     >
                       {TYPE_GOAL_OPTIONS.map((n) => (
-                        <option key={n} value={n}>{n} ayahs</option>
+                        <option key={n} value={n}>{t('prog.ayahsOption').replace('{n}', String(n))}</option>
                       ))}
                     </select>
                   </label>
@@ -585,14 +587,14 @@ export default function MyProgressClient() {
                     onClick={() => logType(type, 1)}
                     className="rounded-full border border-[#1FA36B] px-3 py-1.5 text-xs font-semibold text-[#1FA36B] hover:bg-[#E4FFF2]"
                   >
-                    +1 ayah
+                    {t('prog.plusOne')}
                   </button>
                   <button
                     type="button"
                     onClick={() => logType(type, 5)}
                     className="rounded-full border border-[#1FA36B] px-3 py-1.5 text-xs font-semibold text-[#1FA36B] hover:bg-[#E4FFF2]"
                   >
-                    +5 ayahs
+                    {t('prog.plusFive')}
                   </button>
                 </div>
               </div>
@@ -603,7 +605,7 @@ export default function MyProgressClient() {
 
       {/* Weekly challenge + activity heatmap */}
       <section aria-labelledby="challenge-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="challenge-heading" className="text-xl font-bold text-[#102E26]">This week&apos;s challenge</h2>
+        <h2 id="challenge-heading" className="text-xl font-bold text-[#102E26]">{t('prog.challenge')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           Practise on {WEEK_CHALLENGE_DAYS} days this week — {weekDays} of {WEEK_CHALLENGE_DAYS} done.
           {weekDays >= WEEK_CHALLENGE_DAYS ? ' Challenge complete — well done.' : ' A day counts when you practise any ayah.'}
@@ -611,18 +613,18 @@ export default function MyProgressClient() {
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E5E7EB]" role="progressbar" aria-valuenow={weekDays} aria-valuemin={0} aria-valuemax={WEEK_CHALLENGE_DAYS} aria-label="Weekly challenge progress">
           <div className="h-full rounded-full bg-[#FFB800]" style={{ width: `${Math.min(100, (weekDays / WEEK_CHALLENGE_DAYS) * 100)}%` }} />
         </div>
-        <h3 className="mt-6 text-sm font-bold text-[#102E26]">Your activity — last 12 weeks</h3>
+        <h3 className="mt-6 text-sm font-bold text-[#102E26]">{t('prog.activityHeading')}</h3>
         <p className="mt-1 text-xs text-[#5b6b62]">
           One square per day; darker means more ayahs practised that day. Built from your
           ayah records, so it works on progress saved before this view existed.
         </p>
-        <div className="mt-3 flex gap-[3px] overflow-x-auto pb-1" role="img" aria-label={`Activity heatmap, ${Object.keys(activity).length} days practised in the last 12 weeks`}>
+        <div className="mt-3 flex gap-[3px] overflow-x-auto pb-1" role="img" aria-label={t('prog.heatmapLabel').replace('{n}', String(Object.keys(activity).length))}>
           {heatmapWeeks.map((week, wi) => (
             <div key={wi} className="flex shrink-0 flex-col gap-[3px]">
               {week.map((day) => (
                 <span
                   key={day.date}
-                  title={day.count < 0 ? day.date : `${day.date}: ${day.count} ${day.count === 1 ? 'ayah' : 'ayahs'} practised`}
+                  title={day.count < 0 ? day.date : t('prog.practisedOnDay').replace('{date}', day.date).replace('{n}', String(day.count)).replace('{ayahWord}', day.count === 1 ? t('common.ayah') : t('common.ayahs'))}
                   className={`h-3 w-3 rounded-[3px] ${heatColor(day.count)}`}
                 />
               ))}
@@ -633,7 +635,7 @@ export default function MyProgressClient() {
 
       {/* Surah strength */}
       <section aria-labelledby="strength-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="strength-heading" className="text-xl font-bold text-[#102E26]">Surah strength</h2>
+        <h2 id="strength-heading" className="text-xl font-bold text-[#102E26]">{t('prog.strength')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           How strong each surah you have touched is: memorised ayahs count fully, learning
           ayahs count half. Surahs you have never practised are not listed.
@@ -649,7 +651,7 @@ export default function MyProgressClient() {
               <li key={s.slug}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
                   <Link href={`/hifz/${s.slug}`} className="font-semibold text-[#102E26] hover:underline">
-                    {s.name} <span className="font-normal text-[#5b6b62]">· {s.memorised} memorised, {s.learning} learning of {s.ayahCount}</span>
+                    {s.name} <span className="font-normal text-[#5b6b62]">· {t('prog.strengthLine').replace('{m}', String(s.memorised)).replace('{l}', String(s.learning)).replace('{n}', String(s.ayahCount))}</span>
                   </Link>
                   <span className="font-bold text-[#1FA36B]">{s.strengthPct}%</span>
                 </div>
@@ -665,13 +667,13 @@ export default function MyProgressClient() {
 
       {/* Revision due — spaced repetition queue */}
       <section aria-labelledby="revision-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="revision-heading" className="text-xl font-bold text-[#102E26]">Revision due</h2>
+        <h2 id="revision-heading" className="text-xl font-bold text-[#102E26]">{t('prog.revision')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           Memory fades on a schedule: a learning ayah is due after 2 days without practice,
           a memorised ayah after 7 days. Oldest first — the weakest memory is the most urgent.
         </p>
         {due.length === 0 ? (
-          <p className="mt-2 text-sm text-[#5b6b62]">Nothing due — everything you have practised is fresh.</p>
+          <p className="mt-2 text-sm text-[#5b6b62]">{t('prog.nothingDue')}</p>
         ) : (
           <ul className="mt-3 space-y-2">
             {due.slice(0, 10).map((item) => {
@@ -680,14 +682,14 @@ export default function MyProgressClient() {
                 <li key={`${item.surah}:${item.ayah}`} className="flex flex-wrap items-center gap-2 rounded-xl bg-[#FFFBF2] px-3 py-2 text-sm">
                   <span>
                     {surah ? surah.name : `Surah ${item.surah}`} {item.surah}:{item.ayah} ·{' '}
-                    {item.status === 'memorised' ? 'memorised' : 'learning'} · last practised{' '}
-                    {item.daysSincePractised} {item.daysSincePractised === 1 ? 'day' : 'days'} ago
+                    {item.status === 'memorised' ? t('common.memorised') : t('common.learning')} · {t('prog.lastPractised')}{' '}
+                    {item.daysSincePractised} {item.daysSincePractised === 1 ? t('prog.dayAgo') : t('prog.daysAgo')}
                   </span>
                   <Link
                     href={surah ? `/hifz/${surah.slug}?mode=recite&ayah=${item.ayah}` : '/hifz'}
                     className="ml-auto font-semibold text-[#1FA36B] underline"
                   >
-                    Revise now →
+                    {t('prog.reviseNow')}
                   </Link>
                 </li>
               );
@@ -695,13 +697,13 @@ export default function MyProgressClient() {
           </ul>
         )}
         {due.length > 10 && (
-          <p className="mt-2 text-sm text-[#5b6b62]">{due.length - 10} more due after these.</p>
+          <p className="mt-2 text-sm text-[#5b6b62]">{t('prog.moreDue').replace('{n}', String(due.length - 10))}</p>
         )}
       </section>
 
       {/* Memorised ayahs */}
       <section aria-labelledby="memorised-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="memorised-heading" className="text-xl font-bold text-[#102E26]">Memorised ayahs</h2>
+        <h2 id="memorised-heading" className="text-xl font-bold text-[#102E26]">{t('prog.memorisedAyahs')}</h2>
         {memorised.length === 0 ? (
           <p className="mt-2 text-sm text-[#5b6b62]">
             Nothing memorised yet. Recite an ayah correctly three times in a row and it appears here.{' '}
@@ -732,19 +734,19 @@ export default function MyProgressClient() {
         <section aria-labelledby="continue-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
           {lastRead && (
             <>
-              <h2 id="continue-heading" className="text-xl font-bold text-[#102E26]">Continue where you left off</h2>
+              <h2 id="continue-heading" className="text-xl font-bold text-[#102E26]">{t('prog.continue')}</h2>
               <p className="mt-1 text-sm text-[#5b6b62]">
-                Last read: <strong>{lastRead.name}</strong> —{' '}
+                {t('prog.lastRead')} <strong>{lastRead.name}</strong> —{' '}
                 {new Date(lastRead.at).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}.
               </p>
               <Link href={`/hifz/${lastRead.slug}`} className="mt-3 inline-block rounded-full bg-[#57D798] px-4 py-2 text-sm font-bold text-[#102E26] hover:brightness-105">
-                Continue reading {lastRead.name} →
+                {t('prog.continueReading').replace('{name}', lastRead.name)}
               </Link>
             </>
           )}
           {bookmarks.length > 0 && (
             <div className={lastRead ? 'mt-5' : ''}>
-              <h3 className="text-sm font-bold text-[#102E26]">Favourites — your bookmarks</h3>
+              <h3 className="text-sm font-bold text-[#102E26]">{t('prog.favourites')}</h3>
               <ul className="mt-2 space-y-1 text-sm">
                 {bookmarks.slice(0, 10).map((b, i) => {
                   const bs = getSurahById(b.surahNumber);
@@ -753,7 +755,7 @@ export default function MyProgressClient() {
                       <span>{bs ? bs.name : b.surahName ?? `Surah ${b.surahNumber}`} {b.surahNumber}:{b.verseNumber}</span>
                       {bs && (
                         <Link href={`/hifz/${bs.slug}?ayah=${b.verseNumber}`} className="ml-auto font-semibold text-[#1FA36B] underline">
-                          Open →
+                          {t('prog.open')}
                         </Link>
                       )}
                     </li>
@@ -761,7 +763,7 @@ export default function MyProgressClient() {
                 })}
               </ul>
               {bookmarks.length > 10 && (
-                <p className="mt-2 text-xs text-[#5b6b62]">Showing 10 of {bookmarks.length} bookmarks.</p>
+                <p className="mt-2 text-xs text-[#5b6b62]">{t('prog.showingBookmarks').replace('{n}', String(bookmarks.length))}</p>
               )}
             </div>
           )}
@@ -770,7 +772,7 @@ export default function MyProgressClient() {
 
       {/* Mistake log — filters, weak-spots ranking, practice-my-mistakes */}
       <section aria-labelledby="mistakes-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="mistakes-heading" className="text-xl font-bold text-[#102E26]">Words to retry</h2>
+        <h2 id="mistakes-heading" className="text-xl font-bold text-[#102E26]">{t('prog.mistakesHeading')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           Your full mistake log is kept on this device — nothing is trimmed. The wash behind a
           word shows how often you have missed it: red most, then orange, yellow, green fewest.
@@ -784,7 +786,7 @@ export default function MyProgressClient() {
               onClick={() => setMistakeFilter(f)}
               className={`rounded-full px-4 py-1.5 text-sm font-semibold capitalize ${mistakeFilter === f ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
             >
-              {f === 'all' ? 'All mistakes' : f === 'incorrect' ? 'Incorrect words' : 'Missed words'}
+              {f === 'all' ? t('prog.filterAll') : f === 'incorrect' ? t('prog.filterIncorrect') : t('prog.filterMissed')}
             </button>
           ))}
         </div>
@@ -813,7 +815,7 @@ export default function MyProgressClient() {
               const wash = (n: number) => (n >= 6 ? 'wash-most' : n >= 3 ? 'wash-often' : n >= 2 ? 'wash-some' : 'wash-few');
               return ranked.length > 0 ? (
                 <div className="mt-4">
-                  <h3 className="text-sm font-bold text-[#102E26]">Weak spots — your most-missed words</h3>
+                  <h3 className="text-sm font-bold text-[#102E26]">{t('prog.weakSpots')}</h3>
                   <ul className="mt-2 space-y-2">
                     {ranked.map((w) => {
                       const surah = getSurahById(w.surah);
@@ -821,15 +823,15 @@ export default function MyProgressClient() {
                         <li key={`${w.surah}:${w.ayah}:${w.word}`} className="flex flex-wrap items-center gap-2 rounded-xl bg-[#FFFBF2] px-3 py-2 text-sm">
                           <span dir="rtl" lang="ar" className={`font-quran text-lg ${wash(w.attempts)}`}>{w.word}</span>
                           <span>
-                            {surah ? surah.name : `Surah ${w.surah}`} {w.surah}:{w.ayah} · missed {w.attempts} {w.attempts === 1 ? 'time' : 'times'}
+                            {surah ? surah.name : `Surah ${w.surah}`} {w.surah}:{w.ayah} · {t('prog.missed').replace('{n}', String(w.attempts)).replace('{timeWord}', w.attempts === 1 ? t('common.time') : t('common.times'))}
                             {w.heard ? ` · heard as “${w.heard}”` : ''}
                           </span>
                           <span className="text-xs text-[#5b6b62]">
-                            {Math.max(0, 3 - Math.min(3, w.attempts))} more correct recitations to clear
+                            {t('prog.moreToClear').replace('{n}', String(Math.max(0, 3 - Math.min(3, w.attempts))))}
                           </span>
                           {surah && (
                             <Link href={`/hifz/${surah.slug}?mode=recite&ayah=${w.ayah}`} className="ml-auto font-semibold text-[#1FA36B] underline">
-                              Practise this word →
+                              {t('prog.practiseWord')}
                             </Link>
                           )}
                         </li>
@@ -840,7 +842,7 @@ export default function MyProgressClient() {
                     href="/hifz/test"
                     className="mt-3 inline-block rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
                   >
-                    Practise my mistakes — Weakest Link test →
+                    {t('prog.practiseMistakes')}
                   </Link>
                 </div>
               ) : null;
@@ -862,14 +864,14 @@ export default function MyProgressClient() {
                       <span dir="rtl" lang="ar" className="font-quran text-lg">{m.word}</span>
                       <span>
                         {surah ? surah.name : `Surah ${m.surah}`} {m.surah}:{m.ayah} · {m.attempts}{' '}
-                        {m.attempts === 1 ? 'time' : 'times'}
-                        {m.source === 'self-mark' ? ' · self-marked' : ''}
+                        {m.attempts === 1 ? t('common.time') : t('common.times')}
+                        {m.source === 'self-mark' ? ` · ${t('prog.selfMarked')}` : ''}
                         {m.heard ? ` · heard as “${m.heard}”` : ''}
                       </span>
                       <span className="ml-auto flex gap-2">
                         {surah && (
                           <Link href={`/hifz/${surah.slug}?mode=recite`} className="font-semibold text-[#1FA36B] underline">
-                            Retry
+                            {t('common.retry')}
                           </Link>
                         )}
                         <button
@@ -877,7 +879,7 @@ export default function MyProgressClient() {
                           onClick={() => clearMistake(idx)}
                           className="font-semibold text-red-700 underline"
                         >
-                          Clear
+                          {t('common.clear')}
                         </button>
                       </span>
                     </li>
@@ -890,7 +892,7 @@ export default function MyProgressClient() {
 
       {/* Offline coach (§15.10) */}
       <section aria-labelledby="offline-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="offline-heading" className="text-xl font-bold text-[#102E26]">Offline coach</h2>
+        <h2 id="offline-heading" className="text-xl font-bold text-[#102E26]">{t('prog.offline')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           {swReady === true
             ? 'Offline support is on — this device can run the coach without internet once the surahs below are saved.'
@@ -909,7 +911,7 @@ export default function MyProgressClient() {
           disabled={offlineSaving}
           className="mt-4 rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] disabled:opacity-50"
         >
-          {offlineSaving ? 'Saving…' : 'Save surahs for offline use'}
+          {offlineSaving ? t('prog.saving') : t('prog.saveOffline')}
         </button>
         {offlineMsg && (
           <p role="status" className="mt-3 text-sm font-semibold text-[#1FA36B]">{offlineMsg}</p>
@@ -918,7 +920,7 @@ export default function MyProgressClient() {
 
       {/* Export / import */}
       <section aria-labelledby="export-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="export-heading" className="text-xl font-bold text-[#102E26]">Your progress is yours</h2>
+        <h2 id="export-heading" className="text-xl font-bold text-[#102E26]">{t('prog.exportHeading')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           Progress lives only on this device. Download a copy to keep it safe, or import a copy
           from another device. This is the v1 substitute for accounts.
@@ -929,14 +931,14 @@ export default function MyProgressClient() {
             onClick={doExport}
             className="rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
           >
-            Download my progress (.json)
+            {t('prog.download')}
           </button>
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
             className="rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
           >
-            Import progress
+            {t('prog.importBtn')}
           </button>
           <input
             ref={fileRef}

@@ -6,9 +6,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ALL_SURAHS } from '../surahs';
 import { RECITERS } from '../../quran/lib';
+import { useT } from '../lib/i18n';
 
 export default function ReciteClient() {
   const router = useRouter();
+  const t = useT();
   const [slug, setSlug] = useState('al-fatihah');
   const [ayah, setAyah] = useState(1);
   const [reciterId, setReciterId] = useState(7);
@@ -17,7 +19,7 @@ export default function ReciteClient() {
   return (
     <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
       <label className="block text-sm font-semibold">
-        Surah
+        {t('recite.surah')}
         <select
           value={slug}
           onChange={(e) => {
@@ -28,13 +30,13 @@ export default function ReciteClient() {
         >
           {ALL_SURAHS.map((s) => (
             <option key={s.slug} value={s.slug}>
-              {s.name} — {s.meaning} ({s.ayahCount} ayahs)
+              {s.name} — {s.meaning} ({s.ayahCount} {s.ayahCount === 1 ? t('common.ayah') : t('common.ayahs')})
             </option>
           ))}
         </select>
       </label>
       <label className="mt-4 block text-sm font-semibold">
-        Start at ayah
+        {t('recite.startAtAyah')}
         <select
           value={ayah}
           onChange={(e) => setAyah(Number(e.target.value))}
@@ -48,7 +50,7 @@ export default function ReciteClient() {
         </select>
       </label>
       <label className="mt-4 block text-sm font-semibold">
-        Reciter
+        {t('recite.reciter')}
         <select
           value={reciterId}
           onChange={(e) => setReciterId(Number(e.target.value))}
@@ -64,7 +66,7 @@ export default function ReciteClient() {
         onClick={() => router.push(`/hifz/${slug}?mode=recite&ayah=${ayah}`)}
         className="mt-6 rounded-full bg-[#57D798] px-6 py-3 text-sm font-semibold text-[#102E26] hover:brightness-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
       >
-        Start reciting {surah.name} {surah.id}:{ayah}
+        {t('recite.start').replace('{surah}', surah.name).replace('{ref}', `${surah.id}:${ayah}`)}
       </button>
       <p className="mt-3 text-sm text-[#5b6b62]">
         The coach checks which words you said — it does not judge tajweed. A teacher is still

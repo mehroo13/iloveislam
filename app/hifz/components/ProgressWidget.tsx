@@ -17,6 +17,7 @@ import {
   type HifzProgress,
 } from '../progress';
 import ToolIcon from '../../components/ToolIcon';
+import { useT } from '../lib/i18n';
 
 export function useHifzProgress(): HifzProgress | null {
   const [progress, setProgress] = useState<HifzProgress | null>(null);
@@ -41,6 +42,7 @@ export function useHifzProgress(): HifzProgress | null {
 
 /** Memorised fraction for one surah (0–1), from localStorage. */
 export function SurahProgressBar({ surahId, ayahCount }: { surahId: number; ayahCount: number }) {
+  const t = useT();
   const progress = useHifzProgress();
   const memorised = progress
     ? Object.entries(progress.ayahs).filter(
@@ -61,22 +63,23 @@ export function SurahProgressBar({ surahId, ayahCount }: { surahId: number; ayah
         aria-valuenow={memorised}
         aria-valuemin={0}
         aria-valuemax={ayahCount}
-        aria-label={`${memorised} of ${ayahCount} ayahs memorised`}
+        aria-label={`${memorised} ${t('common.of')} ${ayahCount} ${t('common.ayahs')} ${t('prog.memorisedWord')}`}
       >
         <div className="h-full rounded-full bg-[#1FA36B]" style={{ width: `${Math.round(frac * 100)}%` }} />
       </div>
       <p className="mt-1 text-xs text-[#5b6b62]">
         {progress === null
-          ? 'Progress is saved on this device.'
+          ? t('prog.savedOnDevice')
           : memorised > 0 || learning > 0
-            ? `${memorised} memorised · ${learning} learning · ${ayahCount} ayahs`
-            : 'Not started yet'}
+            ? `${memorised} ${t('prog.memorisedWord')} · ${learning} ${t('prog.learning')} · ${ayahCount} ${t('common.ayahs')}`
+            : t('prog.notStarted')}
       </p>
     </div>
   );
 }
 
 export default function ProgressWidget() {
+  const t = useT();
   const progress = useHifzProgress();
   const [notice, setNotice] = useState<string | null>(null);
   useEffect(() => {
@@ -86,16 +89,15 @@ export default function ProgressWidget() {
   if (progress === null) {
     return (
       <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="text-lg font-bold text-[#102E26]">Start with Juz Amma</h2>
+        <h2 className="text-lg font-bold text-[#102E26]">{t('prog.startJuz')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
-          The short surahs first — small wins, one ayah at a time. No account needed; your
-          progress stays on this device.
+          {t('prog.startJuzNote')}
         </p>
         <Link
           href="/hifz/juz-amma"
           className="mt-4 inline-block rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
         >
-          Start with Juz Amma
+          {t('prog.startJuz')}
         </Link>
       </div>
     );
@@ -113,16 +115,15 @@ export default function ProgressWidget() {
   if (!hasAnything) {
     return (
       <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="text-lg font-bold text-[#102E26]">Start with Juz Amma</h2>
+        <h2 className="text-lg font-bold text-[#102E26]">{t('prog.startJuz')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
-          The short surahs first — small wins, one ayah at a time. No account needed; your
-          progress stays on this device.
+          {t('prog.startJuzNote')}
         </p>
         <Link
           href="/hifz/juz-amma"
           className="mt-4 inline-block rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
         >
-          Start with Juz Amma
+          {t('prog.startJuz')}
         </Link>
         {notice && <p className="mt-3 text-sm text-[#5b6b62]">{notice}</p>}
       </div>
@@ -132,17 +133,17 @@ export default function ProgressWidget() {
   // Next ayah: first ayah of the active plan's surah that is not yet memorised,
   // else the first learning ayah, else Juz Amma's first unmemorised surah.
   let nextHref = '/hifz/juz-amma';
-  let nextLabel = 'Continue with Juz Amma';
+  let nextLabel = t('prog.continueJuz');
   if (planSurah) {
     const firstOpen = Array.from({ length: planSurah.ayahCount }, (_, i) => i + 1).find(
       (a) => progress.ayahs[`${planSurah.id}:${a}`]?.status !== 'memorised',
     );
     if (firstOpen) {
       nextHref = `/hifz/${planSurah.slug}?mode=recite`;
-      nextLabel = `Continue Surah ${planSurah.name} — ayah ${firstOpen}`;
+      nextLabel = `${t('common.continue')} ${t('common.surah')} ${planSurah.name} — ${t('common.ayah')} ${firstOpen}`;
     } else {
       nextHref = `/hifz/${planSurah.slug}`;
-      nextLabel = `Review Surah ${planSurah.name}`;
+      nextLabel = `${t('common.review')} ${t('common.surah')} ${planSurah.name}`;
     }
   } else {
     const open = JUZ_AMMA_SURAHS.find((s) =>
@@ -152,7 +153,7 @@ export default function ProgressWidget() {
     );
     if (open) {
       nextHref = `/hifz/${open.slug}?mode=recite`;
-      nextLabel = `Continue Surah ${open.name} — Juz Amma`;
+      nextLabel = `${t('common.continue')} ${t('common.surah')} ${open.name} — ${t('hub.juzAmma')}`;
     }
   }
 
@@ -161,20 +162,20 @@ export default function ProgressWidget() {
   return (
     <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-bold text-[#102E26]">Continue where you left off</h2>
+        <h2 className="text-lg font-bold text-[#102E26]">{t('prog.continue')}</h2>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FFFBF2] px-3 py-1 text-sm font-bold text-[#102E26]">
           <ToolIcon name="flame" className="h-4 w-4 text-[#FFB800]" />
-          {streak} day{streak === 1 ? '' : 's'} streak
+          {streak} {streak === 1 ? t('prog.streakOne') : t('prog.streakMany')}
         </span>
       </div>
       <p className="mt-2 text-sm text-[#5b6b62]">
-        {memorisedCount} {memorisedCount === 1 ? 'ayah' : 'ayahs'} memorised · {practisedToday}{' '}
-        practised today · {Math.round(minutesToday)} of {progress.dailyGoalMinutes} minutes today
-        {goalMet ? ' — daily goal met.' : '.'}
+        {memorisedCount} {memorisedCount === 1 ? t('prog.ayahMemorised') : t('prog.ayahsMemorised')} · {practisedToday}{' '}
+        {t('prog.practisedTodayWord')} · {Math.round(minutesToday)} {t('common.of')} {progress.dailyGoalMinutes} {t('prog.minutesWord')} {t('common.today')}
+        {goalMet ? ` — ${t('prog.dailyGoalMet')}` : '.'}
       </p>
       {activePlan && planSurah && (
         <p className="mt-1 text-sm text-[#5b6b62]">
-          Active plan: {activePlan.planDays}-day plan for Surah {planSurah.name} · day{' '}
+          {t('prog.activePlanLabel')} {activePlan.planDays} {t('prog.dayPlan')} — {t('common.surah')} {planSurah.name} · {t('common.day')}{' '}
           {activePlan.currentDay}
         </p>
       )}
@@ -189,7 +190,7 @@ export default function ProgressWidget() {
           href="/hifz/my-progress"
           className="rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
         >
-          My progress
+          {t('common.myProgress')}
         </Link>
       </div>
       {notice && <p className="mt-3 text-sm text-[#5b6b62]">{notice}</p>}

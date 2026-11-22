@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { getSurahById } from '../surahs';
+import { useT } from '../lib/i18n';
 
 interface SearchResult {
   verseKey: string;
@@ -44,6 +45,7 @@ function getSpeechRecognition(): SpeechRecognitionCtor | null {
 }
 
 export default function VoiceSearchClient() {
+  const t = useT();
   const [query, setQuery] = useState('');
   const [listening, setListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
@@ -104,21 +106,19 @@ export default function VoiceSearchClient() {
       }
       setResults(parsed);
       if (parsed.length === 0) {
-        setNotice(
-          'No ayah matched that exactly. Try reciting a longer phrase, or check the words and try again.',
-        );
+        setNotice(t('voice.noMatch'));
       }
     } catch {
-      setNotice('Search could not run — check your connection and try again.');
+      setNotice(t('voice.searchFailed'));
     } finally {
       setSearching(false);
     }
-  }, []);
+  }, [t]);
 
   const startListening = useCallback(() => {
     const Ctor = getSpeechRecognition();
     if (!Ctor) {
-      setNotice('Voice search needs a browser with speech recognition (Chrome or Edge). Type the words instead — the search works the same way.');
+      setNotice(t('voice.needBrowser'));
       return;
     }
     try {
@@ -141,11 +141,11 @@ export default function VoiceSearchClient() {
     recog.onerror = (event) => {
       setListening(false);
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        setNotice('Microphone access was blocked. Allow the microphone and try again — or type the words instead.');
+        setNotice(t('voice.micBlocked'));
       } else if (event.error === 'no-speech') {
-        setNotice('Nothing was heard. Recite a few words clearly and try again.');
+        setNotice(t('voice.noSpeechHeard'));
       } else {
-        setNotice('Voice recognition hit a problem — type the words instead, the search works the same way.');
+        setNotice(t('voice.recogProblem'));
       }
     };
     recog.onend = () => setListening(false);
@@ -155,9 +155,9 @@ export default function VoiceSearchClient() {
       recog.start();
     } catch {
       setListening(false);
-      setNotice('Voice recognition could not start in this browser — type the words instead.');
+      setNotice(t('voice.couldNotStart'));
     }
-  }, [runSearch]);
+  }, [runSearch, t]);
 
   return (
     <div className="space-y-6">
@@ -169,7 +169,7 @@ export default function VoiceSearchClient() {
           }}
         >
           <label className="block text-sm font-semibold" htmlFor="voice-search-input">
-            Recite a phrase, or type it
+            {t('voice.label')}
           </label>
           <div className="mt-2 flex flex-col gap-2 sm:flex-row">
             <input
@@ -177,7 +177,7 @@ export default function VoiceSearchClient() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="e.g. تبارك الذي بيده الملك — or type the words in Arabic"
+              placeholder={t('voice.placeholder')}
               dir="auto"
               className="min-w-0 flex-1 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm outline-none focus:border-[#1FA36B]"
             />
@@ -188,27 +188,26 @@ export default function VoiceSearchClient() {
                 disabled={listening || !speechSupported}
                 className="rounded-full bg-[#FFB800] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:brightness-110 disabled:opacity-50"
               >
-                {listening ? 'Listening…' : '🎙 Recite it'}
+                {listening ? t('voice.listening') : t('voice.reciteIt')}
               </button>
               <button
                 type="submit"
                 disabled={searching || !query.trim()}
                 className="rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] disabled:opacity-50"
               >
-                {searching ? 'Searching…' : 'Find the ayah'}
+                {searching ? t('voice.searching') : t('voice.findAyah')}
               </button>
             </div>
           </div>
         </form>
         {!speechSupported && (
           <p className="mt-3 text-sm text-[#5b6b62]">
-            This browser has no speech recognition (it works in Chrome and Edge). Type the
-            Arabic words instead — the search is the same.
+            {t('voice.noSpeech')}
           </p>
         )}
         {listening && (
           <p role="status" className="mt-3 text-sm font-semibold text-[#1FA36B]">
-            Listening — recite a few words of the ayah now.
+            {t('voice.listeningNow')}
           </p>
         )}
         {notice && (
@@ -219,7 +218,7 @@ export default function VoiceSearchClient() {
       {results !== null && results.length > 0 && (
         <section aria-labelledby="results-heading">
           <h2 id="results-heading" className="text-xl font-bold text-[#102E26]">
-            Matches for “{searchedQuery}”
+            {t('voice.matchesFor')} “{searchedQuery}”
           </h2>
           <ul className="mt-4 space-y-3">
             {results.map((r) => {
@@ -227,7 +226,7 @@ export default function VoiceSearchClient() {
               return (
                 <li key={r.verseKey} className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
                   <p className="text-sm font-bold text-[#102E26]">
-                    {surah ? `Surah ${surah.name}` : `Surah ${r.surah}`} · {r.verseKey}
+                    {surah ? `${t('common.surah')} ${surah.name}` : `${t('common.surah')} ${r.surah}`} · {r.verseKey}
                   </p>
                   {r.text && (
                     <p dir="rtl" lang="ar" className="font-quran mt-3 text-right text-2xl leading-loose text-[#102E26]">
@@ -242,7 +241,7 @@ export default function VoiceSearchClient() {
                       href={`/hifz/${surah?.slug ?? ''}/${r.surah}-${r.ayah}`}
                       className="rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
                     >
-                      Open in the coach →
+                      {t('voice.openCoach')}
                     </Link>
                   </div>
                 </li>
@@ -253,11 +252,11 @@ export default function VoiceSearchClient() {
       )}
 
       <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="text-xl font-bold text-[#102E26]">How it works</h2>
+        <h2 className="text-xl font-bold text-[#102E26]">{t('voice.howItWorks')}</h2>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed text-[#5b6b62]">
-          <li>Tap “Recite it” and say a few words of any ayah — the browser turns your voice into text on your device.</li>
-          <li>Only the recognised text is searched, through the same Quran.com search the hub already uses. Your voice is never recorded or uploaded by us.</li>
-          <li>Matches open straight into the recitation coach for that ayah.</li>
+          <li>{t('voice.how1')}</li>
+          <li>{t('voice.how2')}</li>
+          <li>{t('voice.how3')}</li>
         </ul>
       </section>
     </div>

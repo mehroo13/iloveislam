@@ -5,13 +5,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import HomeClient from './HomeClient';
+import { SITE_DESCRIPTION, SITE_TITLE } from './layout';
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
 export const metadata: Metadata = {
-  title: 'I Love Islam — Memorise the Quran with AI',
-  description:
-    'Recite Quran aloud and get instant word-by-word feedback. Memorise all 114 surahs and 30 juz with hifz plans. Free, no sign-up.',
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
   metadataBase: new URL('https://www.iloveislam.life'),
   keywords:
     'memorise quran, hifz, quran memorisation, recitation coach, surah al-mulk, surah ya-sin, surah al-kahf, juz amma, ayat al-kursi, learn quran, quran test mode, voice search quran',
@@ -25,21 +25,19 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'I Love Islam — Memorise the Quran with AI',
-    description:
-      'Recite Quran aloud and get instant word-by-word feedback. Memorise the whole Quran — all 114 surahs and all 30 juz — with 7-day and 30-day hifz plans. Free, no sign-up.',
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     url: 'https://www.iloveislam.life',
     siteName: 'I Love Islam',
-    images: [{ url: 'https://www.iloveislam.life/og-image.png', width: 1200, height: 630 }],
+    images: [{ url: 'https://www.iloveislam.life/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Memorise the Quran with an AI Recitation Coach' }],
     locale: 'en_US',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'I Love Islam — Memorise the Quran with AI',
-    description:
-      'Recite Quran aloud and get instant word-by-word feedback. Memorise the whole Quran — all 114 surahs and all 30 juz — with 7-day and 30-day hifz plans. Free, no sign-up.',
-    images: ['https://www.iloveislam.life/og-image.png'],
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: ['https://www.iloveislam.life/optimized/og-image.webp'],
   },
 };
 

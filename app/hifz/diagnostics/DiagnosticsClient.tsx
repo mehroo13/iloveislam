@@ -1,0 +1,683 @@
+'use client';
+
+/**
+ * app/hifz/diagnostics/DiagnosticsClient.tsx — internal microphone
+ * diagnostics for the recitation coach (route /hifz/diagnostics).
+ *
+ * WHY THIS EXISTS (2026-11-22 "no voice" bug): the coach's old "We didn't
+ * hear anything" message conflated two different failures — the mic
+ * capturing nothing, and the tracker following no word. This page tests
+ * them SEPARATELY, with real measurements and no fake data:
+ *
+ *  1. MICROPHONE CAPTURE (getUserMedia + Web Audio, no recognition):
+ *     permission, input devices, stream state, live dBFS level from an
+ *     AnalyserNode, a live waveform from getFloatTimeDomainData, and a
+ *     VAD mirror (same constants as Tilawa's energy VAD) saying whether
+ *     speech is recognised in the audio.
+ *  2. SPEECH RECOGNITION (the real Tilawa on-device engine, same adapter
+ *     and same tap-time mic preparation as the coach): model load, live
+ *     tracker state, and the per-word result of reciting Al-Fatihah 1:1.
+ *
+ * RULE: if audio is received but recognition cannot understand it, this
+ * page NEVER says "No voice detected" — it says "Voice detected, but
+ * Arabic recognition is unavailable" (or "...could not follow the words").
+ * Everything is free, on-device, no accounts. All tests are
+ * user-initiated (no mic prompt on load); everything is stopped on
+ * unmount. Quran text for the engine test is fetched at runtime from the
+ * same /api/quran proxy the coach uses — no verse text is pasted in here.
+ */
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { API } from '../../quran/lib';
+import {
+  AUDIBLE_DBFS,
+  engineSupport,
+  loadEngine,
+  type EngineLoadProgress,
+  type PreparedMicCapture,
+  type RecitationEngine,
+  type RecitationSession,
+  type SessionResult,
+} from '../lib/tilawa';
+
+/* ------------------------------------------------------------------ */
+/*  VAD mirror — same constants as Tilawa's energy VAD                 */
+/*  (node_modules/@tilawa/core/dist/runtime/audio.js: floor -60 dBFS,  */
+/*  margin 12 dB, hang 4000 ms). Energy VAD on 16 kHz audio in 20 ms   */
+/*  frames; here fed one dBFS reading per animation frame instead,    */
+/*  which is equivalent for a speech / no-speech verdict.              */
+/* ------------------------------------------------------------------ */
+
+class VadMirror {
+  floorDb = -60;
+  speaking = false;
+  silentMs = 0;
+  /** Feed one dBFS reading; returns whether speech is active (incl. hangover). */
+  push(db: number, dtMs: number): boolean {
+    const loud = db > this.floorDb + 12;
+    if (!loud) this.floorDb += (db - this.floorDb) * (db < this.floorDb ? 0.2 : 0.01);
+    if (loud) {
+      this.speaking = true;
+      this.silentMs = 0;
+    } else if (this.speaking) {
+      this.silentMs += dtMs;
+      if (this.silentMs > 4000) this.speaking = false;
+    }
+    return this.speaking;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
+
+type PermissionState = 'not-requested' | 'granted' | 'denied' | 'prompt' | 'unknown';
+type EngineState = 'idle' | 'loading' | 'ready' | 'failed' | 'unsupported' | 'listening';
+
+interface Capabilities {
+  secureContext: boolean;
+  hasMediaDevices: boolean;
+  hasGetUserMedia: boolean;
+  hasAudioContext: boolean;
+  hasEnumerateDevices: boolean;
+}
+
+function readCapabilities(): Capabilities {
+  if (typeof window === 'undefined') {
+    return {
+      secureContext: false,
+      hasMediaDevices: false,
+      hasGetUserMedia: false,
+      hasAudioContext: false,
+      hasEnumerateDevices: false,
+    };
+  }
+  const md = navigator.mediaDevices;
+  return {
+    secureContext: window.isSecureContext,
+    hasMediaDevices: !!md,
+    hasGetUserMedia: !!md?.getUserMedia,
+    hasAudioContext: typeof window.AudioContext !== 'undefined' ||
+      typeof (window as unknown as { webkitAudioContext?: unknown }).webkitAudioContext !== 'undefined',
+    hasEnumerateDevices: typeof md?.enumerateDevices === 'function',
+  };
+}
+
+function audioContextCtor(): typeof AudioContext | null {
+  const w = window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext };
+  return w.AudioContext ?? w.webkitAudioContext ?? null;
+}
+
+/** Same constraints Tilawa listens with: raw mic, no processing. */
+const MIC_CONSTRAINTS: MediaStreamConstraints = {
+  audio: { channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+};
+
+function dbfs(rms: number): number {
+  return 10 * Math.log10(rms * rms + 1e-12);
+}
+
+function fmtDb(db: number | null): string {
+  return db === null ? '—' : `${db.toFixed(1)} dBFS`;
+}
+
+function Pill({ ok, warn, children }: { ok?: boolean; warn?: boolean; children: React.ReactNode }) {
+  const cls = ok
+    ? 'bg-[#E4FFF2] text-[#102E26] border-[#1FA36B]/40'
+    : warn
+      ? 'bg-[#FFFBF2] text-[#102E26] border-[#FFB800]'
+      : 'bg-[#FDECEC] text-[#7A1F1F] border-[#DC2626]/40';
+  return (
+    <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-bold ${cls}`}>
+      {children}
+    </span>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                          */
+/* ------------------------------------------------------------------ */
+
+export default function DiagnosticsClient() {
+  const [caps] = useState<Capabilities>(readCapabilities);
+
+  /* ---- microphone capture test ---- */
+  const [permission, setPermission] = useState<PermissionState>('not-requested');
+  const [deviceCount, setDeviceCount] = useState<number | null>(null);
+  const [deviceLabels, setDeviceLabels] = useState<string[]>([]);
+  const [streamActive, setStreamActive] = useState(false);
+  const [trackInfo, setTrackInfo] = useState<string>('—');
+  const [ctxState, setCtxState] = useState<string>('—');
+  const [sampleRate, setSampleRate] = useState<number | null>(null);
+  const [levelDb, setLevelDb] = useState<number | null>(null);
+  const [peakDb, setPeakDb] = useState<number>(-120);
+  const [spreadDb, setSpreadDb] = useState<number>(0);
+  const [voiceDetected, setVoiceDetected] = useState(false);
+  const [vadSpeaking, setVadSpeaking] = useState(false);
+  const [micRunning, setMicRunning] = useState(false);
+  const [micError, setMicError] = useState<string | null>(null);
+  const [framesSeen, setFramesSeen] = useState(0);
+
+  const streamRef = useRef<MediaStream | null>(null);
+  const ctxRef = useRef<AudioContext | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const vadRef = useRef<VadMirror | null>(null);
+  const statsRef = useRef({ min: Infinity, max: -Infinity, peak: -120, frames: 0, lastUiAt: 0 });
+
+  /* ---- recognition engine test ---- */
+  const [engineState, setEngineState] = useState<EngineState>('idle');
+  const [engineProgress, setEngineProgress] = useState<EngineLoadProgress | null>(null);
+  const [engineError, setEngineError] = useState<string | null>(null);
+  const [engineInfo, setEngineInfo] = useState<string | null>(null);
+  const [engineLive, setEngineLive] = useState<string | null>(null);
+  const [engineResult, setEngineResult] = useState<SessionResult | null>(null);
+  const engineRef = useRef<RecitationEngine | null>(null);
+  const engineSessionRef = useRef<RecitationSession | null>(null);
+  const engineTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  /* ---- stop everything (shared by Stop buttons + unmount) ---- */
+  const stopMicTest = useCallback(() => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    if (ctxRef.current) {
+      void ctxRef.current.close().catch(() => undefined);
+      ctxRef.current = null;
+    }
+    setStreamActive(false);
+    setMicRunning(false);
+    setVadSpeaking(false);
+  }, []);
+
+  const stopEngineTest = useCallback(async () => {
+    if (engineTimerRef.current) {
+      clearInterval(engineTimerRef.current);
+      engineTimerRef.current = null;
+    }
+    const session = engineSessionRef.current;
+    engineSessionRef.current = null;
+    if (session) {
+      try {
+        const res = await session.stop();
+        setEngineResult(res);
+      } catch {
+        /* session already ended — keep whatever result we have */
+      }
+    }
+    setEngineState(engineRef.current ? 'ready' : 'idle');
+    setEngineLive(null);
+  }, []);
+
+  useEffect(
+    () => () => {
+      stopMicTest();
+      if (engineTimerRef.current) clearInterval(engineTimerRef.current);
+      engineSessionRef.current?.dispose();
+      engineSessionRef.current = null;
+    },
+    [stopMicTest],
+  );
+
+  /* ---------------- microphone capture test ---------------- */
+
+  const runMicTest = useCallback(async () => {
+    if (micRunning) return;
+    setMicError(null);
+    setVoiceDetected(false);
+    setVadSpeaking(false);
+    setLevelDb(null);
+    setPeakDb(-120);
+    setSpreadDb(0);
+    setFramesSeen(0);
+    statsRef.current = { min: Infinity, max: -Infinity, peak: -120, frames: 0, lastUiAt: 0 };
+    vadRef.current = new VadMirror();
+
+    // 1. Permission state (best effort — the Permissions API is absent
+    // in some browsers, and Safari reports 'prompt' until asked).
+    try {
+      const perms = navigator.permissions;
+      if (perms?.query) {
+        const status = await perms.query({ name: 'microphone' as PermissionName });
+        setPermission(status.state as PermissionState);
+      } else {
+        setPermission('unknown');
+      }
+    } catch {
+      setPermission('unknown');
+    }
+
+    // 2. Open the mic (same constraints as the coach) + create the
+    // AudioContext synchronously in this tap, so the context is running
+    // inside the user gesture — the same rule the coach now follows.
+    const Ctor = audioContextCtor();
+    if (!navigator.mediaDevices?.getUserMedia || !Ctor) {
+      setMicError('This browser has no microphone API (getUserMedia / AudioContext missing).');
+      return;
+    }
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS);
+    } catch (err) {
+      const name = (err as { name?: string })?.name ?? '';
+      setPermission(name === 'NotAllowedError' || name === 'SecurityError' ? 'denied' : 'unknown');
+      setMicError(
+        name === 'NotAllowedError'
+          ? 'Microphone permission was denied. Allow the microphone in the browser site settings and run the test again.'
+          : name === 'NotFoundError'
+            ? 'No audio input device was found on this device.'
+            : `Could not open the microphone (${name || 'unknown error'}).`,
+      );
+      return;
+    }
+    setPermission('granted');
+    const track = stream.getAudioTracks()[0];
+    if (track) {
+      const settings = track.getSettings();
+      setTrackInfo(
+        `readyState=${track.readyState} · muted=${track.muted ? 'yes' : 'no'} · enabled=${track.enabled ? 'yes' : 'no'}` +
+          (settings.deviceId ? ` · device=${settings.deviceId.slice(0, 8)}…` : '') +
+          (settings.sampleRate ? ` · ${settings.sampleRate} Hz` : ''),
+      );
+    }
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const inputs = devices.filter((d) => d.kind === 'audioinput');
+      setDeviceCount(inputs.length);
+      setDeviceLabels(inputs.map((d, i) => d.label || `Microphone ${i + 1}`));
+    } catch {
+      setDeviceCount(null);
+    }
+
+    const ctx = new Ctor();
+    if (ctx.state === 'suspended') {
+      await ctx.resume().catch(() => undefined);
+    }
+    setCtxState(ctx.state);
+    setSampleRate(ctx.sampleRate);
+    streamRef.current = stream;
+    ctxRef.current = ctx;
+    setStreamActive(true);
+    setMicRunning(true);
+
+    // 3. Live level + waveform from a real AnalyserNode. Nothing here is
+    // simulated: every number and every bar comes from the mic.
+    const source = ctx.createMediaStreamSource(stream);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0;
+    source.connect(analyser);
+    const buf = new Float32Array(analyser.fftSize);
+    let lastAt = performance.now();
+    const loop = () => {
+      const now = performance.now();
+      const dtMs = Math.max(1, now - lastAt);
+      lastAt = now;
+      analyser.getFloatTimeDomainData(buf);
+      let sum = 0;
+      for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+      const rms = Math.sqrt(sum / buf.length);
+      const db = dbfs(rms);
+      const s = statsRef.current;
+      s.frames++;
+      if (db > s.peak) s.peak = db;
+      if (db < s.min) s.min = db;
+      if (db > s.max) s.max = db;
+      const speaking = vadRef.current?.push(db, dtMs) ?? false;
+      if (speaking) setVoiceDetected(true);
+      // Draw the real waveform.
+      const canvas = canvasRef.current;
+      const c2d = canvas?.getContext('2d');
+      if (canvas && c2d) {
+        const w = canvas.width;
+        const h = canvas.height;
+        c2d.clearRect(0, 0, w, h);
+        c2d.strokeStyle = '#1FA36B';
+        c2d.lineWidth = 1.5;
+        c2d.beginPath();
+        const step = Math.max(1, Math.floor(buf.length / w));
+        for (let x = 0; x < w; x++) {
+          const v = buf[x * step] ?? 0;
+          const y = h / 2 - v * (h / 2) * 0.95;
+          if (x === 0) c2d.moveTo(x, y);
+          else c2d.lineTo(x, y);
+        }
+        c2d.stroke();
+      }
+      // Throttle React state (numbers ~7x/sec); the canvas stays live.
+      if (now - s.lastUiAt > 150) {
+        s.lastUiAt = now;
+        setLevelDb(db);
+        setPeakDb(s.peak);
+        setSpreadDb(s.max === -Infinity ? 0 : s.max - s.min);
+        setFramesSeen(s.frames);
+        setVadSpeaking(speaking);
+        setCtxState(ctx.state);
+      }
+      rafRef.current = requestAnimationFrame(loop);
+    };
+    rafRef.current = requestAnimationFrame(loop);
+  }, [micRunning]);
+
+  /* ---------------- recognition engine test ---------------- */
+
+  const loadEngineTest = useCallback(async () => {
+    if (engineRef.current || engineState === 'loading') return;
+    const support = engineSupport();
+    if (!support.supported) {
+      setEngineState('unsupported');
+      setEngineError(
+        support.reason === 'insecure-context'
+          ? 'This page is not a secure (HTTPS) context, so the on-device engine cannot run.'
+          : support.reason === 'no-cache-api'
+            ? 'This browser has no Cache API, so the model cannot be stored on the device.'
+            : 'This browser cannot run WebAssembly, so the on-device engine cannot run.',
+      );
+      return;
+    }
+    setEngineState('loading');
+    setEngineError(null);
+    setEngineProgress(null);
+    try {
+      const engine = await loadEngine({
+        tier: 'lite',
+        onProgress: (p) => setEngineProgress(p),
+      });
+      engineRef.current = engine;
+      setEngineInfo(`Model ${engine.modelId} · ${engine.tier} tier · on-device, nothing uploaded`);
+      setEngineState('ready');
+    } catch {
+      setEngineState('failed');
+      setEngineError('The recognition model could not be downloaded or started on this device.');
+    }
+  }, [engineState]);
+
+  const startEngineTest = useCallback(async () => {
+    const engine = engineRef.current;
+    if (!engine || engineSessionRef.current) return;
+    setEngineError(null);
+    setEngineResult(null);
+    setEngineLive(null);
+    // Fetch the verse text at runtime (same proxy as the coach) — no
+    // Quran text is pasted into this file.
+    let text = '';
+    try {
+      const res = await fetch(`${API}/verses/by_key/1:1?fields=text_indopak`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: { verse?: { text_indopak?: string } } = await res.json();
+      text = data.verse?.text_indopak ?? '';
+      if (!text) throw new Error('empty verse text');
+    } catch {
+      setEngineError('Could not load the test verse (Al-Fatihah 1:1) — check the connection and try again.');
+      return;
+    }
+    // Prepare the mic synchronously in this tap, exactly like the coach.
+    let prepared: PreparedMicCapture | null = null;
+    try {
+      prepared = engine.prepareMicrophone();
+    } catch (err) {
+      const reason = (err as { reason?: string })?.reason;
+      setEngineError(
+        reason === 'denied'
+          ? 'Microphone permission was denied for the engine test.'
+          : 'No microphone is available on this device for the engine test.',
+      );
+      return;
+    }
+    const session = engine.startSession({
+      surah: 1,
+      fromAyah: 1,
+      toAyah: 1,
+      expected: [{ surah: 1, ayah: 1, text }],
+      onTrackerState: (s) => setEngineLive((prev) => (prev?.startsWith('Tracker:') ? prev : `Tracker: ${s}`)),
+    });
+    engineSessionRef.current = session;
+    try {
+      await session.startMic(prepared);
+    } catch (err) {
+      engineSessionRef.current = null;
+      session.dispose();
+      const reason = (err as { reason?: string })?.reason;
+      setEngineError(
+        reason === 'denied'
+          ? 'Microphone permission was denied for the engine test.'
+          : 'The engine could not open the microphone on this device.',
+      );
+      return;
+    }
+    setEngineState('listening');
+    setEngineLive('Listening — recite Al-Fatihah 1:1 aloud, then tap Stop.');
+    engineTimerRef.current = setInterval(() => {
+      const h = engineSessionRef.current?.getAudioHealth();
+      if (!h) return;
+      setEngineLive(
+        `Listening — level callbacks ${h.levelCallbacks} · loudest ${h.maxLevelDb.toFixed(0)} dBFS · ` +
+          `tracker events ${h.positionEvents} · ${h.everLocked ? 'locked' : 'not locked yet'} · ` +
+          `${h.everAudible ? 'voice heard' : 'no voice heard yet'}`,
+      );
+    }, 500);
+  }, []);
+
+  /* ---------------- verdicts ---------------- */
+
+  const micHeardSound = peakDb > AUDIBLE_DBFS;
+  const audioProcessing: 'Working' | 'Failed' | 'Not tested yet' =
+    framesSeen === 0 ? 'Not tested yet' : streamActive || peakDb > -110 ? 'Working' : 'Failed';
+  const engineVerdict: string =
+    engineState === 'ready' || engineState === 'listening'
+      ? 'Available'
+      : engineState === 'failed' || engineState === 'unsupported'
+        ? 'Unsupported'
+        : 'Not tested yet';
+
+  return (
+    <div className="space-y-6">
+      {/* ---------- summary ---------- */}
+      <section aria-label="Results summary" className="rounded-2xl bg-white border border-[#E5E7EB] p-4 sm:p-6 shadow-sm">
+        <h2 className="text-lg font-bold text-[#102E26]">Results</h2>
+        <dl className="mt-3 space-y-2 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <dt className="font-semibold">Mic permission</dt>
+            <dd>
+              {permission === 'granted' ? <Pill ok>Granted</Pill>
+                : permission === 'denied' ? <Pill>Denied</Pill>
+                : permission === 'prompt' ? <Pill warn>Prompt — not answered yet</Pill>
+                : permission === 'unknown' ? <Pill warn>Unknown</Pill>
+                : <Pill warn>Not requested yet</Pill>}
+            </dd>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <dt className="font-semibold">Audio input</dt>
+            <dd>
+              {deviceCount === null ? <Pill warn>Not checked yet</Pill>
+                : deviceCount > 0 ? <Pill ok>Connected — {deviceCount} input{deviceCount === 1 ? '' : 's'}</Pill>
+                : <Pill>Not connected</Pill>}
+            </dd>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <dt className="font-semibold">Audio stream</dt>
+            <dd>{streamActive ? <Pill ok>Active</Pill> : <Pill warn>Inactive</Pill>}</dd>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <dt className="font-semibold">Audio level</dt>
+            <dd className="font-mono font-bold">{fmtDb(levelDb)}{levelDb !== null ? ` (peak ${fmtDb(peakDb)})` : ''}</dd>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <dt className="font-semibold">Voice detection</dt>
+            <dd>{voiceDetected ? <Pill ok>Detected</Pill> : <Pill warn>Not detected</Pill>}</dd>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <dt className="font-semibold">Recognition engine</dt>
+            <dd>
+              {engineVerdict === 'Available' ? <Pill ok>Available</Pill>
+                : engineVerdict === 'Unsupported' ? <Pill>Unsupported</Pill>
+                : <Pill warn>Not tested yet</Pill>}
+            </dd>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <dt className="font-semibold">Audio processing</dt>
+            <dd>
+              {audioProcessing === 'Working' ? <Pill ok>Working</Pill>
+                : audioProcessing === 'Failed' ? <Pill>Failed</Pill>
+                : <Pill warn>Not tested yet</Pill>}
+            </dd>
+          </div>
+        </dl>
+        {micHeardSound && (engineState === 'failed' || engineState === 'unsupported') && (
+          <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm font-semibold">
+            Voice detected, but Arabic recognition is unavailable.
+          </p>
+        )}
+        {micRunning && !voiceDetected && framesSeen > 100 && (
+          <p className="mt-3 text-sm text-[#5b6b62]">
+            The microphone is open but no voice has been detected yet — speak aloud, close to the phone. If the level
+            stays near −120 dBFS, the mic is sending silence.
+          </p>
+        )}
+      </section>
+
+      {/* ---------- browser capabilities ---------- */}
+      <section aria-label="Browser capabilities" className="rounded-2xl bg-white border border-[#E5E7EB] p-4 sm:p-6 shadow-sm">
+        <h2 className="text-lg font-bold text-[#102E26]">Browser capabilities</h2>
+        <p className="mt-1 text-sm text-[#5b6b62]">Checked on load, no microphone needed. All of these must pass for the coach to work.</p>
+        <ul className="mt-3 space-y-1 text-sm">
+          <li>Secure context (HTTPS): {caps.secureContext ? <Pill ok>Yes</Pill> : <Pill>No — mic blocked</Pill>}</li>
+          <li>Microphone API (getUserMedia): {caps.hasGetUserMedia ? <Pill ok>Yes</Pill> : <Pill>No</Pill>}</li>
+          <li>AudioContext: {caps.hasAudioContext ? <Pill ok>Yes</Pill> : <Pill>No</Pill>}</li>
+          <li>Device list (enumerateDevices): {caps.hasEnumerateDevices ? <Pill ok>Yes</Pill> : <Pill warn>No</Pill>}</li>
+        </ul>
+      </section>
+
+      {/* ---------- microphone capture test ---------- */}
+      <section aria-label="Microphone capture test" className="rounded-2xl bg-white border border-[#E5E7EB] p-4 sm:p-6 shadow-sm">
+        <h2 className="text-lg font-bold text-[#102E26]">1 · Microphone capture</h2>
+        <p className="mt-1 text-sm text-[#5b6b62]">
+          Tests only whether the physical mic delivers sound to this page — no recognition involved.
+          Tap the button, allow the microphone, then speak aloud. The waveform and the level are live.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {!micRunning ? (
+            <button
+              type="button"
+              onClick={() => void runMicTest()}
+              className="rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+            >
+              Run microphone test
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={stopMicTest}
+              className="rounded-full bg-[#B42318] px-5 py-2.5 text-sm font-semibold text-white hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B42318]"
+            >
+              Stop test
+            </button>
+          )}
+        </div>
+        {micError && <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">{micError}</p>}
+        <canvas
+          ref={canvasRef}
+          width={600}
+          height={96}
+          aria-label="Live microphone waveform"
+          className="mt-4 h-24 w-full rounded-lg bg-[#FFFBF2] border border-[#E5E7EB]"
+        />
+        <dl className="mt-3 space-y-1 text-sm">
+          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Audio level (live)</dt><dd className="font-mono font-bold">{fmtDb(levelDb)}</dd></div>
+          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Peak level</dt><dd className="font-mono">{fmtDb(peakDb === -120 ? null : peakDb)}</dd></div>
+          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Level range while testing</dt><dd className="font-mono">{spreadDb > 0 ? `${spreadDb.toFixed(1)} dB — ${spreadDb > 10 ? 'levels changing when you speak' : 'levels barely changing'}` : '—'}</dd></div>
+          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">VAD (speech in the audio)</dt><dd>{vadSpeaking ? <Pill ok>Speaking now</Pill> : voiceDetected ? <Pill ok>Heard speech</Pill> : <Pill warn>Not detected</Pill>}</dd></div>
+          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">AudioContext</dt><dd className="font-mono">{ctxState}{sampleRate ? ` · ${sampleRate} Hz` : ''}</dd></div>
+          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Mic track</dt><dd className="font-mono">{trackInfo}</dd></div>
+          {deviceLabels.length > 0 && (
+            <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Inputs found</dt><dd>{deviceLabels.join(', ')}</dd></div>
+          )}
+          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Audio frames analysed</dt><dd className="font-mono">{framesSeen}</dd></div>
+        </dl>
+      </section>
+
+      {/* ---------- recognition engine test ---------- */}
+      <section aria-label="Arabic recognition engine test" className="rounded-2xl bg-white border border-[#E5E7EB] p-4 sm:p-6 shadow-sm">
+        <h2 className="text-lg font-bold text-[#102E26]">2 · Arabic recognition engine</h2>
+        <p className="mt-1 text-sm text-[#5b6b62]">
+          Loads the same on-device recognition model the coach uses (about 25 MB, downloaded once, then kept on this
+          device) and listens to Al-Fatihah 1:1. This checks whether the engine can follow words — a different question
+          from whether the mic works. Word accuracy only; it never judges tajweed.
+        </p>
+        {engineState === 'idle' && (
+          <button
+            type="button"
+            onClick={() => void loadEngineTest()}
+            className="mt-4 rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+          >
+            Load recognition engine
+          </button>
+        )}
+        {engineState === 'loading' && engineProgress && (
+          <p role="status" className="mt-4 text-sm font-semibold">
+            Loading the engine… {engineProgress.stage} {Math.round(engineProgress.fraction * 100)}%
+            {engineProgress.fromCache ? ' — loaded from this device.' : ''}
+          </p>
+        )}
+        {engineError && <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">{engineError}</p>}
+        {engineInfo && <p className="mt-3 text-sm text-[#5b6b62]">{engineInfo}</p>}
+        {(engineState === 'ready' || engineState === 'listening') && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {engineState === 'ready' ? (
+              <button
+                type="button"
+                onClick={() => void startEngineTest()}
+                className="rounded-full bg-[#1FA36B] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#102E26] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+              >
+                Start engine listening test
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void stopEngineTest()}
+                className="rounded-full bg-[#B42318] px-5 py-2.5 text-sm font-semibold text-white hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B42318]"
+              >
+                Stop &amp; check engine
+              </button>
+            )}
+          </div>
+        )}
+        {engineLive && <p role="status" className="mt-3 text-sm font-semibold">{engineLive}</p>}
+        {engineResult && (
+          <div className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">
+            <p className="font-semibold">Engine test result</p>
+            <p className="mt-1">
+              Words followed: {engineResult.reachedCount} · tracker events: {engineResult.audioHealth.positionEvents} ·{' '}
+              {engineResult.audioHealth.everLocked ? 'tracker locked' : 'tracker never locked'} ·{' '}
+              mic heard audio: {engineResult.micHeardAudio ? 'yes' : 'no'} ·{' '}
+              loudest level {engineResult.audioHealth.maxLevelDb.toFixed(0)} dBFS ·{' '}
+              {(engineResult.durationMs / 1000).toFixed(1)}s
+            </p>
+            {engineResult.noSpeech && engineResult.micHeardAudio ? (
+              <p role="alert" className="mt-2 font-semibold">
+                Voice detected, but the checker could not follow the words. The microphone works — the engine did not
+                lock onto this short ayah. Try a longer recitation in the coach, a little louder and slower.
+              </p>
+            ) : engineResult.noSpeech ? (
+              <p role="alert" className="mt-2 font-semibold">
+                The microphone sent no sound during this test. See the capture test above — the problem is before the
+                recognition engine.
+              </p>
+            ) : (
+              <p className="mt-2 font-semibold">Recognition is working on this device — the engine followed words.</p>
+            )}
+          </div>
+        )}
+      </section>
+
+      <p className="text-xs text-[#5b6b62]">
+        All audio stays on this device. The capture test uses the microphone only while it is running; the engine test
+        uses the same on-device model as the recitation coach. A teacher is still needed for tajweed — this tool checks
+        words, not tajweed.
+      </p>
+    </div>
+  );
+}

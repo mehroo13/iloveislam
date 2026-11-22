@@ -10,9 +10,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { API, TAFSIR_ID, TAFSIRS, TAFSIR_NAME, stripHtml } from '../../quran/lib';
+import { useT } from '../lib/i18n';
 
 export default function TafsirBlock({ verseKey, tafsirId = TAFSIR_ID }: { verseKey: string; tafsirId?: number }) {
-  const name = TAFSIRS.find((t) => t.id === tafsirId)?.name ?? TAFSIR_NAME;
+  const t = useT();
+  const name = TAFSIRS.find((x) => x.id === tafsirId)?.name ?? TAFSIR_NAME;
   const ref = useRef<HTMLDivElement | null>(null);
   const [state, setState] = useState<{ loading: boolean; text: string; error: string }>({
     loading: false,
@@ -33,17 +35,17 @@ export default function TafsirBlock({ verseKey, tafsirId = TAFSIR_ID }: { verseK
       const text = stripHtml(String(data.tafsir?.text ?? ''));
       setState({
         loading: false,
-        text: text || 'No tafsir text was returned for this verse.',
+        text: text || t('tafsir.none'),
         error: '',
       });
     } catch {
       setState({
         loading: false,
         text: '',
-        error: 'Could not load the tafsir. Check your connection and try again.',
+        error: t('tafsir.failed'),
       });
     }
-  }, [verseKey, tafsirId]);
+  }, [verseKey, tafsirId, t]);
 
   useEffect(() => {
     const el = ref.current;
@@ -64,7 +66,7 @@ export default function TafsirBlock({ verseKey, tafsirId = TAFSIR_ID }: { verseK
   return (
     <div ref={ref} className="mt-4 rounded-xl bg-[#FFFBF2] border border-[#E5E7EB] p-4">
       <p className="text-xs font-bold uppercase tracking-wide text-[#1FA36B]">{name}</p>
-      {state.loading && <p className="mt-2 text-sm text-[#1C2420]/60">Loading tafsir…</p>}
+      {state.loading && <p className="mt-2 text-sm text-[#1C2420]/60">{t('tafsir.loading')}</p>}
       {state.error && (
         <p className="mt-2 text-sm text-red-700" role="alert">
           {state.error}

@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { ALL_SURAHS, getSurahById } from '../surahs';
 import { SURAH_FIRST_PAGE } from '../mushaf';
 import { JUZ_PAGES } from '../juz';
+import { useT, t as tr, getUiLocale } from '../lib/i18n';
 
 interface SearchResult {
   verse_key: string;
@@ -29,6 +30,7 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const t = useT();
 
   // Jump-to controls
   const [jumpSurah, setJumpSurah] = useState(2);
@@ -51,7 +53,7 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
       setResults(list);
       setTotal(Number(data?.search?.total_results ?? list.length) || list.length);
     } catch {
-      setError('Search could not run — check your connection and try again.');
+      setError(tr('search.error', getUiLocale()));
       setResults([]);
     } finally {
       setLoading(false);
@@ -86,7 +88,7 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
   return (
     <div className="space-y-6">
       {/* Text search */}
-      <section aria-label="Search the Quran" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+      <section aria-label={t('search.sectionLabel')} className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -95,14 +97,14 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
           className="flex gap-2"
         >
           <label htmlFor="hifz-search" className="sr-only">
-            Search by Arabic or English words
+            {t('search.label')}
           </label>
           <input
             id="hifz-search"
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search Arabic or English — e.g. mercy, or الرحمن"
+            placeholder={t('search.placeholder')}
             className="min-w-0 flex-1 rounded-full border border-[#E5E7EB] bg-[#FFFBF2] px-4 py-3 text-sm outline-none focus:border-[#1FA36B]"
           />
           <button
@@ -110,7 +112,7 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
             disabled={loading || !q.trim()}
             className="shrink-0 rounded-full bg-[#57D798] px-5 py-3 text-sm font-bold text-[#102E26] disabled:opacity-50"
           >
-            {loading ? 'Searching…' : 'Search'}
+            {loading ? t('search.searching') : t('common.search')}
           </button>
         </form>
         <p className="mt-2 text-xs text-[#5b6b62]">
@@ -126,16 +128,16 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
 
       {/* Results — "Search Results" like the Similar Verses screenshot */}
       {searched && (
-        <section aria-label="Search results" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-          <h2 className="text-xl font-bold text-[#102E26]">Search Results</h2>
+        <section aria-label={t('search.resultsLabel')} className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+          <h2 className="text-xl font-bold text-[#102E26]">{t('search.results')}</h2>
           {q.trim() && (
             <p dir="auto" className="mt-1 text-sm text-[#5b6b62]">
-              For “{q.trim()}” — {total} {total === 1 ? 'ayah' : 'ayahs'} found
+              {t('search.forQuery').replace('{q}', q.trim()).replace('{n}', String(total)).replace('{ayahWord}', total === 1 ? t('common.ayah') : t('common.ayahs'))}
             </p>
           )}
           {results.length === 0 && !loading ? (
             <p className="mt-3 text-sm text-[#5b6b62]">
-              Nothing found for that search. Try fewer words, or the Arabic text.
+              {t('search.nothingFound')}
             </p>
           ) : (
             <ul className="mt-4 space-y-5">
@@ -161,21 +163,21 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
                         onClick={() => void shareResult(r)}
                         className="rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B]"
                       >
-                        Share
+                        {t('search.share')}
                       </button>
                       <button
                         type="button"
                         onClick={() => void copyText(`${r.text} (${r.verse_key})`, r.verse_key)}
                         className="rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B]"
                       >
-                        {copied === r.verse_key ? 'Copied' : 'Copy'}
+                        {copied === r.verse_key ? t('search.copied') : t('search.copy')}
                       </button>
                       {surah && (
                         <Link
                           href={`/hifz/${surah.slug}?mode=recite&ayah=${a}`}
                           className="ml-auto rounded-full bg-[#102E26] px-4 py-1.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
                         >
-                          Continue Reading →
+                          {t('search.continueReading')}
                         </Link>
                       )}
                     </div>
@@ -189,11 +191,11 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
 
       {/* Jump to surah / juz / page */}
       <section aria-labelledby="jump-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="jump-heading" className="text-xl font-bold text-[#102E26]">Jump to a place</h2>
+        <h2 id="jump-heading" className="text-xl font-bold text-[#102E26]">{t('search.jump')}</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <div>
             <label className="block text-sm font-semibold">
-              Surah
+              {t('search.surah')}
               <select
                 value={jumpSurah}
                 onChange={(e) => setJumpSurah(Number(e.target.value))}
@@ -208,13 +210,13 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
               href={`/hifz/${ALL_SURAHS[jumpSurah - 1]?.slug ?? 'al-fatihah'}`}
               className="mt-2 inline-block rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
             >
-              Open surah →
+              {t('search.openSurah')}
             </Link>
-            <p className="mt-1 text-xs text-[#5b6b62]">Starts on mushaf page {SURAH_FIRST_PAGE[jumpSurah] ?? '?'}</p>
+            <p className="mt-1 text-xs text-[#5b6b62]">{t('search.startsOnPage').replace('{p}', String(SURAH_FIRST_PAGE[jumpSurah] ?? '?'))}</p>
           </div>
           <div>
             <label className="block text-sm font-semibold">
-              Juz
+              {t('search.juz')}
               <select
                 value={jumpJuz}
                 onChange={(e) => setJumpJuz(Number(e.target.value))}
@@ -229,12 +231,12 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
               href={`/hifz/juz/${jumpJuz}`}
               className="mt-2 inline-block rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
             >
-              Open juz →
+              {t('search.openJuz')}
             </Link>
           </div>
           <div>
             <label className="block text-sm font-semibold">
-              Mushaf page (1–604)
+              {t('search.page')}
               <input
                 type="number"
                 min={1}
@@ -248,7 +250,7 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
               href={`/hifz/mushaf/${Math.min(604, Math.max(1, jumpPage))}`}
               className="mt-2 inline-block rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
             >
-              Open page →
+              {t('search.openPage')}
             </Link>
           </div>
         </div>
@@ -256,7 +258,7 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
 
       {/* Voice search entry */}
       <section className="rounded-2xl bg-[#102E26] p-5 text-white shadow-sm sm:p-6">
-        <h2 className="text-xl font-bold">Voice Search</h2>
+        <h2 className="text-xl font-bold">{t('search.voiceSearch')}</h2>
         <p className="mt-1 text-sm leading-relaxed text-white/80">
           Recite any phrase and the app finds the exact ayah and surah — like Shazam, for the Quran.
         </p>
@@ -264,7 +266,7 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
           href="/hifz/voice-search"
           className="mt-4 inline-block rounded-full bg-[#57D798] px-5 py-2.5 text-sm font-bold text-[#102E26] hover:brightness-105"
         >
-          Open Voice Search →
+          {t('search.openVoiceSearch')}
         </Link>
       </section>
     </div>

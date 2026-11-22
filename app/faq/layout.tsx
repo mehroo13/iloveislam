@@ -1,16 +1,15 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'FAQ — Islamic Tools Help & Answers | I Love Islam',
+  title: 'FAQ — Hifz Help & Answers | I Love Islam',
   description:
-    'Find answers to frequently asked questions about our free Islamic tools — Zakat Calculator, Prayer Times, Qibla Finder, Quran Reader, Dhikr Counter, and more.',
+    'Find answers to frequently asked questions about the free Hifz app — AI Quran memorisation coach, recitation feedback, hifz plans, and offline progress.',
   keywords: [
-    'islamic tools faq', 'i love islam help', 'zakat calculator help', 'prayer times faq',
-    'qibla finder help', 'islamic app questions',
+    'hifz faq', 'quran memorisation help', 'i love islam help', 'hifz app questions', 'memorise quran faq',
   ],
   openGraph: {
-    title: 'FAQ — Islamic Tools Help & Answers | I Love Islam',
-    description: 'Answers to common questions about our 20+ free Islamic tools. Privacy, accuracy, and usage explained.',
+    title: 'FAQ — Hifz Help & Answers | I Love Islam',
+    description: 'Answers to common questions about the free Hifz Quran memorisation app. Privacy, accuracy, and usage explained.',
     type: 'website',
     url: 'https://www.iloveislam.life/faq',
     siteName: 'I Love Islam',
@@ -20,7 +19,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'FAQ — I Love Islam',
-    description: 'Answers to common questions about our free Islamic tools.',
+    description: 'Answers to common questions about the free Hifz app.',
     images: ['/optimized/og-image.webp'],
   },
   alternates: { canonical: 'https://www.iloveislam.life/faq' },

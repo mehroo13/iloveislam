@@ -9,6 +9,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ALL_SURAHS } from '../surahs';
+import { useT } from '../lib/i18n';
 
 type GoalAction = 'Review' | 'Memorize' | 'Recite';
 
@@ -40,14 +41,16 @@ function loadGoals(): Goal[] {
   }
 }
 
-const SUGGESTIONS: { label: string; note: string; action: GoalAction; range: string; portion: string; schedule: string }[] = [
-  { label: 'Complete the Quran', note: 'One portion a day until the khatm is done', action: 'Recite', range: 'Whole Quran (114 surahs)', portion: '1 page a day', schedule: 'Every day' },
-  { label: 'Surah Al-Kahf every Friday', note: 'Recite it weekly, from memory', action: 'Recite', range: 'Surah Al-Kahf', portion: 'Whole surah', schedule: 'Every Friday' },
-  { label: 'Review Juz 30', note: 'Keep the short surahs fresh', action: 'Review', range: 'Juz 30', portion: '5 ayahs a day', schedule: 'Every day' },
-  { label: 'Memorise Juz Amma', note: '37 short surahs, backwards or forwards', action: 'Memorize', range: 'Juz 30 (Amma)', portion: '1 surah a day', schedule: 'Every day' },
-];
+type Suggestion = { label: string; note: string; action: GoalAction; range: string; portion: string; schedule: string };
 
 export default function GoalsClient({ preset }: { preset?: string }) {
+  const t = useT();
+  const SUGGESTIONS: Suggestion[] = [
+    { label: t('hub.completeQuran'), note: t('hub.completeQuranNote'), action: 'Recite', range: 'Whole Quran (114 surahs)', portion: '1 page a day', schedule: 'Every day' },
+    { label: t('hub.kahf'), note: t('hub.kahfNote'), action: 'Recite', range: 'Surah Al-Kahf', portion: 'Whole surah', schedule: 'Every Friday' },
+    { label: t('goal.reviewJuz30'), note: t('goal.reviewJuz30Note'), action: 'Review', range: 'Juz 30', portion: '5 ayahs a day', schedule: 'Every day' },
+    { label: t('goal.memoriseAmma'), note: t('goal.memoriseAmmaNote'), action: 'Memorize', range: 'Juz 30 (Amma)', portion: '1 surah a day', schedule: 'Every day' },
+  ];
   const [goals, setGoals] = useState<Goal[]>([]);
   const [name, setName] = useState('');
   const [action, setAction] = useState<GoalAction>('Memorize');
@@ -84,7 +87,7 @@ export default function GoalsClient({ preset }: { preset?: string }) {
   const createGoal = (s?: (typeof SUGGESTIONS)[number]) => {
     const g: Goal = {
       id: `${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`,
-      name: s?.label ?? name.trim() ?? 'My goal',
+      name: s?.label ?? name.trim() ?? t('goal.myGoal'),
       action: s?.action ?? action,
       range: s?.range ?? range,
       portion: s?.portion ?? portion,
@@ -97,7 +100,7 @@ export default function GoalsClient({ preset }: { preset?: string }) {
     };
     if (!g.name) return;
     persist([g, ...goals]);
-    setSavedMsg(`Goal “${g.name}” saved. Your daily plan: ${g.portion}, ${g.schedule.toLowerCase()}.`);
+    setSavedMsg(`${t('goal.savedA')}${g.name}${t('goal.savedB')} ${g.portion}, ${g.schedule.toLowerCase()}.`);
     setName('');
   };
 
@@ -107,10 +110,10 @@ export default function GoalsClient({ preset }: { preset?: string }) {
   const planPreview = () => {
     if (shape === 'flexible') {
       return deadline
-        ? `Flexible plan: the app spreads the whole range evenly so you finish by ${deadline}.`
-        : 'Flexible plan: the app spreads the range evenly across your schedule — set a deadline to see the finish date.';
+        ? `${t('goal.planFlexibleDeadline')} ${deadline}.`
+        : t('goal.planFlexibleNoDeadline');
     }
-    return `Portion plan: a fixed ${portion.toLowerCase()} each session, ${schedule.toLowerCase()}.`;
+    return `${t('goal.planPortionA')} ${portion.toLowerCase()} ${t('goal.planPortionB')} ${schedule.toLowerCase()}.`;
   };
 
   const barColor = (v: number) => (v >= 1 ? '#16A34A' : v > 0 ? '#F2C94C' : '#DC2626');
@@ -126,15 +129,15 @@ export default function GoalsClient({ preset }: { preset?: string }) {
       {/* My goals */}
       {goals.length > 0 && (
         <section aria-labelledby="mine-heading" className="space-y-4">
-          <h2 id="mine-heading" className="text-xl font-bold text-[#102E26]">My goals</h2>
+          <h2 id="mine-heading" className="text-xl font-bold text-[#102E26]">{t('goal.myGoals')}</h2>
           {goals.map((g) => (
             <article key={g.id} className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h3 className="text-lg font-bold text-[#102E26]">{g.name}</h3>
                 <span className="rounded-full bg-[#E4FFF2] px-3 py-1 text-xs font-bold text-[#1FA36B]">
-                  {g.action} · {g.shape === 'flexible' ? 'Flexible' : 'Portion-based'}
-                  {g.recurring ? ' · Recurring' : ''}
-                  {g.reverse ? ' · Reverse order' : ''}
+                  {g.action} · {g.shape === 'flexible' ? t('goal.flexibleLabel') : t('goal.portionBased')}
+                  {g.recurring ? ` · ${t('goal.recurringLabel')}` : ''}
+                  {g.reverse ? ` · ${t('goal.reverseLabel')}` : ''}
                 </span>
               </div>
               <p className="mt-1 text-sm text-[#5b6b62]">
@@ -144,7 +147,7 @@ export default function GoalsClient({ preset }: { preset?: string }) {
                 {(g.sessions.length > 0 ? g.sessions : [0, 0, 0, 0, 0, 0, 0]).map((v, i) => (
                   <span
                     key={i}
-                    title={v >= 1 ? 'Session complete' : v > 0 ? 'Session in progress' : 'Session missed'}
+                    title={v >= 1 ? t('goal.sessionComplete') : v > 0 ? t('goal.sessionProgress') : t('goal.sessionMissed')}
                     className="w-6 rounded-t"
                     style={{ height: `${12 + v * 20}px`, background: barColor(v) }}
                   />
@@ -159,14 +162,14 @@ export default function GoalsClient({ preset }: { preset?: string }) {
                   href="/hifz/recite"
                   className="rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
                 >
-                  Practise now →
+                  {t('goal.practiseNow')}
                 </Link>
                 <button
                   type="button"
                   onClick={() => deleteGoal(g.id)}
                   className="text-sm font-semibold text-red-700 underline"
                 >
-                  Delete goal
+                  {t('goal.deleteGoal')}
                 </button>
               </div>
             </article>
@@ -176,37 +179,37 @@ export default function GoalsClient({ preset }: { preset?: string }) {
 
       {/* New goal */}
       <section aria-labelledby="new-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="new-heading" className="text-xl font-bold text-[#102E26]">Start a custom goal</h2>
+        <h2 id="new-heading" className="text-xl font-bold text-[#102E26]">{t('hub.goalCta')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           Set your intention: what you will do, over which part of the Quran, how much per
           session, and when. The app builds your daily plan from that — no account, no limits.
         </p>
         <div className="mt-4 space-y-4">
           <label className="block text-sm font-semibold">
-            Goal name
+            {t('goal.goalName')}
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Memorise Al-Mulk before Ramadan"
+              placeholder={t('goal.namePlaceholder')}
               className="mt-1 block w-full rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
             />
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block text-sm font-semibold">
-              Action
+              {t('goal.action')}
               <select
                 value={action}
                 onChange={(e) => setAction(e.target.value as GoalAction)}
                 className="mt-1 block w-full rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
               >
-                <option value="Memorize">Memorize</option>
-                <option value="Review">Review</option>
-                <option value="Recite">Recite</option>
+                <option value="Memorize">{t('goal.memorize')}</option>
+                <option value="Review">{t('common.review')}</option>
+                <option value="Recite">{t('common.recite')}</option>
               </select>
             </label>
             <label className="block text-sm font-semibold">
-              Range
+              {t('goal.range')}
               <select
                 value={range}
                 onChange={(e) => setRange(e.target.value)}
@@ -215,41 +218,41 @@ export default function GoalsClient({ preset }: { preset?: string }) {
                 {ALL_SURAHS.map((s) => (
                   <option key={s.id} value={`Surah ${s.name}`}>Surah {s.name}</option>
                 ))}
-                <option value="Juz 30">Juz 30</option>
-                <option value="Juz 29">Juz 29</option>
-                <option value="Whole Quran (114 surahs)">Whole Quran (114 surahs)</option>
+                <option value="Juz 30">{t('goal.juz30')}</option>
+                <option value="Juz 29">{t('goal.juz29')}</option>
+                <option value="Whole Quran (114 surahs)">{t('goal.wholeQuran')}</option>
               </select>
             </label>
             <label className="block text-sm font-semibold">
-              Portion per session
+              {t('goal.portion')}
               <select
                 value={portion}
                 onChange={(e) => setPortion(e.target.value)}
                 className="mt-1 block w-full rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
               >
-                <option value="1 ayah a day">1 ayah a day</option>
-                <option value="3 ayahs a day">3 ayahs a day</option>
-                <option value="5 ayahs a day">5 ayahs a day</option>
-                <option value="1 page a day">1 page a day</option>
-                <option value="Whole surah">Whole surah</option>
+                <option value="1 ayah a day">{t('goal.ayahADay1')}</option>
+                <option value="3 ayahs a day">{t('goal.ayahADay3')}</option>
+                <option value="5 ayahs a day">{t('goal.ayahADay5')}</option>
+                <option value="1 page a day">{t('goal.pageADay')}</option>
+                <option value="Whole surah">{t('goal.wholeSurah')}</option>
               </select>
             </label>
             <label className="block text-sm font-semibold">
-              Schedule
+              {t('goal.schedule')}
               <select
                 value={schedule}
                 onChange={(e) => setSchedule(e.target.value)}
                 className="mt-1 block w-full rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
               >
-                <option value="Every day">Every day</option>
-                <option value="Weekdays">Weekdays</option>
-                <option value="Every Friday">Every Friday</option>
-                <option value="3 days a week">3 days a week</option>
+                <option value="Every day">{t('goal.everyDay')}</option>
+                <option value="Weekdays">{t('goal.weekdays')}</option>
+                <option value="Every Friday">{t('goal.everyFriday')}</option>
+                <option value="3 days a week">{t('goal.threeDays')}</option>
               </select>
             </label>
           </div>
           <fieldset>
-            <legend className="text-sm font-semibold">Plan shape</legend>
+            <legend className="text-sm font-semibold">{t('goal.planShape')}</legend>
             <div className="mt-2 flex flex-wrap gap-2">
               <button
                 type="button"
@@ -257,7 +260,7 @@ export default function GoalsClient({ preset }: { preset?: string }) {
                 onClick={() => setShape('flexible')}
                 className={`rounded-full px-4 py-2 text-sm font-semibold ${shape === 'flexible' ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB]'}`}
               >
-                Flexible — finish by a date
+                {t('goal.flexible')}
               </button>
               <button
                 type="button"
@@ -265,13 +268,13 @@ export default function GoalsClient({ preset }: { preset?: string }) {
                 onClick={() => setShape('portion')}
                 className={`rounded-full px-4 py-2 text-sm font-semibold ${shape === 'portion' ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB]'}`}
               >
-                Fixed portion each session
+                {t('goal.fixedPortion')}
               </button>
             </div>
           </fieldset>
           {shape === 'flexible' && (
             <label className="block text-sm font-semibold">
-              Deadline (optional)
+              {t('goal.deadline')}
               <input
                 type="date"
                 value={deadline}
@@ -283,11 +286,11 @@ export default function GoalsClient({ preset }: { preset?: string }) {
           <div className="flex flex-wrap gap-4">
             <label className="flex items-center gap-2 text-sm font-semibold">
               <input type="checkbox" checked={reverse} onChange={(e) => setReverse(e.target.checked)} />
-              Reverse order (e.g. Juz Amma backwards, An-Nas → An-Naba)
+              {t('goal.reverse')}
             </label>
             <label className="flex items-center gap-2 text-sm font-semibold">
               <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} />
-              Recurring (repeats when finished)
+              {t('goal.recurring')}
             </label>
           </div>
           <p className="rounded-xl bg-[#E4FFF2] px-4 py-3 text-sm text-[#102E26]">{planPreview()}</p>
@@ -297,15 +300,15 @@ export default function GoalsClient({ preset }: { preset?: string }) {
             disabled={!name.trim()}
             className="rounded-full bg-[#57D798] px-6 py-3 text-sm font-bold text-[#102E26] disabled:opacity-50"
           >
-            Save this goal
+            {t('goal.saveGoal')}
           </button>
         </div>
       </section>
 
       {/* Suggestions */}
       <section aria-labelledby="sugg-heading">
-        <h2 id="sugg-heading" className="text-xl font-bold text-[#102E26]">Suggestions</h2>
-        <p className="text-sm text-[#5b6b62]">Try one of these to get started quickly.</p>
+        <h2 id="sugg-heading" className="text-xl font-bold text-[#102E26]">{t('hub.suggestions')}</h2>
+        <p className="text-sm text-[#5b6b62]">{t('hub.suggestionsHint')}</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {SUGGESTIONS.map((s) => (
             <article key={s.label} className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
@@ -319,7 +322,7 @@ export default function GoalsClient({ preset }: { preset?: string }) {
                 onClick={() => createGoal(s)}
                 className="mt-3 rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
               >
-                Start this goal
+                {t('goal.startGoal')}
               </button>
             </article>
           ))}
@@ -327,13 +330,13 @@ export default function GoalsClient({ preset }: { preset?: string }) {
       </section>
 
       <p className="text-sm text-[#5b6b62]">
-        Daily goals by type (memorisation, revision, reading) live on{' '}
+        {t('goal.footerA')}{' '}
         <Link href="/hifz/my-progress" className="font-semibold text-[#1FA36B] underline">
-          My Progress
+          {t('common.myProgress')}
         </Link>
-        . Longer plans (7, 30 and 90 days) live under{' '}
+        {t('goal.footerB')}{' '}
         <Link href="/hifz/plans" className="font-semibold text-[#1FA36B] underline">
-          Plans
+          {t('common.plans')}
         </Link>
         .
       </p>

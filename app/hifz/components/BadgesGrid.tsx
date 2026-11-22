@@ -7,6 +7,7 @@
 'use client';
 
 import ToolIcon from '../../components/ToolIcon';
+import { useT } from '../lib/i18n';
 import {
   BADGES,
   CATEGORY_LABELS,
@@ -17,6 +18,7 @@ import {
 } from '../badges';
 
 function BadgeCard({ result, bestTestPct }: { result: BadgeResult; bestTestPct: number | null }) {
+  const t = useT();
   const { badge, earned, current, target } = result;
   const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
   const needsTest = badge.category === 'accuracy' && bestTestPct === null;
@@ -45,7 +47,7 @@ function BadgeCard({ result, bestTestPct }: { result: BadgeResult; bestTestPct: 
         </div>
         {earned && (
           <span className="ml-auto shrink-0 rounded-full bg-[#1FA36B] px-2 py-0.5 text-xs font-bold text-white">
-            Earned
+            {t('badge.earned')}
           </span>
         )}
       </div>
@@ -63,7 +65,7 @@ function BadgeCard({ result, bestTestPct }: { result: BadgeResult; bestTestPct: 
           </div>
           <p className="mt-1.5 text-xs text-[#5b6b62]">
             {needsTest
-              ? 'Take a test in Test Mode to unlock this badge.'
+              ? t('badge.takeTest')
               : `${current.toLocaleString()} / ${target.toLocaleString()}`}
           </p>
         </div>
@@ -73,6 +75,7 @@ function BadgeCard({ result, bestTestPct }: { result: BadgeResult; bestTestPct: 
 }
 
 export default function BadgesGrid({ snapshot }: { snapshot: BadgeSnapshot }) {
+  const t = useT();
   const results = evaluateBadges(snapshot);
   const earnedCount = results.filter((r) => r.earned).length;
   const byCategory = new Map<string, BadgeResult[]>();
@@ -87,20 +90,18 @@ export default function BadgesGrid({ snapshot }: { snapshot: BadgeSnapshot }) {
     <section aria-labelledby="badges-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 id="badges-heading" className="text-xl font-bold text-[#102E26]">
-          Badges
+          {t('badge.badges')}
         </h2>
         <p className="text-sm font-semibold text-[#102E26]">
-          {earnedCount} of {BADGES.length} earned
+          {earnedCount} {t('common.of')} {BADGES.length} {t('badge.earnedWord')}
         </p>
       </div>
       <p className="mt-1 text-sm text-[#5b6b62]">
-        Earned by practice alone — every badge is free, and there is nothing
-        to unlock with payment.
+        {t('badge.freeNote')}
       </p>
       {earnedCount === 0 && (
         <p className="mt-3 rounded-xl bg-[#FFFBF2] px-4 py-3 text-sm text-[#5b6b62]">
-          No badges yet. Memorise your first ayah — three correct recitations
-          in a row — to earn your first one.
+          {t('badge.noneYet')}
         </p>
       )}
       <div className="mt-5 space-y-6">

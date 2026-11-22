@@ -12,38 +12,44 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { migrateToIdb } from '../lib/store';
+import { useSyncUiPrefs, useT } from '../lib/i18n';
 
-const TABS: { href: string; label: string; icon: string; match: (p: string) => boolean }[] = [
-  { href: '/hifz', label: 'Home', icon: '⌂', match: (p) => p === '/hifz' },
-  { href: '/hifz/mushaf/1', label: 'Mushaf', icon: '▤', match: (p) => p.startsWith('/hifz/mushaf') },
-  { href: '/hifz/memorize', label: 'Memorize', icon: '◐', match: (p) => p.startsWith('/hifz/memorize') || p.startsWith('/hifz/test') || p.startsWith('/hifz/recite') },
-  { href: '/hifz/search', label: 'Search', icon: '⌕', match: (p) => p.startsWith('/hifz/search') || p.startsWith('/hifz/voice-search') },
-  { href: '/hifz/my-progress', label: 'Progress', icon: '▦', match: (p) => p.startsWith('/hifz/my-progress') || p.startsWith('/hifz/goals') || p.startsWith('/hifz/plans') || p.startsWith('/hifz/challenges') },
+const TABS: { href: string; labelKey: string; icon: string; match: (p: string) => boolean }[] = [
+  { href: '/hifz', labelKey: 'nav.home', icon: '⌂', match: (p) => p === '/hifz' },
+  { href: '/hifz/mushaf/1', labelKey: 'nav.mushaf', icon: '▤', match: (p) => p.startsWith('/hifz/mushaf') },
+  { href: '/hifz/memorize', labelKey: 'nav.memorize', icon: '◐', match: (p) => p.startsWith('/hifz/memorize') || p.startsWith('/hifz/test') || p.startsWith('/hifz/recite') },
+  { href: '/hifz/search', labelKey: 'nav.search', icon: '⌕', match: (p) => p.startsWith('/hifz/search') || p.startsWith('/hifz/voice-search') },
+  { href: '/hifz/my-progress', labelKey: 'nav.progress', icon: '▦', match: (p) => p.startsWith('/hifz/my-progress') || p.startsWith('/hifz/goals') || p.startsWith('/hifz/plans') || p.startsWith('/hifz/challenges') },
 ];
 
 export function BottomTabs() {
   const pathname = usePathname() ?? '';
+  const t = useT();
+  // BottomTabs renders on `/` too (via SiteChrome in the root layout),
+  // where the hifz layout — and ThemeApplier — never runs. So the tabs
+  // themselves apply the saved theme + language on mount.
+  useSyncUiPrefs();
   return (
     <nav
-      aria-label="Hifz sections"
+      aria-label={t('nav.sections')}
       className="fixed inset-x-0 bottom-0 z-50 border-t border-[#E5E7EB] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >
       <ul className="mx-auto flex max-w-3xl items-stretch justify-around">
-        {TABS.map((t) => {
-          const active = t.match(pathname);
+        {TABS.map((tab) => {
+          const active = tab.match(pathname);
           return (
-            <li key={t.href} className="flex-1">
+            <li key={tab.href} className="flex-1">
               <Link
-                href={t.href}
+                href={tab.href}
                 aria-current={active ? 'page' : undefined}
                 className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${
                   active ? 'text-[#1FA36B]' : 'text-[#5b6b62]'
                 }`}
               >
                 <span aria-hidden="true" className={`text-xl leading-none ${active ? 'text-[#57D798]' : ''}`}>
-                  {t.icon}
+                  {tab.icon}
                 </span>
-                {t.label}
+                {t(tab.labelKey)}
                 {active && <span aria-hidden="true" className="h-1 w-8 rounded-full bg-[#57D798]" />}
               </Link>
             </li>
@@ -54,29 +60,13 @@ export function BottomTabs() {
   );
 }
 
-/** Apply the saved theme (light/dark/sepia) to <html data-theme>. */
+/** Apply the saved theme (light/dark/sepia) + language (lang/dir) to
+ *  <html>. The store (lib/i18n) is the live source: it reads
+ *  `ili_hifz_settings_v1` after mount, applies it, and re-renders every
+ *  subscriber when Settings changes it — no reload needed. */
 export function ThemeApplier() {
+  useSyncUiPrefs();
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('ili_hifz_settings_v1');
-      const parsed = raw ? (JSON.parse(raw) as { theme?: string; language?: string }) : null;
-      const theme = parsed?.theme;
-      if (theme === 'dark' || theme === 'sepia') {
-        document.documentElement.setAttribute('data-theme', theme);
-      } else {
-        document.documentElement.removeAttribute('data-theme');
-      }
-      // Full RTL for Arabic + Urdu (Settings → Language).
-      const lang = parsed?.language;
-      if (lang === 'ar' || lang === 'ur') {
-        document.documentElement.dir = 'rtl';
-      } else if (lang) {
-        document.documentElement.dir = 'ltr';
-      }
-      if (lang) document.documentElement.lang = lang;
-    } catch {
-      /* default light */
-    }
     // One-time migration of existing localStorage progress into IndexedDB.
     void migrateToIdb();
   }, []);
@@ -92,6 +82,7 @@ const ONBOARD_KEY = 'ili_onboarded_v1';
 export function Onboarding() {
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0);
+  const t = useT();
 
   useEffect(() => {
     try {
@@ -114,24 +105,24 @@ export function Onboarding() {
 
   const screens = [
     {
-      title: 'Recite. Get checked, word by word.',
-      body: 'Recite aloud and the checker follows your voice — it highlights each word as you say it, on this device. Your audio never leaves your device unless you choose to share it.',
+      title: t('ob.s1.title'),
+      body: t('ob.s1.body'),
       bubbles: [
         { text: 'قُلْ هُوَ اللَّهُ أَحَدٌ', kind: 'correct' },
         { text: 'اللَّهُ الصَّمَدُ', kind: 'correct' },
       ],
     },
     {
-      title: 'Mistakes, spotted straight away.',
-      body: 'Incorrect words, extra words and missed words are highlighted as you recite — correct words in green, mistakes in red, skipped words in orange. Tap any mistake to see the right word.',
+      title: t('ob.s2.title'),
+      body: t('ob.s2.body'),
       bubbles: [
         { text: 'قُلْ هُوَ اللَّهُ أَحَدٌ', kind: 'correct' },
         { text: 'لَمْ يَلِدْ وَلَمْ يُولَدْ', kind: 'mistake' },
       ],
     },
     {
-      title: 'Hide it. Recite it. Own it.',
-      body: 'Hide the verses and recite from memory — words reveal as you get them right. Test yourself, track your streak, and revise what needs work. Free, no account, no sign-up.',
+      title: t('ob.s3.title'),
+      body: t('ob.s3.body'),
       bubbles: [{ text: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ', kind: 'correct' }],
     },
   ];
@@ -153,7 +144,7 @@ export function Onboarding() {
           onClick={done}
           className="rounded-full border border-white/40 px-4 py-1.5 text-sm font-semibold hover:bg-white/10"
         >
-          Skip
+          {t('ob.skip')}
         </button>
       </div>
       <div className="flex flex-1 flex-col justify-center px-6">
@@ -185,10 +176,10 @@ export function Onboarding() {
           onClick={() => (step < 2 ? setStep(step + 1) : done())}
           className="w-full rounded-full bg-[#57D798] py-3.5 text-base font-bold text-[#102E26] hover:brightness-105"
         >
-          {step < 2 ? 'Next →' : 'Get started →'}
+          {step < 2 ? t('ob.next') : t('ob.getStarted')}
         </button>
         <p className="mt-3 text-center text-xs text-white/60">
-          Free forever · No account · Your data stays on this device
+          {t('ob.freeNote')}
         </p>
       </div>
     </div>

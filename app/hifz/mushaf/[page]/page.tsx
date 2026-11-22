@@ -64,8 +64,13 @@ export default async function MushafPage({
     .map(getSurahById)
     .filter((s): s is NonNullable<typeof s> => Boolean(s));
 
+  // Wider than the old max-w-3xl on purpose: the mushaf page is rendered
+  // at a fixed 970px design width (the widest Quranic line is ~895px —
+  // see MushafPageView) and transform-scaled to fit, so the container
+  // must be ~960px wide on desktop for the fit scale to stay ~1.
+  // On a phone the container is fluid and the page scales down.
   return (
-    <main className="mx-auto max-w-3xl px-4 pb-16 pt-6 sm:pt-8">
+    <main className="mx-auto max-w-5xl px-4 pb-16 pt-6 sm:pt-8">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

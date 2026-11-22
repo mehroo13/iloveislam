@@ -9,6 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { API, cleanIndopak, AUDIO_BASE } from '../../quran/lib';
+import { useT } from '../lib/i18n';
 
 interface WordRow {
   arabic: string;
@@ -26,6 +27,7 @@ export default function WordByWord({
   ayah: number;
   indopakText: string;
 }) {
+  const t = useT();
   const [words, setWords] = useState<WordRow[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [playing, setPlaying] = useState<number | null>(null);
@@ -68,14 +70,14 @@ export default function WordByWord({
   }, [surahId, ayah, indopakText]);
 
   if (failed) {
-    return <p className="mt-3 text-sm text-[#5b6b62]">Word-by-word is unavailable right now.</p>;
+    return <p className="mt-3 text-sm text-[#5b6b62]">{t('wbw.unavailable')}</p>;
   }
   if (words === null) {
-    return <p className="mt-3 text-sm text-[#5b6b62]">Loading word-by-word…</p>;
+    return <p className="mt-3 text-sm text-[#5b6b62]">{t('wbw.loading')}</p>;
   }
   return (
     <div className="mt-3">
-      <ul className="flex flex-wrap gap-2" aria-label={`Word-by-word for ${surahId}:${ayah}`}>
+      <ul className="flex flex-wrap gap-2" aria-label={`${t('ayah.wordByWord')} ${surahId}:${ayah}`}>
         {words.map((w, i) => (
           <li
             key={i}
@@ -91,7 +93,7 @@ export default function WordByWord({
             {w.audioUrl && (
               <button
                 type="button"
-                aria-label={`Hear the word ${w.transliteration || w.arabic}`}
+                aria-label={`${t('wbw.hearIt')} — ${w.transliteration || w.arabic}`}
                 onClick={() => {
                   const audio = new Audio(`${AUDIO_BASE}${w.audioUrl}`);
                   setPlaying(i);
@@ -100,13 +102,13 @@ export default function WordByWord({
                 }}
                 className="mt-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#1FA36B] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
               >
-                {playing === i ? 'Playing…' : 'Hear it'}
+                {playing === i ? t('wbw.playing') : t('wbw.hearIt')}
               </button>
             )}
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-xs text-[#5b6b62]">Word translations via Quran.com.</p>
+      <p className="mt-2 text-xs text-[#5b6b62]">{t('wbw.via')}</p>
     </div>
   );
 }

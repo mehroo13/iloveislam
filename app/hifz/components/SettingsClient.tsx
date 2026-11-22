@@ -13,17 +13,15 @@ import {
   type HifzSettings,
 } from '../progress';
 import { mirrorAllToIdb } from '../lib/store';
-
-const LANGUAGES: { code: string; name: string; rtl: boolean }[] = [
-  { code: 'en', name: 'English', rtl: false },
-  { code: 'ar', name: 'العربية (Arabic)', rtl: true },
-  { code: 'ur', name: 'اردو (Urdu)', rtl: true },
-  { code: 'fr', name: 'Français (French)', rtl: false },
-  { code: 'id', name: 'Bahasa Indonesia', rtl: false },
-  { code: 'ms', name: 'Bahasa Melayu (Malay)', rtl: false },
-  { code: 'ru', name: 'Русский (Russian)', rtl: false },
-  { code: 'hi', name: 'हिन्दी (Hindi)', rtl: false },
-];
+import {
+  SUPPORTED_LOCALES,
+  isSupportedLocale,
+  resetUiPrefsToDefaults,
+  setUiLocale,
+  setUiTheme,
+  syncPrefsFromStorage,
+  useT,
+} from '../lib/i18n';
 
 function Toggle({
   label,
@@ -50,8 +48,9 @@ function Toggle({
         onClick={() => onChange(!checked)}
         className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${checked ? 'bg-[#57D798]' : 'bg-[#E5E7EB]'}`}
       >
+        {/* Logical `start-*` (not `left-*`) so the knob mirrors in RTL. */}
         <span
-          className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${checked ? 'left-[22px]' : 'left-0.5'}`}
+          className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${checked ? 'start-[22px]' : 'start-0.5'}`}
         />
       </button>
     </div>
@@ -63,6 +62,7 @@ export default function SettingsClient() {
   const [msg, setMsg] = useState<string | null>(null);
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const t = useT();
 
   useEffect(() => {
     try {
@@ -78,15 +78,12 @@ export default function SettingsClient() {
     setSettings(next);
     saveSettings(next);
     mirrorAllToIdb();
-    if (patch.theme) {
-      if (patch.theme === 'light') document.documentElement.removeAttribute('data-theme');
-      else document.documentElement.setAttribute('data-theme', patch.theme);
-    }
-    if (patch.language) {
-      const lang = LANGUAGES.find((l) => l.code === patch.language);
-      document.documentElement.dir = lang?.rtl ? 'rtl' : 'ltr';
-      document.documentElement.lang = patch.language;
-    }
+    // Language/theme go through the i18n store: it re-saves the same
+    // values, applies them to <html> (lang/dir/data-theme) and notifies
+    // every subscriber (bottom tabs, onboarding) so the whole shell
+    // re-renders in the new language/theme immediately — no reload.
+    if (patch.theme) setUiTheme(patch.theme);
+    if (patch.language && isSupportedLocale(patch.language)) setUiLocale(patch.language);
   };
 
   const doExport = () => {
@@ -109,6 +106,8 @@ export default function SettingsClient() {
       }
       setSettings(result.settings);
       setImportMsg('Progress imported successfully.');
+      // An import can carry a different language/theme — apply it at once.
+      syncPrefsFromStorage();
     };
     reader.onerror = () => setImportMsg('That file could not be read.');
     reader.readAsText(file);
@@ -124,6 +123,8 @@ export default function SettingsClient() {
         indexedDB.deleteDatabase('ili-hifz');
       }
       setMsg('Everything on this device was cleared. Reload the page to start fresh.');
+      // Reset the live locale/theme to the defaults right away.
+      resetUiPrefsToDefaults();
     } catch {
       setMsg('Clear failed — browser storage is unavailable.');
     }
@@ -132,7 +133,7 @@ export default function SettingsClient() {
   if (!settings) {
     return (
       <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-        <p className="text-sm text-[#5b6b62]">Loading settings…</p>
+        <p className="text-sm text-[#5b6b62]">{t('set.loading')}</p>
       </div>
     );
   }
@@ -147,19 +148,18 @@ export default function SettingsClient() {
 
       {/* Language */}
       <section aria-labelledby="lang-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="lang-heading" className="text-lg font-bold text-[#102E26]">Language</h2>
+        <h2 id="lang-heading" className="text-lg font-bold text-[#102E26]">{t('set.language')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
-          Interface language. Arabic and Urdu switch the whole interface to right-to-left.
-          Quran translations are picked separately, on each surah page.
+          {t('set.languageHint')}
         </p>
         <label className="mt-3 block text-sm font-semibold">
-          Interface language
+          {t('set.interfaceLanguage')}
           <select
             value={settings.language ?? 'en'}
             onChange={(e) => update({ language: e.target.value })}
             className="mt-1 block w-full max-w-xs rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
           >
-            {LANGUAGES.map((l) => (
+            {SUPPORTED_LOCALES.map((l) => (
               <option key={l.code} value={l.code}>{l.name}</option>
             ))}
           </select>
@@ -168,13 +168,13 @@ export default function SettingsClient() {
 
       {/* Themes */}
       <section aria-labelledby="theme-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="theme-heading" className="text-lg font-bold text-[#102E26]">Theme</h2>
-        <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Theme">
+        <h2 id="theme-heading" className="text-lg font-bold text-[#102E26]">{t('set.theme')}</h2>
+        <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={t('set.theme')}>
           {(
             [
-              ['light', 'Light'],
-              ['dark', 'Dark'],
-              ['sepia', 'Sepia'],
+              ['light', t('set.themeLight')],
+              ['dark', t('set.themeDark')],
+              ['sepia', t('set.themeSepia')],
             ] as const
           ).map(([v, label]) => (
             <button
@@ -190,33 +190,33 @@ export default function SettingsClient() {
             </button>
           ))}
         </div>
-        <p className="mt-2 text-xs text-[#5b6b62]">Dark is best for night recitation; sepia is warm paper, like a printed mushaf.</p>
+        <p className="mt-2 text-xs text-[#5b6b62]">{t('set.themeHint')}</p>
       </section>
 
       {/* Recitation */}
       <section aria-labelledby="rec-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="rec-heading" className="text-lg font-bold text-[#102E26]">Recitation</h2>
+        <h2 id="rec-heading" className="text-lg font-bold text-[#102E26]">{t('set.recitation')}</h2>
         <div className="divide-y divide-[#E5E7EB]">
           <Toggle
-            label="Detect mistakes"
+            label={t('set.detectMistakes')}
             hint="Flag incorrect, extra, missed and skipped words as you recite. Off = follow-along only: the app highlights words but never judges them."
             checked={settings.detectMistakes ?? true}
             onChange={(v) => update({ detectMistakes: v })}
           />
           <Toggle
-            label="Strict harakat (tashkeel)"
+            label={t('set.strictHarakat')}
             hint="On: a word said with the wrong vowel marks counts as a mistake. Off: harakat differences are ignored. This is about vowel marks only — the checker never judges tajweed."
             checked={settings.harakatStrict ?? false}
             onChange={(v) => update({ harakatStrict: v })}
           />
           <Toggle
-            label="Don't progress until a mistake is fixed"
+            label={t('set.dontProgress')}
             hint="On: after a session with mistakes, you must retry those words before moving to the next ayah. Off: you can continue past a wrongly-flagged word."
             checked={settings.dontProgress ?? false}
             onChange={(v) => update({ dontProgress: v })}
           />
           <Toggle
-            label="Sound on test completion"
+            label={t('set.testSound')}
             hint="Play a sound (and vibrate, on phones) when a test question finishes."
             checked={settings.testSound ?? true}
             onChange={(v) => update({ testSound: v })}
@@ -226,48 +226,48 @@ export default function SettingsClient() {
 
       {/* Quran appearance */}
       <section aria-labelledby="app-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="app-heading" className="text-lg font-bold text-[#102E26]">Quran appearance</h2>
+        <h2 id="app-heading" className="text-lg font-bold text-[#102E26]">{t('set.appearance')}</h2>
         <div className="divide-y divide-[#E5E7EB]">
           <Toggle
-            label="Highlight mistake history"
+            label={t('set.highlightMistakes')}
             hint="Words you have missed often show a soft pastel wash on the page — red for most-missed, fading to green as you get them right."
             checked={settings.highlightMistakes ?? true}
             onChange={(v) => update({ highlightMistakes: v })}
           />
           <Toggle
-            label="Show washes over hidden words"
+            label={t('set.showForHidden')}
             hint="Keep the weak-spot washes visible even while verses are hidden, so you see where to be careful before you recite."
             checked={settings.showForHidden ?? false}
             onChange={(v) => update({ showForHidden: v })}
           />
           <Toggle
-            label="Show Tajweed colours"
+            label={t('set.tajweedColors')}
             hint="Colour words by the tajweed rule that applies (madd, ghunna, qalqalah…). Display only — this app does not detect tajweed mistakes."
             checked={settings.tajweedColors ?? false}
             onChange={(v) => update({ tajweedColors: v })}
           />
           <Toggle
-            label="Hide ayah markers"
+            label={t('set.hideAyahMarkers')}
             hint="Hide the ayah-end rosettes for a true test of memory."
             checked={settings.hideAyahMarkers ?? false}
             onChange={(v) => update({ hideAyahMarkers: v })}
           />
           <Toggle
-            label="Colour the mushaf by topic"
+            label={t('set.topicColors')}
             hint="Tint each ayah by its topic (Allah & Tawhid, Prophets, Afterlife…) with a legend on the mushaf page. A study aid, not tafsir — every ayah is given one main topic by an automatic mapping."
             checked={settings.topicColors ?? true}
             onChange={(v) => update({ topicColors: v })}
           />
         </div>
         <label className="mt-4 block text-sm font-semibold">
-          Mushaf layout
+          {t('set.mushafLayout')}
           <select
             value={settings.mushafLines ?? 15}
             onChange={(e) => update({ mushafLines: Number(e.target.value) as 15 | 16 })}
             className="mt-1 block w-full max-w-xs rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
           >
-            <option value={15}>15 lines per page (Madani)</option>
-            <option value={16}>16 lines per page</option>
+            <option value={15}>{t('set.mushaf15')}</option>
+            <option value={16}>{t('set.mushaf16')}</option>
           </select>
         </label>
         <p className="mt-2 text-xs text-[#5b6b62]">
@@ -278,10 +278,10 @@ export default function SettingsClient() {
 
       {/* Data usage / audio */}
       <section aria-labelledby="data-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="data-heading" className="text-lg font-bold text-[#102E26]">Data usage</h2>
+        <h2 id="data-heading" className="text-lg font-bold text-[#102E26]">{t('set.dataUsage')}</h2>
         <div className="divide-y divide-[#E5E7EB]">
           <Toggle
-            label="Save session audio on this device"
+            label={t('set.saveAudio')}
             hint="Keep your own recitation recordings on this device so you can listen back to them. Recordings never leave the device unless you choose to share one, and are never uploaded by the app."
             checked={settings.saveAudio ?? true}
             onChange={(v) => update({ saveAudio: v })}
@@ -296,7 +296,7 @@ export default function SettingsClient() {
 
       {/* Notifications */}
       <section aria-labelledby="notif-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="notif-heading" className="text-lg font-bold text-[#102E26]">Reminders</h2>
+        <h2 id="notif-heading" className="text-lg font-bold text-[#102E26]">{t('set.reminders')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           This app has no accounts and no server, so it cannot send push notifications. Your
           daily goal and streak are shown on the home screen and Progress tab instead — open
@@ -307,8 +307,9 @@ export default function SettingsClient() {
 
       {/* Mic help */}
       <section aria-labelledby="mic-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="mic-heading" className="text-lg font-bold text-[#102E26]">Microphone help</h2>
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed text-[#5b6b62]">
+        <h2 id="mic-heading" className="text-lg font-bold text-[#102E26]">{t('set.micHelp')}</h2>
+        {/* Logical `ps-*` (not `pl-*`) so the list indent mirrors in RTL. */}
+        <ul className="mt-2 list-disc space-y-1 ps-5 text-sm leading-relaxed text-[#5b6b62]">
           <li>The checker needs microphone permission. If it is blocked, allow it in your browser&apos;s site settings (padlock icon → microphone → Allow).</li>
           <li>Recite in a quiet room, close to the microphone. Background noise and Bluetooth or car microphones cause false flags.</li>
           <li>Long madd (stretching a word for 6 counts) is the checker&apos;s known weak spot — if it flags a correct long stretch, remove the mistake from your history.</li>
@@ -319,21 +320,21 @@ export default function SettingsClient() {
 
       {/* Export / import / clear */}
       <section aria-labelledby="export-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="export-heading" className="text-lg font-bold text-[#102E26]">Your data</h2>
+        <h2 id="export-heading" className="text-lg font-bold text-[#102E26]">{t('set.yourData')}</h2>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={doExport}
             className="rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
           >
-            Export my progress (.json)
+            {t('set.export')}
           </button>
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
             className="rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
           >
-            Import progress
+            {t('set.import')}
           </button>
           <input
             ref={fileRef}
@@ -352,7 +353,7 @@ export default function SettingsClient() {
             onClick={clearAll}
             className="rounded-full border border-red-700 px-5 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50"
           >
-            Clear all my data
+            {t('set.clear')}
           </button>
         </div>
         {importMsg && (
@@ -362,7 +363,7 @@ export default function SettingsClient() {
 
       {/* Privacy */}
       <section aria-labelledby="privacy-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="privacy-heading" className="text-lg font-bold text-[#102E26]">Privacy</h2>
+        <h2 id="privacy-heading" className="text-lg font-bold text-[#102E26]">{t('set.privacy')}</h2>
         <p className="mt-1 text-sm leading-relaxed text-[#5b6b62]">
           Everything in this app lives on your device: progress, mistakes, goals, recordings.
           Your voice is processed on this device by the downloaded checker — audio is never
@@ -373,7 +374,7 @@ export default function SettingsClient() {
 
       {/* Donation — Settings only */}
       <section aria-labelledby="donate-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="donate-heading" className="text-lg font-bold text-[#102E26]">Support this app</h2>
+        <h2 id="donate-heading" className="text-lg font-bold text-[#102E26]">{t('set.support')}</h2>
         <p className="mt-1 text-sm leading-relaxed text-[#5b6b62]">
           This app is free forever — no Premium, no paywall, no ads. If it helps your hifz and
           you would like to help keep it running, you can donate. Donations are optional and
@@ -383,7 +384,7 @@ export default function SettingsClient() {
           href="/about#support"
           className="mt-3 inline-block rounded-full bg-[#FFB800] px-5 py-2.5 text-sm font-bold text-[#102E26] hover:brightness-105"
         >
-          Donate (optional) →
+          {t('set.donate')}
         </a>
       </section>
     </div>

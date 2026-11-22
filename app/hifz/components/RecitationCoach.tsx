@@ -66,13 +66,16 @@ import {
   type MistakeEntry,
 } from '../progress';
 import { splitWords } from '../lib/alignment';
+import { useT } from '../lib/i18n';
 import { MistakeHistorySheet, SessionAnalyticsSheet, type HistoryRow } from './SharedSheets';
 import { ShareAudioButtons, audioExtension, recordingFileName, type SharedRecording } from './ShareAudio';
 import {
+  AUDIBLE_DBFS,
   autoTierLabel,
   engineSupport,
   loadEngine,
   type EngineLoadProgress,
+  type PreparedMicCapture,
   type RecitationEngine,
   type RecitationSession,
   type SessionResult,
@@ -94,6 +97,31 @@ export const TEACHER_DISCLAIMER =
 /** Low-confidence attempt — research §6, verbatim. */
 export const UNCLEAR_COPY =
   "I couldn't hear this clearly. Check your microphone, move somewhere quieter, and try again.";
+
+/**
+ * Map a Tilawa MicrophoneError (or a prepareMicrophone() failure, same
+ * `.reason` shape) to the coach's mic state + user-facing message.
+ * Shared by the prepare step and the listen step so both report alike.
+ */
+function micErrorFor(err: unknown, tr: (key: string) => string): { state: 'denied' | 'unavailable'; message: string } {
+  const reason = (err as { reason?: string })?.reason;
+  if (reason === 'denied') {
+    return {
+      state: 'denied',
+      message: tr('coach.micBlocked'),
+    };
+  }
+  if (reason === 'insecure-context') {
+    return {
+      state: 'unavailable',
+      message: tr('coach.micHttps'),
+    };
+  }
+  return {
+    state: 'unavailable',
+    message: tr('coach.micNone'),
+  };
+}
 
 /* ------------------------------------------------------------------ */
 /*  Props                                                               */
@@ -166,6 +194,7 @@ export default function RecitationCoach({
   initialReciterId = 7,
   onAyahChange,
 }: RecitationCoachProps) {
+  const t = useT();
   const [step, setStep] = useState<Step>('pick');
   const [scopeKind, setScopeKind] = useState<ScopeKind>('single');
   const [currentIndex, setCurrentIndex] = useState<number>(
@@ -201,6 +230,17 @@ export default function RecitationCoach({
   const [micState, setMicState] = useState<MicState>('idle');
   const [micError, setMicError] = useState<string | null>(null);
   const [level, setLevel] = useState(0); // 0..1, from onLevel dBFS
+  // Voice-detection state (spec: Ready → Requesting permission →
+  // Listening → Voice detected → Processing → Result / Error). `level`
+  // above is the meter; `voiceDetected` flips once the mic hears real
+  // sound (level louder than AUDIBLE_DBFS) so the UI can say "Voice
+  // detected" instead of leaving the user guessing whether they are heard.
+  const [voiceDetected, setVoiceDetected] = useState(false);
+  // True when the take has run ~2.5 s with ZERO level callbacks: the
+  // AudioContext/worklet is delivering no frames at all (capture dead),
+  // even though permission was granted. Shown as a live warning, not a
+  // result — the take can still be stopped and retried.
+  const [audioStalled, setAudioStalled] = useState(false);
   const [recordingSecs, setRecordingSecs] = useState(0);
   const [trackerState, setTrackerState] = useState<string>('');
   const [online, setOnline] = useState<boolean>(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
@@ -248,6 +288,16 @@ export default function RecitationCoach({
   const playQueueRef = useRef<number[]>([]);
   const recordingStartRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Guards for the recording lifecycle (2026-11-22 mic fix): a tap must
+  // never start two sessions, and a new session must never start before
+  // the previous one fully ended.
+  const startInFlightRef = useRef(false);
+  const stallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Live waveform (real levels only, never fake): recent normalised
+  // levels, drawn on a canvas while recording.
+  const waveformRef = useRef<HTMLCanvasElement | null>(null);
+  const levelsRef = useRef<number[]>([]);
+  const voiceDetectedRef = useRef(false);
 
   /* ---------------- scope ---------------- */
 
@@ -345,12 +395,12 @@ export default function RecitationCoach({
           if (v.audio?.url) map[`${surah}:${v.verse_number}`] = v.audio.url;
         }
         if (Object.keys(map).length > 0) setAudioUrls(map);
-        else setAudioNote('Audio for this reciter could not be loaded — keeping the previous reciter.');
+        else setAudioNote(t('coach.audioReciterFail'));
       } catch {
-        setAudioNote('Audio for this reciter could not be loaded — keeping the previous reciter.');
+        setAudioNote(t('coach.audioReciterFail'));
       }
     },
-    [surah],
+    [surah, t],
   );
 
   /* ---------------- offline ---------------- */
@@ -402,9 +452,9 @@ export default function RecitationCoach({
       }
       // Model failed: the page stays usable — listen + self-mark still work (§3.2).
       setEngineState('failed');
-      setLoadError('The checker could not load. You can still listen, read and self-mark.');
+      setLoadError(t('coach.checkerFailed'));
     }
-  }, [engineState]);
+  }, [engineState, t]);
 
   const cancelLoad = useCallback(() => {
     loadAbortRef.current?.abort();
@@ -471,12 +521,55 @@ export default function RecitationCoach({
   const startRecording = useCallback(async () => {
     const engine = engineRef.current;
     if (!engine) return;
+    // Never start a second session while one is starting, and never run
+    // two live sessions: if a previous take never reached stop() (the
+    // user left the step mid-take via "Back to listening"), end it first
+    // — a new session must never start before the previous one fully
+    // ended. (The old code happily created a second live session, mic
+    // stream and AudioContext on top of the first.)
+    if (startInFlightRef.current) return;
+    if (sessionRef.current) {
+      const stale = sessionRef.current;
+      sessionRef.current = null;
+      if (stallTimerRef.current) {
+        clearTimeout(stallTimerRef.current);
+        stallTimerRef.current = null;
+      }
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      stale.dispose();
+    }
     setMicError(null);
+    setAudioStalled(false);
+    setVoiceDetected(false);
+    voiceDetectedRef.current = false;
+    levelsRef.current = [];
     setMicState('idle');
     const scope = scopeAyahs();
     if (scope.length === 0) return;
+    // MIC PREPARE — MUST stay synchronous in this tap handler, before
+    // any await (2026-11-22 root-cause fix). Tilawa documents that iOS
+    // Safari only starts audio created/resumed during a user gesture; the
+    // old code called listen() after awaits, and listen() awaits the
+    // permission prompt BEFORE creating its AudioContext, so on mobile the
+    // context could be created outside the gesture, stay suspended, and
+    // deliver zero frames to the model — "We didn't hear anything" with a
+    // working mic. prepareMicrophone() creates + resumes the context and
+    // asks for the mic while the gesture is still fresh; listen() then
+    // takes ownership of the prepared capture.
+    let prepared: PreparedMicCapture | null = null;
+    try {
+      prepared = engine.prepareMicrophone();
+    } catch (err) {
+      const mapped = micErrorFor(err, t);
+      setMicState(mapped.state);
+      setMicError(mapped.message);
+      return;
+    }
+    startInFlightRef.current = true;
     const expected = scope.map((a) => ({ surah: a.surah, ayah: a.ayah, text: a.text }));
-    const confirmed = new Set<string>();
     const session = engine.startSession({
       surah,
       fromAyah: scope[0].ayah,
@@ -488,46 +581,58 @@ export default function RecitationCoach({
           e.status === 'correct' ? 'correct' : e.status === 'wrong' ? 'wrong' : 'missed';
         setLiveWords((prev) => ({ ...prev, [wordKey(e.surah, e.ayah, e.word)]: liveStatus }));
       },
-      onLevel: (db: number) => setLevel(clamp01((db + 60) / 60)),
+      onLevel: (db: number) => {
+        setLevel(clamp01((db + 60) / 60));
+        levelsRef.current.push(clamp01((db + 60) / 60));
+        if (levelsRef.current.length > 60) levelsRef.current.shift();
+        // Voice detected: the mic is hearing real sound, not room noise.
+        // (The adapter records the same threshold in the result health.)
+        if (!voiceDetectedRef.current && db > AUDIBLE_DBFS) {
+          voiceDetectedRef.current = true;
+          setVoiceDetected(true);
+        }
+      },
       onTrackerState: (s: string) => setTrackerState(s),
     });
     sessionRef.current = session;
     try {
-      // Called directly in the tap handler, after the engine is already
-      // loaded, so the mic prompt still counts as user-gesture work on iOS.
-      await session.startMic();
+      // listen() takes ownership of `prepared` — on failure it releases
+      // the capture itself, so the coach must NOT release it here.
+      await session.startMic(prepared);
     } catch (err) {
+      startInFlightRef.current = false;
       sessionRef.current = null;
       session.dispose();
-      const reason = (err as { reason?: string })?.reason;
-      if (reason === 'denied') {
-        setMicState('denied');
-        setMicError('Microphone is blocked. Check your browser site settings to enable it.');
-      } else if (reason === 'insecure-context') {
-        setMicState('unavailable');
-        setMicError('The coach needs a secure (HTTPS) page to use the microphone.');
-      } else {
-        setMicState('unavailable');
-        setMicError('No microphone is available on this device. You can still practise without a mic below.');
-      }
+      const mapped = micErrorFor(err, t);
+      setMicState(mapped.state);
+      setMicError(mapped.message);
       return;
     }
+    startInFlightRef.current = false;
     setMicState('recording');
     setLiveWords({});
-    // Own-recording playback (device only): a second mic stream captured
-    // with MediaRecorder, kept as a blob URL, never uploaded. Best effort —
-    // if the browser refuses a second stream, reciting still works.
+    // Own-recording playback (device only): reuse the SAME mic stream
+    // Tilawa is listening to. The old code opened a SECOND getUserMedia
+    // here — a second concurrent mobile capture competing with the first
+    // (and, on iOS Safari, able to interrupt it) — while the coach's only
+    // audio path depended on the first stream staying live. Sharing the
+    // prepared stream removes that failure mode entirely. Best effort —
+    // if MediaRecorder refuses the shared stream, reciting still works.
+    // The stream's tracks belong to the Tilawa session: this code never
+    // stops them; session.stop() does.
     if (settings?.saveAudio !== false) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        recordStreamRef.current = stream;
-        recordChunksRef.current = [];
-        const rec = new MediaRecorder(stream);
-        rec.ondataavailable = (e) => {
-          if (e.data.size > 0) recordChunksRef.current.push(e.data);
-        };
-        rec.start(250);
-        recorderRef.current = rec;
+        const stream = await prepared.stream;
+        if (stream.getAudioTracks().some((t) => t.readyState === 'live')) {
+          recordStreamRef.current = stream;
+          recordChunksRef.current = [];
+          const rec = new MediaRecorder(stream);
+          rec.ondataavailable = (e) => {
+            if (e.data.size > 0) recordChunksRef.current.push(e.data);
+          };
+          rec.start(250);
+          recorderRef.current = rec;
+        }
       } catch {
         recorderRef.current = null;
       }
@@ -537,7 +642,18 @@ export default function RecitationCoach({
     timerRef.current = setInterval(() => {
       setRecordingSecs(Math.floor((Date.now() - recordingStartRef.current) / 1000));
     }, 500);
-  }, [scopeAyahs, surah, settings]);
+    // Stall watch: if NO level callback arrives within 2.5 s, the
+    // worklet is delivering no frames — capture is dead even though the
+    // mic was granted. Tell the user live, while they can still retry,
+    // instead of waiting for a false "didn't hear anything" at the end.
+    if (stallTimerRef.current) clearTimeout(stallTimerRef.current);
+    stallTimerRef.current = setTimeout(() => {
+      const health = sessionRef.current?.getAudioHealth();
+      if (sessionRef.current && health && health.levelCallbacks === 0) {
+        setAudioStalled(true);
+      }
+    }, 2500);
+  }, [scopeAyahs, surah, settings, t]);
 
   const stopRecording = useCallback(async () => {
     const session = sessionRef.current;
@@ -545,6 +661,10 @@ export default function RecitationCoach({
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
+    }
+    if (stallTimerRef.current) {
+      clearTimeout(stallTimerRef.current);
+      stallTimerRef.current = null;
     }
     // Stop the own-recording capture and keep it as a blob URL (device only).
     try {
@@ -574,7 +694,10 @@ export default function RecitationCoach({
     } catch {
       /* recording unavailable — reciting still counts */
     } finally {
-      recordStreamRef.current?.getTracks().forEach((t) => t.stop());
+      // The recorder shares Tilawa's stream (see startRecording): never
+      // stop its tracks here — session.stop() below owns them, and
+      // stopping them first would cut the audio path before the session
+      // has drained. Just drop the references.
       recordStreamRef.current = null;
       recorderRef.current = null;
     }
@@ -583,6 +706,10 @@ export default function RecitationCoach({
     sessionRef.current = null;
     setMicState('idle');
     setLevel(0);
+    setVoiceDetected(false);
+    voiceDetectedRef.current = false;
+    setAudioStalled(false);
+    levelsRef.current = [];
     setResult(res);
 
     const scope = scopeAyahs();
@@ -652,17 +779,47 @@ export default function RecitationCoach({
         return { surah: s, ayah: ay, word: display, expected: display, ...(heard ? { heard } : {}) };
       }),
     });
-  }, [persistAttempt, peeked, scopeAyahs, mode, settings]);
+  }, [persistAttempt, peeked, scopeAyahs, mode, settings, t]);
 
   // Cleanup on unmount: stop any live session; the engine stays cached.
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (stallTimerRef.current) clearTimeout(stallTimerRef.current);
+      startInFlightRef.current = false;
       sessionRef.current?.dispose();
       sessionRef.current = null;
       stopAudio();
     };
   }, [stopAudio]);
+
+  // Live waveform: redraw the recent real mic levels while recording.
+  // The canvas shows only levels the mic actually produced — if capture
+  // is dead the strip stays flat, which is itself the diagnosis.
+  useEffect(() => {
+    if (micState !== 'recording') return;
+    const draw = () => {
+      const canvas = waveformRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+      const levels = levelsRef.current;
+      const n = 60;
+      const barW = w / n;
+      for (let i = 0; i < n; i++) {
+        const v = levels[levels.length - n + i] ?? 0;
+        const barH = Math.max(2, v * (h - 4));
+        ctx.fillStyle = v > 0.25 ? '#1FA36B' : '#9DB8A6';
+        ctx.fillRect(i * barW + 1, (h - barH) / 2, Math.max(1, barW - 2), barH);
+      }
+    };
+    draw();
+    const id = setInterval(draw, 100);
+    return () => clearInterval(id);
+  }, [micState]);
 
   /* ---------------- self-mark fallback (no mic) ---------------- */
 
@@ -701,6 +858,15 @@ export default function RecitationCoach({
       missedCount: mistakes.length,
       unclear: false,
       noSpeech: false,
+      micHeardAudio: false,
+      audioHealth: {
+        levelCallbacks: 0,
+        maxLevelDb: -120,
+        audibleCallbacks: 0,
+        everAudible: false,
+        positionEvents: 0,
+        everLocked: false,
+      },
       trackedElsewhere: false,
       mistakes: [],
       durationMs: 0,
@@ -772,10 +938,10 @@ export default function RecitationCoach({
 
   const feedbackSummary = result
     ? result.reachedCount === 0
-      ? 'No words were heard in that attempt.'
-      : `You said ${result.correctCount} of ${result.reachedCount} words${
+      ? t('coach.noWordsHeard')
+      : `${t('coach.youSaid')} ${result.correctCount} ${t('common.of')} ${result.reachedCount} ${t('common.words')}${
           result.missedCount > 0
-            ? ` — ${result.missedCount} ${result.missedCount === 1 ? 'word was' : 'words were'} not heard`
+            ? ` — ${result.missedCount} ${result.missedCount === 1 ? t('coach.wordWasNotHeard') : t('coach.wordsWereNotHeard')}`
             : ''
         }.`
     : '';
@@ -789,9 +955,9 @@ export default function RecitationCoach({
   /* ---------------- render ---------------- */
 
   return (
-    <section aria-label={`Recitation coach for Surah ${surahName}`} className="rounded-2xl bg-white border border-[#E5E7EB] p-4 sm:p-6 shadow-sm">
+    <section aria-label={`${t('common.recite')} ${t('common.surah')} ${surahName}`} className="rounded-2xl bg-white border border-[#E5E7EB] p-4 sm:p-6 shadow-sm">
       <audio ref={audioRef} preload="none" className="hidden" />
-      <h2 className="text-xl font-bold text-[#102E26]">Recite {surahName}</h2>
+      <h2 className="text-xl font-bold text-[#102E26]">{t('common.recite')} {surahName}</h2>
       <p className="mt-1 text-sm text-[#5b6b62]">
         Listen, hide the verse, then recite it aloud. The checker follows your recitation word by word, on this device.
       </p>
@@ -806,14 +972,14 @@ export default function RecitationCoach({
       )}
 
       {/* Steps */}
-      <ol className="mt-4 flex flex-wrap gap-2 text-xs font-semibold" aria-label="Coach steps">
+      <ol className="mt-4 flex flex-wrap gap-2 text-xs font-semibold" aria-label={t('coach.stepsLabel')}>
         {(['pick', 'listen', 'recite', 'feedback'] as Step[]).map((s, i) => (
           <li
             key={s}
             aria-current={step === s ? 'step' : undefined}
             className={`rounded-full px-3 py-1 ${step === s ? 'bg-[#102E26] text-white' : 'bg-[#FFFBF2] text-[#5b6b62]'}`}
           >
-            {i + 1}. {s === 'pick' ? 'Pick' : s === 'listen' ? 'Listen' : s === 'recite' ? 'Hide & recite' : 'Feedback'}
+            {i + 1}. {s === 'pick' ? t('coach.pick') : s === 'listen' ? t('coach.listen') : s === 'recite' ? t('coach.hideRecite') : t('coach.feedback')}
           </li>
         ))}
       </ol>
@@ -822,26 +988,26 @@ export default function RecitationCoach({
       {step === 'pick' && (
         <div className="mt-5">
           <fieldset>
-            <legend className="text-sm font-semibold">What do you want to recite?</legend>
+            <legend className="text-sm font-semibold">{t('coach.whatRecite')}</legend>
             <div className="mt-2 flex flex-wrap gap-2">
               <label className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm">
                 <input type="radio" name="scope" checked={scopeKind === 'single'} onChange={() => setScopeKind('single')} />
-                One ayah
+                {t('coach.oneAyah')}
               </label>
               <label className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm">
                 <input type="radio" name="scope" checked={scopeKind === 'range'} onChange={() => setScopeKind('range')} />
-                An ayah range
+                {t('coach.ayahRange')}
               </label>
               <label className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm">
                 <input type="radio" name="scope" checked={scopeKind === 'whole'} onChange={() => setScopeKind('whole')} />
-                Whole surah
+                {t('coach.wholeSurah')}
               </label>
             </div>
           </fieldset>
 
           {scopeKind === 'single' && (
             <label className="mt-4 block text-sm font-semibold">
-              Ayah
+              {t('common.ayah')}
               <select
                 value={currentIndex}
                 onChange={(e) => setCurrentIndex(Number(e.target.value))}
@@ -858,13 +1024,13 @@ export default function RecitationCoach({
           {scopeKind === 'range' && (
             <div className="mt-4 flex flex-wrap gap-4">
               <label className="text-sm font-semibold">
-                From ayah
+                {t('coach.fromAyah')}
                 <select value={rangeFrom} onChange={(e) => setRangeFrom(Number(e.target.value))} className="mt-1 block rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2 text-sm">
                   {ayahs.map((a, i) => (<option key={`f-${a.ayah}`} value={i}>{a.surah}:{a.ayah}</option>))}
                 </select>
               </label>
               <label className="text-sm font-semibold">
-                To ayah
+                {t('coach.toAyah')}
                 <select value={rangeTo} onChange={(e) => setRangeTo(Number(e.target.value))} className="mt-1 block rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2 text-sm">
                   {ayahs.map((a, i) => (<option key={`t-${a.ayah}`} value={i}>{a.surah}:{a.ayah}</option>))}
                 </select>
@@ -872,7 +1038,7 @@ export default function RecitationCoach({
             </div>
           )}
           <label className="mt-4 block text-sm font-semibold">
-            Reciter
+            {t('common.reciter')}
             <select
               value={reciterId}
               onChange={(e) => void changeReciter(Number(e.target.value))}
@@ -892,7 +1058,7 @@ export default function RecitationCoach({
               disabled={scopeAyahs().length === 0}
               className="rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
-              Listen first
+              {t('coach.listenFirst')}
             </button>
             <button
               type="button"
@@ -900,7 +1066,7 @@ export default function RecitationCoach({
               disabled={scopeAyahs().length === 0}
               className="rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
-              Recite now
+              {t('coach.reciteNow')}
             </button>
           </div>
         </div>
@@ -909,9 +1075,9 @@ export default function RecitationCoach({
       {/* ---------- STEP 2: LISTEN ---------- */}
       {step === 'listen' && (
         <div className="mt-5">
-          <p className="text-sm font-semibold">Listen — {scopeLabel}</p>
+          <p className="text-sm font-semibold">{t('coach.listen')} — {scopeLabel}</p>
           <p className="mt-1 text-sm text-[#5b6b62]">
-            Reciter: {RECITERS.find((r) => r.id === reciterId)?.name ?? 'Mishary Alafasy'}. Words highlight per ayah as it plays.
+            {t('common.reciter')}: {RECITERS.find((r) => r.id === reciterId)?.name ?? 'Mishary Alafasy'}. {t('coach.wordsHighlight')}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
@@ -919,11 +1085,11 @@ export default function RecitationCoach({
               onClick={playScopeAudio}
               className="rounded-full bg-[#1FA36B] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#102E26] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
-              {playingKey ? 'Playing… tap to stop' : 'Play'}
+              {playingKey ? t('coach.playingStop') : t('common.play')}
             </button>
             {playingKey && (
               <button type="button" onClick={stopAudio} className="rounded-full border border-[#E5E7EB] px-4 py-2.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]">
-                Stop audio
+                {t('coach.stopAudio')}
               </button>
             )}
             <button
@@ -931,7 +1097,7 @@ export default function RecitationCoach({
               onClick={enterRecite}
               className="rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
-              Hide &amp; recite
+              {t('coach.hideRecite')}
             </button>
           </div>
           <div className="mt-4 space-y-3">
@@ -947,14 +1113,14 @@ export default function RecitationCoach({
                     disabled={!audioSrcFor(a)}
                     className="mt-2 rounded-full border border-[#E5E7EB] px-3 py-1.5 text-xs font-semibold hover:border-[#1FA36B] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
                   >
-                    {playingKey === key ? 'Stop' : `Play ${a.surah}:${a.ayah}`}
+                    {playingKey === key ? t('common.stop') : `${t('common.play')} ${a.surah}:${a.ayah}`}
                   </button>
                 </div>
               );
             })}
           </div>
           <button type="button" onClick={() => setStep('pick')} className="mt-4 text-sm font-semibold text-[#1FA36B] underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]">
-            Change ayah or reciter
+            {t('coach.changeAyah')}
           </button>
         </div>
       )}
@@ -962,18 +1128,18 @@ export default function RecitationCoach({
       {/* ---------- STEP 3: HIDE & RECITE ---------- */}
       {step === 'recite' && (
         <div className="mt-5">
-          <p className="text-sm font-semibold">Recite — {scopeLabel}</p>
+          <p className="text-sm font-semibold">{t('common.recite')} — {scopeLabel}</p>
 
           {/* Teacher disclaimer, verbatim, above the mic button (research §6). */}
           <p className="mt-3 rounded-lg bg-[#E4FFF2] border border-[#1FA36B]/20 px-3 py-2 text-sm">{TEACHER_DISCLAIMER}</p>
 
           {/* Mode switch: mistake detection / follow-along / self-mark */}
-          <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Practice mode">
+          <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label={t('coach.practiceMode')}>
             {(
               [
-                ['mic', 'Use microphone — mistakes flagged'],
-                ['follow', 'Follow along — highlight only'],
-                ['self-mark', 'Practice without mic'],
+                ['mic', t('coach.modeMic')],
+                ['follow', t('coach.modeFollow')],
+                ['self-mark', t('coach.practiceWithoutMic')],
               ] as const
             ).map(([m, label]) => (
               <button
@@ -1002,7 +1168,7 @@ export default function RecitationCoach({
               aria-pressed={arabicHidden}
               className="rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
-              {arabicHidden ? 'Show Arabic' : 'Hide Arabic'}
+              {arabicHidden ? t('coach.showArabic') : t('coach.hideArabic')}
             </button>
             <button
               type="button"
@@ -1010,7 +1176,7 @@ export default function RecitationCoach({
               aria-pressed={showTranslation}
               className="rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
-              {showTranslation ? 'Hide translation prompt' : 'Show translation prompt'}
+              {showTranslation ? t('coach.hideTransPrompt') : t('coach.showTransPrompt')}
             </button>
             {arabicHidden && (
               <>
@@ -1021,11 +1187,11 @@ export default function RecitationCoach({
                     setPeekCount((c) => c + 1);
                     setPeeked(true);
                   }}
-                  aria-label="Reveal the next word"
-                  title="Peek — reveal the next word (counts as a peek)"
+                  aria-label={t('coach.revealNext')}
+                  title={t('coach.peekNextTitle')}
                   className="rounded-full border border-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
                 >
-                  ‹ Next word
+                  {t('coach.peekNext')}
                 </button>
                 <button
                   type="button"
@@ -1034,11 +1200,11 @@ export default function RecitationCoach({
                     setPeekCount((c) => c + 1);
                     setPeeked(true);
                   }}
-                  aria-label="Reveal the rest of the ayah"
-                  title="Peek — reveal the rest (counts as a peek)"
+                  aria-label={t('coach.revealRest')}
+                  title={t('coach.peekRestTitle')}
                   className="rounded-full border border-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
                 >
-                  « Reveal rest
+                  {t('coach.peekRest')}
                 </button>
               </>
             )}
@@ -1119,36 +1285,36 @@ export default function RecitationCoach({
               {engineState === 'loading' && engineLoadProgress && (
                 <div className="mx-auto max-w-md text-left">
                   <p role="status" className="text-sm font-semibold">
-                    Loading the recitation checker… {engineLoadProgress.stage} {Math.round(engineLoadProgress.fraction * 100)}%
+                    {t('coach.loadingChecker')} {engineLoadProgress.stage} {Math.round(engineLoadProgress.fraction * 100)}%
                   </p>
                   <p className="mt-1 text-xs text-[#5b6b62]">
                     {engineLoadProgress.tierLabel}
-                    {engineLoadProgress.fromCache ? ' — loaded from this device.' : ' — downloaded once, then kept on this device.'}
+                    {engineLoadProgress.fromCache ? t('coach.loadedFromDevice') : t('coach.downloadedOnce')}
                   </p>
                   <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#E5E7EB]" aria-hidden="true">
                     <div className="h-full bg-[#1FA36B]" style={{ width: `${Math.round(engineLoadProgress.fraction * 100)}%` }} />
                   </div>
                   <button type="button" onClick={cancelLoad} className="mt-2 text-sm font-semibold text-[#1FA36B] underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]">
-                    Cancel download
+                    {t('coach.cancelDownload')}
                   </button>
                 </div>
               )}
               {engineState === 'failed' && (
                 <div className="mx-auto max-w-md rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm text-left">
-                  <p role="alert">{loadError ?? 'The checker could not load. You can still listen, read and self-mark.'}</p>
+                  <p role="alert">{loadError ?? t('coach.checkerFailed')}</p>
                   <div className="mt-2 flex gap-3">
                     <button type="button" onClick={() => void loadEngineNow()} className="font-semibold text-[#1FA36B] underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]">
-                      Retry loading the checker
+                      {t('coach.retryLoad')}
                     </button>
                     <button type="button" onClick={() => setMode('self-mark')} className="font-semibold text-[#1FA36B] underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]">
-                      Practice without mic
+                      {t('coach.practiceWithoutMic')}
                     </button>
                   </div>
                 </div>
               )}
               {engineState === 'unsupported' && (
                 <p role="alert" className="mx-auto max-w-md rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm text-left">
-                  The checker cannot run in this browser. You can still listen and practise with self-marking below.
+                  {t('coach.checkerUnsupported')}
                 </p>
               )}
               {engineState === 'idle' && (
@@ -1157,34 +1323,34 @@ export default function RecitationCoach({
                   onClick={() => void loadEngineNow()}
                   className="rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
                 >
-                  Load the checker ({autoTierLabel()})
+                  {t('coach.loadChecker')} ({autoTierLabel()})
                 </button>
               )}
 
               {engineState === 'ready' && micState !== 'recording' && micState !== 'checking' && (
                 <>
                   <p className="text-sm text-[#5b6b62]">We need the microphone to hear your recitation. Audio is processed on your device and never uploaded. Sharing a recording with your teacher is always your choice, after the session — nothing is sent automatically.</p>
-                  <p className="mt-1 text-sm text-[#5b6b62]">Take a breath, then begin — the checker needs about a second to start listening.</p>
+                  <p className="mt-1 text-sm text-[#5b6b62]">{t('coach.takeBreath')}</p>
                   {/* Bottom bar: live stat pills + 4 round buttons + big gradient mic */}
                   <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                     <span className="rounded-full border border-[#E5E7EB] px-3 py-1 text-xs font-bold">
-                      {Object.values(liveWords).filter((v) => v === 'wrong' || v === 'missed').length} mistakes
+                      {Object.values(liveWords).filter((v) => v === 'wrong' || v === 'missed').length} {t('coach.mistakesWord')}
                     </span>
                     <span className="rounded-full border border-[#E5E7EB] px-3 py-1 text-xs font-bold">
                       {Object.values(liveWords).length > 0
-                        ? `${Math.round((Object.values(liveWords).filter((v) => v === 'correct').length / Object.values(liveWords).length) * 100)}% so far`
-                        : '0% so far'}
+                        ? `${Math.round((Object.values(liveWords).filter((v) => v === 'correct').length / Object.values(liveWords).length) * 100)}% ${t('coach.soFar')}`
+                        : `0% ${t('coach.soFar')}`}
                     </span>
                     <span className="rounded-full border border-[#E5E7EB] px-3 py-1 text-xs font-bold">
                       {recordingSecs > 0 ? `${Math.floor(recordingSecs / 60)}:${String(recordingSecs % 60).padStart(2, '0')}` : '0:00'}
                     </span>
                   </div>
-                  <div className="mt-3 flex items-center justify-center gap-2" role="group" aria-label="Reader tools">
+                  <div className="mt-3 flex items-center justify-center gap-2" role="group" aria-label={t('coach.readerTools')}>
                     <button
                       type="button"
                       onClick={() => setShowTranslation((v) => !v)}
-                      aria-label="Toggle translation prompt"
-                      title="Translation prompt"
+                      aria-label={t('coach.transPromptTitle')}
+                      title={t('coach.transPromptTitle')}
                       className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-base hover:border-[#1FA36B]"
                     >
                       ▤
@@ -1192,8 +1358,8 @@ export default function RecitationCoach({
                     <button
                       type="button"
                       onClick={() => setArabicHidden((h) => !h)}
-                      aria-label="Hide or show the Arabic"
-                      title="Hide / show Arabic"
+                      aria-label={t('coach.hideShowArabic')}
+                      title={t('coach.hideShowArabic')}
                       className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-base hover:border-[#1FA36B]"
                     >
                       ◐
@@ -1203,11 +1369,11 @@ export default function RecitationCoach({
                       onClick={() => {
                         const next = !highlightOn;
                         setHighlightOn(next);
-                        setHighlightToast(`Highlight mistakes: ${next ? 'Enabled' : 'Disabled'}`);
+                        setHighlightToast(next ? t('coach.highlightEnabled') : t('coach.highlightDisabled'));
                         setTimeout(() => setHighlightToast(null), 2500);
                       }}
-                      aria-label="Toggle mistake highlighting"
-                      title="Highlight mistakes"
+                      aria-label={t('coach.highlightTitle')}
+                      title={t('coach.highlightTitle')}
                       className={`flex h-10 w-10 items-center justify-center rounded-full border bg-white text-base hover:border-[#1FA36B] ${highlightOn ? 'border-[#57D798] ring-2 ring-[#57D798]' : 'border-[#E5E7EB]'}`}
                     >
                       ✎
@@ -1217,14 +1383,14 @@ export default function RecitationCoach({
                       onClick={() => {
                         try {
                           void navigator.clipboard.writeText(window.location.href);
-                          setHighlightToast('Link copied');
+                          setHighlightToast(t('coach.linkCopied'));
                           setTimeout(() => setHighlightToast(null), 2500);
                         } catch {
                           /* clipboard unavailable */
                         }
                       }}
-                      aria-label="Copy a link to this surah"
-                      title="Share / copy link"
+                      aria-label={t('coach.shareTitle')}
+                      title={t('coach.shareTitle')}
                       className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-base hover:border-[#1FA36B]"
                     >
                       ⤴
@@ -1236,7 +1402,7 @@ export default function RecitationCoach({
                   <button
                     type="button"
                     onClick={() => void startRecording()}
-                    aria-label="Start recording your recitation"
+                    aria-label={t('coach.startRecording')}
                     className="mic-btn mx-auto mt-3 flex h-16 w-16 items-center justify-center rounded-full text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFB800]"
                   >
                     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7">
@@ -1244,33 +1410,56 @@ export default function RecitationCoach({
                       <path d="M5 10a7 7 0 0 0 14 0M12 19v3" />
                     </svg>
                   </button>
-                  <p className="mt-2 text-sm font-semibold">Tap to recite</p>
+                  <p className="mt-2 text-sm font-semibold">{t('coach.tapToRecite')}</p>
                 </>
               )}
               {micState === 'recording' && (
                 <div>
-                  <p role="status" className="text-sm font-semibold text-[#B42318]">Recording… {Math.floor(recordingSecs / 60)}:{String(recordingSecs % 60).padStart(2, '0')}</p>
-                  {trackerState && <p className="mt-1 text-xs text-[#5b6b62]">Checker: {trackerState}</p>}
-                  <div className="mx-auto mt-3 h-3 w-full max-w-md overflow-hidden rounded-full bg-[#E5E7EB]" role="meter" aria-label="Microphone level" aria-valuenow={Math.round(level * 100)} aria-valuemin={0} aria-valuemax={100}>
+                  <p role="status" className="text-sm font-semibold text-[#B42318]">
+                    {voiceDetected
+                      ? `${t('coach.voiceDetected')} ${Math.floor(recordingSecs / 60)}:${String(recordingSecs % 60).padStart(2, '0')}`
+                      : `${t('coach.listeningRecite')} ${Math.floor(recordingSecs / 60)}:${String(recordingSecs % 60).padStart(2, '0')}`}
+                  </p>
+                  {trackerState && <p className="mt-1 text-xs text-[#5b6b62]">{t('coach.checker')}: {trackerState}</p>}
+                  <div className="mx-auto mt-3 h-3 w-full max-w-md overflow-hidden rounded-full bg-[#E5E7EB]" role="meter" aria-label={t('coach.micLevel')} aria-valuenow={Math.round(level * 100)} aria-valuemin={0} aria-valuemax={100}>
                     <div className="h-full bg-[#1FA36B] transition-[width] duration-100" style={{ width: `${Math.round(level * 100)}%` }} />
                   </div>
+                  {/* Live waveform — real mic levels only. If the strip
+                      stays flat while you speak, the mic is not reaching
+                      the app: stop and try again, or run the mic check. */}
+                  <canvas
+                    ref={waveformRef}
+                    width={300}
+                    height={36}
+                    aria-label={t('coach.waveform')}
+                    className="mx-auto mt-2 h-9 w-full max-w-md rounded-lg bg-[#FFFBF2] border border-[#E5E7EB]"
+                  />
+                  {!voiceDetected && !audioStalled && (
+                    <p className="mt-2 text-xs text-[#5b6b62]">{t('coach.micFlat')}</p>
+                  )}
+                  {audioStalled && (
+                    <p role="alert" className="mx-auto mt-2 max-w-md rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm text-left">
+                      The microphone is not sending any sound yet. Check it is not muted or covered, then tap “Stop &amp; check” and try again — or run the{' '}
+                      <Link href="/hifz/diagnostics" className="font-semibold text-[#1FA36B] underline">microphone check</Link>.
+                    </p>
+                  )}
                   <button
                     type="button"
                     onClick={() => void stopRecording()}
                     className="mt-4 rounded-full bg-[#B42318] px-6 py-3 text-sm font-semibold text-white hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B42318]"
                   >
-                    Stop &amp; check
+                    {t('coach.stopCheck')}
                   </button>
                 </div>
               )}
               {micState === 'checking' && (
-                <p role="status" className="mt-3 text-sm font-semibold">Checking your recitation…</p>
+                <p role="status" className="mt-3 text-sm font-semibold">{t('coach.checking')}</p>
               )}
               {(micState === 'denied' || micState === 'unavailable') && micError && (
                 <div className="mx-auto mt-3 max-w-md rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm text-left">
                   <p role="alert">{micError}</p>
                   <button type="button" onClick={() => setMode('self-mark')} className="mt-2 font-semibold text-[#1FA36B] underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]">
-                    Practice without mic
+                    {t('coach.practiceWithoutMic')}
                   </button>
                 </div>
               )}
@@ -1294,20 +1483,20 @@ export default function RecitationCoach({
                             <button
                               type="button"
                               aria-pressed={marked === true}
-                              aria-label={`Mark ${w.display} correct`}
+                              aria-label={`${t('coach.mark')} ${w.display} ${t('common.correct')}`}
                               onClick={() => setSelfMarks((p) => ({ ...p, [key]: true }))}
                               className={`rounded-full px-2 py-0.5 text-xs font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${marked === true ? 'bg-[#1FA36B] text-white' : 'bg-[#E4FFF2]'}`}
                             >
-                              Correct
+                              {t('coach.correct')}
                             </button>
                             <button
                               type="button"
                               aria-pressed={marked === false}
-                              aria-label={`Mark ${w.display} not quite`}
+                              aria-label={`${t('coach.mark')} ${w.display} ${t('common.notQuite')}`}
                               onClick={() => setSelfMarks((p) => ({ ...p, [key]: false }))}
                               className={`rounded-full px-2 py-0.5 text-xs font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${marked === false ? 'bg-[#FFB800] text-[#102E26]' : 'bg-[#FFFBF2]'}`}
                             >
-                              Not quite
+                              {t('common.notQuite')}
                             </button>
                           </span>
                         );
@@ -1321,13 +1510,13 @@ export default function RecitationCoach({
                 onClick={submitSelfMark}
                 className="mt-4 rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
               >
-                Save my self-marking
+                {t('coach.saveSelfMark')}
               </button>
             </div>
           )}
 
           <button type="button" onClick={() => { stopAudio(); setStep('listen'); }} className="mt-5 text-sm font-semibold text-[#1FA36B] underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]">
-            Back to listening
+            {t('coach.backToListening')}
           </button>
         </div>
       )}
@@ -1335,22 +1524,39 @@ export default function RecitationCoach({
       {/* ---------- STEP 4: FEEDBACK ---------- */}
       {step === 'feedback' && result && (
         <div className="mt-5">
-          <p className="text-sm font-semibold">Feedback — {scopeLabel}</p>
+          <p className="text-sm font-semibold">{t('coach.feedback')} — {scopeLabel}</p>
           <p className="mt-1 rounded-lg bg-[#E4FFF2] border border-[#1FA36B]/20 px-3 py-2 text-sm">{TEACHER_DISCLAIMER}</p>
 
           {result.noSpeech ? (
-            <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">
-              We didn&apos;t hear anything. Check your mic and try again.
-            </p>
+            result.micHeardAudio ? (
+              // The mic DID hear the recitation (levels moved) but the
+              // tracker followed no word. Never say "we didn't hear
+              // anything" here — the user was speaking and the app heard
+              // sound; it is the checker that could not follow the words
+              // (too short / too quiet / never locked on).
+              <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">
+                We heard your voice, but the checker could not follow the words. Try holding the phone a little closer, reciting a little louder and slower, and giving it a second to start listening before the first word — then try again.
+              </p>
+            ) : (
+              // The mic delivered no sound at all in this take (level
+              // meter stayed flat): only here is "didn't hear anything"
+              // accurate. Point at the mic check so a dead capture can be
+              // diagnosed instead of retried blindly.
+              <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">
+                We didn&apos;t hear anything. Check your mic and try again. If it keeps happening, run the{' '}
+                <Link href="/hifz/diagnostics" className="font-semibold text-[#1FA36B] underline">microphone check</Link>{' '}
+                — it will tell you whether the microphone itself is working.
+              </p>
+            )
           ) : result.trackedElsewhere ? (
             <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">
-              That didn&apos;t sound like this ayah — check you&apos;re reciting the right one, then try again.
+              {t('coach.wrongAyah')}
             </p>
           ) : result.unclear ? (
-            <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">{UNCLEAR_COPY}</p>
+            <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">{t('coach.unclear')}</p>
           ) : tooShort ? (
             <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">
-              That was too short to check. Try reciting the full ayah.
+              {t('coach.tooShort')}
             </p>
           ) : (
             <p role="status" className="mt-3 text-base font-semibold">{feedbackSummary}</p>
@@ -1375,13 +1581,13 @@ export default function RecitationCoach({
             const secs = Math.round(result.durationMs / 1000);
             return (
               <div className="mt-4 rounded-xl border border-[#E5E7EB] bg-[#FFFBF2] p-4">
-                <p className="text-sm font-bold text-[#102E26]">Session summary</p>
+                <p className="text-sm font-bold text-[#102E26]">{t('coach.sessionSummary')}</p>
                 <p className="mt-1 text-sm text-[#5b6b62]">
-                  Accuracy {acc}% · {correct} of {reached.length} words correct ·{' '}
-                  {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, '0')} · {peekCount} {peekCount === 1 ? 'peek' : 'peeks'}
+                  {t('coach.accuracy')} {acc}% · {correct} {t('common.of')} {reached.length} {t('coach.wordsCorrect')} ·{' '}
+                  {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, '0')} · {peekCount} {peekCount === 1 ? t('coach.peek') : t('coach.peeks')}
                 </p>
                 <p className="mt-1 text-sm text-[#5b6b62]">
-                  Mistakes by type — Incorrect {byType.Incorrect} · Missed {byType.Missed} · Extra {byType.Extra} · Skipped {byType.Skipped}
+                  {t('coach.mistakesByType')} — {t('coach.incorrect')} {byType.Incorrect} · {t('coach.missed')} {byType.Missed} · {t('coach.extra')} {byType.Extra} · {t('coach.skipped')} {byType.Skipped}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
@@ -1389,14 +1595,14 @@ export default function RecitationCoach({
                     onClick={() => setShowMistakeHistory(true)}
                     className="rounded-full border border-[#102E26] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
                   >
-                    Mistake history
+                    {t('coach.mistakeHistory')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowAnalytics(true)}
                     className="rounded-full border border-[#102E26] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
                   >
-                    Session analytics
+                    {t('coach.sessionAnalytics')}
                   </button>
                 </div>
               </div>
@@ -1408,7 +1614,7 @@ export default function RecitationCoach({
               practice has no recording to share. */}
           {mode !== 'self-mark' && (
             <div className="mt-4 rounded-xl border border-[#E5E7EB] p-4">
-              <p className="text-sm font-bold text-[#102E26]">Listen back to your recitation</p>
+              <p className="text-sm font-bold text-[#102E26]">{t('coach.listenBack')}</p>
               <p className="mt-1 text-xs text-[#5b6b62]">Recorded on this device only. It stays here unless you choose to share or download it below — the app never uploads it, and it is not saved past this browser session.</p>
               {recordingUrl && <audio controls src={recordingUrl} className="mt-2 w-full" />}
               <div className="mt-3">
@@ -1416,15 +1622,15 @@ export default function RecitationCoach({
                   recording={recording}
                   noRecordingReason={
                     settings?.saveAudio === false
-                      ? 'Recording is turned off in Settings, so there is no audio for this session.'
-                      : 'No recording was captured for this session — the microphone may have been unavailable.'
+                      ? t('coach.noRecordingOff')
+                      : t('coach.noRecordingCaptured')
                   }
                 />
               </div>
             </div>
           )}
           {mode === 'self-mark' && (
-            <p className="mt-2 text-sm text-[#5b6b62]">Self-marked attempt — these marks are yours, not the checker&apos;s.</p>
+            <p className="mt-2 text-sm text-[#5b6b62]">{t('coach.selfMarkedNote')}</p>
           )}
 
           {/* Per-word marking: green = correct, red + dotted underline =
@@ -1453,16 +1659,16 @@ export default function RecitationCoach({
                             ? 'live-word-skipped font-bold'
                             : 'text-[#5b6b62]';
                     const label = !showColour
-                      ? 'not checked'
+                      ? t('coach.wordNotChecked')
                       : removed
-                        ? 'removed — flagged wrongly'
+                        ? t('coach.wordRemoved')
                         : status === 'correct'
-                          ? 'correct'
+                          ? t('coach.legendCorrect')
                           : status === 'wrong'
-                            ? 'check this word — tap to compare'
+                            ? t('coach.wordCheck')
                             : status === 'missed'
-                              ? 'not heard — tap to compare'
-                              : 'not reached yet';
+                              ? t('coach.wordNotHeard')
+                              : t('coach.wordNotReached');
                     if (showColour && (status === 'wrong' || status === 'missed') && !removed) {
                       return (
                         <button
@@ -1487,10 +1693,10 @@ export default function RecitationCoach({
                   })}
                 </p>
                 <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#5b6b62]">
-                  <span><span className="inline-block h-3 w-3 rounded-sm bg-[#16A34A] align-middle" /> Correct</span>
-                  <span><span className="inline-block h-3 w-3 rounded-sm bg-[#EA580C] align-middle" /> Skipped / not heard</span>
-                  <span><span className="inline-block h-3 w-3 rounded-sm bg-[#DC2626] align-middle" /> Check this word</span>
-                  <span><span className="inline-block h-3 w-3 rounded-sm bg-[#E5E7EB] align-middle" /> Not reached yet</span>
+                  <span><span className="inline-block h-3 w-3 rounded-sm bg-[#16A34A] align-middle" /> {t('coach.legendCorrect')}</span>
+                  <span><span className="inline-block h-3 w-3 rounded-sm bg-[#EA580C] align-middle" /> {t('coach.legendSkipped')}</span>
+                  <span><span className="inline-block h-3 w-3 rounded-sm bg-[#DC2626] align-middle" /> {t('coach.legendCheck')}</span>
+                  <span><span className="inline-block h-3 w-3 rounded-sm bg-[#E5E7EB] align-middle" /> {t('coach.legendNotReached')}</span>
                 </p>
                 {/* Tap-a-mistake correction panel */}
                 {selectedMistake && scopeAyahs().some((x) => x.surah === a.surah && x.ayah === a.ayah) && (() => {
@@ -1505,11 +1711,11 @@ export default function RecitationCoach({
                   return (
                     <div className="mt-3 rounded-xl border border-[#E5E7EB] p-3">
                       <p className="text-sm font-bold text-[#102E26]">
-                        {fw?.status === 'missed' ? 'Missed word' : 'Incorrect word'} — {ss}:{ay}
+                        {fw?.status === 'missed' ? t('coach.missedWord') : t('coach.incorrectWord')} — {ss}:{ay}
                       </p>
                       <div className="mt-2 rounded-lg border border-[#E5E7EB] p-3">
                         <p className="flex items-baseline justify-between gap-3">
-                          <span className="text-xs font-semibold text-[#5b6b62]">Expected</span>
+                          <span className="text-xs font-semibold text-[#5b6b62]">{t('common.expected')}</span>
                           <span dir="rtl" lang="ar" className="font-quran text-xl text-right">
                             {splitWords(ayahText).map((w, i) => (
                               <span key={i} className={i === wd - 1 ? 'font-bold text-[#16A34A]' : undefined}>
@@ -1519,12 +1725,12 @@ export default function RecitationCoach({
                           </span>
                         </p>
                         <p className="mt-2 flex items-baseline justify-between gap-3 border-t border-[#E5E7EB] pt-2">
-                          <span className="text-xs font-semibold text-[#5b6b62]">Recited</span>
+                          <span className="text-xs font-semibold text-[#5b6b62]">{t('common.recited')}</span>
                           <span dir="rtl" lang="ar" className="font-quran text-xl text-right">
                             {heard ? (
                               <span className="font-bold text-[#DC2626]">{heard}</span>
                             ) : (
-                              <span className="text-[#5b6b62]">not heard</span>
+                              <span className="text-[#5b6b62]">{t('common.notHeard')}</span>
                             )}
                           </span>
                         </p>
@@ -1534,7 +1740,7 @@ export default function RecitationCoach({
                           href={`/hifz/search?q=${encodeURIComponent(display)}`}
                           className="rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
                         >
-                          See similar verses
+                          {t('common.seeSimilar')}
                         </Link>
                         <button
                           type="button"
@@ -1549,7 +1755,7 @@ export default function RecitationCoach({
                           }}
                           className="rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#B42318] hover:text-[#B42318]"
                         >
-                          Remove — I said it correctly
+                          {t('coach.removeCorrect')}
                         </button>
                       </div>
                       <p className="mt-2 text-xs text-[#5b6b62]">
@@ -1565,14 +1771,14 @@ export default function RecitationCoach({
           {/* Words to retry (mistake log, this surah). */}
           {retryMistakes.length > 0 && (
             <div className="mt-4 rounded-xl border border-[#E5E7EB] p-3">
-              <p className="text-sm font-semibold">Words to retry</p>
+              <p className="text-sm font-semibold">{t('coach.wordsToRetry')}</p>
               <ul className="mt-2 space-y-1 text-sm">
                 {retryMistakes.slice(-10).map((m, i) => (
                   <li key={`${m.surah}:${m.ayah}:${m.word}:${i}`}>
                     <span dir="rtl" lang="ar" className="font-quran text-lg">{m.word}</span>
-                    {' '}— {m.surah}:{m.ayah} · practised {m.attempts} {m.attempts === 1 ? 'time' : 'times'}
+                    {' '}— {m.surah}:{m.ayah} · {t('common.practised')} {m.attempts} {m.attempts === 1 ? t('common.time') : t('common.times')}
                     {selfMarkedMistakes.some((s) => s.surah === m.surah && s.ayah === m.ayah && s.word === m.word) && (
-                      <span className="ml-2 rounded-full bg-[#FFFBF2] px-2 py-0.5 text-xs font-semibold">self-marked</span>
+                      <span className="ml-2 rounded-full bg-[#FFFBF2] px-2 py-0.5 text-xs font-semibold">{t('coach.selfMarked')}</span>
                     )}
                   </li>
                 ))}
@@ -1582,7 +1788,7 @@ export default function RecitationCoach({
 
           {dailyGoalMet && (
             <p role="status" className="mt-4 rounded-lg bg-[#E4FFF2] border border-[#1FA36B]/20 px-3 py-2 text-sm font-semibold">
-              Daily goal met — you practised {ayahsToday} {ayahsToday === 1 ? 'ayah' : 'ayahs'} today. Streak: {streakCount} {streakCount === 1 ? 'day' : 'days'}.
+              {t('coach.dailyGoalMet')} {ayahsToday} {ayahsToday === 1 ? t('common.ayah') : t('common.ayahs')} {t('common.today')}. {t('coach.streak')}: {streakCount} {streakCount === 1 ? t('common.day') : t('common.days')}.
             </p>
           )}
 
@@ -1592,14 +1798,14 @@ export default function RecitationCoach({
               onClick={() => retryScope(true)}
               className="rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
-              Retry these words
+              {t('coach.retryWords')}
             </button>
             <button
               type="button"
               onClick={() => retryScope(false)}
               className="rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
-              Retry full ayah
+              {t('coach.retryFull')}
             </button>
             {pendingFix ? (
               <p className="rounded-full border border-[#FFB800] bg-[#FFFBF2] px-5 py-2.5 text-sm font-semibold text-[#102E26]">
@@ -1611,7 +1817,7 @@ export default function RecitationCoach({
                 onClick={() => goToAyahIndex(currentIndex + 1)}
                 className="rounded-full border border-[#E5E7EB] px-5 py-2.5 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
               >
-                Next ayah
+                {t('coach.nextAyah')}
               </button>
             ) : null}
             <button
@@ -1619,7 +1825,7 @@ export default function RecitationCoach({
               onClick={() => { setStep('listen'); }}
               className="rounded-full border border-[#E5E7EB] px-5 py-2.5 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
-              Listen again
+              {t('coach.listenAgain')}
             </button>
           </div>
         </div>

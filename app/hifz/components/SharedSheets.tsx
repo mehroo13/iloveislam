@@ -9,6 +9,7 @@ import Link from 'next/link';
 import type { MistakeEntry } from '../progress';
 import { ALL_SURAHS } from '../surahs';
 import { ShareAudioButtons, type SharedRecording } from './ShareAudio';
+import { useT } from '../lib/i18n';
 
 /* ---------------- Bottom sheet ---------------- */
 
@@ -21,6 +22,7 @@ export function BottomSheet({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const t = useT();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -37,7 +39,7 @@ export function BottomSheet({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('common.close')}
             className="rounded-full border border-[#E5E7EB] px-3 py-1 text-sm font-bold"
           >
             ✕
@@ -60,20 +62,20 @@ export function MistakeHistorySheet({
   onRemove: (idx: number) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const [removed, setRemoved] = useState<Set<number>>(new Set());
   const visible = mistakes.filter((_, i) => !removed.has(i));
   return (
-    <BottomSheet title="Check and learn from your past mistakes" onClose={onClose}>
+    <BottomSheet title={t('sheet.mistakeHistory')} onClose={onClose}>
       {visible.length === 0 ? (
         <p className="py-6 text-center text-sm text-[#5b6b62]">
-          No mistakes yet — recite with the coach and any mistakes will appear here,
-          with the right word next to what was heard.
+          {t('sheet.noMistakes')}
         </p>
       ) : (
         <ul className="space-y-4">
           {visible.map((m, i) => {
             const wrong = m.heard && m.heard !== m.expected;
-            const label = wrong ? 'Incorrect words' : 'Missed words';
+            const label = wrong ? t('sheet.incorrectWords') : t('sheet.missedWords');
             const time = new Date(m.date);
             const hh = String(time.getHours()).padStart(2, '0');
             const mm = String(time.getMinutes()).padStart(2, '0');
@@ -90,43 +92,43 @@ export function MistakeHistorySheet({
                   <button
                     type="button"
                     aria-label={`Remove this mistake (${m.word})`}
-                    title="Remove — this was flagged wrongly"
+                    title={t('sheet.removeWrongly')}
                     onClick={() => {
                       onRemove(i);
                       setRemoved((s) => new Set(s).add(i));
                     }}
                     className="rounded-full border border-[#E5E7EB] px-2 py-0.5 text-xs font-bold text-[#B42318] hover:border-[#B42318]"
                   >
-                    Remove
+                    {t('sheet.remove')}
                   </button>
                 </div>
                 <div className="mt-3 rounded-xl border border-[#E5E7EB] p-3">
                   <p className="flex items-baseline justify-between gap-3">
-                    <span className="text-xs font-semibold text-[#5b6b62]">Expected</span>
+                    <span className="text-xs font-semibold text-[#5b6b62]">{t('common.expected')}</span>
                     <span dir="rtl" lang="ar" className="font-quran text-xl text-right">
                       <span className="font-bold text-[#16A34A]">{m.expected}</span>
                     </span>
                   </p>
                   <p className="mt-2 flex items-baseline justify-between gap-3 border-t border-[#E5E7EB] pt-2">
-                    <span className="text-xs font-semibold text-[#5b6b62]">Recited</span>
+                    <span className="text-xs font-semibold text-[#5b6b62]">{t('common.recited')}</span>
                     <span dir="rtl" lang="ar" className="font-quran text-xl text-right">
                       {m.heard ? (
                         <span className="font-bold text-[#DC2626]">{m.heard}</span>
                       ) : (
-                        <span className="text-[#5b6b62]">not heard</span>
+                        <span className="text-[#5b6b62]">{t('common.notHeard')}</span>
                       )}
                     </span>
                   </p>
                 </div>
                 <p className="mt-2 text-xs text-[#5b6b62]">
-                  Seen {m.attempts} {m.attempts === 1 ? 'time' : 'times'} ·{' '}
-                  {Math.max(0, 3 - m.attempts)} more correct recitations to clear this word.
+                  {t('sheet.seen')} {m.attempts} {m.attempts === 1 ? t('common.time') : t('common.times')} ·{' '}
+                  {Math.max(0, 3 - m.attempts)} {t('sheet.moreToClear')}
                 </p>
                 <Link
                   href={`/hifz/search?q=${encodeURIComponent(m.expected)}`}
                   className="mt-3 block rounded-full bg-[#102E26] py-2.5 text-center text-sm font-bold text-white hover:bg-[#1FA36B]"
                 >
-                  See similar verses
+                  {t('common.seeSimilar')}
                 </Link>
               </li>
             );
@@ -168,6 +170,7 @@ export function SessionAnalyticsSheet({
   latestSessionAudio?: (SharedRecording & { range: string; date: string }) | null;
   onClose: () => void;
 }) {
+  const t = useT();
   const [metric, setMetric] = useState<'pg' | 'pct'>('pg');
   const pts = history.slice(0, 12).reverse();
   const max = Math.max(6, ...pts.map((r) => (metric === 'pg' ? r.mistakesPerPage : 100 - r.accuracy)));
@@ -179,12 +182,12 @@ export function SessionAnalyticsSheet({
   });
   const dot = (acc: number) => (acc >= 99 ? '#16A34A' : acc >= 97 ? '#F2C94C' : '#EA580C');
   return (
-    <BottomSheet title="Session analytics" onClose={onClose}>
-      <p className="text-xs font-bold uppercase tracking-wider text-[#5b6b62]">Current session</p>
+    <BottomSheet title={t('coach.sessionAnalytics')} onClose={onClose}>
+      <p className="text-xs font-bold uppercase tracking-wider text-[#5b6b62]">{t('sheet.currentSession')}</p>
       <div className="mt-1 flex items-center justify-between gap-4">
         <div>
-          <p className="text-lg font-bold text-[#102E26]">{words} words recited</p>
-          <p className="text-sm text-[#5b6b62]">{mistakesPerPage.toFixed(1)} mistakes per page</p>
+          <p className="text-lg font-bold text-[#102E26]">{words} {t('sheet.wordsRecited')}</p>
+          <p className="text-sm text-[#5b6b62]">{mistakesPerPage.toFixed(1)} {t('sheet.mistakesPerPage')}</p>
         </div>
         <div
           className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-full bg-[#B5F5A5] text-[#102E26]"
@@ -196,7 +199,7 @@ export function SessionAnalyticsSheet({
       </div>
 
       <div className="mt-5 flex items-center justify-between">
-        <p className="text-xs font-bold uppercase tracking-wider text-[#5b6b62]">Trend</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-[#5b6b62]">{t('sheet.trend')}</p>
         <div className="flex gap-1" role="group" aria-label="Trend metric">
           {(['pg', 'pct'] as const).map((m) => (
             <button
@@ -222,15 +225,15 @@ export function SessionAnalyticsSheet({
           })}
         </svg>
       ) : (
-        <p className="mt-2 text-sm text-[#5b6b62]">Recite more sessions and your trend line will appear here.</p>
+        <p className="mt-2 text-sm text-[#5b6b62]">{t('sheet.trendEmpty')}</p>
       )}
       <p className="text-xs text-[#5b6b62]">Long press on the graph to browse between sessions (web: hover a dot).</p>
 
-      <p className="mt-5 text-xs font-bold uppercase tracking-wider text-[#5b6b62]">Session history</p>
+      <p className="mt-5 text-xs font-bold uppercase tracking-wider text-[#5b6b62]">{t('sheet.sessionHistory')}</p>
       {latestSessionAudio ? (
         <div className="mt-2 rounded-xl border border-[#FFB800] bg-[#FFFBF2] p-3">
           <p className="text-sm font-bold text-[#102E26]">
-            This session — {latestSessionAudio.range} · {latestSessionAudio.date}
+            {t('sheet.thisSession')} {latestSessionAudio.range} · {latestSessionAudio.date}
           </p>
           <p className="mt-1 text-xs text-[#5b6b62]">
             Your recording is still on this device. Share it with your teacher, or download it to send yourself.
@@ -245,7 +248,7 @@ export function SessionAnalyticsSheet({
         </p>
       )}
       {history.length === 0 ? (
-        <p className="mt-2 text-sm text-[#5b6b62]">No sessions yet.</p>
+        <p className="mt-2 text-sm text-[#5b6b62]">{t('sheet.noSessions')}</p>
       ) : (
         <ul className="mt-2 space-y-2">
           {history.slice(0, 8).map((r, i) => (
@@ -255,7 +258,7 @@ export function SessionAnalyticsSheet({
               <span className="font-bold">{r.accuracy.toFixed(1)}%</span>
               <span className="text-xs text-[#5b6b62]">{r.mistakesPerPage.toFixed(1)} m/p</span>
               <span aria-hidden="true" className="h-3 w-3 shrink-0 rounded-full" style={{ background: dot(r.accuracy) }} />
-              <span className="w-full text-xs text-[#5b6b62]">No audio — recordings are not saved past the session.</span>
+              <span className="w-full text-xs text-[#5b6b62]">{t('sheet.noAudioSaved')}</span>
             </li>
           ))}
         </ul>
@@ -292,8 +295,9 @@ export function tajweedClass(word: string): string {
 }
 
 export function TajweedGuide({ onClose }: { onClose: () => void }) {
+  const t = useT();
   return (
-    <BottomSheet title="Tajweed colours — display only" onClose={onClose}>
+    <BottomSheet title={t('sheet.tajweedTitle')} onClose={onClose}>
       <p className="text-sm text-[#5b6b62]">
         These colours show where a tajweed rule <em>applies</em> in the text. They do not
         check your recitation — this app checks words only, never tajweed. A teacher is
@@ -325,13 +329,15 @@ export interface RangeSelection {
 }
 
 const RANGE_COUNTS: Record<RangeKind, number> = { surah: 114, juz: 30, hizb: 60, rub: 240, page: 604 };
-const RANGE_LABELS: Record<RangeKind, string> = {
-  surah: 'Surah',
-  juz: 'Juz',
-  hizb: 'Hizb',
-  rub: 'Rub',
-  page: 'Page',
-};
+function rangeLabels(t: (key: string) => string): Record<RangeKind, string> {
+  return {
+    surah: t('sheet.kindSurah'),
+    juz: t('sheet.kindJuz'),
+    hizb: t('sheet.kindHizb'),
+    rub: t('sheet.kindRub'),
+    page: t('sheet.kindPage'),
+  };
+}
 
 export function RangeWheel({
   selected,
@@ -340,6 +346,8 @@ export function RangeWheel({
   selected: RangeSelection[];
   onChange: (next: RangeSelection[]) => void;
 }) {
+  const t = useT();
+  const RANGE_LABELS = rangeLabels(t);
   const [kind, setKind] = useState<RangeKind>('surah');
   const [rangeName, setRangeName] = useState('');
   const [rangeEmoji, setRangeEmoji] = useState('📖');
@@ -378,7 +386,7 @@ export function RangeWheel({
   const count = RANGE_COUNTS[kind];
   return (
     <div>
-      <div className="flex flex-wrap gap-1" role="group" aria-label="Range type">
+      <div className="flex flex-wrap gap-1" role="group" aria-label={t('sheet.rangeType')}>
         {(Object.keys(RANGE_LABELS) as RangeKind[]).map((k) => (
           <button
             key={k}
@@ -415,24 +423,24 @@ export function RangeWheel({
           onClick={() => onChange([])}
           className="rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold"
         >
-          Clear
+          {t('sheet.clear')}
         </button>
         <span className="text-sm text-[#5b6b62]">
-          {selected.length} section{selected.length === 1 ? '' : 's'} selected
+          {selected.length} {selected.length === 1 ? t('sheet.section') : t('sheet.sections')} {t('sheet.selected')}
         </span>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         <input
           value={rangeEmoji}
           onChange={(e) => setRangeEmoji(e.target.value)}
-          aria-label="Range emoji"
+          aria-label={t('sheet.rangeEmoji')}
           className="w-12 rounded-lg border border-[#E5E7EB] px-2 py-2 text-center text-sm"
         />
         <input
           value={rangeName}
           onChange={(e) => setRangeName(e.target.value)}
-          placeholder="Name this range, e.g. Juz Amma"
-          aria-label="Range name"
+          placeholder={t('sheet.rangeNamePlaceholder')}
+          aria-label={t('sheet.rangeName')}
           className="min-w-0 flex-1 rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm"
         />
         <button
@@ -441,12 +449,12 @@ export function RangeWheel({
           disabled={!rangeName.trim() || selected.length === 0}
           className="rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
         >
-          Save range
+          {t('sheet.saveRange')}
         </button>
       </div>
       {saved.length > 0 && (
         <div className="mt-3">
-          <p className="text-sm font-semibold">Your Ranges</p>
+          <p className="text-sm font-semibold">{t('sheet.yourRanges')}</p>
           <ul className="mt-1 flex flex-wrap gap-2">
             {saved.map((r, i) => (
               <li key={i}>

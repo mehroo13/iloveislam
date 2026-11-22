@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ALL_SURAHS } from '../surahs';
+import { useT } from '../lib/i18n';
 import {
   loadChallenges, saveChallenges, createChallenge, mergeChallenge,
   decodeChallengeParam, shareLink, groupProgress, daysLeft, isEnded,
@@ -16,6 +17,7 @@ import {
 } from '../lib/challenges';
 
 export default function ChallengesClient() {
+  const t = useT();
   const [list, setList] = useState<GroupChallenge[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -54,21 +56,21 @@ export default function ChallengesClient() {
           if (changed) persist(merged);
           setMsg(
             changed
-              ? `Joined “${incoming.name}” (${incoming.code}) — group progress updated.`
-              : `“${incoming.name}” (${incoming.code}) is already up to date on this device.`,
+              ? `${t('chal.joined')} “${incoming.name}” (${incoming.code}) — ${t('chal.groupUpdated')}`
+              : `“${incoming.name}” (${incoming.code}) ${t('chal.alreadyUpToDate')}`,
           );
         } else {
-          setMsg('That challenge link could not be read. Ask the sender to share it again.');
+          setMsg(t('chal.linkUnreadable'));
         }
         window.history.replaceState({}, '', '/hifz/challenges');
       } else if (code) {
         setJoinCode(code.toUpperCase());
-        setMsg(`Joining ${code.toUpperCase()} — pick the surah, target and length your group agreed, then tap “Join with this code”.`);
+        setMsg(`${t('chal.joining')}${code.toUpperCase()}${t('chal.joiningPick')}`);
       }
     } catch {
       /* ignore malformed URLs */
     }
-  }, [persist]);
+  }, [persist, t]);
 
   const copyText = async (text: string, label: string) => {
     try {
@@ -76,7 +78,7 @@ export default function ChallengesClient() {
       setCopied(label);
       setTimeout(() => setCopied(null), 2500);
     } catch {
-      setMsg('Copy failed — long-press the link to copy it by hand.');
+      setMsg(t('chal.copyFailed'));
     }
   };
 
@@ -90,7 +92,7 @@ export default function ChallengesClient() {
       myName: myName.trim() || 'Me',
     });
     persist([c, ...list]);
-    setMsg(`Challenge created — code ${c.code}. Share the link below with your group.`);
+    setMsg(`${t('chal.createdA')}${c.code}${t('chal.createdB')}`);
     setName('');
   };
 
@@ -98,7 +100,7 @@ export default function ChallengesClient() {
     const code = joinCode.trim().toUpperCase();
     if (!code) return;
     if (list.some((c) => c.code === code)) {
-      setMsg(`${code} is already on this device.`);
+      setMsg(`${code} ${t('chal.alreadyOnDevice')}`);
       return;
     }
     const surah = ALL_SURAHS.find((s) => s.slug === joinSurahSlug) ?? ALL_SURAHS[0];
@@ -116,7 +118,7 @@ export default function ChallengesClient() {
       members: [{ name: joinName.trim() || 'Me', ayahs: 0, updatedAt: now.toISOString(), mine: true }],
     };
     persist([c, ...list]);
-    setMsg(`Joined ${code}. Ask a member to share their link so their progress appears here too.`);
+    setMsg(`${t('chal.joined')} ${code}. ${t('chal.joinedBareB')}`);
   };
 
   const doLog = (c: GroupChallenge, count: number) => {
@@ -126,7 +128,7 @@ export default function ChallengesClient() {
 
   const doLeave = (c: GroupChallenge) => {
     persist(list.filter((x) => x.id !== c.id));
-    setMsg(`Left “${c.name}”. Your local copy is deleted; the group keeps going without you.`);
+    setMsg(`${t('chal.leftA')}${c.name}${t('chal.leftB')}`);
   };
 
   return (
@@ -146,18 +148,18 @@ export default function ChallengesClient() {
 
       {/* Accept a Challenge — suggested challenges (dark card, screenshot style) */}
       <section aria-labelledby="accept-heading" className="rounded-2xl bg-[#102E26] p-5 text-white shadow-sm sm:p-6">
-        <h2 id="accept-heading" className="text-xl font-bold">Accept a Challenge</h2>
-        <p className="mt-1 text-sm text-white/70">Suggested challenges — pick one and it becomes a goal with a daily plan.</p>
+        <h2 id="accept-heading" className="text-xl font-bold">{t('chal.accept')}</h2>
+        <p className="mt-1 text-sm text-white/70">{t('chal.acceptNote')}</p>
         <ul className="mt-4 space-y-2">
           {[
-            { label: 'Complete the Quran (Khatm)', note: 'Read the whole Quran in 1, 3, 6, 9 or 12 months', href: '/hifz/plans' },
-            { label: 'Daily reading — time', note: 'Read every day for a set number of minutes', href: '/hifz/goals' },
-            { label: 'Daily reading — pages', note: 'Read a set number of pages every day', href: '/hifz/goals' },
-            { label: 'Surah Al-Kahf', note: 'Recite Al-Kahf every Friday', href: '/hifz/goals?preset=kahf' },
-            { label: 'Custom Challenge', note: 'Build your own — any surah, any pace', href: '/hifz/goals' },
-            { label: 'Habit Building', note: 'Practise 7 days in a row to build the habit', href: '/hifz/my-progress' },
-            { label: '7-Day Streak Challenge', note: 'Practise every day for 7 days — keep the flame alive', href: '/hifz/my-progress' },
-            { label: '30-Day Streak Challenge', note: 'Practise every day for 30 days — a month of consistency', href: '/hifz/my-progress' },
+            { label: t('chal.khatm'), note: t('chal.khatmNote'), href: '/hifz/plans' },
+            { label: t('chal.dailyTime'), note: t('chal.dailyTimeNote'), href: '/hifz/goals' },
+            { label: t('chal.dailyPages'), note: t('chal.dailyPagesNote'), href: '/hifz/goals' },
+            { label: t('hub.kahf'), note: t('hub.kahfNote'), href: '/hifz/goals?preset=kahf' },
+            { label: t('chal.custom'), note: t('chal.customNote'), href: '/hifz/goals' },
+            { label: t('chal.habit'), note: t('chal.habitNote'), href: '/hifz/my-progress' },
+            { label: t('chal.streak7'), note: t('chal.streak7Note'), href: '/hifz/my-progress' },
+            { label: t('chal.streak30'), note: t('chal.streak30Note'), href: '/hifz/my-progress' },
           ].map((c) => (
             <li key={c.label}>
               <Link href={c.href} className="flex items-center justify-between gap-3 rounded-xl bg-white/10 px-4 py-3 hover:bg-white/15">
@@ -174,15 +176,15 @@ export default function ChallengesClient() {
 
       {/* Read a Quran, Give a Quran — annual Ramadan 90% challenge */}
       <section aria-labelledby="rqgq-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="rqgq-heading" className="text-xl font-bold text-[#102E26]">Read a Quran, Give a Quran</h2>
+        <h2 id="rqgq-heading" className="text-xl font-bold text-[#102E26]">{t('chal.rqgq')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           Each Ramadan: read or recite 90% or more of the Quran during the month, and a physical
           mushaf is donated on your behalf to a Muslim in need. One per person. Free to join.
         </p>
         <div className="mt-4">
           <div className="flex items-baseline justify-between gap-2 text-sm">
-            <span className="font-bold text-[#102E26]">0% progress</span>
-            <span className="text-[#5b6b62]">30 days remaining · 604 pages total</span>
+            <span className="font-bold text-[#102E26]">0% {t('chal.progressWord')}</span>
+            <span className="text-[#5b6b62]">30 {t('chal.daysLeft')} · 604 {t('chal.pagesTotal')}</span>
           </div>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#E5E7EB]" role="progressbar" aria-valuenow={0} aria-valuemin={0} aria-valuemax={100} aria-label="Ramadan challenge progress">
             <div className="h-full rounded-full bg-[#57D798]" style={{ width: '0%' }} />
@@ -193,14 +195,14 @@ export default function ChallengesClient() {
             you get an in-app confirmation that a mushaf will be donated on your behalf.
           </p>
           <Link href="/hifz/my-progress" className="mt-3 inline-block rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]">
-            Log sessions on My Progress →
+            {t('chal.logSessions')}
           </Link>
         </div>
       </section>
 
       {/* Quran League — time-boxed, goal-led, points, teams */}
       <section aria-labelledby="league-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="league-heading" className="text-xl font-bold text-[#102E26]">Quran League</h2>
+        <h2 id="league-heading" className="text-xl font-bold text-[#102E26]">{t('chal.league')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           A time-boxed race to goodness: join a League, set a memorisation goal (for example 80
           pages in 80 days, one page a day), get a daily plan until the deadline, and earn points
@@ -217,7 +219,7 @@ export default function ChallengesClient() {
               <p className="mt-1 text-sm text-[#5b6b62]">{l.goal}</p>
               <p className="text-xs text-[#5b6b62]">{l.note}</p>
               <Link href="/hifz/goals" className="mt-3 inline-block rounded-full bg-[#57D798] px-4 py-2 text-sm font-bold text-[#102E26] hover:brightness-105">
-                Join with a goal →
+                {t('chal.joinGoal')}
               </Link>
             </article>
           ))}
@@ -232,7 +234,7 @@ export default function ChallengesClient() {
       {/* My challenges */}
       {list.length > 0 && (
         <section aria-labelledby="mine-heading" className="space-y-4">
-          <h2 id="mine-heading" className="text-xl font-bold text-[#102E26]">My challenges</h2>
+          <h2 id="mine-heading" className="text-xl font-bold text-[#102E26]">{t('chal.myChallenges')}</h2>
           {list.map((c) => {
             const prog = groupProgress(c);
             const mine = myMember(c);
@@ -243,27 +245,27 @@ export default function ChallengesClient() {
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h3 className="text-lg font-bold text-[#102E26]">{c.name}</h3>
                   <span className="rounded-full bg-[#FFFBF2] px-3 py-1 text-xs font-bold text-[#5b6b62]">
-                    {c.code} · {ended ? 'Ended' : `${daysLeft(c)} days left`}
+                    {c.code} · {ended ? t('chal.ended') : `${daysLeft(c)} ${t('chal.daysLeft')}`}
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-[#5b6b62]">
-                  Surah {c.surahName} · {c.targetAyahs} ayahs each · {c.members.length}{' '}
-                  {c.members.length === 1 ? 'member' : 'members'}
+                  {t('common.surah')} {c.surahName} · {c.targetAyahs} {t('chal.ayahsEach')} · {c.members.length}{' '}
+                  {c.members.length === 1 ? t('chal.member') : t('chal.members')}
                 </p>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E5E7EB]" role="progressbar" aria-valuenow={prog.pct} aria-valuemin={0} aria-valuemax={100} aria-label={`Group progress for ${c.name}`}>
                   <div className="h-full rounded-full bg-[#1FA36B]" style={{ width: `${prog.pct}%` }} />
                 </div>
                 <p className="mt-2 text-sm text-[#5b6b62]">
-                  Group: {prog.done} / {prog.goal} ayahs ({prog.pct}%)
+                  {t('chal.group')} {prog.done} / {prog.goal} {t('common.ayahs')} ({prog.pct}%)
                 </p>
                 <ul className="mt-3 space-y-1.5">
                   {c.members.map((m) => (
                     <li key={m.name} className="flex flex-wrap items-center justify-between gap-2 text-sm">
                       <span className="font-semibold text-[#102E26]">
-                        {m.name}{m.mine ? ' (you)' : ''}
+                        {m.name}{m.mine ? ` ${t('chal.you')}` : ''}
                       </span>
                       <span className="text-[#5b6b62]">
-                        {m.ayahs} / {c.targetAyahs} ayahs
+                        {m.ayahs} / {c.targetAyahs} {t('common.ayahs')}
                       </span>
                     </li>
                   ))}
@@ -275,20 +277,20 @@ export default function ChallengesClient() {
                       onClick={() => doLog(c, 1)}
                       className="rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
                     >
-                      I did 1 ayah
+                      {t('chal.did1')}
                     </button>
                     <button
                       type="button"
                       onClick={() => doLog(c, 5)}
                       className="rounded-full border border-[#102E26] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
                     >
-                      I did 5 ayahs
+                      {t('chal.did5')}
                     </button>
                     <Link
                       href={`/hifz/${ALL_SURAHS.find((s) => s.id === c.surahId)?.slug ?? 'al-fatihah'}?mode=recite`}
                       className="rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
                     >
-                      Recite with the coach →
+                      {t('chal.reciteCoach')}
                     </Link>
                   </div>
                 )}
@@ -298,26 +300,26 @@ export default function ChallengesClient() {
                     onClick={() => copyText(shareLink(c, origin), `link-${c.id}`)}
                     className="rounded-full bg-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:brightness-110"
                   >
-                    {copied === `link-${c.id}` ? 'Link copied' : 'Copy share link'}
+                    {copied === `link-${c.id}` ? t('chal.linkCopied') : t('chal.copyLink')}
                   </button>
                   <button
                     type="button"
                     onClick={() => copyText(c.code, `code-${c.id}`)}
                     className="rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
                   >
-                    {copied === `code-${c.id}` ? 'Code copied' : 'Copy code'}
+                    {copied === `code-${c.id}` ? t('chal.codeCopied') : t('chal.copyCode')}
                   </button>
                   <button
                     type="button"
                     onClick={() => doLeave(c)}
                     className="ml-auto text-sm font-semibold text-red-700 underline"
                   >
-                    Leave challenge
+                    {t('chal.leave')}
                   </button>
                 </div>
                 {mine && mine.ayahs >= c.targetAyahs && (
                   <p className="mt-3 text-sm font-semibold text-[#1FA36B]">
-                    You finished your {c.targetAyahs} ayahs — well done.
+                    {t('chal.finishedA')}{c.targetAyahs}{t('chal.finishedB')}
                   </p>
                 )}
               </article>
@@ -328,62 +330,62 @@ export default function ChallengesClient() {
 
       {/* Create */}
       <section aria-labelledby="create-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="create-heading" className="text-xl font-bold text-[#102E26]">Start a challenge</h2>
+        <h2 id="create-heading" className="text-xl font-bold text-[#102E26]">{t('chal.startChallenge')}</h2>
         <div className="mt-4 space-y-4">
           <label className="block text-sm font-semibold">
-            Challenge name
+            {t('chal.challengeName')}
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Family Al-Mulk week"
+              placeholder={t('chal.namePlaceholder')}
               className="mt-1 block w-full rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
             />
           </label>
           <label className="block text-sm font-semibold">
-            Your name (shown to the group)
+            {t('chal.yourName')}
             <input
               type="text"
               value={myName}
               onChange={(e) => setMyName(e.target.value)}
-              placeholder="e.g. Ahmed"
+              placeholder={t('chal.nameAhmed')}
               className="mt-1 block w-full max-w-xs rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
             />
           </label>
           <div className="flex flex-wrap gap-4">
             <label className="block text-sm font-semibold">
-              Surah
+              {t('common.surah')}
               <select
                 value={surahSlug}
                 onChange={(e) => setSurahSlug(e.target.value)}
                 className="mt-1 block rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
               >
                 {ALL_SURAHS.map((s) => (
-                  <option key={s.slug} value={s.slug}>{s.name} ({s.ayahCount} ayahs)</option>
+                  <option key={s.slug} value={s.slug}>{s.name} ({s.ayahCount} {t('common.ayahs')})</option>
                 ))}
               </select>
             </label>
             <label className="block text-sm font-semibold">
-              Ayahs each
+              {t('chal.ayahsEachLabel')}
               <select
                 value={target}
                 onChange={(e) => setTarget(Number(e.target.value))}
                 className="mt-1 block rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
               >
                 {CHALLENGE_TARGET_OPTIONS.map((n) => (
-                  <option key={n} value={n}>{n} ayahs</option>
+                  <option key={n} value={n}>{n} {t('chal.ayahsOpt')}</option>
                 ))}
               </select>
             </label>
             <label className="block text-sm font-semibold">
-              Length
+              {t('chal.length')}
               <select
                 value={days}
                 onChange={(e) => setDays(Number(e.target.value))}
                 className="mt-1 block rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
               >
                 {CHALLENGE_DAY_OPTIONS.map((n) => (
-                  <option key={n} value={n}>{n} days</option>
+                  <option key={n} value={n}>{n} {t('chal.daysOpt')}</option>
                 ))}
               </select>
             </label>
@@ -393,21 +395,21 @@ export default function ChallengesClient() {
             onClick={doCreate}
             className="rounded-full bg-[#102E26] px-6 py-3 text-sm font-semibold text-white hover:bg-[#1FA36B]"
           >
-            Create challenge
+            {t('chal.createChallenge')}
           </button>
         </div>
       </section>
 
       {/* Join with a bare code */}
       <section aria-labelledby="join-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="join-heading" className="text-xl font-bold text-[#102E26]">Join with a code</h2>
+        <h2 id="join-heading" className="text-xl font-bold text-[#102E26]">{t('chal.joinCode')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           Got a code but no link? Enter it here with the surah, target and length your
           group agreed. (A full share link joins automatically — no form needed.)
         </p>
         <div className="mt-4 space-y-4">
           <label className="block text-sm font-semibold">
-            Challenge code
+            {t('chal.codeLabel')}
             <input
               type="text"
               value={joinCode}
@@ -417,49 +419,49 @@ export default function ChallengesClient() {
             />
           </label>
           <label className="block text-sm font-semibold">
-            Your name (shown to the group)
+            {t('chal.yourName')}
             <input
               type="text"
               value={joinName}
               onChange={(e) => setJoinName(e.target.value)}
-              placeholder="e.g. Ahmed"
+              placeholder={t('chal.nameAhmed')}
               className="mt-1 block w-full max-w-xs rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
             />
           </label>
           <div className="flex flex-wrap gap-4">
             <label className="block text-sm font-semibold">
-              Surah
+              {t('common.surah')}
               <select
                 value={joinSurahSlug}
                 onChange={(e) => setJoinSurahSlug(e.target.value)}
                 className="mt-1 block rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
               >
                 {ALL_SURAHS.map((s) => (
-                  <option key={s.slug} value={s.slug}>{s.name} ({s.ayahCount} ayahs)</option>
+                  <option key={s.slug} value={s.slug}>{s.name} ({s.ayahCount} {t('common.ayahs')})</option>
                 ))}
               </select>
             </label>
             <label className="block text-sm font-semibold">
-              Ayahs each
+              {t('chal.ayahsEachLabel')}
               <select
                 value={joinTarget}
                 onChange={(e) => setJoinTarget(Number(e.target.value))}
                 className="mt-1 block rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
               >
                 {CHALLENGE_TARGET_OPTIONS.map((n) => (
-                  <option key={n} value={n}>{n} ayahs</option>
+                  <option key={n} value={n}>{n} {t('chal.ayahsOpt')}</option>
                 ))}
               </select>
             </label>
             <label className="block text-sm font-semibold">
-              Length
+              {t('chal.length')}
               <select
                 value={joinDays}
                 onChange={(e) => setJoinDays(Number(e.target.value))}
                 className="mt-1 block rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
               >
                 {CHALLENGE_DAY_OPTIONS.map((n) => (
-                  <option key={n} value={n}>{n} days</option>
+                  <option key={n} value={n}>{n} {t('chal.daysOpt')}</option>
                 ))}
               </select>
             </label>
@@ -470,7 +472,7 @@ export default function ChallengesClient() {
             disabled={!joinCode.trim()}
             className="rounded-full bg-[#102E26] px-6 py-3 text-sm font-semibold text-white hover:bg-[#1FA36B] disabled:opacity-50"
           >
-            Join with this code
+            {t('chal.joinWithCode')}
           </button>
         </div>
       </section>

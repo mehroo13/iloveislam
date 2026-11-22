@@ -50,6 +50,22 @@ import { normalizeArabic } from '../lib/alignment';
 const FREQUENT_MISTAKE_MIN_ATTEMPTS = 2;
 /** Strong red for weak-word marking — the coach's wrong-word red. */
 const WEAK_WORD_RED = '#DC2626';
+/** Fixed design width (px) of one rendered mushaf page frame. The page is
+ *  laid out once at this width — and scaled with CSS `zoom` to fit the
+ *  screen (see the scaled-page note below). The width is sized from MEASUREMENT,
+ *  not guesswork: the widest clean line in the whole Quran is ~895px
+ *  (Indo-Pak, all 604 pages measured in headless Chrome 2026-11-22;
+ *  Uthmani max ~770px; an 18-page real-renderer sample peaked at 858px),
+ *  so the text column is 970 − 2×24 (padding) − 2 (border) = 920px, with
+ *  ~25px headroom over the widest line. Any narrower and the longest
+ *  lines wrap into a second visual line — exactly the defect this fix
+ *  removes. On desktop the mushaf route's container is widened to match
+ *  (see app/hifz/mushaf/[page]/page.tsx), so the fit scale stays ~1. */
+const MUSHAF_PAGE_WIDTH = 970;
+/** Zoom limits for the scaled page (multiplier on top of the fit scale). */
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 3;
+const ZOOM_STEP = 0.5;
 
 interface WordWithVerse extends MushafWord {
   verseKey: string;
@@ -89,7 +105,10 @@ function SurahHeader({ surah }: { surah: HifzSurah }) {
           <StarMark className="h-3.5 w-3.5" />
         </span>
         <div className="rounded-xl border border-[#FFB800]/60 bg-[#FFFFFF]/80 px-3 py-2">
-          <p dir="rtl" lang="ar" className="font-quran-madani text-3xl leading-snug text-[#102E26] sm:text-4xl">
+          {/* Fixed size (no sm: variant): inside the scaled page the type
+              must not depend on the viewport width — the transform scales
+              it. text-4xl is the size desktop already used. */}
+          <p dir="rtl" lang="ar" className="font-quran-madani text-4xl leading-snug text-[#102E26]">
             {surah.arabic}
           </p>
         </div>
@@ -99,7 +118,7 @@ function SurahHeader({ surah }: { surah: HifzSurah }) {
         </p>
       </div>
       {surah.id !== 1 && surah.id !== 9 && (
-        <p dir="rtl" lang="ar" className="font-quran-madani mt-4 text-center text-2xl text-[#102E26] sm:text-3xl">
+        <p dir="rtl" lang="ar" className="font-quran-madani mt-4 text-center text-3xl text-[#102E26]">
           {BISMILLAH}
         </p>
       )}
@@ -235,6 +254,159 @@ export default function MushafPageView({
     };
   }, [page, verses, script, lines16, topicColors, hidden, revealed, continuous, extraPages.length, frequentMistakes, mistakeMarkingOn]);
 
+  // --- Scaled-page rendering (mobile mushaf fix, 2026-11-22) ---
+  // WHY: every mushaf line is one <p> at a fixed ~33px font. On a phone
+  // the frame is ~300px wide, so a ~650px-wide line wraps onto two visual
+  // lines and the kashida filler centres the fragments — the "two centred
+  // parts" Mehran saw. Shrinking the font or re-flowing the text cannot
+  // fix that without breaking the Madani line breaks, so the page is
+  // rendered once at MUSHAF_PAGE_WIDTH (the width it already has on
+  // desktop, where the layout is verified) and scaled as a whole to fit
+  // the screen. Scaling never re-flows text: line breaks, word order and
+  // glyph shaping are identical at every width, and zooming only changes
+  // the scale, never the layout.
+  // WHY CSS `zoom`, NOT `transform: scale()`: both paint the same, but
+  // transform leaves the layout box unscaled, which breaks two things
+  // that were caught in headless verification (2026-11-22): (1) with
+  // transform-origin centre the scaled page sits centred in its 970px
+  // layout box, so at fit zoom the whole frame renders off-screen right
+  // of the 308px window — the frame looked completely empty; (2) the
+  // scroll container's scrollWidth/scrollHeight stay unscaled (970/1159),
+  // so native panning scrolls into empty space. `zoom` scales layout
+  // too: scrollWidth/scrollHeight are the true visual sizes, panning
+  // works natively, and the kashida filler still measures the design
+  // width (verified: line clientWidth stays ~920 under zoom, tatweel
+  // intact, no wraps). `zoom` is supported in Chrome, Safari and
+  // Firefox 126+; the one risk is a very old browser ignoring it and
+  // showing the page at full width.
+  // The line divisions themselves are authentic: Quran.com verses/by_page
+  // gives every word its Madani line_number, and the renderer groups
+  // words by that number — no line break is invented and no ayah text is
+  // re-divided. Fonts are unchanged (Amiri for Uthmani, Scheherazade New
+  // for Indo-Pak, both self-hosted with full Arabic ranges).
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const [fitScale, setFitScale] = useState(1);
+  const [pageHeight, setPageHeight] = useState(0);
+  const [zoom, setZoom] = useState(1);
+  const fitScaleRef = useRef(1);
+  const zoomRef = useRef(1);
+  const scale = fitScale * zoom;
+
+  // Measure the available width (fit scale) and the unscaled page height.
+  // The viewport's height is the scaled page height, so the page never
+  // overflows the screen at fit zoom; zoomed in, the viewport scrolls.
+  useEffect(() => {
+    const vp = viewportRef.current;
+    if (!vp || typeof ResizeObserver === 'undefined') return;
+    const update = () => {
+      const w = vp.clientWidth;
+      if (w > 0) {
+        const next = Math.min(1, w / MUSHAF_PAGE_WIDTH);
+        fitScaleRef.current = next;
+        setFitScale((prev) => (Math.abs(prev - next) < 0.001 ? prev : next));
+      }
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(vp);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame || typeof ResizeObserver === 'undefined') return;
+    const update = () => {
+      const h = frame.offsetHeight;
+      if (h > 0) setPageHeight((prev) => (prev === h ? prev : h));
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, []);
+
+  // Zoom, keeping the focal point (pinch midpoint / viewport centre)
+  // stable by re-anchoring the scroll position after the scale changes.
+  const applyZoom = (next: number, focalX?: number, focalY?: number) => {
+    const clamped = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next));
+    const vp = viewportRef.current;
+    const prevScale = fitScaleRef.current * zoomRef.current;
+    const nextScale = fitScaleRef.current * clamped;
+    let fx = 0;
+    let fy = 0;
+    let sx = 0;
+    let sy = 0;
+    if (vp) {
+      const rect = vp.getBoundingClientRect();
+      fx = focalX !== undefined ? focalX - rect.left : vp.clientWidth / 2;
+      fy = focalY !== undefined ? focalY - rect.top : vp.clientHeight / 2;
+      sx = vp.scrollLeft;
+      sy = vp.scrollTop;
+    }
+    zoomRef.current = clamped;
+    setZoom(clamped);
+    if (vp && prevScale > 0) {
+      requestAnimationFrame(() => {
+        vp.scrollLeft = ((sx + fx) / prevScale) * nextScale - fx;
+        vp.scrollTop = ((sy + fy) / prevScale) * nextScale - fy;
+      });
+    }
+  };
+  const applyZoomRef = useRef(applyZoom);
+  useEffect(() => {
+    applyZoomRef.current = applyZoom;
+  });
+
+  // Pinch-to-zoom (two fingers) and Ctrl+wheel / trackpad pinch.
+  // Native listeners, not React handlers: the move handler must be
+  // non-passive so preventDefault() stops the browser's own pinch/scroll
+  // while a pinch is in progress. The viewport's touch-action (pan-x
+  // pan-y) keeps one-finger panning working and leaves pinch gestures to
+  // this handler; the +/- buttons are the fallback if a browser does not
+  // deliver the gesture. Native browser pinch-zoom of the whole page
+  // still works outside the page frame (the root viewport sets no
+  // maximum-scale / user-scalable restriction).
+  useEffect(() => {
+    const vp = viewportRef.current;
+    if (!vp) return;
+    const pinch = { active: false, d0: 0, z0: 1, cx: 0, cy: 0 };
+    const dist = (t: TouchList) =>
+      Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        pinch.active = true;
+        pinch.d0 = dist(e.touches);
+        pinch.z0 = zoomRef.current;
+        pinch.cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        pinch.cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      }
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (!pinch.active || e.touches.length !== 2 || pinch.d0 <= 0) return;
+      e.preventDefault();
+      applyZoomRef.current(pinch.z0 * (dist(e.touches) / pinch.d0), pinch.cx, pinch.cy);
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) pinch.active = false;
+    };
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      applyZoomRef.current(zoomRef.current * Math.exp(-e.deltaY * 0.002), e.clientX, e.clientY);
+    };
+    vp.addEventListener('touchstart', onTouchStart, { passive: true });
+    vp.addEventListener('touchmove', onTouchMove, { passive: false });
+    vp.addEventListener('touchend', onTouchEnd);
+    vp.addEventListener('touchcancel', onTouchEnd);
+    vp.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      vp.removeEventListener('touchstart', onTouchStart);
+      vp.removeEventListener('touchmove', onTouchMove);
+      vp.removeEventListener('touchend', onTouchEnd);
+      vp.removeEventListener('touchcancel', onTouchEnd);
+      vp.removeEventListener('wheel', onWheel);
+    };
+  }, []);
+
   useEffect(() => {
     try {
       const q = new URLSearchParams(window.location.search);
@@ -360,7 +532,11 @@ export default function MushafPageView({
     // counting it made line 1 of page 2 (7 words + 2 rosettes) look
     // "long" and justify it with wide gaps.
     const shortLine = display.filter((w) => !w.isEnd).length < 5;
-    const sizeCls = lines16 ? 'text-[1.6rem] leading-[2.2] sm:text-[1.85rem]' : 'text-[1.85rem] leading-[2.35] sm:text-[2.1rem]';
+    // Fixed sizes (no sm: variant): inside the scaled page the type must
+    // not depend on the viewport width — the transform scales it. These
+    // are the sizes desktop already used (the old sm: sizes), so the
+    // desktop design is unchanged.
+    const sizeCls = lines16 ? 'text-[1.85rem] leading-[2.2]' : 'text-[2.1rem] leading-[2.35]';
     const lineClass = `${fontClass} ${sizeCls} text-[#1C2420] ${shortLine ? 'text-center' : 'mushaf-line'}`;
     let lineContent: React.ReactNode;
     if (hidden) {
@@ -491,7 +667,12 @@ export default function MushafPageView({
       lineContent = nodes;
     }
     blocks.push(
-      <p key={`l-${lineNo}`} dir="rtl" lang="ar" className={lineClass}>
+      // overflowWrap/wordBreak 'normal' overrides .font-quran's
+      // `overflow-wrap: break-word` (globals.css, not touched here):
+      // a word must never be split across lines to make the layout fit.
+      // At the fixed design width no word is ever wider than the line,
+      // so this guard costs nothing and can only prevent a split.
+      <p key={`l-${lineNo}`} dir="rtl" lang="ar" className={lineClass} style={{ overflowWrap: 'normal', wordBreak: 'normal' }}>
         {lineContent}
       </p>,
     );
@@ -651,20 +832,87 @@ export default function MushafPageView({
         </p>
       )}
 
+      {/* Zoom controls — one-hand friendly, above the page. */}
+      {!bare && (
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2" role="group" aria-label="Mushaf page zoom">
+          <button
+            type="button"
+            onClick={() => applyZoom(zoom - ZOOM_STEP)}
+            disabled={zoom <= MIN_ZOOM}
+            aria-label="Zoom out"
+            className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
+          >
+            −
+          </button>
+          <span className="w-12 text-center text-sm font-semibold text-[#102E26]" aria-live="polite">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            type="button"
+            onClick={() => applyZoom(zoom + ZOOM_STEP)}
+            disabled={zoom >= MAX_ZOOM}
+            aria-label="Zoom in"
+            className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={() => applyZoom(MIN_ZOOM)}
+            disabled={zoom === MIN_ZOOM}
+            className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
+          >
+            Fit page
+          </button>
+        </div>
+      )}
+      {!bare && (
+        <p className="mt-2 text-center text-xs text-[#5b6b62]">
+          The whole page is scaled to fit your screen — pinch to zoom in, then drag to pan around
+          it. Zooming never moves or re-wraps the words.
+        </p>
+      )}
+
       <div className="mt-4 rounded-2xl border-2 border-[#FFB800] bg-[#FFFBF2] p-2 shadow-sm sm:p-4">
+        {/* Scaled-page viewport: the frame inside is always
+            MUSHAF_PAGE_WIDTH wide and is scaled with CSS `zoom` to fit
+            (see the scaled-page note above). The viewport's height is the
+            scaled page height, so the page never overflows the screen at
+            fit zoom; zoomed in, it scrolls/pans natively. touch-action
+            pan-x pan-y keeps one-finger panning working and leaves pinch
+            gestures to the handler above. */}
         <div
-          ref={frameRef}
-          className={`flex min-h-[62vh] flex-col rounded-xl border border-[#FFB800]/60 bg-[#FFFBF2] px-3 sm:px-6 ${
-            shortPage ? 'justify-center py-10 sm:py-14' : 'justify-start py-4 sm:py-6'
-          }`}
+          ref={viewportRef}
+          style={{
+            height: pageHeight > 0 ? Math.ceil(pageHeight * scale) : undefined,
+            overflow: zoom > MIN_ZOOM ? 'auto' : 'hidden',
+            touchAction: 'pan-x pan-y',
+          }}
         >
-          {blocks.length > 0 ? (
-            blocks
-          ) : (
-            <p className="py-10 text-center text-sm text-[#5b6b62]">
-              This mushaf page could not be loaded right now. Check your connection and reload.
-            </p>
-          )}
+          <div
+            style={{
+              width: MUSHAF_PAGE_WIDTH,
+              margin: '0 auto',
+              // String, not number: React would append 'px' to a numeric
+              // zoom if it did not treat it as unitless.
+              zoom: String(scale),
+            }}
+          >
+            <div
+              ref={frameRef}
+              className={`flex min-h-[62vh] flex-col rounded-xl border border-[#FFB800]/60 bg-[#FFFBF2] px-6 ${
+                shortPage ? 'justify-center py-14' : 'justify-start py-6'
+              }`}
+            >
+              {blocks.length > 0 ? (
+                blocks
+              ) : (
+                <p className="py-10 text-center text-sm text-[#5b6b62]">
+                  This mushaf page could not be loaded right now. Check your connection and reload.
+                </p>
+              )}
+            </div>
+          </div>
         </div>
         <p className="mt-3 text-center text-xs text-[#5b6b62]">
           Page {page} of 604 · Madani Mushaf · {SCRIPT_LABELS[script]} · Text via Quran.com

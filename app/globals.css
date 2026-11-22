@@ -377,7 +377,22 @@ body {
 
 /* ===== Tarteel-matching Hifz styles (reverse-engineering 2026-11-21) ===== */
 
-/* Dark theme (Settings → Themes). Near-black pages, dark navy test cards. */
+/* Dark theme (Settings → Themes). Near-black pages, dark navy test cards.
+ *
+ * BUG 2 root cause (2026-11-22): these rules used to restyle only `body`
+ * and `.hifz-surface` — but `.hifz-surface` is used by NO component, and
+ * `body` is covered by the layout's `bg-[#FFFBF2]` wrapper and by `bg-white`
+ * cards everywhere. Setting `data-theme="dark"` therefore changed nothing
+ * visible. Fix: override the hardcoded Tailwind palette utilities the app
+ * actually renders with (cream page, white cards, dark ink, grey hairlines)
+ * under `[data-theme="dark"]`, so dark/sepia visibly restyle the whole
+ * app. The default (light) Tarteel palette is untouched — these rules only
+ * apply while `data-theme` is set. Button-text restores at the end MUST stay
+ * last: they share specificity with the ink overrides and win by order, so
+ * dark text on the bright-green / gold buttons is preserved. */
+[data-theme="dark"] {
+  color-scheme: dark;
+}
 [data-theme="dark"] body {
   background: #0a0f0d;
   color: #e8f5ee;
@@ -387,6 +402,38 @@ body {
   border-color: #1e4a3a !important;
   color: #e8f5ee !important;
 }
+[data-theme="dark"] .sheet-panel {
+  background: #122019;
+  color: #e8f5ee;
+}
+/* Surfaces: cream page, white cards, mint chips, warm off-white, grey track. */
+[data-theme="dark"] .bg-\[\#FFFBF2\] { background-color: #0a0f0d; }
+[data-theme="dark"] .bg-white { background-color: #122019; }
+[data-theme="dark"] .bg-white\/95 { background-color: rgba(18, 32, 25, 0.95); }
+[data-theme="dark"] .bg-\[\#E4FFF2\] { background-color: #16382a; }
+[data-theme="dark"] .bg-\[\#E5E7EB\] { background-color: #24352c; }
+[data-theme="dark"] .bg-\[\#F7F5EF\] { background-color: #122019; }
+/* Ink: dark-green / near-black headings and muted grey become light. */
+[data-theme="dark"] .text-\[\#102E26\] { color: #e8f5ee; }
+[data-theme="dark"] .text-\[\#1C2420\] { color: #e8f5ee; }
+[data-theme="dark"] .text-\[\#0B3D2E\] { color: #bfe9d2; }
+[data-theme="dark"] .text-\[\#146B4D\] { color: #71f3ad; }
+[data-theme="dark"] .text-\[\#1FA36B\] { color: #71f3ad; }
+[data-theme="dark"] .text-\[\#5b6b62\] { color: #9db3a5; }
+[data-theme="dark"] .text-\[\#6B7280\] { color: #9db3a5; }
+/* Hairlines + outlined buttons. */
+[data-theme="dark"] .border-\[\#E5E7EB\] { border-color: #24402f; }
+[data-theme="dark"] .border-\[\#e5e0d3\] { border-color: #24402f; }
+[data-theme="dark"] .border-\[\#E7E2D5\] { border-color: #24402f; }
+[data-theme="dark"] .border-\[\#102E26\] { border-color: #3a5c48; }
+[data-theme="dark"] .border-\[\#146B4D\] { border-color: #2c5a44; }
+[data-theme="dark"] .divide-\[\#E5E7EB\] > :not([hidden]) ~ :not([hidden]) { border-color: #24402f; }
+/* Hover washes on rows / outlined buttons. */
+[data-theme="dark"] .hover\:bg-\[\#FFFBF2\]:hover { background-color: #1a2b22; }
+[data-theme="dark"] .hover\:bg-\[\#E4FFF2\]:hover { background-color: #16382a; }
+/* Keep dark text on bright-green / gold buttons (see note above). */
+[data-theme="dark"] .bg-\[\#57D798\] { color: #102e26; }
+[data-theme="dark"] .bg-\[\#FFB800\] { color: #102e26; }
 
 /* Big green-gradient mic/mode button (Tarteel §2.3): pale mint top-left
    → deeper green bottom-right, white icon. */
@@ -491,7 +538,14 @@ body {
 .hifz-tabs { scrollbar-width: none; }
 .hifz-tabs::-webkit-scrollbar { display: none; }
 
-/* Sepia theme (Settings → Themes). Warm paper page, brown ink. */
+/* Sepia theme (Settings → Themes). Warm paper page, brown ink.
+ * Same fix as dark: the old rules only touched `body` and the unused
+ * `.hifz-surface`, so sepia was invisible too. Dark-green headings and
+ * dark-green cards are kept as-is — they read well on warm paper and keep
+ * the Tarteel brand feel. */
+[data-theme="sepia"] {
+  color-scheme: light;
+}
 [data-theme="sepia"] body {
   background: #f4ecd8;
   color: #433422;
@@ -500,6 +554,27 @@ body {
   background: #fdf6e3 !important;
   border-color: #e3d5b3 !important;
 }
+[data-theme="sepia"] .sheet-panel {
+  background: #fdf6e3;
+  color: #433422;
+}
+/* Surfaces: cream page and white cards become warm paper. */
+[data-theme="sepia"] .bg-\[\#FFFBF2\] { background-color: #f4ecd8; }
+[data-theme="sepia"] .bg-white { background-color: #fdf6e3; }
+[data-theme="sepia"] .bg-white\/95 { background-color: rgba(253, 246, 227, 0.95); }
+[data-theme="sepia"] .bg-\[\#E4FFF2\] { background-color: #efe6c8; }
+[data-theme="sepia"] .bg-\[\#F7F5EF\] { background-color: #fdf6e3; }
+/* Muted grey text warms up; dark ink stays for contrast. */
+[data-theme="sepia"] .text-\[\#5b6b62\] { color: #6f6248; }
+[data-theme="sepia"] .text-\[\#6B7280\] { color: #6f6248; }
+/* Hairlines become parchment. */
+[data-theme="sepia"] .border-\[\#E5E7EB\] { border-color: #e3d5b3; }
+[data-theme="sepia"] .border-\[\#e5e0d3\] { border-color: #e3d5b3; }
+[data-theme="sepia"] .border-\[\#E7E2D5\] { border-color: #e3d5b3; }
+[data-theme="sepia"] .divide-\[\#E5E7EB\] > :not([hidden]) ~ :not([hidden]) { border-color: #e3d5b3; }
+/* Hover washes on rows / outlined buttons. */
+[data-theme="sepia"] .hover\:bg-\[\#FFFBF2\]:hover { background-color: #efe6c8; }
+[data-theme="sepia"] .hover\:bg-\[\#E4FFF2\]:hover { background-color: #e8dcb8; }
 
 /* Skipped / not-heard words: orange (screenshot-spec colours). */
 .live-word-skipped { color: #ea580c; }

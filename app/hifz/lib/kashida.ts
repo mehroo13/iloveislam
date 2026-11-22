@@ -307,8 +307,19 @@ function measureNatural(line: HTMLElement): number {
 function isWrapped(line: HTMLElement): boolean {
   const range = document.createRange();
   range.selectNodeContents(line);
-  const h = range.getBoundingClientRect().height;
-  const lh = parseFloat(getComputedStyle(line).lineHeight) || h;
+  const rectH = range.getBoundingClientRect().height;
+  const lh = parseFloat(getComputedStyle(line).lineHeight) || rectH;
+  // The page is scaled to fit the screen (MushafPageView, CSS `zoom`):
+  // rect heights are scaled, line-height is not. Undo the scale before
+  // comparing — the element's own rect/offset ratio IS the applied
+  // scale (it holds whether the line is one visual line or two, since
+  // both rect and offset heights double on a wrap). Without this, a
+  // wrapped line at fit scale (~0.32) measures ~0.6 line-heights and
+  // the guard misses it entirely.
+  const elH = line.getBoundingClientRect().height;
+  const elLayoutH = line.offsetHeight;
+  const s = elLayoutH > 0 && elH > 0 ? elH / elLayoutH : 1;
+  const h = s > 0 ? rectH / s : rectH;
   return h > lh * 1.5;
 }
 

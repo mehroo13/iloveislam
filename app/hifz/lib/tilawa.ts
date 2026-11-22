@@ -36,8 +36,17 @@
  *    `resolved` and are NOT counted (policy `countSelfCorrections: false`).
  *  - `listen(session, { onLevel })` — mic → session, with a live dBFS level
  *    callback for the meter. Rejects with `MicrophoneError` (`denied` /
- *    `unavailable` / `insecure-context`).
+ *    `unavailable` / `insecure-context`). On mobile the mic MUST be
+ *    prepared first, synchronously in the tap, via
+ *    `engine.prepareMicrophone()` and passed as `prepared` — otherwise the
+ *    AudioContext is created after the permission prompt, outside the
+ *    gesture, and can stay suspended with zero audio reaching the model
+ *    (2026-11-22 "no voice" bug; see PreparedMicCapture).
  *  - `session.mistakes()` — confirmed mistakes at the end of a take.
+ *  - `session.getAudioHealth()` — capture vs tracker telemetry: whether
+ *    the mic actually delivered sound (`levelCallbacks`, `everAudible`)
+ *    vs whether the tracker followed words (`positionEvents`,
+ *    `everLocked`). `noSpeech` alone never proves the mic heard nothing.
  *
  * MAPPING TO THE COACH'S WORD MODEL (spec §3/§8):
  *  - correct: a word the tracker observed (locked position) and the checker
@@ -64,7 +73,7 @@ import type {
   TilawaSession,
   WordRef,
 } from '@tilawa/core';
-import type { Microphone } from '@tilawa/core/web';
+import type { Microphone, PreparedMicrophone } from '@tilawa/core/web';
 import { splitWords } from './alignment';
 
 export type EngineTier = 'auto' | 'full' | 'lite';
@@ -126,8 +135,23 @@ export interface SessionResult {
   missedCount: number;
   /** True when the attempt was too unclear to trust per-word colours. */
   unclear: boolean;
-  /** True when no speech was detected at all. */
+  /** True when the tracker observed no expected word at all. NOTE: this
+   * does NOT by itself mean the microphone heard nothing — see
+   * `micHeardAudio` / `audioHealth`. A take can have noSpeech=true while
+   * the mic clearly heard the recitation (tracker never locked, take too
+   * short, recitation too quiet for the model). The UI must never render
+   * "we didn't hear anything" from noSpeech alone. */
   noSpeech: boolean;
+  /**
+   * True when the microphone demonstrably heard sound during the take:
+   * at least AUDIBLE_CALLBACKS_MIN level callbacks louder than
+   * AUDIBLE_DBFS. When noSpeech=true and micHeardAudio=true, the mic
+   * worked and the TRACKER failed to follow — a different problem with a
+   * different message. When both are false, the mic captured nothing.
+   */
+  micHeardAudio: boolean;
+  /** Raw capture/tracker telemetry behind micHeardAudio (see AudioHealth). */
+  audioHealth: AudioHealth;
   /**
    * True when the tracker followed words OUTSIDE the declared passage
    * (e.g. the reciter said a different ayah) while observing none of the
@@ -139,6 +163,83 @@ export interface SessionResult {
   mistakes: CheckerEvent[];
   /** Session audio clock at stop, ms. */
   durationMs: number;
+}
+
+/**
+ * Mic-capture health for one take, measured from Tilawa's own `onLevel`
+ * callbacks (live dBFS from the raw worklet frames, BEFORE any resampling
+ * or tracker work) and from the tracker's position events.
+ *
+ * This is what separates the two failure modes the old `noSpeech` flag
+ * conflated (2026-11-22 bug: "We didn't hear anything" shown while the
+ * user was reciting aloud):
+ *  - CAPTURE failure: `levelCallbacks === 0` — the AudioWorklet never
+ *    delivered a frame, so no audio reached the model at all (typically a
+ *    suspended AudioContext — see prepareMicrophone() below).
+ *  - TRACKER failure: `everAudible === true` but no position event ever
+ *    observed an expected word — the mic heard the recitation, the model
+ *    did not follow it (too short / too quiet / never locked).
+ */
+export interface AudioHealth {
+  /** `onLevel` callbacks received (about one per 20 ms while the worklet
+   * runs). 0 means the worklet never delivered a frame — capture is dead
+   * even though permission was granted. */
+  levelCallbacks: number;
+  /** Loudest mic level seen, dBFS. Digital silence reports about -120. */
+  maxLevelDb: number;
+  /** Callbacks louder than AUDIBLE_DBFS. */
+  audibleCallbacks: number;
+  /** True when the mic clearly heard sound (see AUDIBLE_* below). */
+  everAudible: boolean;
+  /** Position events received from the tracker, any state (including
+   * `ambiguous` events with no observed word). */
+  positionEvents: number;
+  /** True once the tracker reached state 'locked'. */
+  everLocked: boolean;
+}
+
+/** A level above this is treated as real sound, not room noise. Speech at
+ * a phone held normally is typically -40..-10 dBFS; a quiet room sits
+ * around -60 dBFS or lower. Mirrors the VAD margin Tilawa uses
+ * (floor -60 dBFS + 12 dB margin = -48 dBFS trigger). */
+export const AUDIBLE_DBFS = -50;
+/** Minimum loud callbacks before a take counts as "mic heard audio" —
+ * one stray transient (door, tap) must not clear the user. */
+export const AUDIBLE_CALLBACKS_MIN = 3;
+
+/**
+ * A microphone prepared synchronously inside the user's tap, via Tilawa's
+ * `prepareMicrophone()` (`@tilawa/core/web`).
+ *
+ * WHY THIS EXISTS (root cause, 2026-11-22): Tilawa documents that "iOS
+ * Safari only starts audio created or resumed during a user gesture", so
+ * `prepareMicrophone()` must be called synchronously in the click handler
+ * "when anything async (such as the first model download) happens before
+ * `listen()`". The old adapter called `listen()` after awaits — and
+ * `listen()` itself awaits the permission prompt BEFORE creating its
+ * AudioContext — so on mobile the context could be created outside the
+ * gesture, stay `suspended` (its `resume()` failure was swallowed), the
+ * worklet never pulled, and zero frames reached the model: `noSpeech`
+ * with a working physical mic. Preparing in the tap keeps the context
+ * creation + resume inside the gesture on iOS Safari and inside transient
+ * activation on Android Chrome / Samsung Internet.
+ *
+ * The prepared `stream` is ALSO the coach's own-recording source: the
+ * coach must reuse this stream for MediaRecorder and never open a second
+ * getUserMedia while Tilawa is listening (a second concurrent mobile
+ * capture competes with the first). `listen()` takes ownership of the
+ * handle — after passing it to startMic(), do NOT call release().
+ */
+export interface PreparedMicCapture {
+  /** Opaque Tilawa handle; pass to `startMic()`. */
+  readonly handle: PreparedMicrophone;
+  /** The mic stream (resolves once permission is granted). Shared with
+   * the coach's MediaRecorder — same stream, no second capture. */
+  readonly stream: Promise<MediaStream>;
+  /** The AudioContext Tilawa will listen on (created in the tap). */
+  readonly context: AudioContext;
+  /** Release the context + tracks if `listen()` is never called. */
+  release(): void;
 }
 
 export interface StartSessionOptions {
@@ -156,10 +257,19 @@ export interface StartSessionOptions {
 }
 
 export interface RecitationSession {
-  /** Start the microphone into this session. Rejects with MicrophoneError. */
-  startMic(): Promise<void>;
+  /**
+   * Start the microphone into this session. Pass a capture prepared
+   * synchronously in the user's tap via `engine.prepareMicrophone()` —
+   * that is the only supported path on mobile (see PreparedMicCapture);
+   * without it `listen()` creates its AudioContext after the permission
+   * prompt, outside the gesture, and the context can stay suspended.
+   * Rejects with MicrophoneError.
+   */
+  startMic(prepared?: PreparedMicCapture): Promise<void>;
   /** Feed audio directly (file-driven scoring / tests). Any sample rate. */
   pushAudio(samples: Float32Array, sampleRate: number): Promise<void>;
+  /** Live capture/tracker health for this take (see AudioHealth). */
+  getAudioHealth(): AudioHealth;
   /**
    * Stop (mic or file), drain the engine and decide every open mistake.
    * Returns the full per-word result. Idempotent.
@@ -172,6 +282,15 @@ export interface RecitationEngine {
   readonly tier: string;
   readonly modelId: string;
   readonly modelVersion: string | null;
+  /**
+   * Prepare the microphone SYNCHRONOUSLY inside the user's tap handler,
+   * before any await. Must be called before `startMic()` on the session;
+   * the returned capture is handed to `startMic()` (which takes
+   * ownership). Throws synchronously when there is no mic API at all.
+   * Requires the engine module to be loaded (it is, once loadEngine()
+   * has resolved — which is when the mic button is shown).
+   */
+  prepareMicrophone(): PreparedMicCapture;
   startSession(opts: StartSessionOptions): RecitationSession;
   /** Release the ONNX session. The model stays in the Cache API. */
   unload(): Promise<void>;
@@ -213,6 +332,16 @@ export function autoTierLabel(): string {
 }
 
 /**
+ * The dynamically imported `@tilawa/core/web` module, cached by
+ * loadEngine(). `prepareMicrophone()` must run synchronously inside a tap
+ * handler, so it cannot do its own dynamic import (an `await import()`
+ * would leave the gesture); it uses this cache instead. The cache is set
+ * exactly when the engine finishes loading — the mic button is only shown
+ * once the engine is ready, so prepareMicrophone() always finds it.
+ */
+let webModule: typeof import('@tilawa/core/web') | null = null;
+
+/**
  * Load the engine on demand. Dynamic import: `@tilawa/core/web` (and with
  * it `onnxruntime-web`) is fetched only when this function runs — never in
  * the first-paint bundle.
@@ -220,7 +349,9 @@ export function autoTierLabel(): string {
 export async function loadEngine(opts: LoadEngineOptions = {}): Promise<RecitationEngine> {
   const tier: EngineTier = opts.tier ?? 'auto';
   // Dynamic import — the only place the engine enters the bundle.
-  const { createTilawa } = await import('@tilawa/core/web');
+  const web = await import('@tilawa/core/web');
+  webModule = web;
+  const { createTilawa } = web;
   const tilawa: Tilawa = await createTilawa({
     tier,
     signal: opts.signal,
@@ -241,6 +372,18 @@ export async function loadEngine(opts: LoadEngineOptions = {}): Promise<Recitati
     tier: tilawa.model.tier ?? tier,
     modelId: tilawa.model.id,
     modelVersion: tilawa.model.version,
+    prepareMicrophone(): PreparedMicCapture {
+      if (!webModule) {
+        throw new Error('Recitation engine module is not loaded yet.');
+      }
+      const handle = webModule.prepareMicrophone();
+      return {
+        handle,
+        stream: handle.stream,
+        context: handle.context,
+        release: () => handle.release(),
+      };
+    },
     startSession(sessionOpts: StartSessionOptions): RecitationSession {
       return createSession(tilawa, sessionOpts);
     },
@@ -296,6 +439,28 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
   let firstLockedIndex: number | null = null;
   /** True once any position event arrived with state 'locked'. */
   let everLocked = false;
+  /** Position events received, any state (see AudioHealth). */
+  let positionEvents = 0;
+  /** Mic-capture health, from Tilawa's onLevel callbacks (raw worklet
+   * frames, before resampling/tracking). Silence reports about -120 dBFS. */
+  let levelCallbacks = 0;
+  let maxLevelDb = -120;
+  let audibleCallbacks = 0;
+  const getAudioHealth = (): AudioHealth => ({
+    levelCallbacks,
+    maxLevelDb,
+    audibleCallbacks,
+    everAudible: audibleCallbacks >= AUDIBLE_CALLBACKS_MIN,
+    positionEvents,
+    everLocked,
+  });
+  /** Record one onLevel sample, then forward it to the UI meter. */
+  const recordLevel = (db: number) => {
+    levelCallbacks++;
+    if (db > maxLevelDb) maxLevelDb = db;
+    if (db > AUDIBLE_DBFS) audibleCallbacks++;
+    opts.onLevel?.(db);
+  };
   let mic: Microphone | null = null;
   let stopped = false;
   let stopPromise: Promise<SessionResult> | null = null;
@@ -317,6 +482,7 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
   session.subscribe((event: EngineEvent) => {
     if (event.type === 'position') {
       const ev = event as PositionEvent;
+      positionEvents++;
       if (ev.state !== trackerState) {
         trackerState = ev.state;
         opts.onTrackerState?.(ev.state);
@@ -500,6 +666,7 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
     const coverage = orderedKeys.length === 0 ? 0 : reachedKeys.length / orderedKeys.length;
     const quality = reachedCount === 0 ? 0 : correctCount / reachedCount;
     const unclear = noSpeech || trackedElsewhere || coverage < 0.5 || quality < 0.4;
+    const audioHealth = getAudioHealth();
 
     return {
       words,
@@ -508,6 +675,8 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       missedCount,
       unclear,
       noSpeech,
+      micHeardAudio: audioHealth.everAudible,
+      audioHealth,
       trackedElsewhere,
       mistakes: session.mistakes(),
       durationMs: session.now(),
@@ -515,14 +684,16 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
   };
 
   return {
-    async startMic() {
+    async startMic(prepared?: PreparedMicCapture) {
       mic = await tilawa.listen(session, {
-        onLevel: opts.onLevel,
+        onLevel: recordLevel,
+        ...(prepared ? { prepared: prepared.handle } : {}),
       });
     },
     async pushAudio(samples: Float32Array, sampleRate: number) {
       await session.pushAudio(samples, sampleRate);
     },
+    getAudioHealth,
     stop(): Promise<SessionResult> {
       if (stopPromise) return stopPromise;
       stopped = true;

@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Install I Love Islam App — Free Offline Islamic Tools',
-  description: 'Install Hifz on your phone or computer for instant offline access to Prayer Times, Dhikr Counter, Quran Reader, and 25+ Islamic tools. No app store needed.',
-  keywords: ['install islamic app', 'offline islamic tools', 'pwa islamic', 'add to home screen islam'],
+  title: 'Install I Love Islam Hifz App — Free Offline Quran Memorisation',
+  description: 'Install Hifz on your phone or computer for instant offline access to the AI Quran memorisation coach, recitation feedback, and hifz plans. No app store needed.',
+  keywords: ['install hifz app', 'offline quran memorisation', 'pwa quran', 'add to home screen quran'],
   alternates: { canonical: 'https://www.iloveislam.life/install' },
   openGraph: {
-    title: 'Install I Love Islam App — Free Offline Islamic Tools',
-    description: 'Install Hifz on your phone or computer for instant offline access to 25+ Islamic tools.',
+    title: 'Install I Love Islam Hifz App — Free Offline Quran Memorisation',
+    description: 'Install Hifz on your phone or computer for instant offline access to the AI Quran memorisation coach.',
     url: 'https://www.iloveislam.life/install',
     siteName: 'I Love Islam',
     locale: 'en_US',
@@ -16,8 +16,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Install I Love Islam App — Free Offline Islamic Tools',
-    description: 'Get instant offline access to 25+ Islamic tools from your home screen.',
+    title: 'Install I Love Islam Hifz App — Free Offline Quran Memorisation',
+    description: 'Get instant offline access to the Hifz Quran memorisation app from your home screen.',
     images: ['/optimized/og-image.webp'],
   },
   robots: {

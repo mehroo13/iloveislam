@@ -17,6 +17,7 @@ import { useScriptPref, SCRIPT_LABELS } from '../lib/script';
 import { attributionFor } from '../lib/fetch';
 import ToolIcon from '../../components/ToolIcon';
 import TafsirBlock from './TafsirBlock';
+import { useT } from '../lib/i18n';
 import type { CoachAyah } from './RecitationCoach';
 import type { WordInfo } from '../lib/fetch';
 import { pairWords } from '../lib/fetch';
@@ -46,6 +47,7 @@ export default function AyahClient({
   prevKey: string | null;
   nextKey: string | null;
 }) {
+  const t = useT();
   const [verse, setVerse] = useState<Verse>(initialVerse);
   const [translationId, setTranslationId] = useState(20);
   const [reciterId, setReciterId] = useState(7);
@@ -129,7 +131,7 @@ export default function AyahClient({
   const playAllWords = () => {
     const idx = wordsRef.current.map((w, i) => (w.audioUrl ? i : -1)).filter((i) => i >= 0);
     if (idx.length === 0) {
-      setWbwSeqNote('Word audio is unavailable for this ayah.');
+      setWbwSeqNote(t('ayah.wordAudioUnavailable'));
       return;
     }
     setWbwSeqNote('');
@@ -273,7 +275,7 @@ export default function AyahClient({
           <p className="mt-5 text-base leading-relaxed text-[#1C2420]/85 sm:text-lg">{translation}</p>
         )}
         {viewMode !== 'arabic' && (
-          <p className="mt-2 text-xs text-[#1C2420]/50">Translation: {translationName}</p>
+          <p className="mt-2 text-xs text-[#1C2420]/50">{t('common.translation')}: {translationName}</p>
         )}
 
         <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-[#E5E7EB] pt-4">
@@ -283,7 +285,7 @@ export default function AyahClient({
             disabled={!verse.audio?.url}
             className="rounded-full bg-[#1FA36B] px-4 py-2 text-sm font-semibold text-white hover:bg-[#102E26] disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
           >
-            {playing ? 'Playing…' : `Listen — ${reciterName}`}
+            {playing ? t('wbw.playing') : `${t('ayah.listen')} ${reciterName}`}
           </button>
           <button
             type="button"
@@ -291,7 +293,7 @@ export default function AyahClient({
             aria-pressed={bookmarked}
             className="rounded-full border border-[#E5E7EB] px-3.5 py-2 text-sm font-semibold hover:border-[#1FA36B]"
           >
-            {bookmarked ? 'Bookmarked' : 'Bookmark'}
+            {bookmarked ? t('ayah.bookmarked') : t('ayah.bookmark')}
           </button>
           <button
             type="button"
@@ -299,25 +301,25 @@ export default function AyahClient({
             aria-pressed={memorised}
             className={`rounded-full border px-3.5 py-2 text-sm font-semibold ${memorised ? 'border-[#1FA36B] bg-[#E4FFF2] text-[#1FA36B]' : 'border-[#E5E7EB] hover:border-[#1FA36B]'}`}
           >
-            {memorised ? 'Memorised — tap to unmark' : 'Mark memorised'}
+            {memorised ? t('ayah.memorisedUnmark') : t('ayah.markMemorised')}
           </button>
           <button
             type="button"
             onClick={() => setCoachOpen(true)}
             className="rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
           >
-            Recite this ayah
+            {t('ayah.reciteAyah')}
           </button>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <div className="flex flex-wrap items-center gap-2" role="group" aria-label="View mode">
-            <span className="text-sm font-medium">View</span>
+            <span className="text-sm font-medium">{t('common.view')}</span>
             {(
               [
-                ['arabic', 'Arabic only'],
-                ['translation', 'Arabic + Translation'],
-                ['tafsir', 'Arabic + Translation + Tafsir'],
+                ['arabic', t('ayah.arabicOnly')],
+                ['translation', t('ayah.arabicTrans')],
+                ['tafsir', t('ayah.arabicTransTafsir')],
               ] as [ViewMode, string][]
             ).map(([id, label]) => (
               <button
@@ -332,7 +334,7 @@ export default function AyahClient({
             ))}
           </div>
           <label className="flex items-center gap-2 text-sm font-medium">
-            Translation
+            {t('common.translation')}
             <select
               value={translationId}
               onChange={(e) => setTranslationId(Number(e.target.value))}
@@ -348,7 +350,7 @@ export default function AyahClient({
             </select>
           </label>
           <label className="flex items-center gap-2 text-sm font-medium">
-            Tafsir
+            {t('common.tafsir')}
             <select
               value={tafsirId}
               onChange={(e) => setTafsirId(Number(e.target.value))}
@@ -364,7 +366,7 @@ export default function AyahClient({
             </select>
           </label>
           <label className="flex items-center gap-2 text-sm font-medium">
-            Reciter
+            {t('common.reciter')}
             <select
               value={reciterId}
               onChange={(e) => setReciterId(Number(e.target.value))}
@@ -376,7 +378,7 @@ export default function AyahClient({
             </select>
           </label>
           <label className="flex items-center gap-2 text-sm font-medium">
-            Script
+            {t('common.script')}
             <select
               value={script}
               onChange={(e) => setScript(e.target.value as 'indopak' | 'uthmani')}
@@ -395,7 +397,7 @@ export default function AyahClient({
           </p>
         )}
         <p className="mt-3 text-xs leading-relaxed text-[#5b6b62]">
-          {TRANSLATIONS.length} translations · {TAFSIRS.length} tafsirs · {RECITERS.length} recitations — all free. {attributionFor(translationId, tafsirId)}
+          {TRANSLATIONS.length} {t('ayah.translationsCount')} · {TAFSIRS.length} {t('ayah.tafsirsCount')} · {RECITERS.length} {t('ayah.recitationsCount')} — {t('ayah.allFree')}. {attributionFor(translationId, tafsirId)}
         </p>
 
         {/* Tafsir renders ONLY in Tafsir mode (commit 12a3449 — do not regress). */}
@@ -416,14 +418,14 @@ export default function AyahClient({
       {/* Word-by-word */}
       <section aria-labelledby="wbw-heading" className="mt-6 rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="wbw-heading" className="text-lg font-bold text-[#102E26]">Word-by-word</h2>
+          <h2 id="wbw-heading" className="text-lg font-bold text-[#102E26]">{t('ayah.wordByWord')}</h2>
           {words.length > 0 && (
             <button
               type="button"
               onClick={wbwSeqPlaying ? stopWbwSeq : playAllWords}
               className="rounded-full bg-[#1FA36B] px-4 py-1.5 text-sm font-semibold text-white hover:bg-[#102E26] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
-              {wbwSeqPlaying ? 'Stop' : 'Play all words'}
+              {wbwSeqPlaying ? t('common.stop') : t('ayah.playAll')}
             </button>
           )}
         </div>
@@ -431,7 +433,7 @@ export default function AyahClient({
           <p role="status" className="mt-2 text-sm text-[#7A5C00]">{wbwSeqNote}</p>
         )}
         {words.length === 0 ? (
-          <p className="mt-2 text-sm text-[#5b6b62]">Word-by-word is unavailable right now.</p>
+          <p className="mt-2 text-sm text-[#5b6b62]">{t('wbw.unavailable')}</p>
         ) : (
           <ul className="mt-3 flex flex-wrap gap-2">
             {words.map((w, i) => (
@@ -442,7 +444,7 @@ export default function AyahClient({
                 {w.audioUrl && (
                   <button
                     type="button"
-                    aria-label={`Hear the word ${w.transliteration || w.arabic}`}
+                    aria-label={`${t('wbw.hearIt')} — ${w.transliteration || w.arabic}`}
                     onClick={() => {
                       stopWbwSeq();
                       const audio = new Audio(`${AUDIO_BASE}${w.audioUrl}`);
@@ -452,14 +454,14 @@ export default function AyahClient({
                     }}
                     className="mt-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#1FA36B] hover:underline"
                   >
-                    {playingWord === i ? 'Playing…' : 'Hear it'}
+                    {playingWord === i ? t('wbw.playing') : t('wbw.hearIt')}
                   </button>
                 )}
               </li>
             ))}
           </ul>
         )}
-        <p className="mt-2 text-xs text-[#5b6b62]">Word translations via Quran.com.</p>
+        <p className="mt-2 text-xs text-[#5b6b62]">{t('wbw.via')}</p>
       </section>
 
       {/* Coach, scoped to this ayah */}
@@ -480,7 +482,7 @@ export default function AyahClient({
           onClick={() => setCoachOpen(true)}
           className="mt-6 flex items-center gap-2 rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
         >
-          <ToolIcon name="mic" className="h-4 w-4" /> Recite this ayah with the coach
+          <ToolIcon name="mic" className="h-4 w-4" /> {t('ayah.reciteWithCoach')}
         </button>
       )}
 
@@ -488,14 +490,14 @@ export default function AyahClient({
       <nav aria-label="Previous and next ayah" className="mt-8 flex flex-wrap justify-between gap-2">
         {prevKey ? (
           <Link href={`/hifz/${surah.slug}/${prevKey.replace(':', '-')}`} className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]">
-            ← Previous ayah ({prevKey})
+            ← {t('ayah.prevAyah')} ({prevKey})
           </Link>
         ) : (
           <span />
         )}
         {nextKey ? (
           <Link href={`/hifz/${surah.slug}/${nextKey.replace(':', '-')}`} className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]">
-            Next ayah ({nextKey}) →
+            {t('ayah.nextAyah')} ({nextKey}) →
           </Link>
         ) : (
           <span />

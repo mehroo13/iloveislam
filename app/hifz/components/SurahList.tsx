@@ -9,8 +9,10 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ALL_SURAHS } from '../surahs';
 import { SurahProgressBar } from './ProgressWidget';
+import { useT } from '../lib/i18n';
 
 export default function SurahList() {
+  const t = useT();
   const [q, setQ] = useState('');
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -27,24 +29,24 @@ export default function SurahList() {
     <section aria-labelledby="surahs-heading">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 id="surahs-heading" className="text-xl font-bold text-[#102E26] sm:text-2xl">
-          Your surahs
+          {t('list.yourSurahs')}
         </h2>
         <Link href="/hifz/juz-amma" className="text-sm font-semibold text-[#1FA36B] hover:underline">
-          Juz Amma — the beginner path →
+          {t('list.juzAmmaPath')}
         </Link>
       </div>
       <label className="mt-3 block">
-        <span className="sr-only">Search surahs</span>
+        <span className="sr-only">{t('list.searchSurahs')}</span>
         <input
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search a surah — try “Mulk” or “36”"
+          placeholder={t('list.searchPlaceholder')}
           className="w-full rounded-full border border-[#E5E7EB] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#1FA36B]"
         />
       </label>
       {filtered.length === 0 ? (
-        <p className="mt-4 text-sm text-[#5b6b62]">No surah matches “{q}”.</p>
+        <p className="mt-4 text-sm text-[#5b6b62]">{t('list.noMatch')} “{q}”.</p>
       ) : (
         <ul className="mt-3 divide-y divide-[#E5E7EB] rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
           {filtered.map((s) => (
@@ -58,7 +60,7 @@ export default function SurahList() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-semibold text-[#102E26]">
-                    {s.name} <span className="font-normal text-[#5b6b62]">— {s.meaning} · {s.ayahCount} ayahs</span>
+                    {s.name} <span className="font-normal text-[#5b6b62]">— {s.meaning} · {s.ayahCount} {t('common.ayahs')}</span>
                   </span>
                   <span className="mt-1 block max-w-40">
                     <SurahProgressBar surahId={s.id} ayahCount={s.ayahCount} />
@@ -68,7 +70,7 @@ export default function SurahList() {
                   {s.arabic}
                 </span>
                 <span className="shrink-0 rounded-full bg-[#102E26] px-3 py-1.5 text-xs font-semibold text-white">
-                  Recite
+                  {t('common.recite')}
                 </span>
               </Link>
             </li>
@@ -76,21 +78,21 @@ export default function SurahList() {
         </ul>
       )}
       <p className="mt-3 text-sm text-[#5b6b62]">
-        {filtered.length} of {ALL_SURAHS.length} surahs ·{' '}
+        {filtered.length} {t('common.of')} {ALL_SURAHS.length} {t('list.surahsWord')} ·{' '}
         <Link href="/hifz/plans" className="font-semibold text-[#1FA36B] underline">
-          Plans
+          {t('common.plans')}
         </Link>
         {' · '}
         <Link href="/hifz/test" className="font-semibold text-[#1FA36B] underline">
-          Test Mode
+          {t('common.testMode')}
         </Link>
         {' · '}
         <Link href="/hifz/voice-search" className="font-semibold text-[#1FA36B] underline">
-          Voice Search
+          {t('common.voiceSearch')}
         </Link>
         {' · '}
         <Link href="/hifz/challenges" className="font-semibold text-[#1FA36B] underline">
-          Challenges
+          {t('common.challenges')}
         </Link>
       </p>
     </section>

@@ -10,6 +10,7 @@ import { ALL_SURAHS, getSurahById } from '../surahs';
 import { SURAH_FIRST_PAGE, SURAH_LAST_PAGE } from '../mushaf';
 import { JUZ_PAGES } from '../juz';
 import { loadProgress, type HifzProgress } from '../progress';
+import { useT } from '../lib/i18n';
 
 type Tab = 'chapter' | 'juz' | 'hizb';
 
@@ -25,6 +26,7 @@ export default function MemorizeClient() {
   const [tab, setTab] = useState<Tab>('chapter');
   const [expanded, setExpanded] = useState<number | null>(null);
   const [practiceSurah, setPracticeSurah] = useState(2);
+  const t = useT();
 
   useEffect(() => {
     try {
@@ -105,14 +107,14 @@ export default function MemorizeClient() {
     <div className="space-y-6">
       {/* Hide & reveal practice */}
       <section aria-labelledby="practice-heading" className="rounded-2xl bg-[#102E26] p-5 text-white shadow-sm sm:p-6">
-        <h2 id="practice-heading" className="text-xl font-bold">Test your memorisation by hiding and revealing words</h2>
+        <h2 id="practice-heading" className="text-xl font-bold">{t('mem.practiceHeading')}</h2>
         <p className="mt-1 text-sm leading-relaxed text-white/80">
           Open a mushaf page with the words hidden as thin grey rules. Recite from memory —
           words reveal as you get them right. Peek if you are stuck; a peek counts as a miss.
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-2 text-sm font-semibold">
-            Surah
+            {t('mem.surah')}
             <select
               value={practiceSurah}
               onChange={(e) => setPracticeSurah(Number(e.target.value))}
@@ -129,13 +131,13 @@ export default function MemorizeClient() {
             href={`/hifz/mushaf/${SURAH_FIRST_PAGE[practiceSurah] ?? 1}?memorize=1`}
             className="rounded-full bg-[#57D798] px-5 py-2.5 text-sm font-bold text-[#102E26] hover:brightness-105"
           >
-            Practise this surah hidden →
+            {t('mem.practiseHidden')}
           </Link>
           <Link
             href="/hifz/test"
             className="rounded-full border border-white/40 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
           >
-            Test Mode →
+            {t('mem.testMode')}
           </Link>
         </div>
         <p className="mt-3 text-xs text-white/60">
@@ -147,17 +149,17 @@ export default function MemorizeClient() {
       {/* Tracker */}
       <section aria-labelledby="tracker-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 id="tracker-heading" className="text-xl font-bold text-[#102E26]">Memorization</h2>
+          <h2 id="tracker-heading" className="text-xl font-bold text-[#102E26]">{t('mem.tracker')}</h2>
           <Link href="/hifz/my-progress" className="text-sm font-semibold text-[#1FA36B] underline">
-            Full progress →
+            {t('mem.fullProgress')}
           </Link>
         </div>
         <div className="mt-4 flex gap-1" role="group" aria-label="Tracker view">
           {(
             [
-              ['chapter', 'Chapter (114)'],
-              ['juz', 'Juz (30)'],
-              ['hizb', 'Hizb (60)'],
+              ['chapter', t('mem.tabChapter')],
+              ['juz', t('mem.tabJuz')],
+              ['hizb', t('mem.tabHizb')],
             ] as [Tab, string][]
           ).map(([t, label]) => (
             <button
@@ -192,7 +194,7 @@ export default function MemorizeClient() {
                     <span className="min-w-0 flex-1">
                       <span className="block font-bold text-[#102E26]">{s.name}</span>
                       <span className="block text-xs text-[#5b6b62]">
-                        {s.ayahCount} Verses · {s.revelation} · {c.memorised} memorised
+                        {t('mem.verses').replace('{n}', String(s.ayahCount))} · {s.revelation} · {t('mem.memorisedCount').replace('{n}', String(c.memorised))}
                       </span>
                       <span className="mt-1 flex h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-[#E5E7EB]" aria-hidden="true">
                         <span className="h-full bg-[#1FA36B]" style={{ width: `${mem}%` }} />
@@ -213,10 +215,10 @@ export default function MemorizeClient() {
                             className="flex items-center justify-between gap-3 rounded-lg bg-[#FFFBF2] px-3 py-2 text-sm hover:bg-[#E4FFF2]"
                           >
                             <span>
-                              <span className="font-bold">PG. {p}</span>{' '}
-                              <span className="text-[#5b6b62]">{s.name} — starts p. {p}</span>
+                              <span className="font-bold">{t('mem.page').replace('{p}', String(p))}</span>{' '}
+                              <span className="text-[#5b6b62]">{t('mem.startsPage').replace('{name}', s.name).replace('{p}', String(p))}</span>
                             </span>
-                            <span className="font-semibold text-[#1FA36B]">Practise hidden →</span>
+                            <span className="font-semibold text-[#1FA36B]">{t('mem.practisePage')}</span>
                           </Link>
                         </li>
                       ))}
@@ -225,7 +227,7 @@ export default function MemorizeClient() {
                           href={`/hifz/${s.slug}?mode=recite`}
                           className="mt-1 block rounded-lg bg-[#102E26] px-3 py-2 text-center text-sm font-semibold text-white hover:bg-[#1FA36B]"
                         >
-                          Recite {s.name} with the coach →
+                          {t('mem.reciteCoach').replace('{name}', s.name)}
                         </Link>
                       </li>
                     </ul>
@@ -243,9 +245,9 @@ export default function MemorizeClient() {
               return (
                 <li key={j.n} className="py-3">
                   <Link href={`/hifz/juz/${j.n}`} className="flex items-center gap-3">
-                    <span className="w-14 shrink-0 font-bold text-[#102E26]">Juz {j.n}</span>
+                    <span className="w-14 shrink-0 font-bold text-[#102E26]">{t('mem.juz').replace('{n}', String(j.n))}</span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-xs text-[#5b6b62]">{j.memorised} memorised · {j.learning} learning of {j.total} ayahs</span>
+                      <span className="block text-xs text-[#5b6b62]">{t('mem.memorisedCount').replace('{n}', String(j.memorised))} · {t('mem.learningCount').replace('{n}', String(j.learning))} {t('mem.ofAyahs').replace('{n}', String(j.total))}</span>
                       <span className="mt-1 flex h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-[#E5E7EB]" aria-hidden="true">
                         <span className="h-full bg-[#1FA36B]" style={{ width: `${mem}%` }} />
                         <span className="h-full bg-[#A3E635]" style={{ width: `${lea}%` }} />
@@ -265,9 +267,9 @@ export default function MemorizeClient() {
               const { mem, lea } = strengthSegments(h.memorised, h.learning, h.total);
               return (
                 <li key={h.n} className="flex items-center gap-3 py-2.5">
-                  <span className="w-16 shrink-0 font-bold text-[#102E26]">Hizb {h.n}</span>
+                  <span className="w-16 shrink-0 font-bold text-[#102E26]">{t('mem.hizb').replace('{n}', String(h.n))}</span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-xs text-[#5b6b62]">{h.memorised} memorised · {h.learning} learning</span>
+                    <span className="block text-xs text-[#5b6b62]">{t('mem.memorisedCount').replace('{n}', String(h.memorised))} · {t('mem.learningCount').replace('{n}', String(h.learning))}</span>
                     <span className="mt-1 flex h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-[#E5E7EB]" aria-hidden="true">
                       <span className="h-full bg-[#1FA36B]" style={{ width: `${mem}%` }} />
                       <span className="h-full bg-[#A3E635]" style={{ width: `${lea}%` }} />

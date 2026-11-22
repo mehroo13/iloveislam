@@ -16,9 +16,9 @@ export const viewport: Viewport = {
   themeColor: '#102E26',
 };
 
-const SITE_TITLE = 'I Love Islam — Memorise the Quran with AI';
-const SITE_DESCRIPTION =
-  'Memorise the Quran with an AI recitation coach: recite aloud and get instant word-by-word feedback. Free forever, no sign-up.';
+export const SITE_TITLE = 'I Love Islam — Memorise the Quran with AI';
+export const SITE_DESCRIPTION =
+  'Free AI Quran memorisation coach: recite aloud and get instant word-by-word feedback. Memorise all 114 surahs and 30 juz with 7-day and 30-day hifz plans. No sign-up.';
 
 export const metadata: Metadata = {
   title: SITE_TITLE,
@@ -79,6 +79,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${geist.variable} h-full antialiased`}>
       <head>
         <link rel="preload" href="/optimized/og-image.webp" as="image" />
+
+        {/* Runs before first paint: apply the saved theme + language straight
+            from localStorage so a returning user never flashes the light LTR
+            default. Same script as app/hifz/layout.tsx (the hifz layout
+            keeps its own copy for /hifz/*); this one covers the homepage and
+            every other route. No CSP header blocks inline scripts on this
+            site (next.config.ts sets no Content-Security-Policy). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=JSON.parse(localStorage.getItem('ili_hifz_settings_v1')||'null');if(!s)return;var th=s.theme;if(th==='dark'||th==='sepia'){document.documentElement.setAttribute('data-theme',th)}var lang=s.language;if(lang){document.documentElement.lang=lang;document.documentElement.dir=(lang==='ar'||lang==='ur')?'rtl':'ltr'}}catch(e){}})();`,
+          }}
+        />
 
         {/* Apple PWA meta tags */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
