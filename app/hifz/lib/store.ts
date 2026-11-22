@@ -21,6 +21,20 @@ const KEYS = [
   // mirror covers them too.
   'quran_bookmarks_v2',
   'hifz_challenges_v1',
+  // Stage 7 (§23): the rest of the guest snapshot — reading location,
+  // Mushaf position, goals, sessions, test history — so the IndexedDB
+  // mirror is a complete on-device backup, not a partial one.
+  'ili_last_read_v1',
+  'ili_mushaf_reader_pos_v1',
+  'ili_hifz_mode_v1',
+  'ili_hifz_listen_pos_v1',
+  'ili_hifz_recent_surahs_v1',
+  'ili_goals_v1',
+  'ili_sessions_v1',
+  'ili_hifz_test_sessions_v1',
+  'ili_hifz_test_in_progress_v1',
+  'ili_test_ranges_v1',
+  'ili_hifz_best_test_v1',
 ] as const;
 
 let dbPromise: Promise<IDBDatabase | null> | null = null;
