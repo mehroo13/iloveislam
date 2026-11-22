@@ -168,11 +168,21 @@ export default function SurahClient({
       /* storage unavailable — the reveal still works */
     }
   }, [surah.id]);
-  const [listen, setListen] = useState<ListenSettings>(() =>
-    typeof window === 'undefined'
-      ? { repeat: 1, pauseSec: 0, speed: 1, fromAyah: 1, toAyah: surah.ayahCount, wordByWord: false }
-      : loadListenSettings(surah.ayahCount),
-  );
+  // Stage 9 (React #418): initialise Listen to the defaults so the first
+  // client render matches the SSR HTML exactly, then apply the saved prefs
+  // in an effect after mount (the useScriptPref pattern). Reading
+  // localStorage in the lazy initialiser made the first client render say
+  // "Play ayahs 1–7" (prefs clamped to the previous, shorter surah) while
+  // the server said "1–286", so React discarded the SSR output and logged
+  // #418 on every hard load after visiting a short surah. The persisted
+  // effect below skips until this load has run, so the defaults never
+  // overwrite the saved prefs.
+  const [listen, setListen] = useState<ListenSettings>({ repeat: 1, pauseSec: 0, speed: 1, fromAyah: 1, toAyah: surah.ayahCount, wordByWord: false });
+  const [listenHydrated, setListenHydrated] = useState(false);
+  useEffect(() => {
+    setListen(loadListenSettings(surah.ayahCount));
+    setListenHydrated(true);
+  }, [surah.ayahCount]);
   const [playingKey, setPlayingKey] = useState<string | null>(null);
   const [listenPlaying, setListenPlaying] = useState(false);
   // Listening as a real mode (Stage 4): true while the user is in Listen
@@ -230,12 +240,15 @@ export default function SurahClient({
   }, [bookmarks, surah.name]);
 
   useEffect(() => {
+    // Stage 9 (#418): skip until the saved prefs have been applied — the
+    // defaults must never overwrite them on mount.
+    if (!listenHydrated) return;
     try {
       localStorage.setItem(LISTEN_KEY, JSON.stringify(listen));
     } catch {
       /* ignore */
     }
-  }, [listen]);
+  }, [listen, listenHydrated]);
 
   useEffect(() => {
     try {
