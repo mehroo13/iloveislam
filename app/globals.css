@@ -208,14 +208,24 @@ body {
   outline-offset: 2px;
 }
 
-/* Visible skip link when focused */
+/* Visible skip link when focused.
+ * Off-screen technique: clip to 1px in place (Tailwind sr-only pattern).
+ * The old `left: -9999px` created a ~10,000px horizontal scroll on every
+ * RTL page (ar/ur): in RTL, leftward overflow expands documentElement
+ * scrollWidth (10389px at 390px viewport), so the whole page could be
+ * swiped sideways into empty space. Clipping in place creates no
+ * scrollable overflow in either direction. */
 .sr-only-focusable {
   position: absolute;
-  left: -9999px;
-  top: auto;
   width: 1px;
   height: 1px;
+  padding: 0;
+  margin: -1px;
   overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 .sr-only-focusable:focus {
   position: fixed;
@@ -223,7 +233,12 @@ body {
   top: 1rem;
   width: auto;
   height: auto;
+  padding: 0.5rem 0.75rem;
+  margin: 0;
   overflow: visible;
+  clip: auto;
+  clip-path: none;
+  white-space: normal;
   z-index: 9999;
 }
 
