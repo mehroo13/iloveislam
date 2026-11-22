@@ -2,11 +2,32 @@
 // "Shazam for Quran": recite a few words and find the ayah. The browser's
 // speech recognition (Web Speech API) transcribes the spoken Arabic, and the
 // text is matched against the Quran through the same-origin /api/quran proxy
-// (Quran.com search endpoint). Nothing is recorded or uploaded by us: the
-// transcription happens in the browser, and only the recognised text is sent
-// to the search API. A typed search box is the fallback when the browser has
-// no speech recognition. Results link into the Hifz hub — every surah in
-// the whole Quran has a coach page, so every match opens in the coach.
+// (Quran.com search endpoint). A typed search box is the fallback when the
+// browser has no speech recognition. Results link into the Hifz hub — every
+// surah in the whole Quran has a coach page, so every match opens in the
+// coach.
+//
+// VOICE SEARCH vs THE COACH (Stage 3 research, 2026-11-22): the on-device
+// Tilawa engine CANNOT power voice search — it is a declared-passage
+// tracker (startMemorization needs the surah + ayah range up front), not
+// a transcriber; @tilawa/core exports no transcribe/ASR API. So voice
+// search keeps the Web Speech API, with two honest consequences:
+//  - iPhone/iPad Safari has no SpeechRecognition at all, so voice input
+//    is unavailable there and typing is the only path. Nothing on-device
+//    can fix that without a new transcription engine (see below).
+//  - Where the API exists (Chrome/Edge desktop + Android), transcription
+//    is a CLOUD service: the browser sends the audio to the vendor's
+//    speech servers. It is not on-device, and the old copy claiming "the
+//    browser turns your voice into text on your device" was wrong — the
+//    copy now says so plainly.
+//  - On-device alternative assessed and NOT built: an in-browser Whisper
+//    model (e.g. whisper-tiny, ~40 MB) could run on the same
+//    onnxruntime-web stack as Tilawa, but it would be a large new
+//    download, slow single-threaded WASM on phones (the site is not
+//    cross-origin isolated, so ORT runs 1 thread), and whisper-tiny's
+//    Arabic accuracy — let alone Quranic Arabic — is poor. A server
+//    transcription service would need Mehran's explicit approval on the
+//    privacy trade-off first. Both are decision points, not silent work.
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -131,24 +152,46 @@ export default function VoiceSearchClient() {
     recog.lang = 'ar-SA';
     recog.interimResults = false;
     recog.maxAlternatives = 1;
+    // Set when a transcript arrives: onend fires after onerror too, so
+    // an ended listen with no result must not silently clear the error
+    // message that onerror just set.
+    let gotResult = false;
+    let gotError = false;
     recog.onresult = (event) => {
       const transcript = event.results?.[0]?.[0]?.transcript ?? '';
       if (transcript.trim()) {
+        gotResult = true;
         setQuery(transcript.trim());
         void runSearch(transcript.trim());
       }
     };
     recog.onerror = (event) => {
       setListening(false);
+      gotError = true;
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
         setNotice(t('voice.micBlocked'));
       } else if (event.error === 'no-speech') {
         setNotice(t('voice.noSpeechHeard'));
+      } else if (event.error === 'network') {
+        setNotice(t('voice.networkError'));
+      } else if (event.error === 'audio-capture') {
+        setNotice(t('voice.audioCaptureError'));
+      } else if (event.error === 'aborted') {
+        // Stopped on purpose (new listen started) — not an error.
+        setNotice(null);
       } else {
         setNotice(t('voice.recogProblem'));
       }
     };
-    recog.onend = () => setListening(false);
+    recog.onend = () => {
+      setListening(false);
+      if (!gotResult && !gotError) {
+        // The recogniser stopped without hearing anything and without
+        // reporting an error — say so, instead of leaving the user
+        // wondering whether it is still listening.
+        setNotice(t('voice.noSpeechHeard'));
+      }
+    };
     setNotice(null);
     setListening(true);
     try {
@@ -254,8 +297,8 @@ export default function VoiceSearchClient() {
       <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <h2 className="text-xl font-bold text-[#102E26]">{t('voice.howItWorks')}</h2>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed text-[#5b6b62]">
-          <li>{t('voice.how1')}</li>
-          <li>{t('voice.how2')}</li>
+          <li>{t('voice.how1v2')}</li>
+          <li>{t('voice.how2v2')}</li>
           <li>{t('voice.how3')}</li>
         </ul>
       </section>

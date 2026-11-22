@@ -11,9 +11,11 @@
  *
  *  1. MICROPHONE CAPTURE (getUserMedia + Web Audio, no recognition):
  *     permission, input devices, stream state, live dBFS level from an
- *     AnalyserNode, a live waveform from getFloatTimeDomainData, and a
- *     VAD mirror (same constants as Tilawa's energy VAD) saying whether
- *     speech is recognised in the audio.
+ *     AnalyserNode, a live waveform from getFloatTimeDomainData, and the
+ *     coach's adaptive VAD (app/hifz/lib/vad.ts) saying whether speech
+ *     is present in the audio. The AudioContext is created synchronously
+ *     in the tap, before any await — creating it after an await left it
+ *     suspended on iOS Safari (Stage 3 fix).
  *  2. SPEECH RECOGNITION (the real Tilawa on-device engine, same adapter
  *     and same tap-time mic preparation as the coach): model load, live
  *     tracker state, and the per-word result of reciting Al-Fatihah 1:1.
@@ -39,33 +41,16 @@ import {
   type RecitationSession,
   type SessionResult,
 } from '../lib/tilawa';
+import { AdaptiveVad } from '../lib/vad';
 
 /* ------------------------------------------------------------------ */
-/*  VAD mirror — same constants as Tilawa's energy VAD                 */
-/*  (node_modules/@tilawa/core/dist/runtime/audio.js: floor -60 dBFS,  */
-/*  margin 12 dB, hang 4000 ms). Energy VAD on 16 kHz audio in 20 ms   */
-/*  frames; here fed one dBFS reading per animation frame instead,    */
-/*  which is equivalent for a speech / no-speech verdict.              */
+/*  VAD — the coach's display VAD (app/hifz/lib/vad.ts), shared here  */
+/*  so the diagnostics verdict matches what the coach itself shows.   */
+/*  NOTE: Tilawa's own energy VAD is OFF in the coach (DEFAULTS.vad =  */
+/*  false) — every frame reaches the model, so quiet speech is never   */
+/*  dropped before recognition. This VAD is display-only: it says      */
+/*  whether speech is present in the audio, it never gates anything.  */
 /* ------------------------------------------------------------------ */
-
-class VadMirror {
-  floorDb = -60;
-  speaking = false;
-  silentMs = 0;
-  /** Feed one dBFS reading; returns whether speech is active (incl. hangover). */
-  push(db: number, dtMs: number): boolean {
-    const loud = db > this.floorDb + 12;
-    if (!loud) this.floorDb += (db - this.floorDb) * (db < this.floorDb ? 0.2 : 0.01);
-    if (loud) {
-      this.speaking = true;
-      this.silentMs = 0;
-    } else if (this.speaking) {
-      this.silentMs += dtMs;
-      if (this.silentMs > 4000) this.speaking = false;
-    }
-    return this.speaking;
-  }
-}
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -175,12 +160,23 @@ export default function DiagnosticsClient() {
   const [micRunning, setMicRunning] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
   const [framesSeen, setFramesSeen] = useState(0);
+  // Track liveness: a track that ends or mutes itself mid-test (iOS
+  // route change, another app taking the mic, OS mute) is a capture
+  // failure the level meter alone cannot show — a muted track still
+  // delivers frames, all at digital silence.
+  const [trackMuted, setTrackMuted] = useState(false);
+  const [trackEnded, setTrackEnded] = useState(false);
+  // True when the AudioContext is still suspended after resume() — on
+  // iOS Safari this is the signature of a context created outside the
+  // user gesture. The analyser then delivers nothing, whatever the mic
+  // does, and the test must say so instead of reporting flat levels.
+  const [ctxSuspended, setCtxSuspended] = useState(false);
 
   const streamRef = useRef<MediaStream | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
   const rafRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const vadRef = useRef<VadMirror | null>(null);
+  const vadRef = useRef<AdaptiveVad | null>(null);
   const statsRef = useRef({ min: Infinity, max: -Infinity, peak: -120, frames: 0, lastUiAt: 0 });
 
   /* ---- recognition engine test ---- */
@@ -209,6 +205,9 @@ export default function DiagnosticsClient() {
     setStreamActive(false);
     setMicRunning(false);
     setVadSpeaking(false);
+    setTrackMuted(false);
+    setTrackEnded(false);
+    setCtxSuspended(false);
   }, []);
 
   const stopEngineTest = useCallback(async () => {
@@ -240,6 +239,28 @@ export default function DiagnosticsClient() {
     [stopMicTest],
   );
 
+  /* While the mic test runs, refresh the input list when devices change
+     (headset plugged in, Bluetooth mic connected, mic unplugged) so a
+     route change mid-test is visible instead of silently killing the
+     input. */
+  useEffect(() => {
+    if (!micRunning) return;
+    const md = navigator.mediaDevices;
+    if (!md?.addEventListener) return;
+    const onChange = async () => {
+      try {
+        const devices = await md.enumerateDevices();
+        const inputs = devices.filter((d) => d.kind === 'audioinput');
+        setDeviceCount(inputs.length);
+        setDeviceLabels(inputs.map((d, i) => d.label || `Microphone ${i + 1}`));
+      } catch {
+        /* keep the last list */
+      }
+    };
+    md.addEventListener('devicechange', onChange);
+    return () => md.removeEventListener('devicechange', onChange);
+  }, [micRunning]);
+
   /* ---------------- microphone capture test ---------------- */
 
   const runMicTest = useCallback(async () => {
@@ -247,12 +268,30 @@ export default function DiagnosticsClient() {
     setMicError(null);
     setVoiceDetected(false);
     setVadSpeaking(false);
+    setTrackMuted(false);
+    setTrackEnded(false);
+    setCtxSuspended(false);
     setLevelDb(null);
     setPeakDb(-120);
     setSpreadDb(0);
     setFramesSeen(0);
     statsRef.current = { min: Infinity, max: -Infinity, peak: -120, frames: 0, lastUiAt: 0 };
-    vadRef.current = new VadMirror();
+    vadRef.current = new AdaptiveVad();
+
+    // 0. Create the AudioContext SYNCHRONOUSLY in this tap, BEFORE any
+    // await. The old code awaited the Permissions API query first and
+    // only then created the context — outside the user gesture — so on
+    // iOS Safari the context could start (and stay) `suspended` and the
+    // analyser delivered nothing: the test reported a flat mic on a
+    // working phone. This is the same bug class the coach fix (commit
+    // 27e0ca6) addressed; the diagnostics page still had it.
+    const Ctor = audioContextCtor();
+    if (!navigator.mediaDevices?.getUserMedia || !Ctor) {
+      setMicError('This browser has no microphone API (getUserMedia / AudioContext missing).');
+      return;
+    }
+    const ctx = new Ctor();
+    void ctx.resume().catch(() => undefined);
 
     // 1. Permission state (best effort — the Permissions API is absent
     // in some browsers, and Safari reports 'prompt' until asked).
@@ -268,18 +307,14 @@ export default function DiagnosticsClient() {
       setPermission('unknown');
     }
 
-    // 2. Open the mic (same constraints as the coach) + create the
-    // AudioContext synchronously in this tap, so the context is running
-    // inside the user gesture — the same rule the coach now follows.
-    const Ctor = audioContextCtor();
-    if (!navigator.mediaDevices?.getUserMedia || !Ctor) {
-      setMicError('This browser has no microphone API (getUserMedia / AudioContext missing).');
-      return;
-    }
+    // 2. Open the mic (same constraints as the coach).
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS);
     } catch (err) {
+      // The context created above is no longer needed — close it so a
+      // denied test does not leave a live AudioContext behind.
+      void ctx.close().catch(() => undefined);
       const name = (err as { name?: string })?.name ?? '';
       setPermission(name === 'NotAllowedError' || name === 'SecurityError' ? 'denied' : 'unknown');
       setMicError(
@@ -300,6 +335,13 @@ export default function DiagnosticsClient() {
           (settings.deviceId ? ` · device=${settings.deviceId.slice(0, 8)}…` : '') +
           (settings.sampleRate ? ` · ${settings.sampleRate} Hz` : ''),
       );
+      // A track that mutes or ends itself mid-test (iOS route change,
+      // another app taking the mic) kills capture without any error —
+      // surface it instead of letting the meter go flat unexplained.
+      setTrackMuted(track.muted);
+      track.onmute = () => setTrackMuted(true);
+      track.onunmute = () => setTrackMuted(false);
+      track.onended = () => setTrackEnded(true);
     }
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
@@ -310,11 +352,14 @@ export default function DiagnosticsClient() {
       setDeviceCount(null);
     }
 
-    const ctx = new Ctor();
+    // The context was created in the tap; if it is STILL suspended after
+    // resume(), the browser refused to start it (gesture / interruption)
+    // and the analyser will deliver nothing. Say so explicitly.
     if (ctx.state === 'suspended') {
       await ctx.resume().catch(() => undefined);
     }
     setCtxState(ctx.state);
+    setCtxSuspended(ctx.state === 'suspended');
     setSampleRate(ctx.sampleRate);
     streamRef.current = stream;
     ctxRef.current = ctx;
@@ -344,7 +389,7 @@ export default function DiagnosticsClient() {
       if (db > s.peak) s.peak = db;
       if (db < s.min) s.min = db;
       if (db > s.max) s.max = db;
-      const speaking = vadRef.current?.push(db, dtMs) ?? false;
+      const speaking = vadRef.current?.push(db, dtMs).speaking ?? false;
       if (speaking) setVoiceDetected(true);
       // Draw the real waveform.
       const canvas = canvasRef.current;
@@ -419,20 +464,12 @@ export default function DiagnosticsClient() {
     setEngineError(null);
     setEngineResult(null);
     setEngineLive(null);
-    // Fetch the verse text at runtime (same proxy as the coach) — no
-    // Quran text is pasted into this file.
-    let text = '';
-    try {
-      const res = await fetch(`${API}/verses/by_key/1:1?fields=text_indopak`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: { verse?: { text_indopak?: string } } = await res.json();
-      text = data.verse?.text_indopak ?? '';
-      if (!text) throw new Error('empty verse text');
-    } catch {
-      setEngineError('Could not load the test verse (Al-Fatihah 1:1) — check the connection and try again.');
-      return;
-    }
-    // Prepare the mic synchronously in this tap, exactly like the coach.
+    // Prepare the mic FIRST, synchronously in this tap, exactly like
+    // the coach. The old code fetched the verse text first and only
+    // then prepared the mic — the fetch await left the user gesture,
+    // so on iOS Safari the context could be created outside it and stay
+    // suspended: the engine test failed on a phone where the coach
+    // worked. The prepared capture stays live while the verse loads.
     let prepared: PreparedMicCapture | null = null;
     try {
       prepared = engine.prepareMicrophone();
@@ -443,6 +480,22 @@ export default function DiagnosticsClient() {
           ? 'Microphone permission was denied for the engine test.'
           : 'No microphone is available on this device for the engine test.',
       );
+      return;
+    }
+    // Fetch the verse text at runtime (same proxy as the coach) — no
+    // Quran text is pasted into this file.
+    let text = '';
+    try {
+      const res = await fetch(`${API}/verses/by_key/1:1?fields=text_indopak`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: { verse?: { text_indopak?: string } } = await res.json();
+      text = data.verse?.text_indopak ?? '';
+      if (!text) throw new Error('empty verse text');
+    } catch {
+      // The prepared mic is no longer needed — release it so the test
+      // does not leave a live AudioContext and mic stream behind.
+      prepared.release();
+      setEngineError('Could not load the test verse (Al-Fatihah 1:1) — check the connection and try again.');
       return;
     }
     const session = engine.startSession({
@@ -483,7 +536,7 @@ export default function DiagnosticsClient() {
 
   const micHeardSound = peakDb > AUDIBLE_DBFS;
   const audioProcessing: 'Working' | 'Failed' | 'Not tested yet' =
-    framesSeen === 0 ? 'Not tested yet' : streamActive || peakDb > -110 ? 'Working' : 'Failed';
+    framesSeen === 0 ? 'Not tested yet' : trackEnded ? 'Failed' : streamActive || peakDb > -110 ? 'Working' : 'Failed';
   const engineVerdict: string =
     engineState === 'ready' || engineState === 'listening'
       ? 'Available'
@@ -528,6 +581,22 @@ export default function DiagnosticsClient() {
             <dd>{voiceDetected ? <Pill ok>Detected</Pill> : <Pill warn>Not detected</Pill>}</dd>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
+            <dt className="font-semibold">Levels changing on speech</dt>
+            <dd>
+              {framesSeen === 0 ? <Pill warn>Not tested yet</Pill>
+                : spreadDb > 10 ? <Pill ok>Yes — levels move when you speak</Pill>
+                : <Pill warn>No — levels barely move</Pill>}
+            </dd>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <dt className="font-semibold">Silent input</dt>
+            <dd>
+              {framesSeen === 0 ? <Pill warn>Not tested yet</Pill>
+                : framesSeen > 50 && peakDb <= -110 ? <Pill>Yes — stream runs but silent</Pill>
+                : <Pill ok>No — sound is reaching the app</Pill>}
+            </dd>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <dt className="font-semibold">Recognition engine</dt>
             <dd>
               {engineVerdict === 'Available' ? <Pill ok>Available</Pill>
@@ -547,6 +616,25 @@ export default function DiagnosticsClient() {
         {micHeardSound && (engineState === 'failed' || engineState === 'unsupported') && (
           <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm font-semibold">
             Voice detected, but Arabic recognition is unavailable.
+          </p>
+        )}
+        {ctxSuspended && (
+          <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm font-semibold">
+            The audio system is suspended in this browser — the microphone cannot deliver sound to this page even
+            though permission was granted. This happens when audio is started outside a tap. Stop the test and start
+            it again with a fresh tap.
+          </p>
+        )}
+        {trackEnded && (
+          <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm font-semibold">
+            The microphone track ended mid-test — something else took the microphone (a call, another app, or the
+            device was unplugged). Run the test again.
+          </p>
+        )}
+        {trackMuted && !trackEnded && (
+          <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm font-semibold">
+            The microphone muted itself during the test — check the device is not muted and no other app is using
+            the microphone.
           </p>
         )}
         {micRunning && !voiceDetected && framesSeen > 100 && (
@@ -610,6 +698,9 @@ export default function DiagnosticsClient() {
           <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">VAD (speech in the audio)</dt><dd>{vadSpeaking ? <Pill ok>Speaking now</Pill> : voiceDetected ? <Pill ok>Heard speech</Pill> : <Pill warn>Not detected</Pill>}</dd></div>
           <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">AudioContext</dt><dd className="font-mono">{ctxState}{sampleRate ? ` · ${sampleRate} Hz` : ''}</dd></div>
           <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Mic track</dt><dd className="font-mono">{trackInfo}</dd></div>
+          {(trackMuted || trackEnded) && (
+            <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Track status</dt><dd>{trackEnded ? <Pill>Ended mid-test</Pill> : <Pill warn>Muted itself</Pill>}</dd></div>
+          )}
           {deviceLabels.length > 0 && (
             <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Inputs found</dt><dd>{deviceLabels.join(', ')}</dd></div>
           )}

@@ -191,6 +191,16 @@ export interface AudioHealth {
   audibleCallbacks: number;
   /** True when the mic clearly heard sound (see AUDIBLE_* below). */
   everAudible: boolean;
+  /**
+   * True when frames ARE flowing (levelCallbacks >= SILENT_CALLBACKS_MIN)
+   * but the level never rose above SILENT_DBFS — the capture path runs
+   * yet the input is digital silence (muted track, wrong input device,
+   * mic covered/blocked at the OS level). Distinct from zero callbacks
+   * (dead worklet): here the mic is "connected" and still hears nothing.
+   * The coach shows this live, while the user can still fix it, instead
+   * of waiting for a false "didn't hear anything" at the end.
+   */
+  silentInput: boolean;
   /** Position events received from the tracker, any state (including
    * `ambiguous` events with no observed word). */
   positionEvents: number;
@@ -206,6 +216,16 @@ export const AUDIBLE_DBFS = -50;
 /** Minimum loud callbacks before a take counts as "mic heard audio" —
  * one stray transient (door, tap) must not clear the user. */
 export const AUDIBLE_CALLBACKS_MIN = 3;
+/**
+ * Silent-input line: a take whose loudest level never rises above this
+ * is digital silence, not quiet speech — a phone mic in a quiet room
+ * still reports about -60 dBFS of room noise, so anything at or below
+ * -110 dBFS means no sound is reaching the app at all. Only trusted
+ * after SILENT_CALLBACKS_MIN callbacks (~1 s of flowing frames), so a
+ * slow worklet start is not misread as a dead mic.
+ */
+export const SILENT_DBFS = -110;
+export const SILENT_CALLBACKS_MIN = 50;
 
 /**
  * A microphone prepared synchronously inside the user's tap, via Tilawa's
@@ -275,6 +295,16 @@ export interface RecitationSession {
    * Returns the full per-word result. Idempotent.
    */
   stop(): Promise<SessionResult>;
+  /**
+   * Abandon the take WITHOUT producing a result: stop the mic, close
+   * the AudioContext, dispose the session. Used when the user leaves
+   * mid-take ("Back to listening", mode switch) or when a new take must
+   * start before the previous one ended — the old capture is fully
+   * stopped and awaited before the new one starts, so two live
+   * AudioContexts / mic streams never overlap. Idempotent; a no-op when
+   * stop() is already in flight (that take is ending anyway).
+   */
+  abort(): Promise<void>;
   dispose(): void;
 }
 
@@ -451,6 +481,7 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
     maxLevelDb,
     audibleCallbacks,
     everAudible: audibleCallbacks >= AUDIBLE_CALLBACKS_MIN,
+    silentInput: levelCallbacks >= SILENT_CALLBACKS_MIN && maxLevelDb <= SILENT_DBFS,
     positionEvents,
     everLocked,
   });
@@ -464,6 +495,7 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
   let mic: Microphone | null = null;
   let stopped = false;
   let stopPromise: Promise<SessionResult> | null = null;
+  let abortPromise: Promise<void> | null = null;
 
   const emitWord = (ref: WordRef, status: CoachWordStatus, confidence?: number) => {
     const entry = expectedByKey.get(wordKey(ref));
@@ -685,7 +717,15 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
 
   return {
     async startMic(prepared?: PreparedMicCapture) {
+      // VAD OFF, deliberately and explicitly: Tilawa's energy VAD
+      // (DEFAULTS.vad is false) would gate audio before the model, and
+      // its floor -60 dBFS + 12 dB margin trigger (-48 dBFS) drops quiet
+      // recitation outright. With the VAD off every frame reaches the
+      // tracker, and quiet speech still has a chance to lock. Voice
+      // detection for the UI lives in app/hifz/lib/vad.ts (AdaptiveVad) —
+      // display-only, never a gate on the audio path.
       mic = await tilawa.listen(session, {
+        vad: false,
         onLevel: recordLevel,
         ...(prepared ? { prepared: prepared.handle } : {}),
       });
@@ -707,6 +747,24 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
         return buildResult();
       })();
       return stopPromise;
+    },
+    abort(): Promise<void> {
+      if (abortPromise) return abortPromise;
+      // A take already being checked ends with a result; abandoning it
+      // mid-drain would corrupt that result — nothing to abort.
+      if (stopPromise) return Promise.resolve();
+      stopped = true;
+      abortPromise = (async () => {
+        if (mic) {
+          // mic.stop() ends the session and closes the AudioContext.
+          await mic.stop().catch(() => undefined);
+          mic = null;
+        } else {
+          await session.end().catch(() => undefined);
+        }
+        session.dispose();
+      })();
+      return abortPromise;
     },
     dispose() {
       stopped = true;

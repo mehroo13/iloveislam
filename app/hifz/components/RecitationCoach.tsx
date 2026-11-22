@@ -70,7 +70,6 @@ import { useT } from '../lib/i18n';
 import { MistakeHistorySheet, SessionAnalyticsSheet, type HistoryRow } from './SharedSheets';
 import { ShareAudioButtons, audioExtension, recordingFileName, type SharedRecording } from './ShareAudio';
 import {
-  AUDIBLE_DBFS,
   autoTierLabel,
   engineSupport,
   loadEngine,
@@ -81,6 +80,7 @@ import {
   type SessionResult,
   type WordEvent,
 } from '../lib/tilawa';
+import { AdaptiveVad } from '../lib/vad';
 
 /* ------------------------------------------------------------------ */
 /*  Copy — research §6, verbatim where the research says verbatim.     */
@@ -157,7 +157,16 @@ export interface RecitationCoachProps {
 type Step = 'pick' | 'listen' | 'recite' | 'feedback';
 type ScopeKind = 'single' | 'range' | 'whole';
 type EngineState = 'idle' | 'loading' | 'ready' | 'failed' | 'unsupported';
-type MicState = 'idle' | 'recording' | 'checking' | 'denied' | 'unavailable';
+/**
+ * Mic states, in the order the user sees them (Stage 3):
+ *  idle → requesting (permission prompt is up) → recording (mic
+ *  connected; "Listening" until the VAD confirms a voice, then "Voice
+ *  detected") → checking (processing the recitation) → idle (result) /
+ *  denied / unavailable. `requesting` is its own state so the user is
+ *  never left staring at an unchanged screen while the browser's
+ *  permission prompt is open.
+ */
+type MicState = 'idle' | 'requesting' | 'recording' | 'checking' | 'denied' | 'unavailable';
 type CoachMode = 'mic' | 'self-mark' | 'follow';
 
 interface FeedbackWord {
@@ -231,16 +240,29 @@ export default function RecitationCoach({
   const [micError, setMicError] = useState<string | null>(null);
   const [level, setLevel] = useState(0); // 0..1, from onLevel dBFS
   // Voice-detection state (spec: Ready → Requesting permission →
-  // Listening → Voice detected → Processing → Result / Error). `level`
-  // above is the meter; `voiceDetected` flips once the mic hears real
-  // sound (level louder than AUDIBLE_DBFS) so the UI can say "Voice
-  // detected" instead of leaving the user guessing whether they are heard.
+  // Listening → Voice detected → Processing → Result / Error). Driven by
+  // the adaptive VAD (app/hifz/lib/vad.ts), NOT by a fixed threshold:
+  // `voiceDetected` latches once the VAD confirms sustained speech above
+  // the room's noise floor (so quiet recitation counts), `vadSpeaking`
+  // is live speech incl. hangover (so pauses between words do not flick
+  // the status), and the meter below is real levels only.
   const [voiceDetected, setVoiceDetected] = useState(false);
+  const [vadSpeaking, setVadSpeaking] = useState(false);
+  // `framesSeen` counts onLevel callbacks received this take (about one
+  // per 20 ms): 0 means the worklet delivers no frames at all, which —
+  // together with `audioStalled` / `silentInput` — separates "mic
+  // connected" from "capture dead" from "capture running but silent".
+  const [framesSeen, setFramesSeen] = useState(0);
   // True when the take has run ~2.5 s with ZERO level callbacks: the
   // AudioContext/worklet is delivering no frames at all (capture dead),
   // even though permission was granted. Shown as a live warning, not a
   // result — the take can still be stopped and retried.
   const [audioStalled, setAudioStalled] = useState(false);
+  // True when frames ARE flowing but the level never rises above digital
+  // silence (see AudioHealth.silentInput): the mic is connected yet
+  // sends no sound (muted track, wrong input, mic covered at OS level).
+  // Cleared the moment any real level arrives.
+  const [silentInput, setSilentInput] = useState(false);
   const [recordingSecs, setRecordingSecs] = useState(0);
   const [trackerState, setTrackerState] = useState<string>('');
   const [online, setOnline] = useState<boolean>(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
@@ -298,6 +320,16 @@ export default function RecitationCoach({
   const waveformRef = useRef<HTMLCanvasElement | null>(null);
   const levelsRef = useRef<number[]>([]);
   const voiceDetectedRef = useRef(false);
+  const vadSpeakingRef = useRef(false);
+  const vadRef = useRef<AdaptiveVad | null>(null);
+  // onLevel callbacks received this take (mirrored to `framesSeen`
+  // state by the 500 ms timer so the UI can tell "mic connected" from
+  // "no frames at all" without re-rendering 50 times a second).
+  const levelCountRef = useRef(0);
+  // An abort already in flight (Back-to-listening / mode switch /
+  // stale-take cleanup): startRecording awaits it so a new take never
+  // starts before the previous capture fully stopped.
+  const abortRef = useRef<Promise<void> | null>(null);
 
   /* ---------------- scope ---------------- */
 
@@ -518,37 +550,89 @@ export default function RecitationCoach({
 
   /* ---------------- mic recording ---------------- */
 
+  /**
+   * End any live take WITHOUT producing a result — the user left
+   * mid-take ("Back to listening", mode switch) or a new take is about
+   * to start. Stops the own-recording capture, awaits the session abort
+   * (the old AudioContext is fully closed before the caller starts a
+   * new take), and resets the mic UI. Safe to call when nothing is live.
+   * Does NOT touch micState: callers set it (idle / requesting /
+   * recording) for the state they are moving to.
+   */
+  const abortLiveSession = useCallback(async () => {
+    if (abortRef.current) return abortRef.current;
+    const session = sessionRef.current;
+    sessionRef.current = null;
+    // Stop the own-recording capture first: it shares the session's
+    // stream, and stopping the recorder never stops the stream's tracks.
+    try {
+      if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+        recorderRef.current.stop();
+      }
+    } catch {
+      /* already stopped */
+    }
+    recorderRef.current = null;
+    recordStreamRef.current = null;
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (stallTimerRef.current) {
+      clearTimeout(stallTimerRef.current);
+      stallTimerRef.current = null;
+    }
+    setLevel(0);
+    setVoiceDetected(false);
+    voiceDetectedRef.current = false;
+    setVadSpeaking(false);
+    vadSpeakingRef.current = false;
+    vadRef.current = null;
+    setAudioStalled(false);
+    setSilentInput(false);
+    setFramesSeen(0);
+    levelCountRef.current = 0;
+    levelsRef.current = [];
+    if (!session) return;
+    const p = session.abort();
+    abortRef.current = p;
+    try {
+      await p;
+    } finally {
+      if (abortRef.current === p) abortRef.current = null;
+    }
+  }, []);
+
   const startRecording = useCallback(async () => {
     const engine = engineRef.current;
     if (!engine) return;
-    // Never start a second session while one is starting, and never run
-    // two live sessions: if a previous take never reached stop() (the
-    // user left the step mid-take via "Back to listening"), end it first
-    // — a new session must never start before the previous one fully
-    // ended. (The old code happily created a second live session, mic
-    // stream and AudioContext on top of the first.)
+    // Never start a second session while one is starting.
     if (startInFlightRef.current) return;
-    if (sessionRef.current) {
-      const stale = sessionRef.current;
-      sessionRef.current = null;
-      if (stallTimerRef.current) {
-        clearTimeout(stallTimerRef.current);
-        stallTimerRef.current = null;
-      }
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      stale.dispose();
-    }
+    // PLAYBACK INTERACTION (Stage 3 root cause): never start the mic
+    // while ayah audio is playing through the speaker — the reciter
+    // audio feeds straight back into the mic, the tracker follows the
+    // playback instead of the user, and the recording blob contains the
+    // playback. Stop it synchronously in this tap, before anything else.
+    stopAudio();
     setMicError(null);
     setAudioStalled(false);
+    setSilentInput(false);
     setVoiceDetected(false);
     voiceDetectedRef.current = false;
+    setVadSpeaking(false);
+    vadSpeakingRef.current = false;
+    setFramesSeen(0);
+    levelCountRef.current = 0;
+    vadRef.current = new AdaptiveVad();
     levelsRef.current = [];
-    setMicState('idle');
+    // "Requesting microphone permission" — shown while the browser's
+    // permission prompt is up, so the user is never left guessing.
+    setMicState('requesting');
     const scope = scopeAyahs();
-    if (scope.length === 0) return;
+    if (scope.length === 0) {
+      setMicState('idle');
+      return;
+    }
     // MIC PREPARE — MUST stay synchronous in this tap handler, before
     // any await (2026-11-22 root-cause fix). Tilawa documents that iOS
     // Safari only starts audio created/resumed during a user gesture; the
@@ -569,6 +653,15 @@ export default function RecitationCoach({
       return;
     }
     startInFlightRef.current = true;
+    // RESTART LIFECYCLE: if a previous take never reached stop(), its
+    // capture is still live. The AudioContext for THIS take is already
+    // created in the gesture above, so awaiting the old take's abort
+    // here is safe — and the new session only starts listening once the
+    // old one is fully stopped, so two live AudioContexts / mic streams
+    // never overlap. (The old code disposed the stale session
+    // fire-and-forget, leaving its context closing while the new one
+    // started.)
+    await abortLiveSession();
     const expected = scope.map((a) => ({ surah: a.surah, ayah: a.ayah, text: a.text }));
     const session = engine.startSession({
       surah,
@@ -582,14 +675,30 @@ export default function RecitationCoach({
         setLiveWords((prev) => ({ ...prev, [wordKey(e.surah, e.ayah, e.word)]: liveStatus }));
       },
       onLevel: (db: number) => {
-        setLevel(clamp01((db + 60) / 60));
-        levelsRef.current.push(clamp01((db + 60) / 60));
+        // Meter scale: -60 dBFS (room noise) → 0, -10 dBFS (loud, close
+        // speech) → 1. The old -60..0 scale left normal speech at ~17%
+        // of the bar, so quiet recitation was invisible.
+        const v = clamp01((db + 60) / 50);
+        setLevel(v);
+        levelsRef.current.push(v);
         if (levelsRef.current.length > 60) levelsRef.current.shift();
-        // Voice detected: the mic is hearing real sound, not room noise.
-        // (The adapter records the same threshold in the result health.)
-        if (!voiceDetectedRef.current && db > AUDIBLE_DBFS) {
-          voiceDetectedRef.current = true;
-          setVoiceDetected(true);
+        levelCountRef.current++;
+        // Any real level clears the silent-input warning.
+        if (db > -110) setSilentInput((prev) => (prev ? false : prev));
+        // Adaptive VAD (lib/vad.ts): sustained speech above the room's
+        // noise floor — quiet recitation counts, a single loud transient
+        // does not, and pauses between words do not flick it off.
+        // onLevel fires about every 20 ms, so dtMs is 20.
+        const reading = vadRef.current?.push(db, 20);
+        if (reading) {
+          if (reading.voiceDetected && !voiceDetectedRef.current) {
+            voiceDetectedRef.current = true;
+            setVoiceDetected(true);
+          }
+          if (reading.speaking !== vadSpeakingRef.current) {
+            vadSpeakingRef.current = reading.speaking;
+            setVadSpeaking(reading.speaking);
+          }
         }
       },
       onTrackerState: (s: string) => setTrackerState(s),
@@ -641,19 +750,28 @@ export default function RecitationCoach({
     setRecordingSecs(0);
     timerRef.current = setInterval(() => {
       setRecordingSecs(Math.floor((Date.now() - recordingStartRef.current) / 1000));
+      // Mirror the callback count into state (throttled to 2×/s) so the
+      // UI can tell "mic connected" from "no frames at all".
+      setFramesSeen((prev) => (prev === levelCountRef.current ? prev : levelCountRef.current));
     }, 500);
     // Stall watch: if NO level callback arrives within 2.5 s, the
     // worklet is delivering no frames — capture is dead even though the
-    // mic was granted. Tell the user live, while they can still retry,
-    // instead of waiting for a false "didn't hear anything" at the end.
+    // mic was granted. If frames ARE flowing but the level never rises
+    // above digital silence, the input itself is silent (muted track,
+    // wrong input, mic covered). Tell the user live, while they can
+    // still fix it, instead of waiting for a false "didn't hear
+    // anything" at the end.
     if (stallTimerRef.current) clearTimeout(stallTimerRef.current);
     stallTimerRef.current = setTimeout(() => {
       const health = sessionRef.current?.getAudioHealth();
-      if (sessionRef.current && health && health.levelCallbacks === 0) {
+      if (!sessionRef.current || !health) return;
+      if (health.levelCallbacks === 0) {
         setAudioStalled(true);
+      } else if (health.silentInput) {
+        setSilentInput(true);
       }
     }, 2500);
-  }, [scopeAyahs, surah, settings, t]);
+  }, [scopeAyahs, surah, settings, t, stopAudio, abortLiveSession]);
 
   const stopRecording = useCallback(async () => {
     const session = sessionRef.current;
@@ -708,7 +826,13 @@ export default function RecitationCoach({
     setLevel(0);
     setVoiceDetected(false);
     voiceDetectedRef.current = false;
+    setVadSpeaking(false);
+    vadSpeakingRef.current = false;
+    vadRef.current = null;
     setAudioStalled(false);
+    setSilentInput(false);
+    setFramesSeen(0);
+    levelCountRef.current = 0;
     levelsRef.current = [];
     setResult(res);
 
@@ -780,6 +904,32 @@ export default function RecitationCoach({
       }),
     });
   }, [persistAttempt, peeked, scopeAyahs, mode, settings, t]);
+
+  /**
+   * Switching practice mode mid-take (or leaving for the Listen step)
+   * must stop the live capture first — the old code just changed state
+   * and left the session, mic stream and AudioContext running invisibly
+   * behind the new screen, so the next take started on top of it.
+   */
+  const switchMode = useCallback(
+    (m: CoachMode) => {
+      if (sessionRef.current) {
+        void abortLiveSession();
+        setMicState('idle');
+      }
+      setMode(m);
+    },
+    [abortLiveSession],
+  );
+
+  const backToListening = useCallback(() => {
+    stopAudio();
+    if (sessionRef.current) {
+      void abortLiveSession();
+      setMicState('idle');
+    }
+    setStep('listen');
+  }, [abortLiveSession, stopAudio]);
 
   // Cleanup on unmount: stop any live session; the engine stays cached.
   useEffect(() => {
@@ -864,6 +1014,7 @@ export default function RecitationCoach({
         maxLevelDb: -120,
         audibleCallbacks: 0,
         everAudible: false,
+        silentInput: false,
         positionEvents: 0,
         everLocked: false,
       },
@@ -1145,7 +1296,7 @@ export default function RecitationCoach({
               <button
                 key={m}
                 type="button"
-                onClick={() => setMode(m)}
+                onClick={() => switchMode(m)}
                 aria-pressed={mode === m}
                 className={`rounded-full min-h-11 px-4 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${mode === m ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB]'}`}
               >
@@ -1413,12 +1564,19 @@ export default function RecitationCoach({
                   <p className="mt-2 text-sm font-semibold">{t('coach.tapToRecite')}</p>
                 </>
               )}
+              {micState === 'requesting' && (
+                <p role="status" className="mt-3 text-sm font-semibold">{t('coach.requestingMic')}</p>
+              )}
               {micState === 'recording' && (
                 <div>
                   <p role="status" className="text-sm font-semibold text-[#B42318]">
-                    {voiceDetected
+                    {vadSpeaking
                       ? `${t('coach.voiceDetected')} ${Math.floor(recordingSecs / 60)}:${String(recordingSecs % 60).padStart(2, '0')}`
-                      : `${t('coach.listeningRecite')} ${Math.floor(recordingSecs / 60)}:${String(recordingSecs % 60).padStart(2, '0')}`}
+                      : voiceDetected
+                        ? `${t('coach.voicePaused')} ${Math.floor(recordingSecs / 60)}:${String(recordingSecs % 60).padStart(2, '0')}`
+                        : framesSeen === 0
+                          ? `${t('coach.micConnected')} ${Math.floor(recordingSecs / 60)}:${String(recordingSecs % 60).padStart(2, '0')}`
+                          : `${t('coach.listeningRecite')} ${Math.floor(recordingSecs / 60)}:${String(recordingSecs % 60).padStart(2, '0')}`}
                   </p>
                   {trackerState && <p className="mt-1 text-xs text-[#5b6b62]">{t('coach.checker')}: {trackerState}</p>}
                   <div className="mx-auto mt-3 h-3 w-full max-w-md overflow-hidden rounded-full bg-[#E5E7EB]" role="meter" aria-label={t('coach.micLevel')} aria-valuenow={Math.round(level * 100)} aria-valuemin={0} aria-valuemax={100}>
@@ -1434,12 +1592,18 @@ export default function RecitationCoach({
                     aria-label={t('coach.waveform')}
                     className="mx-auto mt-2 h-9 w-full max-w-md rounded-lg bg-[#FFFBF2] border border-[#E5E7EB]"
                   />
-                  {!voiceDetected && !audioStalled && (
+                  {!voiceDetected && !audioStalled && !silentInput && (
                     <p className="mt-2 text-xs text-[#5b6b62]">{t('coach.micFlat')}</p>
                   )}
                   {audioStalled && (
                     <p role="alert" className="mx-auto mt-2 max-w-md rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm text-left">
                       The microphone is not sending any sound yet. Check it is not muted or covered, then tap “Stop &amp; check” and try again — or run the{' '}
+                      <Link href="/hifz/diagnostics" className="font-semibold text-[#1FA36B] underline">microphone check</Link>.
+                    </p>
+                  )}
+                  {silentInput && !audioStalled && (
+                    <p role="alert" className="mx-auto mt-2 max-w-md rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm text-left">
+                      The microphone is connected, but it is sending only silence — no sound is reaching the app at all. Check the mic is not muted or covered and that the right input is selected, then tap “Stop &amp; check” and try again — or run the{' '}
                       <Link href="/hifz/diagnostics" className="font-semibold text-[#1FA36B] underline">microphone check</Link>.
                     </p>
                   )}
@@ -1515,7 +1679,7 @@ export default function RecitationCoach({
             </div>
           )}
 
-          <button type="button" onClick={() => { stopAudio(); setStep('listen'); }} className="mt-5 text-sm font-semibold text-[#1FA36B] underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]">
+          <button type="button" onClick={backToListening} className="mt-5 text-sm font-semibold text-[#1FA36B] underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]">
             {t('coach.backToListening')}
           </button>
         </div>
