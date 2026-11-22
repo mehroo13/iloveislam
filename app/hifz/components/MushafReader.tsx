@@ -27,6 +27,10 @@
 //   to localStorage and restored on the next visit; the URL carries
 //   ?page= (replaceState while scrolling, pushState for jumps / page
 //   mode) so back/forward and deep links land on the right page.
+//   Scroll sync uses history.replaceState, NOT router.replace — the
+//   router reset the window scroll to 0 ~400ms after every restore
+//   (measured live 2026-11-22), which wiped "pick up where you left
+//   off". On a reload the saved position wins over a stale ?page=.
 // - Slots use `justify-content: safe center`: the 970px frame centres
 //   when it fits and left-aligns (scrollable right) when zoomed past
 //   the viewport, so no part of a page is ever unreachable on the left.
@@ -283,6 +287,11 @@ export default function MushafReader() {
   const modeRef = useRef<Mode>('continuous');
   const toolbarHRef = useRef(96);
   const pendingScrollRef = useRef<{ page: number; frac: number } | null>(null);
+  // True from mount until the restore scroll has landed and the layout
+  // has settled — while true, scroll events must not save/sync, or a
+  // stray event at scrollY 0 overwrites the saved spot with page 1.
+  const restoringRef = useRef(false);
+  const restoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const urlTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollRafRef = useRef(0);
@@ -297,11 +306,24 @@ export default function MushafReader() {
     const saved = readSavedPos();
     const qPage = Number(searchParams.get('page'));
     const qMode = searchParams.get('mode');
-    const page = Number.isInteger(qPage) && qPage >= 1 && qPage <= MUSHAF_TOTAL_PAGES
-      ? qPage
-      : saved?.page ?? 1;
+    // On a RELOAD the URL's ?page= is stale: it reflects the last
+    // scroll sync (400ms debounce, and never on pagehide), while the
+    // saved position is written on pagehide too — so the saved spot is
+    // fresher. Prefer it on reload; a fresh navigation (deep link)
+    // still honours ?page=.
+    const navEntry = performance.getEntriesByType('navigation')[0] as
+      | PerformanceNavigationTiming
+      | undefined;
+    const isReload = navEntry?.type === 'reload';
+    const fromUrl =
+      Number.isInteger(qPage) && qPage >= 1 && qPage <= MUSHAF_TOTAL_PAGES;
+    const page = isReload && saved ? saved.page : fromUrl ? qPage : saved?.page ?? 1;
     const nextMode: Mode =
-      qMode === 'page' || qMode === 'continuous' ? qMode : saved?.mode ?? 'continuous';
+      isReload && saved
+        ? saved.mode
+        : qMode === 'page' || qMode === 'continuous'
+          ? qMode
+          : saved?.mode ?? 'continuous';
     const nextZoom = saved?.zoom ?? 1;
     setMode(nextMode);
     modeRef.current = nextMode;
@@ -309,7 +331,10 @@ export default function MushafReader() {
     zoomRef.current = nextZoom;
     setCurrentPage(page);
     currentPageRef.current = page;
-    pendingScrollRef.current = { page, frac: saved?.frac ?? 0 };
+    // A deep link lands at the top of its page; a restore keeps the
+    // saved offset within the page.
+    pendingScrollRef.current = { page, frac: fromUrl && !isReload ? 0 : saved?.frac ?? 0 };
+    restoringRef.current = true;
     try {
       if (searchParams.get('memorize') === '1') setHideVerses(true);
       const raw = localStorage.getItem('ili_hifz_settings_v1');
@@ -547,8 +572,16 @@ export default function MushafReader() {
     if (urlTimerRef.current) clearTimeout(urlTimerRef.current);
     urlTimerRef.current = setTimeout(() => {
       const url = `/hifz/mushaf?page=${currentPageRef.current}&mode=${modeRef.current}`;
-      if (push) router.push(url, { scroll: false });
-      else router.replace(url, { scroll: false });
+      if (push) {
+        router.push(url, { scroll: false });
+      } else {
+        // Scroll sync must NOT go through the router: router.replace
+        // resets the window scroll to 0 (measured live 2026-11-22 —
+        // the replace lands ~400ms after the restore scroll and yanks
+        // it back to page 1). history.replaceState only rewrites the
+        // address bar, so the scroll position is untouched.
+        window.history.replaceState(null, '', url);
+      }
     }, 400);
   }, [router]);
 
@@ -614,6 +647,10 @@ export default function MushafReader() {
       if (scrollRafRef.current) return;
       scrollRafRef.current = requestAnimationFrame(() => {
         scrollRafRef.current = 0;
+        // During the restore window, ignore scroll events: the restore
+        // scroll itself (and any layout shift while pages mount) must
+        // not re-derive the page or overwrite the saved spot.
+        if (restoringRef.current) return;
         const next = deriveCurrentPage();
         if (next !== null && next !== currentPageRef.current) {
           currentPageRef.current = next;
@@ -650,6 +687,14 @@ export default function MushafReader() {
     if (!pending) return;
     if (scrollToPageTop(pending.page, pending.frac)) {
       pendingScrollRef.current = null;
+      // Let the layout settle (real page heights mounting above the
+      // viewport shift offsets) before scroll events may save/sync
+      // again — otherwise the restore's own scroll can be overwritten
+      // by a page-1 derivation.
+      if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
+      restoreTimerRef.current = setTimeout(() => {
+        restoringRef.current = false;
+      }, 1200);
     }
   }, [mounted, pages, heights, currentPage, mode, scrollToPageTop]);
 
