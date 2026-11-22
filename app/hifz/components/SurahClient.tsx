@@ -1066,13 +1066,23 @@ export default function SurahClient({
             <button
               type="button"
               onClick={() => {
-                setHiddenAyahs(new Set());
-                setRevealedAyah({});
+                // Reset = start the test over: everything in the range
+                // hidden again, nothing revealed. (Showing everything is
+                // the "Reveal all" button next to it.)
+                const from = Math.min(memFrom, memTo);
+                const to = Math.max(memFrom, memTo);
+                if (hideMode === 'ayah') {
+                  setHiddenAyahs(new Set(verses.filter((v) => v.verse_number >= from && v.verse_number <= to).map((v) => v.verse_number)));
+                  setRevealedAyah({});
+                } else {
+                  setHiddenAyahs(new Set());
+                  setRevealedAyah({});
+                }
                 setRangeRevealed(0);
               }}
               className="min-h-11 rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
             >
-              Reset hiding
+              Start over — hide all again
             </button>
           </div>
           <p role="status" className="mt-2 text-xs text-[#5b6b62]">
