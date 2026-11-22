@@ -15,10 +15,12 @@ import {
   peekedDue, mistakeTypeLabel, markMistakesCorrected,
   getTypeGoals, setTypeGoalTarget, recordTypeActivity, recordMinutes, previousLocalDate,
   GOAL_TYPE_LABELS, GOAL_TYPE_DESCRIPTIONS, TYPE_GOAL_OPTIONS,
+  completedSurahs, completedJuz, activitySummary, strongestSurahThisWeek, difficultAyahs,
   type GoalType, type HifzProgress, type MistakeEntry, type HifzSettings,
 } from '../progress';
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { loadChallenges, saveChallenges } from '../lib/challenges';
+import { loadTestSessions, loadInProgressTest, type TestSessionRecord, type InProgressTest } from '../lib/mode';
 import { getSurahById, ALL_SURAHS } from '../surahs';
 import { buildBadgeSnapshot, loadBestTestPct } from '../badges';
 import BadgesGrid from './BadgesGrid';
@@ -78,12 +80,22 @@ export default function MyProgressClient() {
   // Last-read + favourites (bookmarks), spec §22.4.
   const [lastRead, setLastRead] = useState<{ surah: number; name: string; slug: string; at: number } | null>(null);
   const [bookmarks, setBookmarks] = useState<{ surahNumber: number; verseNumber: number; surahName?: string }[]>([]);
+  // Stage 6 (§18/§19): completed test sessions + any unfinished test, for
+  // the test-performance and session-history sections. Read once on mount.
+  const [testSessions, setTestSessions] = useState<TestSessionRecord[]>(() => loadTestSessions());
+  const [unfinishedTest, setUnfinishedTest] = useState<InProgressTest | null>(() => loadInProgressTest());
+  const [mushafPage, setMushafPage] = useState<number | null>(null);
   useEffect(() => {
     try {
       const lr = localStorage.getItem('ili_last_read_v1');
       if (lr) setLastRead(JSON.parse(lr) as { surah: number; name: string; slug: string; at: number });
       const b = localStorage.getItem('quran_bookmarks_v2');
       if (b) setBookmarks(JSON.parse(b) as { surahNumber: number; verseNumber: number; surahName?: string }[]);
+      const mp = localStorage.getItem('ili_mushaf_reader_pos_v1');
+      if (mp) {
+        const parsed = JSON.parse(mp) as { page?: number };
+        if (typeof parsed.page === 'number') setMushafPage(parsed.page);
+      }
     } catch {
       /* ignore */
     }
@@ -97,6 +109,8 @@ export default function MyProgressClient() {
       setMistakes(loadMistakes());
       setSettings(loadSettings());
       setNotice(getStorageNotice());
+      setTestSessions(loadTestSessions());
+      setUnfinishedTest(loadInProgressTest());
     } catch {
       setProgress(null);
       setNotice(t('prog.loadError'));
@@ -162,6 +176,25 @@ export default function MyProgressClient() {
   // Stage 5 (§9): ayahs the user peeked at and has not yet recited clean
   // once since — they jump the revision queue ahead of the time-based list.
   const peeked = peekedDue(progress);
+
+  // Stage 6 (§18): dashboard totals + summaries — all from stored data.
+  const completedSurahList = completedSurahs(progress, ALL_SURAHS);
+  const completedJuzList = completedJuz(progress);
+  const summary = activitySummary(progress);
+  const strongestWeek = strongestSurahThisWeek(progress, ALL_SURAHS);
+  const difficult = difficultAyahs(mistakes);
+  // Older saves lack longestStreak; the current streak is the honest floor.
+  const longestStreak = progress.longestStreak ?? streak;
+  const revisionNeeded = peeked.length + due.length;
+  // Test performance: best / average of the last 5 / latest, from the
+  // completed test sessions on this device.
+  const testPcts = testSessions.map((s) => (s.total > 0 ? Math.round((s.score / s.total) * 100) : 0));
+  const bestTestPct = testPcts.length > 0 ? Math.max(...testPcts) : null;
+  const recentTestPcts = testPcts.slice(0, 5);
+  const avgTestPct =
+    recentTestPcts.length > 0
+      ? Math.round(recentTestPcts.reduce((a, b) => a + b, 0) / recentTestPcts.length)
+      : null;
 
   // 12-week activity heatmap (Monday-first columns). Dates are local; a day
   // counts when any ayah was last practised on it (see activityByDate).
@@ -286,12 +319,15 @@ export default function MyProgressClient() {
           setAddMsg('That day is already in your streak.');
           return;
         }
+        const newCount = last === previousLocalDate(addDate) ? next.streak.count + 1 : 1;
         next = {
           ...next,
           streak: {
-            count: last === previousLocalDate(addDate) ? next.streak.count + 1 : 1,
+            count: newCount,
             lastActiveDate: addDate,
           },
+          // Stage 6 (§18): a restored streak day can set a new longest streak.
+          longestStreak: Math.max(next.longestStreak ?? next.streak.count, newCount),
         };
       } else {
         setAddMsg('You can add a session for today or yesterday only — older days cannot restore a streak.');
@@ -369,6 +405,10 @@ export default function MyProgressClient() {
                 ? t('prog.dayInRow')
                 : t('prog.daysInRow')}
           </p>
+          <p className="mt-1 text-sm text-[#5b6b62]">
+            Longest streak: <strong className="text-[#102E26]">{longestStreak}</strong>{' '}
+            {longestStreak === 1 ? 'day' : 'days'}
+          </p>
         </div>
         <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">{t('prog.dailyGoal')}</p>
@@ -405,6 +445,114 @@ export default function MyProgressClient() {
           {progress.activePlan && (
             <p className="mt-2 text-sm text-[#5b6b62]">
               {t('prog.activePlan').replace('{days}', String(progress.activePlan.planDays)).replace('{day}', String(progress.activePlan.currentDay))}
+            </p>
+          )}
+        </div>
+      </section>
+
+      {/* Stage 6 (§18): totals — every number traces to stored progress. */}
+      <section aria-label="Totals" className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">Surahs completed</p>
+          <p className="mt-1 text-3xl font-bold text-[#102E26]">{completedSurahList.length}</p>
+          <p className="mt-1 text-xs text-[#5b6b62]">of 114 · every ayah memorised</p>
+        </div>
+        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">Juz completed</p>
+          <p className="mt-1 text-3xl font-bold text-[#102E26]">{completedJuzList.length}</p>
+          <p className="mt-1 text-xs text-[#5b6b62]">
+            of 30{completedJuzList.length > 0 ? ` · Juz ${completedJuzList.join(', ')}` : ''}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">This week</p>
+          <p className="mt-1 text-3xl font-bold text-[#102E26]">{summary.weekAyahs}</p>
+          <p className="mt-1 text-xs text-[#5b6b62]">
+            {summary.weekAyahs === 1 ? 'ayah' : 'ayahs'} · {summary.weekDays} {summary.weekDays === 1 ? 'day' : 'days'}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">This month</p>
+          <p className="mt-1 text-3xl font-bold text-[#102E26]">{summary.monthAyahs}</p>
+          <p className="mt-1 text-xs text-[#5b6b62]">
+            {summary.monthAyahs === 1 ? 'ayah' : 'ayahs'} · {summary.monthDays} {summary.monthDays === 1 ? 'day' : 'days'}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">Reading today</p>
+          <p className="mt-1 text-3xl font-bold text-[#102E26]">
+            {typeGoals.reading.done}<span className="text-lg text-[#5b6b62]"> / {typeGoals.reading.target}</span>
+          </p>
+          <p className="mt-1 text-xs text-[#5b6b62]">ayahs · log more in the goals below</p>
+        </div>
+      </section>
+
+      {/* Stage 6 (§18): at a glance — three summaries from real data, each
+          with an honest empty state when there is nothing to summarise. */}
+      <section aria-labelledby="glance-heading" className="grid gap-4 sm:grid-cols-3">
+        <h2 id="glance-heading" className="sr-only">At a glance</h2>
+        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">Your strongest Surah this week</p>
+          {strongestWeek ? (
+            <>
+              <p className="mt-2 text-xl font-bold text-[#102E26]">{strongestWeek.name}</p>
+              <p className="mt-1 text-sm text-[#5b6b62]">
+                {strongestWeek.ayahsPractised} {strongestWeek.ayahsPractised === 1 ? 'ayah' : 'ayahs'} practised in the last 7 days.
+              </p>
+              <Link href={`/hifz/${strongestWeek.slug}`} className="mt-3 inline-block font-semibold text-[#1FA36B] underline">
+                Open it →
+              </Link>
+            </>
+          ) : (
+            <p className="mt-2 text-sm text-[#5b6b62]">
+              Nothing practised this week yet — recite an ayah with the coach and your strongest surah appears here.
+            </p>
+          )}
+        </div>
+        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">Ayahs that may need more revision</p>
+          {revisionNeeded > 0 ? (
+            <>
+              <p className="mt-2 text-xl font-bold text-[#102E26]">
+                {revisionNeeded} {revisionNeeded === 1 ? 'ayah' : 'ayahs'}
+              </p>
+              <p className="mt-1 text-sm text-[#5b6b62]">
+                {peeked.length > 0 ? `${peeked.length} peeked at and not yet recited clean. ` : ''}
+                {due.length > 0 ? `${due.length} due by the revision schedule.` : ''}
+              </p>
+              <a href="#revision" className="mt-3 inline-block font-semibold text-[#1FA36B] underline">
+                See the revision queue →
+              </a>
+            </>
+          ) : (
+            <p className="mt-2 text-sm text-[#5b6b62]">
+              Nothing due — everything you have practised is fresh. It appears here when an ayah goes stale or you peek at one.
+            </p>
+          )}
+        </div>
+        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">Continue where you left off</p>
+          {lastRead ? (
+            <>
+              <p className="mt-2 text-xl font-bold text-[#102E26]">{lastRead.name}</p>
+              <p className="mt-1 text-sm text-[#5b6b62]">
+                Last read {new Date(lastRead.at).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}.
+              </p>
+              <Link href={`/hifz/${lastRead.slug}`} className="mt-3 inline-block font-semibold text-[#1FA36B] underline">
+                Continue reading →
+              </Link>
+            </>
+          ) : mushafPage !== null ? (
+            <>
+              <p className="mt-2 text-xl font-bold text-[#102E26]">Mushaf page {mushafPage}</p>
+              <p className="mt-1 text-sm text-[#5b6b62]">Your last place in the continuous reader.</p>
+              <Link href={`/hifz/mushaf?page=${mushafPage}`} className="mt-3 inline-block font-semibold text-[#1FA36B] underline">
+                Open the Mushaf →
+              </Link>
+            </>
+          ) : (
+            <p className="mt-2 text-sm text-[#5b6b62]">
+              No reading yet — open a surah and your place is remembered here.
             </p>
           )}
         </div>
@@ -712,7 +860,7 @@ export default function MyProgressClient() {
       </section>
 
       {/* Revision due — spaced repetition queue */}
-      <section aria-labelledby="revision-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+      <section id="revision" aria-labelledby="revision-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <h2 id="revision-heading" className="text-xl font-bold text-[#102E26]">{t('prog.revision')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           Memory fades on a schedule: a learning ayah is due after 2 days without practice,
@@ -1047,6 +1195,162 @@ export default function MyProgressClient() {
             </div>
           </>
         )}
+      </section>
+
+      {/* Stage 6 (§18): difficult ayahs — ranked by uncorrected mistakes,
+          per ayah (the weak-spots list above is per word). */}
+      <section aria-labelledby="difficult-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+        <h2 id="difficult-heading" className="text-xl font-bold text-[#102E26]">Difficult ayahs</h2>
+        <p className="mt-1 text-sm text-[#5b6b62]">
+          The ayahs you have missed most, counting only mistakes you have not yet corrected.
+        </p>
+        {difficult.length === 0 ? (
+          <p className="mt-2 text-sm text-[#5b6b62]">
+            No difficult ayahs — either no mistakes are logged, or every mistake has been corrected.
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {difficult.map((d) => {
+              const surah = getSurahById(d.surah);
+              return (
+                <li key={`${d.surah}:${d.ayah}`} className="flex flex-wrap items-center gap-2 rounded-xl bg-[#FFFBF2] px-3 py-2 text-sm">
+                  <span>
+                    {surah ? surah.name : `Surah ${d.surah}`} {d.surah}:{d.ayah} · missed{' '}
+                    {d.attempts} {d.attempts === 1 ? 'time' : 'times'} · {d.words} {d.words === 1 ? 'word' : 'words'} · last{' '}
+                    {new Date(d.lastMistake).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  </span>
+                  {surah && (
+                    <Link href={`/hifz/${surah.slug}?mode=recite&ayah=${d.ayah}`} className="ml-auto font-semibold text-[#1FA36B] underline">
+                      {t('prog.reviseNow')}
+                    </Link>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      {/* Stage 6 (§18/§19): test performance + review previous tests. */}
+      <section aria-labelledby="tests-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+        <h2 id="tests-heading" className="text-xl font-bold text-[#102E26]">Test performance</h2>
+        {testSessions.length === 0 ? (
+          <p className="mt-2 text-sm text-[#5b6b62]">
+            No tests taken yet. Take a test and your scores appear here — best, recent average, and every past test to review.{' '}
+            <Link href="/hifz/test" className="font-semibold text-[#1FA36B] underline">Take your first test →</Link>
+          </p>
+        ) : (
+          <>
+            <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+              <div className="rounded-xl bg-[#FFFBF2] p-3">
+                <p className="text-2xl font-bold text-[#102E26]">{testSessions.length}</p>
+                <p className="text-xs text-[#5b6b62]">tests taken</p>
+              </div>
+              <div className="rounded-xl bg-[#FFFBF2] p-3">
+                <p className="text-2xl font-bold text-[#102E26]">{bestTestPct}%</p>
+                <p className="text-xs text-[#5b6b62]">best score</p>
+              </div>
+              <div className="rounded-xl bg-[#FFFBF2] p-3">
+                <p className="text-2xl font-bold text-[#102E26]">{avgTestPct}%</p>
+                <p className="text-xs text-[#5b6b62]">average of last {recentTestPcts.length}</p>
+              </div>
+            </div>
+            <ul className="mt-3 space-y-2">
+              {testSessions.slice(0, 5).map((s, i) => (
+                <li key={`${s.at}-${i}`} className="flex flex-wrap items-center gap-2 rounded-xl bg-[#FFFBF2] px-3 py-2 text-sm">
+                  <span className="font-bold text-[#102E26]">
+                    {s.score}/{s.total} · {s.total > 0 ? Math.round((s.score / s.total) * 100) : 0}%
+                  </span>
+                  <span className="text-[#5b6b62]">{s.type} · {s.scope}</span>
+                  <span className="text-[#5b6b62]">{s.mistakes} {s.mistakes === 1 ? 'mistake' : 'mistakes'}</span>
+                  <span className="ml-auto text-xs text-[#5b6b62]">
+                    {new Date(s.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {testSessions[0] && testSessions[0].missed.length > 0 && (
+              <div className="mt-3">
+                <h3 className="text-sm font-bold text-[#102E26]">Missed in your latest test — revise these</h3>
+                <ul className="mt-2 flex flex-wrap gap-2">
+                  {testSessions[0].missed.slice(0, 8).map((m) => {
+                    const surah = getSurahById(m.surah);
+                    return (
+                      <li key={`${m.surah}:${m.ayah}`}>
+                        <Link
+                          href={surah ? `/hifz/${surah.slug}?mode=recite&ayah=${m.ayah}` : '/hifz'}
+                          className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#E4FFF2] px-3 py-1.5 text-sm font-semibold text-[#1FA36B] hover:underline"
+                        >
+                          {surah ? surah.name : `Surah ${m.surah}`} {m.surah}:{m.ayah}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </>
+        )}
+        {unfinishedTest && (
+          <p className="mt-3 rounded-xl border border-[#FFB800] bg-[#FFFBF2] px-3 py-2 text-sm">
+            <strong>Unfinished test:</strong> {unfinishedTest.results.length} of{' '}
+            {unfinishedTest.questions.length} questions answered.{' '}
+            <Link href="/hifz/test" className="font-semibold text-[#1FA36B] underline">
+              Resume it →
+            </Link>
+          </p>
+        )}
+        <Link href="/hifz/test" className="mt-3 inline-block font-semibold text-[#1FA36B] underline">
+          Open Test Mode →
+        </Link>
+      </section>
+
+      {/* Stage 6 (§19): session history — memorisation sessions logged by
+          hand plus completed tests, newest first. Only what is stored. */}
+      <section aria-labelledby="history-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+        <h2 id="history-heading" className="text-xl font-bold text-[#102E26]">Session history</h2>
+        <p className="mt-1 text-sm text-[#5b6b62]">
+          Sessions you logged by hand (Add Session above) and tests you completed. Coach
+          practice is recorded ayah by ayah in the activity chart and heatmap above.
+        </p>
+        {(() => {
+          const rows: { at: string; label: string; detail: string; href?: string }[] = [
+            ...sessions.map((s) => ({
+              at: s.date,
+              label: GOAL_TYPE_LABELS[s.type as GoalType] ?? s.type,
+              detail: `${s.ayahs} ayahs · ${s.minutes} min`,
+            })),
+            ...testSessions.map((s) => ({
+              at: s.at.slice(0, 10),
+              label: `Test — ${s.type}`,
+              detail: `${s.score}/${s.total} · ${s.mistakes} ${s.mistakes === 1 ? 'mistake' : 'mistakes'}`,
+              href: '/hifz/test',
+            })),
+          ].sort((a, b) => b.at.localeCompare(a.at));
+          if (rows.length === 0) {
+            return (
+              <p className="mt-2 text-sm text-[#5b6b62]">
+                No sessions logged yet. Log a session you did away from the app, or take a test, and it appears here.
+              </p>
+            );
+          }
+          return (
+            <ul className="mt-3 space-y-1 text-sm">
+              {rows.slice(0, 15).map((r, i) => (
+                <li key={`${r.at}-${i}`} className="flex flex-wrap gap-2 rounded-lg bg-[#FFFBF2] px-3 py-2">
+                  <span className="font-semibold">{r.at}</span>
+                  <span>{r.label}</span>
+                  <span className="text-[#5b6b62]">{r.detail}</span>
+                  {r.href && (
+                    <Link href={r.href} className="ml-auto font-semibold text-[#1FA36B] underline">
+                      Open
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          );
+        })()}
       </section>
 
       {/* Offline coach (§15.10) */}

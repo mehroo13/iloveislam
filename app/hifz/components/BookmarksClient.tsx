@@ -21,9 +21,31 @@ export default function BookmarksClient() {
   const [bookmarks, setBookmarks] = useState<BookmarkEntry[] | null>(null);
   const [editingNote, setEditingNote] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState('');
+  // Stage 6 (§19): recent reading locations — last-opened surahs (most
+  // recent first, max 5) and the last Mushaf page, both stored on device.
+  const [recentSurahs, setRecentSurahs] = useState<{ id: number; at: number }[]>([]);
+  const [mushafPage, setMushafPage] = useState<number | null>(null);
 
   useEffect(() => {
     setBookmarks(loadBookmarks());
+    try {
+      const r = localStorage.getItem('ili_hifz_recent_surahs_v1');
+      if (r) {
+        const parsed = JSON.parse(r) as { id?: number; at?: number }[];
+        setRecentSurahs(
+          parsed
+            .map((x) => ({ id: Number(x?.id), at: Number(x?.at ?? 0) }))
+            .filter((x) => x.id >= 1 && x.id <= 114),
+        );
+      }
+      const mp = localStorage.getItem('ili_mushaf_reader_pos_v1');
+      if (mp) {
+        const parsed = JSON.parse(mp) as { page?: number };
+        if (typeof parsed.page === 'number') setMushafPage(parsed.page);
+      }
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const update = (next: BookmarkEntry[]) => {
@@ -60,8 +82,9 @@ export default function BookmarksClient() {
 
   const ayahMarks = bookmarks.filter((b) => b.kind === 'ayah');
   const pageMarks = bookmarks.filter((b) => b.kind === 'page');
+  const hasRecent = recentSurahs.length > 0 || mushafPage !== null;
 
-  if (bookmarks.length === 0) {
+  if (bookmarks.length === 0 && !hasRecent) {
     return (
       <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <p className="text-sm leading-relaxed text-[#5b6b62]">
@@ -142,6 +165,53 @@ export default function BookmarksClient() {
 
   return (
     <div className="space-y-6">
+      {/* Stage 6 (§19): recent reading locations. */}
+      {hasRecent && (
+        <section aria-labelledby="recent-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+          <h2 id="recent-heading" className="text-xl font-bold text-[#102E26]">Recently read</h2>
+          <p className="mt-1 text-sm text-[#5b6b62]">
+            Where you left off — the last surahs you opened and your last Mushaf page.
+          </p>
+          <ul className="mt-3 space-y-2">
+            {recentSurahs.map((r) => {
+              const s = getSurahById(r.id);
+              if (!s) return null;
+              return (
+                <li key={r.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-[#FFFBF2] px-3 py-2 text-sm">
+                  <span className="font-semibold text-[#102E26]">{s.name}</span>
+                  {r.at > 0 && (
+                    <span className="text-xs text-[#5b6b62]">
+                      {new Date(r.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </span>
+                  )}
+                  <Link href={`/hifz/${s.slug}`} className="ml-auto font-semibold text-[#1FA36B] underline">
+                    Continue →
+                  </Link>
+                </li>
+              );
+            })}
+            {mushafPage !== null && (
+              <li className="flex flex-wrap items-center gap-2 rounded-xl bg-[#FFFBF2] px-3 py-2 text-sm">
+                <span className="font-semibold text-[#102E26]">Mushaf page {mushafPage}</span>
+                <Link href={`/hifz/mushaf?page=${mushafPage}`} className="ml-auto font-semibold text-[#1FA36B] underline">
+                  Open →
+                </Link>
+              </li>
+            )}
+          </ul>
+        </section>
+      )}
+
+      {bookmarks.length === 0 && (
+        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+          <p className="text-sm leading-relaxed text-[#5b6b62]">
+            No bookmarks yet. Tap the bookmark button on any ayah, or “Bookmark this page” in
+            the Mushaf reader toolbar, and it appears here. Bookmarks are saved on this device
+            only, and they travel with your progress export.
+          </p>
+        </div>
+      )}
+
       {ayahMarks.length > 0 && (
         <section aria-labelledby="ayah-bookmarks-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
           <h2 id="ayah-bookmarks-heading" className="text-xl font-bold text-[#102E26]">
