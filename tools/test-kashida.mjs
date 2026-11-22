@@ -29,7 +29,7 @@ try {
 }
 const require = createRequire(import.meta.url);
 const {
-  eligibleOffsets, insertTatweel, TATWEEL,
+  eligibleOffsets, insertTatweel, TATWEEL, stripTatweel,
   fillDecision, tatweelsToInsert, isNearlyFull,
   FILL_SLACK_PX, MAX_PER_POINT, MAX_SHORTFALL_FRACTION,
 } = require(join(outDir, 'kashida.js'));
@@ -86,6 +86,18 @@ for (const [input] of cases) {
 rmSync(outDir, { recursive: true, force: true });
 console.log(`kashida: ${cases.length} eligibleOffsets cases + insertTatweel checks passed.`);
 
+// stripTatweel: snapshotLine's script-change detector. Two texts that
+// differ only by tatweel compare equal once stripped (a previous fill's
+// inserted tatweel must NOT look like a script change); texts that
+// differ in letters do not.
+assert.equal(stripTatweel('\u0627\u0644\u0643\u062A\u0640\u0627\u0628'), '\u0627\u0644\u0643\u062A\u0627\u0628');
+assert.equal(stripTatweel('\u0645\u0640\u0670\u0644\u0643'), '\u0645\u0670\u0644\u0643');
+assert.equal(stripTatweel('\u0627\u0644\u0643\u062A\u0627\u0628'), stripTatweel('\u0627\u0644\u0643\u062A\u0640\u0627\u0628'));
+assert.notEqual(
+  stripTatweel('\u0645\u0627\u0644\u0643'), // مَالِك (Indo-Pak, no tatweel)
+  stripTatweel('\u0645\u0644\u0643'), // different letters — a real change
+);
+
 // ------------------------------------------------------------------
 // Fill-decision helpers (the page-1 defect fix, 2026-11-22).
 //
@@ -95,6 +107,13 @@ console.log(`kashida: ${cases.length} eligibleOffsets cases + insertTatweel chec
 // the whole fill away — leaving the line on plain CSS justification
 // with wide gaps. The new filler undershoots (floor + slack) and
 // centres any line it cannot fill instead of leaving it justified.
+// NOTE: that ceil/capacity story was the simulation diagnosis. The
+// LIVE cause of lines 3–5 staying justified after the 46e15b9 fix was
+// isWrapped() counting Range.getClientRects() — bidi/inline-box
+// fragmentation made every rosette-bearing line look "wrapped", so the
+// filler returned 'left' before measuring. Fixed by comparing the
+// range's bounding height against one line-height (DOM-only, verified
+// live in a browser, not here).
 // ------------------------------------------------------------------
 
 // fillDecision(shortfall, avail, capacityPx): 'full' | 'fill' | 'centre'.
@@ -110,6 +129,12 @@ assert.equal(fillDecision(140, 650, 140), 'fill'); // capacity exactly covers
 assert.equal(fillDecision(242, 650, 167), 'centre'); // line 4: capacity 167 < shortfall 242
 assert.equal(fillDecision(284, 650, 186), 'centre'); // line 5: capacity 186 < shortfall 284
 assert.equal(fillDecision(219, 650, 242), 'fill'); // line 6: capacity covers
+// Same page-1 line 6 measured in Scheherazade New (the live default
+// font; its tatweel is only ~2.97px vs Amiri's ~6.2px, so capacity
+// roughly halves): shortfall 151 vs capacity 116 — it must centre, not
+// fill. The decision helpers are font-agnostic; the DOM filler measures
+// the tatweel width in the live font (canvas) at runtime.
+assert.equal(fillDecision(151, 650, 116), 'centre'); // line 6 in Scheherazade New
 
 // tatweelsToInsert: floor, never ceil — and never more than capacity.
 assert.equal(tatweelsToInsert(219, 6.2, 39), 35); // floor((219-2)/6.2) — ceil would be 36 (the old overshoot)

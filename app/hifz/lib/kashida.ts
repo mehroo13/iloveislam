@@ -29,15 +29,20 @@
 //   wrapped onto a second visual line, and the wrap-guard threw the
 //   whole fill away. A line whose shortfall exceeds its kashida capacity
 //   was likewise attempted, exhausted the capacity, and restored.
-//   Measured 2026-11-22 on page 1 (HarfBuzz-shaped Amiri at 33.6px in a
-//   650px frame, live Quran.com data): lines 4–5 shortfalls 242px/284px
-//   vs capacity 167px/186px (capacity failure — the lines were just
-//   under the 45% centre threshold, so the fill was attempted and
-//   failed); line 6 shortfall 219px vs capacity 242px, but ceil()
-//   inserted 36 tatweels (223px) for a 219px shortfall, overshooting the
-//   box by ~4px (wrap failure). All three were left on plain CSS
-//   justification with wide gaps — and the simulation over pages 1–3
-//   shows the old code failed all 23 fillable lines the same way.
+//   (Simulation, HarfBuzz-shaped Amiri at 33.6px in a 650px frame,
+//   live Quran.com data: lines 4–5 shortfalls 242px/284px vs capacity
+//   167px/186px; line 6 shortfall 219px vs capacity 242px but ceil()
+//   inserted 36 tatweels for a 219px shortfall, overshooting by ~4px.
+//   The simulation over pages 1–3 shows the old code failed all 23
+//   fillable lines this way — but that was NOT the live cause. Live,
+//   page-1 lines 3–5 stayed justified after the 46e15b9 fix because
+//   isWrapped() counted Range.getClientRects(): a range returns one
+//   rect per fragment, and bidi reordering plus the atomic inline-flex
+//   rosettes fragment every mushaf line into 3+ rects, so isWrapped
+//   was spuriously true and fillMushafLine returned 'left' before it
+//   ever measured. The fix compares the range's bounding height
+//   against one line-height instead — a real wrap doubles the height,
+//   fragments on one visual line do not change it.)
 // - A line the filler cannot fill is CENTRED, never left on plain CSS
 //   justification: 'left' now only means "already full", "genuinely
 //   over-full (wraps onto two visual lines)" or memorise-mode rules.
@@ -221,9 +226,33 @@ function textNodesOf(el: HTMLElement): Text[] {
   return out;
 }
 
+/** The tatweel-free base text: strips U+0640 so texts that differ only
+ *  by inserted (or pre-existing) tatweel compare equal. Used by
+ *  snapshotLine to tell a script change apart from a previous fill. */
+export function stripTatweel(text: string): string {
+  return text.split(TATWEEL).join('');
+}
+
 function snapshotLine(line: HTMLElement): void {
   for (const n of textNodesOf(line)) {
-    if (!ORIGINALS.has(n)) ORIGINALS.set(n, n.data);
+    const stored = ORIGINALS.get(n);
+    if (stored === undefined) {
+      ORIGINALS.set(n, n.data);
+    } else if (stripTatweel(n.data) !== stripTatweel(stored)) {
+      // The text changed underneath us: the script picker switched
+      // Indo-Pak ↔ Uthmani and React updated this Text node in place,
+      // so the stored "original" belongs to the old script. Re-snapshot
+      // to the current text as-is (preserving its pre-existing
+      // tatweels) — otherwise restoreLine would revert the line to the
+      // old script. (If the two scripts differ only in tatweel
+      // placement on this node, the stripped texts are equal and the
+      // stale original is kept; the visible difference is one word's
+      // tatweel placement, and the filler re-measures it anyway.)
+      ORIGINALS.set(n, n.data);
+    }
+    // Otherwise the node holds the clean original plus tatweel this
+    // filler inserted on a previous run: keep the stored original so
+    // restoreLine strips the inserted tatweel back off.
   }
 }
 
@@ -252,11 +281,24 @@ function measureNatural(line: HTMLElement): number {
   return w;
 }
 
-/** True when the line's text wraps onto more than one visual line. */
+/** True when the line's text wraps onto more than one visual line.
+ *  Compares the range's bounding height against one line-height.
+ *  Do NOT count getClientRects(): a range returns one rect per
+ *  fragment, and fragmentation happens per inline box and per bidi
+ *  reordering — a single mushaf line is two topic-wash spans plus
+ *  atomic inline-flex rosettes, so rect-counting reports every
+ *  rosette-bearing line as "wrapped" (the live page-1 defect:
+ *  isWrapped was spuriously true, so fillMushafLine returned 'left'
+ *  before it ever measured). A real wrap doubles the bounding height;
+ *  rosettes and bidi fragments on one visual line do not change it.
+ *  The 1.5x threshold sits safely between one line (<=1x) and two
+ *  (>=2x); the low kasra under وَإِيَّاكَ adds only a few px. */
 function isWrapped(line: HTMLElement): boolean {
   const range = document.createRange();
   range.selectNodeContents(line);
-  return range.getClientRects().length > 1;
+  const h = range.getBoundingClientRect().height;
+  const lh = parseFloat(getComputedStyle(line).lineHeight) || h;
+  return h > lh * 1.5;
 }
 
 /** Natural width of one tatweel in this line's font (estimate for how
