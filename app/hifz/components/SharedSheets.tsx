@@ -393,7 +393,7 @@ export function RangeWheel({
             type="button"
             aria-pressed={kind === k}
             onClick={() => setKind(k)}
-            className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
+            className={`min-h-11 rounded-full px-3 py-1.5 text-sm font-semibold ${
               kind === k ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB]'
             }`}
           >
@@ -409,7 +409,7 @@ export function RangeWheel({
             aria-pressed={isSelected(n)}
             onClick={() => toggle(n)}
             title={kind === 'surah' ? ALL_SURAHS[n - 1]?.name ?? `Surah ${n}` : `${RANGE_LABELS[kind]} ${n}`}
-            className={`rounded-lg px-1 py-1.5 text-xs font-bold ${
+            className={`min-h-10 rounded-lg px-1 py-1.5 text-xs font-bold ${
               isSelected(n) ? 'bg-[#57D798] text-[#102E26]' : 'bg-[#FFFBF2] hover:bg-[#E4FFF2]'
             }`}
           >
@@ -421,7 +421,7 @@ export function RangeWheel({
         <button
           type="button"
           onClick={() => onChange([])}
-          className="rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold"
+          className="min-h-11 rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold"
         >
           {t('sheet.clear')}
         </button>

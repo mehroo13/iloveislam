@@ -60,7 +60,13 @@ export default function SurahList() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-semibold text-[#102E26]">
-                    {s.name} <span className="font-normal text-[#5b6b62]">— {s.meaning} · {s.ayahCount} {t('common.ayahs')}</span>
+                    {s.name}{' '}
+                    <span className="hidden font-normal text-[#5b6b62] sm:inline">
+                      — {s.meaning} · {s.ayahCount} {t('common.ayahs')}
+                    </span>
+                  </span>
+                  <span className="block truncate text-sm text-[#5b6b62] sm:hidden">
+                    — {s.meaning} · {s.ayahCount} {t('common.ayahs')}
                   </span>
                   <span className="mt-1 block max-w-40">
                     <SurahProgressBar surahId={s.id} ayahCount={s.ayahCount} />
@@ -69,7 +75,7 @@ export default function SurahList() {
                 <span dir="rtl" lang="ar" className="font-quran shrink-0 text-2xl text-[#1FA36B]">
                   {s.arabic}
                 </span>
-                <span className="shrink-0 rounded-full bg-[#102E26] px-3 py-1.5 text-xs font-semibold text-white">
+                <span className="hidden shrink-0 rounded-full bg-[#102E26] px-3 py-1.5 text-xs font-semibold text-white sm:inline-block">
                   {t('common.recite')}
                 </span>
               </Link>

@@ -182,7 +182,7 @@ export default function SettingsClient() {
               type="button"
               aria-pressed={(settings.theme ?? 'light') === v}
               onClick={() => update({ theme: v })}
-              className={`rounded-full px-4 py-2 text-sm font-semibold ${
+              className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${
                 (settings.theme ?? 'light') === v ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB]'
               }`}
             >
@@ -325,14 +325,14 @@ export default function SettingsClient() {
           <button
             type="button"
             onClick={doExport}
-            className="rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+            className="min-h-11 rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
           >
             {t('set.export')}
           </button>
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
+            className="min-h-11 rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
           >
             {t('set.import')}
           </button>
@@ -351,7 +351,7 @@ export default function SettingsClient() {
           <button
             type="button"
             onClick={clearAll}
-            className="rounded-full border border-red-700 px-5 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50"
+            className="min-h-11 rounded-full border border-red-700 px-5 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50"
           >
             {t('set.clear')}
           </button>

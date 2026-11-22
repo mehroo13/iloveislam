@@ -139,7 +139,25 @@ function Pill({ ok, warn, children }: { ok?: boolean; warn?: boolean; children: 
 /* ------------------------------------------------------------------ */
 
 export default function DiagnosticsClient() {
-  const [caps] = useState<Capabilities>(readCapabilities);
+  /* Capabilities are read AFTER mount: readCapabilities() returns
+     different values on the server (no window) and the client, so
+     rendering them during SSR produced a React hydration error (#418)
+     on this page. Start with the SSR-safe all-false set, then fill in
+     the real values once mounted — first paint matches the server. */
+  const [caps, setCaps] = useState<Capabilities>({
+    secureContext: false,
+    hasMediaDevices: false,
+    hasGetUserMedia: false,
+    hasAudioContext: false,
+    hasEnumerateDevices: false,
+  });
+  useEffect(() => {
+    // Intentional post-mount sync: reading browser capabilities during
+    // render would differ between server and client (hydration error
+    // #418). The effect runs once after hydration, when it is safe.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCaps(readCapabilities());
+  }, []);
 
   /* ---- microphone capture test ---- */
   const [permission, setPermission] = useState<PermissionState>('not-requested');
@@ -563,7 +581,7 @@ export default function DiagnosticsClient() {
             <button
               type="button"
               onClick={() => void runMicTest()}
-              className="rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+              className="rounded-full bg-[#102E26] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
               Run microphone test
             </button>
@@ -571,7 +589,7 @@ export default function DiagnosticsClient() {
             <button
               type="button"
               onClick={stopMicTest}
-              className="rounded-full bg-[#B42318] px-5 py-2.5 text-sm font-semibold text-white hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B42318]"
+              className="rounded-full bg-[#B42318] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B42318]"
             >
               Stop test
             </button>
@@ -611,7 +629,7 @@ export default function DiagnosticsClient() {
           <button
             type="button"
             onClick={() => void loadEngineTest()}
-            className="mt-4 rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+            className="mt-4 rounded-full bg-[#102E26] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
           >
             Load recognition engine
           </button>
@@ -630,7 +648,7 @@ export default function DiagnosticsClient() {
               <button
                 type="button"
                 onClick={() => void startEngineTest()}
-                className="rounded-full bg-[#1FA36B] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#102E26] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+                className="rounded-full bg-[#1FA36B] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#102E26] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
               >
                 Start engine listening test
               </button>
@@ -638,7 +656,7 @@ export default function DiagnosticsClient() {
               <button
                 type="button"
                 onClick={() => void stopEngineTest()}
-                className="rounded-full bg-[#B42318] px-5 py-2.5 text-sm font-semibold text-white hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B42318]"
+                className="rounded-full bg-[#B42318] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B42318]"
               >
                 Stop &amp; check engine
               </button>

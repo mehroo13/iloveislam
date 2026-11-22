@@ -95,7 +95,7 @@ export default function ProgressWidget() {
         </p>
         <Link
           href="/hifz/juz-amma"
-          className="mt-4 inline-block rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+          className="inline-flex min-h-11 items-center justify-center mt-4 inline-block rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
         >
           {t('prog.startJuz')}
         </Link>
@@ -121,7 +121,7 @@ export default function ProgressWidget() {
         </p>
         <Link
           href="/hifz/juz-amma"
-          className="mt-4 inline-block rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+          className="inline-flex min-h-11 items-center justify-center mt-4 inline-block rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
         >
           {t('prog.startJuz')}
         </Link>
@@ -182,13 +182,13 @@ export default function ProgressWidget() {
       <div className="mt-4 flex flex-wrap gap-2">
         <Link
           href={nextHref}
-          className="rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+          className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
         >
           {nextLabel}
         </Link>
         <Link
           href="/hifz/my-progress"
-          className="rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
+          className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
         >
           {t('common.myProgress')}
         </Link>

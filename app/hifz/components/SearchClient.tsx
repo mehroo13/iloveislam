@@ -117,7 +117,7 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
         </form>
         <p className="mt-2 text-xs text-[#5b6b62]">
           Type Arabic or English words to find the ayah. Or recite a phrase —{' '}
-          <Link href="/hifz/voice-search" className="font-semibold text-[#1FA36B] underline">
+          <Link href="/hifz/voice-search" className="inline-block py-1 font-semibold text-[#1FA36B] underline">
             Voice Search finds it by sound →
           </Link>
         </p>
@@ -161,21 +161,21 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
                       <button
                         type="button"
                         onClick={() => void shareResult(r)}
-                        className="rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B]"
+                        className="min-h-11 rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B]"
                       >
                         {t('search.share')}
                       </button>
                       <button
                         type="button"
                         onClick={() => void copyText(`${r.text} (${r.verse_key})`, r.verse_key)}
-                        className="rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B]"
+                        className="min-h-11 rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B]"
                       >
                         {copied === r.verse_key ? t('search.copied') : t('search.copy')}
                       </button>
                       {surah && (
                         <Link
                           href={`/hifz/${surah.slug}?mode=recite&ayah=${a}`}
-                          className="ml-auto rounded-full bg-[#102E26] px-4 py-1.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+                          className="inline-flex min-h-11 items-center justify-center ml-auto rounded-full bg-[#102E26] px-4 py-1.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
                         >
                           {t('search.continueReading')}
                         </Link>
@@ -208,7 +208,7 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
             </label>
             <Link
               href={`/hifz/${ALL_SURAHS[jumpSurah - 1]?.slug ?? 'al-fatihah'}`}
-              className="mt-2 inline-block rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+              className="inline-flex min-h-11 items-center justify-center mt-2 inline-block rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
             >
               {t('search.openSurah')}
             </Link>
@@ -229,7 +229,7 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
             </label>
             <Link
               href={`/hifz/juz/${jumpJuz}`}
-              className="mt-2 inline-block rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+              className="inline-flex min-h-11 items-center justify-center mt-2 inline-block rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
             >
               {t('search.openJuz')}
             </Link>
@@ -248,7 +248,7 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
             </label>
             <Link
               href={`/hifz/mushaf/${Math.min(604, Math.max(1, jumpPage))}`}
-              className="mt-2 inline-block rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+              className="inline-flex min-h-11 items-center justify-center mt-2 inline-block rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
             >
               {t('search.openPage')}
             </Link>

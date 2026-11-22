@@ -707,7 +707,7 @@ export default function MushafPageView({
               setPeekCount(0);
             }}
             aria-pressed={hideVerses}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${
+            className={`rounded-full min-h-11 px-4 py-2 text-sm font-semibold ${
               hideVerses ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
             }`}
           >
@@ -719,7 +719,7 @@ export default function MushafPageView({
                 type="button"
                 onClick={peekNext}
                 aria-label="Reveal the next word"
-                className="rounded-full border border-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
+                className="rounded-full min-h-11 border border-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
               >
                 ‹ Next word
               </button>
@@ -727,7 +727,7 @@ export default function MushafPageView({
                 type="button"
                 onClick={peekRest}
                 aria-label="Reveal the rest of the page"
-                className="rounded-full border border-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
+                className="rounded-full min-h-11 border border-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
               >
                 « Reveal rest
               </button>
@@ -740,7 +740,7 @@ export default function MushafPageView({
             type="button"
             onClick={() => setContinuous((c) => !c)}
             aria-pressed={continuous}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${
+            className={`rounded-full min-h-11 px-4 py-2 text-sm font-semibold ${
               continuous ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
             }`}
           >
@@ -750,7 +750,7 @@ export default function MushafPageView({
             type="button"
             onClick={() => setLines16((v) => !v)}
             aria-pressed={lines16}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${
+            className={`rounded-full min-h-11 px-4 py-2 text-sm font-semibold ${
               lines16 ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
             }`}
           >
@@ -778,7 +778,7 @@ export default function MushafPageView({
             type="button"
             onClick={() => setScript(s)}
             aria-pressed={script === s}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${
+            className={`rounded-full min-h-11 px-4 py-2 text-sm font-semibold ${
               script === s
                 ? 'bg-[#102E26] text-white'
                 : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
@@ -840,7 +840,7 @@ export default function MushafPageView({
             onClick={() => applyZoom(zoom - ZOOM_STEP)}
             disabled={zoom <= MIN_ZOOM}
             aria-label="Zoom out"
-            className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
+            className="rounded-full min-h-11 border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
           >
             −
           </button>
@@ -852,7 +852,7 @@ export default function MushafPageView({
             onClick={() => applyZoom(zoom + ZOOM_STEP)}
             disabled={zoom >= MAX_ZOOM}
             aria-label="Zoom in"
-            className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
+            className="rounded-full min-h-11 border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
           >
             +
           </button>
@@ -860,7 +860,7 @@ export default function MushafPageView({
             type="button"
             onClick={() => applyZoom(MIN_ZOOM)}
             disabled={zoom === MIN_ZOOM}
-            className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
+            className="rounded-full min-h-11 border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
           >
             Fit page
           </button>

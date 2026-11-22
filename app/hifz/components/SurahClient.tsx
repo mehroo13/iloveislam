@@ -622,18 +622,18 @@ export default function SurahClient({
 
       {/* ---------- READER HEADER (variant A: hamburger · search · centred
            Chapter / Verse title + chevrons · bookmark · gear) ---------- */}
-      <header className="mt-4 flex items-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-3 py-2 shadow-sm" aria-label="Reader header">
+      <header className="mt-4 flex items-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-2 py-2 shadow-sm sm:px-3" aria-label="Reader header">
         <Link href="/hifz" aria-label={t('surah.menuLabel')} className="rounded-full p-2 text-lg font-bold hover:bg-[#FFFBF2]">☰</Link>
         <Link href="/hifz/search" aria-label={t('surah.searchLabel')} className="rounded-full p-2 text-lg font-bold hover:bg-[#FFFBF2]">⌕</Link>
         <div className="min-w-0 flex-1 text-center">
-          <p className="truncate text-sm font-bold text-[#102E26]">{t('surah.chapter')} {surah.name}</p>
+          <p className="truncate text-[13px] font-bold text-[#102E26] sm:text-sm"><span className="hidden sm:inline">{t('surah.chapter')} </span>{surah.name}</p>
           <p className="truncate text-xs text-[#5b6b62]">
             {t('surah.chapterVerse').replace('{id}', String(surah.id)).replace('{n}', String(coachAyahIndex + 1))}
           </p>
         </div>
-        <span className="flex flex-col leading-none" aria-hidden="true">
-          <Link href={surah.id > 1 ? `/hifz/${ALL_SURAHS[surah.id - 2]?.slug ?? 'al-fatihah'}` : '#'} aria-label={t('surah.prevSurah')} className="px-1 text-xs text-[#5b6b62]">⌃</Link>
-          <Link href={surah.id < 114 ? `/hifz/${ALL_SURAHS[surah.id]?.slug ?? 'an-nas'}` : '#'} aria-label={t('surah.nextSurah')} className="px-1 text-xs text-[#5b6b62]">⌄</Link>
+        <span className="flex shrink-0 flex-col leading-none" aria-hidden="true">
+          <Link href={surah.id > 1 ? `/hifz/${ALL_SURAHS[surah.id - 2]?.slug ?? 'al-fatihah'}` : '#'} aria-label={t('surah.prevSurah')} className="px-2 py-1.5 text-xs text-[#5b6b62]">⌃</Link>
+          <Link href={surah.id < 114 ? `/hifz/${ALL_SURAHS[surah.id]?.slug ?? 'an-nas'}` : '#'} aria-label={t('surah.nextSurah')} className="px-2 py-1.5 text-xs text-[#5b6b62]">⌄</Link>
         </span>
         <button
           type="button"
@@ -666,7 +666,7 @@ export default function SurahClient({
             (m === 'memorisation' && memoriseMode);
           if (m === 'test') {
             return (
-              <Link key={m} href="/hifz/test" className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]">
+              <Link key={m} href="/hifz/test" className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]">
                 {label}
               </Link>
             );
@@ -679,7 +679,7 @@ export default function SurahClient({
                 onClick={() => {
                   document.querySelector('[aria-labelledby="listen-heading"]')?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
+                className="rounded-full border border-[#E5E7EB] bg-white min-h-11 px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
               >
                 {label}
               </button>
@@ -706,7 +706,7 @@ export default function SurahClient({
                   setHiddenAyahs(new Set());
                 }
               }}
-              className={`rounded-full px-4 py-2 text-sm font-semibold ${active ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white hover:border-[#1FA36B]'}`}
+              className={`rounded-full min-h-11 px-4 py-2 text-sm font-semibold ${active ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white hover:border-[#1FA36B]'}`}
             >
               {label}
             </button>
@@ -731,7 +731,7 @@ export default function SurahClient({
             <button
               type="button"
               onClick={() => setCoachOpen(true)}
-              className="shrink-0 rounded-full bg-[#FFB800] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="shrink-0 rounded-full bg-[#FFB800] min-h-11 px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               {t('surah.reciteThis')}
             </button>
@@ -772,7 +772,7 @@ export default function SurahClient({
               type="button"
               aria-pressed={viewMode === id}
               onClick={() => setViewMode(id)}
-              className={`rounded-full px-3.5 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${
+              className={`rounded-full min-h-11 px-3.5 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${
                 viewMode === id ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'
               }`}
             >
@@ -786,7 +786,7 @@ export default function SurahClient({
             onClick={() => setAdaptive((a) => !a)}
             aria-pressed={adaptive}
             title="Adaptive Mode: ayah-based flow, Arabic + translation together"
-            className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${adaptive ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+            className={`rounded-full min-h-11 px-3.5 py-1.5 text-sm font-semibold ${adaptive ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
           >
             {adaptive ? t('surah.adaptiveOn') : t('surah.adaptive')}
           </button>
@@ -795,14 +795,14 @@ export default function SurahClient({
             onClick={() => setTajweedOn((t) => !t)}
             aria-pressed={tajweedOn}
             title="Tajweed colours — display only, never detection"
-            className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${tajweedOn ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+            className={`rounded-full min-h-11 px-3.5 py-1.5 text-sm font-semibold ${tajweedOn ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
           >
             {tajweedOn ? t('surah.tajweedOn') : t('surah.tajweed')}
           </button>
           <button
             type="button"
             onClick={() => setShowTajweedGuide(true)}
-            className="rounded-full border border-[#E5E7EB] px-3 py-1.5 text-sm font-semibold hover:border-[#1FA36B]"
+            className="rounded-full border border-[#E5E7EB] min-h-11 min-w-11 px-3 py-1.5 text-sm font-semibold hover:border-[#1FA36B]"
             aria-label={t('surah.aboutTajweed')}
           >
             ⓘ
@@ -812,12 +812,12 @@ export default function SurahClient({
             onClick={() => setHideMarkers((h) => !h)}
             aria-pressed={hideMarkers}
             title="Hide ayah-end markers for a true test of memory"
-            className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${hideMarkers ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+            className={`rounded-full min-h-11 px-3.5 py-1.5 text-sm font-semibold ${hideMarkers ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
           >
             {hideMarkers ? t('surah.markersHidden') : t('surah.hideMarkers')}
           </button>
           {adaptive && (
-            <label className="flex items-center gap-2 text-sm font-medium">
+            <label className="flex min-w-0 items-center gap-2 text-sm font-medium">
               {t('surah.textSize')}
               <input
                 type="range"
@@ -833,12 +833,12 @@ export default function SurahClient({
           )}
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 text-sm font-medium">
+          <label className="flex min-w-0 items-center gap-2 text-sm font-medium">
             {t('surah.translation')}
             <select
               value={translationId}
               onChange={(e) => setTranslationId(Number(e.target.value))}
-              className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+              className="min-w-0 min-h-11 flex-1 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
               {translationGroups.map((g) => (
                 <optgroup key={g.lang} label={g.lang}>
@@ -849,12 +849,12 @@ export default function SurahClient({
               ))}
             </select>
           </label>
-          <label className="flex items-center gap-2 text-sm font-medium">
+          <label className="flex min-w-0 items-center gap-2 text-sm font-medium">
             {t('surah.tafsir')}
             <select
               value={tafsirId}
               onChange={(e) => setTafsirId(Number(e.target.value))}
-              className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+              className="min-w-0 min-h-11 flex-1 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
               {tafsirGroups.map((g) => (
                 <optgroup key={g.lang} label={g.lang}>
@@ -865,24 +865,24 @@ export default function SurahClient({
               ))}
             </select>
           </label>
-          <label className="flex items-center gap-2 text-sm font-medium">
+          <label className="flex min-w-0 items-center gap-2 text-sm font-medium">
             {t('surah.reciter')}
             <select
               value={reciterId}
               onChange={(e) => setReciterId(Number(e.target.value))}
-              className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+              className="min-w-0 min-h-11 flex-1 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
               {RECITERS.map((r) => (
                 <option key={r.id} value={r.id}>{r.name}</option>
               ))}
             </select>
           </label>
-          <label className="flex items-center gap-2 text-sm font-medium">
+          <label className="flex min-w-0 items-center gap-2 text-sm font-medium">
             {t('surah.script')}
             <select
               value={script}
               onChange={(e) => setScript(e.target.value as 'indopak' | 'uthmani')}
-              className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+              className="min-w-0 min-h-11 flex-1 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
               {(Object.keys(SCRIPT_LABELS) as ('indopak' | 'uthmani')[]).map((s) => (
                 <option key={s} value={s}>{SCRIPT_LABELS[s]}</option>
@@ -891,7 +891,7 @@ export default function SurahClient({
           </label>
           <Link
             href={`/hifz/${surah.slug}/${surah.id}-1`}
-            className="ml-auto text-sm font-semibold text-[#1FA36B] underline"
+            className="ml-auto inline-block py-1 text-sm font-semibold text-[#1FA36B] underline"
           >
             {t('surah.openFirstAyah')}
           </Link>
@@ -925,7 +925,7 @@ export default function SurahClient({
               max={surah.ayahCount}
               value={listen.fromAyah}
               onChange={(e) => setListen((p) => ({ ...p, fromAyah: Number(e.target.value) || 1 }))}
-              className="mt-1 block w-20 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+              className="mt-1 block w-20 min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             />
           </label>
           <label className="text-xs font-semibold text-[#5b6b62]">
@@ -936,7 +936,7 @@ export default function SurahClient({
               max={surah.ayahCount}
               value={listen.toAyah}
               onChange={(e) => setListen((p) => ({ ...p, toAyah: Number(e.target.value) || surah.ayahCount }))}
-              className="mt-1 block w-20 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+              className="mt-1 block w-20 min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             />
           </label>
           <label className="text-xs font-semibold text-[#5b6b62]">
@@ -947,7 +947,7 @@ export default function SurahClient({
               max={100}
               value={listen.repeat}
               onChange={(e) => setListen((p) => ({ ...p, repeat: Math.min(100, Math.max(1, Number(e.target.value) || 1)) }))}
-              className="mt-1 block w-20 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+              className="mt-1 block w-20 min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             />
           </label>
           <label className="text-xs font-semibold text-[#5b6b62]">
@@ -958,7 +958,7 @@ export default function SurahClient({
               max={10}
               value={listen.pauseSec}
               onChange={(e) => setListen((p) => ({ ...p, pauseSec: Math.min(10, Math.max(0, Number(e.target.value) || 0)) }))}
-              className="mt-1 block w-20 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+              className="mt-1 block w-20 min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             />
           </label>
           <label className="text-xs font-semibold text-[#5b6b62]">
@@ -966,7 +966,7 @@ export default function SurahClient({
             <select
               value={listen.speed}
               onChange={(e) => setListen((p) => ({ ...p, speed: Number(e.target.value) }))}
-              className="mt-1 block rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+              className="mt-1 block min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             >
               {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((s) => (
                 <option key={s} value={s}>{s}×</option>
@@ -981,7 +981,7 @@ export default function SurahClient({
               if (listenPlaying) stopListen();
               setListen((p) => ({ ...p, wordByWord: !p.wordByWord }));
             }}
-            className={`rounded-full border px-4 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${listen.wordByWord ? 'border-[#FFB800] bg-[#FFB800]/15 text-[#7A5C00]' : 'border-[#E5E7EB] bg-white hover:border-[#1FA36B]'}`}
+            className={`rounded-full border min-h-11 px-4 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${listen.wordByWord ? 'border-[#FFB800] bg-[#FFB800]/15 text-[#7A5C00]' : 'border-[#E5E7EB] bg-white hover:border-[#1FA36B]'}`}
           >
             {listen.wordByWord ? t('surah.wordByWordOn') : t('surah.wordByWord')}
           </button>
@@ -989,7 +989,7 @@ export default function SurahClient({
             type="button"
             onClick={listenPlaying ? stopListen : startListen}
             disabled={verses.length === 0}
-            className="rounded-full bg-[#1FA36B] px-5 py-2 text-sm font-semibold text-white hover:bg-[#102E26] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+            className="rounded-full bg-[#1FA36B] min-h-11 px-5 py-2 text-sm font-semibold text-white hover:bg-[#102E26] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
           >
             {listenPlaying ? t('surah.stopListening') : t('surah.playAyahs').replace('{from}', String(Math.min(listen.fromAyah, listen.toAyah))).replace('{to}', String(Math.max(listen.fromAyah, listen.toAyah)))}
           </button>
@@ -1067,14 +1067,14 @@ export default function SurahClient({
                           [v.verse_number]: (prev[v.verse_number] ?? 0) + 1,
                         }))
                       }
-                      className="rounded-full border border-[#FFB800] px-3 py-1 text-xs font-bold text-[#102E26] hover:bg-[#FFFBF2]"
+                      className="min-h-11 rounded-full border border-[#FFB800] px-3 py-1 text-xs font-bold text-[#102E26] hover:bg-[#FFFBF2]"
                     >
                       {t('surah.nextWord')}
                     </button>
                     <button
                       type="button"
                       onClick={() => toggleHiddenAyah(v.verse_number)}
-                      className="rounded-full border border-[#E5E7EB] px-3 py-1 text-xs font-bold hover:border-[#1FA36B]"
+                      className="min-h-11 rounded-full border border-[#E5E7EB] px-3 py-1 text-xs font-bold hover:border-[#1FA36B]"
                     >
                       {t('surah.showAyah')}
                     </button>
@@ -1124,7 +1124,7 @@ export default function SurahClient({
                   onClick={() => playVerseAudio(v)}
                   disabled={!v.audio?.url}
                   aria-label={t('surah.playVerse').replace('{key}', v.verse_key)}
-                  className="rounded-full bg-[#1FA36B] px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-[#102E26] disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+                  className="rounded-full bg-[#1FA36B] min-h-11 px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-[#102E26] disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
                 >
                   {isPlaying ? t('surah.playingNow') : t('surah.listen')}
                 </button>
@@ -1132,7 +1132,7 @@ export default function SurahClient({
                   type="button"
                   onClick={() => toggleWords(v.verse_key)}
                   aria-expanded={!!wordsOpen[v.verse_key]}
-                  className="rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
                 >
                   {wordsOpen[v.verse_key] ? t('surah.hideWords') : t('surah.wordByWordBtn')}
                 </button>
@@ -1140,7 +1140,7 @@ export default function SurahClient({
                   type="button"
                   onClick={() => toggleBookmark(v.verse_number)}
                   aria-pressed={bookmarked}
-                  className={`rounded-full border px-3.5 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${bookmarked ? 'border-[#FFB800] bg-[#FFB800]/15 text-[#7A5C00]' : 'border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+                  className={`rounded-full border min-h-11 px-3.5 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${bookmarked ? 'border-[#FFB800] bg-[#FFB800]/15 text-[#7A5C00]' : 'border-[#E5E7EB] hover:border-[#1FA36B]'}`}
                 >
                   {bookmarked ? t('surah.bookmarked') : t('surah.bookmark')}
                 </button>
@@ -1148,7 +1148,7 @@ export default function SurahClient({
                   type="button"
                   onClick={() => toggleHiddenAyah(v.verse_number)}
                   aria-pressed={hiddenAyahs.has(v.verse_number)}
-                  className={`rounded-full border px-3.5 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${hiddenAyahs.has(v.verse_number) ? 'border-[#FFB800] bg-[#FFFBF2] text-[#102E26]' : 'border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+                  className={`rounded-full border min-h-11 px-3.5 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${hiddenAyahs.has(v.verse_number) ? 'border-[#FFB800] bg-[#FFFBF2] text-[#102E26]' : 'border-[#E5E7EB] hover:border-[#1FA36B]'}`}
                 >
                   {hiddenAyahs.has(v.verse_number) ? t('surah.hiddenTap') : t('surah.hideAyah')}
                 </button>
@@ -1156,13 +1156,13 @@ export default function SurahClient({
                   type="button"
                   onClick={() => toggleMemorised(v.verse_number)}
                   aria-pressed={status === 'memorised'}
-                  className={`rounded-full border px-3.5 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${status === 'memorised' ? 'border-[#1FA36B] bg-[#E4FFF2] text-[#1FA36B]' : 'border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+                  className={`rounded-full border min-h-11 px-3.5 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${status === 'memorised' ? 'border-[#1FA36B] bg-[#E4FFF2] text-[#1FA36B]' : 'border-[#E5E7EB] hover:border-[#1FA36B]'}`}
                 >
                   {status === 'memorised' ? t('surah.memorisedTap') : t('surah.markMemorised')}
                 </button>
                 <Link
                   href={`/hifz/${surah.slug}/${surah.id}-${v.verse_number}`}
-                  className="rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
                 >
                   {t('surah.ayahPage')}
                 </Link>
@@ -1173,7 +1173,7 @@ export default function SurahClient({
                     setCoachOpen(true);
                     document.querySelector('[aria-label="Recitation coach"]')?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+                  className="rounded-full border border-[#E5E7EB] min-h-11 px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
                 >
                   {t('surah.reciteAyah')}
                 </button>
@@ -1193,7 +1193,7 @@ export default function SurahClient({
               type="button"
               disabled={safePage <= 1}
               onClick={() => setPage(safePage - 1)}
-              className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold disabled:opacity-40"
+              className="rounded-full border border-[#E5E7EB] bg-white min-h-11 px-4 py-2 text-sm font-semibold disabled:opacity-40"
             >
               {t('surah.previous')}
             </button>
@@ -1203,7 +1203,7 @@ export default function SurahClient({
                 type="button"
                 aria-current={p === safePage ? 'page' : undefined}
                 onClick={() => setPage(p)}
-                className={`h-9 w-9 rounded-full text-sm font-bold ${p === safePage ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white'}`}
+                className={`h-11 w-11 rounded-full text-sm font-bold ${p === safePage ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white'}`}
               >
                 {p}
               </button>
@@ -1212,7 +1212,7 @@ export default function SurahClient({
               type="button"
               disabled={safePage >= totalPages}
               onClick={() => setPage(safePage + 1)}
-              className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold disabled:opacity-40"
+              className="rounded-full border border-[#E5E7EB] bg-white min-h-11 px-4 py-2 text-sm font-semibold disabled:opacity-40"
             >
               {t('common.next')}
             </button>

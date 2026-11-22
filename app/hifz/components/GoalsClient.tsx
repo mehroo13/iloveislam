@@ -160,7 +160,7 @@ export default function GoalsClient({ preset }: { preset?: string }) {
               <div className="mt-3 flex flex-wrap gap-2">
                 <Link
                   href="/hifz/recite"
-                  className="rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
                 >
                   {t('goal.practiseNow')}
                 </Link>
@@ -258,7 +258,7 @@ export default function GoalsClient({ preset }: { preset?: string }) {
                 type="button"
                 aria-pressed={shape === 'flexible'}
                 onClick={() => setShape('flexible')}
-                className={`rounded-full px-4 py-2 text-sm font-semibold ${shape === 'flexible' ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB]'}`}
+                className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${shape === 'flexible' ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB]'}`}
               >
                 {t('goal.flexible')}
               </button>
@@ -266,7 +266,7 @@ export default function GoalsClient({ preset }: { preset?: string }) {
                 type="button"
                 aria-pressed={shape === 'portion'}
                 onClick={() => setShape('portion')}
-                className={`rounded-full px-4 py-2 text-sm font-semibold ${shape === 'portion' ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB]'}`}
+                className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${shape === 'portion' ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB]'}`}
               >
                 {t('goal.fixedPortion')}
               </button>
@@ -320,7 +320,7 @@ export default function GoalsClient({ preset }: { preset?: string }) {
               <button
                 type="button"
                 onClick={() => createGoal(s)}
-                className="mt-3 rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+                className="min-h-11 mt-3 rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
               >
                 {t('goal.startGoal')}
               </button>

@@ -990,15 +990,15 @@ export default function RecitationCoach({
           <fieldset>
             <legend className="text-sm font-semibold">{t('coach.whatRecite')}</legend>
             <div className="mt-2 flex flex-wrap gap-2">
-              <label className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm">
+              <label className="flex min-h-11 items-center gap-2 rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm">
                 <input type="radio" name="scope" checked={scopeKind === 'single'} onChange={() => setScopeKind('single')} />
                 {t('coach.oneAyah')}
               </label>
-              <label className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm">
+              <label className="flex min-h-11 items-center gap-2 rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm">
                 <input type="radio" name="scope" checked={scopeKind === 'range'} onChange={() => setScopeKind('range')} />
                 {t('coach.ayahRange')}
               </label>
-              <label className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm">
+              <label className="flex min-h-11 items-center gap-2 rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm">
                 <input type="radio" name="scope" checked={scopeKind === 'whole'} onChange={() => setScopeKind('whole')} />
                 {t('coach.wholeSurah')}
               </label>
@@ -1011,7 +1011,7 @@ export default function RecitationCoach({
               <select
                 value={currentIndex}
                 onChange={(e) => setCurrentIndex(Number(e.target.value))}
-                className="mt-1 block w-full max-w-xs rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2 text-sm"
+                className="mt-1 block w-full max-w-xs min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2 text-sm"
               >
                 {ayahs.map((a, i) => (
                   <option key={`${a.surah}:${a.ayah}`} value={i}>
@@ -1025,13 +1025,13 @@ export default function RecitationCoach({
             <div className="mt-4 flex flex-wrap gap-4">
               <label className="text-sm font-semibold">
                 {t('coach.fromAyah')}
-                <select value={rangeFrom} onChange={(e) => setRangeFrom(Number(e.target.value))} className="mt-1 block rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2 text-sm">
+                <select value={rangeFrom} onChange={(e) => setRangeFrom(Number(e.target.value))} className="mt-1 block min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2 text-sm">
                   {ayahs.map((a, i) => (<option key={`f-${a.ayah}`} value={i}>{a.surah}:{a.ayah}</option>))}
                 </select>
               </label>
               <label className="text-sm font-semibold">
                 {t('coach.toAyah')}
-                <select value={rangeTo} onChange={(e) => setRangeTo(Number(e.target.value))} className="mt-1 block rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2 text-sm">
+                <select value={rangeTo} onChange={(e) => setRangeTo(Number(e.target.value))} className="mt-1 block min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2 text-sm">
                   {ayahs.map((a, i) => (<option key={`t-${a.ayah}`} value={i}>{a.surah}:{a.ayah}</option>))}
                 </select>
               </label>
@@ -1042,7 +1042,7 @@ export default function RecitationCoach({
             <select
               value={reciterId}
               onChange={(e) => void changeReciter(Number(e.target.value))}
-              className="mt-1 block w-full max-w-xs rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2 text-sm"
+              className="mt-1 block w-full max-w-xs min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2 text-sm"
             >
               {RECITERS.map((r) => (
                 <option key={r.id} value={r.id}>{r.name}</option>
@@ -1056,7 +1056,7 @@ export default function RecitationCoach({
               type="button"
               onClick={() => { setStep('listen'); }}
               disabled={scopeAyahs().length === 0}
-              className="rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+              className="rounded-full bg-[#102E26] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
               {t('coach.listenFirst')}
             </button>
@@ -1064,7 +1064,7 @@ export default function RecitationCoach({
               type="button"
               onClick={enterRecite}
               disabled={scopeAyahs().length === 0}
-              className="rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+              className="rounded-full border border-[#102E26] min-h-11 px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
               {t('coach.reciteNow')}
             </button>
@@ -1083,7 +1083,7 @@ export default function RecitationCoach({
             <button
               type="button"
               onClick={playScopeAudio}
-              className="rounded-full bg-[#1FA36B] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#102E26] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+              className="rounded-full bg-[#1FA36B] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#102E26] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
               {playingKey ? t('coach.playingStop') : t('common.play')}
             </button>
@@ -1095,7 +1095,7 @@ export default function RecitationCoach({
             <button
               type="button"
               onClick={enterRecite}
-              className="rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+              className="rounded-full bg-[#102E26] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
               {t('coach.hideRecite')}
             </button>
@@ -1147,7 +1147,7 @@ export default function RecitationCoach({
                 type="button"
                 onClick={() => setMode(m)}
                 aria-pressed={mode === m}
-                className={`rounded-full px-4 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${mode === m ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB]'}`}
+                className={`rounded-full min-h-11 px-4 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${mode === m ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB]'}`}
               >
                 {label}
               </button>
@@ -1166,7 +1166,7 @@ export default function RecitationCoach({
               type="button"
               onClick={() => setArabicHidden((h) => !h)}
               aria-pressed={arabicHidden}
-              className="rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+              className="rounded-full border border-[#E5E7EB] min-h-11 px-4 py-2 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
               {arabicHidden ? t('coach.showArabic') : t('coach.hideArabic')}
             </button>
@@ -1174,7 +1174,7 @@ export default function RecitationCoach({
               type="button"
               onClick={() => setShowTranslation((s) => !s)}
               aria-pressed={showTranslation}
-              className="rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+              className="rounded-full border border-[#E5E7EB] min-h-11 px-4 py-2 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
               {showTranslation ? t('coach.hideTransPrompt') : t('coach.showTransPrompt')}
             </button>
@@ -1189,7 +1189,7 @@ export default function RecitationCoach({
                   }}
                   aria-label={t('coach.revealNext')}
                   title={t('coach.peekNextTitle')}
-                  className="rounded-full border border-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+                  className="rounded-full border border-[#FFB800] min-h-11 px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
                 >
                   {t('coach.peekNext')}
                 </button>
@@ -1202,7 +1202,7 @@ export default function RecitationCoach({
                   }}
                   aria-label={t('coach.revealRest')}
                   title={t('coach.peekRestTitle')}
-                  className="rounded-full border border-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+                  className="rounded-full border border-[#FFB800] min-h-11 px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
                 >
                   {t('coach.peekRest')}
                 </button>
@@ -1321,7 +1321,7 @@ export default function RecitationCoach({
                 <button
                   type="button"
                   onClick={() => void loadEngineNow()}
-                  className="rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+                  className="rounded-full bg-[#102E26] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
                 >
                   {t('coach.loadChecker')} ({autoTierLabel()})
                 </button>
@@ -1351,7 +1351,7 @@ export default function RecitationCoach({
                       onClick={() => setShowTranslation((v) => !v)}
                       aria-label={t('coach.transPromptTitle')}
                       title={t('coach.transPromptTitle')}
-                      className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-base hover:border-[#1FA36B]"
+                      className="flex h-11 w-11 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-base hover:border-[#1FA36B]"
                     >
                       ▤
                     </button>
@@ -1360,7 +1360,7 @@ export default function RecitationCoach({
                       onClick={() => setArabicHidden((h) => !h)}
                       aria-label={t('coach.hideShowArabic')}
                       title={t('coach.hideShowArabic')}
-                      className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-base hover:border-[#1FA36B]"
+                      className="flex h-11 w-11 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-base hover:border-[#1FA36B]"
                     >
                       ◐
                     </button>
@@ -1374,7 +1374,7 @@ export default function RecitationCoach({
                       }}
                       aria-label={t('coach.highlightTitle')}
                       title={t('coach.highlightTitle')}
-                      className={`flex h-10 w-10 items-center justify-center rounded-full border bg-white text-base hover:border-[#1FA36B] ${highlightOn ? 'border-[#57D798] ring-2 ring-[#57D798]' : 'border-[#E5E7EB]'}`}
+                      className={`flex h-11 w-11 items-center justify-center rounded-full border bg-white text-base hover:border-[#1FA36B] ${highlightOn ? 'border-[#57D798] ring-2 ring-[#57D798]' : 'border-[#E5E7EB]'}`}
                     >
                       ✎
                     </button>
@@ -1391,7 +1391,7 @@ export default function RecitationCoach({
                       }}
                       aria-label={t('coach.shareTitle')}
                       title={t('coach.shareTitle')}
-                      className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-base hover:border-[#1FA36B]"
+                      className="flex h-11 w-11 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-base hover:border-[#1FA36B]"
                     >
                       ⤴
                     </button>
@@ -1508,7 +1508,7 @@ export default function RecitationCoach({
               <button
                 type="button"
                 onClick={submitSelfMark}
-                className="mt-4 rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+                className="mt-4 rounded-full bg-[#102E26] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
               >
                 {t('coach.saveSelfMark')}
               </button>
@@ -1593,14 +1593,14 @@ export default function RecitationCoach({
                   <button
                     type="button"
                     onClick={() => setShowMistakeHistory(true)}
-                    className="rounded-full border border-[#102E26] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
+                    className="rounded-full border border-[#102E26] min-h-11 px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
                   >
                     {t('coach.mistakeHistory')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowAnalytics(true)}
-                    className="rounded-full border border-[#102E26] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
+                    className="rounded-full border border-[#102E26] min-h-11 px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
                   >
                     {t('coach.sessionAnalytics')}
                   </button>
@@ -1738,7 +1738,7 @@ export default function RecitationCoach({
                       <div className="mt-3 flex flex-wrap gap-2">
                         <Link
                           href={`/hifz/search?q=${encodeURIComponent(display)}`}
-                          className="rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+                          className="rounded-full bg-[#102E26] min-h-11 px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
                         >
                           {t('common.seeSimilar')}
                         </Link>
@@ -1753,7 +1753,7 @@ export default function RecitationCoach({
                             setRemovedMistakes((prev) => new Set(prev).add(selectedMistake));
                             setSelectedMistake(null);
                           }}
-                          className="rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#B42318] hover:text-[#B42318]"
+                          className="rounded-full border border-[#E5E7EB] min-h-11 px-4 py-2 text-sm font-semibold hover:border-[#B42318] hover:text-[#B42318]"
                         >
                           {t('coach.removeCorrect')}
                         </button>
@@ -1796,26 +1796,26 @@ export default function RecitationCoach({
             <button
               type="button"
               onClick={() => retryScope(true)}
-              className="rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+              className="rounded-full bg-[#102E26] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
               {t('coach.retryWords')}
             </button>
             <button
               type="button"
               onClick={() => retryScope(false)}
-              className="rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+              className="rounded-full border border-[#102E26] min-h-11 px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
               {t('coach.retryFull')}
             </button>
             {pendingFix ? (
-              <p className="rounded-full border border-[#FFB800] bg-[#FFFBF2] px-5 py-2.5 text-sm font-semibold text-[#102E26]">
+              <p className="rounded-full border border-[#FFB800] bg-[#FFFBF2] min-h-11 px-5 py-2.5 text-sm font-semibold text-[#102E26]">
                 Fix these words first — “Don&apos;t progress until a mistake is fixed” is on in Settings. Tap “Retry these words” above.
               </p>
             ) : currentIndex < ayahs.length - 1 ? (
               <button
                 type="button"
                 onClick={() => goToAyahIndex(currentIndex + 1)}
-                className="rounded-full border border-[#E5E7EB] px-5 py-2.5 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+                className="rounded-full border border-[#E5E7EB] min-h-11 px-5 py-2.5 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
               >
                 {t('coach.nextAyah')}
               </button>
@@ -1823,7 +1823,7 @@ export default function RecitationCoach({
             <button
               type="button"
               onClick={() => { setStep('listen'); }}
-              className="rounded-full border border-[#E5E7EB] px-5 py-2.5 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+              className="rounded-full border border-[#E5E7EB] min-h-11 px-5 py-2.5 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
               {t('coach.listenAgain')}
             </button>

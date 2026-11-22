@@ -17,7 +17,7 @@ export function Breadcrumb({ items }: { items: { label: string; href?: string }[
           <li key={i} className="flex items-center gap-1.5">
             {i > 0 && <span aria-hidden="true">›</span>}
             {item.href ? (
-              <Link href={item.href} className="font-semibold text-[#1FA36B] hover:underline">
+              <Link href={item.href} className="inline-block py-1 font-semibold text-[#1FA36B] hover:underline">
                 {item.label}
               </Link>
             ) : (

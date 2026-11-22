@@ -135,7 +135,7 @@ export default function MemorizeClient() {
           </Link>
           <Link
             href="/hifz/test"
-            className="rounded-full border border-white/40 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/40 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
           >
             {t('mem.testMode')}
           </Link>
@@ -167,7 +167,7 @@ export default function MemorizeClient() {
               type="button"
               aria-pressed={tab === t}
               onClick={() => setTab(t)}
-              className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${
+              className={`min-h-11 rounded-full px-3.5 py-1.5 text-sm font-semibold ${
                 tab === t ? 'border border-[#E5E7EB] bg-white font-bold text-[#102E26] shadow-sm' : 'text-[#5b6b62]'
               }`}
             >

@@ -194,7 +194,7 @@ export default function ChallengesClient() {
             Progress count too. Your live percentage appears here once Ramadan begins — at 90%
             you get an in-app confirmation that a mushaf will be donated on your behalf.
           </p>
-          <Link href="/hifz/my-progress" className="mt-3 inline-block rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]">
+          <Link href="/hifz/my-progress" className="inline-flex min-h-11 items-center justify-center mt-3 inline-block rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]">
             {t('chal.logSessions')}
           </Link>
         </div>
@@ -275,20 +275,20 @@ export default function ChallengesClient() {
                     <button
                       type="button"
                       onClick={() => doLog(c, 1)}
-                      className="rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+                      className="min-h-11 rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
                     >
                       {t('chal.did1')}
                     </button>
                     <button
                       type="button"
                       onClick={() => doLog(c, 5)}
-                      className="rounded-full border border-[#102E26] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
+                      className="min-h-11 rounded-full border border-[#102E26] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
                     >
                       {t('chal.did5')}
                     </button>
                     <Link
                       href={`/hifz/${ALL_SURAHS.find((s) => s.id === c.surahId)?.slug ?? 'al-fatihah'}?mode=recite`}
-                      className="rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
+                      className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
                     >
                       {t('chal.reciteCoach')}
                     </Link>
@@ -298,14 +298,14 @@ export default function ChallengesClient() {
                   <button
                     type="button"
                     onClick={() => copyText(shareLink(c, origin), `link-${c.id}`)}
-                    className="rounded-full bg-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:brightness-110"
+                    className="min-h-11 rounded-full bg-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:brightness-110"
                   >
                     {copied === `link-${c.id}` ? t('chal.linkCopied') : t('chal.copyLink')}
                   </button>
                   <button
                     type="button"
                     onClick={() => copyText(c.code, `code-${c.id}`)}
-                    className="rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
+                    className="min-h-11 rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
                   >
                     {copied === `code-${c.id}` ? t('chal.codeCopied') : t('chal.copyCode')}
                   </button>

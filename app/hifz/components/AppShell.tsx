@@ -142,7 +142,7 @@ export function Onboarding() {
         <button
           type="button"
           onClick={done}
-          className="rounded-full border border-white/40 px-4 py-1.5 text-sm font-semibold hover:bg-white/10"
+          className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/40 px-4 py-1.5 text-sm font-semibold hover:bg-white/10"
         >
           {t('ob.skip')}
         </button>

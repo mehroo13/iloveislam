@@ -193,7 +193,7 @@ export default function VoiceSearchClient() {
               <button
                 type="submit"
                 disabled={searching || !query.trim()}
-                className="rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] disabled:opacity-50"
+                className="min-h-11 rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] disabled:opacity-50"
               >
                 {searching ? t('voice.searching') : t('voice.findAyah')}
               </button>
@@ -239,7 +239,7 @@ export default function VoiceSearchClient() {
                   <div className="mt-4">
                     <Link
                       href={`/hifz/${surah?.slug ?? ''}/${r.surah}-${r.ayah}`}
-                      className="rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+                      className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
                     >
                       {t('voice.openCoach')}
                     </Link>

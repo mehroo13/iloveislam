@@ -89,7 +89,7 @@ export default function CMPConsent() {
     <div
       role="dialog"
       aria-label="Cookie consent"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-[#e5e0d3] bg-white/95 px-4 py-3 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-[60] border-t border-[#e5e0d3] bg-white/95 px-4 py-3 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] backdrop-blur"
     >
       <div className="mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm leading-relaxed text-[#1C2420]">
@@ -104,14 +104,14 @@ export default function CMPConsent() {
           <button
             type="button"
             onClick={() => choose(false)}
-            className="rounded-full border border-[#e5e0d3] bg-white px-4 py-2 text-sm font-semibold text-[#1C2420] hover:bg-[#FFFBF2]"
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#e5e0d3] bg-white px-4 py-2 text-sm font-semibold text-[#1C2420] hover:bg-[#FFFBF2]"
           >
             Decline
           </button>
           <button
             type="button"
             onClick={() => choose(true)}
-            className="rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+            className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
           >
             Accept
           </button>

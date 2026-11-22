@@ -25,7 +25,7 @@ function DayList({ days, surahSlug }: { days: PlanDay[]; surahSlug?: string }) {
           {surahSlug && d.startAyah !== null && (
             <Link
               href={`/hifz/${surahSlug}?mode=recite`}
-              className="ml-auto shrink-0 text-xs font-semibold text-[#1FA36B] underline"
+              className="ml-auto inline-block shrink-0 py-1 text-xs font-semibold text-[#1FA36B] underline"
             >
               {t('common.recite')}
             </Link>
@@ -89,11 +89,11 @@ export default function PlanCard({
         <button
           type="button"
           onClick={startPlan}
-          className="rounded-full bg-[#102E26] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+          className="rounded-full bg-[#102E26] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] min-h-11"
         >
           {started ? t('plan.started') : t('plan.start')}
         </button>
-        <Link href="/hifz/my-progress" className="text-sm font-semibold text-[#1FA36B] underline">
+        <Link href="/hifz/my-progress" className="inline-block py-1 text-sm font-semibold text-[#1FA36B] underline">
           {t('plan.seeProgress')}
         </Link>
       </div>

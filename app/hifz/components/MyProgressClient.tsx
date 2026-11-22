@@ -341,7 +341,7 @@ export default function MyProgressClient() {
             <select
               value={progress.dailyGoalMinutes}
               onChange={(e) => changeGoal(Number(e.target.value))}
-              className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+              className="min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             >
               {DAILY_GOAL_OPTIONS.map((m) => (
                 <option key={m} value={m}>{t('prog.minutes').replace('{n}', String(m))}</option>
@@ -384,7 +384,7 @@ export default function MyProgressClient() {
               type="date"
               value={addDate}
               onChange={(e) => setAddDate(e.target.value)}
-              className="mt-1 block rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+              className="mt-1 block min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             />
           </label>
           <label className="text-xs font-semibold text-[#5b6b62]">
@@ -392,7 +392,7 @@ export default function MyProgressClient() {
             <select
               value={addType}
               onChange={(e) => setAddType(e.target.value as GoalType)}
-              className="mt-1 block rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+              className="mt-1 block min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             >
               {(Object.keys(GOAL_TYPE_LABELS) as GoalType[]).map((t) => (
                 <option key={t} value={t}>{GOAL_TYPE_LABELS[t]}</option>
@@ -407,7 +407,7 @@ export default function MyProgressClient() {
               max={6236}
               value={addAyahs}
               onChange={(e) => setAddAyahs(Number(e.target.value) || 1)}
-              className="mt-1 block w-20 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+              className="mt-1 block w-20 min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             />
           </label>
           <label className="text-xs font-semibold text-[#5b6b62]">
@@ -418,13 +418,13 @@ export default function MyProgressClient() {
               max={600}
               value={addMinutes}
               onChange={(e) => setAddMinutes(Number(e.target.value) || 1)}
-              className="mt-1 block w-20 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+              className="mt-1 block w-20 min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
             />
           </label>
           <button
             type="button"
             onClick={doAddSession}
-            className="rounded-full bg-[#57D798] px-5 py-2 text-sm font-bold text-[#102E26] hover:brightness-105"
+            className="min-h-11 rounded-full bg-[#57D798] px-5 py-2 text-sm font-bold text-[#102E26] hover:brightness-105"
           >
             {t('prog.addSessionBtn')}
           </button>
@@ -456,7 +456,7 @@ export default function MyProgressClient() {
                 type="button"
                 aria-pressed={chartRange === r}
                 onClick={() => setChartRange(r)}
-                className={`rounded-full px-3 py-1 text-xs font-bold capitalize ${chartRange === r ? 'bg-[#E5E7EB] text-[#102E26]' : 'border border-[#E5E7EB] text-[#5b6b62]'}`}
+                className={`min-h-11 rounded-full px-3 py-1 text-xs font-bold capitalize ${chartRange === r ? 'bg-[#E5E7EB] text-[#102E26]' : 'border border-[#E5E7EB] text-[#5b6b62]'}`}
               >
                 {r === 'day' ? t('prog.day') : r === 'week' ? t('prog.week') : t('prog.month')}
               </button>
@@ -574,7 +574,7 @@ export default function MyProgressClient() {
                     <select
                       value={g.target}
                       onChange={(e) => changeTypeTarget(type, Number(e.target.value))}
-                      className="rounded-lg border border-[#E5E7EB] bg-white px-2 py-1.5 text-sm"
+                      className="min-h-11 rounded-lg border border-[#E5E7EB] bg-white px-2 py-1.5 text-sm"
                       aria-label={`${GOAL_TYPE_LABELS[type]} daily target in ayahs`}
                     >
                       {TYPE_GOAL_OPTIONS.map((n) => (
@@ -585,14 +585,14 @@ export default function MyProgressClient() {
                   <button
                     type="button"
                     onClick={() => logType(type, 1)}
-                    className="rounded-full border border-[#1FA36B] px-3 py-1.5 text-xs font-semibold text-[#1FA36B] hover:bg-[#E4FFF2]"
+                    className="min-h-11 rounded-full border border-[#1FA36B] px-3 py-1.5 text-xs font-semibold text-[#1FA36B] hover:bg-[#E4FFF2]"
                   >
                     {t('prog.plusOne')}
                   </button>
                   <button
                     type="button"
                     onClick={() => logType(type, 5)}
-                    className="rounded-full border border-[#1FA36B] px-3 py-1.5 text-xs font-semibold text-[#1FA36B] hover:bg-[#E4FFF2]"
+                    className="min-h-11 rounded-full border border-[#1FA36B] px-3 py-1.5 text-xs font-semibold text-[#1FA36B] hover:bg-[#E4FFF2]"
                   >
                     {t('prog.plusFive')}
                   </button>
@@ -718,7 +718,7 @@ export default function MyProgressClient() {
                 <li key={key}>
                   <Link
                     href={surah ? `/hifz/${surah.slug}/${s}-${a}` : '/hifz'}
-                    className="rounded-full bg-[#E4FFF2] px-3 py-1.5 text-sm font-semibold text-[#1FA36B] hover:underline"
+                    className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#E4FFF2] px-3 py-1.5 text-sm font-semibold text-[#1FA36B] hover:underline"
                   >
                     {surah ? surah.name : `Surah ${s}`} {key}
                   </Link>
@@ -784,7 +784,7 @@ export default function MyProgressClient() {
               type="button"
               aria-pressed={mistakeFilter === f}
               onClick={() => setMistakeFilter(f)}
-              className={`rounded-full px-4 py-1.5 text-sm font-semibold capitalize ${mistakeFilter === f ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+              className={`min-h-11 rounded-full px-4 py-1.5 text-sm font-semibold capitalize ${mistakeFilter === f ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
             >
               {f === 'all' ? t('prog.filterAll') : f === 'incorrect' ? t('prog.filterIncorrect') : t('prog.filterMissed')}
             </button>
@@ -840,7 +840,7 @@ export default function MyProgressClient() {
                   </ul>
                   <Link
                     href="/hifz/test"
-                    className="mt-3 inline-block rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+                    className="inline-flex min-h-11 items-center justify-center mt-3 inline-block rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
                   >
                     {t('prog.practiseMistakes')}
                   </Link>
@@ -929,14 +929,14 @@ export default function MyProgressClient() {
           <button
             type="button"
             onClick={doExport}
-            className="rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+            className="min-h-11 rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
           >
             {t('prog.download')}
           </button>
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
+            className="min-h-11 rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
           >
             {t('prog.importBtn')}
           </button>

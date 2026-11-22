@@ -325,7 +325,7 @@ export default function TestClient() {
             </button>
             <Link
               href="/hifz/my-progress"
-              className="rounded-full border border-white/40 px-6 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/40 px-6 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
             >
               {t('test.seeQueue')}
             </Link>
@@ -477,7 +477,7 @@ export default function TestClient() {
           <button
             type="button"
             onClick={revealNext}
-            className="rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
+            className="min-h-11 rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
             title="Reveal the next word — counts as a mistake"
           >
             {t('test.revealWord')}
@@ -485,7 +485,7 @@ export default function TestClient() {
           <button
             type="button"
             onClick={revealRest}
-            className="rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
+            className="min-h-11 rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
             title="Reveal the rest of the ayah — counts as a mistake"
           >
             {t('test.revealRest')}
@@ -493,7 +493,7 @@ export default function TestClient() {
           <button
             type="button"
             onClick={skip}
-            className="rounded-full border border-[#E5E7EB] px-5 py-2.5 text-sm font-semibold hover:border-[#1FA36B]"
+            className="min-h-11 rounded-full border border-[#E5E7EB] px-5 py-2.5 text-sm font-semibold hover:border-[#1FA36B]"
           >
             {t('test.skip')}
           </button>
@@ -505,14 +505,14 @@ export default function TestClient() {
           <button
             type="button"
             onClick={() => answer(true)}
-            className="rounded-full bg-[#102E26] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+            className="min-h-11 rounded-full bg-[#102E26] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
           >
             {t('test.correctBtn')}
           </button>
           <button
             type="button"
             onClick={() => answer(false)}
-            className="rounded-full bg-[#DC2626] px-6 py-2.5 text-sm font-semibold text-white hover:bg-red-800"
+            className="min-h-11 rounded-full bg-[#DC2626] px-6 py-2.5 text-sm font-semibold text-white hover:bg-red-800"
           >
             {t('test.missedBtn')}
           </button>
@@ -540,7 +540,7 @@ export default function TestClient() {
             }}
             aria-pressed={temporary}
             title="Temporary Session — nothing from this session is recorded"
-            className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${temporary ? 'bg-[#FFB800] text-[#102E26]' : 'border border-[#E5E7EB]'}`}
+            className={`min-h-11 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${temporary ? 'bg-[#FFB800] text-[#102E26]' : 'border border-[#E5E7EB]'}`}
           >
             {t('test.temporaryBtn')}{temporary ? ' ✓' : ''}
           </button>
@@ -573,7 +573,7 @@ export default function TestClient() {
                 type="button"
                 aria-pressed={scope === v}
                 onClick={() => setScope(v)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold ${scope === v ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+                className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${scope === v ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
               >
                 {label}
               </button>
@@ -606,7 +606,7 @@ export default function TestClient() {
                   type="button"
                   aria-pressed={duration === n}
                   onClick={() => setDuration(n)}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold ${duration === n ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+                  className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${duration === n ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
                 >
                   {t('test.questions').replace('{n}', String(n))}
                 </button>
@@ -624,7 +624,7 @@ export default function TestClient() {
                   type="button"
                   aria-pressed={qLength === l}
                   onClick={() => setQLength(l)}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold capitalize ${qLength === l ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+                  className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold capitalize ${qLength === l ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
                 >
                   {lengthLabel} ({SPAN_BY_LENGTH[l]} {SPAN_BY_LENGTH[l] === 1 ? t('common.ayah') : t('common.ayahs')})
                 </button>
