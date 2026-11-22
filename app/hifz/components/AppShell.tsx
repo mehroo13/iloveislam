@@ -16,7 +16,7 @@ import { useSyncUiPrefs, useT } from '../lib/i18n';
 
 const TABS: { href: string; labelKey: string; icon: string; match: (p: string) => boolean }[] = [
   { href: '/hifz', labelKey: 'nav.home', icon: '⌂', match: (p) => p === '/hifz' },
-  { href: '/hifz/mushaf/1', labelKey: 'nav.mushaf', icon: '▤', match: (p) => p.startsWith('/hifz/mushaf') },
+  { href: '/hifz/mushaf', labelKey: 'nav.mushaf', icon: '▤', match: (p) => p.startsWith('/hifz/mushaf') },
   { href: '/hifz/memorize', labelKey: 'nav.memorize', icon: '◐', match: (p) => p.startsWith('/hifz/memorize') || p.startsWith('/hifz/test') || p.startsWith('/hifz/recite') },
   { href: '/hifz/search', labelKey: 'nav.search', icon: '⌕', match: (p) => p.startsWith('/hifz/search') || p.startsWith('/hifz/voice-search') },
   { href: '/hifz/my-progress', labelKey: 'nav.progress', icon: '▦', match: (p) => p.startsWith('/hifz/my-progress') || p.startsWith('/hifz/goals') || p.startsWith('/hifz/plans') || p.startsWith('/hifz/challenges') },

@@ -81,6 +81,20 @@ body {
   overflow-x: clip;
 }
 
+/* Mushaf reader (Part 2, §5): when zoomed in, the reader MUST pan
+   horizontally — the global `clip` above clips the zoomed page with no
+   way to reach the far side (the start of the line in RTL). `visible`
+   restores document scrolling, but ONLY while the reader is on screen
+   (the :has selector). It must be `visible`, not `auto`: `auto` makes
+   the body its own scroll container and window scrolling still fails
+   (verified in headless Chrome 2026-11-22). At fit zoom the reader has
+   no horizontal overflow, so nothing changes there; every other page
+   keeps `clip`. */
+html:has([data-mushaf-reader]),
+html:has([data-mushaf-reader]) body {
+  overflow-x: visible;
+}
+
 img,
 svg,
 video,

@@ -77,7 +77,13 @@ export async function GET() {
       priority: '0.7',
     });
   }
-  // Mushaf pages 1–604 (spec §21) — one URL per printed-mushaf page.
+  // Mushaf reader (continuous / page mode) + pages 1–604 (spec §21).
+  hifzEntries.push({
+    loc: '/hifz/mushaf',
+    lastmod: REFOCUS_DATE,
+    changefreq: 'monthly',
+    priority: '0.8',
+  });
   for (let p = 1; p <= MUSHAF_TOTAL_PAGES; p++) {
     hifzEntries.push({
       loc: `/hifz/mushaf/${p}`,
