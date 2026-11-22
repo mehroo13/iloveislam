@@ -17,6 +17,7 @@ import { useScriptPref, SCRIPT_LABELS } from '../lib/script';
 import { attributionFor } from '../lib/fetch';
 import ToolIcon from '../../components/ToolIcon';
 import TafsirBlock from './TafsirBlock';
+import SimilarVerses from './SimilarVerses';
 import { useT } from '../lib/i18n';
 import type { CoachAyah } from './RecitationCoach';
 import type { WordInfo } from '../lib/fetch';
@@ -506,6 +507,9 @@ export default function AyahClient({
         )}
         <p className="mt-2 text-xs text-[#5b6b62]">{t('wbw.via')}</p>
       </section>
+
+      {/* Similar verses (mutashabihat) — derived from the Quran text itself. */}
+      <SimilarVerses surah={surah.id} ayah={ayah} ayahText={verse.text_indopak} />
 
       {/* Coach, scoped to this ayah */}
       {coachOpen && (

@@ -136,6 +136,18 @@ export default function SurahClient({
   const [hiddenAyahs, setHiddenAyahs] = useState<Set<number>>(new Set());
   const [revealedAyah, setRevealedAyah] = useState<Record<number, number>>({});
   const [memoriseMode, setMemoriseMode] = useState(false);
+  // Stage 5 (§8) — proper memorisation mode: a selectable range, two
+  // hiding styles, and range-level reveal controls.
+  //   'ayah'  — whole ayahs hidden (grey rules per word, existing
+  //             HiddenWords path); reveal one word or one ayah at a time.
+  //   'words' — ayahs stay visible in structure (numbers shown) but every
+  //             word in the range is hidden; one counter walks the range
+  //             in reading order, so "Reveal next word" peeks the next
+  //             word of the passage, not of one ayah.
+  const [hideMode, setHideMode] = useState<'ayah' | 'words'>('ayah');
+  const [memFrom, setMemFrom] = useState(1);
+  const [memTo, setMemTo] = useState(surah.ayahCount);
+  const [rangeRevealed, setRangeRevealed] = useState(0);
   // ?mode=listen handoff: start Listen once the component is mounted.
   const [autoListen, setAutoListen] = useState(false);
   // Peek recording (Stage 4): one peek per ayah per page-view is recorded
@@ -710,6 +722,64 @@ export default function SurahClient({
     });
   };
 
+  /* Stage 5 (§8): the memorisation range, in reading order. `offsets`
+   * maps each ayah in the range to its word span inside the range, so
+   * "Reveal next word" walks the passage word by word and "Reveal next
+   * ayah" jumps to the end of the next unrevealed ayah. */
+  const memRange = useMemo(() => {
+    const from = Math.min(memFrom, memTo);
+    const to = Math.max(memFrom, memTo);
+    const inRange = verses.filter((v) => v.verse_number >= from && v.verse_number <= to);
+    let total = 0;
+    const offsets = new Map<number, { start: number; count: number }>();
+    for (const v of inRange) {
+      const count = verseText(v, script).split(' ').filter(Boolean).length;
+      offsets.set(v.verse_number, { start: total, count });
+      total += count;
+    }
+    return { from, to, inRange, offsets, total };
+  }, [verses, script, memFrom, memTo]);
+  const rangeWordTotal = memRange.total;
+
+  const revealNextWordInRange = () => {
+    if (hideMode === 'words') {
+      if (rangeRevealed >= rangeWordTotal) return;
+      const entry = memRange.inRange.find((v) => {
+        const o = memRange.offsets.get(v.verse_number)!;
+        return rangeRevealed >= o.start && rangeRevealed < o.start + o.count;
+      });
+      if (entry) recordPeek(entry.verse_number);
+      setRangeRevealed((r) => Math.min(rangeWordTotal, r + 1));
+      return;
+    }
+    // Ayah mode: reveal the next word of the first still-hidden ayah.
+    const target = memRange.inRange.find((v) => hiddenAyahs.has(v.verse_number));
+    if (!target) return;
+    recordPeek(target.verse_number);
+    setRevealedAyah((prev) => ({
+      ...prev,
+      [target.verse_number]: (prev[target.verse_number] ?? 0) + 1,
+    }));
+  };
+
+  const revealNextAyahInRange = () => {
+    if (hideMode === 'words') {
+      const target = memRange.inRange.find((v) => {
+        const o = memRange.offsets.get(v.verse_number)!;
+        return rangeRevealed < o.start + o.count;
+      });
+      if (!target) return;
+      const o = memRange.offsets.get(target.verse_number)!;
+      recordPeek(target.verse_number);
+      setRangeRevealed(o.start + o.count);
+      return;
+    }
+    // Ayah mode: reveal the first still-hidden ayah (records a peek).
+    const target = memRange.inRange.find((v) => hiddenAyahs.has(v.verse_number));
+    if (!target) return;
+    toggleHiddenAyah(target.verse_number);
+  };
+
   const renderArabic = (text: string) => {
     if (!tajweedOn) return text;
     return (
@@ -845,6 +915,126 @@ export default function SurahClient({
           help needed: it resets that ayah&apos;s correct streak and adds it to your revision
           queue. The coach checks your recitation word by word.
         </p>
+      )}
+      {memoriseMode && (
+        <section aria-label="Memorisation controls" className="mt-3 rounded-2xl border border-[#FFB800]/60 bg-white p-4 shadow-sm">
+          <h2 className="text-sm font-bold text-[#102E26]">Memorisation — hide and test yourself</h2>
+          <p className="mt-1 text-xs leading-relaxed text-[#5b6b62]">
+            Hidden text is genuinely hidden — grey rules, no words underneath to read. Pick a
+            range, choose what to hide, and reveal one word or one ayah at a time when you
+            are stuck. Every reveal is recorded as help needed for that ayah.
+          </p>
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            <label className="text-xs font-semibold text-[#5b6b62]">
+              From ayah
+              <input
+                type="number"
+                min={1}
+                max={surah.ayahCount}
+                value={memFrom}
+                onChange={(e) => setMemFrom(Math.min(surah.ayahCount, Math.max(1, Number(e.target.value) || 1)))}
+                className="mt-1 block w-20 min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+              />
+            </label>
+            <label className="text-xs font-semibold text-[#5b6b62]">
+              To ayah
+              <input
+                type="number"
+                min={1}
+                max={surah.ayahCount}
+                value={memTo}
+                onChange={(e) => setMemTo(Math.min(surah.ayahCount, Math.max(1, Number(e.target.value) || surah.ayahCount)))}
+                className="mt-1 block w-20 min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+              />
+            </label>
+            <div className="flex rounded-full border border-[#E5E7EB] bg-[#FFFBF2] p-0.5" role="group" aria-label="What to hide">
+              {(
+                [
+                  ['ayah', 'Hide whole ayahs'],
+                  ['words', 'Hide words only'],
+                ] as const
+              ).map(([m, label]) => (
+                <button
+                  key={m}
+                  type="button"
+                  aria-pressed={hideMode === m}
+                  onClick={() => setHideMode(m)}
+                  className={`min-h-10 rounded-full px-3 py-1.5 text-sm font-semibold ${hideMode === m ? 'bg-[#102E26] text-white' : 'text-[#102E26] hover:bg-white'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setHideMarkers((h) => !h)}
+              aria-pressed={hideMarkers}
+              title="Hide the ayah numbers as well, for a true test of memory"
+              className={`min-h-11 rounded-full border px-3.5 py-1.5 text-sm font-semibold ${hideMarkers ? 'border-[#FFB800] bg-[#FFFBF2] text-[#102E26]' : 'border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+            >
+              {hideMarkers ? 'Ayah numbers hidden' : 'Hide ayah numbers'}
+            </button>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const from = Math.min(memFrom, memTo);
+                const to = Math.max(memFrom, memTo);
+                if (hideMode === 'ayah') {
+                  setHiddenAyahs(new Set(verses.filter((v) => v.verse_number >= from && v.verse_number <= to).map((v) => v.verse_number)));
+                  setRevealedAyah({});
+                } else {
+                  setRangeRevealed(0);
+                }
+              }}
+              className="min-h-11 rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+            >
+              Hide {hideMode === 'ayah' ? 'ayahs' : 'words'} in range
+            </button>
+            <button
+              type="button"
+              onClick={revealNextWordInRange}
+              className="min-h-11 rounded-full border border-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
+            >
+              Reveal next word
+            </button>
+            <button
+              type="button"
+              onClick={revealNextAyahInRange}
+              className="min-h-11 rounded-full border border-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
+            >
+              Reveal next ayah
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setHiddenAyahs(new Set());
+                setRevealedAyah({});
+                setRangeRevealed(rangeWordTotal);
+              }}
+              className="min-h-11 rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
+            >
+              Reveal all
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setHiddenAyahs(new Set());
+                setRevealedAyah({});
+                setRangeRevealed(0);
+              }}
+              className="min-h-11 rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
+            >
+              Reset hiding
+            </button>
+          </div>
+          <p role="status" className="mt-2 text-xs text-[#5b6b62]">
+            {hideMode === 'words'
+              ? `${rangeRevealed} of ${rangeWordTotal} words revealed in ayahs ${Math.min(memFrom, memTo)}–${Math.max(memFrom, memTo)}.`
+              : `${hiddenAyahs.size} ayah${hiddenAyahs.size === 1 ? '' : 's'} hidden in this surah.`}
+          </p>
+        </section>
       )}
 
       {/* ---------- COACH ENTRY (first interactive element, spec §4.1.2) ---------- */}
@@ -1200,6 +1390,22 @@ export default function SurahClient({
           const isPlaying = playingKey === v.verse_key;
           const isWbwAyah = wbw?.key === v.verse_key;
           const topic = topicColors ? getTopic(surah.id, v.verse_number) : null;
+          // Stage 5 (§8) — words mode: every word in the range is hidden
+          // (grey rules) while the ayah structure stays visible; the
+          // range counter decides how many words of this ayah are shown.
+          // Ayah mode keeps the per-ayah hiding above. Either way the
+          // hidden text is genuinely hidden — a grey rule, not text
+          // rendered transparent underneath.
+          const wordOffset = memRange.offsets.get(v.verse_number);
+          const inWordsMode =
+            memoriseMode &&
+            hideMode === 'words' &&
+            wordOffset !== undefined;
+          const wordsRevealed = inWordsMode
+            ? Math.max(0, Math.min(wordOffset!.count, rangeRevealed - wordOffset!.start))
+            : 0;
+          const wordsHidden = inWordsMode && wordsRevealed < wordOffset!.count;
+          const ayahHidden = hiddenAyahs.has(v.verse_number);
           return (
             <article
               key={v.verse_key}
@@ -1255,11 +1461,11 @@ export default function SurahClient({
                   <span className="rounded-full bg-[#FFFBF2] px-2.5 py-1 text-xs font-bold text-[#5b6b62]">{t('common.learning')}</span>
                 )}
               </div>
-              {hiddenAyahs.has(v.verse_number) ? (
+              {ayahHidden || wordsHidden ? (
                 <p dir="rtl" lang="ar" className={`font-quran ${script === 'uthmani' ? 'font-quran-madani' : ''} mt-4 text-right ${adaptive ? '' : 'text-[28px] sm:text-4xl'}`} style={adaptive ? { fontSize: `${adaptiveFont}px`, lineHeight: 2 } : undefined}>
                   <HiddenWords
                     words={verseText(v, script).split(' ')}
-                    revealed={revealedAyah[v.verse_number] ?? 0}
+                    revealed={ayahHidden ? (revealedAyah[v.verse_number] ?? 0) : wordsRevealed}
                     rosette={hideMarkers ? undefined : ` ﴿${v.verse_number}﴾`}
                   />
                 </p>
