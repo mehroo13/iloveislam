@@ -9,7 +9,9 @@
 // dark-green pill ("Mode: Recite ▾") fixed at the bottom-right, above
 // the bottom tab bar, that opens a plain card listing the five modes
 // with one-line descriptions. The current mode is marked and the panel
-// closes on selection, Escape, or tapping outside it.
+// closes on selection, Escape, or tapping outside it. z-[65] sits above
+// the cookie-consent banner (z-[60]) so the switcher stays tappable
+// while the banner is up, and below the onboarding overlay (z-[70]).
 //
 // HOW IT SWITCHES — it asks the mounted page first (see lib/mode.ts):
 // a reader page that can apply the mode in place prevents the default
@@ -102,7 +104,7 @@ export default function ModeSwitcher() {
   );
 
   return (
-    <div ref={panelRef} className="fixed bottom-[76px] right-3 z-40 sm:right-5">
+    <div ref={panelRef} className="fixed bottom-[76px] right-3 z-[65] sm:right-5">
       {open && (
         <div
           role="menu"
