@@ -18,6 +18,7 @@ import { loadMistakes, loadProgress, saveProgress, markAttempt } from '../progre
 import { normalizeArabic } from '../lib/alignment';
 import { MODE_EVENT, ayahKeyForRevealedWord, saveMode, type HifzMode } from '../lib/mode';
 import MushafPageFrame, { MUSHAF_PAGE_WIDTH } from './MushafPageFrame';
+import { useT } from '../lib/i18n';
 
 /** Missed this many times in total before a word counts as a weak word. */
 const FREQUENT_MISTAKE_MIN_ATTEMPTS = 2;
@@ -36,6 +37,7 @@ export default function MushafPageView({
   /** Start with the words hidden (from ?memorize=1). */
   hideInitial?: boolean;
 }) {
+  const t = useT();
   const [script, setScript] = useScriptPref();
   // Memorisation mode (§22, screenshot 4): words hidden as thin grey rules,
   // revealed word-by-word by peeking. ?memorize=1 opens the page hidden.
@@ -327,7 +329,7 @@ export default function MushafPageView({
   return (
     <div>
       {/* Memorisation mode + view controls (screenshot 4) */}
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-2" role="group" aria-label="Mushaf view">
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-2" role="group" aria-label={t('mpv.viewGroup')}>
         <button
           type="button"
           onClick={() => {
@@ -340,28 +342,30 @@ export default function MushafPageView({
             hideVerses ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
           }`}
         >
-          {hideVerses ? 'Show verses' : 'Hide verses — memorise'}
+          {hideVerses ? t('mpv.showVerses') : t('mpv.hideVersesMemorise')}
         </button>
         {hideVerses && (
           <>
             <button
               type="button"
               onClick={peekNext}
-              aria-label="Reveal the next word"
+              aria-label={t('mpv.revealNextWord')}
               className="rounded-full min-h-11 border border-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
             >
-              ‹ Next word
+              {t('mpv.nextWord')}
             </button>
             <button
               type="button"
               onClick={peekRest}
-              aria-label="Reveal the rest of the page"
+              aria-label={t('mpv.revealRestPage')}
               className="rounded-full min-h-11 border border-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
             >
-              « Reveal rest
+              {t('mpv.revealRest')}
             </button>
             <span className="text-xs font-semibold text-[#5b6b62]">
-              {peekCount} {peekCount === 1 ? 'peek' : 'peeks'} · {revealedCount} words revealed
+              {peekCount === 1
+                ? t('mpv.peekOne').replace('{n}', String(peekCount)).replace('{r}', String(revealedCount))
+                : t('mpv.peekMany').replace('{n}', String(peekCount)).replace('{r}', String(revealedCount))}
             </span>
           </>
         )}
@@ -369,7 +373,7 @@ export default function MushafPageView({
           href={`/hifz/mushaf?page=${page}`}
           className="rounded-full min-h-11 inline-flex items-center border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
         >
-          Continuous reader →
+          {t('mpv.continuousReader')}
         </Link>
         <button
           type="button"
@@ -379,23 +383,19 @@ export default function MushafPageView({
             compactText ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
           }`}
         >
-          {compactText ? 'Compact text' : 'Large text'}
+          {compactText ? t('mpv.compactText') : t('mpv.largeText')}
         </button>
       </div>
       {hideVerses && (
         <p className="mt-2 text-center text-sm text-[#5b6b62]">
-          Words are hidden as thin grey rules. Recite from memory — tap a hidden word to
-          reveal it when you are stuck. A peek is recorded as help needed for that ayah:
-          it resets the ayah&apos;s correct streak and adds it to your revision queue.
-          {mistakeMarkingOn && weakOnPage > 0
-            ? ' Words you have missed 2 or more times show as red rules.'
-            : ''}
+          {t('mpv.hideNote')}
+          {mistakeMarkingOn && weakOnPage > 0 ? ` ${t('mpv.hideNoteRed')}` : ''}
         </p>
       )}
 
       {/* Script picker — same preference as the reader */}
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-2" role="group" aria-label="Quran script">
-        <span className="text-sm font-semibold text-[#102E26]">Script</span>
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-2" role="group" aria-label={t('mpv.script')}>
+        <span className="text-sm font-semibold text-[#102E26]">{t('mpv.script')}</span>
         {(['indopak', 'uthmani'] as const).map((s) => (
           <button
             key={s}
@@ -414,7 +414,7 @@ export default function MushafPageView({
       </div>
       {script === 'indopak' && (
         <p className="mt-2 text-center text-xs text-[#5b6b62]">
-          Indo-Pak script on the Madani mushaf pages, as in Quran.com&apos;s reader.
+          {t('mpv.indopakNote')}
         </p>
       )}
 
@@ -422,7 +422,7 @@ export default function MushafPageView({
       {topicColors && (
         <div className="mx-auto mt-4 max-w-3xl rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
-            Ayah topics — colours on this page
+            {t('mpv.topicsTitle')}
           </p>
           <ul className="mt-2 flex flex-wrap gap-2">
             {TOPICS.map((t) => (
@@ -438,8 +438,7 @@ export default function MushafPageView({
             ))}
           </ul>
           <p className="mt-2 text-xs text-[#5b6b62]">
-            Topics are a study aid to help you see what each passage is about. They are
-            an automatic mapping, not tafsir — turn them off anytime in Settings.
+            {t('mpv.topicsNote')}
           </p>
         </div>
       )}
@@ -448,20 +447,20 @@ export default function MushafPageView({
           No mistakes yet (or marking off): no marking, no legend. */}
       {mistakeMarkingOn && weakOnPage > 0 && (
         <p className="mx-auto mt-3 max-w-3xl text-center text-xs text-[#5b6b62]">
-          <span className="live-word-wrong font-semibold">Red underlined words</span> —{' '}
-          {weakOnPage} {weakOnPage === 1 ? 'word' : 'words'} on this page you have missed 2 or
-          more times. When verses are hidden they show as red rules, so you can spot your weak
-          words without seeing them. Turn marking off in Settings → Quran appearance.
+          <span className="live-word-wrong font-semibold">{t('mpv.weakLabel')}</span>{' '}
+          {weakOnPage === 1
+            ? t('mpv.weakOne').replace('{n}', String(weakOnPage))
+            : t('mpv.weakMany').replace('{n}', String(weakOnPage))}
         </p>
       )}
 
       {/* Zoom controls — one-hand friendly, above the page. */}
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-2" role="group" aria-label="Mushaf page zoom">
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-2" role="group" aria-label={t('mpv.zoomGroup')}>
         <button
           type="button"
           onClick={() => applyZoom(zoom - ZOOM_STEP)}
           disabled={zoom <= MIN_ZOOM}
-          aria-label="Zoom out"
+          aria-label={t('mpv.zoomOut')}
           className="rounded-full min-h-11 border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
         >
           −
@@ -473,7 +472,7 @@ export default function MushafPageView({
           type="button"
           onClick={() => applyZoom(zoom + ZOOM_STEP)}
           disabled={zoom >= MAX_ZOOM}
-          aria-label="Zoom in"
+          aria-label={t('mpv.zoomIn')}
           className="rounded-full min-h-11 border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
         >
           +
@@ -484,12 +483,11 @@ export default function MushafPageView({
           disabled={zoom === MIN_ZOOM}
           className="rounded-full min-h-11 border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
         >
-          Fit page
+          {t('mpv.fitPage')}
         </button>
       </div>
       <p className="mt-2 text-center text-xs text-[#5b6b62]">
-        The whole page is scaled to fit your screen — pinch to zoom in, then drag to pan around
-        it. Zooming never moves or re-wraps the words.
+        {t('mpv.zoomNote')}
       </p>
 
       <div className="mt-4">
@@ -536,8 +534,8 @@ export default function MushafPageView({
 
       {/* Surahs on this page — jump back into the study view / coach */}
       {surahs.length > 0 && (
-        <nav aria-label="Surahs on this page" className="mt-6 rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-[#102E26]">On this page</h2>
+        <nav aria-label={t('mpv.surahsOnPage')} className="mt-6 rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-bold text-[#102E26]">{t('mpv.onThisPage')}</h2>
           <ul className="mt-3 space-y-2 text-sm">
             {surahs.map((s) => (
               <li key={s.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -545,15 +543,15 @@ export default function MushafPageView({
                   Surah {s.name} ({s.meaning})
                 </Link>
                 <Link href={`/hifz/${s.slug}?mode=recite`} className="text-[#5b6b62] hover:underline">
-                  Recite with the coach →
+                  {t('mpv.reciteCoach')}
                 </Link>
               </li>
             ))}
           </ul>
           <p className="mt-3 text-sm text-[#5b6b62]">
-            Prefer the verse list?{' '}
+            {t('mpv.preferList')}{' '}
             <Link href="/hifz" className="font-semibold text-[#1FA36B] underline">
-              Browse all 114 surahs
+              {t('mpv.browseSurahs')}
             </Link>
           </p>
         </nav>

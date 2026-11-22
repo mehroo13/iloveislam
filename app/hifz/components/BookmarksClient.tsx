@@ -16,8 +16,10 @@ import {
   type BookmarkEntry,
 } from '../lib/bookmarks';
 import { getSurahById } from '../surahs';
+import { useT } from '../lib/i18n';
 
 export default function BookmarksClient() {
+  const t = useT();
   const [bookmarks, setBookmarks] = useState<BookmarkEntry[] | null>(null);
   const [editingNote, setEditingNote] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState('');
@@ -75,7 +77,7 @@ export default function BookmarksClient() {
   if (bookmarks === null) {
     return (
       <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-        <p className="text-sm text-[#5b6b62]">Loading bookmarks…</p>
+        <p className="text-sm text-[#5b6b62]">{t('bm.loading')}</p>
       </div>
     );
   }
@@ -88,22 +90,20 @@ export default function BookmarksClient() {
     return (
       <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <p className="text-sm leading-relaxed text-[#5b6b62]">
-          No bookmarks yet. Tap the bookmark button on any ayah, or “Bookmark this page” in
-          the Mushaf reader toolbar, and it appears here. Bookmarks are saved on this device
-          only, and they travel with your progress export.
+          {t('bm.empty')}
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
             href="/hifz"
             className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#102E26] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
           >
-            Browse surahs →
+            {t('bm.browseSurahs')}
           </Link>
           <Link
             href="/hifz/mushaf"
             className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#E5E7EB] px-5 py-2 text-sm font-semibold hover:border-[#1FA36B]"
           >
-            Open the Mushaf →
+            {t('bm.openMushaf')}
           </Link>
         </div>
       </div>
@@ -116,12 +116,12 @@ export default function BookmarksClient() {
       return (
         <div className="mt-2 flex flex-wrap items-end gap-2">
           <label className="flex-1 text-xs font-semibold text-[#5b6b62]">
-            Note
+            {t('bm.note')}
             <input
               type="text"
               value={noteDraft}
               onChange={(e) => setNoteDraft(e.target.value)}
-              placeholder="Why did you save this? (optional)"
+              placeholder={t('bm.notePlaceholder')}
               maxLength={200}
               className="mt-1 block w-full min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm font-normal"
             />
@@ -131,7 +131,7 @@ export default function BookmarksClient() {
             onClick={() => saveNote(b)}
             className="min-h-11 rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
           >
-            Save note
+            {t('bm.saveNote')}
           </button>
           <button
             type="button"
@@ -141,7 +141,7 @@ export default function BookmarksClient() {
             }}
             className="min-h-11 rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
       );
@@ -157,7 +157,7 @@ export default function BookmarksClient() {
           }}
           className="text-xs font-semibold text-[#1FA36B] underline"
         >
-          {b.note ? 'Edit note' : 'Add a note'}
+          {b.note ? t('bm.editNote') : t('bm.addNote')}
         </button>
       </div>
     );
@@ -168,9 +168,9 @@ export default function BookmarksClient() {
       {/* Stage 6 (§19): recent reading locations. */}
       {hasRecent && (
         <section aria-labelledby="recent-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-          <h2 id="recent-heading" className="text-xl font-bold text-[#102E26]">Recently read</h2>
+          <h2 id="recent-heading" className="text-xl font-bold text-[#102E26]">{t('bm.recentlyRead')}</h2>
           <p className="mt-1 text-sm text-[#5b6b62]">
-            Where you left off — the last surahs you opened and your last Mushaf page.
+            {t('bm.recentNote')}
           </p>
           <ul className="mt-3 space-y-2">
             {recentSurahs.map((r) => {
@@ -185,16 +185,16 @@ export default function BookmarksClient() {
                     </span>
                   )}
                   <Link href={`/hifz/${s.slug}`} className="ml-auto font-semibold text-[#1FA36B] underline">
-                    Continue →
+                    {t('bm.continue')}
                   </Link>
                 </li>
               );
             })}
             {mushafPage !== null && (
               <li className="flex flex-wrap items-center gap-2 rounded-xl bg-[#FFFBF2] px-3 py-2 text-sm">
-                <span className="font-semibold text-[#102E26]">Mushaf page {mushafPage}</span>
+                <span className="font-semibold text-[#102E26]">{t('bm.mushafPage').replace('{n}', String(mushafPage))}</span>
                 <Link href={`/hifz/mushaf?page=${mushafPage}`} className="ml-auto font-semibold text-[#1FA36B] underline">
-                  Open →
+                  {t('bm.openLink')}
                 </Link>
               </li>
             )}
@@ -205,9 +205,7 @@ export default function BookmarksClient() {
       {bookmarks.length === 0 && (
         <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
           <p className="text-sm leading-relaxed text-[#5b6b62]">
-            No bookmarks yet. Tap the bookmark button on any ayah, or “Bookmark this page” in
-            the Mushaf reader toolbar, and it appears here. Bookmarks are saved on this device
-            only, and they travel with your progress export.
+            {t('bm.empty')}
           </p>
         </div>
       )}
@@ -215,7 +213,7 @@ export default function BookmarksClient() {
       {ayahMarks.length > 0 && (
         <section aria-labelledby="ayah-bookmarks-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
           <h2 id="ayah-bookmarks-heading" className="text-xl font-bold text-[#102E26]">
-            Saved ayahs ({ayahMarks.length})
+            {t('bm.savedAyahs').replace('{n}', String(ayahMarks.length))}
           </h2>
           <ul className="mt-3 space-y-3">
             {[...ayahMarks]
@@ -229,7 +227,7 @@ export default function BookmarksClient() {
                   <li key={bookmarkKey(b)} className="rounded-xl bg-[#FFFBF2] px-3 py-2.5 text-sm">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-[#102E26]">
-                        {s ? s.name : b.surahName ?? `Surah ${b.surahNumber}`} {b.surahNumber}:{b.verseNumber}
+                        {s ? s.name : b.surahName ?? t('bm.surahFallback').replace('{n}', String(b.surahNumber))} {b.surahNumber}:{b.verseNumber}
                       </span>
                       {when && <span className="text-xs text-[#5b6b62]">{when}</span>}
                       <span className="ml-auto flex gap-2">
@@ -238,7 +236,7 @@ export default function BookmarksClient() {
                             href={`/hifz/${s.slug}/${b.surahNumber}-${b.verseNumber}`}
                             className="font-semibold text-[#1FA36B] underline"
                           >
-                            Open
+                            {t('bm.open')}
                           </Link>
                         )}
                         <button
@@ -246,7 +244,7 @@ export default function BookmarksClient() {
                           onClick={() => remove(b)}
                           className="font-semibold text-red-700 underline"
                         >
-                          Remove
+                          {t('bm.remove')}
                         </button>
                       </span>
                     </div>
@@ -261,7 +259,7 @@ export default function BookmarksClient() {
       {pageMarks.length > 0 && (
         <section aria-labelledby="page-bookmarks-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
           <h2 id="page-bookmarks-heading" className="text-xl font-bold text-[#102E26]">
-            Saved Mushaf pages ({pageMarks.length})
+            {t('bm.savedPages').replace('{n}', String(pageMarks.length))}
           </h2>
           <ul className="mt-3 space-y-3">
             {[...pageMarks]
@@ -273,21 +271,21 @@ export default function BookmarksClient() {
                 return (
                   <li key={bookmarkKey(b)} className="rounded-xl bg-[#FFFBF2] px-3 py-2.5 text-sm">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold text-[#102E26]">Mushaf page {b.page}</span>
+                      <span className="font-semibold text-[#102E26]">{t('bm.mushafPage').replace('{n}', String(b.page))}</span>
                       {when && <span className="text-xs text-[#5b6b62]">{when}</span>}
                       <span className="ml-auto flex gap-2">
                         <Link
                           href={`/hifz/mushaf?page=${b.page}`}
                           className="font-semibold text-[#1FA36B] underline"
                         >
-                          Open
+                          {t('bm.open')}
                         </Link>
                         <button
                           type="button"
                           onClick={() => remove(b)}
                           className="font-semibold text-red-700 underline"
                         >
-                          Remove
+                          {t('bm.remove')}
                         </button>
                       </span>
                     </div>
@@ -300,8 +298,7 @@ export default function BookmarksClient() {
       )}
 
       <p className="text-xs leading-relaxed text-[#5b6b62]">
-        Bookmarks live only on this device. They are included when you export your progress
-        from My Progress, and restored when you import that file on another device.
+        {t('bm.footer')}
       </p>
     </div>
   );

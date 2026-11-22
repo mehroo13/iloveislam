@@ -26,11 +26,28 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  MODE_DESCRIPTIONS, MODE_EVENT, MODE_LABELS, lastReadSlug, loadMode, requestMode,
+  MODE_EVENT, lastReadSlug, loadMode, requestMode,
   type HifzMode,
 } from '../lib/mode';
+import { useT } from '../lib/i18n';
 
 const MODES: HifzMode[] = ['reading', 'recite', 'listen', 'memorise', 'test'];
+
+/** i18n keys for the mode labels / descriptions (lib/i18n.ts `mode.*`). */
+const MODE_LABEL_KEYS: Record<HifzMode, string> = {
+  reading: 'mode.reading',
+  recite: 'mode.recite',
+  listen: 'mode.listen',
+  memorise: 'mode.memorise',
+  test: 'mode.test',
+};
+const MODE_DESC_KEYS: Record<HifzMode, string> = {
+  reading: 'mode.descReading',
+  recite: 'mode.descRecite',
+  listen: 'mode.descListen',
+  memorise: 'mode.descMemorise',
+  test: 'mode.descTest',
+};
 
 /** Glyphs are plain text marks (our own set), not copied artwork. */
 const MODE_ICONS: Record<HifzMode, string> = {
@@ -42,6 +59,7 @@ const MODE_ICONS: Record<HifzMode, string> = {
 };
 
 export default function ModeSwitcher() {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname() ?? '';
   const [open, setOpen] = useState(false);
@@ -108,11 +126,11 @@ export default function ModeSwitcher() {
       {open && (
         <div
           role="menu"
-          aria-label="Practice mode"
+          aria-label={t('mode.practiceMode')}
           className="mb-2 w-72 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-[#E5E7EB] bg-white p-2 shadow-xl"
         >
           <p className="px-3 pb-1 pt-2 text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
-            Practice mode
+            {t('mode.practiceMode')}
           </p>
           <ul>
             {MODES.map((m) => (
@@ -131,15 +149,15 @@ export default function ModeSwitcher() {
                   </span>
                   <span className="min-w-0">
                     <span className="flex items-center gap-2 text-sm font-bold text-[#102E26]">
-                      {MODE_LABELS[m]}
+                      {t(MODE_LABEL_KEYS[m])}
                       {mode === m && (
                         <span className="rounded-full bg-[#1FA36B] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                          Current
+                          {t('mode.current')}
                         </span>
                       )}
                     </span>
                     <span className="mt-0.5 block text-xs leading-snug text-[#5b6b62]">
-                      {MODE_DESCRIPTIONS[m]}
+                      {t(MODE_DESC_KEYS[m])}
                     </span>
                   </span>
                 </button>
@@ -147,8 +165,7 @@ export default function ModeSwitcher() {
             ))}
           </ul>
           <p className="px-3 pb-2 pt-1 text-[11px] leading-snug text-[#5b6b62]">
-            Switching stops the microphone or the audio first — nothing keeps
-            recording or playing in the background.
+            {t('mode.switchNote')}
           </p>
         </div>
       )}
@@ -156,7 +173,7 @@ export default function ModeSwitcher() {
         type="button"
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label={`Practice mode: ${MODE_LABELS[mode]}. Change mode.`}
+        aria-label={t('mode.ariaChange').replace('{label}', t(MODE_LABEL_KEYS[mode]))}
         onClick={() => setOpen((v) => !v)}
         className="flex min-h-12 items-center gap-2 rounded-full bg-[#102E26] py-2.5 pl-4 pr-3 text-sm font-bold text-white shadow-lg ring-1 ring-[#FFB800]/60 hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FFB800]"
       >
@@ -164,7 +181,7 @@ export default function ModeSwitcher() {
           {MODE_ICONS[mode]}
         </span>
         <span>
-          Mode: {MODE_LABELS[mode]}
+          {t('mode.pill').replace('{label}', t(MODE_LABEL_KEYS[mode]))}
         </span>
         <span aria-hidden="true" className="text-xs text-white/70">
           {open ? '▴' : '▾'}

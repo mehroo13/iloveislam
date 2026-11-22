@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { API, verseText, cleanIndopak, type Verse } from '../../quran/lib';
 import { normalizeArabic } from '../lib/alignment';
 import { getSurahById } from '../surahs';
+import { useT } from '../lib/i18n';
 
 interface Partner {
   key: string;
@@ -69,6 +70,7 @@ export default function SimilarVerses({
   /** Display text of this ayah (Indo-Pak or Uthmani — both normalise the same). */
   ayahText: string;
 }) {
+  const t = useT();
   const key = `${surah}:${ayah}`;
   const [open, setOpen] = useState(false);
   const [partners, setPartners] = useState<Partner[] | null>(null);
@@ -143,7 +145,7 @@ export default function SimilarVerses({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="similar-heading" className="text-lg font-bold text-[#102E26]">
-          Similar verses
+          {t('sim.title')}
         </h2>
         <button
           type="button"
@@ -151,29 +153,26 @@ export default function SimilarVerses({
           aria-expanded={open}
           className="min-h-11 rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
         >
-          {open ? 'Hide similar verses' : 'Show similar verses'}
+          {open ? t('sim.hide') : t('sim.show')}
         </button>
       </div>
       <p className="mt-1 text-sm text-[#5b6b62]">
-        Ayahs that share the same wording — the phrases that are easy to mix up while
-        memorising. Found from the Quran text itself, not from a word search.
+        {t('sim.intro')}
       </p>
 
       {open && (
         <div className="mt-4">
           {loadError && (
             <p role="alert" className="rounded-xl border border-red-200 bg-white px-4 py-3 text-sm text-red-700">
-              The similar-verses list could not be loaded. Check your connection and try again.
+              {t('sim.loadError')}
             </p>
           )}
           {partners === null && !loadError && (
-            <p className="text-sm text-[#5b6b62]">Loading similar verses…</p>
+            <p className="text-sm text-[#5b6b62]">{t('sim.loading')}</p>
           )}
           {partners !== null && partners.length === 0 && (
             <p className="text-sm text-[#5b6b62]">
-              No closely similar verses found for this ayah by shared wording. That does not
-              mean none exist in meaning — this list only covers ayahs that share verbatim
-              phrases, so it stays honest about what it checked.
+              {t('sim.none')}
             </p>
           )}
           {partners !== null && partners.length > 0 && (
@@ -193,13 +192,15 @@ export default function SimilarVerses({
                         }`}
                       >
                         <span className="font-bold text-[#102E26]">
-                          {sInfo ? sInfo.name : `Surah ${s}`} {p.key}
+                          {sInfo ? sInfo.name : t('sim.surahFallback').replace('{n}', String(s))} {p.key}
                         </span>
                         <span className="text-xs text-[#5b6b62]">
-                          shares {p.phrases.length === 1 ? 'a phrase' : `${p.phrases.length} phrases`} with this ayah
+                          {p.phrases.length === 1
+                            ? t('sim.sharesOne')
+                            : t('sim.sharesMany').replace('{n}', String(p.phrases.length))}
                         </span>
                         <span className="ml-auto text-xs font-semibold text-[#1FA36B]">
-                          {selected?.key === p.key ? 'Comparing ↓' : 'Compare →'}
+                          {selected?.key === p.key ? t('sim.comparing') : t('sim.compare')}
                         </span>
                       </button>
                     </li>
@@ -207,8 +208,7 @@ export default function SimilarVerses({
                 })}
               </ul>
               <p className="mt-2 text-xs text-[#5b6b62]">
-                Up to 8 closest matches, ranked by how long and how rare the shared phrases
-                are. Derived from all 6,236 ayahs — see tools/build-mutashabihat.mjs.
+                {t('sim.rankNote')}
               </p>
             </>
           )}
@@ -217,7 +217,7 @@ export default function SimilarVerses({
             <div className="mt-4 rounded-xl border border-[#FFB800]/60 bg-[#FFFBF2] p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-bold text-[#102E26]">
-                  Comparing {key} with {selected.key}
+                  {t('sim.comparingTitle').replace('{a}', key).replace('{b}', selected.key)}
                   {partnerSurah ? ` — ${partnerSurah.name}` : ''}
                 </p>
                 {partnerSurah && (
@@ -225,41 +225,40 @@ export default function SimilarVerses({
                     href={`/hifz/${partnerSurah.slug}/${selected.key.replace(':', '-')}`}
                     className="rounded-full bg-[#102E26] min-h-11 px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
                   >
-                    Open {selected.key} →
+                    {t('sim.openLink').replace('{key}', selected.key)}
                   </Link>
                 )}
               </div>
               <p className="mt-1 text-xs text-[#5b6b62]">
-                Words highlighted in gold appear in both ayahs. The words that are NOT
-                highlighted are where the two ayahs differ — those are the ones to learn.
+                {t('sim.highlightNote')}
               </p>
-              {partnerLoading && <p className="mt-3 text-sm text-[#5b6b62]">Loading the other ayah…</p>}
+              {partnerLoading && <p className="mt-3 text-sm text-[#5b6b62]">{t('sim.loadingOther')}</p>}
               {partnerError && (
                 <p role="alert" className="mt-3 text-sm text-red-700">
-                  That ayah could not be loaded. Try opening it from the link above.
+                  {t('sim.otherError')}
                 </p>
               )}
               {partnerVerse && (
                 <div className="mt-3 space-y-4">
                   <div>
-                    <p className="text-xs font-semibold text-[#5b6b62]">This ayah — {key}</p>
+                    <p className="text-xs font-semibold text-[#5b6b62]">{t('sim.thisAyah').replace('{key}', key)}</p>
                     <p dir="rtl" lang="ar" className="font-quran mt-1 text-right text-2xl leading-loose sm:text-3xl">
                       {renderWords(cleanIndopak(ayahText), sharedWords, 'this')}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-[#5b6b62]">Similar ayah — {selected.key}</p>
+                    <p className="text-xs font-semibold text-[#5b6b62]">{t('sim.similarAyah').replace('{key}', selected.key)}</p>
                     {quizHidden ? (
                       <div className="mt-2 rounded-xl border border-[#E5E7EB] bg-white p-4 text-center">
                         <p className="text-sm text-[#5b6b62]">
-                          Hidden — recite both ayahs from memory, saying which words differ, then reveal to check.
+                          {t('sim.hiddenQuiz')}
                         </p>
                         <button
                           type="button"
                           onClick={() => setQuizHidden(false)}
                           className="mt-3 min-h-11 rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
                         >
-                          Reveal to check
+                          {t('sim.reveal')}
                         </button>
                       </div>
                     ) : (
@@ -273,7 +272,7 @@ export default function SimilarVerses({
                     onClick={() => setQuizHidden((v) => !v)}
                     className="min-h-11 rounded-full border border-[#102E26] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
                   >
-                    {quizHidden ? 'Show the similar ayah again' : 'Practise: hide the similar ayah and test yourself'}
+                    {quizHidden ? t('sim.showAgain') : t('sim.practiseHide')}
                   </button>
                 </div>
               )}

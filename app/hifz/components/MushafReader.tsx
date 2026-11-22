@@ -48,6 +48,7 @@ import {
 } from '../mushaf';
 import { ALL_SURAHS, getSurahById } from '../surahs';
 import { SCRIPT_LABELS, useScriptPref, type QuranScript } from '../lib/script';
+import { useT } from '../lib/i18n';
 import { TOPICS } from '../topics';
 import { loadMistakes, loadProgress, saveProgress, markAttempt } from '../progress';
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
@@ -153,6 +154,7 @@ const ReaderSlot = memo(function ReaderSlot({
   registerSlot: (n: number, el: HTMLDivElement | null) => void;
   onRetry: (n: number) => void;
 }) {
+  const t = useT();
   // Stable per page: an inline ref would be re-invoked (null, then el)
   // on every parent re-render, churning the ResizeObserver.
   const ref = useCallback((el: HTMLDivElement | null) => registerSlot(page, el), [page, registerSlot]);
@@ -180,14 +182,14 @@ const ReaderSlot = memo(function ReaderSlot({
           />
         ) : failed ? (
           <div className="rounded-2xl border-2 border-[#FFB800] bg-[#FFFBF2] p-6 text-center shadow-sm">
-            <p className="text-sm font-semibold text-[#102E26]">Page {page} could not be loaded.</p>
-            <p className="mt-1 text-xs text-[#5b6b62]">Check your connection and try again.</p>
+            <p className="text-sm font-semibold text-[#102E26]">{t('reader.pageFailed').replace('{page}', String(page))}</p>
+            <p className="mt-1 text-xs text-[#5b6b62]">{t('reader.checkConnection')}</p>
             <button
               type="button"
               onClick={() => onRetry(page)}
               className="mt-3 min-h-11 rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white"
             >
-              Retry page {page}
+              {t('reader.retryPage').replace('{page}', String(page))}
             </button>
           </div>
         ) : (
@@ -198,7 +200,7 @@ const ReaderSlot = memo(function ReaderSlot({
           <div
             style={{ height: height ?? EST_PAGE_HEIGHT }}
             className="rounded-2xl border-2 border-[#FFB800]/40 bg-[#FFFBF2] p-6"
-            aria-label={`Loading mushaf page ${page}`}
+            aria-label={t('reader.loadingAria').replace('{page}', String(page))}
           >
             <div className="mx-auto h-4 w-32 animate-pulse rounded bg-[#E5E7EB]" />
             <div className="mx-auto mt-6 space-y-4">
@@ -206,7 +208,7 @@ const ReaderSlot = memo(function ReaderSlot({
                 <div key={i} className="h-8 animate-pulse rounded bg-[#E5E7EB]/70" />
               ))}
             </div>
-            <p className="mt-6 text-center text-xs text-[#5b6b62]">Loading page {page} of 604…</p>
+            <p className="mt-6 text-center text-xs text-[#5b6b62]">{t('reader.loadingPage').replace('{page}', String(page))}</p>
           </div>
         )}
       </div>
@@ -241,6 +243,7 @@ const PlaceholderSlot = memo(function PlaceholderSlot({
 });
 
 export default function MushafReader() {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -976,11 +979,11 @@ export default function MushafReader() {
     const a = Number(ayahNum);
     const surah = getSurahById(s);
     if (!surah) {
-      setAyahError('Choose a Surah first.');
+      setAyahError(t('reader.ayahChooseSurah'));
       return;
     }
     if (!Number.isInteger(a) || a < 1 || a > surah.ayahCount) {
-      setAyahError(`Surah ${surah.name} has ${surah.ayahCount} ayahs.`);
+      setAyahError(t('reader.ayahCount').replace('{name}', surah.name).replace('{count}', String(surah.ayahCount)));
       return;
     }
     setAyahError(null);
@@ -995,7 +998,7 @@ export default function MushafReader() {
       }
       jumpToPage(pageNo);
     } catch {
-      setAyahError('Could not find that ayah right now — check your connection and try again.');
+      setAyahError(t('reader.ayahNotFound'));
     } finally {
       setAyahBusy(false);
     }
@@ -1019,7 +1022,7 @@ export default function MushafReader() {
 
   return (
     <div data-mushaf-reader>
-      <h1 className="sr-only">Mushaf Reader — all 604 pages of the Madani Quran</h1>
+      <h1 className="sr-only">{t('reader.title')}</h1>
 
       {/* Fixed toolbar: indicator, mode, zoom, jump, memorise. */}
       <div ref={toolbarRef} className="fixed inset-x-0 top-0 z-40 border-b border-[#E5E7EB] bg-[#FFFBF2]/95 backdrop-blur">
@@ -1030,27 +1033,27 @@ export default function MushafReader() {
               type="button"
               onClick={() => jumpToPage(currentPage - 1, 0, true)}
               disabled={currentPage <= 1}
-              aria-label="Previous page"
+              aria-label={t('reader.prevPage')}
               className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-[#E5E7EB] bg-white px-3 text-sm font-semibold text-[#102E26] hover:bg-[#FFF6D6] disabled:opacity-40"
             >
-              ← <span className="ml-1 hidden sm:inline">Prev</span>
+              ← <span className="ml-1 hidden sm:inline">{t('reader.prev')}</span>
             </button>
             <div className="min-w-0 flex-1 text-center">
               <p className="truncate text-sm font-bold text-[#102E26]" aria-live="polite">
-                Page {currentPage} of {MUSHAF_TOTAL_PAGES}
+                {t('reader.pageOf').replace('{page}', String(currentPage)).replace('{total}', String(MUSHAF_TOTAL_PAGES))}
               </p>
               <p className="truncate text-xs text-[#5b6b62]">
-                {surahsHere.map((s) => `Surah ${s.name}`).join(' · ') || '—'} · Juz {juzHere}
+                {surahsHere.map((s) => t('reader.surahOnPage').replace('{name}', s.name)).join(' · ') || '—'} · {t('reader.juzLabel').replace('{n}', String(juzHere))}
               </p>
             </div>
             <button
               type="button"
               onClick={() => jumpToPage(currentPage + 1, 0, true)}
               disabled={currentPage >= MUSHAF_TOTAL_PAGES}
-              aria-label="Next page"
+              aria-label={t('reader.nextPage')}
               className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-[#E5E7EB] bg-white px-3 text-sm font-semibold text-[#102E26] hover:bg-[#FFF6D6] disabled:opacity-40"
             >
-              <span className="mr-1 hidden sm:inline">Next</span> →
+              <span className="mr-1 hidden sm:inline">{t('reader.next')}</span> →
             </button>
           </div>
           {/* Progress */}
@@ -1059,7 +1062,7 @@ export default function MushafReader() {
           </div>
           {/* Row 2: mode, zoom, jump, hide, settings */}
           <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-            <div className="flex rounded-full border border-[#E5E7EB] bg-white p-0.5" role="group" aria-label="Reading mode">
+            <div className="flex rounded-full border border-[#E5E7EB] bg-white p-0.5" role="group" aria-label={t('reader.readingMode')}>
               {(['continuous', 'page'] as const).map((m) => (
                 <button
                   key={m}
@@ -1070,16 +1073,16 @@ export default function MushafReader() {
                     mode === m ? 'bg-[#102E26] text-white' : 'text-[#102E26] hover:bg-[#FFFBF2]'
                   }`}
                 >
-                  {m === 'continuous' ? 'Continuous' : 'Page'}
+                  {m === 'continuous' ? t('reader.continuous') : t('reader.pageMode')}
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white p-0.5" role="group" aria-label="Reader zoom">
+            <div className="flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white p-0.5" role="group" aria-label={t('reader.readerZoom')}>
               <button
                 type="button"
                 onClick={() => applyZoom(zoom - ZOOM_STEP)}
                 disabled={zoom <= MIN_ZOOM}
-                aria-label="Zoom out"
+                aria-label={t('reader.zoomOut')}
                 className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full text-lg font-bold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
               >
                 −
@@ -1091,7 +1094,7 @@ export default function MushafReader() {
                 type="button"
                 onClick={() => applyZoom(zoom + ZOOM_STEP)}
                 disabled={zoom >= MAX_ZOOM}
-                aria-label="Zoom in"
+                aria-label={t('reader.zoomIn')}
                 className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full text-lg font-bold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
               >
                 +
@@ -1102,7 +1105,7 @@ export default function MushafReader() {
                 disabled={zoom === MIN_ZOOM}
                 className="min-h-10 rounded-full px-3 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
               >
-                Reset
+                {t('reader.resetZoom')}
               </button>
             </div>
             <button
@@ -1117,7 +1120,7 @@ export default function MushafReader() {
                 jumpOpen ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
               }`}
             >
-              Jump to…
+              {t('reader.jumpTo')}
             </button>
             <button
               type="button"
@@ -1131,18 +1134,18 @@ export default function MushafReader() {
                 hideVerses ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
               }`}
             >
-              {hideVerses ? 'Show verses' : 'Hide words'}
+              {hideVerses ? t('reader.showVerses') : t('reader.hideWords')}
             </button>
             <button
               type="button"
               onClick={togglePageBookmark}
               aria-pressed={pageBookmarked}
-              aria-label={pageBookmarked ? `Remove bookmark for page ${currentPage}` : `Bookmark page ${currentPage}`}
+              aria-label={pageBookmarked ? t('reader.removeBookmarkAria').replace('{n}', String(currentPage)) : t('reader.bookmarkAria').replace('{n}', String(currentPage))}
               className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${
                 pageBookmarked ? 'border-[#FFB800] bg-[#FFB800]/15 text-[#7A5C00]' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
               }`}
             >
-              {pageBookmarked ? '🔖 Page saved' : '📑 Bookmark page'}
+              {pageBookmarked ? t('reader.pageSaved') : t('reader.bookmarkPage')}
             </button>
             <button
               type="button"
@@ -1152,7 +1155,7 @@ export default function MushafReader() {
               }}
               aria-pressed={settingsOpen}
               aria-expanded={settingsOpen}
-              aria-label="Reader settings"
+              aria-label={t('reader.readerSettings')}
               className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-3 text-sm font-semibold ${
                 settingsOpen ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
               }`}
@@ -1171,7 +1174,7 @@ export default function MushafReader() {
                 }}
                 className="min-h-11 rounded-full border border-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
               >
-                ‹ Next word
+                {t('reader.nextWord')}
               </button>
               <button
                 type="button"
@@ -1182,10 +1185,12 @@ export default function MushafReader() {
                 }}
                 className="min-h-11 rounded-full border border-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
               >
-                « Reveal rest
+                {t('reader.revealRest')}
               </button>
               <span className="text-xs font-semibold text-[#5b6b62]">
-                {peekCount} {peekCount === 1 ? 'peek' : 'peeks'} · words on page {currentPage} hidden
+                {peekCount === 1
+                  ? t('reader.peekOne').replace('{n}', String(peekCount)).replace('{page}', String(currentPage))
+                  : t('reader.peekMany').replace('{n}', String(peekCount)).replace('{page}', String(currentPage))}
               </span>
             </div>
           )}
@@ -1203,7 +1208,7 @@ export default function MushafReader() {
                 >
                   <div className="flex-1">
                     <label htmlFor="reader-jump-page" className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
-                      Page (1–604)
+                      {t('reader.pageLabel')}
                     </label>
                     <input
                       id="reader-jump-page"
@@ -1212,17 +1217,17 @@ export default function MushafReader() {
                       max={604}
                       value={jumpPage}
                       onChange={(e) => setJumpPage(e.target.value)}
-                      placeholder="Page #"
+                      placeholder={t('reader.pagePlaceholder')}
                       className="mt-1 w-full min-h-11 rounded-full border border-[#E5E7EB] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
                     />
                   </div>
                   <button type="submit" className="min-h-11 rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white">
-                    Go
+                    {t('reader.go')}
                   </button>
                 </form>
                 <div>
                   <label htmlFor="reader-jump-surah" className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
-                    Surah
+                    {t('reader.surahLabel')}
                   </label>
                   <select
                     id="reader-jump-surah"
@@ -1234,7 +1239,7 @@ export default function MushafReader() {
                     }}
                     className="mt-1 w-full min-h-11 rounded-full border border-[#E5E7EB] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
                   >
-                    <option value="">Choose a Surah…</option>
+                    <option value="">{t('reader.chooseSurah')}</option>
                     {ALL_SURAHS.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.id}. {s.name} ({s.meaning})
@@ -1244,7 +1249,7 @@ export default function MushafReader() {
                 </div>
                 <div>
                   <label htmlFor="reader-jump-juz" className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
-                    Juz
+                    {t('reader.juzJumpLabel')}
                   </label>
                   <select
                     id="reader-jump-juz"
@@ -1256,10 +1261,10 @@ export default function MushafReader() {
                     }}
                     className="mt-1 w-full min-h-11 rounded-full border border-[#E5E7EB] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
                   >
-                    <option value="">Choose a Juz…</option>
+                    <option value="">{t('reader.chooseJuz')}</option>
                     {Array.from({ length: 30 }, (_, i) => i + 1).map((j) => (
                       <option key={j} value={j}>
-                        Juz {j} — page {JUZ_FIRST_PAGE[j]}
+                        {t('reader.juzOption').replace('{j}', String(j)).replace('{p}', String(JUZ_FIRST_PAGE[j]))}
                       </option>
                     ))}
                   </select>
@@ -1273,7 +1278,7 @@ export default function MushafReader() {
                 >
                   <div className="flex-1">
                     <label htmlFor="reader-jump-ayah-surah" className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
-                      Ayah — Surah
+                      {t('reader.ayahSurah')}
                     </label>
                     <select
                       id="reader-jump-ayah-surah"
@@ -1284,7 +1289,7 @@ export default function MushafReader() {
                       }}
                       className="mt-1 w-full min-h-11 rounded-full border border-[#E5E7EB] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
                     >
-                      <option value="">Surah…</option>
+                      <option value="">{t('reader.chooseAyahSurah')}</option>
                       {ALL_SURAHS.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.id}. {s.name}
@@ -1294,7 +1299,7 @@ export default function MushafReader() {
                   </div>
                   <div className="w-24">
                     <label htmlFor="reader-jump-ayah-num" className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
-                      Ayah #
+                      {t('reader.ayahNum')}
                     </label>
                     <input
                       id="reader-jump-ayah-num"
@@ -1325,7 +1330,7 @@ export default function MushafReader() {
               )}
               {surahsHere.length > 0 && (
                 <div className="mt-3 border-t border-[#E5E7EB] pt-3">
-                  <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">On this page</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">{t('reader.onThisPage')}</p>
                   <ul className="mt-1 space-y-1 text-sm">
                     {surahsHere.map((s) => (
                       <li key={s.id} className="flex flex-wrap items-center gap-x-3">
@@ -1333,7 +1338,7 @@ export default function MushafReader() {
                           Surah {s.name} ({s.meaning})
                         </Link>
                         <Link href={`/hifz/${s.slug}?mode=recite`} className="text-[#5b6b62] hover:underline">
-                          Recite with the coach →
+                          {t('reader.reciteCoach')}
                         </Link>
                       </li>
                     ))}
@@ -1346,8 +1351,8 @@ export default function MushafReader() {
           {/* Settings panel */}
           {settingsOpen && (
             <div className="mt-2 rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
-              <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Quran script">
-                <span className="text-sm font-semibold text-[#102E26]">Script</span>
+              <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('reader.quranScript')}>
+                <span className="text-sm font-semibold text-[#102E26]">{t('mpv.script')}</span>
                 {(['indopak', 'uthmani'] as const).map((s) => (
                   <button
                     key={s}
@@ -1371,7 +1376,7 @@ export default function MushafReader() {
                     compactText ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
                   }`}
                 >
-                  {compactText ? 'Compact text' : 'Large text'}
+                  {compactText ? t('mpv.compactText') : t('mpv.largeText')}
                 </button>
                 <button
                   type="button"
@@ -1381,7 +1386,7 @@ export default function MushafReader() {
                     topicColors ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
                   }`}
                 >
-                  {topicColors ? 'Topic colours on' : 'Topic colours off'}
+                  {topicColors ? t('reader.topicOn') : t('reader.topicOff')}
                 </button>
               </div>
               {topicColors && (
@@ -1401,13 +1406,11 @@ export default function MushafReader() {
               )}
               {mistakeMarkingOn && (
                 <p className="mt-3 text-xs text-[#5b6b62]">
-                  <span className="live-word-wrong font-semibold">Red underlined words</span> are words you have
-                  missed 2 or more times. Turn marking off in Settings → Quran appearance.
+                  <span className="live-word-wrong font-semibold">{t('mpv.weakLabel')}</span> {t('reader.weakNote')}
                 </p>
               )}
               <p className="mt-3 text-xs text-[#5b6b62]">
-                Pinch to zoom, or use the zoom buttons — the zoom stays the same on every page.
-                Your place, mode and zoom are remembered for your next visit.
+                {t('reader.zoomNote')}
               </p>
             </div>
           )}
@@ -1422,7 +1425,7 @@ export default function MushafReader() {
         <div ref={contentRef} style={{ zoom: String(scale), touchAction: 'pan-x pan-y' }}>
           {!mounted ? (
             <div className="rounded-2xl border-2 border-[#FFB800]/40 bg-[#FFFBF2] p-6 text-center text-sm text-[#5b6b62]">
-              Loading the Mushaf reader…
+              {t('reader.loadingReader')}
             </div>
           ) : (
             pageList.map((n) => {
@@ -1459,7 +1462,7 @@ export default function MushafReader() {
           )}
         </div>
         <p className="mt-2 text-center text-xs text-[#5b6b62]">
-          Madani Mushaf · 604 pages · Text via Quran.com · Free, no sign-up
+          {t('reader.footer')}
         </p>
       </div>
     </div>

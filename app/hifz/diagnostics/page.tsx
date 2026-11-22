@@ -6,6 +6,7 @@
 // with nothing uploaded. See DiagnosticsClient for the checks.
 import type { Metadata } from 'next';
 import DiagnosticsClient from './DiagnosticsClient';
+import DiagnosticsHeader from './DiagnosticsHeader';
 import { Breadcrumb } from '../components/HifzShared';
 import { SITE_URL } from '../lib/fetch';
 
@@ -27,14 +28,7 @@ export default function DiagnosticsPage() {
           { label: 'Microphone diagnostics' },
         ]}
       />
-      <header className="mt-4">
-        <h1 className="text-3xl font-bold tracking-tight text-[#102E26] sm:text-4xl">Microphone diagnostics</h1>
-        <p className="mt-2 text-sm leading-relaxed text-[#5b6b62] sm:text-base">
-          If the recitation coach says it cannot hear you, run these checks. They test the
-          microphone and the Arabic recognition separately, on this device only — no audio is
-          uploaded or stored. Internal tool, not part of the normal Hifz flow.
-        </p>
-      </header>
+      <DiagnosticsHeader />
       <div className="mt-6">
         <DiagnosticsClient />
       </div>

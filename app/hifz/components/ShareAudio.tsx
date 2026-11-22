@@ -28,6 +28,7 @@
  */
 
 import { useState } from 'react';
+import { useT } from '../lib/i18n';
 
 /** One recorded recitation, held in memory only. */
 export interface SharedRecording {
@@ -113,6 +114,7 @@ export function ShareAudioButtons({
   /** Shown (with a disabled button) when there is no recording. */
   noRecordingReason?: string;
 }) {
+  const t = useT();
   const [status, setStatus] = useState<string | null>(null);
   const shareSupported = canShareFiles(recording);
 
@@ -122,13 +124,13 @@ export function ShareAudioButtons({
         <button
           type="button"
           disabled
-          title={noRecordingReason ?? 'No recording for this session'}
+          title={noRecordingReason ?? t('share.noRecording')}
           className="rounded-full bg-[#E5E7EB] px-4 py-2 text-sm font-semibold text-[#5b6b62] disabled:cursor-not-allowed focus:outline-none"
         >
-          Share with your teacher
+          {t('share.shareTeacher')}
         </button>
         <p className="mt-1 text-xs text-[#5b6b62]">
-          {noRecordingReason ?? 'No recording was captured for this session.'}
+          {noRecordingReason ?? t('share.noRecordingNote')}
         </p>
       </div>
     );
@@ -145,36 +147,36 @@ export function ShareAudioButtons({
                 setStatus(null);
                 const outcome = await shareRecording(recording);
                 if (outcome === 'shared') {
-                  setStatus('Shared — sent from your device. The app kept no copy anywhere else.');
+                  setStatus(t('share.shared'));
                 } else if (outcome === 'failed' || outcome === 'unsupported') {
-                  setStatus('Sharing did not work in this browser — download the audio and send it yourself instead.');
+                  setStatus(t('share.failed'));
                 }
                 // 'cancelled': the user backed out of the share sheet — stay silent.
               })();
             }}
             className="rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
           >
-            Share with your teacher
+            {t('share.shareTeacher')}
           </button>
         )}
         <button
           type="button"
           onClick={() => {
             downloadRecording(recording);
-            setStatus(`Downloaded ${recording.fileName} — send it to your teacher yourself (for example, in WhatsApp).`);
+            setStatus(t('share.downloaded').replace('{file}', recording.fileName));
           }}
           className="rounded-full border border-[#102E26] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
         >
-          Download audio
+          {t('share.download')}
         </button>
       </div>
       {!shareSupported && (
         <p className="mt-1 text-xs text-[#5b6b62]">
-          This browser can&apos;t share audio files directly — download the audio and send it yourself (for example, in WhatsApp).
+          {t('share.cantShare')}
         </p>
       )}
       <p className="mt-1 text-xs text-[#5b6b62]">
-        You send it yourself — the app uploads nothing, and the recording is not saved past this browser session.
+        {t('share.note')}
       </p>
       {status && (
         <p role="status" className="mt-1 text-sm font-semibold text-[#1FA36B]">{status}</p>

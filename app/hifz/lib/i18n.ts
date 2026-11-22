@@ -1086,6 +1086,17 @@ const en: Dict = {
   'sim.surahFallback': 'Surah {n}',
   'sim.thisAyah': 'This ayah — {key}',
   'sim.title': 'Similar verses',
+  'mpv.continuousReader': 'Continuous reader →',
+  'mpv.hideVersesMemorise': 'Hide verses — memorise',
+  'mpv.nextWord': '‹ Next word',
+  'mpv.peekMany': '{n} peeks · {r} words revealed',
+  'mpv.peekOne': '{n} peek · {r} words revealed',
+  'mpv.revealNextWord': 'Reveal the next word',
+  'mpv.revealRest': '« Reveal rest',
+  'mpv.revealRestPage': 'Reveal the rest of the page',
+  'mpv.showVerses': 'Show verses',
+  'mpv.viewGroup': 'Mushaf view',
+  'mpv.zoomGroup': 'Mushaf page zoom',
 };
 
 const ar: Dict = {
@@ -2109,6 +2120,17 @@ const ar: Dict = {
   'voice.how1v2': 'اضغط «رتّلها» وقل بضع كلمات من أي آية — في Chrome أو Edge، يرسل المتصفح صوتك إلى خدمة الكلام لتحويله إلى نص.',
   'voice.how2v2': 'يُبحث بالنص المُتعرَّف عليه فقط، عبر نفس بحث Quran.com الذي يستخدمه المركز. صوتك لا يُسجَّل ولا يُرفَع من طرفنا أبدًا — لكن في Chrome وEdge يُرسَل إلى خدمة الكلام في المتصفح، ولا يُنسَخ على جهازك. أما على iPhone وiPad فالإدخال الصوتي غير متوفر إطلاقًا: اكتب الكلمات بدلًا من ذلك.',
   'voice.networkError': 'البحث الصوتي يحتاج اتصالًا بالإنترنت — تعذّر الوصول إلى خدمة الكلام في المتصفح. اكتب الكلمات بدلًا من ذلك، فالبحث يعمل بالطريقة نفسها.',
+  'mpv.continuousReader': 'القارئ المستمر →',
+  'mpv.hideVersesMemorise': 'أخفِ الآيات — احفظ',
+  'mpv.nextWord': '‹ الكلمة التالية',
+  'mpv.peekMany': '{n} نظرات خاطفة · {r} كلمات ظاهرة',
+  'mpv.peekOne': '{n} نظرة خاطفة · {r} كلمات ظاهرة',
+  'mpv.revealNextWord': 'أظهر الكلمة التالية',
+  'mpv.revealRest': '« أظهر الباقي',
+  'mpv.revealRestPage': 'أظهر باقي الصفحة',
+  'mpv.showVerses': 'أظهر الآيات',
+  'mpv.viewGroup': 'عرض المصحف',
+  'mpv.zoomGroup': 'تكبير صفحة المصحف',
 };
 
 const ur: Dict = {
@@ -3132,6 +3154,17 @@ const ur: Dict = {
   'voice.how1v2': '”تلاوت کریں“ دبائیں اور کسی بھی آیت کے چند الفاظ کہیں — Chrome یا Edge میں براؤزر آپ کی آواز کو متن میں بدلنے کے لیے اپنی اسپیچ سروس کو بھیجتا ہے۔',
   'voice.how2v2': 'صرف پہچانا گیا متن تلاش کیا جاتا ہے، اسی Quran.com تلاش کے ذریعے جو مرکز پہلے سے استعمال کرتا ہے۔ آپ کی آواز ہماری طرف سے کبھی ریکارڈ یا اپ لوڈ نہیں ہوتی — لیکن Chrome اور Edge میں یہ آپ کے آلے پر نقل کیے بغیر براؤزر کی اسپیچ سروس کو بھیجی جاتی ہے۔ iPhone اور iPad پر صوتی ان پٹ بالکل دستیاب نہیں: الفاظ لکھیں۔',
   'voice.networkError': 'صوتی شناخت کے لیے انٹرنیٹ درکار ہے — براؤزر کی اسپیچ سروس تک نہیں پہنچا جا سکا۔ الفاظ لکھیں، تلاش اسی طرح کام کرتی ہے۔',
+  'mpv.continuousReader': 'مسلسل ریڈر →',
+  'mpv.hideVersesMemorise': 'آیات چھپائیں — حفظ کریں',
+  'mpv.nextWord': '‹ اگلا لفظ',
+  'mpv.peekMany': '{n} جھانکیں · {r} الفاظ ظاہر',
+  'mpv.peekOne': '{n} جھانک · {r} الفاظ ظاہر',
+  'mpv.revealNextWord': 'اگلا لفظ ظاہر کریں',
+  'mpv.revealRest': '« باقی ظاہر کریں',
+  'mpv.revealRestPage': 'صفحے کا باقی حصہ ظاہر کریں',
+  'mpv.showVerses': 'آیات دکھائیں',
+  'mpv.viewGroup': 'مصحف کا منظر',
+  'mpv.zoomGroup': 'مصحف صفحہ زوم',
 };
 
 const fr: Dict = {
@@ -4155,6 +4188,17 @@ const fr: Dict = {
   'voice.how1v2': 'Appuyez sur « Récitez » et dites quelques mots d\'un verset — dans Chrome ou Edge, le navigateur envoie votre voix à son service de reconnaissance pour la convertir en texte.',
   'voice.how2v2': 'Seul le texte reconnu est recherché, via la même recherche Quran.com que le centre utilise déjà. Votre voix n\'est jamais enregistrée ni envoyée par nous — mais dans Chrome et Edge, elle est envoyée au service vocal du navigateur, pas transcrite sur votre appareil. Sur iPhone et iPad, la saisie vocale n\'est pas disponible du tout : tapez les mots à la place.',
   'voice.networkError': 'La reconnaissance vocale a besoin d\'une connexion réseau — le service vocal du navigateur n\'a pas pu être joint. Tapez les mots à la place, la recherche fonctionne de la même façon.',
+  'mpv.continuousReader': 'Lecteur continu →',
+  'mpv.hideVersesMemorise': 'Masquer les versets — mémoriser',
+  'mpv.nextWord': '‹ Mot suivant',
+  'mpv.peekMany': '{n} coups d\'œil · {r} mots révélés',
+  'mpv.peekOne': '{n} coup d\'œil · {r} mots révélés',
+  'mpv.revealNextWord': 'Révéler le mot suivant',
+  'mpv.revealRest': '« Révéler la suite',
+  'mpv.revealRestPage': 'Révéler le reste de la page',
+  'mpv.showVerses': 'Afficher les versets',
+  'mpv.viewGroup': 'Vue du Moushaf',
+  'mpv.zoomGroup': 'Zoom de la page du Moushaf',
 };
 
 const id: Dict = {
@@ -5178,6 +5222,17 @@ const id: Dict = {
   'voice.how1v2': 'Ketuk “Bacakan” dan ucapkan beberapa kata dari ayat mana pun — di Chrome atau Edge, browser mengirim suara Anda ke layanan ucapannya untuk diubah menjadi teks.',
   'voice.how2v2': 'Hanya teks yang dikenali yang dicari, melalui pencarian Quran.com yang sama yang sudah digunakan hub. Suara Anda tidak pernah direkam atau diunggah oleh kami — tetapi di Chrome dan Edge, suara dikirim ke layanan ucapan browser, bukan ditranskripsi di perangkat Anda. Di iPhone dan iPad, masukan suara sama sekali tidak tersedia: ketik kata-katanya.',
   'voice.networkError': 'Pengenalan suara membutuhkan koneksi jaringan — layanan ucapan browser tidak dapat dijangkau. Ketik kata-katanya, pencariannya sama saja.',
+  'mpv.continuousReader': 'Pembaca berkelanjutan →',
+  'mpv.hideVersesMemorise': 'Sembunyikan ayat — hafalkan',
+  'mpv.nextWord': '‹ Kata berikutnya',
+  'mpv.peekMany': '{n} intipan · {r} kata ditampilkan',
+  'mpv.peekOne': '{n} intipan · {r} kata ditampilkan',
+  'mpv.revealNextWord': 'Tampilkan kata berikutnya',
+  'mpv.revealRest': '« Tampilkan sisanya',
+  'mpv.revealRestPage': 'Tampilkan sisa halaman',
+  'mpv.showVerses': 'Tampilkan ayat',
+  'mpv.viewGroup': 'Tampilan Mushaf',
+  'mpv.zoomGroup': 'Zoom halaman Mushaf',
 };
 
 const ms: Dict = {
@@ -6201,6 +6256,17 @@ const ms: Dict = {
   'voice.how1v2': 'Ketuk “Bacakan” dan sebut beberapa patah perkataan dari mana-mana ayat — dalam Chrome atau Edge, pelayar menghantar suara anda ke perkhidmatan pertuturannya untuk ditukar menjadi teks.',
   'voice.how2v2': 'Hanya teks yang dikenali dicari, melalui carian Quran.com yang sama yang digunakan hab. Suara anda tidak pernah dirakam atau dimuat naik oleh kami — tetapi dalam Chrome dan Edge, ia dihantar ke perkhidmatan pertuturan pelayar, bukan ditranskrip pada peranti anda. Pada iPhone dan iPad, input suara langsung tidak tersedia: taip perkataannya.',
   'voice.networkError': 'Pengenalan suara memerlukan sambungan rangkaian — perkhidmatan pertuturan pelayar tidak dapat dihubungi. Taip perkataannya, carian berfungsi dengan cara yang sama.',
+  'mpv.continuousReader': 'Pembaca berterusan →',
+  'mpv.hideVersesMemorise': 'Sembunyikan ayat — hafaz',
+  'mpv.nextWord': '‹ Perkataan seterusnya',
+  'mpv.peekMany': '{n} intipan · {r} perkataan didedahkan',
+  'mpv.peekOne': '{n} intipan · {r} perkataan didedahkan',
+  'mpv.revealNextWord': 'Dedahkan perkataan seterusnya',
+  'mpv.revealRest': '« Dedahkan selebihnya',
+  'mpv.revealRestPage': 'Dedahkan selebihnya halaman',
+  'mpv.showVerses': 'Tunjukkan ayat',
+  'mpv.viewGroup': 'Paparan Mushaf',
+  'mpv.zoomGroup': 'Zum halaman Mushaf',
 };
 
 const ru: Dict = {
@@ -7225,6 +7291,17 @@ const ru: Dict = {
   'voice.how1v2': 'Нажмите «Прочитать» и произнесите несколько слов любого аята — в Chrome или Edge браузер отправляет ваш голос в свою службу распознавания речи, чтобы превратить его в текст.',
   'voice.how2v2': 'Ищется только распознанный текст — через тот же поиск Quran.com, который уже использует центр. Ваш голос никогда не записывается и не загружается нами, — но в Chrome и Edge он отправляется в службу распознавания речи браузера, а не расшифровывается на вашем устройстве. На iPhone и iPad голосовой ввод вообще недоступен: введите слова вручную.',
   'voice.networkError': 'Для распознавания голоса нужно подключение к сети — служба распознавания речи браузера недоступна. Введите слова вручную, поиск работает так же.',
+  'mpv.continuousReader': 'Непрерывная читалка →',
+  'mpv.hideVersesMemorise': 'Скрыть аяты — заучивать',
+  'mpv.nextWord': '‹ Следующее слово',
+  'mpv.peekMany': '{n} подглядываний · показано слов: {r}',
+  'mpv.peekOne': '{n} подглядывание · показано слов: {r}',
+  'mpv.revealNextWord': 'Показать следующее слово',
+  'mpv.revealRest': '« Показать остальное',
+  'mpv.revealRestPage': 'Показать остаток страницы',
+  'mpv.showVerses': 'Показать аяты',
+  'mpv.viewGroup': 'Вид мусхафа',
+  'mpv.zoomGroup': 'Масштаб страницы мусхафа',
 };
 
 const hi: Dict = {
@@ -8248,6 +8325,17 @@ const hi: Dict = {
   'voice.how1v2': '“सुनाएँ” दबाएँ और किसी भी आयत के कुछ शब्द कहें — Chrome या Edge में ब्राउज़र आपकी आवाज़ को टेक्स्ट में बदलने के लिए अपनी स्पीच सेवा को भेजता है।',
   'voice.how2v2': 'केवल पहचाना गया टेक्स्ट खोजा जाता है, उसी Quran.com खोज से जिसे हब पहले से इस्तेमाल करता है। आपकी आवाज़ कभी हमारी ओर से रिकॉर्ड या अपलोड नहीं होती — लेकिन Chrome और Edge में यह आपके डिवाइस पर ट्रांसक्राइब किए बिना ब्राउज़र की स्पीच सेवा को भेजी जाती है। iPhone और iPad पर वॉइस इनपुट बिल्कुल उपलब्ध नहीं है: शब्द टाइप करें।',
   'voice.networkError': 'वॉइस पहचान के लिए नेटवर्क कनेक्शन चाहिए — ब्राउज़र की स्पीच सेवा तक नहीं पहुँचा जा सका। शब्द टाइप करें, खोज वैसे ही काम करती है।',
+  'mpv.continuousReader': 'लगातार रीडर →',
+  'mpv.hideVersesMemorise': 'आयतें छिपाएँ — हिफ़्ज़ करें',
+  'mpv.nextWord': '‹ अगला शब्द',
+  'mpv.peekMany': '{n} झाँक · {r} शब्द दिखाए गए',
+  'mpv.peekOne': '{n} झाँक · {r} शब्द दिखाए गए',
+  'mpv.revealNextWord': 'अगला शब्द दिखाएँ',
+  'mpv.revealRest': '« बाकी दिखाएँ',
+  'mpv.revealRestPage': 'पन्ने का बाकी हिस्सा दिखाएँ',
+  'mpv.showVerses': 'आयतें दिखाएँ',
+  'mpv.viewGroup': 'मुशफ़ दृश्य',
+  'mpv.zoomGroup': 'मुशफ़ पन्ना ज़ूम',
 };
 
 /** Merged dictionaries: every language falls back to English per key. */

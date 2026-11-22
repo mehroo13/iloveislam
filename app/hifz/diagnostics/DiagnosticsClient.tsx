@@ -42,6 +42,7 @@ import {
   type SessionResult,
 } from '../lib/tilawa';
 import { AdaptiveVad } from '../lib/vad';
+import { useT } from '../lib/i18n';
 
 /* ------------------------------------------------------------------ */
 /*  VAD — the coach's display VAD (app/hifz/lib/vad.ts), shared here  */
@@ -124,6 +125,7 @@ function Pill({ ok, warn, children }: { ok?: boolean; warn?: boolean; children: 
 /* ------------------------------------------------------------------ */
 
 export default function DiagnosticsClient() {
+  const t = useT();
   /* Capabilities are read AFTER mount: readCapabilities() returns
      different values on the server (no window) and the client, so
      rendering them during SSR produced a React hydration error (#418)
@@ -287,7 +289,7 @@ export default function DiagnosticsClient() {
     // 27e0ca6) addressed; the diagnostics page still had it.
     const Ctor = audioContextCtor();
     if (!navigator.mediaDevices?.getUserMedia || !Ctor) {
-      setMicError('This browser has no microphone API (getUserMedia / AudioContext missing).');
+      setMicError(t('diag.micNoApi'));
       return;
     }
     const ctx = new Ctor();
@@ -319,10 +321,10 @@ export default function DiagnosticsClient() {
       setPermission(name === 'NotAllowedError' || name === 'SecurityError' ? 'denied' : 'unknown');
       setMicError(
         name === 'NotAllowedError'
-          ? 'Microphone permission was denied. Allow the microphone in the browser site settings and run the test again.'
+          ? t('diag.micDenied')
           : name === 'NotFoundError'
-            ? 'No audio input device was found on this device.'
-            : `Could not open the microphone (${name || 'unknown error'}).`,
+            ? t('diag.micNotFound')
+            : t('diag.micOpenFail').replace('{err}', name || 'unknown error'),
       );
       return;
     }
@@ -434,10 +436,10 @@ export default function DiagnosticsClient() {
       setEngineState('unsupported');
       setEngineError(
         support.reason === 'insecure-context'
-          ? 'This page is not a secure (HTTPS) context, so the on-device engine cannot run.'
+          ? t('diag.engineInsecure')
           : support.reason === 'no-cache-api'
-            ? 'This browser has no Cache API, so the model cannot be stored on the device.'
-            : 'This browser cannot run WebAssembly, so the on-device engine cannot run.',
+            ? t('diag.engineNoCache')
+            : t('diag.engineNoWasm'),
       );
       return;
     }
@@ -450,11 +452,11 @@ export default function DiagnosticsClient() {
         onProgress: (p) => setEngineProgress(p),
       });
       engineRef.current = engine;
-      setEngineInfo(`Model ${engine.modelId} · ${engine.tier} tier · on-device, nothing uploaded`);
+      setEngineInfo(t('diag.modelInfo').replace('{model}', engine.modelId).replace('{tier}', engine.tier));
       setEngineState('ready');
     } catch {
       setEngineState('failed');
-      setEngineError('The recognition model could not be downloaded or started on this device.');
+      setEngineError(t('diag.engineDownloadFail'));
     }
   }, [engineState]);
 
@@ -520,14 +522,17 @@ export default function DiagnosticsClient() {
       return;
     }
     setEngineState('listening');
-    setEngineLive('Listening — recite Al-Fatihah 1:1 aloud, then tap Stop.');
+    setEngineLive(t('diag.engineListening'));
     engineTimerRef.current = setInterval(() => {
       const h = engineSessionRef.current?.getAudioHealth();
       if (!h) return;
       setEngineLive(
-        `Listening — level callbacks ${h.levelCallbacks} · loudest ${h.maxLevelDb.toFixed(0)} dBFS · ` +
-          `tracker events ${h.positionEvents} · ${h.everLocked ? 'locked' : 'not locked yet'} · ` +
-          `${h.everAudible ? 'voice heard' : 'no voice heard yet'}`,
+        t('diag.engineLive')
+          .replace('{cb}', String(h.levelCallbacks))
+          .replace('{db}', h.maxLevelDb.toFixed(0))
+          .replace('{ev}', String(h.positionEvents))
+          .replace('{locked}', h.everLocked ? t('diag.locked') : t('diag.notLockedYet'))
+          .replace('{heard}', h.everAudible ? t('diag.voiceHeard') : t('diag.noVoiceYet')),
       );
     }, 500);
   }, []);
@@ -547,122 +552,116 @@ export default function DiagnosticsClient() {
   return (
     <div className="space-y-6">
       {/* ---------- summary ---------- */}
-      <section aria-label="Results summary" className="rounded-2xl bg-white border border-[#E5E7EB] p-4 sm:p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-[#102E26]">Results</h2>
+      <section aria-label={t('diag.resultsSummary')} className="rounded-2xl bg-white border border-[#E5E7EB] p-4 sm:p-6 shadow-sm">
+        <h2 className="text-lg font-bold text-[#102E26]">{t('diag.results')}</h2>
         <dl className="mt-3 space-y-2 text-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <dt className="font-semibold">Mic permission</dt>
+            <dt className="font-semibold">{t('diag.micPermission')}</dt>
             <dd>
-              {permission === 'granted' ? <Pill ok>Granted</Pill>
-                : permission === 'denied' ? <Pill>Denied</Pill>
-                : permission === 'prompt' ? <Pill warn>Prompt — not answered yet</Pill>
-                : permission === 'unknown' ? <Pill warn>Unknown</Pill>
-                : <Pill warn>Not requested yet</Pill>}
+              {permission === 'granted' ? <Pill ok>{t('diag.granted')}</Pill>
+                : permission === 'denied' ? <Pill>{t('diag.denied')}</Pill>
+                : permission === 'prompt' ? <Pill warn>{t('diag.prompt')}</Pill>
+                : permission === 'unknown' ? <Pill warn>{t('diag.unknown')}</Pill>
+                : <Pill warn>{t('diag.notRequested')}</Pill>}
             </dd>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <dt className="font-semibold">Audio input</dt>
+            <dt className="font-semibold">{t('diag.audioInput')}</dt>
             <dd>
-              {deviceCount === null ? <Pill warn>Not checked yet</Pill>
+              {deviceCount === null ? <Pill warn>{t('diag.notChecked')}</Pill>
                 : deviceCount > 0 ? <Pill ok>Connected — {deviceCount} input{deviceCount === 1 ? '' : 's'}</Pill>
-                : <Pill>Not connected</Pill>}
+                : <Pill>{t('diag.notConnected')}</Pill>}
             </dd>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <dt className="font-semibold">Audio stream</dt>
-            <dd>{streamActive ? <Pill ok>Active</Pill> : <Pill warn>Inactive</Pill>}</dd>
+            <dt className="font-semibold">{t('diag.audioStream')}</dt>
+            <dd>{streamActive ? <Pill ok>{t('diag.active')}</Pill> : <Pill warn>{t('diag.inactive')}</Pill>}</dd>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <dt className="font-semibold">Audio level</dt>
-            <dd className="font-mono font-bold">{fmtDb(levelDb)}{levelDb !== null ? ` (peak ${fmtDb(peakDb)})` : ''}</dd>
+            <dt className="font-semibold">{t('diag.audioLevel')}</dt>
+            <dd className="font-mono font-bold">{fmtDb(levelDb)}{levelDb !== null ? ` (${t('diag.peakLabel').replace('{db}', fmtDb(peakDb))})` : ''}</dd>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <dt className="font-semibold">Voice detection</dt>
-            <dd>{voiceDetected ? <Pill ok>Detected</Pill> : <Pill warn>Not detected</Pill>}</dd>
+            <dt className="font-semibold">{t('diag.voiceDetection')}</dt>
+            <dd>{voiceDetected ? <Pill ok>{t('diag.detected')}</Pill> : <Pill warn>{t('diag.notDetected')}</Pill>}</dd>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <dt className="font-semibold">Levels changing on speech</dt>
+            <dt className="font-semibold">{t('diag.levelsChanging')}</dt>
             <dd>
-              {framesSeen === 0 ? <Pill warn>Not tested yet</Pill>
-                : spreadDb > 10 ? <Pill ok>Yes — levels move when you speak</Pill>
-                : <Pill warn>No — levels barely move</Pill>}
+              {framesSeen === 0 ? <Pill warn>{t('diag.notChecked')}</Pill>
+                : spreadDb > 10 ? <Pill ok>{t('diag.levelsYes')}</Pill>
+                : <Pill warn>{t('diag.levelsNo')}</Pill>}
             </dd>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <dt className="font-semibold">Silent input</dt>
+            <dt className="font-semibold">{t('diag.silentInput')}</dt>
             <dd>
-              {framesSeen === 0 ? <Pill warn>Not tested yet</Pill>
-                : framesSeen > 50 && peakDb <= -110 ? <Pill>Yes — stream runs but silent</Pill>
-                : <Pill ok>No — sound is reaching the app</Pill>}
+              {framesSeen === 0 ? <Pill warn>{t('diag.notChecked')}</Pill>
+                : framesSeen > 50 && peakDb <= -110 ? <Pill>{t('diag.silentYes')}</Pill>
+                : <Pill ok>{t('diag.silentNo')}</Pill>}
             </dd>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <dt className="font-semibold">Recognition engine</dt>
+            <dt className="font-semibold">{t('diag.recognitionEngine')}</dt>
             <dd>
-              {engineVerdict === 'Available' ? <Pill ok>Available</Pill>
-                : engineVerdict === 'Unsupported' ? <Pill>Unsupported</Pill>
-                : <Pill warn>Not tested yet</Pill>}
+              {engineVerdict === 'Available' ? <Pill ok>{t('diag.available')}</Pill>
+                : engineVerdict === 'Unsupported' ? <Pill>{t('diag.unsupported')}</Pill>
+                : <Pill warn>{t('diag.notChecked')}</Pill>}
             </dd>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <dt className="font-semibold">Audio processing</dt>
+            <dt className="font-semibold">{t('diag.audioProcessing')}</dt>
             <dd>
-              {audioProcessing === 'Working' ? <Pill ok>Working</Pill>
-                : audioProcessing === 'Failed' ? <Pill>Failed</Pill>
-                : <Pill warn>Not tested yet</Pill>}
+              {audioProcessing === 'Working' ? <Pill ok>{t('diag.working')}</Pill>
+                : audioProcessing === 'Failed' ? <Pill>{t('diag.failed')}</Pill>
+                : <Pill warn>{t('diag.notChecked')}</Pill>}
             </dd>
           </div>
         </dl>
         {micHeardSound && (engineState === 'failed' || engineState === 'unsupported') && (
           <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm font-semibold">
-            Voice detected, but Arabic recognition is unavailable.
+            {t('diag.voiceNoRecog')}
           </p>
         )}
         {ctxSuspended && (
           <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm font-semibold">
-            The audio system is suspended in this browser — the microphone cannot deliver sound to this page even
-            though permission was granted. This happens when audio is started outside a tap. Stop the test and start
-            it again with a fresh tap.
+            {t('diag.ctxSuspended')}
           </p>
         )}
         {trackEnded && (
           <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm font-semibold">
-            The microphone track ended mid-test — something else took the microphone (a call, another app, or the
-            device was unplugged). Run the test again.
+            {t('diag.trackEnded')}
           </p>
         )}
         {trackMuted && !trackEnded && (
           <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm font-semibold">
-            The microphone muted itself during the test — check the device is not muted and no other app is using
-            the microphone.
+            {t('diag.trackMuted')}
           </p>
         )}
         {micRunning && !voiceDetected && framesSeen > 100 && (
           <p className="mt-3 text-sm text-[#5b6b62]">
-            The microphone is open but no voice has been detected yet — speak aloud, close to the phone. If the level
-            stays near −120 dBFS, the mic is sending silence.
+            {t('diag.micOpenNoVoice')}
           </p>
         )}
       </section>
 
       {/* ---------- browser capabilities ---------- */}
-      <section aria-label="Browser capabilities" className="rounded-2xl bg-white border border-[#E5E7EB] p-4 sm:p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-[#102E26]">Browser capabilities</h2>
-        <p className="mt-1 text-sm text-[#5b6b62]">Checked on load, no microphone needed. All of these must pass for the coach to work.</p>
+      <section aria-label={t('diag.capabilities')} className="rounded-2xl bg-white border border-[#E5E7EB] p-4 sm:p-6 shadow-sm">
+        <h2 className="text-lg font-bold text-[#102E26]">{t('diag.capabilities')}</h2>
+        <p className="mt-1 text-sm text-[#5b6b62]">{t('diag.capabilitiesNote')}</p>
         <ul className="mt-3 space-y-1 text-sm">
-          <li>Secure context (HTTPS): {caps.secureContext ? <Pill ok>Yes</Pill> : <Pill>No — mic blocked</Pill>}</li>
-          <li>Microphone API (getUserMedia): {caps.hasGetUserMedia ? <Pill ok>Yes</Pill> : <Pill>No</Pill>}</li>
-          <li>AudioContext: {caps.hasAudioContext ? <Pill ok>Yes</Pill> : <Pill>No</Pill>}</li>
-          <li>Device list (enumerateDevices): {caps.hasEnumerateDevices ? <Pill ok>Yes</Pill> : <Pill warn>No</Pill>}</li>
+          <li>{t('diag.secureContext')}: {caps.secureContext ? <Pill ok>{t('diag.yes')}</Pill> : <Pill>{t('diag.noMicBlocked')}</Pill>}</li>
+          <li>{t('diag.micApi')}: {caps.hasGetUserMedia ? <Pill ok>{t('diag.yes')}</Pill> : <Pill>{t('diag.no')}</Pill>}</li>
+          <li>{t('diag.audioContext')}: {caps.hasAudioContext ? <Pill ok>{t('diag.yes')}</Pill> : <Pill>{t('diag.no')}</Pill>}</li>
+          <li>{t('diag.deviceList')}: {caps.hasEnumerateDevices ? <Pill ok>{t('diag.yes')}</Pill> : <Pill warn>{t('diag.no')}</Pill>}</li>
         </ul>
       </section>
 
       {/* ---------- microphone capture test ---------- */}
-      <section aria-label="Microphone capture test" className="rounded-2xl bg-white border border-[#E5E7EB] p-4 sm:p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-[#102E26]">1 · Microphone capture</h2>
+      <section aria-label={t('diag.micTest')} className="rounded-2xl bg-white border border-[#E5E7EB] p-4 sm:p-6 shadow-sm">
+        <h2 className="text-lg font-bold text-[#102E26]">{t('diag.micTestTitle')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
-          Tests only whether the physical mic delivers sound to this page — no recognition involved.
-          Tap the button, allow the microphone, then speak aloud. The waveform and the level are live.
+          {t('diag.micTestIntro')}
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           {!micRunning ? (
@@ -671,7 +670,7 @@ export default function DiagnosticsClient() {
               onClick={() => void runMicTest()}
               className="rounded-full bg-[#102E26] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
             >
-              Run microphone test
+              {t('diag.runMicTest')}
             </button>
           ) : (
             <button
@@ -679,7 +678,7 @@ export default function DiagnosticsClient() {
               onClick={stopMicTest}
               className="rounded-full bg-[#B42318] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B42318]"
             >
-              Stop test
+              {t('diag.stopTest')}
             </button>
           )}
         </div>
@@ -688,33 +687,31 @@ export default function DiagnosticsClient() {
           ref={canvasRef}
           width={600}
           height={96}
-          aria-label="Live microphone waveform"
+          aria-label={t('diag.waveformAria')}
           className="mt-4 h-24 w-full rounded-lg bg-[#FFFBF2] border border-[#E5E7EB]"
         />
         <dl className="mt-3 space-y-1 text-sm">
-          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Audio level (live)</dt><dd className="font-mono font-bold">{fmtDb(levelDb)}</dd></div>
-          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Peak level</dt><dd className="font-mono">{fmtDb(peakDb === -120 ? null : peakDb)}</dd></div>
-          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Level range while testing</dt><dd className="font-mono">{spreadDb > 0 ? `${spreadDb.toFixed(1)} dB — ${spreadDb > 10 ? 'levels changing when you speak' : 'levels barely changing'}` : '—'}</dd></div>
-          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">VAD (speech in the audio)</dt><dd>{vadSpeaking ? <Pill ok>Speaking now</Pill> : voiceDetected ? <Pill ok>Heard speech</Pill> : <Pill warn>Not detected</Pill>}</dd></div>
-          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">AudioContext</dt><dd className="font-mono">{ctxState}{sampleRate ? ` · ${sampleRate} Hz` : ''}</dd></div>
-          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Mic track</dt><dd className="font-mono">{trackInfo}</dd></div>
+          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">{t('diag.levelLive')}</dt><dd className="font-mono font-bold">{fmtDb(levelDb)}</dd></div>
+          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">{t('diag.peakLevel')}</dt><dd className="font-mono">{fmtDb(peakDb === -120 ? null : peakDb)}</dd></div>
+          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">{t('diag.levelRange')}</dt><dd className="font-mono">{spreadDb > 0 ? `${spreadDb.toFixed(1)} dB — ${spreadDb > 10 ? t('diag.levelsChangingSpeech') : t('diag.levelsBarely')}` : '—'}</dd></div>
+          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">{t('diag.vad')}</dt><dd>{vadSpeaking ? <Pill ok>{t('diag.speakingNow')}</Pill> : voiceDetected ? <Pill ok>{t('diag.heardSpeech')}</Pill> : <Pill warn>{t('diag.notDetected')}</Pill>}</dd></div>
+          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">{t('diag.audioContext')}</dt><dd className="font-mono">{ctxState}{sampleRate ? ` · ${sampleRate} Hz` : ''}</dd></div>
+          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">{t('diag.micTrack')}</dt><dd className="font-mono">{trackInfo}</dd></div>
           {(trackMuted || trackEnded) && (
-            <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Track status</dt><dd>{trackEnded ? <Pill>Ended mid-test</Pill> : <Pill warn>Muted itself</Pill>}</dd></div>
+            <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">{t('diag.trackStatus')}</dt><dd>{trackEnded ? <Pill>{t('diag.endedMidTest')}</Pill> : <Pill warn>{t('diag.mutedItself')}</Pill>}</dd></div>
           )}
           {deviceLabels.length > 0 && (
-            <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Inputs found</dt><dd>{deviceLabels.join(', ')}</dd></div>
+            <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">{t('diag.inputsFound')}</dt><dd>{deviceLabels.join(', ')}</dd></div>
           )}
-          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Audio frames analysed</dt><dd className="font-mono">{framesSeen}</dd></div>
+          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">{t('diag.framesAnalysed')}</dt><dd className="font-mono">{framesSeen}</dd></div>
         </dl>
       </section>
 
       {/* ---------- recognition engine test ---------- */}
-      <section aria-label="Arabic recognition engine test" className="rounded-2xl bg-white border border-[#E5E7EB] p-4 sm:p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-[#102E26]">2 · Arabic recognition engine</h2>
+      <section aria-label={t('diag.engineTest')} className="rounded-2xl bg-white border border-[#E5E7EB] p-4 sm:p-6 shadow-sm">
+        <h2 className="text-lg font-bold text-[#102E26]">{t('diag.engineTitle')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
-          Loads the same on-device recognition model the coach uses (about 25 MB, downloaded once, then kept on this
-          device) and listens to Al-Fatihah 1:1. This checks whether the engine can follow words — a different question
-          from whether the mic works. Word accuracy only; it never judges tajweed.
+          {t('diag.engineIntro')}
         </p>
         {engineState === 'idle' && (
           <button
@@ -722,13 +719,13 @@ export default function DiagnosticsClient() {
             onClick={() => void loadEngineTest()}
             className="mt-4 rounded-full bg-[#102E26] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
           >
-            Load recognition engine
+            {t('diag.loadEngine')}
           </button>
         )}
         {engineState === 'loading' && engineProgress && (
           <p role="status" className="mt-4 text-sm font-semibold">
-            Loading the engine… {engineProgress.stage} {Math.round(engineProgress.fraction * 100)}%
-            {engineProgress.fromCache ? ' — loaded from this device.' : ''}
+            {t('diag.loadingEngine')} {engineProgress.stage} {Math.round(engineProgress.fraction * 100)}%
+            {engineProgress.fromCache ? ` ${t('diag.fromCache')}` : ''}
           </p>
         )}
         {engineError && <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">{engineError}</p>}
@@ -741,7 +738,7 @@ export default function DiagnosticsClient() {
                 onClick={() => void startEngineTest()}
                 className="rounded-full bg-[#1FA36B] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#102E26] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
               >
-                Start engine listening test
+                {t('diag.startEngineTest')}
               </button>
             ) : (
               <button
@@ -749,7 +746,7 @@ export default function DiagnosticsClient() {
                 onClick={() => void stopEngineTest()}
                 className="rounded-full bg-[#B42318] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B42318]"
               >
-                Stop &amp; check engine
+                {t('diag.stopEngineTest')}
               </button>
             )}
           </div>
@@ -757,35 +754,31 @@ export default function DiagnosticsClient() {
         {engineLive && <p role="status" className="mt-3 text-sm font-semibold">{engineLive}</p>}
         {engineResult && (
           <div className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">
-            <p className="font-semibold">Engine test result</p>
+            <p className="font-semibold">{t('diag.engineResult')}</p>
             <p className="mt-1">
-              Words followed: {engineResult.reachedCount} · tracker events: {engineResult.audioHealth.positionEvents} ·{' '}
-              {engineResult.audioHealth.everLocked ? 'tracker locked' : 'tracker never locked'} ·{' '}
-              mic heard audio: {engineResult.micHeardAudio ? 'yes' : 'no'} ·{' '}
-              loudest level {engineResult.audioHealth.maxLevelDb.toFixed(0)} dBFS ·{' '}
+              {t('diag.wordsFollowed').replace('{n}', String(engineResult.reachedCount))} · {t('diag.trackerEvents').replace('{n}', String(engineResult.audioHealth.positionEvents))} ·{' '}
+              {engineResult.audioHealth.everLocked ? t('diag.trackerLocked') : t('diag.trackerNeverLocked')} ·{' '}
+              {t('diag.micHeardAudio').replace('{v}', engineResult.micHeardAudio ? t('diag.yes') : t('diag.no'))} ·{' '}
+              {t('diag.loudestLevel').replace('{db}', engineResult.audioHealth.maxLevelDb.toFixed(0))} ·{' '}
               {(engineResult.durationMs / 1000).toFixed(1)}s
             </p>
             {engineResult.noSpeech && engineResult.micHeardAudio ? (
               <p role="alert" className="mt-2 font-semibold">
-                Voice detected, but the checker could not follow the words. The microphone works — the engine did not
-                lock onto this short ayah. Try a longer recitation in the coach, a little louder and slower.
+                {t('diag.engineNoSpeechHeard')}
               </p>
             ) : engineResult.noSpeech ? (
               <p role="alert" className="mt-2 font-semibold">
-                The microphone sent no sound during this test. See the capture test above — the problem is before the
-                recognition engine.
+                {t('diag.engineNoSound')}
               </p>
             ) : (
-              <p className="mt-2 font-semibold">Recognition is working on this device — the engine followed words.</p>
+              <p className="mt-2 font-semibold">{t('diag.engineWorking')}</p>
             )}
           </div>
         )}
       </section>
 
       <p className="text-xs text-[#5b6b62]">
-        All audio stays on this device. The capture test uses the microphone only while it is running; the engine test
-        uses the same on-device model as the recitation coach. A teacher is still needed for tajweed — this tool checks
-        words, not tajweed.
+        {t('diag.footer')}
       </p>
     </div>
   );
