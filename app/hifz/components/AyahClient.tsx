@@ -371,7 +371,7 @@ export default function AyahClient({
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="View mode">
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('ayah.viewMode')}>
             <span className="text-sm font-medium">{t('common.view')}</span>
             {(
               [
@@ -440,8 +440,7 @@ export default function AyahClient({
         </div>
         {script === 'uthmani' && (
           <p className="mt-3 text-xs leading-relaxed text-[#5b6b62]">
-            Reading in Madani (Uthmani) script. The recitation coach still checks
-            against the Indo-Pak text — its word alignment is built on it.
+            {t('surah.uthmaniNote')}
           </p>
         )}
         <p className="mt-3 text-xs leading-relaxed text-[#5b6b62]">
@@ -538,7 +537,7 @@ export default function AyahClient({
       )}
 
       {/* Prev / next ayah */}
-      <nav aria-label="Previous and next ayah" className="mt-8 flex flex-wrap justify-between gap-2">
+      <nav aria-label={t('ayah.prevNext')} className="mt-8 flex flex-wrap justify-between gap-2">
         {prevKey ? (
           <Link href={`/hifz/${surah.slug}/${prevKey.replace(':', '-')}`} className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]">
             ← {t('ayah.prevAyah')} ({prevKey})
