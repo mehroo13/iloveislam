@@ -80,6 +80,10 @@ export default function Page() {
               Browse all 114 surahs
             </Link>
           </div>
+          <p className="mt-5 text-sm font-bold text-[#FFB800]">Free forever. No sign-up.</p>
+          <p className="mt-1 text-xs text-white/60">
+            6,236 ayahs · 114 surahs · 604 Mushaf pages · 104 translations — everything free.
+          </p>
         </div>
       </section>
       <HomeClient />

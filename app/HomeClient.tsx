@@ -51,6 +51,19 @@ export default function HomeClient() {
   const [verse, setVerse] = useState<VerseState>(FALLBACK_VERSE);
   const [coachSurah, setCoachSurah] = useState('al-fatihah');
   const [coachReciter, setCoachReciter] = useState(7);
+  // Quick Listen goes to the last surah opened, or Al-Fatihah for a new user.
+  const [listenSlug, setListenSlug] = useState('al-fatihah');
+  useEffect(() => {
+    try {
+      const lr = localStorage.getItem('ili_last_read_v1');
+      if (lr) {
+        const parsed = JSON.parse(lr) as { slug?: string };
+        if (parsed?.slug) setListenSlug(parsed.slug);
+      }
+    } catch {
+      /* keep the default */
+    }
+  }, []);
 
   const verseKey = VERSE_KEYS[dayOfYear(new Date()) % VERSE_KEYS.length];
 
@@ -132,8 +145,59 @@ export default function HomeClient() {
           </p>
         </section>
 
+        {/* Quick actions — Recite / Listen / Test, one tap each. */}
+        <nav aria-label="Quick actions" className="grid grid-cols-3 gap-2 sm:gap-3">
+          <Link
+            href="/hifz/recite"
+            className="rounded-2xl border border-[#102E26]/10 bg-white p-3 text-center shadow-sm hover:border-[#57D798] sm:p-4"
+          >
+            <span className="block text-lg font-bold text-[#102E26]">Recite</span>
+            <span className="mt-0.5 block text-xs leading-snug text-[#5b6b62]">With the AI coach</span>
+          </Link>
+          <Link
+            href={`/hifz/${listenSlug}`}
+            className="rounded-2xl border border-[#102E26]/10 bg-white p-3 text-center shadow-sm hover:border-[#57D798] sm:p-4"
+          >
+            <span className="block text-lg font-bold text-[#102E26]">Listen</span>
+            <span className="mt-0.5 block text-xs leading-snug text-[#5b6b62]">Hear a trusted reciter</span>
+          </Link>
+          <Link
+            href="/hifz/test"
+            className="rounded-2xl border border-[#102E26]/10 bg-white p-3 text-center shadow-sm hover:border-[#57D798] sm:p-4"
+          >
+            <span className="block text-lg font-bold text-[#102E26]">Test</span>
+            <span className="mt-0.5 block text-xs leading-snug text-[#5b6b62]">Prove you know it</span>
+          </Link>
+        </nav>
+
         {/* Continue where you left off */}
         <ProgressWidget />
+
+        {/* What the app does — one idea per card, one sentence each. */}
+        <section aria-labelledby="features-heading" className="grid gap-3 sm:grid-cols-3">
+          <h2 id="features-heading" className="sr-only">What you can do here</h2>
+          <Link href="/hifz/recite" className="rounded-2xl border border-[#102E26]/10 bg-white p-5 shadow-sm hover:border-[#57D798]">
+            <span className="block text-base font-bold text-[#102E26]">Recite and get checked</span>
+            <span className="mt-1 block text-sm leading-relaxed text-[#5b6b62]">
+              Recite aloud. The coach follows every word and flags the ones to retry.
+            </span>
+            <span className="mt-3 block text-sm font-semibold text-[#1FA36B]">Start reciting →</span>
+          </Link>
+          <Link href="/hifz/test" className="rounded-2xl border border-[#102E26]/10 bg-white p-5 shadow-sm hover:border-[#57D798]">
+            <span className="block text-base font-bold text-[#102E26]">Test yourself</span>
+            <span className="mt-1 block text-sm leading-relaxed text-[#5b6b62]">
+              Hide the words, recite from memory, and see your score.
+            </span>
+            <span className="mt-3 block text-sm font-semibold text-[#1FA36B]">Take a test →</span>
+          </Link>
+          <Link href="/hifz/plans" className="rounded-2xl border border-[#102E26]/10 bg-white p-5 shadow-sm hover:border-[#57D798]">
+            <span className="block text-base font-bold text-[#102E26]">A plan that fits</span>
+            <span className="mt-1 block text-sm leading-relaxed text-[#5b6b62]">
+              A 7-day or 30-day plan for any surah — one small step a day.
+            </span>
+            <span className="mt-3 block text-sm font-semibold text-[#1FA36B]">See the plans →</span>
+          </Link>
+        </section>
 
         {/* Surah list */}
         <SurahList />

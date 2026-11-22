@@ -13,6 +13,7 @@ import {
   localDateString,
   isDailyGoalMet,
   ayahsPractisedOn,
+  activityByDate,
   getStorageNotice,
   type HifzProgress,
 } from '../progress';
@@ -82,8 +83,27 @@ export default function ProgressWidget() {
   const t = useT();
   const progress = useHifzProgress();
   const [notice, setNotice] = useState<string | null>(null);
+  // Continue reading: last surah opened (written by SurahClient) and the
+  // last mushaf page (written by the continuous reader). Both are local
+  // only; either may be absent for a new user.
+  const [lastRead, setLastRead] = useState<{ name: string; slug: string } | null>(null);
+  const [mushafPage, setMushafPage] = useState<number | null>(null);
   useEffect(() => {
     setNotice(getStorageNotice());
+    try {
+      const lr = localStorage.getItem('ili_last_read_v1');
+      if (lr) {
+        const parsed = JSON.parse(lr) as { name?: string; slug?: string };
+        if (parsed?.name && parsed?.slug) setLastRead({ name: parsed.name, slug: parsed.slug });
+      }
+      const mp = localStorage.getItem('ili_mushaf_reader_pos_v1');
+      if (mp) {
+        const parsed = JSON.parse(mp) as { page?: number };
+        if (typeof parsed?.page === 'number' && parsed.page >= 1 && parsed.page <= 604) setMushafPage(parsed.page);
+      }
+    } catch {
+      /* storage unavailable — the Continue card still renders */
+    }
   }, [progress]);
 
   if (progress === null) {
@@ -158,6 +178,12 @@ export default function ProgressWidget() {
   }
 
   const memorisedCount = Object.values(progress.ayahs).filter((a) => a.status === 'memorised').length;
+  // Recent activity: last 3 days any ayah was practised, newest first
+  // (counts come from lastPractised stamps, so they are a lower bound).
+  const recentDays = Object.entries(activityByDate(progress))
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .slice(0, 3);
+  const goalPct = progress.dailyGoalMinutes > 0 ? Math.min(100, Math.round((minutesToday / progress.dailyGoalMinutes) * 100)) : 0;
 
   return (
     <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
@@ -173,6 +199,25 @@ export default function ProgressWidget() {
         {t('prog.practisedTodayWord')} · {Math.round(minutesToday)} {t('common.of')} {progress.dailyGoalMinutes} {t('prog.minutesWord')} {t('common.today')}
         {goalMet ? ` — ${t('prog.dailyGoalMet')}` : '.'}
       </p>
+      {/* Daily goal — a visible bar, not just a number in the line above. */}
+      <div className="mt-3">
+        <p className="flex justify-between gap-2 text-xs font-semibold text-[#5b6b62]">
+          <span>{t('prog.dailyGoal')}</span>
+          <span>
+            {Math.round(minutesToday)} / {progress.dailyGoalMinutes} {t('prog.minutesWord')}
+          </span>
+        </p>
+        <div
+          className="mt-1 h-2 overflow-hidden rounded-full bg-[#E5E7EB]"
+          role="progressbar"
+          aria-valuenow={Math.round(minutesToday)}
+          aria-valuemin={0}
+          aria-valuemax={progress.dailyGoalMinutes}
+          aria-label={t('prog.dailyGoal')}
+        >
+          <div className="h-full rounded-full bg-[#1FA36B]" style={{ width: `${goalPct}%` }} />
+        </div>
+      </div>
       {activePlan && planSurah && (
         <p className="mt-1 text-sm text-[#5b6b62]">
           {t('prog.activePlanLabel')} {activePlan.planDays} {t('prog.dayPlan')} — {t('common.surah')} {planSurah.name} · {t('common.day')}{' '}
@@ -193,6 +238,43 @@ export default function ProgressWidget() {
           {t('common.myProgress')}
         </Link>
       </div>
+      {/* Continue reading — the last surah opened and the last mushaf page,
+          when either is known. Memorising is above; reading is here. */}
+      {(lastRead || mushafPage !== null) && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {lastRead && (
+            <Link
+              href={`/hifz/${lastRead.slug}`}
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#102E26]/15 bg-[#FFFBF2] px-4 py-2 text-sm font-semibold text-[#102E26] hover:border-[#1FA36B]"
+            >
+              {t('prog.continueReading').replace('{name}', lastRead.name)}
+            </Link>
+          )}
+          {mushafPage !== null && (
+            <Link
+              href={`/hifz/mushaf?page=${mushafPage}`}
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#102E26]/15 bg-[#FFFBF2] px-4 py-2 text-sm font-semibold text-[#102E26] hover:border-[#1FA36B]"
+            >
+              {t('prog.continueMushaf').replace('{n}', String(mushafPage))}
+            </Link>
+          )}
+        </div>
+      )}
+      {recentDays.length > 0 && (
+        <div className="mt-4 border-t border-[#E5E7EB] pt-3">
+          <h3 className="text-sm font-bold text-[#102E26]">{t('prog.recentActivity')}</h3>
+          <ul className="mt-2 space-y-1 text-sm text-[#5b6b62]">
+            {recentDays.map(([day, n]) => (
+              <li key={day} className="flex justify-between gap-3">
+                <span>{new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                <span>
+                  {n} {t('prog.ayahsPractised')}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {notice && <p className="mt-3 text-sm text-[#5b6b62]">{notice}</p>}
     </div>
   );
