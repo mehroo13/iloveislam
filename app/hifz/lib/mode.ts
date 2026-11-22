@@ -217,3 +217,73 @@ export function saveTestSession(rec: TestSessionRecord): TestSessionRecord[] {
   }
   return next;
 }
+
+/* ------------------- unfinished-test resume (Stage 6, §19) ------------------- */
+
+/** A test left mid-way (tab closed, phone call, app switched). */
+export const TEST_IN_PROGRESS_KEY = 'ili_hifz_test_in_progress_v1';
+
+export interface InProgressTest {
+  /** The question list, in order (surah, ayah, span). */
+  questions: { surah: number; ayah: number; span: number }[];
+  /** Index of the next unanswered question. */
+  idx: number;
+  /** Per-question results so far (true = correct). */
+  results: boolean[];
+  /** Running mistake total for the session. */
+  mistakes: number;
+  /** Elapsed seconds when last saved. */
+  seconds: number;
+  type: string;
+  scope: string;
+  /** ISO timestamp the test was started. */
+  startedAt: string;
+  /** Temporary sessions record nothing — but they can still be resumed. */
+  temporary: boolean;
+}
+
+function isValidInProgress(value: unknown): value is InProgressTest {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  if (!Array.isArray(v.questions) || v.questions.length === 0) return false;
+  if (typeof v.idx !== 'number' || v.idx < 0 || v.idx >= v.questions.length) return false;
+  if (!Array.isArray(v.results) || v.results.length !== v.idx) return false;
+  if (typeof v.mistakes !== 'number' || typeof v.seconds !== 'number') return false;
+  if (typeof v.type !== 'string' || typeof v.scope !== 'string') return false;
+  if (typeof v.startedAt !== 'string' || typeof v.temporary !== 'boolean') return false;
+  return v.questions.every(
+    (q) =>
+      typeof q === 'object' &&
+      q !== null &&
+      typeof (q as Record<string, unknown>).surah === 'number' &&
+      typeof (q as Record<string, unknown>).ayah === 'number' &&
+      typeof (q as Record<string, unknown>).span === 'number',
+  );
+}
+
+export function loadInProgressTest(): InProgressTest | null {
+  try {
+    const raw = localStorage.getItem(TEST_IN_PROGRESS_KEY);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    return isValidInProgress(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveInProgressTest(state: InProgressTest): void {
+  try {
+    localStorage.setItem(TEST_IN_PROGRESS_KEY, JSON.stringify(state));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function clearInProgressTest(): void {
+  try {
+    localStorage.removeItem(TEST_IN_PROGRESS_KEY);
+  } catch {
+    /* ignore */
+  }
+}

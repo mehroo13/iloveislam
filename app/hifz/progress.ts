@@ -25,6 +25,8 @@ export const HIFZ_PROGRESS_KEY = 'ili_hifz_v1';
 export const HIFZ_MISTAKES_KEY = 'ili_hifz_mistakes_v1';
 export const HIFZ_SETTINGS_KEY = 'ili_hifz_settings_v1';
 
+import { JUZ_PAGES } from './juz';
+
 /** Consecutive correct recitations that mark an ayah memorised. */
 export const CORRECT_STREAK_FOR_MEMORISED = 3;
 /** Ayahs practised in a day that also meets the daily goal (with minutes). */
@@ -88,6 +90,13 @@ export interface HifzProgress {
   minutesToday: { date: string; minutes: number };
   /** Per-type daily goals (§15.8). Optional: older saved documents lack it. */
   typeGoals?: TypeGoals;
+  /**
+   * Stage 6 (§18): longest streak ever reached, in days. Optional so
+   * older saves load — they read as the current streak until a new
+   * streak day beats it. Maintained by recordMinutes / the Add Session
+   * restore path; never faked from anything else.
+   */
+  longestStreak?: number;
 }
 
 export type MistakeType =
@@ -254,6 +263,7 @@ export function createDefaultProgress(now: Date = new Date()): HifzProgress {
     activePlan: null,
     ayahs: {},
     minutesToday: { date: localDateString(now), minutes: 0 },
+    longestStreak: 0,
   };
 }
 
@@ -484,6 +494,9 @@ export function recordMinutes(
   if (isDailyGoalMet(next, todayStr)) {
     next.streak = updateStreak(next.streak, todayStr);
   }
+  // Stage 6 (§18): the longest streak is the best the user ever reached.
+  // Older saves lack the field — they start from the current streak.
+  next.longestStreak = Math.max(progress.longestStreak ?? next.streak.count, next.streak.count);
   return next;
 }
 
@@ -995,13 +1008,156 @@ export function markMistakesCorrected(
   return changed ? next : mistakes;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Stage 6 (§18) — dashboard totals + summaries. All pure, all      */
+/*  derived from the stored ayah records and mistake log; nothing is  */
+/*  invented. A metric with no data returns an empty result, and the  */
+/*  dashboard shows an honest empty state for it.                    */
+/* ------------------------------------------------------------------ */
+
+/** Surahs where every ayah is memorised (a completed surah). */
+export function completedSurahs(
+  progress: HifzProgress,
+  surahs: { id: number; slug: string; name: string; ayahCount: number }[],
+): { id: number; slug: string; name: string; ayahCount: number }[] {
+  const out: { id: number; slug: string; name: string; ayahCount: number }[] = [];
+  for (const s of surahs) {
+    let memorised = 0;
+    for (const [key, a] of Object.entries(progress.ayahs)) {
+      if (Number(key.split(':')[0]) !== s.id) continue;
+      if (a.status === 'memorised') memorised += 1;
+    }
+    if (memorised > 0 && memorised === s.ayahCount) out.push(s);
+  }
+  return out;
+}
+
+/** Juz numbers where every ayah in the juz is memorised. */
+export function completedJuz(progress: HifzProgress): number[] {
+  const done: number[] = [];
+  for (const j of JUZ_PAGES) {
+    let total = 0;
+    let memorised = 0;
+    for (const seg of j.segments) {
+      for (let a = seg.fromAyah; a <= seg.toAyah; a++) {
+        total += 1;
+        if (progress.ayahs[ayahKey(seg.surahId, a)]?.status === 'memorised') memorised += 1;
+      }
+    }
+    if (total > 0 && memorised === total) done.push(j.n);
+  }
+  return done;
+}
+
+export interface WeekMonthActivity {
+  weekAyahs: number;
+  weekDays: number;
+  monthAyahs: number;
+  monthDays: number;
+}
+
+/** Ayahs practised + distinct practice days, this week (Mon–Sun) and this month. */
+export function activitySummary(progress: HifzProgress, now: Date = new Date()): WeekMonthActivity {
+  const activity = activityByDate(progress);
+  const weekStartStr = weekStart(now);
+  const today = localDateString(now);
+  const monthPrefix = today.slice(0, 7);
+  let weekAyahs = 0;
+  let weekDays = 0;
+  let monthAyahs = 0;
+  let monthDays = 0;
+  for (const [day, count] of Object.entries(activity)) {
+    if (day >= weekStartStr && day <= today) {
+      weekAyahs += count;
+      weekDays += 1;
+    }
+    if (day.startsWith(monthPrefix)) {
+      monthAyahs += count;
+      monthDays += 1;
+    }
+  }
+  return { weekAyahs, weekDays, monthAyahs, monthDays };
+}
+
+export interface StrongestSurahWeek {
+  surah: number;
+  slug: string;
+  name: string;
+  ayahsPractised: number;
+}
+
 /**
- * Test Mode pool (spec §15): the ayahs a test draws from. Memorised ayahs
- * first (the real test is recall of what you claim to know), then learning
- * ayahs; if fewer than `count` practised ayahs exist, the pool is topped up
- * with unpractised ayahs from the whole Quran so a new user can still take
- * a test. Shuffled, so the test drops you at random places with no cue.
+ * The surah the user practised most in the last 7 days (by distinct ayahs
+ * whose lastPractised falls in the window). Null when nothing was
+ * practised this week — the dashboard says so instead of inventing one.
  */
+export function strongestSurahThisWeek(
+  progress: HifzProgress,
+  surahs: { id: number; slug: string; name: string; ayahCount: number }[],
+  now: Date = new Date(),
+): StrongestSurahWeek | null {
+  const today = localDateString(now);
+  const weekAgo = localDateString(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6));
+  const counts = new Map<number, number>();
+  for (const [key, a] of Object.entries(progress.ayahs)) {
+    if (!a.lastPractised) continue;
+    const day = a.lastPractised.slice(0, 10);
+    if (day < weekAgo || day > today) continue;
+    const s = Number(key.split(':')[0]);
+    counts.set(s, (counts.get(s) ?? 0) + 1);
+  }
+  let best: { id: number; n: number } | null = null;
+  for (const [id, n] of counts) {
+    if (!best || n > best.n) best = { id, n };
+  }
+  if (!best) return null;
+  const surah = surahs.find((s) => s.id === best.id);
+  if (!surah) return null;
+  return { surah: surah.id, slug: surah.slug, name: surah.name, ayahsPractised: best.n };
+}
+
+export interface DifficultAyah {
+  surah: number;
+  ayah: number;
+  /** Total mistake attempts on this ayah (uncorrected mistakes only). */
+  attempts: number;
+  /** Distinct words missed on this ayah. */
+  words: number;
+  /** ISO date-time of the most recent mistake on this ayah. */
+  lastMistake: string;
+}
+
+/**
+ * Ayahs ranked by how often they were missed (uncorrected mistakes only —
+ * corrected ones are history, not difficulty). Distinct from the per-word
+ * weak spots: this is per ayah, for "these ayahs need more revision".
+ */
+export function difficultAyahs(mistakes: MistakeEntry[], limit: number = 5): DifficultAyah[] {
+  const byAyah = new Map<string, { surah: number; ayah: number; attempts: number; words: Set<string>; lastMistake: string }>();
+  for (const m of mistakes) {
+    if (m.corrected) continue;
+    const k = `${m.surah}:${m.ayah}`;
+    const prev = byAyah.get(k);
+    if (prev) {
+      prev.attempts += m.attempts;
+      prev.words.add(m.word);
+      if (m.date > prev.lastMistake) prev.lastMistake = m.date;
+    } else {
+      byAyah.set(k, {
+        surah: m.surah,
+        ayah: m.ayah,
+        attempts: m.attempts,
+        words: new Set([m.word]),
+        lastMistake: m.date,
+      });
+    }
+  }
+  return [...byAyah.values()]
+    .sort((a, b) => b.attempts - a.attempts || b.lastMistake.localeCompare(a.lastMistake))
+    .slice(0, limit)
+    .map((x) => ({ surah: x.surah, ayah: x.ayah, attempts: x.attempts, words: x.words.size, lastMistake: x.lastMistake }));
+}
+
 export function pickTestPool(
   progress: HifzProgress,
   launchAyahs: { surah: number; ayah: number }[],
