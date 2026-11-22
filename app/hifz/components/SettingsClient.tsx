@@ -7,12 +7,15 @@
 
 import { useEffect, useRef, useState } from 'react';
 import {
-  loadProgress, loadMistakes, loadSettings, saveSettings,
+  loadProgress, loadMistakes, loadSettings, saveProgress, saveMistakes, saveSettings,
   exportProgress, importProgress, downloadProgressJson,
   localDateString,
   type HifzSettings,
 } from '../progress';
 import { mirrorAllToIdb } from '../lib/store';
+import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
+import { loadChallenges, saveChallenges } from '../lib/challenges';
+import AccountSection from './AccountSection';
 import {
   SUPPORTED_LOCALES,
   isSupportedLocale,
@@ -90,7 +93,15 @@ export default function SettingsClient() {
     try {
       const progress = loadProgress();
       const mistakes = loadMistakes();
-      downloadProgressJson(`hifz-${localDateString()}.json`, exportProgress(progress, mistakes, settings!));
+      // Stage 7 (§24): the backup must carry EVERYTHING — bookmarks and
+      // group challenges included, not just progress/mistakes/settings.
+      downloadProgressJson(
+        `hifz-${localDateString()}.json`,
+        exportProgress(progress, mistakes, settings!, {
+          bookmarks: loadBookmarks(),
+          challenges: loadChallenges(),
+        }),
+      );
     } catch {
       setMsg('Export failed — browser storage is unavailable.');
     }
@@ -104,6 +115,15 @@ export default function SettingsClient() {
         setImportMsg(result.error);
         return;
       }
+      // Stage 7 (§24): an import restores the whole backup — bookmarks
+      // and challenges included. (Before this fix the import validated
+      // them and then silently dropped them.)
+      saveProgress(result.progress);
+      saveMistakes(result.mistakes);
+      saveSettings(result.settings);
+      saveBookmarks(result.bookmarks);
+      saveChallenges(result.challenges);
+      mirrorAllToIdb();
       setSettings(result.settings);
       setImportMsg('Progress imported successfully.');
       // An import can carry a different language/theme — apply it at once.
@@ -290,7 +310,9 @@ export default function SettingsClient() {
         <p className="mt-3 text-sm text-[#5b6b62]">
           Progress is also mirrored into IndexedDB on this device (with a one-time migration of
           your existing progress), so it survives even if localStorage is cleared by the browser.
-          Nothing is ever sent to a server.
+          As a guest, nothing is ever sent to a server. If you choose to create an optional
+          account (see “Account &amp; backup” above), your progress is also backed up to your
+          account so it follows you to other devices — and only then.
         </p>
       </section>
 
@@ -298,7 +320,7 @@ export default function SettingsClient() {
       <section aria-labelledby="notif-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <h2 id="notif-heading" className="text-lg font-bold text-[#102E26]">{t('set.reminders')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
-          This app has no accounts and no server, so it cannot send push notifications. Your
+          The app works fully without an account, so it cannot send push notifications. Your
           daily goal and streak are shown on the home screen and Progress tab instead — open
           the app once a day and the streak stays alive. In-app reminders (a banner when your
           goal is unmet by the evening) are planned; nothing is promised here that is not built.
@@ -317,6 +339,9 @@ export default function SettingsClient() {
           <li>If the checker seems stuck on one ayah, tap “Practice without mic” and self-mark instead — the session still counts.</li>
         </ul>
       </section>
+
+      {/* Account & backup — optional, never required (Stage 7, §20–24) */}
+      <AccountSection />
 
       {/* Export / import / clear */}
       <section aria-labelledby="export-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
@@ -359,16 +384,26 @@ export default function SettingsClient() {
         {importMsg && (
           <p role="status" className="mt-3 text-sm font-semibold text-[#1FA36B]">{importMsg}</p>
         )}
+        <p className="mt-3 text-sm text-[#5b6b62]">
+          The backup file holds your progress, mistakes, settings, bookmarks and group challenges —
+          everything needed to restore this device. It never leaves your device unless you choose
+          to keep the file somewhere yourself.
+        </p>
       </section>
 
       {/* Privacy */}
       <section aria-labelledby="privacy-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <h2 id="privacy-heading" className="text-lg font-bold text-[#102E26]">{t('set.privacy')}</h2>
         <p className="mt-1 text-sm leading-relaxed text-[#5b6b62]">
-          Everything in this app lives on your device: progress, mistakes, goals, recordings.
-          Your voice is processed on this device by the downloaded checker — audio is never
-          uploaded, never sold, never shared. There is no account, no tracking, no advertising.
-          The only network calls are to fetch Quran text, translations and reciter audio.
+          Everything in this app lives on your device by default: progress, mistakes, goals,
+          recordings. Your voice is processed on this device by the downloaded checker — audio is
+          never uploaded, never sold, never shared. There is no tracking and no advertising, and
+          no account is ever required. If you choose to create an optional account (see “Account
+          &amp; backup” above), only your email address and your progress records (which surahs
+          you have memorised, your goals, bookmarks, test results and settings) are stored online,
+          so your progress follows you to other devices. You can delete your progress on this
+          device, or delete your account and its cloud backup, from that same section. The only
+          other network calls are to fetch Quran text, translations and reciter audio.
         </p>
       </section>
 

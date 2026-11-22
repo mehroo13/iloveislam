@@ -6,6 +6,7 @@
 import type { Metadata } from 'next';
 import { Onboarding, ThemeApplier } from './components/AppShell';
 import ModeSwitcher from './components/ModeSwitcher';
+import SyncWatcher from './components/SyncWatcher';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.iloveislam.life'),
@@ -23,6 +24,7 @@ export default function HifzLayout({ children }: { children: React.ReactNode }) 
     <div className="min-h-screen bg-[#FFFBF2] text-[#1C2420]">
       <script dangerouslySetInnerHTML={{ __html: PREFS_SCRIPT }} />
       <ThemeApplier />
+      <SyncWatcher />
       <Onboarding />
       <ModeSwitcher />
       {children}
