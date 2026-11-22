@@ -9,6 +9,13 @@
  *    restores the saved position for the current path.
  * 3. history.scrollRestoration = 'manual' stops browser + Next.js fighting us.
  *
+ * Exception: the continuous mushaf reader (/hifz/mushaf) owns its own
+ * scroll restoration (localStorage ili_mushaf_reader_pos_v1). When it has
+ * a saved spot, this component does not touch scroll at all on that
+ * route — neither the fresh-session scrollTo(0) nor the sessionStorage
+ * restore — or it yanks the reader's restore and page 1 gets saved over
+ * the real position.
+ *
  * Place <ScrollRestorer /> inside your RootLayout, inside <body>, before {children}.
  */
 
@@ -16,9 +23,24 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 
 const STORAGE_PREFIX = 'scroll_';
+// The continuous mushaf reader's saved position (see MushafReader).
+// When it exists, the reader owns scroll restoration on its route.
+const MUSHAF_POS_KEY = 'ili_mushaf_reader_pos_v1';
 
 function getKey(path: string) {
   return STORAGE_PREFIX + path;
+}
+
+/** True when the mushaf reader has a saved "pick up where you left off" spot. */
+function hasSavedMushafPos(): boolean {
+  try {
+    const raw = window.localStorage.getItem(MUSHAF_POS_KEY);
+    if (!raw) return false;
+    const p = JSON.parse(raw) as { page?: unknown };
+    return typeof p.page === 'number' && p.page >= 1;
+  } catch {
+    return false;
+  }
 }
 
 export default function ScrollRestorer() {
@@ -30,6 +52,14 @@ export default function ScrollRestorer() {
     if (typeof window !== 'undefined' && 'scrollRestoration' in history) {
       history.scrollRestoration = 'manual';
     }
+
+    // Hands off the continuous mushaf reader: it restores its own
+    // scroll from ili_mushaf_reader_pos_v1 after mount. If this
+    // component also scrolled — to the top on a fresh session (no
+    // sessionStorage Y), or to a stale sessionStorage Y via double-rAF
+    // after the reader's restore — it would yank the restore and the
+    // reader would then save page 1 over the real position.
+    if (pathname === '/hifz/mushaf' && hasSavedMushafPos()) return;
 
     const key = getKey(pathname);
     const saved = sessionStorage.getItem(key);
