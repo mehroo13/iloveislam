@@ -20,13 +20,41 @@
 // - At most ~45% stretch: a line that would need more is not filled —
 //   the caller centres it instead (a centred short line reads like the
 //   printed mushaf's last line; a stretched one does not).
+// - A line is only attempted when its kashida capacity (eligible points
+//   x 3 tatweels) covers the shortfall; otherwise it is centred without
+//   attempting a partial fill.
+// - The fill UNDERSHOOTS on purpose (floor, never ceil, and a 2px safety
+//   slack): the old code used ceil(), which inserted up to one tatweel
+//   MORE than the shortfall, so the line overflowed its box by a few px,
+//   wrapped onto a second visual line, and the wrap-guard threw the
+//   whole fill away. A line whose shortfall exceeds its kashida capacity
+//   was likewise attempted, exhausted the capacity, and restored.
+//   Measured 2026-11-22 on page 1 (HarfBuzz-shaped Amiri at 33.6px in a
+//   650px frame, live Quran.com data): lines 4–5 shortfalls 242px/284px
+//   vs capacity 167px/186px (capacity failure — the lines were just
+//   under the 45% centre threshold, so the fill was attempted and
+//   failed); line 6 shortfall 219px vs capacity 242px, but ceil()
+//   inserted 36 tatweels (223px) for a 219px shortfall, overshooting the
+//   box by ~4px (wrap failure). All three were left on plain CSS
+//   justification with wide gaps — and the simulation over pages 1–3
+//   shows the old code failed all 23 fillable lines the same way.
+// - A line the filler cannot fill is CENTRED, never left on plain CSS
+//   justification: 'left' now only means "already full", "genuinely
+//   over-full (wraps onto two visual lines)" or memorise-mode rules.
+//   Plain CSS justification is what stretched the single tatweel already
+//   in words like الرَّحْمَـٰنِ and مَـٰلِكِ into a visible split, and
+//   the word spaces into wide gaps.
 // - Everything is defensive: any measurement or insertion failure leaves
-//   the line on plain CSS justification. The filler never throws.
-// - The pure string helpers are unit-tested by tools/test-kashida.mjs.
+//   the line as it was. The filler never throws.
+// - The pure string helpers AND the pure fill-decision helpers are
+//   unit-tested by tools/test-kashida.mjs.
 
 export const TATWEEL = 'ـ'; // U+0640 ARABIC TATWEEL (kashida)
-const MAX_PER_POINT = 3;
-const MAX_SHORTFALL_FRACTION = 0.45;
+export const MAX_PER_POINT = 3;
+export const MAX_SHORTFALL_FRACTION = 0.45;
+/** Safety margin (px) left unfilled so a filled line can never overflow
+ *  its box and trip the wrap-guard (see the fill loop). */
+export const FILL_SLACK_PX = 2;
 
 /** Letters that join to the following letter (dual-joining). A tatweel
  *  may follow one of these (after its diacritics). Everything else — alef,
@@ -129,6 +157,54 @@ export function insertTatweel(text: string, offsets: number[], perPoint: number)
 }
 
 /* ------------------------------------------------------------------ */
+/*  Pure fill-decision helpers — unit-tested by tools/test-kashida.mjs  */
+/*  (the DOM filler below just measures and applies them).              */
+/* ------------------------------------------------------------------ */
+
+/** Decide what to do with a line before attempting a fill.
+ *  'full' — nothing to do (shortfall within measurement noise).
+ *  'centre' — too short to fill sanely (>45% of the width), or the
+ *  line's kashida capacity (eligible points x 3 tatweels) cannot cover
+ *  the shortfall: a half-filled line reads worse than a centred one.
+ *  'fill' — attempt it. */
+export function fillDecision(
+  shortfallPx: number,
+  availPx: number,
+  capacityPx: number,
+): 'full' | 'fill' | 'centre' {
+  if (shortfallPx <= 2) return 'full';
+  if (shortfallPx > availPx * MAX_SHORTFALL_FRACTION) return 'centre';
+  if (capacityPx < shortfallPx) return 'centre';
+  return 'fill';
+}
+
+/** How many tatweels to insert this round. floor(), never ceil(): ceil
+ *  inserts up to one tatweel MORE than the shortfall, the line overflows
+ *  its box by a few px, wraps onto a second visual line, and the
+ *  wrap-guard discards the whole fill. Always leaves FILL_SLACK_PX of
+ *  the shortfall unfilled, and never exceeds the remaining per-point
+ *  capacity (points x MAX_PER_POINT). */
+export function tatweelsToInsert(
+  shortfallPx: number,
+  tatweelPx: number,
+  totalCap: number,
+): number {
+  if (shortfallPx <= 0 || tatweelPx <= 0 || totalCap <= 0) return 0;
+  return Math.max(
+    0,
+    Math.min(Math.floor((shortfallPx - FILL_SLACK_PX) / tatweelPx), totalCap),
+  );
+}
+
+/** True when the remaining shortfall is at most one tatweel plus the
+ *  safety slack: the line is for practical purposes full — an ~8px rag
+ *  on a ~650px line is invisible, and inserting one more tatweel would
+ *  overflow the box. */
+export function isNearlyFull(shortfallPx: number, tatweelPx: number): boolean {
+  return shortfallPx <= tatweelPx + FILL_SLACK_PX;
+}
+
+/* ------------------------------------------------------------------ */
 /*  DOM filler — measures real rendered lines and fills them.          */
 /* ------------------------------------------------------------------ */
 
@@ -197,11 +273,33 @@ function tatweelWidth(line: HTMLElement): number {
   }
 }
 
+/** One eligible kashida point in a line's text, with the remaining
+ *  per-point capacity (MAX_PER_POINT minus tatweel already there). */
+type FillPoint = { node: Text; offset: number; cap: number };
+
+/** Eligible kashida points across a line's text nodes, with the
+ *  remaining per-point capacity (MAX_PER_POINT minus tatweel already
+ *  at that spot). */
+function gatherPoints(line: HTMLElement): { points: FillPoint[]; totalCap: number } {
+  const points: FillPoint[] = [];
+  for (const node of textNodesOf(line)) {
+    for (const off of eligibleOffsets(node.data)) {
+      let existing = 0;
+      for (let i = off - 1; i >= 0 && node.data[i] === TATWEEL; i--) existing++;
+      const cap = MAX_PER_POINT - existing;
+      if (cap > 0) points.push({ node, offset: off, cap });
+    }
+  }
+  return { points, totalCap: points.reduce((a, p) => a + p.cap, 0) };
+}
+
 /** Fill one justified line with kashida so its word gaps stay tight.
  *  Returns 'filled' (line is full, gaps tight), 'centred' (too short to
- *  fill sanely — centred instead, like the printed mushaf's last line),
- *  or 'left' (could not fill — plain CSS justification kept). Never
- *  throws. */
+ *  fill sanely, or kashida capacity cannot cover the shortfall — centred
+ *  instead, like the printed mushaf's last line), or 'left' (already
+ *  full, genuinely over-full and wrapping, or memorise-mode rules —
+ *  none of which are fillable lines). A line the filler cannot fill is
+ *  NEVER left on plain CSS justification with wide gaps. Never throws. */
 export function fillMushafLine(line: HTMLElement): 'filled' | 'centred' | 'left' {
   try {
     // Memorisation mode: words are grey rules, not text — nothing to fill.
@@ -212,46 +310,44 @@ export function fillMushafLine(line: HTMLElement): 'filled' | 'centred' | 'left'
     // Measure with justification off, so the width is the natural one.
     line.style.textAlign = 'start';
     if (isWrapped(line)) {
+      // Genuinely over-full line (natural width exceeds the frame): it
+      // wraps onto two visual lines. Leave it — centring a wrapped
+      // paragraph would centre both fragments.
       line.style.textAlign = prevAlign;
       return 'left';
     }
     const avail = line.clientWidth;
-    let shortfall = avail - measureNatural(line);
-    if (shortfall <= 2) {
+    const shortfall = avail - measureNatural(line);
+    const tatW = tatweelWidth(line);
+    const { totalCap } = gatherPoints(line);
+    const decision = fillDecision(shortfall, avail, totalCap * tatW);
+    if (decision === 'full') {
       line.style.textAlign = prevAlign;
       return 'left'; // already full
     }
-    if (shortfall > avail * MAX_SHORTFALL_FRACTION) {
+    if (decision === 'centre') {
       line.style.textAlign = 'center';
       return 'centred';
     }
-    const tatW = tatweelWidth(line);
-    for (let round = 0; round < 4 && shortfall > 2; round++) {
-      // Gather eligible points across the line's text nodes.
-      type Pt = { node: Text; offset: number; cap: number };
-      const points: Pt[] = [];
-      for (const node of textNodesOf(line)) {
-        for (const off of eligibleOffsets(node.data)) {
-          let existing = 0;
-          for (let i = off - 1; i >= 0 && node.data[i] === TATWEEL; i--) existing++;
-          const cap = MAX_PER_POINT - existing;
-          if (cap > 0) points.push({ node, offset: off, cap });
-        }
-      }
+    let remaining = shortfall;
+    for (let round = 0; round < 4 && remaining > 2; round++) {
+      // Re-gather: offsets and remaining caps shift as tatweel is added.
+      const { points, totalCap: capLeft } = gatherPoints(line);
       if (points.length === 0) break;
-      const totalCap = points.reduce((a, p) => a + p.cap, 0);
-      let toInsert = Math.min(Math.ceil(shortfall / tatW), totalCap);
+      // Undershoot on purpose (floor + slack) — see tatweelsToInsert.
+      const toInsert = tatweelsToInsert(remaining, tatW, capLeft);
       if (toInsert <= 0) break;
       // Distribute round-robin so the stretch is even across the line.
       const plan = new Map<Text, { offset: number; add: number }[]>();
+      let left = toInsert;
       let guard = 0;
-      while (toInsert > 0 && guard++ < 10000) {
+      while (left > 0 && guard++ < 10000) {
         let progressed = false;
         for (const p of points) {
-          if (toInsert === 0) break;
+          if (left === 0) break;
           if (p.cap <= 0) continue;
           p.cap -= 1;
-          toInsert -= 1;
+          left -= 1;
           progressed = true;
           const list = plan.get(p.node) ?? [];
           const entry = list.find((e) => e.offset === p.offset);
@@ -271,18 +367,23 @@ export function fillMushafLine(line: HTMLElement): 'filled' | 'centred' | 'left'
         node.data = data;
       }
       if (inserted === 0) break;
-      // Never let a fill push the line onto a second visual line.
+      // Never let a fill push the line onto a second visual line. The
+      // undershoot above makes this near-unreachable (only if the
+      // canvas tatweel estimate was far off); if it still happens,
+      // centre the line rather than leaving it on CSS justification.
       if (isWrapped(line)) {
         restoreLine(line);
-        line.style.textAlign = prevAlign;
-        return 'left';
+        line.style.textAlign = 'center';
+        return 'centred';
       }
-      shortfall = avail - measureNatural(line);
+      remaining = avail - measureNatural(line);
     }
-    if (shortfall <= 2) return 'filled'; // textAlign stays 'start' — line is full
+    if (remaining <= 2 || isNearlyFull(remaining, tatW)) return 'filled'; // textAlign stays 'start' — line is full
+    // Capacity ran out (or the next tatweel would overflow the box):
+    // centre it, like the printed mushaf's last line.
     restoreLine(line);
-    line.style.textAlign = prevAlign;
-    return 'left';
+    line.style.textAlign = 'center';
+    return 'centred';
   } catch {
     return 'left';
   }
