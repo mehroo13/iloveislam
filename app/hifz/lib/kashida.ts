@@ -44,11 +44,22 @@
 //   against one line-height instead — a real wrap doubles the height,
 //   fragments on one visual line do not change it.)
 // - A line the filler cannot fill is CENTRED, never left on plain CSS
-//   justification: 'left' now only means "already full", "genuinely
-//   over-full (wraps onto two visual lines)" or memorise-mode rules.
+//   justification: 'left' now only means "already full" or
+//   memorise-mode rules. A genuinely over-full line (wraps onto two
+//   visual lines) is centred too — centred fragments read like the
+//   printed mushaf; CSS justification stretches them into wide gaps.
 //   Plain CSS justification is what stretched the single tatweel already
 //   in words like الرَّحْمَـٰنِ and مَـٰلِكِ into a visible split, and
 //   the word spaces into wide gaps.
+// - Centring must set textAlignLast as well as textAlign. The CSS rule
+//   `.mushaf-line { text-align-last: justify }` re-justifies each
+//   line's only (last) line, so text-align-last wins over text-align:
+//   live (2026-11-22) the filler centred lines 3–5 — inline textAlign
+//   'center', 0 tatweels — and they still rendered spread edge-to-edge
+//   (computed textAlignLast 'justify'). Every centre decision sets
+//   textAlignLast='center' too; every fill / 'left' exit restores or
+//   clears it, so a stale 'center' cannot defeat a later fill when a
+//   script switch changes the measurements.
 // - Everything is defensive: any measurement or insertion failure leaves
 //   the line as it was. The filler never throws.
 // - The pure string helpers AND the pure fill-decision helpers are
@@ -337,10 +348,10 @@ function gatherPoints(line: HTMLElement): { points: FillPoint[]; totalCap: numbe
 
 /** Fill one justified line with kashida so its word gaps stay tight.
  *  Returns 'filled' (line is full, gaps tight), 'centred' (too short to
- *  fill sanely, or kashida capacity cannot cover the shortfall — centred
- *  instead, like the printed mushaf's last line), or 'left' (already
- *  full, genuinely over-full and wrapping, or memorise-mode rules —
- *  none of which are fillable lines). A line the filler cannot fill is
+ *  fill sanely, kashida capacity cannot cover the shortfall, or the line
+ *  wraps onto two visual lines — centred instead, like the printed
+ *  mushaf's last line), or 'left' (already full, or memorise-mode rules
+ *  — neither is a fillable line). A line the filler cannot fill is
  *  NEVER left on plain CSS justification with wide gaps. Never throws. */
 export function fillMushafLine(line: HTMLElement): 'filled' | 'centred' | 'left' {
   try {
@@ -349,14 +360,20 @@ export function fillMushafLine(line: HTMLElement): 'filled' | 'centred' | 'left'
     snapshotLine(line);
     restoreLine(line);
     const prevAlign = line.style.textAlign;
+    const prevAlignLast = line.style.textAlignLast;
     // Measure with justification off, so the width is the natural one.
     line.style.textAlign = 'start';
     if (isWrapped(line)) {
       // Genuinely over-full line (natural width exceeds the frame): it
-      // wraps onto two visual lines. Leave it — centring a wrapped
-      // paragraph would centre both fragments.
-      line.style.textAlign = prevAlign;
-      return 'left';
+      // wraps onto two visual lines. Centre the fragments — no tatweel
+      // (the text is clean after restoreLine). Plain CSS justification
+      // plus text-align-last: justify would stretch the fragments into
+      // wide gaps; centred fragments read like the printed mushaf.
+      // Centring sets textAlignLast too: text-align-last wins over
+      // text-align on a single-line <p> (see the header note).
+      line.style.textAlign = 'center';
+      line.style.textAlignLast = 'center';
+      return 'centred';
     }
     const avail = line.clientWidth;
     const shortfall = avail - measureNatural(line);
@@ -365,10 +382,12 @@ export function fillMushafLine(line: HTMLElement): 'filled' | 'centred' | 'left'
     const decision = fillDecision(shortfall, avail, totalCap * tatW);
     if (decision === 'full') {
       line.style.textAlign = prevAlign;
+      line.style.textAlignLast = prevAlignLast;
       return 'left'; // already full
     }
     if (decision === 'centre') {
       line.style.textAlign = 'center';
+      line.style.textAlignLast = 'center';
       return 'centred';
     }
     let remaining = shortfall;
@@ -416,17 +435,28 @@ export function fillMushafLine(line: HTMLElement): 'filled' | 'centred' | 'left'
       if (isWrapped(line)) {
         restoreLine(line);
         line.style.textAlign = 'center';
+        line.style.textAlignLast = 'center';
         return 'centred';
       }
       remaining = avail - measureNatural(line);
     }
-    if (remaining <= 2 || isNearlyFull(remaining, tatW)) return 'filled'; // textAlign stays 'start' — line is full
+    if (remaining <= 2 || isNearlyFull(remaining, tatW)) {
+      // textAlign stays 'start' — line is full. Clear textAlignLast:
+      // a stale 'center' from a previous run would survive a script
+      // switch and defeat the fill (CSS already supplies the justify).
+      line.style.textAlignLast = '';
+      return 'filled';
+    }
     // Capacity ran out (or the next tatweel would overflow the box):
     // centre it, like the printed mushaf's last line.
     restoreLine(line);
     line.style.textAlign = 'center';
+    line.style.textAlignLast = 'center';
     return 'centred';
   } catch {
+    // Defensive fallback: clear any centre last-align set above so a
+    // half-measured line falls back to plain CSS justification.
+    line.style.textAlignLast = '';
     return 'left';
   }
 }

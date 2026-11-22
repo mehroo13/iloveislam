@@ -1,8 +1,11 @@
 // tools/test-kashida.mjs — unit test for app/hifz/lib/kashida.ts.
 // Compiles the real file with the repo's tsc (DOM lib for the filler
-// types) and asserts the pure string helpers: eligibleOffsets +
-// insertTatweel. The DOM filler itself (measurement, ResizeObserver) can
-// only run in a browser — it is verified live, not here.
+// types) and asserts the pure string helpers (eligibleOffsets +
+// insertTatweel), the pure fill-decision helpers, and — via a minimal
+// DOM shim below — the DOM filler fillMushafLine's alignment decisions
+// (centre sets textAlignLast, fill/'left' exits clear or restore it,
+// wrapped lines centre with no tatweel). Real rendered widths and the
+// live browser behaviour are verified live, not here.
 // Run: node tools/test-kashida.mjs   (from the repo root)
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -30,7 +33,7 @@ try {
 const require = createRequire(import.meta.url);
 const {
   eligibleOffsets, insertTatweel, TATWEEL, stripTatweel,
-  fillDecision, tatweelsToInsert, isNearlyFull,
+  fillDecision, tatweelsToInsert, isNearlyFull, fillMushafLine,
   FILL_SLACK_PX, MAX_PER_POINT, MAX_SHORTFALL_FRACTION,
 } = require(join(outDir, 'kashida.js'));
 
@@ -82,6 +85,187 @@ for (const [input] of cases) {
   assert.equal(filled.replaceAll(T, ''), input.replaceAll(T, ''));
   assert.equal(filled.length, input.length + eligibleOffsets(input).length * 2);
 }
+
+// ------------------------------------------------------------------
+// fillMushafLine alignment decisions (2026-11-22 text-align-last fix).
+//
+// Live defects: (1) the filler centred lines 3–5 (inline textAlign
+// 'center', 0 tatweels) but they still rendered spread edge-to-edge,
+// because `.mushaf-line { text-align-last: justify }` re-justifies a
+// single-line <p>'s only line — text-align-last wins over text-align.
+// (2) On a 390px phone the lines genuinely wrap; the old wrapped guard
+// returned 'left' and CSS justification stretched the fragments.
+// Minimal DOM shim: text nodes, element styles, TreeWalker, Range and
+// canvas are faked with fixed metrics (8px per char, 6.2px per tatweel,
+// 70px line-height) — enough to drive the filler's decisions, not a
+// rendering engine. Real widths are verified live in a browser.
+// ------------------------------------------------------------------
+
+const SHIM_CHAR_PX = 8;
+const SHIM_TATWEEL_PX = 6.2;
+const SHIM_LINE_HEIGHT = 70;
+
+class ShimText {
+  constructor(data) { this.data = data; this.nodeType = 3; this.parentNode = null; }
+}
+class ShimElement {
+  constructor(tag = 'p') {
+    this.tagName = tag.toUpperCase();
+    this.nodeType = 1;
+    this.childNodes = [];
+    this.style = { textAlign: '', textAlignLast: '' };
+    this.clientWidth = 650;
+    this._forceWrapped = false; // range height is always two lines
+    this._wrapAfterFill = false; // range height is two lines once text holds a tatweel
+  }
+  appendChild(child) { child.parentNode = this; this.childNodes.push(child); return child; }
+  querySelector() { return null; }
+  remove() {}
+  getContext() { return SHIM_CTX; }
+  cloneNode(deep) {
+    const c = new ShimElement(this.tagName.toLowerCase());
+    c.clientWidth = this.clientWidth;
+    c._forceWrapped = this._forceWrapped;
+    c._wrapAfterFill = this._wrapAfterFill;
+    if (deep) for (const n of this.childNodes) if (n.nodeType === 3) c.appendChild(new ShimText(n.data));
+    return c;
+  }
+  getBoundingClientRect() {
+    return { width: shimTextWidth(shimTextContent(this)), height: SHIM_LINE_HEIGHT };
+  }
+}
+const SHIM_CTX = {
+  font: '',
+  measureText() { return { width: SHIM_TATWEEL_PX }; },
+};
+function shimTextContent(el) {
+  let out = '';
+  for (const n of el.childNodes) {
+    if (n.nodeType === 3) out += n.data;
+    else out += shimTextContent(n);
+  }
+  return out;
+}
+function shimTextWidth(text) {
+  let w = 0;
+  for (const ch of text) w += ch === T ? SHIM_TATWEEL_PX : SHIM_CHAR_PX;
+  return w;
+}
+class ShimRange {
+  selectNodeContents(el) { this.el = el; }
+  getBoundingClientRect() {
+    const text = shimTextContent(this.el);
+    const wrapped = this.el._forceWrapped
+      || (this.el._wrapAfterFill && text.includes(T));
+    return { width: shimTextWidth(text), height: wrapped ? SHIM_LINE_HEIGHT * 2 : SHIM_LINE_HEIGHT };
+  }
+}
+let shimThrowOnAppend = false;
+const shimBody = new ShimElement('body');
+const shimBodyAppend = shimBody.appendChild.bind(shimBody);
+shimBody.appendChild = (child) => {
+  if (shimThrowOnAppend) throw new Error('shim: appendChild failed');
+  return shimBodyAppend(child);
+};
+const shimDocument = {
+  body: shimBody,
+  createTreeWalker(root) {
+    const nodes = [];
+    (function walk(el) {
+      for (const n of el.childNodes) {
+        if (n.nodeType === 3) nodes.push(n);
+        else walk(n);
+      }
+    })(root);
+    let i = 0;
+    return { nextNode() { return i < nodes.length ? nodes[i++] : null; } };
+  },
+  createRange() { return new ShimRange(); },
+  createElement(tag) { return new ShimElement(tag); },
+};
+globalThis.document = shimDocument;
+globalThis.NodeFilter = { SHOW_TEXT: 4 };
+globalThis.getComputedStyle = () => ({ font: '33px Amiri', lineHeight: `${SHIM_LINE_HEIGHT}px` });
+
+const WORD = 'الكتاب'; // 6 chars, 3 eligible kashida points, 48px in the shim
+function makeLine(text, { avail = 650, forceWrapped = false, wrapAfterFill = false } = {}) {
+  const line = new ShimElement('p');
+  line.clientWidth = avail;
+  line._forceWrapped = forceWrapped;
+  line._wrapAfterFill = wrapAfterFill;
+  line.appendChild(new ShimText(text));
+  return line;
+}
+
+// (a) Centre path sets textAlignLast 'center' — decision-'centre' branch.
+{
+  const line = makeLine(WORD.repeat(6)); // 36 chars, 288px, shortfall 362 > 45% of 650
+  assert.equal(fillMushafLine(line), 'centred');
+  assert.equal(line.style.textAlign, 'center');
+  assert.equal(line.style.textAlignLast, 'center');
+  assert.equal(shimTextContent(line).includes(T), false, 'centre inserts no tatweel');
+}
+// (a) Centre path sets textAlignLast 'center' — in-loop wrap branch:
+// fill is attempted (shortfall 42, capacity covers), then the line
+// wraps and the filler restores + centres instead of justifying.
+{
+  const line = makeLine(WORD.repeat(12) + 'الكت', { wrapAfterFill: true }); // 76 chars, 608px
+  assert.equal(fillMushafLine(line), 'centred');
+  assert.equal(line.style.textAlign, 'center');
+  assert.equal(line.style.textAlignLast, 'center');
+  assert.equal(shimTextContent(line).includes(T), false, 'wrapped fill is restored, no tatweel left');
+}
+// (b) Fill path clears a stale textAlignLast 'center' (from a previous
+// centre decision) — the 'filled' exit sets it to ''.
+{
+  const line = makeLine(WORD.repeat(13) + 'ال'); // 80 chars, 640px, shortfall 10 -> fill
+  line.style.textAlignLast = 'center'; // stale
+  assert.equal(fillMushafLine(line), 'filled');
+  assert.equal(line.style.textAlignLast, '');
+  assert.equal(shimTextContent(line).split(T).length - 1, 1, 'exactly one tatweel inserted');
+}
+// (b) A line centred on one run must not keep textAlignLast 'center'
+// when a script switch makes it fillable on the next run.
+{
+  const line = makeLine(WORD.repeat(6));
+  assert.equal(fillMushafLine(line), 'centred');
+  assert.equal(line.style.textAlignLast, 'center');
+  line.childNodes[0].data = WORD.repeat(13) + 'ال'; // script switch: now fillable
+  assert.equal(fillMushafLine(line), 'filled');
+  assert.equal(line.style.textAlignLast, '');
+}
+// (b) 'full' / 'left' exit restores the previous inline values (the
+// line is already full, so last-align is inert there).
+{
+  const line = makeLine(WORD.repeat(13) + 'الك'); // 81 chars, 648px, shortfall 2 -> full
+  line.style.textAlign = 'justify';
+  line.style.textAlignLast = 'center';
+  assert.equal(fillMushafLine(line), 'left');
+  assert.equal(line.style.textAlign, 'justify');
+  assert.equal(line.style.textAlignLast, 'center');
+}
+// (b) Catch path ('left' on measurement failure) clears textAlignLast.
+{
+  const line = makeLine(WORD.repeat(13) + 'ال');
+  line.style.textAlignLast = 'center';
+  shimThrowOnAppend = true;
+  try {
+    assert.equal(fillMushafLine(line), 'left');
+    assert.equal(line.style.textAlignLast, '');
+  } finally {
+    shimThrowOnAppend = false;
+  }
+}
+// (c) A wrapped line resolves to 'centred' with NO tatweels inserted.
+{
+  const line = makeLine(WORD.repeat(6), { forceWrapped: true });
+  assert.equal(fillMushafLine(line), 'centred');
+  assert.equal(line.style.textAlign, 'center');
+  assert.equal(line.style.textAlignLast, 'center');
+  assert.equal(shimTextContent(line).includes(T), false, 'wrapped line gets no tatweel');
+}
+
+console.log('kashida: fillMushafLine alignment decisions (textAlignLast + wrapped-centre) passed.');
 
 rmSync(outDir, { recursive: true, force: true });
 console.log(`kashida: ${cases.length} eligibleOffsets cases + insertTatweel checks passed.`);
