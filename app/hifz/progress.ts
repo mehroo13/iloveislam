@@ -55,6 +55,17 @@ export interface AyahProgress {
   /** ISO date-time of the last practice, or null if never practised. */
   lastPractised: string | null;
   attempts: number;
+  /**
+   * Stage 5 (§9): ISO date-time of the last peek (revealing a hidden word
+   * or ayah) on this ayah, or null/undefined when the user has not peeked
+   * — or has since recited it clean once, which clears the flag. Peeking
+   * is help-needed: a peeked ayah jumps the revision queue (peekedDue)
+   * until one clean recitation clears it. A peek still resets the
+   * correct streak (markAttempt, below) — the flag is only the queue signal.
+   */
+  lastPeekAt?: string | null;
+  /** Total peeks on this ayah, across all sessions. */
+  peekCount?: number;
 }
 
 export interface HifzProgress {
@@ -79,6 +90,14 @@ export interface HifzProgress {
   typeGoals?: TypeGoals;
 }
 
+export type MistakeType =
+  | 'missed' // expected word never heard (omitted_word)
+  | 'incorrect' // word said differently (wrong_word)
+  | 'extra' // an added word the checker confirmed (added_word)
+  | 'repeated' // a word repeated (duplicate collapse in alignment.ts)
+  | 'sequence' // words out of order / passage skipped (skipped_passage)
+  | 'skipped'; // passage skipped without a word-level location
+
 export interface MistakeEntry {
   surah: number;
   ayah: number;
@@ -98,6 +117,24 @@ export interface MistakeEntry {
    * follow-up; the field exists so the value can persist once set.
    */
   source?: 'engine' | 'self-mark';
+  /**
+   * Stage 5 (§11): 0-based word position inside the ayah, when known.
+   * Lets the review screen say "word 3 of this ayah" instead of only the
+   * word itself. Older entries lack it.
+   */
+  wordIndex?: number;
+  /** Stage 5 (§11): what kind of issue this was (checker class, or 'missed'
+   *  for a self-marked word). Older entries lack it and read as 'missed'. */
+  type?: MistakeType;
+  /**
+   * Stage 5 (§11): true once the user recited this ayah clean (all words
+   * correct, no peek) after the mistake was logged. A corrected mistake
+   * stays in the log — it is history, not deleted — but the review screen
+   * shows it as fixed and stops counting it as a weak spot.
+   */
+  corrected?: boolean;
+  /** ISO date-time the mistake was corrected, when corrected. */
+  correctedAt?: string;
 }
 
 export interface HifzSettings {
@@ -350,6 +387,20 @@ export function markAttempt(
       correctStreak: streak,
       lastPractised: now.toISOString(),
       attempts: prev.attempts + 1,
+      // Stage 5 (§9): one clean recitation clears the "peeked, revise
+      // first" flag (the streak itself still needs 3 in a row). The total
+      // peek count is kept as history.
+      lastPeekAt: null,
+      peekCount: prev.peekCount ?? 0,
+    };
+  } else if (result === 'peek') {
+    next = {
+      status: 'learning',
+      correctStreak: 0,
+      lastPractised: now.toISOString(),
+      attempts: prev.attempts + 1,
+      lastPeekAt: now.toISOString(),
+      peekCount: (prev.peekCount ?? 0) + 1,
     };
   } else {
     next = {
@@ -357,6 +408,8 @@ export function markAttempt(
       correctStreak: 0,
       lastPractised: now.toISOString(),
       attempts: prev.attempts + 1,
+      lastPeekAt: prev.lastPeekAt ?? null,
+      peekCount: prev.peekCount ?? 0,
     };
   }
   return { ...progress, ayahs: { ...progress.ayahs, [key]: next } };
@@ -579,12 +632,21 @@ export interface HifzExport {
   progress: HifzProgress;
   mistakes: MistakeEntry[];
   settings: HifzSettings;
+  /** Stage 5 (§6): bookmarks (ayah + Mushaf page, with notes). Optional so
+   *  older exports still import. */
+  bookmarks?: import('./lib/bookmarks').BookmarkEntry[];
+  /** Stage 5 (§6): group challenges, where present. Optional, same reason. */
+  challenges?: import('./lib/challenges').GroupChallenge[];
 }
 
 export function exportProgress(
   progress: HifzProgress,
   mistakes: MistakeEntry[],
   settings: HifzSettings,
+  extras?: {
+    bookmarks?: import('./lib/bookmarks').BookmarkEntry[];
+    challenges?: import('./lib/challenges').GroupChallenge[];
+  },
 ): string {
   const doc: HifzExport = {
     kind: 'hifz-export',
@@ -592,12 +654,21 @@ export function exportProgress(
     progress,
     mistakes,
     settings,
+    ...(extras?.bookmarks ? { bookmarks: extras.bookmarks } : {}),
+    ...(extras?.challenges ? { challenges: extras.challenges } : {}),
   };
   return JSON.stringify(doc, null, 2);
 }
 
 export type ImportResult =
-  | { ok: true; progress: HifzProgress; mistakes: MistakeEntry[]; settings: HifzSettings }
+  | {
+      ok: true;
+      progress: HifzProgress;
+      mistakes: MistakeEntry[];
+      settings: HifzSettings;
+      bookmarks: import('./lib/bookmarks').BookmarkEntry[];
+      challenges: import('./lib/challenges').GroupChallenge[];
+    }
   | { ok: false; error: string };
 
 /** Validate an imported JSON string. Rejects anything that is not a v1 export. */
@@ -626,7 +697,69 @@ export function importProgress(json: string): ImportResult {
     typeof doc.settings === 'object' && doc.settings !== null
       ? (doc.settings as HifzSettings)
       : createDefaultSettings();
-  return { ok: true, progress: doc.progress, mistakes, settings };
+  // Stage 5 (§6): bookmarks + challenges ride along when present. They are
+  // validated loosely (normaliseBookmarks drops junk rows) and default to
+  // empty on older exports — an export without them still imports cleanly.
+  // The challenge rows are checked only for the fields the challenges page
+  // needs; a malformed row is dropped rather than failing the whole import.
+  const bookmarks = normaliseBookmarksLocal(doc.bookmarks);
+  const challenges = Array.isArray(doc.challenges)
+    ? (doc.challenges as unknown[]).filter(
+        (c): c is import('./lib/challenges').GroupChallenge =>
+          typeof c === 'object' &&
+          c !== null &&
+          typeof (c as Record<string, unknown>).id === 'string' &&
+          typeof (c as Record<string, unknown>).code === 'string' &&
+          typeof (c as Record<string, unknown>).surahId === 'number',
+      )
+    : [];
+  return { ok: true, progress: doc.progress, mistakes, settings, bookmarks, challenges };
+}
+
+/**
+ * Local bookmark normaliser for import (progress.ts must stay free of
+ * browser APIs; lib/bookmarks.ts owns the storage key, this owns the
+ * shape check used at import time).
+ */
+function normaliseBookmarksLocal(
+  value: unknown,
+): import('./lib/bookmarks').BookmarkEntry[] {
+  if (!Array.isArray(value)) return [];
+  const out: import('./lib/bookmarks').BookmarkEntry[] = [];
+  for (const row of value as Record<string, unknown>[]) {
+    if (typeof row !== 'object' || row === null) continue;
+    if (row.kind === 'page') {
+      const page = Number(row.page);
+      if (Number.isInteger(page) && page >= 1 && page <= 604) {
+        out.push({
+          kind: 'page',
+          page,
+          ...(typeof row.note === 'string' && row.note ? { note: row.note } : {}),
+          addedAt: Number(row.addedAt ?? row.timestamp ?? Date.now()) || Date.now(),
+        });
+      }
+      continue;
+    }
+    const surahNumber = Number(row.surahNumber ?? row.surah);
+    const verseNumber = Number(row.verseNumber ?? row.ayah);
+    if (
+      Number.isInteger(surahNumber) &&
+      surahNumber >= 1 &&
+      surahNumber <= 114 &&
+      Number.isInteger(verseNumber) &&
+      verseNumber >= 1
+    ) {
+      out.push({
+        kind: 'ayah',
+        surahNumber,
+        verseNumber,
+        ...(typeof row.surahName === 'string' && row.surahName ? { surahName: row.surahName } : {}),
+        ...(typeof row.note === 'string' && row.note ? { note: row.note } : {}),
+        addedAt: Number(row.addedAt ?? row.timestamp ?? Date.now()) || Date.now(),
+      });
+    }
+  }
+  return out;
 }
 
 /** Trigger a .json download of the export (client only; no-op on the server). */
@@ -778,6 +911,88 @@ export function revisionDue(
   }
   items.sort((x, y) => y.daysSincePractised - x.daysSincePractised);
   return items.slice(0, limit);
+}
+
+export interface PeekedItem {
+  surah: number;
+  ayah: number;
+  /** ISO date-time of the last peek. */
+  peekedAt: string;
+  /** Total peeks on this ayah. */
+  peekCount: number;
+  /** Days since the peek (0 = today). */
+  daysSincePeek: number;
+}
+
+/**
+ * Stage 5 (§9): ayahs the user needed help with — peeked at (revealed a
+ * hidden word or ayah) and not yet recited clean once since. These jump
+ * the revision queue AHEAD of the time-based due list: needing help is a
+ * stronger signal than merely not practising for a while. Most recent
+ * peek first. A peek older than 14 days without a clean recitation still
+ * lists (memory does not heal by itself), it just sorts after fresher ones.
+ */
+export function peekedDue(
+  progress: HifzProgress,
+  now: Date = new Date(),
+  limit: number = 20,
+): PeekedItem[] {
+  const items: PeekedItem[] = [];
+  for (const [key, a] of Object.entries(progress.ayahs)) {
+    if (!a.lastPeekAt) continue;
+    const [s, ay] = key.split(':').map(Number);
+    items.push({
+      surah: s,
+      ayah: ay,
+      peekedAt: a.lastPeekAt,
+      peekCount: a.peekCount ?? 1,
+      daysSincePeek: daysSince(a.lastPeekAt.slice(0, 10), now),
+    });
+  }
+  items.sort((x, y) => y.peekedAt.localeCompare(x.peekedAt));
+  return items.slice(0, limit);
+}
+
+/** Plain-English label for a mistake type (§11 review screen). */
+export function mistakeTypeLabel(type: MistakeType | undefined): string {
+  switch (type) {
+    case 'incorrect':
+      return 'Said differently';
+    case 'extra':
+      return 'Extra word';
+    case 'repeated':
+      return 'Repeated';
+    case 'sequence':
+      return 'Out of order';
+    case 'skipped':
+      return 'Passage skipped';
+    case 'missed':
+    default:
+      return 'Missed';
+  }
+}
+
+/**
+ * Stage 5 (§11): mark every UNC corrected mistake on one ayah as corrected,
+ * when the user recites that ayah clean. History is kept — corrected rows
+ * stay in the log, flagged, and stop counting as weak spots.
+ */
+export function markMistakesCorrected(
+  mistakes: MistakeEntry[],
+  surah: number,
+  ayah: number,
+  now: Date = new Date(),
+): MistakeEntry[] {
+  const at = now.toISOString();
+  let changed = false;
+  const next = mistakes.map((m) => {
+    if (m.surah === surah && m.ayah === ayah && !m.corrected) {
+      changed = true;
+      return { ...m, corrected: true, correctedAt: at };
+    }
+    return m;
+  });
+  return changed ? next : mistakes;
 }
 
 /**

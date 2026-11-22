@@ -13,7 +13,15 @@
 
 const DB_NAME = 'ili-hifz';
 const STORE = 'kv';
-const KEYS = ['ili_hifz_v1', 'ili_hifz_mistakes_v1', 'ili_hifz_settings_v1'] as const;
+const KEYS = [
+  'ili_hifz_v1',
+  'ili_hifz_mistakes_v1',
+  'ili_hifz_settings_v1',
+  // Stage 5 (§6): bookmarks + challenges ride in export/import, so the
+  // mirror covers them too.
+  'quran_bookmarks_v2',
+  'hifz_challenges_v1',
+] as const;
 
 let dbPromise: Promise<IDBDatabase | null> | null = null;
 
