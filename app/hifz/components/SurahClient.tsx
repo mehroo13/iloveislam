@@ -110,6 +110,7 @@ export default function SurahClient({
       if (q.get('mode') === 'memorise') {
         setMemoriseMode(true);
         setCoachOpen(true);
+        setHideMode('ayah');
         setHiddenAyahs(new Set(initialVerses.map((v) => v.verse_number)));
       }
       const ayah = Number(q.get('ayah') ?? '');
@@ -657,6 +658,7 @@ export default function SurahClient({
       stopListen();
       setMemoriseMode(true);
       setCoachOpen(true);
+      setHideMode('ayah');
       setHiddenAyahs(new Set(verses.map((v) => v.verse_number)));
       saveMode('memorise');
     }
@@ -748,7 +750,23 @@ export default function SurahClient({
         const o = memRange.offsets.get(v.verse_number)!;
         return rangeRevealed >= o.start && rangeRevealed < o.start + o.count;
       });
-      if (entry) recordPeek(entry.verse_number);
+      if (entry) {
+        recordPeek(entry.verse_number);
+        // A per-ayah hide on this ayah would outrank the range counter —
+        // revealing into it lifts that hide (the peek is already recorded).
+        if (hiddenAyahs.has(entry.verse_number)) {
+          setHiddenAyahs((prev) => {
+            const next = new Set(prev);
+            next.delete(entry.verse_number);
+            return next;
+          });
+          setRevealedAyah((prev) => {
+            const next = { ...prev };
+            delete next[entry.verse_number];
+            return next;
+          });
+        }
+      }
       setRangeRevealed((r) => Math.min(rangeWordTotal, r + 1));
       return;
     }
@@ -771,6 +789,18 @@ export default function SurahClient({
       if (!target) return;
       const o = memRange.offsets.get(target.verse_number)!;
       recordPeek(target.verse_number);
+      if (hiddenAyahs.has(target.verse_number)) {
+        setHiddenAyahs((prev) => {
+          const next = new Set(prev);
+          next.delete(target.verse_number);
+          return next;
+        });
+        setRevealedAyah((prev) => {
+          const next = { ...prev };
+          delete next[target.verse_number];
+          return next;
+        });
+      }
       setRangeRevealed(o.start + o.count);
       return;
     }
@@ -892,6 +922,7 @@ export default function SurahClient({
                   setMemoriseMode(true);
                   setCoachOpen(true);
                   saveMode('memorise');
+                  setHideMode('ayah');
                   setHiddenAyahs(new Set(verses.map((v) => v.verse_number)));
                   document.querySelector('[aria-label="Recitation coach"]')?.scrollIntoView({ behavior: 'smooth' });
                 } else {
@@ -958,7 +989,17 @@ export default function SurahClient({
                   key={m}
                   type="button"
                   aria-pressed={hideMode === m}
-                  onClick={() => setHideMode(m)}
+                  onClick={() => {
+                    setHideMode(m);
+                    if (m === 'words') {
+                      // Words mode hides by the range counter, not by the
+                      // per-ayah set — entering memorise mode hid every
+                      // ayah in that set, and leaving it in place would
+                      // keep every ayah hidden whatever the counter says.
+                      setHiddenAyahs(new Set());
+                      setRevealedAyah({});
+                    }
+                  }}
                   className={`min-h-10 rounded-full px-3 py-1.5 text-sm font-semibold ${hideMode === m ? 'bg-[#102E26] text-white' : 'text-[#102E26] hover:bg-white'}`}
                 >
                   {label}
@@ -984,7 +1025,12 @@ export default function SurahClient({
                 if (hideMode === 'ayah') {
                   setHiddenAyahs(new Set(verses.filter((v) => v.verse_number >= from && v.verse_number <= to).map((v) => v.verse_number)));
                   setRevealedAyah({});
+                  setRangeRevealed(0);
                 } else {
+                  // Words mode owns the hiding: clear any per-ayah hides
+                  // (e.g. from entering memorise mode) so the counter rules.
+                  setHiddenAyahs(new Set());
+                  setRevealedAyah({});
                   setRangeRevealed(0);
                 }
               }}
