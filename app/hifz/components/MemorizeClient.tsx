@@ -110,7 +110,8 @@ export default function MemorizeClient() {
         <h2 id="practice-heading" className="text-xl font-bold">{t('mem.practiceHeading')}</h2>
         <p className="mt-1 text-sm leading-relaxed text-white/80">
           Open a mushaf page with the words hidden as thin grey rules. Recite from memory —
-          words reveal as you get them right. Peek if you are stuck; a peek counts as a miss.
+          tap a word to reveal it when you are stuck. Peeking is only a hint — it does not
+          mark the ayah right or wrong; use Test Mode to check yourself for real.
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-2 text-sm font-semibold">

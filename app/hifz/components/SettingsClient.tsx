@@ -271,8 +271,8 @@ export default function SettingsClient() {
           </select>
         </label>
         <p className="mt-2 text-xs text-[#5b6b62]">
-          The Madani mushaf is 15 lines a page; the 16-line layout shows the same text slightly
-          smaller. Page breaks stay the Madani ones in both.
+          The Madani mushaf is 15 lines a page. Compact text shows the same page slightly
+          smaller; page breaks never change.
         </p>
       </section>
 

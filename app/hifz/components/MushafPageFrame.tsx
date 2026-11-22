@@ -112,8 +112,9 @@ export interface MushafPageFrameProps {
   page: number;
   verses: MushafVerse[];
   script: QuranScript;
-  /** 16-line layout instead of the standard 15. */
-  lines16: boolean;
+  /** Smaller type on the same 15-line Madani page — this is a text-size
+   *  choice only; it never re-flows the page into 16 lines. */
+  compactText: boolean;
   /** Colour-code ayahs by topic (study aid). */
   topicColors: boolean;
   /** Memorisation mode: words hidden as grey rules. */
@@ -133,7 +134,7 @@ export default function MushafPageFrame({
   page,
   verses,
   script,
-  lines16,
+  compactText,
   topicColors,
   hidden,
   revealed,
@@ -177,7 +178,7 @@ export default function MushafPageFrame({
       cancelAnimationFrame(raf);
       observer?.disconnect();
     };
-  }, [page, verses, script, lines16, topicColors, hidden, revealed, frequentMistakes, mistakeMarkingOn]);
+  }, [page, verses, script, compactText, topicColors, hidden, revealed, frequentMistakes, mistakeMarkingOn]);
 
   // Group words by mushaf line, in verse order. Do NOT re-sort by
   // `position`: positions restart at 1 for every verse, so sorting by
@@ -266,7 +267,7 @@ export default function MushafPageFrame({
     // not depend on the viewport width — the transform scales it. These
     // are the sizes desktop already used (the old sm: sizes), so the
     // desktop design is unchanged.
-    const sizeCls = lines16 ? 'text-[1.85rem] leading-[2.2]' : 'text-[2.1rem] leading-[2.35]';
+    const sizeCls = compactText ? 'text-[1.85rem] leading-[2.2]' : 'text-[2.1rem] leading-[2.35]';
     const lineClass = `${fontClass} ${sizeCls} text-[#1C2420] ${shortLine ? 'text-center' : 'mushaf-line'}`;
     let lineContent: React.ReactNode;
     if (hidden) {

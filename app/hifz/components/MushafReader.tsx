@@ -123,7 +123,7 @@ const ReaderSlot = memo(function ReaderSlot({
   failed,
   height,
   script,
-  lines16,
+  compactText,
   topicColors,
   hidden,
   revealed,
@@ -138,7 +138,7 @@ const ReaderSlot = memo(function ReaderSlot({
   /** Measured unscaled height, or undefined while unmeasured. */
   height: number | undefined;
   script: QuranScript;
-  lines16: boolean;
+  compactText: boolean;
   topicColors: boolean;
   hidden: boolean;
   revealed: number;
@@ -165,7 +165,7 @@ const ReaderSlot = memo(function ReaderSlot({
             page={page}
             verses={verses}
             script={script}
-            lines16={lines16}
+            compactText={compactText}
             topicColors={topicColors}
             hidden={hidden}
             revealed={revealed}
@@ -252,7 +252,7 @@ export default function MushafReader() {
 
   // Reader view state (same preferences as the single-page view).
   const [script, setScript] = useScriptPref();
-  const [lines16, setLines16] = useState(false);
+  const [compactText, setCompactText] = useState(false);
   const [topicColors, setTopicColors] = useState(true);
   const [hideVerses, setHideVerses] = useState(false);
   const [revealedMap, setRevealedMap] = useState<Record<number, number>>({});
@@ -319,7 +319,7 @@ export default function MushafReader() {
           topicColors?: boolean;
           highlightMistakes?: boolean;
         };
-        if (parsed.mushafLines === 16) setLines16(true);
+        if (parsed.mushafLines === 16) setCompactText(true);
         if (parsed.topicColors === false) setTopicColors(false);
         if (parsed.highlightMistakes === false) setMistakeMarkingOn(false);
       }
@@ -1195,13 +1195,13 @@ export default function MushafReader() {
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setLines16((v) => !v)}
-                  aria-pressed={lines16}
+                  onClick={() => setCompactText((v) => !v)}
+                  aria-pressed={compactText}
                   className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${
-                    lines16 ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
+                    compactText ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
                   }`}
                 >
-                  {lines16 ? '16 lines' : '15 lines'}
+                  {compactText ? 'Compact text' : 'Large text'}
                 </button>
                 <button
                   type="button"
@@ -1275,7 +1275,7 @@ export default function MushafReader() {
                   failed={failed.has(n)}
                   height={heights.get(n)}
                   script={script}
-                  lines16={lines16}
+                  compactText={compactText}
                   topicColors={topicColors}
                   hidden={hideVerses}
                   revealed={revealedFor(n)}

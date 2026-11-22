@@ -89,7 +89,7 @@ export default function MushafPageView({
   }, []);
 
   const [weakOnPage, setWeakOnPage] = useState(0);
-  const [lines16, setLines16] = useState(false);
+  const [compactText, setCompactText] = useState(false);
 
   // --- Scaled-page rendering (mobile mushaf fix, 2026-11-22) ---
   // WHY: every mushaf line is one <p> at a fixed ~33px font. On a phone
@@ -255,7 +255,7 @@ export default function MushafPageView({
       const raw = localStorage.getItem('ili_hifz_settings_v1');
       if (raw) {
         const parsed = JSON.parse(raw) as { mushafLines?: number; topicColors?: boolean };
-        if (parsed.mushafLines === 16) setLines16(true);
+        if (parsed.mushafLines === 16) setCompactText(true);
         if (parsed.topicColors === false) setTopicColors(false);
       }
     } catch {
@@ -324,19 +324,19 @@ export default function MushafPageView({
         </Link>
         <button
           type="button"
-          onClick={() => setLines16((v) => !v)}
-          aria-pressed={lines16}
+          onClick={() => setCompactText((v) => !v)}
+          aria-pressed={compactText}
           className={`rounded-full min-h-11 px-4 py-2 text-sm font-semibold ${
-            lines16 ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
+            compactText ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
           }`}
         >
-          {lines16 ? '16 lines' : '15 lines'}
+          {compactText ? 'Compact text' : 'Large text'}
         </button>
       </div>
       {hideVerses && (
         <p className="mt-2 text-center text-sm text-[#5b6b62]">
-          Words are hidden as thin grey rules. Recite from memory — reveal a word when you are
-          stuck. A peek counts as a miss, like in the coach.
+          Words are hidden as thin grey rules. Recite from memory — tap a hidden word to
+          reveal it when you are stuck. A peek is only a hint; it does not change your progress.
           {mistakeMarkingOn && weakOnPage > 0
             ? ' Words you have missed 2 or more times show as red rules.'
             : ''}
@@ -472,7 +472,7 @@ export default function MushafPageView({
               page={page}
               verses={verses}
               script={script}
-              lines16={lines16}
+              compactText={compactText}
               topicColors={topicColors}
               hidden={hideVerses}
               revealed={revealedCount}

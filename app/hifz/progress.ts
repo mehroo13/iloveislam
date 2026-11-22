@@ -125,7 +125,9 @@ export interface HifzSettings {
   saveAudio?: boolean;
   /** Sound + vibration on test-question completion. */
   testSound?: boolean;
-  /** Mushaf layout: 15 lines (Madani) or 16 lines. */
+  /** Mushaf text size: 15 = large type, 16 = compact type. Stored as 15|16
+   *  for compatibility; both show the same 15-line Madani page — the value
+   *  never changes the line breaks, only the type size. */
   mushafLines?: 15 | 16;
   /** Colour-code the mushaf by ayah topic (study aid, §23). */
   topicColors?: boolean;

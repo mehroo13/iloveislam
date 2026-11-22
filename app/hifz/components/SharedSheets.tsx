@@ -128,7 +128,7 @@ export function MistakeHistorySheet({
                   href={`/hifz/search?q=${encodeURIComponent(m.expected)}`}
                   className="mt-3 block rounded-full bg-[#102E26] py-2.5 text-center text-sm font-bold text-white hover:bg-[#1FA36B]"
                 >
-                  {t('common.seeSimilar')}
+                  {t('common.searchThisWord')}
                 </Link>
               </li>
             );
