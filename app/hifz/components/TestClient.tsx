@@ -14,11 +14,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   loadProgress, saveProgress, markAttempt, recordMinutes, recordTypeActivity,
-  loadMistakes, pickTestPool,
+  loadMistakes, pickTestPool, revisionDue,
   type HifzProgress,
 } from '../progress';
 import { ALL_SURAHS, getSurahById } from '../surahs';
+import { getJuz } from '../juz';
 import { saveBestTestPct } from '../badges';
+import { loadTestSessions, saveTestSession, type TestSessionRecord } from '../lib/mode';
 import { RangeWheel, type RangeSelection } from './SharedSheets';
 import { useT } from '../lib/i18n';
 
@@ -26,6 +28,8 @@ type Scope = 'memorised' | 'practised' | 'any' | 'weakest';
 type Phase = 'setup' | 'testing' | 'done';
 type Duration = 5 | 10 | 20;
 type QLength = 'short' | 'medium' | 'long';
+/** The six test types (Stage 4, Part 6). */
+type TestType = 'sequential' | 'random' | 'middle' | 'completion' | 'revision' | 'difficult';
 
 interface TestQuestion {
   surah: number;
@@ -62,6 +66,23 @@ export default function TestClient() {
   const [results, setResults] = useState<boolean[]>([]);
   const [mistakesTotal, setMistakesTotal] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
+  // Stage 4: test type, starting point, pause, history.
+  const [testType, setTestType] = useState<TestType>('random');
+  const [startSurah, setStartSurah] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem('ili_last_read_v1');
+      if (raw) {
+        const parsed = JSON.parse(raw) as { surah?: number };
+        if (typeof parsed.surah === 'number' && parsed.surah >= 1 && parsed.surah <= 114) return parsed.surah;
+      }
+    } catch {
+      /* default */
+    }
+    return 1;
+  });
+  const [startAyah, setStartAyah] = useState(1);
+  const [paused, setPaused] = useState(false);
+  const [sessions, setSessions] = useState<TestSessionRecord[]>(() => loadTestSessions());
   const t = useT();
 
   // Question card state
@@ -75,7 +96,8 @@ export default function TestClient() {
   const [streak, setStreak] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Persist the best Test Mode score for the accuracy badges (see badges.ts).
+  // Persist the best Test Mode score for the accuracy badges (see badges.ts),
+  // and record the completed session in the local test history.
   // Temporary sessions record nothing — the test page says so.
   useEffect(() => {
     if (phase !== 'done' || temporary) return;
@@ -83,7 +105,22 @@ export default function TestClient() {
     if (total === 0) return;
     const pct = Math.round((results.filter(Boolean).length / total) * 100);
     saveBestTestPct(pct);
-  }, [phase, results, temporary]);
+    setSessions(
+      saveTestSession({
+        at: new Date().toISOString(),
+        type: testType,
+        scope,
+        score: results.filter(Boolean).length,
+        total,
+        mistakes: mistakesTotal,
+        seconds: elapsed,
+        missed: questions
+          .filter((_, i) => !results[i])
+          .map((q) => ({ surah: q.surah, ayah: q.ayah, span: q.span })),
+      }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   useEffect(() => {
     try {
@@ -94,14 +131,14 @@ export default function TestClient() {
   }, []);
 
   useEffect(() => {
-    if (phase === 'testing') {
+    if (phase === 'testing' && !paused) {
       timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
       return () => {
         if (timerRef.current) clearInterval(timerRef.current);
       };
     }
     return undefined;
-  }, [phase]);
+  }, [phase, paused]);
 
   const counts = useMemo(() => {
     if (!progress) return { memorised: 0, learning: 0, practised: 0 };
@@ -129,15 +166,71 @@ export default function TestClient() {
     return extendToEnd ? base : 1;
   }, [qLength, extendToEnd]);
 
+  const withSpan = useCallback(
+    (qs: { surah: number; ayah: number }[]) => {
+      const span = spanFor();
+      return qs.map((q) => {
+        const surah = getSurahById(q.surah);
+        const maxSpan = surah ? Math.min(span, surah.ayahCount - q.ayah + 1) : 1;
+        return { ...q, span: Math.max(1, maxSpan) };
+      });
+    },
+    [spanFor],
+  );
+
+  const shuffle = useCallback(<T,>(arr: T[]): T[] => {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }, []);
+
+  /** Expand the custom ranges (Surah / Juz / Hizb / Rub / Page) into an
+   *  ordered ayah list, from real data — never invented boundaries.
+   *  Juz segments come from juz.ts (generated from Quran.com); mushaf
+   *  pages are fetched live through the proxy. Hizb and Rub have no
+   *  stored boundaries on this device, so they test their whole Juz
+   *  (the UI says so). */
+  const rangeAyahs = useCallback(async (): Promise<{ surah: number; ayah: number }[]> => {
+    const out: { surah: number; ayah: number }[] = [];
+    const pushJuz = (n: number) => {
+      const j = getJuz(n);
+      if (!j) return;
+      for (const seg of j.segments) {
+        for (let a = seg.fromAyah; a <= seg.toAyah; a++) out.push({ surah: seg.surahId, ayah: a });
+      }
+    };
+    for (const r of ranges) {
+      if (r.kind === 'surah') {
+        const s = getSurahById(r.id);
+        if (s) for (let a = 1; a <= s.ayahCount; a++) out.push({ surah: s.id, ayah: a });
+      } else if (r.kind === 'juz') {
+        pushJuz(r.id);
+      } else if (r.kind === 'hizb') {
+        pushJuz(Math.ceil(r.id / 2));
+      } else if (r.kind === 'rub') {
+        pushJuz(Math.ceil(r.id / 4));
+      } else if (r.kind === 'page') {
+        try {
+          const res = await fetch(`/api/quran/verses/by_page/${r.id}?fields=text_indopak`);
+          if (!res.ok) continue;
+          const data = await res.json();
+          for (const v of (data?.verses ?? []) as { verse_key?: string }[]) {
+            const [s, a] = String(v.verse_key ?? '').split(':').map(Number);
+            if (Number.isInteger(s) && Number.isInteger(a)) out.push({ surah: s, ayah: a });
+          }
+        } catch {
+          /* a page that cannot load is skipped, not faked */
+        }
+      }
+    }
+    return out;
+  }, [ranges]);
+
   const poolForScope = useCallback(
     (prog: HifzProgress, count: number): TestQuestion[] => {
-      const span = spanFor();
-      const withSpan = (qs: { surah: number; ayah: number }[]) =>
-        qs.map((q) => {
-          const surah = getSurahById(q.surah);
-          const maxSpan = surah ? Math.min(span, surah.ayahCount - q.ayah + 1) : 1;
-          return { ...q, span: Math.max(1, maxSpan) };
-        });
       if (scope === 'weakest') {
         const mistakes = loadMistakes();
         const byAyah = new Map<string, number>();
@@ -166,23 +259,22 @@ export default function TestClient() {
         return pool;
       }
       if (ranges.length > 0) {
-        // Custom range from the range wheel: Surah/Juz/Hizb/Rub/Page.
+        // Custom range from the range wheel — Surah only here; Juz /
+        // Hizb / Rub / Page ranges are expanded by rangeAyahs() in
+        // startTest (async: pages need a live fetch). This branch stays
+        // sync for the random scope path.
         const picked: { surah: number; ayah: number }[] = [];
         for (const r of ranges) {
           if (r.kind === 'surah') {
             const s = getSurahById(r.id);
             if (s) for (let a = 1; a <= s.ayahCount; a++) picked.push({ surah: s.id, ayah: a });
-          } else if (r.kind === 'page') {
-            // A mushaf page is ~15 lines; map it to the surah that starts there.
-            const s = ALL_SURAHS.find((x) => x.id === r.id);
-            if (s) picked.push({ surah: s.id, ayah: 1 });
           }
         }
         if (picked.length > 0) return withSpan(pickTestPool(prog, picked, count));
       }
       return withSpan(pickTestPool(prog, allAyahs(), count));
     },
-    [scope, ranges, spanFor],
+    [scope, ranges, withSpan],
   );
 
   const loadQuestion = useCallback(async (q: TestQuestion) => {
@@ -214,9 +306,63 @@ export default function TestClient() {
     }
   }, []);
 
-  const startTest = useCallback(() => {
+  const startTest = useCallback(async () => {
     if (!progress) return;
-    const pool = poolForScope(progress, duration);
+    let pool: TestQuestion[] = [];
+    if (testType === 'revision') {
+      // Revision: ayahs due (oldest first), up to the chosen length.
+      pool = withSpan(
+        revisionDue(progress, new Date(), duration).map((r) => ({ surah: r.surah, ayah: r.ayah })),
+      );
+      if (pool.length === 0) {
+        setNotice('Nothing is due for revision right now — recite with the coach first.');
+        return;
+      }
+    } else if (testType === 'difficult') {
+      // Difficult ayah: the most-missed ayahs first (scope is Weakest).
+      pool = poolForScope(progress, duration);
+    } else if (testType === 'sequential' || testType === 'middle' || testType === 'completion') {
+      // Ordered tests run through a range in mushaf order. The base is
+      // the custom ranges when set, else the starting surah.
+      const base =
+        ranges.length > 0
+          ? await rangeAyahs()
+          : (() => {
+              const s = getSurahById(startSurah);
+              const out: { surah: number; ayah: number }[] = [];
+              if (s) for (let a = 1; a <= s.ayahCount; a++) out.push({ surah: s.id, ayah: a });
+              return out;
+            })();
+      if (base.length === 0) {
+        setNotice('That range could not be loaded — check your connection and try again.');
+        return;
+      }
+      let startIdx = 0;
+      if (testType === 'middle') {
+        // Start from the middle: a random ayah in the middle third of the
+        // range — the test never starts at the beginning of the surah.
+        const lo = Math.floor(base.length / 3);
+        const hi = Math.floor((2 * base.length) / 3);
+        startIdx = lo + Math.floor(Math.random() * Math.max(1, hi - lo));
+      } else {
+        const i = base.findIndex((q) => q.surah === startSurah && q.ayah === startAyah);
+        startIdx = i >= 0 ? i : 0;
+      }
+      // Surah completion runs to the end of the surah (capped at 20
+      // questions so a long surah stays a sane test).
+      const count =
+        testType === 'completion' ? Math.min(20, base.length - startIdx) : duration;
+      pool = withSpan(base.slice(startIdx, startIdx + count));
+    } else {
+      // Random ayah: random questions only from the chosen range.
+      if (ranges.length > 0) {
+        const picked = await rangeAyahs();
+        if (picked.length > 0) {
+          pool = withSpan(shuffle(picked).slice(0, duration));
+        }
+      }
+      if (pool.length === 0) pool = poolForScope(progress, duration);
+    }
     if (pool.length === 0) {
       setNotice('Nothing to test yet — recite an ayah with the coach first, or pick “Anything”.');
       return;
@@ -227,9 +373,10 @@ export default function TestClient() {
     setMistakesTotal(0);
     setElapsed(0);
     setStreak(0);
+    setPaused(false);
     setPhase('testing');
     void loadQuestion(pool[0]);
-  }, [progress, duration, poolForScope, loadQuestion]);
+  }, [progress, duration, poolForScope, loadQuestion, testType, ranges, rangeAyahs, startSurah, startAyah, withSpan, shuffle]);
 
   const revealNext = useCallback(() => {
     // Single arrow: reveal the next word — it counts as a mistake.
@@ -331,6 +478,38 @@ export default function TestClient() {
             </Link>
           </div>
         </section>
+        {questions.some((_, i) => !results[i]) && (
+          <section aria-label="Review missed ayahs" className="rounded-2xl border border-[#DC2626]/40 bg-white p-5 shadow-sm sm:p-6">
+            <h2 className="text-lg font-bold text-[#102E26]">{t('test.reviewMissed')}</h2>
+            <p className="mt-1 text-sm text-[#5b6b62]">
+              These go into your revision queue. Recite each one with the coach until it is clean.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {questions.map((q, i) => {
+                if (results[i]) return null;
+                const surah = getSurahById(q.surah);
+                return (
+                  <li
+                    key={`missed-${q.surah}:${q.ayah}`}
+                    className="flex flex-wrap items-center gap-2 rounded-xl border border-[#E5E7EB] px-4 py-3 text-sm"
+                  >
+                    <span className="font-bold text-[#DC2626]">{t('test.missed')}</span>
+                    <span>
+                      {surah ? surah.name : `Surah ${q.surah}`} {q.surah}:{q.ayah}
+                      {q.span > 1 ? `–${q.ayah + q.span - 1}` : ''}
+                    </span>
+                    <Link
+                      href={surah ? `/hifz/${surah.slug}?mode=recite&ayah=${q.ayah}` : '/hifz'}
+                      className="ml-auto font-semibold text-[#1FA36B] underline"
+                    >
+                      {t('test.reciteCoach')}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
         <ul className="space-y-2">
           {questions.map((q, i) => {
             const surah = getSurahById(q.surah);
@@ -375,14 +554,24 @@ export default function TestClient() {
           <p className="text-sm font-semibold text-[#5b6b62]">
             {temporary ? `${t('test.temporary')} · ` : ''}{t('test.round').replace('{n}', String(idx + 1)).replace('{total}', String(total))}
           </p>
-          <button
-            type="button"
-            onClick={() => setPhase('setup')}
-            aria-label={t('test.stopTest')}
-            className="rounded-full border border-[#E5E7EB] px-3 py-1 text-sm font-semibold"
-          >
-            {t('test.endTest')}
-          </button>
+          <span className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setPaused((v) => !v)}
+              aria-pressed={paused}
+              className="rounded-full border border-[#E5E7EB] px-3 py-1 text-sm font-semibold"
+            >
+              {paused ? t('test.resume') : t('test.pause')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPhase('setup')}
+              aria-label={t('test.stopTest')}
+              className="rounded-full border border-[#E5E7EB] px-3 py-1 text-sm font-semibold"
+            >
+              {t('test.endTest')}
+            </button>
+          </span>
         </div>
         {/* Segmented progress bar — one segment per question */}
         <div className="flex gap-1" role="progressbar" aria-valuenow={idx} aria-valuemin={0} aria-valuemax={total} aria-label={t('test.progressLabel')}>
@@ -394,6 +583,29 @@ export default function TestClient() {
           ))}
         </div>
 
+        {paused ? (
+          <section aria-label="Test paused" className="rounded-2xl border border-[#E5E7EB] bg-white p-6 text-center shadow-sm sm:p-8">
+            <p className="text-xl font-bold text-[#102E26]">{t('test.pause')}</p>
+            <p className="mt-2 text-sm text-[#5b6b62]">{t('test.paused')}</p>
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPaused(false)}
+                className="min-h-11 rounded-full bg-[#57D798] px-6 py-2.5 text-sm font-bold text-[#102E26] hover:brightness-105"
+              >
+                {t('test.resume')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPhase('done')}
+                className="min-h-11 rounded-full border border-[#E5E7EB] px-6 py-2.5 text-sm font-semibold"
+              >
+                {t('test.endTest')}
+              </button>
+            </div>
+          </section>
+        ) : (
+          <>
         {/* Question card — dark navy deck card */}
         <section aria-label="Test question" className={`test-card overflow-hidden ${results.length > 0 && idx > 0 ? '' : ''}`}>
           <div className="p-6 sm:p-8">
@@ -522,6 +734,8 @@ export default function TestClient() {
           if you want verification instead. A question counts as correct only with zero mistakes;
           revealing counts against you.
         </p>
+          </>
+        )}
       </div>
     );
   }
@@ -555,6 +769,97 @@ export default function TestClient() {
           <p className="mt-2 rounded-lg bg-[#FFFBF2] px-3 py-2 text-sm font-semibold text-[#102E26]">
             Temporary — activity from this session won’t be saved. Good for passing the phone around.
           </p>
+        )}
+
+        <div className="mt-5">
+          <p className="text-sm font-semibold">{t('test.type')}</p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2" role="group" aria-label="Test type">
+            {(
+              [
+                ['sequential', t('test.typeSequential'), t('test.typeSequentialDesc')],
+                ['random', t('test.typeRandom'), t('test.typeRandomDesc')],
+                ['middle', t('test.typeMiddle'), t('test.typeMiddleDesc')],
+                ['completion', t('test.typeCompletion'), t('test.typeCompletionDesc')],
+                ['revision', t('test.typeRevision'), t('test.typeRevisionDesc')],
+                ['difficult', t('test.typeDifficult'), t('test.typeDifficultDesc')],
+              ] as [TestType, string, string][]
+            ).map(([v, label, desc]) => (
+              <button
+                key={v}
+                type="button"
+                aria-pressed={testType === v}
+                onClick={() => {
+                  setTestType(v);
+                  if (v === 'difficult') setScope('weakest');
+                }}
+                className={`min-h-11 rounded-xl border px-4 py-2.5 text-left ${testType === v ? 'border-[#1FA36B] bg-[#E4FFF2]' : 'border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+              >
+                <span className="block text-sm font-bold text-[#102E26]">{label}</span>
+                <span className="block text-xs leading-snug text-[#5b6b62]">{desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {(testType === 'sequential' || testType === 'middle' || testType === 'completion') && (
+          <div className="mt-5">
+            <p className="text-sm font-semibold">{t('test.startSurah')}</p>
+            <div className="mt-2 flex flex-wrap items-end gap-2">
+              <label className="text-xs font-semibold text-[#5b6b62]">
+                {t('test.startSurah')}
+                <select
+                  value={startSurah}
+                  onChange={(e) => {
+                    const s = Number(e.target.value);
+                    setStartSurah(s);
+                    setStartAyah(1);
+                  }}
+                  className="mt-1 block min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+                >
+                  {ALL_SURAHS.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.id}. {s.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-xs font-semibold text-[#5b6b62]">
+                {t('test.startAyah')}
+                <input
+                  type="number"
+                  min={1}
+                  max={getSurahById(startSurah)?.ayahCount ?? 1}
+                  value={startAyah}
+                  onChange={(e) =>
+                    setStartAyah(
+                      Math.min(
+                        getSurahById(startSurah)?.ayahCount ?? 1,
+                        Math.max(1, Number(e.target.value) || 1),
+                      ),
+                    )
+                  }
+                  className="mt-1 block w-20 min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  const s = getSurahById(startSurah);
+                  if (s) setStartAyah(1 + Math.floor(Math.random() * s.ayahCount));
+                }}
+                className="min-h-11 rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
+              >
+                {t('test.randomStart')}
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-[#5b6b62]">
+              {testType === 'middle'
+                ? 'Start from the middle ignores this starting ayah — it drops you at a random ayah in the middle of your range instead.'
+                : testType === 'completion'
+                  ? 'The test runs from this ayah to the end of the surah (up to 20 questions).'
+                  : 'The test runs in order from this ayah.'}
+            </p>
+          </div>
         )}
 
         <div className="mt-5">
@@ -594,6 +899,9 @@ export default function TestClient() {
           <div className="mt-2">
             <RangeWheel selected={ranges} onChange={setRanges} />
           </div>
+          {ranges.some((r) => r.kind === 'hizb' || r.kind === 'rub') && (
+            <p className="mt-2 text-xs text-[#5b6b62]">{t('test.hizbRubNote')}</p>
+          )}
         </div>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -674,6 +982,37 @@ export default function TestClient() {
               Start with Juz Amma first →
             </Link>
           </p>
+        )}
+      </section>
+
+      {/* Recent tests — completed sessions on this device */}
+      <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+        <h2 className="text-xl font-bold text-[#102E26]">{t('test.recentTests')}</h2>
+        {sessions.length === 0 ? (
+          <p className="mt-2 text-sm text-[#5b6b62]">{t('test.noRecentTests')}</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {sessions.slice(0, 8).map((s, i) => (
+              <li
+                key={`${s.at}-${i}`}
+                className="flex flex-wrap items-center gap-2 rounded-xl border border-[#E5E7EB] px-4 py-3 text-sm"
+              >
+                <span className="font-bold text-[#102E26]">
+                  {s.score}/{s.total}
+                </span>
+                <span className="text-[#5b6b62]">
+                  {t(`test.type${s.type.charAt(0).toUpperCase()}${s.type.slice(1)}`)}
+                </span>
+                <span className="text-[#5b6b62]">
+                  {s.mistakes} {s.mistakes === 1 ? t('test.mistake') : t('test.mistakes')} ·{' '}
+                  {Math.floor(s.seconds / 60)}:{String(s.seconds % 60).padStart(2, '0')}
+                </span>
+                <span className="ml-auto text-xs text-[#5b6b62]">
+                  {new Date(s.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                </span>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 
