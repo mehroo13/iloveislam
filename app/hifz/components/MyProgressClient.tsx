@@ -12,10 +12,13 @@ import {
   currentStreakCount, localDateString, isDailyGoalMet, ayahsPractisedOn,
   getStorageNotice, setDailyGoal, DAILY_GOAL_OPTIONS,
   activityByDate, weekPracticeDays, surahStrength, revisionDue, daysSince,
+  peekedDue, mistakeTypeLabel, markMistakesCorrected,
   getTypeGoals, setTypeGoalTarget, recordTypeActivity, recordMinutes, previousLocalDate,
   GOAL_TYPE_LABELS, GOAL_TYPE_DESCRIPTIONS, TYPE_GOAL_OPTIONS,
   type GoalType, type HifzProgress, type MistakeEntry, type HifzSettings,
 } from '../progress';
+import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
+import { loadChallenges, saveChallenges } from '../lib/challenges';
 import { getSurahById, ALL_SURAHS } from '../surahs';
 import { buildBadgeSnapshot, loadBestTestPct } from '../badges';
 import BadgesGrid from './BadgesGrid';
@@ -152,6 +155,9 @@ export default function MyProgressClient() {
   const WEEK_CHALLENGE_DAYS = 5;
   const strengths = surahStrength(progress, ALL_SURAHS);
   const due = revisionDue(progress);
+  // Stage 5 (§9): ayahs the user peeked at and has not yet recited clean
+  // once since — they jump the revision queue ahead of the time-based list.
+  const peeked = peekedDue(progress);
 
   // 12-week activity heatmap (Monday-first columns). Dates are local; a day
   // counts when any ayah was last practised on it (see activityByDate).
@@ -228,7 +234,10 @@ export default function MyProgressClient() {
   const doExport = () => {
     downloadProgressJson(
       `hifz-${today}.json`,
-      exportProgress(progress, mistakes, settings),
+      exportProgress(progress, mistakes, settings, {
+        bookmarks: loadBookmarks(),
+        challenges: loadChallenges(),
+      }),
     );
   };
 
@@ -243,7 +252,16 @@ export default function MyProgressClient() {
       saveProgress(result.progress);
       saveMistakes(result.mistakes);
       saveSettings(result.settings);
-      setImportMsg('Progress imported successfully.');
+      // Stage 5 (§6): bookmarks + challenges ride in the export when
+      // present. An older export has none — importing it leaves the
+      // current bookmarks and challenges untouched, never wipes them.
+      if (result.bookmarks.length > 0) saveBookmarks(result.bookmarks);
+      if (result.challenges.length > 0) saveChallenges(result.challenges);
+      setImportMsg(
+        `Progress imported successfully.` +
+          (result.bookmarks.length > 0 ? ` ${result.bookmarks.length} bookmarks restored.` : '') +
+          (result.challenges.length > 0 ? ` ${result.challenges.length} challenges restored.` : ''),
+      );
       reload();
     };
     reader.onerror = () => setImportMsg('That file could not be read.');
@@ -299,6 +317,31 @@ export default function MyProgressClient() {
     const next = mistakes.filter((_, i) => i !== idx);
     saveMistakes(next);
     setMistakes(next);
+  };
+
+  const markOneCorrected = (idx: number) => {
+    const next = mistakes.map((m, i) =>
+      i === idx ? { ...m, corrected: true, correctedAt: new Date().toISOString() } : m,
+    );
+    saveMistakes(next);
+    setMistakes(next);
+  };
+
+  // Stage 5 (§11): delete controls. Mistake history is deleted outright;
+  // audio is different — recordings are never stored past the recitation
+  // session (in-memory blob only, gone when the coach closes), so there is
+  // no stored audio file to delete. The control that matters is stopping
+  // new recordings, which is the saveAudio setting below.
+  const [confirmClearMistakes, setConfirmClearMistakes] = useState(false);
+  const clearAllMistakes = () => {
+    saveMistakes([]);
+    setMistakes([]);
+    setConfirmClearMistakes(false);
+  };
+  const setSaveAudio = (on: boolean) => {
+    const next = { ...settings, saveAudio: on };
+    saveSettings(next);
+    setSettings(next);
   };
 
   return (
@@ -672,7 +715,41 @@ export default function MyProgressClient() {
           Memory fades on a schedule: a learning ayah is due after 2 days without practice,
           a memorised ayah after 7 days. Oldest first — the weakest memory is the most urgent.
         </p>
-        {due.length === 0 ? (
+        {/* Stage 5 (§9): peeks drive revision. Ayahs you needed help with
+            come FIRST — needing a peek is a stronger signal than merely
+            not practising for a while. One clean recitation clears an ayah
+            from this list. */}
+        {peeked.length > 0 && (
+          <div className="mt-4">
+            <h3 className="text-sm font-bold text-[#102E26]">
+              Peeked — revise these first ({peeked.length})
+            </h3>
+            <p className="mt-1 text-xs text-[#5b6b62]">
+              You revealed a hidden word or ayah here, so the app knows this one needs work.
+            </p>
+            <ul className="mt-2 space-y-2">
+              {peeked.slice(0, 10).map((item) => {
+                const surah = getSurahById(item.surah);
+                return (
+                  <li key={`peek-${item.surah}:${item.ayah}`} className="flex flex-wrap items-center gap-2 rounded-xl border border-[#FFB800]/60 bg-[#FFFBF2] px-3 py-2 text-sm">
+                    <span>
+                      {surah ? surah.name : `Surah ${item.surah}`} {item.surah}:{item.ayah} ·{' '}
+                      peeked {item.peekCount} {item.peekCount === 1 ? 'time' : 'times'}
+                      {item.daysSincePeek === 0 ? ' · today' : ` · ${item.daysSincePeek} ${item.daysSincePeek === 1 ? 'day' : 'days'} ago`}
+                    </span>
+                    <Link
+                      href={surah ? `/hifz/${surah.slug}?mode=recite&ayah=${item.ayah}` : '/hifz'}
+                      className="ml-auto font-semibold text-[#1FA36B] underline"
+                    >
+                      {t('prog.reviseNow')}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+        {due.length === 0 && peeked.length === 0 ? (
           <p className="mt-2 text-sm text-[#5b6b62]">{t('prog.nothingDue')}</p>
         ) : (
           <ul className="mt-3 space-y-2">
@@ -765,6 +842,9 @@ export default function MyProgressClient() {
               {bookmarks.length > 10 && (
                 <p className="mt-2 text-xs text-[#5b6b62]">{t('prog.showingBookmarks').replace('{n}', String(bookmarks.length))}</p>
               )}
+              <Link href="/hifz/bookmarks" className="mt-3 inline-block font-semibold text-[#1FA36B] underline">
+                View all bookmarks →
+              </Link>
             </div>
           )}
         </section>
@@ -797,10 +877,13 @@ export default function MyProgressClient() {
           </p>
         ) : (
           <>
-            {/* Weak spots — ranked by how often each word was missed */}
+            {/* Weak spots — ranked by how often each word was missed.
+                Corrected mistakes are history, not weak spots: they are
+                excluded here (Stage 5, §11). */}
             {(() => {
               const byWord = new Map<string, { word: string; surah: number; ayah: number; attempts: number; heard?: string }>();
               for (const m of mistakes) {
+                if (m.corrected) continue;
                 const k = `${m.surah}:${m.ayah}:${m.word}`;
                 const prev = byWord.get(k);
                 byWord.set(k, {
@@ -859,20 +942,43 @@ export default function MyProgressClient() {
                 .map((m, i) => {
                   const surah = getSurahById(m.surah);
                   const idx = mistakes.length - 1 - i;
+                  const when = new Date(m.date);
+                  const whenLabel = Number.isNaN(when.getTime())
+                    ? ''
+                    : when.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
+                      ' · ' +
+                      when.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
                   return (
                     <li key={`${m.surah}:${m.ayah}:${m.word}:${i}`} className="flex flex-wrap items-center gap-2 rounded-xl bg-[#FFFBF2] px-3 py-2 text-sm">
                       <span dir="rtl" lang="ar" className="font-quran text-lg">{m.word}</span>
                       <span>
-                        {surah ? surah.name : `Surah ${m.surah}`} {m.surah}:{m.ayah} · {m.attempts}{' '}
+                        {surah ? surah.name : `Surah ${m.surah}`} {m.surah}:{m.ayah}
+                        {typeof m.wordIndex === 'number' ? ` · word ${m.wordIndex + 1}` : ''} ·{' '}
+                        {mistakeTypeLabel(m.type)} · {m.attempts}{' '}
                         {m.attempts === 1 ? t('common.time') : t('common.times')}
                         {m.source === 'self-mark' ? ` · ${t('prog.selfMarked')}` : ''}
                         {m.heard ? ` · heard as “${m.heard}”` : ''}
+                        {whenLabel ? ` · ${whenLabel}` : ''}
                       </span>
+                      {m.corrected && (
+                        <span className="rounded-full bg-[#E4FFF2] px-2 py-0.5 text-xs font-bold text-[#1FA36B]">
+                          Corrected{m.correctedAt ? ` · ${new Date(m.correctedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}
+                        </span>
+                      )}
                       <span className="ml-auto flex gap-2">
                         {surah && (
                           <Link href={`/hifz/${surah.slug}?mode=recite`} className="font-semibold text-[#1FA36B] underline">
                             {t('common.retry')}
                           </Link>
+                        )}
+                        {!m.corrected && (
+                          <button
+                            type="button"
+                            onClick={() => markOneCorrected(idx)}
+                            className="font-semibold text-[#1FA36B] underline"
+                          >
+                            Mark corrected
+                          </button>
                         )}
                         <button
                           type="button"
@@ -886,6 +992,56 @@ export default function MyProgressClient() {
                   );
                 })}
             </ul>
+            {/* Stage 5 (§11): delete controls. History is deleted outright.
+                Audio is never stored past the session, so the control is
+                the recording switch — turning it off stops new recordings
+                being kept for listen-back. */}
+            <div className="mt-4 rounded-xl border border-[#E5E7EB] p-4">
+              <p className="text-sm font-bold text-[#102E26]">Recordings &amp; stored history</p>
+              <p className="mt-1 text-xs leading-relaxed text-[#5b6b62]">
+                A recording of a take is kept only in the coach, for that browser session, so
+                you can listen back — it is never uploaded and no audio file is stored on this
+                device. Closing the coach deletes it. Turning recordings off stops new ones
+                being kept.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSaveAudio(!(settings.saveAudio ?? true))}
+                  aria-pressed={settings.saveAudio ?? true}
+                  className={`min-h-11 rounded-full border px-4 py-2 text-sm font-semibold ${(settings.saveAudio ?? true) ? 'border-[#1FA36B] bg-[#E4FFF2] text-[#1FA36B]' : 'border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+                >
+                  {(settings.saveAudio ?? true) ? 'Recordings on — tap to turn off' : 'Recordings off — tap to turn on'}
+                </button>
+                {confirmClearMistakes ? (
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-semibold text-red-700">Delete all {mistakes.length} mistake records?</span>
+                    <button
+                      type="button"
+                      onClick={clearAllMistakes}
+                      className="min-h-11 rounded-full bg-red-700 px-4 py-2 text-sm font-semibold text-white"
+                    >
+                      Yes, delete all
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmClearMistakes(false)}
+                      className="min-h-11 rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold"
+                    >
+                      Keep them
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmClearMistakes(true)}
+                    className="min-h-11 rounded-full border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:border-red-700"
+                  >
+                    Delete all mistake history
+                  </button>
+                )}
+              </div>
+            </div>
           </>
         )}
       </section>
@@ -923,7 +1079,8 @@ export default function MyProgressClient() {
         <h2 id="export-heading" className="text-xl font-bold text-[#102E26]">{t('prog.exportHeading')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           Progress lives only on this device. Download a copy to keep it safe, or import a copy
-          from another device. This is the v1 substitute for accounts.
+          from another device. This is the v1 substitute for accounts. The export includes your
+          bookmarks and group challenges when you have any.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <button
