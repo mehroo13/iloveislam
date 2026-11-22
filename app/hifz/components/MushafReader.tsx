@@ -348,6 +348,12 @@ export default function MushafReader() {
   // stray event at scrollY 0 overwrites the saved spot with page 1.
   const restoringRef = useRef(false);
   const restoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Raw stored position as it was when this session mounted, and the
+  // raw string this session last wrote (see savePosition). The pagehide
+  // guard uses them to tell a spot this session owns from one written
+  // mid-session by something else (another tab, an external write).
+  const storedAtMountRef = useRef<string | null>(null);
+  const lastSavedRef = useRef<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const urlTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollRafRef = useRef(0);
@@ -359,6 +365,11 @@ export default function MushafReader() {
 
   /* ------------------------- initial state ------------------------ */
   useEffect(() => {
+    try {
+      storedAtMountRef.current = window.localStorage.getItem(POS_KEY);
+    } catch {
+      storedAtMountRef.current = null;
+    }
     const saved = readSavedPos();
     const qPage = Number(searchParams.get('page'));
     const qMode = searchParams.get('mode');
@@ -610,10 +621,9 @@ export default function MushafReader() {
         const h = r.height;
         if (h > 0) frac = Math.min(1, Math.max(0, (toolbarHRef.current - r.top) / h));
       }
-      window.localStorage.setItem(
-        POS_KEY,
-        JSON.stringify({ page: currentPageRef.current, mode: modeRef.current, zoom: zoomRef.current, frac }),
-      );
+      const raw = JSON.stringify({ page: currentPageRef.current, mode: modeRef.current, zoom: zoomRef.current, frac });
+      window.localStorage.setItem(POS_KEY, raw);
+      lastSavedRef.current = raw;
     } catch {
       /* storage unavailable */
     }
@@ -642,8 +652,28 @@ export default function MushafReader() {
   }, [router]);
 
   // Save on page hide (the reliable moment before the tab goes away).
+  // But never clobber a stored spot this session doesn't own: if the
+  // stored value changed after mount to something this session never
+  // wrote (another tab, or an external write), it is fresher than this
+  // session's page — leave it alone. Without this, a session that
+  // never moved (e.g. opened at page 1) wipes a newer stored position
+  // on unload, and the next visit restarts at page 1.
   useEffect(() => {
-    const onHide = () => savePosition();
+    const onHide = () => {
+      try {
+        const cur = window.localStorage.getItem(POS_KEY);
+        if (
+          cur !== null &&
+          cur !== storedAtMountRef.current &&
+          cur !== lastSavedRef.current
+        ) {
+          return;
+        }
+      } catch {
+        /* fall through and save */
+      }
+      savePosition();
+    };
     window.addEventListener('pagehide', onHide);
     return () => window.removeEventListener('pagehide', onHide);
   }, [savePosition]);
