@@ -5,6 +5,7 @@
 // on the homepage `/` — it is NOT rendered here (no double tabs).
 import type { Metadata } from 'next';
 import { Onboarding, ThemeApplier } from './components/AppShell';
+import ModeSwitcher from './components/ModeSwitcher';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.iloveislam.life'),
@@ -23,6 +24,7 @@ export default function HifzLayout({ children }: { children: React.ReactNode }) 
       <script dangerouslySetInnerHTML={{ __html: PREFS_SCRIPT }} />
       <ThemeApplier />
       <Onboarding />
+      <ModeSwitcher />
       {children}
     </div>
   );

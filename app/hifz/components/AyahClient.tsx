@@ -21,6 +21,7 @@ import { useT } from '../lib/i18n';
 import type { CoachAyah } from './RecitationCoach';
 import type { WordInfo } from '../lib/fetch';
 import { pairWords } from '../lib/fetch';
+import { MODE_EVENT, saveMode, type HifzMode } from '../lib/mode';
 
 const RecitationCoach = dynamic(() => import('./RecitationCoach'), { ssr: false });
 
@@ -208,6 +209,48 @@ export default function AyahClient({
     setPlaying(true);
     audio.play().catch(() => setPlaying(false));
   };
+
+  const stopAudio = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.removeAttribute('src');
+    }
+    setPlaying(false);
+    stopWbwSeq();
+  }, [stopWbwSeq]);
+
+  /* Floating mode switcher (Stage 4): apply mode changes in place.
+     Closing the coach unmounts it, which aborts any live mic session
+     (Stage 3 cleanup); Listen stops this ayah's audio first. Memorise
+     and Test are not handled here — the switcher navigates to the surah
+     reader (?mode=memorise) or /hifz/test instead. */
+  const applyModeRef = useRef<(mode: HifzMode) => void>(() => {});
+  applyModeRef.current = (mode: HifzMode) => {
+    if (mode === 'reading') {
+      stopAudio();
+      setCoachOpen(false);
+      saveMode('reading');
+    } else if (mode === 'recite') {
+      stopAudio();
+      setCoachOpen(true);
+      saveMode('recite');
+    } else if (mode === 'listen') {
+      setCoachOpen(false);
+      saveMode('listen');
+      playAudio();
+    }
+  };
+  useEffect(() => {
+    const onMode = (e: Event) => {
+      const m = (e as CustomEvent<{ mode: HifzMode }>).detail?.mode;
+      if (!m || m === 'test' || m === 'memorise') return;
+      e.preventDefault();
+      applyModeRef.current(m);
+    };
+    window.addEventListener(MODE_EVENT, onMode);
+    return () => window.removeEventListener(MODE_EVENT, onMode);
+  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;

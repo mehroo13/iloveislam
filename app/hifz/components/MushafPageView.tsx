@@ -14,8 +14,9 @@ import { getSurahById, type HifzSurah } from '../surahs';
 import { type MushafVerse } from '../lib/fetch';
 import { SCRIPT_LABELS, useScriptPref } from '../lib/script';
 import { TOPICS } from '../topics';
-import { loadMistakes } from '../progress';
+import { loadMistakes, loadProgress, saveProgress, markAttempt } from '../progress';
 import { normalizeArabic } from '../lib/alignment';
+import { MODE_EVENT, ayahKeyForRevealedWord, saveMode, type HifzMode } from '../lib/mode';
 import MushafPageFrame, { MUSHAF_PAGE_WIDTH } from './MushafPageFrame';
 
 /** Missed this many times in total before a word counts as a weak word. */
@@ -266,14 +267,62 @@ export default function MushafPageView({
   const surahIds = [...new Set(verses.map((v) => Number(v.verse_key.split(':')[0])))];
   const surahs = surahIds.map(getSurahById).filter((s): s is HifzSurah => Boolean(s));
 
+  const peekedAyahsRef = useRef<Set<string>>(new Set());
+  // Peek recording (Stage 4): a peek is help-needed for that ayah —
+  // markAttempt(…, 'peek') resets its correct streak and puts it in the
+  // revision queue. One peek per ayah per page-view is recorded, however
+  // many words of that ayah are peeked.
+  const recordPeek = (surah: number, ayah: number) => {
+    const key = `${surah}:${ayah}`;
+    if (peekedAyahsRef.current.has(key)) return;
+    peekedAyahsRef.current.add(key);
+    try {
+      saveProgress(markAttempt(loadProgress(), surah, ayah, 'peek'));
+    } catch {
+      /* storage unavailable — the reveal still works */
+    }
+  };
+
   const peekNext = () => {
+    // The word about to be revealed is at index `revealedCount` in the
+    // frame's reading order — map it back to its ayah first.
+    const hit = ayahKeyForRevealedWord(verses, script, revealedCount);
+    if (hit) recordPeek(hit.surah, hit.ayah);
     setRevealedCount((c) => c + 1);
     setPeekCount((c) => c + 1);
   };
   const peekRest = () => {
+    for (const v of verses) {
+      const [s, a] = v.verse_key.split(':').map(Number);
+      if (Number.isInteger(s) && Number.isInteger(a)) recordPeek(s, a);
+    }
     setRevealedCount(100000);
     setPeekCount((c) => c + 1);
   };
+
+  /* Floating mode switcher (Stage 4): Memorise hides the words here,
+     Reading shows them again. Recite / Listen / Test are not handled
+     here — the switcher navigates to the surah reader or /hifz/test. */
+  useEffect(() => {
+    const onMode = (e: Event) => {
+      const m = (e as CustomEvent<{ mode: HifzMode }>).detail?.mode;
+      if (m === 'memorise') {
+        e.preventDefault();
+        setHideVerses(true);
+        setRevealedCount(0);
+        setPeekCount(0);
+        saveMode('memorise');
+      } else if (m === 'reading') {
+        e.preventDefault();
+        setHideVerses(false);
+        setRevealedCount(0);
+        setPeekCount(0);
+        saveMode('reading');
+      }
+    };
+    window.addEventListener(MODE_EVENT, onMode);
+    return () => window.removeEventListener(MODE_EVENT, onMode);
+  }, []);
 
   return (
     <div>
@@ -336,7 +385,8 @@ export default function MushafPageView({
       {hideVerses && (
         <p className="mt-2 text-center text-sm text-[#5b6b62]">
           Words are hidden as thin grey rules. Recite from memory — tap a hidden word to
-          reveal it when you are stuck. A peek is only a hint; it does not change your progress.
+          reveal it when you are stuck. A peek is recorded as help needed for that ayah:
+          it resets the ayah&apos;s correct streak and adds it to your revision queue.
           {mistakeMarkingOn && weakOnPage > 0
             ? ' Words you have missed 2 or more times show as red rules.'
             : ''}

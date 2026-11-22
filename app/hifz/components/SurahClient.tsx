@@ -19,9 +19,13 @@ import { getTopic } from '../topics';
 import { useScriptPref, SCRIPT_LABELS } from '../lib/script';
 import { attributionFor } from '../lib/fetch';
 import {
-  loadProgress, saveProgress, loadSettings, saveSettings,
+  loadProgress, saveProgress, loadSettings, saveSettings, markAttempt,
   type HifzProgress,
 } from '../progress';
+import {
+  MODE_EVENT, loadMode, saveMode, loadListenPosition, saveListenPosition,
+  type HifzMode,
+} from '../lib/mode';
 import ToolIcon from '../../components/ToolIcon';
 import TafsirBlock from './TafsirBlock';
 import WordByWord from './WordByWord';
@@ -95,15 +99,23 @@ export default function SurahClient({
     Math.max(0, Math.min(initialAyah - 1, Math.max(0, initialVerses.length - 1))),
   );
 
-  /* ?mode=recite / ?ayah=N are read client-side (the server page stays
-   * fully static — reading searchParams server-side would force dynamic
-   * rendering of all 6,236 ayah pages). */
+  /* ?mode=recite / ?mode=listen / ?mode=memorise / ?ayah=N are read
+   * client-side (the server page stays fully static — reading searchParams
+   * server-side would force dynamic rendering of all 6,236 ayah pages). */
   useEffect(() => {
     try {
       const q = new URLSearchParams(window.location.search);
       if (q.get('mode') === 'recite') setCoachOpen(true);
+      if (q.get('mode') === 'listen') setAutoListen(true);
+      if (q.get('mode') === 'memorise') {
+        setMemoriseMode(true);
+        setCoachOpen(true);
+        setHiddenAyahs(new Set(initialVerses.map((v) => v.verse_number)));
+      }
       const ayah = Number(q.get('ayah') ?? '');
       if (ayah >= 1 && ayah <= surah.ayahCount) setCoachAyahIndex(ayah - 1);
+      const pos = loadListenPosition();
+      if (pos && pos.surah === surah.id) setSavedListenPos(pos.ayah);
     } catch {
       /* ignore */
     }
@@ -124,6 +136,24 @@ export default function SurahClient({
   const [hiddenAyahs, setHiddenAyahs] = useState<Set<number>>(new Set());
   const [revealedAyah, setRevealedAyah] = useState<Record<number, number>>({});
   const [memoriseMode, setMemoriseMode] = useState(false);
+  // ?mode=listen handoff: start Listen once the component is mounted.
+  const [autoListen, setAutoListen] = useState(false);
+  // Peek recording (Stage 4): one peek per ayah per page-view is recorded
+  // as help-needed — markAttempt(…, 'peek') resets that ayah's correct
+  // streak and puts it in the revision queue. Peeking five words of one
+  // ayah is one missed ayah, not five.
+  const peekedAyahsRef = useRef<Set<number>>(new Set());
+  const recordPeek = useCallback((ayah: number) => {
+    if (peekedAyahsRef.current.has(ayah)) return;
+    peekedAyahsRef.current.add(ayah);
+    try {
+      const next = markAttempt(loadProgress(), surah.id, ayah, 'peek');
+      saveProgress(next);
+      setProgress(next);
+    } catch {
+      /* storage unavailable — the reveal still works */
+    }
+  }, [surah.id]);
   const [listen, setListen] = useState<ListenSettings>(() =>
     typeof window === 'undefined'
       ? { repeat: 1, pauseSec: 0, speed: 1, fromAyah: 1, toAyah: surah.ayahCount, wordByWord: false }
@@ -131,6 +161,12 @@ export default function SurahClient({
   );
   const [playingKey, setPlayingKey] = useState<string | null>(null);
   const [listenPlaying, setListenPlaying] = useState(false);
+  // Listening as a real mode (Stage 4): true while the user is in Listen
+  // mode, even between repeats / pauses — the pill stays lit and the
+  // listen panel is highlighted. Cleared by Stop or by switching mode.
+  const [listenMode, setListenMode] = useState(false);
+  // Saved Listen position for this surah (resume where it stopped).
+  const [savedListenPos, setSavedListenPos] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const listenQueueRef = useRef<{ key: string; url: string; repeatsLeft: number }[]>([]);
   const listenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -382,6 +418,7 @@ export default function SurahClient({
     wbwRunRef.current = null;
     wbwNextRef.current = null;
     setListenPlaying(false);
+    setListenMode(false);
     setPlayingKey(null);
     setWbw(null);
     setWbwNote('');
@@ -493,6 +530,7 @@ export default function SurahClient({
       audio.removeAttribute('src');
     }
     setListenPlaying(false);
+    setListenMode(false);
     setPlayingKey(null);
   }, [wbwStop]);
 
@@ -551,8 +589,11 @@ export default function SurahClient({
       (v) => v.verse_number >= from && v.verse_number <= to && v.audio?.url,
     );
     if (inRange.length === 0) return;
+    setListenMode(true);
+    saveMode('listen');
     if (listen.wordByWord) {
       stopListen();
+      setListenMode(true); // stopListen clears the mode flag; re-assert it
       wbwRunRef.current = {
         ayahs: inRange.map((v) => ({ key: v.verse_key, url: v.audio!.url!, indopak: v.text_indopak })),
         pos: 0,
@@ -574,6 +615,61 @@ export default function SurahClient({
     playNextInQueue();
   };
 
+  /* ---------- floating mode switcher: apply mode changes in place ----------
+     Switching must stop the previous mode cleanly (Stage 3 contract):
+     - leaving Recite unmounts the coach, whose cleanup aborts the live
+       Tilawa session and stops its audio — no invisible mic session.
+     - leaving Listen calls stopListen(): both <audio> elements pause and
+       the queue clears. Test is not handled here: the switcher navigates
+       to /hifz/test instead (no preventDefault). */
+  const applyModeRef = useRef<(mode: HifzMode) => void>(() => {});
+  applyModeRef.current = (mode: HifzMode) => {
+    if (mode === 'test') return; // let the switcher navigate
+    if (mode === 'reading') {
+      stopListen();
+      setCoachOpen(false);
+      setMemoriseMode(false);
+      setHiddenAyahs(new Set());
+      saveMode('reading');
+    } else if (mode === 'recite') {
+      stopListen();
+      setMemoriseMode(false);
+      setCoachOpen(true);
+      saveMode('recite');
+    } else if (mode === 'listen') {
+      setCoachOpen(false);
+      setListenMode(true);
+      saveMode('listen');
+      startListen();
+    } else if (mode === 'memorise') {
+      stopListen();
+      setMemoriseMode(true);
+      setCoachOpen(true);
+      setHiddenAyahs(new Set(verses.map((v) => v.verse_number)));
+      saveMode('memorise');
+    }
+  };
+  useEffect(() => {
+    const onMode = (e: Event) => {
+      const m = (e as CustomEvent<{ mode: HifzMode }>).detail?.mode;
+      if (!m || m === 'test') return;
+      e.preventDefault();
+      applyModeRef.current(m);
+    };
+    window.addEventListener(MODE_EVENT, onMode);
+    return () => window.removeEventListener(MODE_EVENT, onMode);
+  }, []);
+  // ?mode=listen handoff from the switcher / other pages.
+  useEffect(() => {
+    if (autoListen && verses.length > 0) {
+      setAutoListen(false);
+      setListenMode(true);
+      saveMode('listen');
+      startListen();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoListen, verses]);
+
   /* ---------- pagination ---------- */
   const totalPages = Math.max(1, Math.ceil(verses.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -584,6 +680,9 @@ export default function SurahClient({
     if (!listenPlaying || !playingKey) return;
     const n = Number(playingKey.split(':')[1]);
     if (!n) return;
+    // Remember where Listen stopped, so a return visit can resume.
+    saveListenPosition(surah.id, n);
+    setSavedListenPos(n);
     const idx = verses.findIndex((v) => v.verse_number === n);
     if (idx >= 0) {
       const targetPage = Math.floor(idx / PAGE_SIZE) + 1;
@@ -602,8 +701,11 @@ export default function SurahClient({
   const toggleHiddenAyah = (ayah: number) => {
     setHiddenAyahs((prev) => {
       const next = new Set(prev);
-      if (next.has(ayah)) next.delete(ayah);
-      else next.add(ayah);
+      if (next.has(ayah)) {
+        // Revealing a hidden ayah is a peek: recorded as help-needed.
+        recordPeek(ayah);
+        next.delete(ayah);
+      } else next.add(ayah);
       return next;
     });
   };
@@ -667,8 +769,9 @@ export default function SurahClient({
           ] as const
         ).map(([m, label]) => {
           const active =
-            (m === 'reading' && !coachOpen && !memoriseMode) ||
-            (m === 'recitation' && coachOpen) ||
+            (m === 'reading' && !coachOpen && !memoriseMode && !listenMode) ||
+            (m === 'recitation' && coachOpen && !memoriseMode) ||
+            (m === 'listening' && listenMode) ||
             (m === 'memorisation' && memoriseMode);
           if (m === 'test') {
             return (
@@ -682,10 +785,21 @@ export default function SurahClient({
               <button
                 key={m}
                 type="button"
+                aria-pressed={listenMode}
                 onClick={() => {
-                  document.querySelector('[aria-labelledby="listen-heading"]')?.scrollIntoView({ behavior: 'smooth' });
+                  if (listenMode) {
+                    stopListen();
+                    saveMode('reading');
+                  } else {
+                    // Listening is a real mode now, not a scroll: close the
+                    // coach (unmount aborts any live mic session) and
+                    // start play-all from the saved range.
+                    setCoachOpen(false);
+                    setMemoriseMode(false);
+                    startListen();
+                  }
                 }}
-                className="rounded-full border border-[#E5E7EB] bg-white min-h-11 px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
+                className={`rounded-full min-h-11 px-4 py-2 text-sm font-semibold ${active ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white hover:border-[#1FA36B]'}`}
               >
                 {label}
               </button>
@@ -698,18 +812,24 @@ export default function SurahClient({
               aria-pressed={active}
               onClick={() => {
                 if (m === 'recitation') {
+                  stopListen();
                   setMemoriseMode(false);
                   setCoachOpen(true);
+                  saveMode('recite');
                   document.querySelector('[aria-label="Recitation coach"]')?.scrollIntoView({ behavior: 'smooth' });
                 } else if (m === 'memorisation') {
+                  stopListen();
                   setMemoriseMode(true);
                   setCoachOpen(true);
+                  saveMode('memorise');
                   setHiddenAyahs(new Set(verses.map((v) => v.verse_number)));
                   document.querySelector('[aria-label="Recitation coach"]')?.scrollIntoView({ behavior: 'smooth' });
                 } else {
+                  stopListen();
                   setCoachOpen(false);
                   setMemoriseMode(false);
                   setHiddenAyahs(new Set());
+                  saveMode('reading');
                 }
               }}
               className={`rounded-full min-h-11 px-4 py-2 text-sm font-semibold ${active ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white hover:border-[#1FA36B]'}`}
@@ -719,6 +839,13 @@ export default function SurahClient({
           );
         })}
       </nav>
+      {memoriseMode && (
+        <p className="mt-3 rounded-xl border border-[#FFB800]/60 bg-[#FFFBF2] px-4 py-2.5 text-sm text-[#5b6b62]">
+          Ayahs are hidden — recite from memory. Revealing a word or an ayah is recorded as
+          help needed: it resets that ayah&apos;s correct streak and adds it to your revision
+          queue. The coach checks your recitation word by word.
+        </p>
+      )}
 
       {/* ---------- COACH ENTRY (first interactive element, spec §4.1.2) ---------- */}
       <section aria-label="Recitation coach" className="mt-6 rounded-2xl bg-[#102E26] p-5 text-white shadow-sm sm:p-6">
@@ -736,7 +863,11 @@ export default function SurahClient({
           {!coachOpen && (
             <button
               type="button"
-              onClick={() => setCoachOpen(true)}
+              onClick={() => {
+                stopListen();
+                setCoachOpen(true);
+                saveMode('recite');
+              }}
               className="shrink-0 rounded-full bg-[#FFB800] min-h-11 px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               {t('surah.reciteThis')}
@@ -926,14 +1057,32 @@ export default function SurahClient({
       </section>
 
       {/* ---------- LISTEN ---------- */}
-      <section aria-labelledby="listen-heading" className="mt-6 rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+      <section aria-labelledby="listen-heading" className={`mt-6 rounded-2xl border bg-white p-5 shadow-sm sm:p-6 ${listenMode ? 'border-[#FFB800] ring-1 ring-[#FFB800]' : 'border-[#E5E7EB]'}`}>
         <h2 id="listen-heading" className="flex items-center gap-2 text-lg font-bold text-[#102E26]">
           <ToolIcon name="ear" className="h-5 w-5 text-[#1FA36B]" /> {t('surah.listen')}
+          {listenMode && (
+            <span className="rounded-full bg-[#E4FFF2] px-2.5 py-0.5 text-xs font-bold text-[#1FA36B]">Listening mode</span>
+          )}
         </h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           Reciter: {reciterName}. Repeat any ayah or range, with a pause between repeats and
           your choice of speed. Settings are remembered on this device.
         </p>
+        {savedListenPos !== null && savedListenPos !== listen.fromAyah && !listenPlaying && (
+          <button
+            type="button"
+            onClick={() => {
+              setListen((p) => ({ ...p, fromAyah: savedListenPos }));
+              setListenMode(true);
+              saveMode('listen');
+              // Start from the saved ayah on the next tick, after state lands.
+              setAutoListen(true);
+            }}
+            className="mt-3 rounded-full border border-[#FFB800] bg-[#FFFBF2] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFF6D6]"
+          >
+            {t('surah.resumeListen').replace('{n}', String(savedListenPos))}
+          </button>
+        )}
         <div className="mt-4 flex flex-wrap items-end gap-3">
           <label className="text-xs font-semibold text-[#5b6b62]">
             {t('surah.fromAyah')}
@@ -1079,12 +1228,13 @@ export default function SurahClient({
                   <span className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() =>
+                      onClick={() => {
+                        recordPeek(v.verse_number);
                         setRevealedAyah((prev) => ({
                           ...prev,
                           [v.verse_number]: (prev[v.verse_number] ?? 0) + 1,
-                        }))
-                      }
+                        }));
+                      }}
                       className="min-h-11 rounded-full border border-[#FFB800] px-3 py-1 text-xs font-bold text-[#102E26] hover:bg-[#FFFBF2]"
                     >
                       {t('surah.nextWord')}

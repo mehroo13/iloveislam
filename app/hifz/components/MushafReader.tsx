@@ -49,8 +49,9 @@ import {
 import { ALL_SURAHS, getSurahById } from '../surahs';
 import { SCRIPT_LABELS, useScriptPref, type QuranScript } from '../lib/script';
 import { TOPICS } from '../topics';
-import { loadMistakes } from '../progress';
+import { loadMistakes, loadProgress, saveProgress, markAttempt } from '../progress';
 import { normalizeArabic } from '../lib/alignment';
+import { MODE_EVENT, ayahKeyForRevealedWord, saveMode, type HifzMode } from '../lib/mode';
 import type { MushafVerse } from '../lib/fetch';
 
 const PAGE_QUERY =
@@ -261,6 +262,61 @@ export default function MushafReader() {
   const [hideVerses, setHideVerses] = useState(false);
   const [revealedMap, setRevealedMap] = useState<Record<number, number>>({});
   const [peekCount, setPeekCount] = useState(0);
+  // Peek recording (Stage 4): one peek per ayah per page-view, recorded
+  // as help-needed (markAttempt 'peek' — streak reset + revision queue).
+  const peekedAyahsRef = useRef<Set<string>>(new Set());
+  const recordPeek = useCallback((surah: number, ayah: number) => {
+    const key = `${surah}:${ayah}`;
+    if (peekedAyahsRef.current.has(key)) return;
+    peekedAyahsRef.current.add(key);
+    try {
+      saveProgress(markAttempt(loadProgress(), surah, ayah, 'peek'));
+    } catch {
+      /* storage unavailable — the reveal still works */
+    }
+  }, []);
+  const recordPeekForPage = useCallback(
+    (pageVerses: MushafVerse[] | undefined, revealedIdx: number) => {
+      if (!pageVerses) return;
+      const hit = ayahKeyForRevealedWord(pageVerses, script, revealedIdx);
+      if (hit) recordPeek(hit.surah, hit.ayah);
+    },
+    [recordPeek, script],
+  );
+  const recordPeekRestForPage = useCallback(
+    (pageVerses: MushafVerse[] | undefined) => {
+      if (!pageVerses) return;
+      for (const v of pageVerses) {
+        const [s, a] = v.verse_key.split(':').map(Number);
+        if (Number.isInteger(s) && Number.isInteger(a)) recordPeek(s, a);
+      }
+    },
+    [recordPeek],
+  );
+
+  /* Floating mode switcher (Stage 4): Memorise hides the words here,
+     Reading shows them again. Recite / Listen / Test are not handled
+     here — the switcher navigates to the surah reader or /hifz/test. */
+  useEffect(() => {
+    const onMode = (e: Event) => {
+      const m = (e as CustomEvent<{ mode: HifzMode }>).detail?.mode;
+      if (m === 'memorise') {
+        e.preventDefault();
+        setHideVerses(true);
+        setRevealedMap({});
+        setPeekCount(0);
+        saveMode('memorise');
+      } else if (m === 'reading') {
+        e.preventDefault();
+        setHideVerses(false);
+        setRevealedMap({});
+        setPeekCount(0);
+        saveMode('reading');
+      }
+    };
+    window.addEventListener(MODE_EVENT, onMode);
+    return () => window.removeEventListener(MODE_EVENT, onMode);
+  }, []);
   const [frequentMistakes, setFrequentMistakes] = useState<ReadonlySet<string>>(() => new Set());
   const [mistakeMarkingOn, setMistakeMarkingOn] = useState(true);
 
@@ -1042,6 +1098,7 @@ export default function MushafReader() {
               <button
                 type="button"
                 onClick={() => {
+                  recordPeekForPage(pages.get(currentPage), revealedMap[currentPage] ?? 0);
                   setRevealedMap((m) => ({ ...m, [currentPage]: (m[currentPage] ?? 0) + 1 }));
                   setPeekCount((c) => c + 1);
                 }}
@@ -1052,6 +1109,7 @@ export default function MushafReader() {
               <button
                 type="button"
                 onClick={() => {
+                  recordPeekRestForPage(pages.get(currentPage));
                   setRevealedMap((m) => ({ ...m, [currentPage]: 100000 }));
                   setPeekCount((c) => c + 1);
                 }}
