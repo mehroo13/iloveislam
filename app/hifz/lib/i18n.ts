@@ -563,6 +563,8 @@ const en: Dict = {
   'common.verses': 'verses',
   'hub.challenges': 'Group Challenges',
   'hub.challengesNote': 'Memorise together, no accounts',
+  'hub.bookmarks': 'Bookmarks',
+  'hub.bookmarksNote': 'Saved ayahs and Mushaf pages, with notes',
   'hub.myProgress': 'My Progress',
   'hub.myProgressNote': 'Streak, goals, mistakes, offline',
   'hub.plans': 'Plans',

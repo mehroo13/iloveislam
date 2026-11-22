@@ -10,6 +10,7 @@ const MORE_LINKS: { href: string; labelKey: string; noteKey: string }[] = [
   { href: '/hifz/test', labelKey: 'hub.testMode', noteKey: 'hub.testModeNote' },
   { href: '/hifz/voice-search', labelKey: 'hub.voiceSearch', noteKey: 'hub.voiceSearchNote' },
   { href: '/hifz/challenges', labelKey: 'hub.challenges', noteKey: 'hub.challengesNote' },
+  { href: '/hifz/bookmarks', labelKey: 'hub.bookmarks', noteKey: 'hub.bookmarksNote' },
   { href: '/hifz/plans', labelKey: 'hub.plans', noteKey: 'hub.plansNote' },
   { href: '/hifz/juz-amma', labelKey: 'hub.juzAmma', noteKey: 'hub.juzAmmaNote' },
   { href: '/hifz/my-progress', labelKey: 'hub.myProgress', noteKey: 'hub.myProgressNote' },

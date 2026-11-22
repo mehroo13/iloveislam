@@ -50,6 +50,7 @@ import { ALL_SURAHS, getSurahById } from '../surahs';
 import { SCRIPT_LABELS, useScriptPref, type QuranScript } from '../lib/script';
 import { TOPICS } from '../topics';
 import { loadMistakes, loadProgress, saveProgress, markAttempt } from '../progress';
+import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { normalizeArabic } from '../lib/alignment';
 import { MODE_EVENT, ayahKeyForRevealedWord, saveMode, type HifzMode } from '../lib/mode';
 import type { MushafVerse } from '../lib/fetch';
@@ -262,6 +263,31 @@ export default function MushafReader() {
   const [hideVerses, setHideVerses] = useState(false);
   const [revealedMap, setRevealedMap] = useState<Record<number, number>>({});
   const [peekCount, setPeekCount] = useState(0);
+  // Stage 5 (§6): bookmark the current Mushaf page. One list, shared with
+  // the bookmarks page — toggling here adds/removes the same entry there.
+  const [pageBookmarked, setPageBookmarked] = useState(false);
+  useEffect(() => {
+    try {
+      setPageBookmarked(
+        loadBookmarks().some((b) => b.kind === 'page' && b.page === currentPage),
+      );
+    } catch {
+      setPageBookmarked(false);
+    }
+  }, [currentPage]);
+  const togglePageBookmark = useCallback(() => {
+    try {
+      const list = loadBookmarks();
+      const exists = list.some((b) => b.kind === 'page' && b.page === currentPage);
+      const next = exists
+        ? list.filter((b) => !(b.kind === 'page' && b.page === currentPage))
+        : [...list, { kind: 'page' as const, page: currentPage, addedAt: Date.now() }];
+      saveBookmarks(next);
+      setPageBookmarked(!exists);
+    } catch {
+      /* storage unavailable — the button just doesn't persist */
+    }
+  }, [currentPage]);
   // Peek recording (Stage 4): one peek per ayah per page-view, recorded
   // as help-needed (markAttempt 'peek' — streak reset + revision queue).
   const peekedAyahsRef = useRef<Set<string>>(new Set());
@@ -1106,6 +1132,17 @@ export default function MushafReader() {
               }`}
             >
               {hideVerses ? 'Show verses' : 'Hide words'}
+            </button>
+            <button
+              type="button"
+              onClick={togglePageBookmark}
+              aria-pressed={pageBookmarked}
+              aria-label={pageBookmarked ? `Remove bookmark for page ${currentPage}` : `Bookmark page ${currentPage}`}
+              className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${
+                pageBookmarked ? 'border-[#FFB800] bg-[#FFB800]/15 text-[#7A5C00]' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
+              }`}
+            >
+              {pageBookmarked ? '🔖 Page saved' : '📑 Bookmark page'}
             </button>
             <button
               type="button"
