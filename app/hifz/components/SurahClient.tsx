@@ -1507,7 +1507,7 @@ export default function SurahClient({
                 )}
               </div>
               {ayahHidden || wordsHidden ? (
-                <p dir="rtl" lang="ar" className={`font-quran ${script === 'uthmani' ? 'font-quran-madani' : ''} mt-4 text-right ${adaptive ? '' : 'text-[28px] sm:text-4xl'}`} style={adaptive ? { fontSize: `${adaptiveFont}px`, lineHeight: 2 } : undefined}>
+                <p dir="rtl" lang="ar" translate="no" className={`font-quran ${script === 'uthmani' ? 'font-quran-madani' : ''} mt-4 text-right ${adaptive ? '' : 'text-[28px] sm:text-4xl'}`} style={adaptive ? { fontSize: `${adaptiveFont}px`, lineHeight: 2 } : undefined}>
                   <HiddenWords
                     words={verseText(v, script).split(' ')}
                     revealed={ayahHidden ? (revealedAyah[v.verse_number] ?? 0) : wordsRevealed}
@@ -1515,7 +1515,7 @@ export default function SurahClient({
                   />
                 </p>
               ) : (
-                <p dir="rtl" lang="ar" className={`font-quran ${script === 'uthmani' ? 'font-quran-madani' : ''} mt-4 text-right ${adaptive ? '' : 'text-[28px] sm:text-4xl'}`} style={adaptive ? { fontSize: `${adaptiveFont}px`, lineHeight: 2 } : undefined}>
+                <p dir="rtl" lang="ar" translate="no" className={`font-quran ${script === 'uthmani' ? 'font-quran-madani' : ''} mt-4 text-right ${adaptive ? '' : 'text-[28px] sm:text-4xl'}`} style={adaptive ? { fontSize: `${adaptiveFont}px`, lineHeight: 2 } : undefined}>
                   {isWbwAyah && wbw ? (
                     /* Word-by-word listening: the sounding word is highlighted. */
                     verseText(v, script).split(' ').map((w, i) => (

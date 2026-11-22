@@ -83,7 +83,7 @@ export default function WordByWord({
             key={i}
             className="rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2.5 py-1.5 text-center"
           >
-            <span dir="rtl" lang="ar" className="font-quran block text-xl leading-snug text-[#102E26]">
+            <span dir="rtl" lang="ar" translate="no" className="font-quran block text-xl leading-snug text-[#102E26]">
               {w.arabic}
             </span>
             {w.transliteration && (

@@ -1330,7 +1330,7 @@ export default function RecitationCoach({
               const key = `${a.surah}:${a.ayah}`;
               return (
                 <div key={key} className={`rounded-xl border p-3 ${playingKey === key ? 'border-[#FFB800] bg-[#FFFBF2]' : 'border-[#E5E7EB]'}`}>
-                  <p dir="rtl" lang="ar" className="font-quran text-2xl sm:text-3xl leading-loose text-right">{a.text}</p>
+                  <p dir="rtl" lang="ar" translate="no" className="font-quran text-2xl sm:text-3xl leading-loose text-right">{a.text}</p>
                   {a.translation && <p className="mt-1 text-sm text-[#5b6b62]">{a.translation}</p>}
                   <button
                     type="button"
@@ -1451,7 +1451,7 @@ export default function RecitationCoach({
                 .reduce((n, x) => n + splitWords(x.text).length, 0);
               return (
               <div key={`${a.surah}:${a.ayah}`} className="mt-2 first:mt-0">
-                <p dir="rtl" lang="ar" className="font-quran text-2xl sm:text-3xl leading-loose text-right">
+                <p dir="rtl" lang="ar" translate="no" className="font-quran text-2xl sm:text-3xl leading-loose text-right">
                   {words.map((w) => {
                     const key = wordKey(a.surah, a.ayah, w.index + 1);
                     const live = liveWords[key];
@@ -1717,7 +1717,7 @@ export default function RecitationCoach({
                         const marked = selfMarks[key];
                         return (
                           <span key={key} className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] px-2 py-1">
-                            <span dir="rtl" lang="ar" className="font-quran text-lg leading-none">{w.display}</span>
+                            <span dir="rtl" lang="ar" translate="no" className="font-quran text-lg leading-none">{w.display}</span>
                             <button
                               type="button"
                               aria-pressed={marked === true}
@@ -1870,14 +1870,14 @@ export default function RecitationCoach({
                         {m.errorClass === 'added_word' ? (
                           <>
                             An extra word was heard near{' '}
-                            <span dir="rtl" lang="ar" className="font-quran text-base">{anchor}</span>{' '}
+                            <span dir="rtl" lang="ar" translate="no" className="font-quran text-base">{anchor}</span>{' '}
                             ({m.location.surah}:{m.location.ayah}). The checker does not write down
                             what was said, so the extra word itself is not shown.
                           </>
                         ) : (
                           <>
                             The recitation jumped ahead at{' '}
-                            <span dir="rtl" lang="ar" className="font-quran text-base">{anchor}</span>{' '}
+                            <span dir="rtl" lang="ar" translate="no" className="font-quran text-base">{anchor}</span>{' '}
                             ({m.location.surah}:{m.location.ayah}) — a passage was skipped.
                           </>
                         )}
@@ -1922,7 +1922,7 @@ export default function RecitationCoach({
                 {!(settings?.hideAyahMarkers) && (
                   <p className="text-xs font-semibold text-[#5b6b62]">{a.surah}:{a.ayah}</p>
                 )}
-                <p dir="rtl" lang="ar" className="font-quran mt-1 text-2xl sm:text-3xl leading-loose text-right">
+                <p dir="rtl" lang="ar" translate="no" className="font-quran mt-1 text-2xl sm:text-3xl leading-loose text-right">
                   {splitWords(a.text).map((w) => {
                     const key = wordKey(a.surah, a.ayah, w.index + 1);
                     const fw = feedbackWords.find((f) => f.key === key);
@@ -2015,7 +2015,7 @@ export default function RecitationCoach({
                       <div className="mt-2 rounded-lg border border-[#E5E7EB] p-3">
                         <p className="flex items-baseline justify-between gap-3">
                           <span className="text-xs font-semibold text-[#5b6b62]">{t('common.expected')}</span>
-                          <span dir="rtl" lang="ar" className="font-quran text-xl text-right">
+                          <span dir="rtl" lang="ar" translate="no" className="font-quran text-xl text-right">
                             {splitWords(ayahText).map((w, i) => (
                               <span key={i} className={i === wd - 1 ? 'font-bold text-[#16A34A]' : undefined}>
                                 {w.display}{' '}
@@ -2025,7 +2025,7 @@ export default function RecitationCoach({
                         </p>
                         <p className="mt-2 flex items-baseline justify-between gap-3 border-t border-[#E5E7EB] pt-2">
                           <span className="text-xs font-semibold text-[#5b6b62]">{t('common.recited')}</span>
-                          <span dir="rtl" lang="ar" className="font-quran text-xl text-right">
+                          <span dir="rtl" lang="ar" translate="no" className="font-quran text-xl text-right">
                             {heard ? (
                               <span className="font-bold text-[#DC2626]">{heard}</span>
                             ) : (
@@ -2083,7 +2083,7 @@ export default function RecitationCoach({
               <ul className="mt-2 space-y-1 text-sm">
                 {retryMistakes.slice(-10).map((m, i) => (
                   <li key={`${m.surah}:${m.ayah}:${m.word}:${i}`}>
-                    <span dir="rtl" lang="ar" className="font-quran text-lg">{m.word}</span>
+                    <span dir="rtl" lang="ar" translate="no" className="font-quran text-lg">{m.word}</span>
                     {' '}— {m.surah}:{m.ayah} · {t('common.practised')} {m.attempts} {m.attempts === 1 ? t('common.time') : t('common.times')}
                     {selfMarkedMistakes.some((s) => s.surah === m.surah && s.ayah === m.ayah && s.word === m.word) && (
                       <span className="ml-2 rounded-full bg-[#FFFBF2] px-2 py-0.5 text-xs font-semibold">{t('coach.selfMarked')}</span>

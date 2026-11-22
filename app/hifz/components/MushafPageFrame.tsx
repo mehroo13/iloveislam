@@ -78,7 +78,7 @@ function SurahHeader({ surah }: { surah: HifzSurah }) {
           {/* Fixed size (no sm: variant): inside the scaled page the type
               must not depend on the viewport width — the transform scales
               it. text-4xl is the size desktop already used. */}
-          <p dir="rtl" lang="ar" className="font-quran-madani text-4xl leading-snug text-[#102E26]">
+          <p dir="rtl" lang="ar" translate="no" className="font-quran-madani text-4xl leading-snug text-[#102E26]">
             {surah.arabic}
           </p>
         </div>
@@ -88,7 +88,7 @@ function SurahHeader({ surah }: { surah: HifzSurah }) {
         </p>
       </div>
       {surah.id !== 1 && surah.id !== 9 && (
-        <p dir="rtl" lang="ar" className="font-quran-madani mt-4 text-center text-3xl text-[#102E26]">
+        <p dir="rtl" lang="ar" translate="no" className="font-quran-madani mt-4 text-center text-3xl text-[#102E26]">
           {BISMILLAH}
         </p>
       )}
@@ -398,12 +398,21 @@ export default function MushafPageFrame({
       lineContent = nodes;
     }
     blocks.push(
+      // translate="no": the Quran text must never be machine-translated
+      // by the browser. Without it, Chrome/Safari see Arabic content in
+      // an English-lang document, offer translation, and (once the user
+      // has accepted it) auto-translate every mushaf page — the Arabic is
+      // replaced by English in place, and "Show original" does not stick
+      // across page loads. lang="ar" alone does NOT prevent this; it only
+      // tells the browser what language the text is. The interface
+      // language setting is unaffected: it drives <html lang> and the
+      // app's own dictionaries, not these nodes.
       // overflowWrap/wordBreak 'normal' overrides .font-quran's
       // `overflow-wrap: break-word` (globals.css, not touched here):
       // a word must never be split across lines to make the layout fit.
       // At the fixed design width no word is ever wider than the line,
       // so this guard costs nothing and can only prevent a split.
-      <p key={`l-${lineNo}`} dir="rtl" lang="ar" className={lineClass} style={{ overflowWrap: 'normal', wordBreak: 'normal' }}>
+      <p key={`l-${lineNo}`} dir="rtl" lang="ar" translate="no" className={lineClass} style={{ overflowWrap: 'normal', wordBreak: 'normal' }}>
         {lineContent}
       </p>,
     );

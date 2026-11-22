@@ -326,7 +326,7 @@ export default function AyahClient({
 
       {/* Arabic + translation */}
       <article className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <p dir="rtl" lang="ar" className={`font-quran ${script === 'uthmani' ? 'font-quran-madani' : ''} text-right text-4xl sm:text-5xl`}>
+        <p dir="rtl" lang="ar" translate="no" className={`font-quran ${script === 'uthmani' ? 'font-quran-madani' : ''} text-right text-4xl sm:text-5xl`}>
           {verseText(verse, script)}
         </p>
         {viewMode !== 'arabic' && translation && (
@@ -485,7 +485,7 @@ export default function AyahClient({
           <ul className="mt-3 flex flex-wrap gap-2">
             {words.map((w, i) => (
               <li key={i} className={`rounded-lg border px-2.5 py-1.5 text-center ${playingWord === i ? 'border-[#FFB800] bg-[#FFB800]/15 ring-1 ring-[#FFB800]' : 'border-[#E5E7EB] bg-[#FFFBF2]'}`}>
-                <span dir="rtl" lang="ar" className="font-quran block text-xl leading-snug text-[#102E26]">{w.arabic}</span>
+                <span dir="rtl" lang="ar" translate="no" className="font-quran block text-xl leading-snug text-[#102E26]">{w.arabic}</span>
                 {w.transliteration && <span className="block text-[11px] italic text-[#5b6b62]">{w.transliteration}</span>}
                 {w.translation && <span className="block text-[11px] text-[#1C2420]/75">{w.translation}</span>}
                 {w.audioUrl && (
