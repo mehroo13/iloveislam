@@ -78,7 +78,7 @@ export default async function MushafPage({
             breadcrumbJsonLd([
               { name: 'Home', url: SITE_URL },
               { name: 'Hifz', url: `${SITE_URL}/hifz` },
-              { name: 'Mushaf', url: `${SITE_URL}/hifz/mushaf/1` },
+              { name: 'Mushaf', url: `${SITE_URL}/hifz/mushaf` },
               { name: `Page ${n}`, url: `${SITE_URL}/hifz/mushaf/${n}` },
             ]),
           ),
@@ -88,7 +88,7 @@ export default async function MushafPage({
         items={[
           { label: 'Home', href: '/' },
           { label: 'Hifz', href: '/hifz' },
-          { label: 'Mushaf', href: '/hifz/mushaf/1' },
+          { label: 'Mushaf', href: '/hifz/mushaf' },
           { label: `Page ${n}` },
         ]}
       />
