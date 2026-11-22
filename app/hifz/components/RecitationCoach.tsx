@@ -58,13 +58,16 @@ import {
   loadSettings,
   localDateString,
   markAttempt,
+  markMistakesCorrected,
   recordMinutes,
   recordTypeActivity,
   saveMistakes,
   saveProgress,
   type HifzSettings,
   type MistakeEntry,
+  type MistakeType,
 } from '../progress';
+import { getSurahById } from '../surahs';
 import { splitWords } from '../lib/alignment';
 import { useT } from '../lib/i18n';
 import { MistakeHistorySheet, SessionAnalyticsSheet, type HistoryRow } from './SharedSheets';
@@ -516,7 +519,16 @@ export default function RecitationCoach({
       allCorrect: boolean;
       peeked: boolean;
       minutes: number;
-      mistakes: { surah: number; ayah: number; word: string; expected: string; heard?: string }[];
+      mistakes: {
+        surah: number;
+        ayah: number;
+        word: string;
+        expected: string;
+        heard?: string;
+        wordIndex?: number;
+        type?: MistakeType;
+        source?: 'engine' | 'self-mark';
+      }[];
     }) => {
       let progress = loadProgress();
       for (const a of opts.scope) {
@@ -538,6 +550,24 @@ export default function RecitationCoach({
         }
         saveMistakes(log);
         setPersistedMistakes(log);
+      }
+      // Stage 5 (§11): a clean recitation marks this ayah's earlier
+      // mistakes corrected (history kept, flagged fixed, no longer a
+      // weak spot) — including the case where there are no new mistakes.
+      if (opts.allCorrect) {
+        let log = loadMistakes();
+        let changed = false;
+        for (const a of opts.scope) {
+          const next = markMistakesCorrected(log, a.surah, a.ayah);
+          if (next !== log) {
+            log = next;
+            changed = true;
+          }
+        }
+        if (changed) {
+          saveMistakes(log);
+          setPersistedMistakes(log);
+        }
       }
       const today = localDateString();
       setDailyGoalMet(isDailyGoalMet(progress, today));
@@ -893,6 +923,15 @@ export default function RecitationCoach({
       allCorrect,
       peeked,
       minutes,
+      // Stage 5 (§10/§11): each mistake carries its word position and the
+      // checker's own class, so the review screen can say what kind of
+      // issue it was. The class comes from the confirmed checker event at
+      // that location — wrong_word → incorrect, omitted_word → missed,
+      // added_word → extra (an extra word was heard at this anchor; the
+      // engine does not transcribe, so the extra word itself has no text),
+      // skipped_passage → skipped. No event at the location (tracker-only
+      // miss) reads as 'missed'. Recognition uncertainty is never logged
+      // as a mistake: only confirmed events and observed misses reach here.
       mistakes: missedWords.map((w) => {
         const [s, ay, wd] = w.key.split(':').map(Number);
         const ayahText = scope.find((a) => a.ayah === ay)?.text ?? '';
@@ -900,7 +939,27 @@ export default function RecitationCoach({
         const heard = res.words.find(
           (rw) => rw.surah === s && rw.ayah === ay && rw.wordIndex === wd - 1,
         )?.heard;
-        return { surah: s, ayah: ay, word: display, expected: display, ...(heard ? { heard } : {}) };
+        const eventClass = res.mistakes.find(
+          (m) => m.location.surah === s && m.location.ayah === ay && m.location.word === wd,
+        )?.errorClass;
+        const type: MistakeType =
+          eventClass === 'wrong_word'
+            ? 'incorrect'
+            : eventClass === 'added_word'
+              ? 'extra'
+              : eventClass === 'skipped_passage'
+                ? 'skipped'
+                : 'missed';
+        return {
+          surah: s,
+          ayah: ay,
+          word: display,
+          expected: display,
+          ...(heard ? { heard } : {}),
+          wordIndex: wd - 1,
+          type,
+          source: 'engine' as const,
+        };
       }),
     });
   }, [persistAttempt, peeked, scopeAyahs, mode, settings, t]);
@@ -976,7 +1035,15 @@ export default function RecitationCoach({
   const submitSelfMark = useCallback(() => {
     const scope = scopeAyahs();
     const words: FeedbackWord[] = [];
-    const mistakes: { surah: number; ayah: number; word: string; expected: string }[] = [];
+    const mistakes: {
+      surah: number;
+      ayah: number;
+      word: string;
+      expected: string;
+      wordIndex: number;
+      type: MistakeType;
+      source: 'self-mark';
+    }[] = [];
     let correctCount = 0;
     let reachedCount = 0;
     for (const a of scope) {
@@ -989,7 +1056,15 @@ export default function RecitationCoach({
           words.push({ key, display: w.display, status: 'correct', confirmed: false });
         } else if (marked === false) {
           words.push({ key, display: w.display, status: 'missed', confirmed: false });
-          mistakes.push({ surah: a.surah, ayah: a.ayah, word: w.display, expected: w.display });
+          mistakes.push({
+            surah: a.surah,
+            ayah: a.ayah,
+            word: w.display,
+            expected: w.display,
+            wordIndex: w.index,
+            type: 'missed',
+            source: 'self-mark',
+          });
         } else {
           words.push({ key, display: w.display, status: 'not-reached', confirmed: false });
         }
@@ -1027,9 +1102,8 @@ export default function RecitationCoach({
     setStep('feedback');
     const allCorrect = !peeked && mistakes.length === 0 && reachedCount > 0;
     persistAttempt({ scope, allCorrect, peeked, minutes: 0.5, mistakes });
-    // Self-marked mistakes are flagged as self-marked in the session's log
-    // view. (The persisted log schema in app/hifz/progress.ts has no
-    // self-marked flag — a follow-up, not changed here.)
+    // Self-marked mistakes show as self-marked in the session's log view
+    // (source 'self-mark' is persisted with the entry, Stage 5 §11).
     setSelfMarkedMistakes(
       mistakes.map((m) => ({ ...m, date: new Date().toISOString(), attempts: 1 })),
     );
@@ -1773,6 +1847,48 @@ export default function RecitationCoach({
             );
           })()}
 
+          {/* Extra words & skipped passages (Stage 5, §10) — the two
+              checker classes the per-word colours cannot show. An added
+              word is reported AT the expected word it was heard next to:
+              the checker follows sounds, it does not transcribe, so the
+              extra word itself has no text to show and none is invented.
+              A skipped passage is a jump the reciter demonstrably made
+              (later words were observed) — never a tracker blind spot,
+              which is graced to "not reached" instead. */}
+          {(() => {
+            const extras = result.mistakes.filter((m) => m.errorClass === 'added_word' || m.errorClass === 'skipped_passage');
+            if (extras.length === 0) return null;
+            return (
+              <div className="mt-4 rounded-xl border border-[#E5E7EB] p-4">
+                <p className="text-sm font-bold text-[#102E26]">Extra words &amp; skipped passages</p>
+                <ul className="mt-2 space-y-1.5 text-sm">
+                  {extras.map((m, i) => {
+                    const ayahText = scopeAyahs().find((x) => x.surah === m.location.surah && x.ayah === m.location.ayah)?.text ?? '';
+                    const anchor = splitWords(ayahText)[m.location.word - 1]?.display ?? '';
+                    return (
+                      <li key={`${m.errorClass}:${m.location.surah}:${m.location.ayah}:${m.location.word}:${i}`}>
+                        {m.errorClass === 'added_word' ? (
+                          <>
+                            An extra word was heard near{' '}
+                            <span dir="rtl" lang="ar" className="font-quran text-base">{anchor}</span>{' '}
+                            ({m.location.surah}:{m.location.ayah}). The checker does not write down
+                            what was said, so the extra word itself is not shown.
+                          </>
+                        ) : (
+                          <>
+                            The recitation jumped ahead at{' '}
+                            <span dir="rtl" lang="ar" className="font-quran text-base">{anchor}</span>{' '}
+                            ({m.location.surah}:{m.location.ayah}) — a passage was skipped.
+                          </>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })()}
+
           {/* Listen back to your own recording (kept on this device only)
               and, if you choose, share it with your teacher. Self-marked
               practice has no recording to share. */}
@@ -1868,14 +1984,33 @@ export default function RecitationCoach({
                   if (ss !== a.surah || ay !== a.ayah) return null;
                   const ayahText = scopeAyahs().find((x) => x.surah === ss && x.ayah === ay)?.text ?? '';
                   const display = splitWords(ayahText)[wd - 1]?.display ?? '';
+                  const wordTotal = splitWords(ayahText).length;
                   const heard = result.words.find(
                     (rw) => rw.surah === ss && rw.ayah === ay && rw.wordIndex === wd - 1,
                   )?.heard;
                   const fw = feedbackWords.find((f) => f.key === selectedMistake);
+                  // Stage 5 (§10): the checker class behind this word, so
+                  // the panel can name the issue type — and its position.
+                  const eventClass = result.mistakes.find(
+                    (m) => m.location.surah === ss && m.location.ayah === ay && m.location.word === wd,
+                  )?.errorClass;
+                  const typeLabel =
+                    eventClass === 'wrong_word'
+                      ? 'Said differently'
+                      : eventClass === 'added_word'
+                        ? 'Extra word heard near here'
+                        : eventClass === 'skipped_passage'
+                          ? 'Passage skipped here'
+                          : 'Missed';
+                  const similarSlug = getSurahById(ss)?.slug;
                   return (
                     <div className="mt-3 rounded-xl border border-[#E5E7EB] p-3">
                       <p className="text-sm font-bold text-[#102E26]">
                         {fw?.status === 'missed' ? t('coach.missedWord') : t('coach.incorrectWord')} — {ss}:{ay}
+                      </p>
+                      <p className="mt-1 text-xs text-[#5b6b62]">
+                        Word {wd} of {wordTotal} in this ayah · {typeLabel}
+                        {fw?.confirmed ? ' · confirmed by the checker' : ' · not confirmed by the checker — treat as “not heard”, not as a certain mistake'}
                       </p>
                       <div className="mt-2 rounded-lg border border-[#E5E7EB] p-3">
                         <p className="flex items-baseline justify-between gap-3">
@@ -1900,12 +2035,21 @@ export default function RecitationCoach({
                         </p>
                       </div>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <Link
-                          href={`/hifz/search?q=${encodeURIComponent(display)}`}
-                          className="rounded-full bg-[#102E26] min-h-11 px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
-                        >
-                          {t('common.seeSimilar')}
-                        </Link>
+                        {similarSlug ? (
+                          <Link
+                            href={`/hifz/${similarSlug}/${ss}-${ay}#similar-verses`}
+                            className="rounded-full bg-[#102E26] min-h-11 px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+                          >
+                            {t('common.seeSimilar')}
+                          </Link>
+                        ) : (
+                          <Link
+                            href={`/hifz/search?q=${encodeURIComponent(display)}`}
+                            className="rounded-full bg-[#102E26] min-h-11 px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+                          >
+                            {t('common.seeSimilar')}
+                          </Link>
+                        )}
                         <button
                           type="button"
                           onClick={() => {
