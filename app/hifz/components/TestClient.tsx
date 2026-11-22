@@ -20,7 +20,7 @@ import {
 import { ALL_SURAHS, getSurahById } from '../surahs';
 import { getJuz } from '../juz';
 import { saveBestTestPct } from '../badges';
-import { loadTestSessions, saveTestSession, type TestSessionRecord } from '../lib/mode';
+import { loadTestSessions, saveTestSession, loadInProgressTest, saveInProgressTest, clearInProgressTest, type TestSessionRecord, type InProgressTest } from '../lib/mode';
 import { RangeWheel, type RangeSelection } from './SharedSheets';
 import { useT } from '../lib/i18n';
 
@@ -83,6 +83,8 @@ export default function TestClient() {
   const [startAyah, setStartAyah] = useState(1);
   const [paused, setPaused] = useState(false);
   const [sessions, setSessions] = useState<TestSessionRecord[]>(() => loadTestSessions());
+  // Stage 6 (§19): an unfinished test left mid-way, resumable from the setup screen.
+  const [unfinished, setUnfinished] = useState<InProgressTest | null>(() => loadInProgressTest());
   const t = useT();
 
   // Question card state
@@ -95,12 +97,42 @@ export default function TestClient() {
   const [elapsed, setElapsed] = useState(0);
   const [streak, setStreak] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Stage 6 (§19): the timer writes elapsed into state every second; the
+  // persist effect below reads it from a ref so it does not re-save on
+  // every tick — only when the test state itself changes.
+  const elapsedRef = useRef(0);
+  const startedAtRef = useRef<string>(new Date().toISOString());
+  useEffect(() => {
+    elapsedRef.current = elapsed;
+  }, [elapsed]);
+
+  // Stage 6 (§19): persist the in-progress test whenever its state
+  // changes, so closing the tab mid-test leaves something resumable.
+  // A finished test clears it (see the done effect below).
+  useEffect(() => {
+    if (phase !== 'testing' || questions.length === 0) return;
+    saveInProgressTest({
+      questions,
+      idx,
+      results,
+      mistakes: mistakesTotal,
+      seconds: elapsedRef.current,
+      type: testType,
+      scope,
+      startedAt: startedAtRef.current,
+      temporary,
+    });
+  }, [phase, questions, idx, results, mistakesTotal, testType, scope, temporary]);
 
   // Persist the best Test Mode score for the accuracy badges (see badges.ts),
   // and record the completed session in the local test history.
   // Temporary sessions record nothing — the test page says so.
   useEffect(() => {
-    if (phase !== 'done' || temporary) return;
+    if (phase !== 'done') return;
+    // Stage 6 (§19): a finished test is no longer unfinished.
+    clearInProgressTest();
+    setUnfinished(null);
+    if (temporary) return;
     const total = results.length;
     if (total === 0) return;
     const pct = Math.round((results.filter(Boolean).length / total) * 100);
@@ -367,6 +399,8 @@ export default function TestClient() {
       setNotice('Nothing to test yet — recite an ayah with the coach first, or pick “Anything”.');
       return;
     }
+    startedAtRef.current = new Date().toISOString();
+    setUnfinished(null);
     setQuestions(pool);
     setIdx(0);
     setResults([]);
@@ -377,6 +411,37 @@ export default function TestClient() {
     setPhase('testing');
     void loadQuestion(pool[0]);
   }, [progress, duration, poolForScope, loadQuestion, testType, ranges, rangeAyahs, startSurah, startAyah, withSpan, shuffle]);
+
+  /** Stage 6 (§19): resume an unfinished test where it stopped. The
+   *  answered questions keep their results; the timer picks up from the
+   *  saved elapsed time. The current question reloads its prompt. */
+  const resumeTest = useCallback(() => {
+    const saved = loadInProgressTest();
+    if (!saved) {
+      setUnfinished(null);
+      return;
+    }
+    startedAtRef.current = saved.startedAt;
+    setTestType(saved.type as TestType);
+    setScope(saved.scope as Scope);
+    setQuestions(saved.questions);
+    setIdx(saved.idx);
+    setResults(saved.results);
+    setMistakesTotal(saved.mistakes);
+    setElapsed(saved.seconds);
+    elapsedRef.current = saved.seconds;
+    setStreak(0);
+    setPaused(false);
+    setTemporary(saved.temporary);
+    setUnfinished(null);
+    setPhase('testing');
+    void loadQuestion(saved.questions[saved.idx]);
+  }, [loadQuestion]);
+
+  const discardUnfinished = useCallback(() => {
+    clearInProgressTest();
+    setUnfinished(null);
+  }, []);
 
   const revealNext = useCallback(() => {
     // Single arrow: reveal the next word — it counts as a mistake.
@@ -742,6 +807,38 @@ export default function TestClient() {
 
   return (
     <div className="space-y-6">
+      {/* Stage 6 (§19): resume an unfinished test. Only shown when a
+          test was left mid-way — it restores the exact question list and
+          the answers already given. */}
+      {phase === 'setup' && unfinished && (
+        <section aria-label="Unfinished test" className="rounded-2xl border border-[#FFB800] bg-[#FFFBF2] p-5 shadow-sm sm:p-6">
+          <h2 className="text-lg font-bold text-[#102E26]">Unfinished test — pick up where you stopped</h2>
+          <p className="mt-1 text-sm text-[#5b6b62]">
+            {unfinished.results.length} of {unfinished.questions.length} questions answered ·{' '}
+            {unfinished.results.filter(Boolean).length} correct so far · started{' '}
+            {new Date(unfinished.startedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}{' '}
+            at {new Date(unfinished.startedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+            {unfinished.temporary ? ' · temporary session' : ''}.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={resumeTest}
+              className="min-h-11 rounded-full bg-[#57D798] px-5 py-2 text-sm font-bold text-[#102E26] hover:brightness-105"
+            >
+              Resume test
+            </button>
+            <button
+              type="button"
+              onClick={discardUnfinished}
+              className="min-h-11 rounded-full border border-[#E5E7EB] px-5 py-2 text-sm font-semibold hover:border-red-700 hover:text-red-700"
+            >
+              Discard it
+            </button>
+          </div>
+        </section>
+      )}
+
       {/* Setup */}
       <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">

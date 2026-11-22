@@ -1,14 +1,24 @@
-// app/hifz/components/GoalsClient.tsx — Smart goals (spec §22).
+// app/hifz/components/GoalsClient.tsx — Smart goals (spec §22) + Stage 6 (§17).
 // Intention model: Goal Name + Action (Review / Memorize / Recite) + Range
 // + Portion + Schedule; flexible ("all") vs portion-based; multiple ranges;
-// reverse-order; recurring goals; auto daily plan; session bars green
-// completed / yellow in-progress / red missed. Stored on this device only.
-// All free — no limits on how many goals you set.
+// reverse-order; recurring goals; auto daily plan; session bars. Stored on
+// this device only. All free — no limits on how many goals you set.
+//
+// Stage 6 (§17): goal progress is REAL, computed from the stored ayah
+// records — "X of Y ayahs in this range memorised" plus the last 7 days
+// of practice in that range. A goal with no practice yet says so; it never
+// shows red "missed" bars for days before the goal existed. One-tap
+// templates cover the six goal kinds in the brief. Reminders are OPT-IN
+// per goal and IN-APP ONLY: when a reminded goal is due and the user
+// opens this page without having practised today, a banner shows. The app
+// sends no push notifications and never claims to.
 'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ALL_SURAHS } from '../surahs';
+import { getJuz } from '../juz';
+import { loadProgress, ayahsPractisedOn, localDateString, type HifzProgress } from '../progress';
 import { useT } from '../lib/i18n';
 
 type GoalAction = 'Review' | 'Memorize' | 'Recite';
@@ -24,8 +34,15 @@ interface Goal {
   reverse: boolean;
   recurring: boolean;
   createdAt: string;
-  /** 0..1 per session day, for the session bars. */
+  /** 0..1 per session day, for the session bars (legacy — Stage 6 computes
+   *  the bars from real practice instead; kept so old saves still load). */
   sessions: number[];
+  /** Stage 6 (§17): opt-in in-app reminder for this goal. */
+  remind?: boolean;
+  /** "HH:MM" local time the reminder becomes due. */
+  remindTime?: string;
+  /** Optional deadline (YYYY-MM-DD) for flexible goals. */
+  deadline?: string;
 }
 
 const GOALS_KEY = 'ili_goals_v1';
@@ -41,6 +58,59 @@ function loadGoals(): Goal[] {
   }
 }
 
+/**
+ * The ayahs a goal's range covers, as "surah:ayah" keys — from the real
+ * surah and juz tables, never invented boundaries. Null when the range
+ * cannot be measured (an old free-text range): the card says so honestly.
+ */
+function rangeAyahKeys(range: string): string[] | null {
+  if (range.startsWith('Surah ')) {
+    const s = ALL_SURAHS.find((x) => x.name === range.slice(6));
+    if (!s) return null;
+    const out: string[] = [];
+    for (let a = 1; a <= s.ayahCount; a++) out.push(`${s.id}:${a}`);
+    return out;
+  }
+  if (range === 'Juz 30' || range === 'Juz 29') {
+    const j = getJuz(range === 'Juz 30' ? 30 : 29);
+    if (!j) return null;
+    const out: string[] = [];
+    for (const seg of j.segments) {
+      for (let a = seg.fromAyah; a <= seg.toAyah; a++) out.push(`${seg.surahId}:${a}`);
+    }
+    return out;
+  }
+  if (range.startsWith('Whole Quran')) {
+    const out: string[] = [];
+    for (const s of ALL_SURAHS) {
+      for (let a = 1; a <= s.ayahCount; a++) out.push(`${s.id}:${a}`);
+    }
+    return out;
+  }
+  return null;
+}
+
+/** Last 7 local dates, oldest first. */
+function lastSevenDays(): string[] {
+  const out: string[] = [];
+  const now = new Date();
+  for (let i = 6; i >= 0; i--) {
+    out.push(localDateString(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)));
+  }
+  return out;
+}
+
+/** A unique id for a new goal (module-level: id generation is impure). */
+function newGoalId(): string {
+  return `${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
+}
+
+/** YYYY-MM-DD of the last day of the current month (module-level helper). */
+function currentMonthEnd(): string {
+  const now = new Date();
+  return localDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+}
+
 type Suggestion = { label: string; note: string; action: GoalAction; range: string; portion: string; schedule: string };
 
 export default function GoalsClient({ preset }: { preset?: string }) {
@@ -51,7 +121,18 @@ export default function GoalsClient({ preset }: { preset?: string }) {
     { label: t('goal.reviewJuz30'), note: t('goal.reviewJuz30Note'), action: 'Review', range: 'Juz 30', portion: '5 ayahs a day', schedule: 'Every day' },
     { label: t('goal.memoriseAmma'), note: t('goal.memoriseAmmaNote'), action: 'Memorize', range: 'Juz 30 (Amma)', portion: '1 surah a day', schedule: 'Every day' },
   ];
+  // Stage 6 (§17): the six goal kinds from the brief, one tap each.
+  // 'month-end' resolves to the last day of the current month at creation.
+  const TEMPLATES: (Suggestion & { deadline?: string })[] = [
+    { label: 'Memorise one ayah a day', note: 'One new ayah every day, from anywhere in the Quran.', action: 'Memorize', range: 'Whole Quran (114 surahs)', portion: '1 ayah a day', schedule: 'Every day' },
+    { label: 'Memorise one page a day', note: 'One Mushaf page a day — the whole Quran in about 20 months.', action: 'Memorize', range: 'Whole Quran (114 surahs)', portion: '1 page a day', schedule: 'Every day' },
+    { label: 'One Surah a month', note: 'Finish Al-Mulk by the end of this month, then pick the next surah.', action: 'Memorize', range: 'Surah Al-Mulk', portion: 'Whole surah', schedule: 'Every day', deadline: 'month-end' },
+    { label: 'Revise one Juz every week', note: 'Work through Juz 30 again, a little each day, every week.', action: 'Review', range: 'Juz 30', portion: '1 page a day', schedule: 'Every day' },
+    { label: 'Complete a Surah', note: 'Memorise Al-Mulk from start to finish — your progress is measured ayah by ayah.', action: 'Memorize', range: 'Surah Al-Mulk', portion: 'Whole surah', schedule: 'Every day' },
+    { label: 'Revise what you have memorised', note: 'Keep the ayahs you already know strong — a few each day.', action: 'Review', range: 'Whole Quran (114 surahs)', portion: '5 ayahs a day', schedule: 'Every day' },
+  ];
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [progress, setProgress] = useState<HifzProgress | null>(null);
   const [name, setName] = useState('');
   const [action, setAction] = useState<GoalAction>('Memorize');
   const [range, setRange] = useState('Surah Al-Mulk');
@@ -65,6 +146,11 @@ export default function GoalsClient({ preset }: { preset?: string }) {
 
   useEffect(() => {
     setGoals(loadGoals());
+    try {
+      setProgress(loadProgress());
+    } catch {
+      setProgress(null);
+    }
     if (preset === 'kahf') {
       setName('Surah Al-Kahf every Friday');
       setAction('Recite');
@@ -84,9 +170,16 @@ export default function GoalsClient({ preset }: { preset?: string }) {
     }
   };
 
-  const createGoal = (s?: (typeof SUGGESTIONS)[number]) => {
+  const createGoal = (s?: (typeof SUGGESTIONS)[number] | (typeof TEMPLATES)[number]) => {
+    const templateDeadline =
+      s && 'deadline' in s && s.deadline
+        ? s.deadline === 'month-end'
+          ? currentMonthEnd()
+          : s.deadline
+        : undefined;
+    const resolvedDeadline = templateDeadline || deadline || undefined;
     const g: Goal = {
-      id: `${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`,
+      id: newGoalId(),
       name: s?.label ?? name.trim() ?? t('goal.myGoal'),
       action: s?.action ?? action,
       range: s?.range ?? range,
@@ -97,6 +190,7 @@ export default function GoalsClient({ preset }: { preset?: string }) {
       recurring,
       createdAt: new Date().toISOString(),
       sessions: [],
+      ...(resolvedDeadline ? { deadline: resolvedDeadline } : {}),
     };
     if (!g.name) return;
     persist([g, ...goals]);
@@ -105,6 +199,16 @@ export default function GoalsClient({ preset }: { preset?: string }) {
   };
 
   const deleteGoal = (id: string) => persist(goals.filter((g) => g.id !== id));
+
+  const setReminder = (id: string, remind: boolean, remindTime?: string) => {
+    persist(
+      goals.map((g) =>
+        g.id === id
+          ? { ...g, remind, ...(remindTime !== undefined ? { remindTime } : {}), ...(remind ? {} : { remindTime: g.remindTime }) }
+          : g,
+      ),
+    );
+  };
 
   /** Daily plan preview: portion text + how many days the range needs. */
   const planPreview = () => {
@@ -116,7 +220,49 @@ export default function GoalsClient({ preset }: { preset?: string }) {
     return `${t('goal.planPortionA')} ${portion.toLowerCase()} ${t('goal.planPortionB')} ${schedule.toLowerCase()}.`;
   };
 
-  const barColor = (v: number) => (v >= 1 ? '#16A34A' : v > 0 ? '#F2C94C' : '#DC2626');
+  // --- Stage 6 (§17): real progress + due reminders, from stored data.
+  const today = localDateString();
+  const practisedToday =
+    progress !== null &&
+    (ayahsPractisedOn(progress, today) > 0 ||
+      (progress.minutesToday.date === today && progress.minutesToday.minutes > 0));
+  // The clock reading is taken once, when the page opens — reminders are
+  // an "open the app" feature, not a live timer.
+  const [nowHHMM] = useState(() => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  });
+  const dueReminders = goals.filter(
+    (g) => g.remind && !practisedToday && g.remindTime && nowHHMM >= g.remindTime,
+  );
+
+  /** Real progress for one goal: memorised / learning counts in its range,
+   *  and which of the last 7 days saw practice in that range. */
+  const goalProgress = (g: Goal) => {
+    const keys = rangeAyahKeys(g.range);
+    if (!keys || !progress) return null;
+    const keySet = new Set(keys);
+    let memorised = 0;
+    let learning = 0;
+    const days = lastSevenDays();
+    const practisedDays = new Set<string>();
+    for (const [key, a] of Object.entries(progress.ayahs)) {
+      if (!keySet.has(key)) continue;
+      if (a.status === 'memorised') memorised += 1;
+      else if (a.status === 'learning') learning += 1;
+      if (a.lastPractised) {
+        const day = a.lastPractised.slice(0, 10);
+        if (days.includes(day)) practisedDays.add(day);
+      }
+    }
+    return {
+      total: keys.length,
+      memorised,
+      learning,
+      days: days.map((d) => ({ date: d, practised: practisedDays.has(d) })),
+      practisedToday: practisedDays.has(today),
+    };
+  };
 
   return (
     <div className="space-y-6">
@@ -126,56 +272,154 @@ export default function GoalsClient({ preset }: { preset?: string }) {
         </p>
       )}
 
+      {/* Stage 6 (§17): opt-in in-app reminders. Only when a reminded goal
+          is due and nothing has been practised today yet. */}
+      {dueReminders.length > 0 && (
+        <section aria-label="Goal reminders" className="rounded-2xl border border-[#FFB800] bg-[#FFFBF2] p-5 shadow-sm">
+          <h2 className="text-lg font-bold text-[#102E26]">Reminder — time to practise</h2>
+          <ul className="mt-2 space-y-1 text-sm text-[#5b6b62]">
+            {dueReminders.map((g) => (
+              <li key={g.id}>
+                <strong className="text-[#102E26]">{g.name}</strong> — you asked to be reminded
+                at {g.remindTime}, and nothing has been practised today yet.
+              </li>
+            ))}
+          </ul>
+          <Link
+            href="/hifz/recite"
+            className="mt-3 inline-block rounded-full bg-[#57D798] px-4 py-2 text-sm font-bold text-[#102E26] hover:brightness-105"
+          >
+            Practise now →
+          </Link>
+        </section>
+      )}
+
       {/* My goals */}
       {goals.length > 0 && (
         <section aria-labelledby="mine-heading" className="space-y-4">
           <h2 id="mine-heading" className="text-xl font-bold text-[#102E26]">{t('goal.myGoals')}</h2>
-          {goals.map((g) => (
-            <article key={g.id} className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="text-lg font-bold text-[#102E26]">{g.name}</h3>
-                <span className="rounded-full bg-[#E4FFF2] px-3 py-1 text-xs font-bold text-[#1FA36B]">
-                  {g.action} · {g.shape === 'flexible' ? t('goal.flexibleLabel') : t('goal.portionBased')}
-                  {g.recurring ? ` · ${t('goal.recurringLabel')}` : ''}
-                  {g.reverse ? ` · ${t('goal.reverseLabel')}` : ''}
-                </span>
-              </div>
-              <p className="mt-1 text-sm text-[#5b6b62]">
-                {g.range} · {g.portion} · {g.schedule}
-              </p>
-              <div className="mt-3 flex items-end gap-1" aria-label="Session progress bars">
-                {(g.sessions.length > 0 ? g.sessions : [0, 0, 0, 0, 0, 0, 0]).map((v, i) => (
-                  <span
-                    key={i}
-                    title={v >= 1 ? t('goal.sessionComplete') : v > 0 ? t('goal.sessionProgress') : t('goal.sessionMissed')}
-                    className="w-6 rounded-t"
-                    style={{ height: `${12 + v * 20}px`, background: barColor(v) }}
-                  />
-                ))}
-              </div>
-              <p className="mt-1 text-xs text-[#5b6b62]">
-                Bars: green = session complete, yellow = in progress, red = missed. Tap a bar on
-                your progress page for the portion and time spent. Sessions appear here as you practise.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Link
-                  href="/hifz/recite"
-                  className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
-                >
-                  {t('goal.practiseNow')}
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => deleteGoal(g.id)}
-                  className="text-sm font-semibold text-red-700 underline"
-                >
-                  {t('goal.deleteGoal')}
-                </button>
-              </div>
-            </article>
-          ))}
+          {goals.map((g) => {
+            const p = goalProgress(g);
+            const pct = p && p.total > 0 ? Math.round((p.memorised / p.total) * 100) : null;
+            return (
+              <article key={g.id} className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h3 className="text-lg font-bold text-[#102E26]">{g.name}</h3>
+                  <span className="rounded-full bg-[#E4FFF2] px-3 py-1 text-xs font-bold text-[#1FA36B]">
+                    {g.action} · {g.shape === 'flexible' ? t('goal.flexibleLabel') : t('goal.portionBased')}
+                    {g.recurring ? ` · ${t('goal.recurringLabel')}` : ''}
+                    {g.reverse ? ` · ${t('goal.reverseLabel')}` : ''}
+                    {g.deadline ? ` · by ${g.deadline}` : ''}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-[#5b6b62]">
+                  {g.range} · {g.portion} · {g.schedule}
+                </p>
+                {p === null ? (
+                  <p className="mt-3 text-sm text-[#5b6b62]">
+                    Progress can&apos;t be measured for this range — it was saved before ranges
+                    were measured. Delete it and recreate it from a template to track it.
+                  </p>
+                ) : (
+                  <>
+                    <div className="mt-3 flex flex-wrap items-baseline justify-between gap-2 text-sm">
+                      <span className="font-semibold text-[#102E26]">
+                        {p.memorised} of {p.total} ayahs memorised
+                        {p.learning > 0 ? ` · ${p.learning} learning` : ''}
+                      </span>
+                      <span className="font-bold text-[#1FA36B]">{pct}%</span>
+                    </div>
+                    <div className="mt-1 h-2 overflow-hidden rounded-full bg-[#E5E7EB]" role="progressbar" aria-valuenow={pct ?? 0} aria-valuemin={0} aria-valuemax={100} aria-label={`Progress on ${g.name}`}>
+                      <div className="h-full rounded-full bg-[#1FA36B]" style={{ width: `${pct ?? 0}%` }} />
+                    </div>
+                    <div className="mt-3 flex items-end gap-1" aria-label="Practice in this range over the last 7 days">
+                      {p.days.map((d) => (
+                        <span
+                          key={d.date}
+                          title={`${d.date}: ${d.practised ? 'practised in this range' : 'no practice recorded'}`}
+                          className={`w-6 rounded-t ${d.practised ? 'bg-[#16A34A]' : 'bg-[#E5E7EB]'}`}
+                          style={{ height: '20px' }}
+                        />
+                      ))}
+                    </div>
+                    <p className="mt-1 text-xs text-[#5b6b62]">
+                      Last 7 days in this range: green = practised, grey = no practice recorded.
+                      {p.practisedToday ? ' Practised today.' : ' Not practised today yet.'}
+                      {p.memorised === 0 && p.learning === 0
+                        ? ' Nothing practised in this range yet — recite with the coach and it appears here.'
+                        : ''}
+                    </p>
+                  </>
+                )}
+                <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-[#E5E7EB] pt-3">
+                  <label className="flex items-center gap-2 text-sm font-semibold">
+                    <input
+                      type="checkbox"
+                      checked={!!g.remind}
+                      onChange={(e) => setReminder(g.id, e.target.checked, g.remindTime ?? '08:00')}
+                    />
+                    Remind me
+                  </label>
+                  {g.remind && (
+                    <label className="flex items-center gap-2 text-sm font-semibold">
+                      at
+                      <input
+                        type="time"
+                        value={g.remindTime ?? '08:00'}
+                        onChange={(e) => setReminder(g.id, true, e.target.value)}
+                        className="min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+                      />
+                    </label>
+                  )}
+                  <span className="text-xs text-[#5b6b62]">
+                    In-app only — the reminder shows here when you open the app. No notifications are sent.
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href="/hifz/recite"
+                    className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+                  >
+                    {t('goal.practiseNow')}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => deleteGoal(g.id)}
+                    className="text-sm font-semibold text-red-700 underline"
+                  >
+                    {t('goal.deleteGoal')}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
         </section>
       )}
+
+      {/* Stage 6 (§17): one-tap templates for the six goal kinds in the brief. */}
+      <section aria-labelledby="templates-heading">
+        <h2 id="templates-heading" className="text-xl font-bold text-[#102E26]">Start from a template</h2>
+        <p className="text-sm text-[#5b6b62]">One tap creates the goal — progress is measured from your real practice.</p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          {TEMPLATES.map((s) => (
+            <article key={s.label} className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+              <h3 className="font-bold text-[#102E26]">{s.label}</h3>
+              <p className="mt-1 text-sm text-[#5b6b62]">{s.note}</p>
+              <p className="mt-1 text-xs text-[#5b6b62]">
+                {s.action} · {s.range} · {s.portion} · {s.schedule}
+                {s.deadline ? (s.deadline === 'month-end' ? ' · by the end of this month' : ` · by ${s.deadline}`) : ''}
+              </p>
+              <button
+                type="button"
+                onClick={() => createGoal(s)}
+                className="min-h-11 mt-3 rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+              >
+                {t('goal.startGoal')}
+              </button>
+            </article>
+          ))}
+        </div>
+      </section>
 
       {/* New goal */}
       <section aria-labelledby="new-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
