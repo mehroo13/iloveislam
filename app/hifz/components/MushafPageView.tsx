@@ -405,7 +405,7 @@ export default function MushafPageView({
           affordance). Hide, zoom, script, topic and tajweed controls
           moved into the settings sheet; the chapter list into the
           hamburger sheet. */}
-      <div className="sticky top-0 z-40 -mx-4 border-b border-[#E5E7EB] bg-white/95 px-2 backdrop-blur sm:px-3">
+      <div className="sticky top-0 z-40 -mx-4 border-b border-[#E8EAED] bg-white/95 px-2 backdrop-blur sm:px-3">
         <div className="mx-auto max-w-5xl">
           <MushafTopBar
             title={surahs[0]?.name ?? 'Mushaf'}
@@ -424,18 +424,18 @@ export default function MushafPageView({
       </div>
 
       {/* Chapter / Juz sheet (hamburger + centre pill). */}
-      <ReaderSheet open={navOpen} onClose={() => setNavOpen(false)} side="left" title="Chapters & Juz">
-        <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">Practice mode</p>
+      <ReaderSheet open={navOpen} onClose={() => setNavOpen(false)} side="left" title={t('rb.list.chaptersJuz')}>
+        <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">{t('mode.practiceMode')}</p>
         <div className="mt-2">
           <PracticeModeList onSelect={selectPracticeMode} />
         </div>
         <Link
           href={`/hifz/mushaf?page=${page}`}
-          className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
+          className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[#E8EAED] bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-[#F3F4F6]"
         >
           {t('mpv.continuousReader')}
         </Link>
-        <div className="mt-5 border-t border-[#E5E7EB] pt-4">
+        <div className="mt-5 border-t border-[#E8EAED] pt-4">
           <SurahList />
         </div>
       </ReaderSheet>
@@ -443,18 +443,18 @@ export default function MushafPageView({
       {/* Reader settings sheet (gear): zoom, script, text size, topic +
           tajweed colours, hide words. */}
       <ReaderSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} side="right" title={t('reader.readerSettings')}>
-        <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">{t('reader.readerZoom')}</p>
-        <div className="mt-2 flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white p-0.5" role="group" aria-label={t('mpv.zoomGroup')}>
+        <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">{t('reader.readerZoom')}</p>
+        <div className="mt-2 flex items-center gap-1 rounded-full border border-[#E8EAED] bg-white p-0.5" role="group" aria-label={t('mpv.zoomGroup')}>
           <button
             type="button"
             onClick={() => applyZoom(zoom - ZOOM_STEP)}
             disabled={zoom <= MIN_ZOOM}
             aria-label={t('mpv.zoomOut')}
-            className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full text-lg font-bold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
+            className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full text-lg font-bold text-[#111827] hover:bg-[#F3F4F6] disabled:opacity-40"
           >
             −
           </button>
-          <span className="w-12 text-center text-sm font-semibold text-[#102E26]" aria-live="polite">
+          <span className="w-12 text-center text-sm font-semibold text-[#111827]" aria-live="polite">
             {Math.round(zoom * 100)}%
           </span>
           <button
@@ -462,7 +462,7 @@ export default function MushafPageView({
             onClick={() => applyZoom(zoom + ZOOM_STEP)}
             disabled={zoom >= MAX_ZOOM}
             aria-label={t('mpv.zoomIn')}
-            className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full text-lg font-bold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
+            className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full text-lg font-bold text-[#111827] hover:bg-[#F3F4F6] disabled:opacity-40"
           >
             +
           </button>
@@ -470,13 +470,13 @@ export default function MushafPageView({
             type="button"
             onClick={() => applyZoom(MIN_ZOOM)}
             disabled={zoom === MIN_ZOOM}
-            className="min-h-10 flex-1 rounded-full px-3 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
+            className="min-h-10 flex-1 rounded-full px-3 text-sm font-semibold text-[#111827] hover:bg-[#F3F4F6] disabled:opacity-40"
           >
             {t('mpv.fitPage')}
           </button>
         </div>
-        <p className="mt-2 text-xs text-[#5b6b62]">{t('mpv.zoomNote')}</p>
-        <p className="mt-5 text-xs font-bold uppercase tracking-wide text-[#5b6b62]">{t('mpv.script')}</p>
+        <p className="mt-2 text-xs text-[#6B7280]">{t('mpv.zoomNote')}</p>
+        <p className="mt-5 text-xs font-bold uppercase tracking-wide text-[#6B7280]">{t('mpv.script')}</p>
         <div className="mt-2 flex flex-wrap items-center gap-2" role="group" aria-label={t('mpv.script')}>
           {(['indopak', 'uthmani'] as const).map((s) => (
             <button
@@ -485,21 +485,21 @@ export default function MushafPageView({
               onClick={() => setScript(s)}
               aria-pressed={script === s}
               className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${
-                script === s ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
+                script === s ? 'bg-[#102E26] text-white' : 'border border-[#E8EAED] bg-white text-[#111827] hover:bg-[#F3F4F6]'
               }`}
             >
               {SCRIPT_LABELS[s]}
             </button>
           ))}
         </div>
-        {script === 'indopak' && <p className="mt-2 text-xs text-[#5b6b62]">{t('mpv.indopakNote')}</p>}
+        {script === 'indopak' && <p className="mt-2 text-xs text-[#6B7280]">{t('mpv.indopakNote')}</p>}
         <div className="mt-4 space-y-2">
           <button
             type="button"
             onClick={() => setCompactText((v) => !v)}
             aria-pressed={compactText}
             className={`min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold ${
-              compactText ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
+              compactText ? 'bg-[#102E26] text-white' : 'border border-[#E8EAED] bg-white text-[#111827] hover:bg-[#F3F4F6]'
             }`}
           >
             {compactText ? t('mpv.compactText') : t('mpv.largeText')}
@@ -509,7 +509,7 @@ export default function MushafPageView({
             onClick={() => setTopicColors((v) => !v)}
             aria-pressed={topicColors}
             className={`min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold ${
-              topicColors ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
+              topicColors ? 'bg-[#102E26] text-white' : 'border border-[#E8EAED] bg-white text-[#111827] hover:bg-[#F3F4F6]'
             }`}
           >
             {topicColors ? t('reader.topicOn') : t('reader.topicOff')}
@@ -519,7 +519,7 @@ export default function MushafPageView({
             onClick={toggleTajweed}
             aria-pressed={tajweedOn}
             className={`min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold ${
-              tajweedOn ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
+              tajweedOn ? 'bg-[#102E26] text-white' : 'border border-[#E8EAED] bg-white text-[#111827] hover:bg-[#F3F4F6]'
             }`}
           >
             {t('set.tajweedColors')}
@@ -533,15 +533,15 @@ export default function MushafPageView({
             }}
             aria-pressed={hideVerses}
             className={`min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold ${
-              hideVerses ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
+              hideVerses ? 'bg-[#102E26] text-white' : 'border border-[#E8EAED] bg-white text-[#111827] hover:bg-[#F3F4F6]'
             }`}
           >
             {hideVerses ? t('mpv.showVerses') : t('mpv.hideVersesMemorise')}
           </button>
         </div>
         {topicColors && (
-          <div className="mt-4 rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">{t('mpv.topicsTitle')}</p>
+          <div className="mt-4 rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">{t('mpv.topicsTitle')}</p>
             <ul className="mt-2 flex flex-wrap gap-2">
               {TOPICS.map((tp) => (
                 <li
@@ -555,16 +555,14 @@ export default function MushafPageView({
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-xs text-[#5b6b62]">{t('mpv.topicsNote')}</p>
+            <p className="mt-2 text-xs text-[#6B7280]">{t('mpv.topicsNote')}</p>
           </div>
         )}
         {tajweedOn && (
-          <p className="mt-3 text-xs text-[#5b6b62]">
-            Tajweed colours show where a rule applies in the text. They do not check your recitation — this app checks words only, never tajweed. A teacher is still needed for tajweed.
-          </p>
+          <p className="mt-3 text-xs text-[#6B7280]">{t('rb.reader.tajweedNote')}</p>
         )}
         {mistakeMarkingOn && weakOnPage > 0 && (
-          <p className="mt-3 text-xs text-[#5b6b62]">
+          <p className="mt-3 text-xs text-[#6B7280]">
             <span className="live-word-wrong font-semibold">{t('mpv.weakLabel')}</span>{' '}
             {weakOnPage === 1
               ? t('mpv.weakOne').replace('{n}', String(weakOnPage))
@@ -573,14 +571,12 @@ export default function MushafPageView({
         )}
         <Link
           href="/hifz/settings"
-          className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
-        >
-          All settings →
-        </Link>
+          className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[#E8EAED] bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-[#F3F4F6]"
+        >{t('rb.reader.allSettings')} →</Link>
       </ReaderSheet>
 
       {hideVerses && (
-        <p className="mt-3 text-center text-sm text-[#5b6b62]">
+        <p className="mt-3 text-center text-sm text-[#6B7280]">
           {t('mpv.hideNote')}
           {mistakeMarkingOn && weakOnPage > 0 ? ` ${t('mpv.hideNoteRed')}` : ''}
         </p>
@@ -631,21 +627,21 @@ export default function MushafPageView({
 
       {/* Surahs on this page — jump back into the study view / coach */}
       {surahs.length > 0 && (
-        <nav aria-label={t('mpv.surahsOnPage')} className="mt-6 rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-[#102E26]">{t('mpv.onThisPage')}</h2>
+        <nav aria-label={t('mpv.surahsOnPage')} className="mt-6 rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-bold text-[#111827]">{t('mpv.onThisPage')}</h2>
           <ul className="mt-3 space-y-2 text-sm">
             {surahs.map((s) => (
               <li key={s.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <Link href={`/hifz/${s.slug}`} className="font-semibold text-[#1FA36B] hover:underline">
                   Surah {s.name} ({s.meaning})
                 </Link>
-                <Link href={`/hifz/${s.slug}?mode=recite`} className="text-[#5b6b62] hover:underline">
+                <Link href={`/hifz/${s.slug}?mode=recite`} className="text-[#6B7280] hover:underline">
                   {t('mpv.reciteCoach')}
                 </Link>
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-sm text-[#5b6b62]">
+          <p className="mt-3 text-sm text-[#6B7280]">
             {t('mpv.preferList')}{' '}
             <Link href="/hifz" className="font-semibold text-[#1FA36B] underline">
               {t('mpv.browseSurahs')}
@@ -663,7 +659,7 @@ export default function MushafPageView({
               type="button"
               onClick={peekNext}
               aria-label={t('mpv.revealNextWord')}
-              className="pointer-events-auto min-h-11 rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#102E26] shadow-md ring-1 ring-[#FFB800] hover:bg-[#FFFBF2]"
+              className="pointer-events-auto min-h-11 rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#111827] shadow-md ring-1 ring-[#FFB800] hover:bg-[#F3F4F6]"
             >
               {t('mpv.nextWord')}
             </button>
@@ -671,11 +667,11 @@ export default function MushafPageView({
               type="button"
               onClick={peekRest}
               aria-label={t('mpv.revealRestPage')}
-              className="pointer-events-auto min-h-11 rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#102E26] shadow-md ring-1 ring-[#FFB800] hover:bg-[#FFFBF2]"
+              className="pointer-events-auto min-h-11 rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#111827] shadow-md ring-1 ring-[#FFB800] hover:bg-[#F3F4F6]"
             >
               {t('mpv.revealRest')}
             </button>
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#5b6b62] shadow-md ring-1 ring-[#E5E7EB]">
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#6B7280] shadow-md ring-1 ring-[#E8EAED]">
               {peekCount === 1
                 ? t('mpv.peekOne').replace('{n}', String(peekCount)).replace('{r}', String(revealedCount))
                 : t('mpv.peekMany').replace('{n}', String(peekCount)).replace('{r}', String(revealedCount))}

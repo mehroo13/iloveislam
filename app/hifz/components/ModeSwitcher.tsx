@@ -135,9 +135,9 @@ export default function ModeSwitcher() {
         <div
           role="menu"
           aria-label={t('mode.practiceMode')}
-          className="mb-2 w-72 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-[#E5E7EB] bg-white p-2 shadow-xl"
+          className="mb-2 w-72 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-[#E8EAED] bg-white p-2 shadow-xl"
         >
-          <p className="px-3 pb-1 pt-2 text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
+          <p className="px-3 pb-1 pt-2 text-xs font-bold uppercase tracking-wide text-[#6B7280]">
             {t('mode.practiceMode')}
           </p>
           <ul>
@@ -148,7 +148,7 @@ export default function ModeSwitcher() {
                   role="menuitemradio"
                   aria-checked={mode === m}
                   onClick={() => select(m)}
-                  className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-[#FFFBF2] ${
+                  className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-[#F3F4F6] ${
                     mode === m ? 'bg-[#E4FFF2]' : ''
                   }`}
                 >
@@ -156,7 +156,7 @@ export default function ModeSwitcher() {
                     {MODE_ICONS[m]}
                   </span>
                   <span className="min-w-0">
-                    <span className="flex items-center gap-2 text-sm font-bold text-[#102E26]">
+                    <span className="flex items-center gap-2 text-sm font-bold text-[#111827]">
                       {t(MODE_LABEL_KEYS[m])}
                       {mode === m && (
                         <span className="rounded-full bg-[#1FA36B] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
@@ -164,7 +164,7 @@ export default function ModeSwitcher() {
                         </span>
                       )}
                     </span>
-                    <span className="mt-0.5 block text-xs leading-snug text-[#5b6b62]">
+                    <span className="mt-0.5 block text-xs leading-snug text-[#6B7280]">
                       {t(MODE_DESC_KEYS[m])}
                     </span>
                   </span>
@@ -172,7 +172,7 @@ export default function ModeSwitcher() {
               </li>
             ))}
           </ul>
-          <p className="px-3 pb-2 pt-1 text-[11px] leading-snug text-[#5b6b62]">
+          <p className="px-3 pb-2 pt-1 text-[11px] leading-snug text-[#6B7280]">
             {t('mode.switchNote')}
           </p>
         </div>

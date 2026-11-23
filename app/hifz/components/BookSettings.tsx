@@ -27,6 +27,7 @@ import {
 } from '../lib/fetch';
 import { getScriptPref, setScriptPref, type QuranScript } from '../lib/script';
 import { loadSettings, saveSettings } from '../progress';
+import { useT } from '../lib/i18n';
 
 interface Edition {
   id: QuranScript;
@@ -38,14 +39,12 @@ const EDITIONS: Edition[] = [
   {
     id: 'uthmani',
     name: 'Madani Mushaf',
-    description:
-      'The classic 15-line Madani layout in Uthmani script — the print most readers know by heart.',
+    description: 'rb.book.edUthmaniDesc',
   },
   {
     id: 'indopak',
     name: 'Indo-Pak Script',
-    description:
-      'The same 15-line Madani layout with Indo-Pak lettering, widely used across South Asia.',
+    description: 'rb.book.edIndopakDesc',
   },
 ];
 
@@ -93,10 +92,10 @@ function EditionPreview({
   const fontClass = script === 'uthmani' ? 'font-quran-madani' : 'font-quran';
   const shown = failed ? [BISMILLAH] : lines;
   return (
-    <div dir="rtl" lang="ar" translate="no" className="border border-[#E8C86A] bg-[#FFFBF2] px-3 py-3">
+    <div dir="rtl" lang="ar" translate="no" className="border border-[#E8C86A] bg-[#F4F5F7] px-3 py-3">
       {/* Ornate surah header, as on the printed page */}
       <div className="rounded-lg border-2 border-[#FFB800] bg-gradient-to-b from-[#FFF6D6] to-[#FFF1BF] px-2 py-1.5 text-center">
-        <p className={`${fontClass} text-lg leading-snug text-[#102E26]`}>
+        <p className={`${fontClass} text-lg leading-snug text-[#111827]`}>
           {surah?.arabic ?? 'الْفَاتِحَة'}
         </p>
       </div>
@@ -107,7 +106,7 @@ function EditionPreview({
           ))}
         </div>
       ) : (
-        <div className={`mt-2 ${fontClass} text-[15px] leading-[2.1] text-[#102E26]`}>
+        <div className={`mt-2 ${fontClass} text-[15px] leading-[2.1] text-[#111827]`}>
           {shown.map((line, i) => {
             // Full lines justify like the printed mushaf; short lines
             // centre instead of stretching (text-align-last trap).
@@ -140,6 +139,7 @@ export default function BookSettings({
   const [tajweed, setTajweed] = useState(false);
   const [verses, setVerses] = useState<MushafVerse[] | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
+  const t = useT();
 
   useEffect(() => {
     setScript(getScriptPref());
@@ -178,17 +178,15 @@ export default function BookSettings({
   };
 
   return (
-    <section aria-label="Book Settings" className="rounded-3xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
-      <h2 className="text-lg font-extrabold tracking-wide text-[#102E26]">BOOK SETTINGS</h2>
-      <p className="mt-1 text-sm leading-relaxed text-[#5b6b62]">
-        Choose the Mushaf that matches how you read and memorise.
-      </p>
+    <section aria-label={t('rb.book.ariaLabel')} className="rounded-3xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
+      <h2 className="text-lg font-extrabold tracking-wide text-[#111827]">{t('rb.book.title')}</h2>
+      <p className="mt-1 text-sm leading-relaxed text-[#6B7280]">{t('rb.book.choose')}</p>
 
       {/* Swipeable edition cards (horizontal scroll-snap, next card peeking). */}
       <div
         className="mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2"
         role="group"
-        aria-label="Mushaf edition"
+        aria-label={t('rb.book.edition')}
       >
         {EDITIONS.map((ed) => {
           const selected = script === ed.id;
@@ -198,7 +196,7 @@ export default function BookSettings({
               role="button"
               tabIndex={0}
               aria-pressed={selected}
-              aria-label={`${ed.name} — ${selected ? 'selected' : 'select'}`}
+              aria-label={`${ed.name} — ${selected ? t('rb.book.selected') : t('rb.book.select')}`}
               onClick={() => choose(ed.id)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -208,7 +206,7 @@ export default function BookSettings({
               }}
               className="w-[82%] shrink-0 cursor-pointer snap-center focus:outline-none sm:w-[340px]"
             >
-              <h3 className="pb-2 text-center text-base font-bold text-[#102E26]">{ed.name}</h3>
+              <h3 className="pb-2 text-center text-base font-bold text-[#111827]">{ed.name}</h3>
               <div
                 className={`relative rounded-xl border-2 bg-white p-2 ${
                   selected ? 'border-[#57D798]' : 'border-[#E8EAED]'
@@ -234,8 +232,8 @@ export default function BookSettings({
                   </span>
                 )}
               </div>
-              <p className="mt-3 text-sm leading-relaxed text-[#5b6b62]">{ed.description}</p>
-              <p className="mt-1.5 text-sm text-[#102E26]">
+              <p className="mt-3 text-sm leading-relaxed text-[#6B7280]">{t(ed.description)}</p>
+              <p className="mt-1.5 text-sm text-[#111827]">
                 <span className="font-bold">15 Lines</span> / 604 pages
               </p>
             </article>
@@ -255,20 +253,18 @@ export default function BookSettings({
             </span>
           </span>
           <div>
-            <p className="text-sm font-semibold text-[#102E26]">Show Tajweed Colors</p>
-            <p className="text-xs leading-relaxed text-[#5b6b62]">
-              Colour words by the tajweed rule that applies. Display only.
-            </p>
+            <p className="text-sm font-semibold text-[#111827]">{t('rb.book.showTajweed')}</p>
+            <p className="text-xs leading-relaxed text-[#6B7280]">{t('rb.book.tajweedHint')}</p>
           </div>
         </div>
         <button
           type="button"
           role="switch"
           aria-checked={tajweed}
-          aria-label="Show Tajweed Colors"
+          aria-label={t('rb.book.showTajweed')}
           onClick={() => toggleTajweed(!tajweed)}
           className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
-            tajweed ? 'bg-[#57D798]' : 'bg-[#E5E7EB]'
+            tajweed ? 'bg-[#57D798]' : 'bg-[#E8EAED]'
           }`}
         >
           <span
@@ -283,17 +279,13 @@ export default function BookSettings({
         <Link
           href={continueHref}
           className="mt-6 block w-full rounded-full bg-[#57D798] py-4 text-center text-lg font-bold text-[#102E26] hover:brightness-105"
-        >
-          Continue
-        </Link>
+        >{t('common.continue')}</Link>
       ) : (
         <button
           type="button"
           onClick={() => onContinue?.()}
           className="mt-6 w-full rounded-full bg-[#57D798] py-4 text-lg font-bold text-[#102E26] hover:brightness-105"
-        >
-          Continue
-        </button>
+        >{t('common.continue')}</button>
       )}
     </section>
   );

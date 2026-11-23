@@ -152,8 +152,8 @@ function Toggle({
   return (
     <div className="flex items-start justify-between gap-4 py-3">
       <div>
-        <p className="text-sm font-semibold text-[#102E26]">{label}</p>
-        {hint && <p className="mt-0.5 text-xs leading-relaxed text-[#5b6b62]">{hint}</p>}
+        <p className="text-sm font-semibold text-[#111827]">{label}</p>
+        {hint && <p className="mt-0.5 text-xs leading-relaxed text-[#6B7280]">{hint}</p>}
       </div>
       <button
         type="button"
@@ -161,7 +161,7 @@ function Toggle({
         aria-checked={checked}
         aria-label={label}
         onClick={() => onChange(!checked)}
-        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${checked ? 'bg-[#57D798]' : 'bg-[#E5E7EB]'}`}
+        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${checked ? 'bg-[#57D798]' : 'bg-[#E8EAED]'}`}
       >
         {/* Logical `start-*` (not `left-*`) so the knob mirrors in RTL. */}
         <span
@@ -177,7 +177,7 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section aria-label={title}>
       <h2 className="mb-2 px-1 text-[13px] font-bold uppercase tracking-wide text-[#6B7280]">{title}</h2>
-      <div className="divide-y divide-[#E5E7EB] rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
+      <div className="divide-y divide-[#E8EAED] rounded-2xl border border-[#E8EAED] bg-white shadow-sm">
         {children}
       </div>
     </section>
@@ -189,7 +189,7 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section aria-label={title}>
       <h2 className="mb-2 px-1 text-[13px] font-bold uppercase tracking-wide text-[#6B7280]">{title}</h2>
-      <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">{children}</div>
+      <div className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">{children}</div>
     </section>
   );
 }
@@ -216,13 +216,13 @@ function Row({
     <>
       <IconChip name={icon} danger={danger} />
       <span className="min-w-0 flex-1">
-        <span className={`block truncate text-sm font-semibold ${danger ? 'text-red-700' : 'text-[#102E26]'}`}>{label}</span>
-        {value && <span className="block truncate text-xs text-[#5b6b62]">{value}</span>}
+        <span className={`block truncate text-sm font-semibold ${danger ? 'text-red-700' : 'text-[#111827]'}`}>{label}</span>
+        {value && <span className="block truncate text-xs text-[#6B7280]">{value}</span>}
       </span>
       <Chevron expanded={expanded} />
     </>
   );
-  const cls = 'flex w-full items-center gap-3 px-4 py-3.5 text-start hover:bg-[#FFFBF2]';
+  const cls = 'flex w-full items-center gap-3 px-4 py-3.5 text-start hover:bg-[#F3F4F6]';
   if (href) {
     return (
       <Link href={href} className={cls}>
@@ -239,7 +239,7 @@ function Row({
 
 /** Expanded panel under a row, holding the real controls. */
 function Panel({ children }: { children: ReactNode }) {
-  return <div className="border-t border-[#E5E7EB] bg-[#FFFBF2]/60 px-4 py-4">{children}</div>;
+  return <div className="border-t border-[#E8EAED] bg-[#F4F5F7]/60 px-4 py-4">{children}</div>;
 }
 
 function MiniSelect({
@@ -254,12 +254,12 @@ function MiniSelect({
   options: { value: string; label: string }[];
 }) {
   return (
-    <label className="block text-sm font-semibold text-[#102E26]">
+    <label className="block text-sm font-semibold text-[#111827]">
       {label}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 block w-full max-w-xs rounded-lg border border-[#E5E7EB] bg-white px-3 py-2.5 text-sm font-normal"
+        className="mt-1 block w-full max-w-xs rounded-lg border border-[#E8EAED] bg-white px-3 py-2.5 text-sm font-normal"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>{o.label}</option>
@@ -355,7 +355,7 @@ export default function SettingsClient() {
         }),
       );
     } catch {
-      setMsg('Export failed — browser storage is unavailable.');
+      setMsg(t('rb.set.exportFailed'));
     }
   };
 
@@ -377,11 +377,11 @@ export default function SettingsClient() {
       saveChallenges(result.challenges);
       mirrorAllToIdb();
       setSettings(result.settings);
-      setImportMsg('Progress imported successfully.');
+      setImportMsg(t('rb.dash.importedOk'));
       // An import can carry a different language/theme — apply it at once.
       syncPrefsFromStorage();
     };
-    reader.onerror = () => setImportMsg('That file could not be read.');
+    reader.onerror = () => setImportMsg(t('rb.dash.fileUnreadable'));
     reader.readAsText(file);
   };
 
@@ -394,18 +394,18 @@ export default function SettingsClient() {
       if (typeof indexedDB !== 'undefined') {
         indexedDB.deleteDatabase('ili-hifz');
       }
-      setMsg('Everything on this device was cleared. Reload the page to start fresh.');
+      setMsg(t('rb.set.clearedAll'));
       // Reset the live locale/theme to the defaults right away.
       resetUiPrefsToDefaults();
     } catch {
-      setMsg('Clear failed — browser storage is unavailable.');
+      setMsg(t('rb.set.clearFailed'));
     }
   };
 
   if (!settings) {
     return (
-      <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-        <p className="text-sm text-[#5b6b62]">{t('set.loading')}</p>
+      <div className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm">
+        <p className="text-sm text-[#6B7280]">{t('set.loading')}</p>
       </div>
     );
   }
@@ -419,38 +419,33 @@ export default function SettingsClient() {
         ? t('set.themeSepia')
         : t('set.themeLight');
   const listenValue =
-    `Repeat ${listen.repeat}× · ${listen.speed}× speed` +
-    (listen.wordByWord ? ' · Word by word' : '');
+    t('rb.set.repeatSpeed').replace('{r}', String(listen.repeat)).replace('{s}', String(listen.speed)) +
+    (listen.wordByWord ? t('rb.set.wbwSuffix') : '');
 
   return (
     <div className="space-y-6">
       {msg && (
-        <p role="status" className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1FA36B]">
+        <p role="status" className="rounded-xl border border-[#E8EAED] bg-white px-4 py-3 text-sm font-semibold text-[#1FA36B]">
           {msg}
         </p>
       )}
 
       {/* Promo banner — Testing Mode (own words, no copied Tarteel copy). */}
       <section
-        aria-label="New feature: Testing Mode"
+        aria-label={t('rb.set.newFeatureTesting')}
         className="rounded-2xl border border-[#F2C94C] bg-[#FFF7D6] p-5 shadow-sm"
       >
-        <p className="text-xs font-bold uppercase tracking-wide text-[#7A5C00]">New feature</p>
-        <h2 className="mt-1 text-lg font-bold text-[#102E26]">Testing Mode</h2>
-        <p className="mt-1 text-sm leading-relaxed text-[#5b6b62]">
-          Put your memory to the test — the app quizzes you on verses from anywhere in the
-          Quran, so you find the weak spots before they find you.
-        </p>
+        <p className="text-xs font-bold uppercase tracking-wide text-[#7A5C00]">{t('rb.set.newFeature')}</p>
+        <h2 className="mt-1 text-lg font-bold text-[#111827]">{t('rb.set.testingMode')}</h2>
+        <p className="mt-1 text-sm leading-relaxed text-[#6B7280]">{t('rb.set.testPromo')}</p>
         <Link
           href="/hifz/test"
-          className="mt-3 inline-block rounded-full bg-[#FFB800] px-5 py-2.5 text-sm font-bold text-[#102E26] hover:brightness-105"
-        >
-          TEST YOURSELF
-        </Link>
+          className="mt-3 inline-block rounded-full bg-[#FFB800] px-5 py-2.5 text-sm font-bold text-[#111827] hover:brightness-105"
+        >{t('rb.set.testYourself')}</Link>
       </section>
 
       {/* Experiences */}
-      <Group title="Experiences">
+      <Group title={t('rb.set.experiences')}>
         <div>
           <Row
             icon="mic"
@@ -461,7 +456,7 @@ export default function SettingsClient() {
           />
           {open === 'recitation' && (
             <Panel>
-              <div className="divide-y divide-[#E5E7EB]">
+              <div className="divide-y divide-[#E8EAED]">
                 <Toggle
                   label={t('set.detectMistakes')}
                   hint="Flag incorrect, extra, missed and skipped words as you recite. Off = follow-along only: the app highlights words but never judges them."
@@ -470,22 +465,22 @@ export default function SettingsClient() {
                 />
                 <Toggle
                   label={t('set.strictHarakat')}
-                  hint="On: a word said with the wrong vowel marks counts as a mistake. Off: harakat differences are ignored. This is about vowel marks only — the checker never judges tajweed."
+                  hint={t('rb.set.harakatHint')}
                   checked={settings.harakatStrict ?? false}
                   onChange={(v) => update({ harakatStrict: v })}
                 />
                 <Toggle
                   label={t('set.dontProgress')}
-                  hint="On: after a session with mistakes, you must retry those words before moving to the next ayah. Off: you can continue past a wrongly-flagged word."
+                  hint={t('rb.set.retryHint')}
                   checked={settings.dontProgress ?? false}
                   onChange={(v) => update({ dontProgress: v })}
                 />
               </div>
               <Link
                 href="/hifz/recite"
-                className="mt-3 flex items-center justify-between rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
+                className="mt-3 flex items-center justify-between rounded-xl border border-[#E8EAED] bg-white px-4 py-3 text-sm font-semibold text-[#111827] hover:bg-[#E4FFF2]"
               >
-                <span>Open the recitation coach</span>
+                <span>{t('rb.set.openCoach')}</span>
                 <span aria-hidden="true">›</span>
               </Link>
             </Panel>
@@ -494,7 +489,7 @@ export default function SettingsClient() {
         <div>
           <Row
             icon="headphones"
-            label="Listening"
+            label={t('surah.modeListening')}
             value={listenValue}
             expanded={open === 'listening'}
             onClick={() => toggleOpen('listening')}
@@ -503,56 +498,53 @@ export default function SettingsClient() {
             <Panel>
               <div className="space-y-4">
                 <MiniSelect
-                  label="Repeat each ayah"
+                  label={t('surah.repeatEach')}
                   value={String(listen.repeat)}
                   onChange={(v) => updateListen({ repeat: Number(v) })}
                   options={[
-                    { value: '1', label: 'Once' },
-                    { value: '2', label: '2 times' },
-                    { value: '3', label: '3 times' },
-                    { value: '5', label: '5 times' },
-                    { value: '10', label: '10 times' },
+                    { value: '1', label: t('rb.set.once') },
+                    { value: '2', label: t('rb.set.timesN').replace('{n}', '2') },
+                    { value: '3', label: t('rb.set.timesN').replace('{n}', '3') },
+                    { value: '5', label: t('rb.set.timesN').replace('{n}', '5') },
+                    { value: '10', label: t('rb.set.timesN').replace('{n}', '10') },
                   ]}
                 />
                 <MiniSelect
-                  label="Pause between repeats"
+                  label={t('rb.set.pauseBetween')}
                   value={String(listen.pauseSec)}
                   onChange={(v) => updateListen({ pauseSec: Number(v) })}
                   options={[
-                    { value: '0', label: 'No pause' },
-                    { value: '1', label: '1 second' },
-                    { value: '2', label: '2 seconds' },
-                    { value: '3', label: '3 seconds' },
-                    { value: '5', label: '5 seconds' },
-                    { value: '10', label: '10 seconds' },
+                    { value: '0', label: t('rb.set.noPause') },
+                    { value: '1', label: t('rb.set.second1') },
+                    { value: '2', label: t('rb.set.secondsN').replace('{n}', '2') },
+                    { value: '3', label: t('rb.set.secondsN').replace('{n}', '3') },
+                    { value: '5', label: t('rb.set.secondsN').replace('{n}', '5') },
+                    { value: '10', label: t('rb.set.secondsN').replace('{n}', '10') },
                   ]}
                 />
                 <MiniSelect
-                  label="Playback speed"
+                  label={t('rb.set.playbackSpeed')}
                   value={String(listen.speed)}
                   onChange={(v) => updateListen({ speed: Number(v) })}
                   options={[
                     { value: '0.5', label: '0.5×' },
                     { value: '0.75', label: '0.75×' },
-                    { value: '1', label: '1× (normal)' },
+                    { value: '1', label: t('rb.set.speedNormal') },
                     { value: '1.25', label: '1.25×' },
                     { value: '1.5', label: '1.5×' },
                     { value: '2', label: '2×' },
                   ]}
                 />
-                <div className="divide-y divide-[#E5E7EB]">
+                <div className="divide-y divide-[#E8EAED]">
                   <Toggle
-                    label="Word by word"
-                    hint="Play each word's clip in turn, highlighting it as it sounds — for slow, careful listening."
+                    label={t('surah.wordByWord')}
+                    hint={t('rb.set.wbwHint')}
                     checked={listen.wordByWord}
                     onChange={(v) => updateListen({ wordByWord: v })}
                   />
                 </div>
               </div>
-              <p className="mt-3 text-xs leading-relaxed text-[#5b6b62]">
-                These are the same listen settings used on every surah page — change them here
-                or there, they stay in sync. The ayah range is picked on the surah itself.
-              </p>
+              <p className="mt-3 text-xs leading-relaxed text-[#6B7280]">{t('rb.set.listenSync')}</p>
             </Panel>
           )}
         </div>
@@ -563,7 +555,7 @@ export default function SettingsClient() {
         <div>
           <Row
             icon="layers"
-            label="Mushaf Layout"
+            label={t('rb.set.mushafLayout')}
             value={(settings.mushafLines ?? 15) === 15 ? t('set.mushaf15') : t('set.mushaf16')}
             expanded={open === 'layout'}
             onClick={() => toggleOpen('layout')}
@@ -579,13 +571,13 @@ export default function SettingsClient() {
                   { value: '16', label: t('set.mushaf16') },
                 ]}
               />
-              <p className="mt-2 text-xs text-[#5b6b62]">
+              <p className="mt-2 text-xs text-[#6B7280]">
                 The Madani mushaf is 15 lines a page. Compact text shows the same page slightly
                 smaller; page breaks never change.
               </p>
               <Link
                 href="/hifz/setup"
-                className="mt-3 flex items-center justify-between rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
+                className="mt-3 flex items-center justify-between rounded-xl border border-[#E8EAED] bg-white px-4 py-3 text-sm font-semibold text-[#111827] hover:bg-[#E4FFF2]"
               >
                 <span>Book settings — mushaf edition &amp; tajweed</span>
                 <span aria-hidden="true">›</span>
@@ -596,23 +588,23 @@ export default function SettingsClient() {
         <div>
           <Row
             icon="eye-off"
-            label="Hidden Verses"
-            value={settings.showForHidden ? 'Washes stay visible when hidden' : 'Hidden words stay hidden'}
+            label={t('rb.set.hiddenVerses')}
+            value={settings.showForHidden ? t('rb.set.washesVisible') : t('rb.set.hiddenStayHidden')}
             expanded={open === 'hidden'}
             onClick={() => toggleOpen('hidden')}
           />
           {open === 'hidden' && (
             <Panel>
-              <div className="divide-y divide-[#E5E7EB]">
+              <div className="divide-y divide-[#E8EAED]">
                 <Toggle
                   label={t('set.showForHidden')}
-                  hint="Keep the weak-spot washes visible even while verses are hidden, so you see where to be careful before you recite."
+                  hint={t('rb.set.weakWashHint')}
                   checked={settings.showForHidden ?? false}
                   onChange={(v) => update({ showForHidden: v })}
                 />
                 <Toggle
                   label={t('set.hideAyahMarkers')}
-                  hint="Hide the ayah-end rosettes for a true test of memory."
+                  hint={t('rb.set.hideMarkersHint')}
                   checked={settings.hideAyahMarkers ?? false}
                   onChange={(v) => update({ hideAyahMarkers: v })}
                 />
@@ -623,29 +615,29 @@ export default function SettingsClient() {
         <div>
           <Row
             icon="star"
-            label="Marking"
-            value={settings.highlightMistakes ?? true ? 'Mistake history highlighted' : 'Mistake history off'}
+            label={t('rb.set.marking')}
+            value={(settings.highlightMistakes ?? true) ? t('rb.set.mistakesOn') : t('rb.set.mistakesOff')}
             expanded={open === 'marking'}
             onClick={() => toggleOpen('marking')}
           />
           {open === 'marking' && (
             <Panel>
-              <div className="divide-y divide-[#E5E7EB]">
+              <div className="divide-y divide-[#E8EAED]">
                 <Toggle
                   label={t('set.highlightMistakes')}
-                  hint="Words you have missed often show a soft pastel wash on the page — red for most-missed, fading to green as you get them right."
+                  hint={t('rb.set.washHint')}
                   checked={settings.highlightMistakes ?? true}
                   onChange={(v) => update({ highlightMistakes: v })}
                 />
                 <Toggle
                   label={t('set.tajweedColors')}
-                  hint="Colour words by the tajweed rule that applies (madd, ghunna, qalqalah…). Display only — this app does not detect tajweed mistakes."
+                  hint={t('rb.set.tajweedHintLong')}
                   checked={settings.tajweedColors ?? false}
                   onChange={(v) => update({ tajweedColors: v })}
                 />
                 <Toggle
                   label={t('set.topicColors')}
-                  hint="Tint each ayah by its topic (Allah & Tawhid, Prophets, Afterlife…) with a legend on the mushaf page. A study aid, not tafsir — every ayah is given one main topic by an automatic mapping."
+                  hint={t('rb.set.topicHint')}
                   checked={settings.topicColors ?? true}
                   onChange={(v) => update({ topicColors: v })}
                 />
@@ -656,7 +648,7 @@ export default function SettingsClient() {
       </Group>
 
       {/* Appearance */}
-      <Group title="Appearance">
+      <Group title={t('rb.set.appearance')}>
         <div>
           <Row
             icon="globe"
@@ -673,7 +665,7 @@ export default function SettingsClient() {
                 onChange={(v) => update({ language: v })}
                 options={SUPPORTED_LOCALES.map((l) => ({ value: l.code, label: l.name }))}
               />
-              <p className="mt-2 text-xs text-[#5b6b62]">{t('set.languageHint')}</p>
+              <p className="mt-2 text-xs text-[#6B7280]">{t('set.languageHint')}</p>
             </Panel>
           )}
         </div>
@@ -701,37 +693,32 @@ export default function SettingsClient() {
                     aria-pressed={(settings.theme ?? 'light') === v}
                     onClick={() => update({ theme: v })}
                     className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${
-                      (settings.theme ?? 'light') === v ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white'
+                      (settings.theme ?? 'light') === v ? 'bg-[#102E26] text-white' : 'border border-[#E8EAED] bg-white'
                     }`}
                   >
                     {label}
                   </button>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-[#5b6b62]">{t('set.themeHint')}</p>
+              <p className="mt-2 text-xs text-[#6B7280]">{t('set.themeHint')}</p>
             </Panel>
           )}
         </div>
       </Group>
 
       {/* Notifications */}
-      <Group title="Notifications">
+      <Group title={t('rb.set.notifications')}>
         <div>
           <Row
             icon="bell"
             label={t('set.reminders')}
-            value="On-device only — no push notifications"
+            value={t('rb.set.noPush')}
             expanded={open === 'reminders'}
             onClick={() => toggleOpen('reminders')}
           />
           {open === 'reminders' && (
             <Panel>
-              <p className="text-sm leading-relaxed text-[#5b6b62]">
-                The app works fully without an account, so it cannot send push notifications. Your
-                daily goal and streak are shown on the home screen and Progress tab instead — open
-                the app once a day and the streak stays alive. In-app reminders (a banner when your
-                goal is unmet by the evening) are planned; nothing is promised here that is not built.
-              </p>
+              <p className="text-sm leading-relaxed text-[#6B7280]">{t('rb.set.noPushNote')}</p>
             </Panel>
           )}
         </div>
@@ -742,12 +729,12 @@ export default function SettingsClient() {
           sound anywhere in the app (no such fields in HifzSettings, no
           sound prefs in the codebase), so those two rows are omitted
           rather than added as dead rows. */}
-      <Group title="Sounds & Haptics">
+      <Group title={t('rb.set.sounds')}>
         <div className="flex items-center gap-3 px-4">
           <IconChip name="volume" />
           <div className="min-w-0 flex-1">
             <Toggle
-              label="Mistake Feedback"
+              label={t('rb.set.mistakeFeedback')}
               hint="The coach flags wrong, extra and missed words as you recite. Off = follow-along only, no mistake flags."
               checked={settings.detectMistakes ?? true}
               onChange={(v) => update({ detectMistakes: v })}
@@ -758,8 +745,8 @@ export default function SettingsClient() {
           <IconChip name="target" />
           <div className="min-w-0 flex-1">
             <Toggle
-              label="Testing Mode"
-              hint="Play a sound (and vibrate, on phones) when a test question finishes."
+              label={t('rb.set.testingMode')}
+              hint={t('rb.set.soundHint')}
               checked={settings.testSound ?? true}
               onChange={(v) => update({ testSound: v })}
             />
@@ -769,11 +756,11 @@ export default function SettingsClient() {
 
       {/* Downloads — each row opens the real picker (same catalogues and
           storage keys the surah pages use). */}
-      <Group title="Downloads">
+      <Group title={t('rb.set.downloads')}>
         <div>
           <Row
             icon="download"
-            label="Reciters"
+            label={t('rb.set.reciters')}
             value={reciterName(settings.reciterId)}
             expanded={open === 'reciters'}
             onClick={() => toggleOpen('reciters')}
@@ -781,23 +768,21 @@ export default function SettingsClient() {
           {open === 'reciters' && (
             <Panel>
               <SearchablePicker
-                label="Reciter"
+                label={t('surah.reciter')}
                 value={settings.reciterId}
                 groups={reciterGroups}
                 onChange={(id) => update({ reciterId: id })}
-                searchPlaceholder="Search reciters…"
-                noResults="No reciters match your search."
+                searchPlaceholder={t('rb.set.searchReciters')}
+                noResults={t('rb.set.noReciters')}
               />
-              <p className="mt-2 text-xs text-[#5b6b62]">
-                Used for Listen audio everywhere — surah pages, Recite and Tests.
-              </p>
+              <p className="mt-2 text-xs text-[#6B7280]">{t('rb.set.listenEverywhere')}</p>
             </Panel>
           )}
         </div>
         <div>
           <Row
             icon="download"
-            label="Translations"
+            label={t('rb.set.translations')}
             value={translationName(settings.translationId)}
             expanded={open === 'translations'}
             onClick={() => toggleOpen('translations')}
@@ -805,23 +790,21 @@ export default function SettingsClient() {
           {open === 'translations' && (
             <Panel>
               <SearchablePicker
-                label="Translation"
+                label={t('surah.translation')}
                 value={settings.translationId}
                 groups={translationGroups}
                 onChange={(id) => update({ translationId: id })}
-                searchPlaceholder="Search translations…"
-                noResults="No translations match your search."
+                searchPlaceholder={t('picker.searchTranslations')}
+                noResults={t('rb.set.noTranslations')}
               />
-              <p className="mt-2 text-xs text-[#5b6b62]">
-                Shown on surah pages and in the reader, in the language you pick.
-              </p>
+              <p className="mt-2 text-xs text-[#6B7280]">{t('rb.set.shownLang')}</p>
             </Panel>
           )}
         </div>
         <div>
           <Row
             icon="download"
-            label="Tafsir"
+            label={t('surah.tafsir')}
             value={tafsirName(tafsirId)}
             expanded={open === 'tafsir'}
             onClick={() => toggleOpen('tafsir')}
@@ -829,16 +812,14 @@ export default function SettingsClient() {
           {open === 'tafsir' && (
             <Panel>
               <SearchablePicker
-                label="Tafsir"
+                label={t('surah.tafsir')}
                 value={tafsirId}
                 groups={tafsirGroups}
                 onChange={(id) => updateTafsir(id)}
-                searchPlaceholder="Search tafsirs…"
-                noResults="No tafsirs match your search."
+                searchPlaceholder={t('picker.searchTafsirs')}
+                noResults={t('rb.set.noTafsirs')}
               />
-              <p className="mt-2 text-xs text-[#5b6b62]">
-                Shown on surah pages in Tafsir view.
-              </p>
+              <p className="mt-2 text-xs text-[#6B7280]">{t('rb.set.shownTafsir')}</p>
             </Panel>
           )}
         </div>
@@ -850,21 +831,21 @@ export default function SettingsClient() {
           <Row
             icon="database"
             label={t('set.dataUsage')}
-            value={(settings.saveAudio ?? true) ? 'Session audio saved on this device' : 'Session audio not saved'}
+            value={(settings.saveAudio ?? true) ? t('rb.set.audioSaved') : t('rb.set.audioNotSaved')}
             expanded={open === 'data'}
             onClick={() => toggleOpen('data')}
           />
           {open === 'data' && (
             <Panel>
-              <div className="divide-y divide-[#E5E7EB]">
+              <div className="divide-y divide-[#E8EAED]">
                 <Toggle
                   label={t('set.saveAudio')}
-                  hint="Keep your own recitation recordings on this device so you can listen back to them. Recordings never leave the device unless you choose to share one, and are never uploaded by the app."
+                  hint={t('rb.set.recordingsHint')}
                   checked={settings.saveAudio ?? true}
                   onChange={(v) => update({ saveAudio: v })}
                 />
               </div>
-              <p className="mt-3 text-sm text-[#5b6b62]">
+              <p className="mt-3 text-sm text-[#6B7280]">
                 Progress is also mirrored into IndexedDB on this device (with a one-time migration of
                 your existing progress), so it survives even if localStorage is cleared by the browser.
                 As a guest, nothing is ever sent to a server. If you choose to create an optional
@@ -881,30 +862,20 @@ export default function SettingsClient() {
               that same clear-all, and says so plainly before confirming. */}
           <Row
             icon="trash"
-            label="Delete All Audio Data"
-            value="Deletes everything on this device, including saved audio"
+            label={t('rb.set.deleteAudio')}
+            value={t('rb.set.deleteAudioNote')}
             danger
             onClick={clearAll}
           />
         </div>
         <div className="px-4 py-4">
-          <p className="text-sm leading-relaxed text-[#5b6b62]">
-            Everything in this app lives on your device by default: progress, mistakes, goals,
-            recordings. Your voice is processed on this device by the downloaded checker — audio is
-            never uploaded, never sold, never shared. There is no tracking and no advertising, and
-            no account is ever required. If you choose to create an optional account (see “Account”
-            below), only your email address and your progress records (which surahs
-            you have memorised, your goals, bookmarks, test results and settings) are stored online,
-            so your progress follows you to other devices. You can delete your progress on this
-            device, or delete your account and its cloud backup, from that same section. The only
-            other network calls are to fetch Quran text, translations and reciter audio.
-          </p>
+          <p className="text-sm leading-relaxed text-[#6B7280]">{t('rb.set.privacyLong')}</p>
         </div>
       </Group>
 
       {/* More — Account */}
-      <section aria-label="Account">
-        <h2 className="mb-2 px-1 text-[13px] font-bold uppercase tracking-wide text-[#6B7280]">Account</h2>
+      <section aria-label={t('rb.set.account')}>
+        <h2 className="mb-2 px-1 text-[13px] font-bold uppercase tracking-wide text-[#6B7280]">{t('rb.set.account')}</h2>
         <AccountSection />
       </section>
 
@@ -921,7 +892,7 @@ export default function SettingsClient() {
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="min-h-11 rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
+            className="min-h-11 rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#111827] hover:bg-[#E4FFF2]"
           >
             {t('set.import')}
           </button>
@@ -930,7 +901,7 @@ export default function SettingsClient() {
             type="file"
             accept=".json,application/json"
             className="hidden"
-            aria-label="Choose a progress export file"
+            aria-label={t('rb.dash.chooseExport')}
             onChange={(e) => {
               const f = e.target.files?.[0];
               if (f) doImport(f);
@@ -948,35 +919,27 @@ export default function SettingsClient() {
         {importMsg && (
           <p role="status" className="mt-3 text-sm font-semibold text-[#1FA36B]">{importMsg}</p>
         )}
-        <p className="mt-3 text-sm text-[#5b6b62]">
-          The backup file holds your progress, mistakes, settings, bookmarks and group challenges —
-          everything needed to restore this device. It never leaves your device unless you choose
-          to keep the file somewhere yourself.
-        </p>
+        <p className="mt-3 text-sm text-[#6B7280]">{t('rb.dash.backupNote')}</p>
       </Card>
 
       {/* More — Microphone help */}
       <Card title={t('set.micHelp')}>
         {/* Logical `ps-*` (not `pl-*`) so the list indent mirrors in RTL. */}
-        <ul className="list-disc space-y-1 ps-5 text-sm leading-relaxed text-[#5b6b62]">
-          <li>The checker needs microphone permission. If it is blocked, allow it in your browser&apos;s site settings (padlock icon → microphone → Allow).</li>
-          <li>Recite in a quiet room, close to the microphone. Background noise and Bluetooth or car microphones cause false flags.</li>
-          <li>Long madd (stretching a word for 6 counts) is the checker&apos;s known weak spot — if it flags a correct long stretch, remove the mistake from your history.</li>
-          <li>The checker works offline once the model has downloaded (about 25 MB, first recitation). Quran text and reciter audio still need a connection unless saved for offline use.</li>
-          <li>If the checker seems stuck on one ayah, tap “Practice without mic” and self-mark instead — the session still counts.</li>
+        <ul className="list-disc space-y-1 ps-5 text-sm leading-relaxed text-[#6B7280]">
+          <li>{t('rb.set.micPerm')}</li>
+          <li>{t('rb.set.micQuiet')}</li>
+          <li>{t('rb.set.micMadd')}</li>
+          <li>{t('rb.set.micOffline')}</li>
+          <li>{t('rb.set.micStuck')}</li>
         </ul>
       </Card>
 
       {/* More — Support / donate (Settings only) */}
       <Card title={t('set.support')}>
-        <p className="text-sm leading-relaxed text-[#5b6b62]">
-          This app is free forever — no Premium, no paywall, no ads. If it helps your hifz and
-          you would like to help keep it running, you can donate. Donations are optional and
-          never unlock anything: everything is already free.
-        </p>
+        <p className="text-sm leading-relaxed text-[#6B7280]">{t('rb.set.donateNote')}</p>
         <a
           href="/about#support"
-          className="mt-3 inline-block rounded-full bg-[#FFB800] px-5 py-2.5 text-sm font-bold text-[#102E26] hover:brightness-105"
+          className="mt-3 inline-block rounded-full bg-[#FFB800] px-5 py-2.5 text-sm font-bold text-[#111827] hover:brightness-105"
         >
           {t('set.donate')}
         </a>

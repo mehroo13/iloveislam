@@ -19,12 +19,12 @@ export default function SetupPage() {
       <div className="flex items-center justify-between">
         <Link
           href="/hifz/settings"
-          className="inline-flex min-h-11 items-center rounded-full border border-[#E5E7EB] bg-white px-4 text-sm font-semibold text-[#102E26] hover:bg-[#F2F4F3]"
+          className="inline-flex min-h-11 items-center rounded-full border border-[#E8EAED] bg-white px-4 text-sm font-semibold text-[#111827] hover:bg-[#F2F4F3]"
         >
           ← Settings
         </Link>
       </div>
-      <h1 className="mt-6 text-center text-xl font-bold text-[#102E26]">Setup</h1>
+      <h1 className="mt-6 text-center text-xl font-bold text-[#111827]">Setup</h1>
       <div className="mt-4">
         <BookSettings continueHref="/hifz/settings" />
       </div>

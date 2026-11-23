@@ -94,7 +94,7 @@ export function BottomTabs() {
   return (
     <nav
       aria-label={t('nav.sections')}
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-[#E5E7EB] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-[#E8EAED] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >
       <ul className="mx-auto flex max-w-3xl items-stretch justify-around">
         {TABS.map((tab) => {
@@ -106,7 +106,7 @@ export function BottomTabs() {
                 href={tab.href}
                 aria-current={active ? 'page' : undefined}
                 className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${
-                  active ? 'text-[#1FA36B]' : 'text-[#5b6b62]'
+                  active ? 'text-[#1FA36B]' : 'text-[#6B7280]'
                 }`}
               >
                 <Icon className="h-6 w-6" />
@@ -197,8 +197,8 @@ export function Onboarding() {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Welcome to I Love Islam Hifz"
-      className="fixed inset-0 z-[70] flex flex-col bg-[#F2F4F3] text-[#102E26]"
+      aria-label={t('rb.shell.onboardingLabel')}
+      className="fixed inset-0 z-[70] flex flex-col bg-[#F2F4F3] text-[#111827]"
     >
       <div className="flex items-center justify-between px-5 pt-5">
         <p className="text-sm font-bold tracking-wide">
@@ -207,7 +207,7 @@ export function Onboarding() {
         <button
           type="button"
           onClick={done}
-          className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#D8DEDB] bg-white px-4 py-1.5 text-sm font-semibold text-[#102E26] hover:bg-[#E8EAED]"
+          className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#D8DEDB] bg-white px-4 py-1.5 text-sm font-semibold text-[#111827] hover:bg-[#E8EAED]"
         >
           {t('ob.skip')}
         </button>
@@ -233,14 +233,14 @@ export function Onboarding() {
                   className={`font-quran w-fit max-w-full rounded-2xl px-5 py-3 text-2xl leading-relaxed ${
                     b.kind === 'mistake'
                       ? 'bg-[#DC2626] text-white'
-                      : 'border border-[#E8EAED] bg-white text-[#102E26] shadow-sm'
+                      : 'border border-[#E8EAED] bg-white text-[#111827] shadow-sm'
                   }`}
                 >
                   {b.text}
                 </p>
               ))}
             </div>
-            <h2 className="mt-8 text-3xl font-bold leading-tight text-[#102E26]">{s.title}</h2>
+            <h2 className="mt-8 text-3xl font-bold leading-tight text-[#111827]">{s.title}</h2>
             <p className="mt-3 max-w-md text-base leading-relaxed text-[#43564D]">{s.body}</p>
           </div>
           <div className="px-6 pb-8">
@@ -256,7 +256,7 @@ export function Onboarding() {
             >
               {t('ob.next')}
             </button>
-            <p className="mt-3 text-center text-xs text-[#5b6b62]">
+            <p className="mt-3 text-center text-xs text-[#6B7280]">
               {t('ob.freeNote')}
             </p>
           </div>

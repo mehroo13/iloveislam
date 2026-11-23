@@ -159,7 +159,7 @@ export default function SurahList() {
           applies to the searched list too); Parts and Bookmarks tabs
           don't list surah rows, so the chips hide there. */}
       {activeTab === 'chapters' && (
-        <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filter by progress">
+        <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={t('rb.list.filterProgress')}>
           {(
             [
               ['all', t('list.filterAll')],
@@ -187,7 +187,7 @@ export default function SurahList() {
       {/* Recently Read — only when there is real history, never faked */}
       {!searching && recentlyRead && (
         <div className="mt-4">
-          <p className="text-base text-[#111827]">Recently Read</p>
+          <p className="text-base text-[#111827]">{t('rb.list.recentlyRead')}</p>
           <Link
             href={`/hifz/${recentlyRead.slug}`}
             className="mt-2 flex items-stretch overflow-hidden rounded-xl border border-[#E8EAED] bg-white shadow-sm"
@@ -211,21 +211,19 @@ export default function SurahList() {
       )}
 
       <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="surahs-heading" className="text-xl font-bold text-[#111827] sm:text-2xl">
-          Chapter and Juz Lists
-        </h2>
+        <h2 id="surahs-heading" className="text-xl font-bold text-[#111827] sm:text-2xl">{t('rb.list.chapterJuzLists')}</h2>
         <Link href="/hifz/juz-amma" className="text-sm font-semibold text-[#1FA36B] hover:underline">
           {t('list.juzAmmaPath')}
         </Link>
       </div>
 
       {/* Tabs: Chapters / Parts / Bookmarks */}
-      <div className="mt-3 flex gap-2" role="tablist" aria-label="Chapter and Juz Lists">
+      <div className="mt-3 flex gap-2" role="tablist" aria-label={t('rb.list.chapterJuzLists')}>
         {(
           [
-            ['chapters', 'Chapters'],
-            ['parts', 'Parts'],
-            ['bookmarks', 'Bookmarks'],
+            ['chapters', t('rb.list.tabChapters')],
+            ['parts', t('rb.list.tabParts')],
+            ['bookmarks', t('rb.list.tabBookmarks')],
           ] as [Tab, string][]
         ).map(([value, label]) => (
           <button
@@ -255,15 +253,13 @@ export default function SurahList() {
         <button
           type="button"
           onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
-          aria-label={`Sort by ${sortDir === 'asc' ? 'descending' : 'ascending'}`}
+          aria-label={t('rb.list.sortByDir').replace('{dir}', sortDir === 'asc' ? t('rb.list.descLower') : t('rb.list.ascLower'))}
           className="flex items-start gap-1.5 text-left text-[#6B7280] hover:text-[#111827]"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true">
             <path d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m0 0L3 12m4.5 4.5L12 21m0 0 4.5-4.5M12 21V7.5m0 0L16.5 3M12 7.5l4.5 4.5" />
           </svg>
-          <span className="text-[11px] font-bold uppercase leading-tight tracking-wide">
-            Sort by
-            <span className="block">{sortDir === 'asc' ? 'Ascending' : 'Descending'}</span>
+          <span className="text-[11px] font-bold uppercase leading-tight tracking-wide">{t('rb.list.sortBy')}<span className="block">{sortDir === 'asc' ? t('rb.list.ascending') : t('rb.list.descending')}</span>
           </span>
         </button>
         <button
@@ -275,9 +271,7 @@ export default function SurahList() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true">
             <path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
           </svg>
-          <span className="text-[11px] font-bold uppercase leading-tight tracking-wide">
-            Shown progress
-            <span className="block">Memorization</span>
+          <span className="text-[11px] font-bold uppercase leading-tight tracking-wide">{t('rb.list.shownProgress')}<span className="block">{t('rb.dash.tabMemorization')}</span>
           </span>
         </button>
       </div>
@@ -316,13 +310,13 @@ export default function SurahList() {
 
           {/* Right-edge Juz quick-jump rail */}
           {showRail && (
-            <nav aria-label="Jump to Juz" className="sticky top-24 flex shrink-0 flex-col self-start">
+            <nav aria-label={t('rb.list.jumpToJuz')} className="sticky top-24 flex shrink-0 flex-col self-start">
               {Array.from({ length: 30 }, (_, i) => i + 1).map((n) => (
                 <button
                   key={n}
                   type="button"
                   onClick={() => jumpToJuz(n)}
-                  aria-label={`Jump to Juz ${n}`}
+                  aria-label={t('rb.list.jumpToJuzN').replace('{n}', String(n))}
                   className="flex h-[19px] w-5 items-center justify-center rounded-full text-[10px] font-semibold leading-none text-[#6B7280] hover:bg-[#E4FFF2] hover:text-[#1FA36B]"
                 >
                   {n}
@@ -342,7 +336,7 @@ export default function SurahList() {
             const first = getSurahById(j.segments[0]?.surahId ?? 1);
             return (
               <li key={j.n}>
-                <Link href={`/hifz/juz/${j.n}`} className="flex min-w-0 items-center gap-3 px-4 py-3 hover:bg-[#FFFBF2]">
+                <Link href={`/hifz/juz/${j.n}`} className="flex min-w-0 items-center gap-3 px-4 py-3 hover:bg-[#F3F4F6]">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E4FFF2] text-xs font-bold text-[#1FA36B]">
                     {j.n}
                   </span>
@@ -370,10 +364,8 @@ export default function SurahList() {
         <div className="mt-3 overflow-hidden rounded-2xl border border-[#E8EAED] bg-white shadow-sm">
           {bookmarked.length === 0 ? (
             <div className="p-5 text-center">
-              <p className="text-sm text-[#6B7280]">No bookmarks yet. Bookmark an ayah or a Mushaf page while you read and it will show up here.</p>
-              <Link href="/hifz/bookmarks" className="mt-3 inline-block rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]">
-                View bookmarks →
-              </Link>
+              <p className="text-sm text-[#6B7280]">{t('rb.list.noBookmarks')}</p>
+              <Link href="/hifz/bookmarks" className="mt-3 inline-block rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]">{t('rb.list.viewBookmarks')} →</Link>
             </div>
           ) : (
             <>
@@ -382,12 +374,12 @@ export default function SurahList() {
                   if (b.kind === 'page') {
                     return (
                       <li key={`page-${b.page}-${i}`}>
-                        <Link href={`/hifz/mushaf/${b.page}`} className="flex min-w-0 items-center gap-3 px-4 py-3 hover:bg-[#FFFBF2]">
+                        <Link href={`/hifz/mushaf/${b.page}`} className="flex min-w-0 items-center gap-3 px-4 py-3 hover:bg-[#F3F4F6]">
                           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E4FFF2] text-xs font-bold text-[#1FA36B]">
                             {b.page}
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate font-bold text-[#111827]">Mushaf page {b.page}</span>
+                            <span className="block truncate font-bold text-[#111827]">{t('rb.dash.mushafPage')} {b.page}</span>
                             {b.note && <span className="block truncate text-sm text-[#6B7280]">{b.note}</span>}
                           </span>
                           <span className="shrink-0 text-sm text-[#6B7280]">›</span>
@@ -399,7 +391,7 @@ export default function SurahList() {
                   if (!s) return null;
                   return (
                     <li key={`ayah-${b.surahNumber}-${b.verseNumber}-${i}`}>
-                      <Link href={`/hifz/${s.slug}?mode=recite&ayah=${b.verseNumber}`} className="flex min-w-0 items-center gap-3 px-4 py-3 hover:bg-[#FFFBF2]">
+                      <Link href={`/hifz/${s.slug}?mode=recite&ayah=${b.verseNumber}`} className="flex min-w-0 items-center gap-3 px-4 py-3 hover:bg-[#F3F4F6]">
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E4FFF2] text-xs font-bold text-[#1FA36B]">
                           {s.id}
                         </span>
@@ -422,9 +414,7 @@ export default function SurahList() {
                 })}
               </ul>
               <div className="border-t border-[#E8EAED] p-3 text-center">
-                <Link href="/hifz/bookmarks" className="text-sm font-semibold text-[#1FA36B] hover:underline">
-                  View all bookmarks →
-                </Link>
+                <Link href="/hifz/bookmarks" className="text-sm font-semibold text-[#1FA36B] hover:underline">{t('rb.dash.viewAllBookmarks')} →</Link>
               </div>
             </>
           )}
@@ -465,27 +455,28 @@ function SurahRow({
   counts?: { memorised: number; learning: number };
   showProgress: boolean;
 }) {
+  const t = useT();
   const memorised = counts?.memorised ?? 0;
   const learning = counts?.learning ?? 0;
   const hasData = memorised + learning > 0;
   const pct = s.ayahCount > 0 ? Math.round((memorised / s.ayahCount) * 100) : 0;
   return (
     <li>
-      <Link href={`/hifz/${s.slug}`} className="flex min-w-0 items-center gap-3 px-4 py-3 hover:bg-[#FFFBF2]">
+      <Link href={`/hifz/${s.slug}`} className="flex min-w-0 items-center gap-3 px-4 py-3 hover:bg-[#F3F4F6]">
         <span className="w-6 shrink-0 text-center text-sm font-semibold text-[#111827]">{s.id}</span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-base font-bold text-[#111827]">{s.name}</span>
           <span className="block text-sm leading-snug text-[#6B7280]">
-            {s.ayahCount} Verses
+            {s.ayahCount} {t('rb.list.verses')}
             <span className="block">{s.revelation === 'Makki' ? 'Meccan' : 'Medinan'}</span>
           </span>
           {showProgress && hasData && (
             <span className="mt-1.5 block max-w-36">
-              <span className="block h-1.5 overflow-hidden rounded-full bg-[#E5E7EB]">
+              <span className="block h-1.5 overflow-hidden rounded-full bg-[#E8EAED]">
                 <span className="block h-full rounded-full bg-[#1FA36B]" style={{ width: `${pct}%` }} />
               </span>
               <span className="mt-0.5 block text-[11px] font-semibold text-[#1FA36B]">
-                {memorised > 0 ? `${pct}% memorised` : `${learning} learning`}
+                {memorised > 0 ? t('rb.list.pctMemorised').replace('{pct}', String(pct)) : t('rb.list.nLearning').replace('{n}', String(learning))}
               </span>
             </span>
           )}

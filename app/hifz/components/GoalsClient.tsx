@@ -126,12 +126,12 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
   // Stage 6 (§17): the six goal kinds from the brief, one tap each.
   // 'month-end' resolves to the last day of the current month at creation.
   const TEMPLATES: (Suggestion & { deadline?: string })[] = [
-    { label: 'Memorise one ayah a day', note: 'One new ayah every day, from anywhere in the Quran.', action: 'Memorize', range: 'Whole Quran (114 surahs)', portion: '1 ayah a day', schedule: 'Every day' },
-    { label: 'Memorise one page a day', note: 'One Mushaf page a day — the whole Quran in about 20 months.', action: 'Memorize', range: 'Whole Quran (114 surahs)', portion: '1 page a day', schedule: 'Every day' },
-    { label: 'One Surah a month', note: 'Finish Al-Mulk by the end of this month, then pick the next surah.', action: 'Memorize', range: 'Surah Al-Mulk', portion: 'Whole surah', schedule: 'Every day', deadline: 'month-end' },
-    { label: 'Revise one Juz every week', note: 'Work through Juz 30 again, a little each day, every week.', action: 'Review', range: 'Juz 30', portion: '1 page a day', schedule: 'Every day' },
-    { label: 'Complete a Surah', note: 'Memorise Al-Mulk from start to finish — your progress is measured ayah by ayah.', action: 'Memorize', range: 'Surah Al-Mulk', portion: 'Whole surah', schedule: 'Every day' },
-    { label: 'Revise what you have memorised', note: 'Keep the ayahs you already know strong — a few each day.', action: 'Review', range: 'Whole Quran (114 surahs)', portion: '5 ayahs a day', schedule: 'Every day' },
+    { label: t('rb.goals.tplAyahDay'), note: t('rb.goals.tplAyahDayNote'), action: 'Memorize', range: 'Whole Quran (114 surahs)', portion: '1 ayah a day', schedule: 'Every day' },
+    { label: t('rb.goals.tplPageDay'), note: t('rb.goals.tplPageDayNote'), action: 'Memorize', range: 'Whole Quran (114 surahs)', portion: '1 page a day', schedule: 'Every day' },
+    { label: t('rb.goals.tplSurahMonth'), note: t('rb.goals.tplSurahMonthNote'), action: 'Memorize', range: 'Surah Al-Mulk', portion: 'Whole surah', schedule: 'Every day', deadline: 'month-end' },
+    { label: t('rb.goals.tplJuzWeek'), note: t('rb.goals.tplJuzWeekNote'), action: 'Review', range: 'Juz 30', portion: '1 page a day', schedule: 'Every day' },
+    { label: t('rb.goals.tplCompleteSurah'), note: t('rb.goals.tplCompleteSurahNote'), action: 'Memorize', range: 'Surah Al-Mulk', portion: 'Whole surah', schedule: 'Every day' },
+    { label: t('rb.goals.tplRevise'), note: t('rb.goals.tplReviseNote'), action: 'Review', range: 'Whole Quran (114 surahs)', portion: '5 ayahs a day', schedule: 'Every day' },
   ];
   const [goals, setGoals] = useState<Goal[]>([]);
   const [progress, setProgress] = useState<HifzProgress | null>(null);
@@ -160,7 +160,7 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
       setProgress(null);
     }
     if (preset === 'kahf') {
-      setName('Surah Al-Kahf every Friday');
+      setName(t('rb.goals.presetKahfName'));
       setAction('Recite');
       setRange('Surah Al-Kahf');
       setPortion('Whole surah');
@@ -307,14 +307,14 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
     const p = goalProgress(g);
     const pct = p && p.total > 0 ? Math.round((p.memorised / p.total) * 100) : null;
     return (
-      <li className="flex flex-wrap items-center gap-2 rounded-xl bg-[#FFFBF2] px-3 py-2 text-sm">
-        <span className="font-semibold text-[#102E26]">{g.name}</span>
-        <span className="text-[#5b6b62]">
+      <li className="flex flex-wrap items-center gap-2 rounded-xl bg-[#F4F5F7] px-3 py-2 text-sm">
+        <span className="font-semibold text-[#111827]">{g.name}</span>
+        <span className="text-[#6B7280]">
           {g.range} · {g.portion} · {g.schedule}
         </span>
         {pct !== null && <span className="font-bold text-[#1FA36B]">{pct}% memorised</span>}
         <Link href="/hifz/recite" className="ml-auto font-semibold text-[#1FA36B] underline">
-          Practise now →
+          {t('goal.practiseNow')}
         </Link>
       </li>
     );
@@ -323,7 +323,7 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
   return (
     <div className="space-y-6">
       {savedMsg && (
-        <p role="status" className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1FA36B]">
+        <p role="status" className="rounded-xl border border-[#E8EAED] bg-white px-4 py-3 text-sm font-semibold text-[#1FA36B]">
           {savedMsg}
         </p>
       )}
@@ -331,13 +331,12 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
       {/* Stage 6 (§17): opt-in in-app reminders. Only when a reminded goal
           is due and nothing has been practised today yet. */}
       {dueReminders.length > 0 && (
-        <section aria-label="Goal reminders" className="rounded-2xl border border-[#FFB800] bg-[#FFFBF2] p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-[#102E26]">Reminder — time to practise</h2>
-          <ul className="mt-2 space-y-1 text-sm text-[#5b6b62]">
+        <section aria-label={t('rb.goals.reminders')} className="rounded-2xl border border-[#FFB800] bg-[#F4F5F7] p-5 shadow-sm">
+          <h2 className="text-lg font-bold text-[#111827]">{t('rb.goals.reminderTitle')}</h2>
+          <ul className="mt-2 space-y-1 text-sm text-[#6B7280]">
             {dueReminders.map((g) => (
               <li key={g.id}>
-                <strong className="text-[#102E26]">{g.name}</strong> — you asked to be reminded
-                at {g.remindTime}, and nothing has been practised today yet.
+                <strong className="text-[#111827]">{g.name}</strong> {t('rb.goals.reminderDue').replace('{time}', g.remindTime ?? '')}
               </li>
             ))}
           </ul>
@@ -345,7 +344,7 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
             href="/hifz/recite"
             className="mt-3 inline-block rounded-full bg-[#57D798] px-4 py-2 text-sm font-bold text-[#102E26] hover:brightness-105"
           >
-            Practise now →
+            {t('goal.practiseNow')}
           </Link>
         </section>
       )}
@@ -365,14 +364,14 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
       {/* Active goals */}
       {activeGoals.length > 0 && (
         <section aria-labelledby="mine-heading" className="space-y-4">
-          <h2 id="mine-heading" className="text-xl font-bold text-[#102E26]">Active</h2>
+          <h2 id="mine-heading" className="text-xl font-bold text-[#111827]">{t('rb.goals.active')}</h2>
           {activeGoals.map((g) => {
             const p = goalProgress(g);
             const pct = p && p.total > 0 ? Math.round((p.memorised / p.total) * 100) : null;
             return (
-              <article key={g.id} className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+              <article key={g.id} className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h3 className="text-lg font-bold text-[#102E26]">{g.name}</h3>
+                  <h3 className="text-lg font-bold text-[#111827]">{g.name}</h3>
                   <span className="rounded-full bg-[#E4FFF2] px-3 py-1 text-xs font-bold text-[#1FA36B]">
                     {g.action} · {g.shape === 'flexible' ? t('goal.flexibleLabel') : t('goal.portionBased')}
                     {g.recurring ? ` · ${t('goal.recurringLabel')}` : ''}
@@ -380,68 +379,64 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
                     {g.deadline ? ` · by ${g.deadline}` : ''}
                   </span>
                 </div>
-                <p className="mt-1 text-sm text-[#5b6b62]">
+                <p className="mt-1 text-sm text-[#6B7280]">
                   {g.range} · {g.portion} · {g.schedule}
                 </p>
                 {p === null ? (
-                  <p className="mt-3 text-sm text-[#5b6b62]">
+                  <p className="mt-3 text-sm text-[#6B7280]">
                     Progress can&apos;t be measured for this range — it was saved before ranges
                     were measured. Delete it and recreate it from a template to track it.
                   </p>
                 ) : (
                   <>
                     <div className="mt-3 flex flex-wrap items-baseline justify-between gap-2 text-sm">
-                      <span className="font-semibold text-[#102E26]">
-                        {p.memorised} of {p.total} ayahs memorised
-                        {p.learning > 0 ? ` · ${p.learning} learning` : ''}
+                      <span className="font-semibold text-[#111827]">
+                        {t('rb.goals.memorisedOf').replace('{a}', String(p.memorised)).replace('{b}', String(p.total))}
+                        {p.learning > 0 ? ` · ${t('rb.list.nLearning').replace('{n}', String(p.learning))}` : ''}
                       </span>
                       <span className="font-bold text-[#1FA36B]">{pct}%</span>
                     </div>
-                    <div className="mt-1 h-2 overflow-hidden rounded-full bg-[#E5E7EB]" role="progressbar" aria-valuenow={pct ?? 0} aria-valuemin={0} aria-valuemax={100} aria-label={`Progress on ${g.name}`}>
+                    <div className="mt-1 h-2 overflow-hidden rounded-full bg-[#E8EAED]" role="progressbar" aria-valuenow={pct ?? 0} aria-valuemin={0} aria-valuemax={100} aria-label={t('rb.goals.progressOn').replace('{name}', g.name)}>
                       <div className="h-full rounded-full bg-[#1FA36B]" style={{ width: `${pct ?? 0}%` }} />
                     </div>
-                    <div className="mt-3 flex items-end gap-1" aria-label="Practice in this range over the last 7 days">
+                    <div className="mt-3 flex items-end gap-1" aria-label={t('rb.goals.practiceRange')}>
                       {p.days.map((d) => (
                         <span
                           key={d.date}
-                          title={`${d.date}: ${d.practised ? 'practised in this range' : 'no practice recorded'}`}
-                          className={`w-6 rounded-t ${d.practised ? 'bg-[#16A34A]' : 'bg-[#E5E7EB]'}`}
+                          title={`${d.date}: ${d.practised ? t('rb.goals.practisedRange') : t('rb.dash.stNoPractice')}`}
+                          className={`w-6 rounded-t ${d.practised ? 'bg-[#16A34A]' : 'bg-[#E8EAED]'}`}
                           style={{ height: '20px' }}
                         />
                       ))}
                     </div>
-                    <p className="mt-1 text-xs text-[#5b6b62]">
-                      Last 7 days in this range: green = practised, grey = no practice recorded.
-                      {p.practisedToday ? ' Practised today.' : ' Not practised today yet.'}
+                    <p className="mt-1 text-xs text-[#6B7280]">
+                      {t('rb.goals.last7Note')}
+                      {p.practisedToday ? ' ' + t('rb.goals.practisedToday') : ' ' + t('rb.goals.notPractisedToday')}
                       {p.memorised === 0 && p.learning === 0
-                        ? ' Nothing practised in this range yet — recite with the coach and it appears here.'
+                        ? ' ' + t('rb.goals.nothingRange')
                         : ''}
                     </p>
                   </>
                 )}
-                <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-[#E5E7EB] pt-3">
+                <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-[#E8EAED] pt-3">
                   <label className="flex items-center gap-2 text-sm font-semibold">
                     <input
                       type="checkbox"
                       checked={!!g.remind}
                       onChange={(e) => setReminder(g.id, e.target.checked, g.remindTime ?? '08:00')}
-                    />
-                    Remind me
-                  </label>
+                    />{t('rb.goals.remindMe')}</label>
                   {g.remind && (
                     <label className="flex items-center gap-2 text-sm font-semibold">
-                      at
+                      {t('rb.goals.atTime')}
                       <input
                         type="time"
                         value={g.remindTime ?? '08:00'}
                         onChange={(e) => setReminder(g.id, true, e.target.value)}
-                        className="min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+                        className="min-h-11 rounded-lg border border-[#E8EAED] bg-[#F4F5F7] px-2 py-1.5 text-sm"
                       />
                     </label>
                   )}
-                  <span className="text-xs text-[#5b6b62]">
-                    In-app only — the reminder shows here when you open the app. No notifications are sent.
-                  </span>
+                  <span className="text-xs text-[#6B7280]">{t('rb.goals.reminderNote')}</span>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
@@ -453,10 +448,8 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
                   <button
                     type="button"
                     onClick={() => setArchived(g.id, true)}
-                    className="text-sm font-semibold text-[#5b6b62] underline"
-                  >
-                    Archive
-                  </button>
+                    className="text-sm font-semibold text-[#6B7280] underline"
+                  >{t('rb.goals.archive')}</button>
                   <button
                     type="button"
                     onClick={() => deleteGoal(g.id)}
@@ -472,14 +465,14 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
       )}
 
       {activeGoals.length === 0 && (
-        <p><span className="rounded-full bg-[#E5E7EB] px-3 py-1 text-xs font-bold text-[#5b6b62]">None</span></p>
+        <p><span className="rounded-full bg-[#E8EAED] px-3 py-1 text-xs font-bold text-[#6B7280]">{t('rb.goals.none')}</span></p>
       )}
 
       {/* Today's goals — active goals whose schedule falls today. */}
-      <section aria-labelledby="today-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="today-heading" className="text-xl font-bold text-[#102E26]">Today&apos;s goals</h2>
+      <section aria-labelledby="today-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
+        <h2 id="today-heading" className="text-xl font-bold text-[#111827]">{t('rb.goals.todayGoals')}</h2>
         {todaysGoals.length === 0 ? (
-          <p className="mt-3"><span className="rounded-full bg-[#E5E7EB] px-3 py-1 text-xs font-bold text-[#5b6b62]">None</span></p>
+          <p className="mt-3"><span className="rounded-full bg-[#E8EAED] px-3 py-1 text-xs font-bold text-[#6B7280]">{t('rb.goals.none')}</span></p>
         ) : (
           <ul className="mt-3 space-y-2">
             {todaysGoals.map((g) => (
@@ -490,10 +483,10 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
       </section>
 
       {/* Upcoming goals — active goals not due today. */}
-      <section aria-labelledby="upcoming-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="upcoming-heading" className="text-xl font-bold text-[#102E26]">Upcoming goals</h2>
+      <section aria-labelledby="upcoming-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
+        <h2 id="upcoming-heading" className="text-xl font-bold text-[#111827]">{t('rb.goals.upcoming')}</h2>
         {upcomingGoals.length === 0 ? (
-          <p className="mt-3"><span className="rounded-full bg-[#E5E7EB] px-3 py-1 text-xs font-bold text-[#5b6b62]">None</span></p>
+          <p className="mt-3"><span className="rounded-full bg-[#E8EAED] px-3 py-1 text-xs font-bold text-[#6B7280]">{t('rb.goals.none')}</span></p>
         ) : (
           <ul className="mt-3 space-y-2">
             {upcomingGoals.map((g) => (
@@ -504,31 +497,29 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
       </section>
 
       {/* Archived goals — collapsible; archiving never deletes a goal. */}
-      <section aria-labelledby="archived-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+      <section aria-labelledby="archived-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="archived-heading" className="text-xl font-bold text-[#102E26]">Archived</h2>
+          <h2 id="archived-heading" className="text-xl font-bold text-[#111827]">{t('rb.goals.archived')}</h2>
           <button
             type="button"
             aria-expanded={showArchived}
             onClick={() => setShowArchived((v) => !v)}
-            className="min-h-11 rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
+            className="min-h-11 rounded-full border border-[#E8EAED] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
           >
-            {showArchived ? 'Hide' : `Show (${archivedGoals.length})`}
+            {showArchived ? t('rb.common.hide') : t('rb.goals.showN').replace('{n}', String(archivedGoals.length))}
           </button>
         </div>
         {showArchived &&
           (archivedGoals.length === 0 ? (
-            <p className="mt-3"><span className="rounded-full bg-[#E5E7EB] px-3 py-1 text-xs font-bold text-[#5b6b62]">None</span></p>
+            <p className="mt-3"><span className="rounded-full bg-[#E8EAED] px-3 py-1 text-xs font-bold text-[#6B7280]">{t('rb.goals.none')}</span></p>
           ) : (
             <ul className="mt-3 space-y-2">
               {archivedGoals.map((g) => (
-                <li key={g.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-[#FFFBF2] px-3 py-2 text-sm">
-                  <span className="font-semibold text-[#102E26]">{g.name}</span>
-                  <span className="text-[#5b6b62]">{g.range} · {g.portion} · {g.schedule}</span>
+                <li key={g.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-[#F4F5F7] px-3 py-2 text-sm">
+                  <span className="font-semibold text-[#111827]">{g.name}</span>
+                  <span className="text-[#6B7280]">{g.range} · {g.portion} · {g.schedule}</span>
                   <span className="ml-auto flex gap-3">
-                    <button type="button" onClick={() => setArchived(g.id, false)} className="font-semibold text-[#1FA36B] underline">
-                      Unarchive
-                    </button>
+                    <button type="button" onClick={() => setArchived(g.id, false)} className="font-semibold text-[#1FA36B] underline">{t('rb.goals.unarchive')}</button>
                     <button type="button" onClick={() => deleteGoal(g.id)} className="font-semibold text-red-700 underline">
                       {t('goal.deleteGoal')}
                     </button>
@@ -543,14 +534,14 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
         <>
       {/* Stage 6 (§17): one-tap templates for the six goal kinds in the brief. */}
       <section aria-labelledby="templates-heading">
-        <h2 id="templates-heading" className="text-xl font-bold text-[#102E26]">Start from a template</h2>
-        <p className="text-sm text-[#5b6b62]">One tap creates the goal — progress is measured from your real practice.</p>
+        <h2 id="templates-heading" className="text-xl font-bold text-[#111827]">{t('rb.goals.fromTemplate')}</h2>
+        <p className="text-sm text-[#6B7280]">{t('rb.goals.oneTap')}</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {TEMPLATES.map((s) => (
-            <article key={s.label} className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
-              <h3 className="font-bold text-[#102E26]">{s.label}</h3>
-              <p className="mt-1 text-sm text-[#5b6b62]">{s.note}</p>
-              <p className="mt-1 text-xs text-[#5b6b62]">
+            <article key={s.label} className="rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm">
+              <h3 className="font-bold text-[#111827]">{s.label}</h3>
+              <p className="mt-1 text-sm text-[#6B7280]">{s.note}</p>
+              <p className="mt-1 text-xs text-[#6B7280]">
                 {s.action} · {s.range} · {s.portion} · {s.schedule}
                 {s.deadline ? (s.deadline === 'month-end' ? ' · by the end of this month' : ` · by ${s.deadline}`) : ''}
               </p>
@@ -567,12 +558,9 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
       </section>
 
       {/* New goal */}
-      <section aria-labelledby="new-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="new-heading" className="text-xl font-bold text-[#102E26]">{t('hub.goalCta')}</h2>
-        <p className="mt-1 text-sm text-[#5b6b62]">
-          Set your intention: what you will do, over which part of the Quran, how much per
-          session, and when. The app builds your daily plan from that — no account, no limits.
-        </p>
+      <section aria-labelledby="new-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
+        <h2 id="new-heading" className="text-xl font-bold text-[#111827]">{t('hub.goalCta')}</h2>
+        <p className="mt-1 text-sm text-[#6B7280]">{t('rb.goals.intentionNote')}</p>
         <div className="mt-4 space-y-4">
           <label className="block text-sm font-semibold">
             {t('goal.goalName')}
@@ -581,7 +569,7 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t('goal.namePlaceholder')}
-              className="mt-1 block w-full rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
+              className="mt-1 block w-full rounded-lg border border-[#E8EAED] bg-[#F4F5F7] px-3 py-2.5 text-sm"
             />
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -590,11 +578,11 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
               <select
                 value={action}
                 onChange={(e) => setAction(e.target.value as GoalAction)}
-                className="mt-1 block w-full rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
+                className="mt-1 block w-full rounded-lg border border-[#E8EAED] bg-[#F4F5F7] px-3 py-2.5 text-sm"
               >
                 <option value="Memorize">{t('goal.memorize')}</option>
                 <option value="Review">{t('common.review')}</option>
-                <option value="Recite">{t('common.recite')}</option>
+                <option value={t('common.recite')}>{t('common.recite')}</option>
               </select>
             </label>
             <label className="block text-sm font-semibold">
@@ -602,7 +590,7 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
               <select
                 value={range}
                 onChange={(e) => setRange(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
+                className="mt-1 block w-full rounded-lg border border-[#E8EAED] bg-[#F4F5F7] px-3 py-2.5 text-sm"
               >
                 {ALL_SURAHS.map((s) => (
                   <option key={s.id} value={`Surah ${s.name}`}>Surah {s.name}</option>
@@ -617,7 +605,7 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
               <select
                 value={portion}
                 onChange={(e) => setPortion(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
+                className="mt-1 block w-full rounded-lg border border-[#E8EAED] bg-[#F4F5F7] px-3 py-2.5 text-sm"
               >
                 <option value="1 ayah a day">{t('goal.ayahADay1')}</option>
                 <option value="3 ayahs a day">{t('goal.ayahADay3')}</option>
@@ -631,7 +619,7 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
               <select
                 value={schedule}
                 onChange={(e) => setSchedule(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
+                className="mt-1 block w-full rounded-lg border border-[#E8EAED] bg-[#F4F5F7] px-3 py-2.5 text-sm"
               >
                 <option value="Every day">{t('goal.everyDay')}</option>
                 <option value="Weekdays">{t('goal.weekdays')}</option>
@@ -647,7 +635,7 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
                 type="button"
                 aria-pressed={shape === 'flexible'}
                 onClick={() => setShape('flexible')}
-                className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${shape === 'flexible' ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB]'}`}
+                className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${shape === 'flexible' ? 'bg-[#102E26] text-white' : 'border border-[#E8EAED]'}`}
               >
                 {t('goal.flexible')}
               </button>
@@ -655,7 +643,7 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
                 type="button"
                 aria-pressed={shape === 'portion'}
                 onClick={() => setShape('portion')}
-                className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${shape === 'portion' ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB]'}`}
+                className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${shape === 'portion' ? 'bg-[#102E26] text-white' : 'border border-[#E8EAED]'}`}
               >
                 {t('goal.fixedPortion')}
               </button>
@@ -668,7 +656,7 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
                 type="date"
                 value={deadline}
                 onChange={(e) => setDeadline(e.target.value)}
-                className="mt-1 block rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
+                className="mt-1 block rounded-lg border border-[#E8EAED] bg-[#F4F5F7] px-3 py-2.5 text-sm"
               />
             </label>
           )}
@@ -682,7 +670,7 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
               {t('goal.recurring')}
             </label>
           </div>
-          <p className="rounded-xl bg-[#E4FFF2] px-4 py-3 text-sm text-[#102E26]">{planPreview()}</p>
+          <p className="rounded-xl bg-[#E4FFF2] px-4 py-3 text-sm text-[#111827]">{planPreview()}</p>
           <button
             type="button"
             onClick={() => createGoal()}
@@ -696,14 +684,14 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
 
       {/* Suggestions */}
       <section aria-labelledby="sugg-heading">
-        <h2 id="sugg-heading" className="text-xl font-bold text-[#102E26]">{t('hub.suggestions')}</h2>
-        <p className="text-sm text-[#5b6b62]">{t('hub.suggestionsHint')}</p>
+        <h2 id="sugg-heading" className="text-xl font-bold text-[#111827]">{t('hub.suggestions')}</h2>
+        <p className="text-sm text-[#6B7280]">{t('hub.suggestionsHint')}</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {SUGGESTIONS.map((s) => (
-            <article key={s.label} className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
-              <h3 className="font-bold text-[#102E26]">{s.label}</h3>
-              <p className="mt-1 text-sm text-[#5b6b62]">{s.note}</p>
-              <p className="mt-1 text-xs text-[#5b6b62]">
+            <article key={s.label} className="rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm">
+              <h3 className="font-bold text-[#111827]">{s.label}</h3>
+              <p className="mt-1 text-sm text-[#6B7280]">{s.note}</p>
+              <p className="mt-1 text-xs text-[#6B7280]">
                 {s.action} · {s.range} · {s.portion} · {s.schedule}
               </p>
               <button
@@ -720,7 +708,7 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
         </>
       )}
 
-      <p className="text-sm text-[#5b6b62]">
+      <p className="text-sm text-[#6B7280]">
         {t('goal.footerA')}{' '}
         <Link href="/hifz/my-progress" className="font-semibold text-[#1FA36B] underline">
           {t('common.myProgress')}

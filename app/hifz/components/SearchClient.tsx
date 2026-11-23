@@ -97,14 +97,14 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
         <button
           type="button"
           onClick={() => router.back()}
-          aria-label="Go back"
+          aria-label={t('rb.search.goBack')}
           className="flex h-11 w-11 items-center justify-center rounded-full border border-[#111827]/25 bg-transparent text-[#111827] hover:bg-white"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
             <path d="M15.75 19.5 8.25 12l7.5-7.5" />
           </svg>
         </button>
-        <h2 className="text-xl font-bold text-[#111827]">Search</h2>
+        <h2 className="text-xl font-bold text-[#111827]">{t('common.search')}</h2>
       </div>
 
       <div className="mt-5 space-y-5">
@@ -128,7 +128,7 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
                 type="search"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="e.g. Al-Baqarah, 2:255, pg 40, …"
+                placeholder={t('rb.search.example')}
                 className="min-w-0 flex-1 bg-transparent text-sm text-[#111827] outline-none placeholder:text-[#9CA3AF]"
               />
               <button type="submit" disabled={loading || !q.trim()} className="sr-only">
@@ -136,7 +136,7 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
               </button>
               <Link
                 href="/hifz/voice-search"
-                aria-label="Voice search"
+                aria-label={t('rb.search.voiceSearch')}
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#57D798] text-white shadow-sm hover:brightness-105"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
@@ -147,9 +147,7 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
           </form>
           <p className="mt-2 px-2 text-xs text-[#6B7280]">
             Type Arabic or English words to find the ayah. Or recite a phrase —{' '}
-            <Link href="/hifz/voice-search" className="inline-block py-1 font-semibold text-[#1FA36B] underline">
-              Voice Search finds it by sound →
-            </Link>
+            <Link href="/hifz/voice-search" className="inline-block py-1 font-semibold text-[#1FA36B] underline">{t('rb.search.voiceFinds')} →</Link>
           </p>
           {error && (
             <p role="alert" className="mt-3 px-2 text-sm text-red-700">{error}</p>
@@ -185,7 +183,7 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
                         {r.text}
                       </p>
                       {translation && (
-                        <p className="mt-2 text-sm leading-relaxed text-[#1C2420]/85">{translation}</p>
+                        <p className="mt-2 text-sm leading-relaxed text-[#111827]/85">{translation}</p>
                       )}
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         <button
@@ -294,9 +292,7 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
             </svg>
             {t('search.voiceSearch')}
           </h2>
-          <p className="mt-1 text-sm leading-relaxed text-[#6B7280]">
-            Recite any phrase and the app finds the exact ayah and surah — like Shazam, for the Quran.
-          </p>
+          <p className="mt-1 text-sm leading-relaxed text-[#6B7280]">{t('rb.search.voiceDesc')}</p>
           <Link
             href="/hifz/voice-search"
             className="mt-4 inline-block rounded-full bg-[#57D798] px-5 py-2.5 text-sm font-bold text-[#102E26] hover:brightness-105"

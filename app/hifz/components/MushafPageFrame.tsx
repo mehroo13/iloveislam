@@ -28,6 +28,7 @@ import {
 import { SCRIPT_LABELS } from '../lib/script';
 import { getAyahTopic, TOPIC_BY_ID } from '../topics';
 import { fillMushafFrame } from '../lib/kashida';
+import { useT } from '../lib/i18n';
 import { normalizeArabic } from '../lib/alignment';
 import { tajweedClass } from './SharedSheets';
 
@@ -79,7 +80,7 @@ function SurahHeader({ surah }: { surah: HifzSurah }) {
           {/* Fixed size (no sm: variant): inside the scaled page the type
               must not depend on the viewport width — the transform scales
               it. text-4xl is the size desktop already used. */}
-          <p dir="rtl" lang="ar" translate="no" className="font-quran-madani text-4xl leading-snug text-[#102E26]">
+          <p dir="rtl" lang="ar" translate="no" className="font-quran-madani text-4xl leading-snug text-[#111827]">
             {surah.arabic}
           </p>
         </div>
@@ -89,7 +90,7 @@ function SurahHeader({ surah }: { surah: HifzSurah }) {
         </p>
       </div>
       {surah.id !== 1 && surah.id !== 9 && (
-        <p dir="rtl" lang="ar" translate="no" className="font-quran-madani mt-4 text-center text-3xl text-[#102E26]">
+        <p dir="rtl" lang="ar" translate="no" className="font-quran-madani mt-4 text-center text-3xl text-[#111827]">
           {BISMILLAH}
         </p>
       )}
@@ -98,8 +99,9 @@ function SurahHeader({ surah }: { surah: HifzSurah }) {
 }
 
 function JuzMarker({ n }: { n: number }) {
+  const t = useT();
   return (
-    <div className="my-3 flex items-center gap-3" aria-label={`Start of Juz ${n}`}>
+    <div className="my-3 flex items-center gap-3" aria-label={t('rb.mpf.juzStart').replace('{n}', String(n))}>
       <span className="h-px flex-1 bg-[#FFB800]/50" aria-hidden="true" />
       <span className="rounded-full border border-[#FFB800] bg-[#FFF6D6] px-3 py-1 text-xs font-bold text-[#7A5C00]">
         Juz {n}
@@ -147,6 +149,7 @@ export default function MushafPageFrame({
   tajweedOn = false,
   onWeakCount,
 }: MushafPageFrameProps) {
+  const t = useT();
   const fontClass = script === 'uthmani' ? 'font-quran-madani' : 'font-quran';
   // Global word index across the page, so peeking reveals words in order.
   const wordCounter = { current: 0 };
@@ -273,7 +276,7 @@ export default function MushafPageFrame({
     // are the sizes desktop already used (the old sm: sizes), so the
     // desktop design is unchanged.
     const sizeCls = compactText ? 'text-[1.85rem] leading-[2.2]' : 'text-[2.1rem] leading-[2.35]';
-    const lineClass = `${fontClass} ${sizeCls} text-[#1C2420] ${shortLine ? 'text-center' : 'mushaf-line'}`;
+    const lineClass = `${fontClass} ${sizeCls} text-[#111827] ${shortLine ? 'text-center' : 'mushaf-line'}`;
     let lineContent: React.ReactNode;
     if (hidden) {
       lineContent = display.map((w, i) => {
@@ -281,7 +284,7 @@ export default function MushafPageFrame({
           return (
             <span
               key={`${w.verseKey}-${i}`}
-              className="hidden-ayah-rosette mx-1 inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#E5E7EB] align-middle text-[1rem] font-bold text-[#9CA3AF]"
+              className="hidden-ayah-rosette mx-1 inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#E8EAED] align-middle text-[1rem] font-bold text-[#9CA3AF]"
             >
               {w.text}
             </span>
@@ -303,7 +306,7 @@ export default function MushafPageFrame({
                 background: WEAK_WORD_RED,
                 height: '0.2em',
               }}
-              title="Word you have missed 2 or more times"
+              title={t('rb.mpf.wordMissed2')}
             />
           ) : (
             <span
@@ -453,7 +456,7 @@ export default function MushafPageFrame({
   // (the grey is set by the parent reader / page view). The ornate gold
   // surah header inside is unchanged.
   return (
-    <div className="rounded-2xl border border-[#E5E7EB] bg-white p-2 shadow-sm sm:p-4">
+    <div className="rounded-2xl border border-[#E8EAED] bg-white p-2 shadow-sm sm:p-4">
       <div
         ref={frameRef}
         className={`flex min-h-[62vh] flex-col rounded-xl bg-white px-6 ${
@@ -463,12 +466,10 @@ export default function MushafPageFrame({
         {blocks.length > 0 ? (
           blocks
         ) : (
-          <p className="py-10 text-center text-sm text-[#5b6b62]">
-            This mushaf page could not be loaded right now. Check your connection and reload.
-          </p>
+          <p className="py-10 text-center text-sm text-[#6B7280]">{t('rb.mpf.pageFailed')}</p>
         )}
       </div>
-      <p className="mt-3 text-center text-xs text-[#5b6b62]">
+      <p className="mt-3 text-center text-xs text-[#6B7280]">
         Page {page} of 604 · Madani Mushaf · {SCRIPT_LABELS[script]} · Text via Quran.com
       </p>
     </div>

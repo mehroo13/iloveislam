@@ -13,6 +13,7 @@ import { RECITERS } from './quran/lib';
 import { ALL_SURAHS, getSurahById } from './hifz/surahs';
 import ProgressWidget from './hifz/components/ProgressWidget';
 import SurahList from './hifz/components/SurahList';
+import { useT } from './hifz/lib/i18n';
 
 // Verse of the day — rotates daily; every verse links into the hub.
 const VERSE_KEYS = ['67:1', '1:5', '55:13', '78:1', '94:6', '2:255', '112:1', '36:58'];
@@ -47,6 +48,7 @@ function verseHref(key: string): string {
 }
 
 export default function HomeClient() {
+  const t = useT();
   const router = useRouter();
   const [verse, setVerse] = useState<VerseState>(FALLBACK_VERSE);
   const [coachSurah, setCoachSurah] = useState('al-fatihah');
@@ -99,16 +101,12 @@ export default function HomeClient() {
             card with green accents (clean restyle 2026-11-23). */}
         <section aria-labelledby="coach-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-[#1FA36B]">
-            <ToolIcon name="mic" className="h-4 w-4" /> AI recitation coach
-          </p>
-          <h2 id="coach-heading" className="mt-2 text-xl font-bold text-[#111827] sm:text-2xl">Recite right now</h2>
-          <p className="mt-1 max-w-xl text-sm leading-relaxed text-[#6B7280]">
-            Listen first, hide the verse, then recite it from memory — the coach follows
-            you word by word and flags every missed word.
-          </p>
+            <ToolIcon name="mic" className="h-4 w-4" />{t('rb.home.coachEyebrow')}</p>
+          <h2 id="coach-heading" className="mt-2 text-xl font-bold text-[#111827] sm:text-2xl">{t('rb.home.reciteNow')}</h2>
+          <p className="mt-1 max-w-xl text-sm leading-relaxed text-[#6B7280]">{t('rb.home.coachDesc')}</p>
           <div className="mt-4 flex flex-wrap items-end gap-3">
             <label className="min-w-0 flex-1 text-xs font-semibold text-[#6B7280]">
-              Surah
+              {t('common.surah')}
               <select
                 value={coachSurah}
                 onChange={(e) => setCoachSurah(e.target.value)}
@@ -122,7 +120,7 @@ export default function HomeClient() {
               </select>
             </label>
             <label className="text-xs font-semibold text-[#6B7280]">
-              Reciter
+              {t('surah.reciter')}
               <select
                 value={coachReciter}
                 onChange={(e) => setCoachReciter(Number(e.target.value))}
@@ -137,37 +135,33 @@ export default function HomeClient() {
               type="button"
               onClick={() => router.push(`/hifz/${coachSurah}?mode=recite`)}
               className="rounded-full bg-[#57D798] px-6 py-3 text-sm font-bold text-[#102E26] hover:brightness-105"
-            >
-              Recite now
-            </button>
+            >{t('coach.reciteNow')}</button>
           </div>
-          <p className="mt-3 text-xs text-[#6B7280]">
-            This checks which words you said — it does not check tajweed. A teacher is still needed for tajweed.
-          </p>
+          <p className="mt-3 text-xs text-[#6B7280]">{t('rb.home.checksNote')}</p>
         </section>
 
         {/* Quick actions — Recite / Listen / Test, one tap each. */}
-        <nav aria-label="Quick actions" className="grid grid-cols-3 gap-2 sm:gap-3">
+        <nav aria-label={t('rb.home.quickActions')} className="grid grid-cols-3 gap-2 sm:gap-3">
           <Link
             href="/hifz/recite"
             className="rounded-2xl border border-[#E8EAED] bg-white p-3 text-center shadow-sm hover:border-[#57D798] sm:p-4"
           >
-            <span className="block text-lg font-bold text-[#111827]">Recite</span>
-            <span className="mt-0.5 block text-xs leading-snug text-[#6B7280]">With the AI coach</span>
+            <span className="block text-lg font-bold text-[#111827]">{t('common.recite')}</span>
+            <span className="mt-0.5 block text-xs leading-snug text-[#6B7280]">{t('rb.home.withCoach')}</span>
           </Link>
           <Link
             href={`/hifz/${listenSlug}`}
             className="rounded-2xl border border-[#E8EAED] bg-white p-3 text-center shadow-sm hover:border-[#57D798] sm:p-4"
           >
-            <span className="block text-lg font-bold text-[#111827]">Listen</span>
-            <span className="mt-0.5 block text-xs leading-snug text-[#6B7280]">Hear a trusted reciter</span>
+            <span className="block text-lg font-bold text-[#111827]">{t('mode.listen')}</span>
+            <span className="mt-0.5 block text-xs leading-snug text-[#6B7280]">{t('rb.home.hearReciter')}</span>
           </Link>
           <Link
             href="/hifz/test"
             className="rounded-2xl border border-[#E8EAED] bg-white p-3 text-center shadow-sm hover:border-[#57D798] sm:p-4"
           >
-            <span className="block text-lg font-bold text-[#111827]">Test</span>
-            <span className="mt-0.5 block text-xs leading-snug text-[#6B7280]">Prove you know it</span>
+            <span className="block text-lg font-bold text-[#111827]">{t('mode.test')}</span>
+            <span className="mt-0.5 block text-xs leading-snug text-[#6B7280]">{t('rb.home.proveIt')}</span>
           </Link>
         </nav>
 
@@ -176,27 +170,21 @@ export default function HomeClient() {
 
         {/* What the app does — one idea per card, one sentence each. */}
         <section aria-labelledby="features-heading" className="grid gap-3 sm:grid-cols-3">
-          <h2 id="features-heading" className="sr-only">What you can do here</h2>
+          <h2 id="features-heading" className="sr-only">{t('rb.home.featuresHeading')}</h2>
           <Link href="/hifz/recite" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm hover:border-[#57D798]">
-            <span className="block text-base font-bold text-[#111827]">Recite and get checked</span>
-            <span className="mt-1 block text-sm leading-relaxed text-[#6B7280]">
-              Recite aloud. The coach follows every word and flags the ones to retry.
-            </span>
-            <span className="mt-3 block text-sm font-semibold text-[#1FA36B]">Start reciting →</span>
+            <span className="block text-base font-bold text-[#111827]">{t('rb.home.reciteChecked')}</span>
+            <span className="mt-1 block text-sm leading-relaxed text-[#6B7280]">{t('rb.home.reciteCheckedDesc')}</span>
+            <span className="mt-3 block text-sm font-semibold text-[#1FA36B]">{t('common.startReciting')} →</span>
           </Link>
           <Link href="/hifz/test" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm hover:border-[#57D798]">
-            <span className="block text-base font-bold text-[#111827]">Test yourself</span>
-            <span className="mt-1 block text-sm leading-relaxed text-[#6B7280]">
-              Hide the words, recite from memory, and see your score.
-            </span>
-            <span className="mt-3 block text-sm font-semibold text-[#1FA36B]">Take a test →</span>
+            <span className="block text-base font-bold text-[#111827]">{t('rb.home.testYourself')}</span>
+            <span className="mt-1 block text-sm leading-relaxed text-[#6B7280]">{t('rb.home.hideWords')}</span>
+            <span className="mt-3 block text-sm font-semibold text-[#1FA36B]">{t('rb.home.takeTest')} →</span>
           </Link>
           <Link href="/hifz/plans" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm hover:border-[#57D798]">
-            <span className="block text-base font-bold text-[#111827]">A plan that fits</span>
-            <span className="mt-1 block text-sm leading-relaxed text-[#6B7280]">
-              A 7-day or 30-day plan for any surah — one small step a day.
-            </span>
-            <span className="mt-3 block text-sm font-semibold text-[#1FA36B]">See the plans →</span>
+            <span className="block text-base font-bold text-[#111827]">{t('rb.home.planFits')}</span>
+            <span className="mt-1 block text-sm leading-relaxed text-[#6B7280]">{t('rb.home.planDesc')}</span>
+            <span className="mt-3 block text-sm font-semibold text-[#1FA36B]">{t('rb.home.seePlans')} →</span>
           </Link>
         </section>
 
@@ -205,8 +193,8 @@ export default function HomeClient() {
 
         {/* Verse of the day — one slim card */}
         <section aria-labelledby="verse-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#1FA36B]">Verse of the day</p>
-          <h3 id="verse-heading" className="sr-only">Verse of the day</h3>
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#1FA36B]">{t('rb.home.verseOfDay')}</p>
+          <h3 id="verse-heading" className="sr-only">{t('rb.home.verseOfDay')}</h3>
           <p dir="rtl" lang="ar" className="font-quran mt-4 text-right text-2xl text-[#111827] sm:text-3xl">
             {verse.arabic}
           </p>
@@ -214,14 +202,10 @@ export default function HomeClient() {
             &ldquo;{verse.translation}&rdquo;
           </p>
           <p className="mt-2 text-xs font-semibold text-[#111827]/50">— {verse.reference}</p>
-          <Link href={verseHref(verseKey)} className="mt-4 inline-block text-sm font-semibold text-[#1FA36B] hover:text-[#111827] hover:underline">
-            Open this ayah in the coach →
-          </Link>
+          <Link href={verseHref(verseKey)} className="mt-4 inline-block text-sm font-semibold text-[#1FA36B] hover:text-[#111827] hover:underline">{t('rb.home.openAyah')} →</Link>
         </section>
 
-        <p className="pb-4 text-center text-sm text-[#6B7280]">
-          Free forever. No sign-up. Your audio never leaves your device.
-        </p>
+        <p className="pb-4 text-center text-sm text-[#6B7280]">{t('rb.home.freeNote')}</p>
       </div>
     </div>
   );
