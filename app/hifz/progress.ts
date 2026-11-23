@@ -144,6 +144,14 @@ export interface MistakeEntry {
   corrected?: boolean;
   /** ISO date-time the mistake was corrected, when corrected. */
   correctedAt?: string;
+  /**
+   * BB: id of the coach session this mistake came from, when the coach
+   * recorded one. Lets the mistake row offer "hear my recitation" via
+   * loadSessionAudio(sessionId) (lib/store.ts). Older entries lack it —
+   * those rows honestly say no recording is available, never a fake
+   * player.
+   */
+  sessionId?: string;
 }
 
 export interface HifzSettings {
@@ -181,6 +189,12 @@ export interface HifzSettings {
   theme?: 'light' | 'dark' | 'sepia';
   /** UI language (EN/AR/FR/ID/MS/RU/HI/UR). AR + UR render full RTL. */
   language?: string;
+  /**
+   * BB: optional guest display name (local only, never synced, never
+   * required) so the progress dashboard can greet the user by name.
+   * Empty / absent = guest, and the greeting stays a plain "Salam!".
+   */
+  displayName?: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1156,6 +1170,245 @@ export function difficultAyahs(mistakes: MistakeEntry[], limit: number = 5): Dif
     .sort((a, b) => b.attempts - a.attempts || b.lastMistake.localeCompare(a.lastMistake))
     .slice(0, limit)
     .map((x) => ({ surah: x.surah, ayah: x.ayah, attempts: x.attempts, words: x.words.size, lastMistake: x.lastMistake }));
+}
+
+/* ------------------------------------------------------------------ */
+/*  BB — real analytics (no invented data). Every helper below is     */
+/*  pure and derives ONLY from stored records: test sessions           */
+/*  (score/total), coach sessions (measured accuracy percent) and the  */
+/*  mistake log. There is deliberately NO synthetic accuracy here: the */
+/*  `Math.max(90, 100 - total)` inference (mistake count → accuracy    */
+/*  with a 90% floor) is not used anywhere in this file, and any      */
+/*  chart built from these helpers shows an honest empty state when   */
+/*  there are no sessions yet instead of an invented number.          */
+/* ------------------------------------------------------------------ */
+
+/** One hand-logged (external / off-platform) session. Stored uncapped
+ *  in localStorage under 'ili_sessions_v1' — see MyProgressClient. */
+export interface ExternalSession {
+  /** YYYY-MM-DD local date the session happened. */
+  date: string;
+  /** Goal type label key ('memorisation' | 'revision' | 'reading'). */
+  type: string;
+  ayahs: number;
+  minutes: number;
+}
+
+export interface AccuracyPoint {
+  /** YYYY-MM-DD local date. */
+  date: string;
+  correct: number;
+  total: number;
+  /** 0–100, or null on a day with no scored session — never invented. */
+  pct: number | null;
+}
+
+/**
+ * Real per-day accuracy over the last `days` days, from scored
+ * sessions only. Callers map their records in as either counts
+ * (test score/total — pooled per day) or a percentage (coach
+ * sessions report only a measured percent — those days average the
+ * percentages). Days without a session carry pct: null, so a chart
+ * shows a gap, not a made-up value. Oldest first.
+ */
+export function accuracyTrend(
+  records: { at: string; correct?: number; total?: number; pct?: number }[],
+  days: number = 14,
+  now: Date = new Date(),
+): AccuracyPoint[] {
+  const byDay = new Map<
+    string,
+    { correct: number; total: number; pctSum: number; pctCount: number }
+  >();
+  for (const r of records) {
+    if (!r.at) continue;
+    const day = r.at.slice(0, 10);
+    const prev = byDay.get(day) ?? { correct: 0, total: 0, pctSum: 0, pctCount: 0 };
+    if (typeof r.total === 'number' && r.total > 0) {
+      prev.correct += Math.max(0, r.correct ?? 0);
+      prev.total += r.total;
+    } else if (typeof r.pct === 'number' && Number.isFinite(r.pct)) {
+      prev.pctSum += Math.min(100, Math.max(0, r.pct));
+      prev.pctCount += 1;
+    }
+    byDay.set(day, prev);
+  }
+  const out: AccuracyPoint[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const key = localDateString(d);
+    const v = byDay.get(key);
+    const pct =
+      v && v.total > 0
+        ? Math.round((v.correct / v.total) * 100)
+        : v && v.pctCount > 0
+          ? Math.round(v.pctSum / v.pctCount)
+          : null;
+    out.push({ date: key, correct: v?.correct ?? 0, total: v?.total ?? 0, pct });
+  }
+  return out;
+}
+
+/** Monday (00:00 local) of the week `weeksAgo` weeks before this week. */
+function mondayWeeksAgo(weeksAgo: number, now: Date = new Date()): Date {
+  const [y, m, d] = weekStart(now).split('-').map(Number);
+  return new Date(y, m - 1, d - weeksAgo * 7);
+}
+
+export interface MistakeTypeWeek {
+  /** Monday YYYY-MM-DD starting the week. */
+  weekStart: string;
+  /** Short label, e.g. "12 Jan". */
+  label: string;
+  counts: Record<MistakeType, number>;
+  total: number;
+}
+
+/**
+ * Mistake frequency by type, per week, for the last `weeks` weeks
+ * (oldest first). Counts are summed `attempts` from the real mistake
+ * log; a type with no mistakes that week is 0, never estimated.
+ */
+export function mistakesByTypeOverTime(
+  mistakes: MistakeEntry[],
+  weeks: number = 6,
+  now: Date = new Date(),
+): MistakeTypeWeek[] {
+  const buckets: (MistakeTypeWeek & { end: string })[] = [];
+  for (let w = weeks - 1; w >= 0; w--) {
+    const monday = mondayWeeksAgo(w, now);
+    const end = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
+    buckets.push({
+      weekStart: localDateString(monday),
+      end: localDateString(end),
+      label: monday.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      counts: { missed: 0, incorrect: 0, extra: 0, repeated: 0, sequence: 0, skipped: 0 },
+      total: 0,
+    });
+  }
+  for (const m of mistakes) {
+    const day = m.date.slice(0, 10);
+    const bucket = buckets.find((b) => day >= b.weekStart && day <= b.end);
+    if (!bucket) continue;
+    const type: MistakeType = m.type ?? 'missed';
+    bucket.counts[type] += m.attempts;
+    bucket.total += m.attempts;
+  }
+  return buckets.map(({ end: _end, ...b }) => b);
+}
+
+export interface AyahTrendPoint {
+  /** Monday YYYY-MM-DD starting the week. */
+  weekStart: string;
+  label: string;
+  /** Summed mistake attempts on this ayah that week (0 = clean week). */
+  mistakes: number;
+}
+
+/**
+ * Per-ayah trend over time: mistake attempts on one ayah, per week,
+ * for the last `weeks` weeks (oldest first). A falling line is real
+ * improvement; a week with no mistakes on the ayah is 0, and an ayah
+ * with no mistakes at all in the window is all zeros — the chart says
+ * so instead of inventing a trend.
+ */
+export function ayahMistakeTrend(
+  mistakes: MistakeEntry[],
+  surah: number,
+  ayah: number,
+  weeks: number = 6,
+  now: Date = new Date(),
+): AyahTrendPoint[] {
+  const buckets: (AyahTrendPoint & { end: string })[] = [];
+  for (let w = weeks - 1; w >= 0; w--) {
+    const monday = mondayWeeksAgo(w, now);
+    const end = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
+    buckets.push({
+      weekStart: localDateString(monday),
+      end: localDateString(end),
+      label: monday.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      mistakes: 0,
+    });
+  }
+  for (const m of mistakes) {
+    if (m.surah !== surah || m.ayah !== ayah) continue;
+    const day = m.date.slice(0, 10);
+    const bucket = buckets.find((b) => day >= b.weekStart && day <= b.end);
+    if (bucket) bucket.mistakes += m.attempts;
+  }
+  return buckets.map(({ end: _end, ...b }) => b);
+}
+
+export interface WeekStats {
+  /** Distinct ayahs practised that week (from lastPractised stamps). */
+  ayahs: number;
+  /** Distinct practice days that week. */
+  days: number;
+  /** Mistake attempts logged that week. */
+  mistakes: number;
+  /** Pooled test accuracy that week (score/total across tests), or null
+   *  when no test was taken — never invented. */
+  testAvgPct: number | null;
+  tests: number;
+}
+
+export interface WeekComparison {
+  current: WeekStats;
+  previous: WeekStats;
+}
+
+/**
+ * Week-over-week comparison: this week (Monday–today) vs last week
+ * (Monday–Sunday). All numbers come from stored records; a week with
+ * no activity reports zeros / null, never a placeholder.
+ */
+export function weekOverWeek(
+  progress: HifzProgress,
+  mistakes: MistakeEntry[],
+  tests: { at: string; score: number; total: number }[],
+  now: Date = new Date(),
+): WeekComparison {
+  const curStart = weekStart(now);
+  const curEnd = localDateString(now);
+  const [y, m, d] = curStart.split('-').map(Number);
+  const prevStart = localDateString(new Date(y, m - 1, d - 7));
+  const prevEnd = previousLocalDate(curStart);
+  const stats = (start: string, end: string): WeekStats => {
+    const ayahKeys = new Set<string>();
+    const days = new Set<string>();
+    for (const [key, a] of Object.entries(progress.ayahs)) {
+      if (!a.lastPractised) continue;
+      const day = a.lastPractised.slice(0, 10);
+      if (day >= start && day <= end) {
+        ayahKeys.add(key);
+        days.add(day);
+      }
+    }
+    let mistakeAttempts = 0;
+    for (const mi of mistakes) {
+      const day = mi.date.slice(0, 10);
+      if (day >= start && day <= end) mistakeAttempts += mi.attempts;
+    }
+    let score = 0;
+    let total = 0;
+    let testCount = 0;
+    for (const t of tests) {
+      const day = t.at.slice(0, 10);
+      if (day >= start && day <= end && t.total > 0) {
+        score += t.score;
+        total += t.total;
+        testCount += 1;
+      }
+    }
+    return {
+      ayahs: ayahKeys.size,
+      days: days.size,
+      mistakes: mistakeAttempts,
+      testAvgPct: total > 0 ? Math.round((score / total) * 100) : null,
+      tests: testCount,
+    };
+  };
+  return { current: stats(curStart, curEnd), previous: stats(prevStart, prevEnd) };
 }
 
 export function pickTestPool(

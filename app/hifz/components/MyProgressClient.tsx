@@ -16,8 +16,16 @@ import {
   getTypeGoals, setTypeGoalTarget, recordTypeActivity, recordMinutes, previousLocalDate,
   GOAL_TYPE_LABELS, GOAL_TYPE_DESCRIPTIONS, TYPE_GOAL_OPTIONS,
   completedSurahs, completedJuz, activitySummary, strongestSurahThisWeek, difficultAyahs,
+  accuracyTrend, mistakesByTypeOverTime, weekOverWeek, ayahMistakeTrend,
   type GoalType, type HifzProgress, type MistakeEntry, type HifzSettings,
+  type MistakeType, type ExternalSession, type MistakeTypeWeek,
 } from '../progress';
+// BB (progress hub): coach-session history + per-mistake audio playback
+// read the real APIs landed by worker BA (commit 4811997):
+//   listCoachSessions / CoachSessionRecord — app/hifz/lib/session-records.ts
+//   loadSessionAudio — app/hifz/lib/store.ts (IndexedDB session-audio store)
+import { listCoachSessions, type CoachSessionRecord } from '../lib/session-records';
+import { loadSessionAudio } from '../lib/store';
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { loadChallenges, saveChallenges } from '../lib/challenges';
 import { loadTestSessions, loadInProgressTest, type TestSessionRecord, type InProgressTest } from '../lib/mode';
@@ -50,6 +58,116 @@ function GoalRing({ done, target }: { done: number; target: number }) {
   );
 }
 
+
+/** Per-mistake "hear my recitation" button (BB). The recording is the
+ *  session's stored blob from loadSessionAudio (lib/store.ts), keyed by
+ *  the session id. A mistake with no recording honestly says "No
+ *  recording" — never a fake player. */
+function MistakeAudioButton({ sessionId }: { sessionId?: string }) {
+  const [state, setState] = useState<'idle' | 'loading' | 'playing' | 'none' | 'error'>('idle');
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const urlRef = useRef<string | null>(null);
+  useEffect(() => () => {
+    audioRef.current?.pause();
+    if (urlRef.current && urlRef.current.startsWith('blob:')) URL.revokeObjectURL(urlRef.current);
+  }, []);
+  if (!sessionId) {
+    return <span className="text-xs text-[#6B7280]">No recording</span>;
+  }
+  const play = async () => {
+    if (state === 'playing') {
+      audioRef.current?.pause();
+      setState('idle');
+      return;
+    }
+    setState('loading');
+    try {
+      const entry = await loadSessionAudio(sessionId);
+      if (!entry) {
+        setState('none');
+        return;
+      }
+      const url = URL.createObjectURL(entry.blob);
+      urlRef.current = url;
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => setState('idle');
+      audio.onerror = () => setState('error');
+      await audio.play();
+      setState('playing');
+    } catch {
+      setState('error');
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={play}
+      disabled={state === 'loading'}
+      className="font-semibold text-[#1FA36B] underline disabled:opacity-50"
+    >
+      {state === 'loading'
+        ? 'Loading…'
+        : state === 'playing'
+          ? 'Pause recitation'
+          : state === 'none'
+            ? 'No recording'
+            : state === 'error'
+              ? 'Couldn’t play'
+              : 'Hear my recitation'}
+    </button>
+  );
+}
+
+/** BB: coach sessions (CoachSessionRecord) into history rows, using the
+ *  REAL measured accuracy from each record — never a derived figure. */
+function coachSessionRows(sessions: CoachSessionRecord[]): { at: string; label: string; detail: string }[] {
+  return sessions.map((s) => ({
+    at: s.date.slice(0, 10),
+    label: 'Coaching',
+    detail: `${Math.round(s.accuracy)}% correct · ${s.mistakes} ${s.mistakes === 1 ? 'mistake' : 'mistakes'} · ${s.range}`,
+  }));
+}
+
+function coachAccuracyRecords(sessions: CoachSessionRecord[]): { at: string; pct: number }[] {
+  return sessions.map((s) => ({ at: s.date, pct: s.accuracy }));
+}
+
+/**
+ * BB: link a mistake to its session recording. Mistake entries carry no
+ * session id (the coach never wrote one), so the match is by same local
+ * day + the ayah falling inside the session's range ("67:1" or
+ * "67:1–5"). Latest matching session that day wins. This is a lookup,
+ * not a guess: no same-day session covering the ayah means no
+ * recording, and the row says so.
+ */
+function audioIdForMistake(m: MistakeEntry, sessions: CoachSessionRecord[]): string | undefined {
+  if (m.sessionId) return m.sessionId;
+  const day = m.date.slice(0, 10);
+  let best: CoachSessionRecord | null = null;
+  for (const s of sessions) {
+    if (!s.audioId) continue;
+    if (s.date.slice(0, 10) !== day) continue;
+    const match = /^(\d+):(\d+)(?:[–-](\d+))?$/.exec(s.range.trim());
+    if (!match) continue;
+    const surah = Number(match[1]);
+    const from = Number(match[2]);
+    const to = match[3] ? Number(match[3]) : from;
+    if (surah !== m.surah || m.ayah < from || m.ayah > to) continue;
+    if (!best || s.date > best.date) best = s;
+  }
+  return best?.audioId;
+}
+
+/** Colours for the mistake-type-over-time stacked bars. */
+const MISTAKE_TYPE_COLORS: Record<MistakeType, string> = {
+  missed: '#1FA36B',
+  incorrect: '#FF8A00',
+  extra: '#38BDF8',
+  repeated: '#F472B6',
+  sequence: '#C9A227',
+  skipped: '#9CA3AF',
+};
 
 const TABS = [
   { id: 'dashboard', label: 'rb.dash.tabDashboard' },
@@ -118,6 +236,14 @@ function StreakCard({ streak, longestStreak, activity, addHref, onBell }: {
 }) {
   const t = useT();
   const now = new Date();
+  // BB: the streak count is a true circular progress ring — progress
+  // toward the user's longest streak (their own best, never an
+  // invented target). A streak at its best fills the ring; no longest
+  // streak yet means any live streak fills it, and 0 fills nothing.
+  const ringPct =
+    longestStreak > 0 ? Math.min(100, Math.round((streak / longestStreak) * 100)) : streak > 0 ? 100 : 0;
+  const ringR = 24;
+  const ringC = 2 * Math.PI * ringR;
   const back = (now.getDay() - 5 + 7) % 7; // days since Friday (5)
   const friday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - back);
   const labels = ['Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
@@ -129,10 +255,28 @@ function StreakCard({ streak, longestStreak, activity, addHref, onBell }: {
   });
   return (
     <div className="flex items-stretch gap-3 rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm">
-      {/* Left: flame in a circle, day count below. */}
+      {/* Left: streak ring — flame inside a circular progress ring, day
+          count below. The Fri–Thu week view (diamonds) is unchanged. */}
       <div className="flex w-14 shrink-0 flex-col items-center justify-center">
-        <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-[#F4F5F7] ring-4 ring-[#FFE9C2]">
-          <ToolIcon name="flame" className="h-7 w-7 text-[#FF8A00]" />
+        <span className="relative flex h-14 w-14 items-center justify-center">
+          <svg
+            width="56"
+            height="56"
+            viewBox="0 0 56 56"
+            className="absolute inset-0"
+            role="img"
+            aria-label={`Streak ${streak} days — ${ringPct}% of your longest streak of ${longestStreak} days`}
+          >
+            <circle cx="28" cy="28" r={ringR} fill="none" stroke="#FFE9C2" strokeWidth="5" />
+            <circle
+              cx="28" cy="28" r={ringR} fill="none" stroke="#FF8A00" strokeWidth="5"
+              strokeLinecap="round" strokeDasharray={`${(ringPct / 100) * ringC} ${ringC}`}
+              transform="rotate(-90 28 28)"
+            />
+          </svg>
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#F4F5F7]">
+            <ToolIcon name="flame" className="h-7 w-7 text-[#FF8A00]" />
+          </span>
         </span>
         <p className="mt-1.5 whitespace-nowrap text-sm font-bold text-[#FF8A00]">
           {streak} {t('rb.dash.dayWord')}
@@ -333,15 +477,36 @@ export default function MyProgressClient() {
   const [addAyahs, setAddAyahs] = useState(5);
   const [addMinutes, setAddMinutes] = useState(10);
   const [addMsg, setAddMsg] = useState<string | null>(null);
-  const [sessions, setSessions] = useState<{ date: string; type: string; ayahs: number; minutes: number }[]>(() => {
+  const [sessions, setSessions] = useState<ExternalSession[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem('ili_sessions_v1') ?? '[]') as { date: string; type: string; ayahs: number; minutes: number }[];
+      return JSON.parse(localStorage.getItem('ili_sessions_v1') ?? '[]') as ExternalSession[];
     } catch {
       return [];
     }
   });
+  // BB: coach sessions (listCoachSessions, lib/session-records.ts).
+  // Sync localStorage read; a missing/corrupt store reads as empty.
+  const [coachSessions, setCoachSessions] = useState<CoachSessionRecord[]>(() => {
+    try {
+      return listCoachSessions();
+    } catch {
+      return [];
+    }
+  });
+  useEffect(() => {
+    try {
+      setCoachSessions(listCoachSessions());
+    } catch {
+      /* coach history is a progressive enhancement */
+    }
+  }, []);
   // Mistake log filters + weak spots.
   const [mistakeFilter, setMistakeFilter] = useState<'all' | 'incorrect' | 'missed'>('all');
+  // BB: which weak-spot bar is tapped open (interactive chart detail).
+  const [selectedWeak, setSelectedWeak] = useState<{ surah: number; ayah: number; word: string } | null>(null);
+  // BB: guest display name, edited inline on the dashboard (local only).
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
   // Stage 5 (§11): delete-all-mistakes confirm step. This hook MUST live
   // with the other hooks above the loading early-return — a useState below
   // it changes the hook count between renders (React error #310).
@@ -373,6 +538,9 @@ export default function MyProgressClient() {
   const [chartRange, setChartRange] = useState<'day' | 'week' | 'month'>('day');
   // Activity tab: collapsible Session History card + Achievements grid.
   const [showHistory, setShowHistory] = useState(false);
+  // BB: Session History pagination — 15 rows at a time, "Show more"
+  // adds 15. The stored list itself is uncapped (see doAddSession).
+  const [historyLimit, setHistoryLimit] = useState(15);
   const [showBadges, setShowBadges] = useState(false);
   // Activity tab: Pages chart range (Tarteel's "Last 3 Days" dropdown).
   const [pagesRange, setPagesRange] = useState<'3' | '7' | '14'>('3');
@@ -439,8 +607,10 @@ export default function MyProgressClient() {
   const earnedCount = evaluateBadges(badgeSnapshot).filter((r) => r.earned).length;
 
   // Activity tab — Session History rows (hand-logged sessions + completed
-  // tests, newest first). Computed once here so the compact card and the
-  // expanded list share the same rows and count.
+  // tests + coach sessions, newest first). Coach sessions come from
+  // listCoachSessions() (lib/session-records.ts, real measured accuracy).
+  // Computed once here so the compact card and the expanded list share
+  // the same rows and count.
   const historyRows: { at: string; label: string; detail: string; href?: string }[] = [
     ...sessions.map((s) => ({
       at: s.date,
@@ -453,6 +623,7 @@ export default function MyProgressClient() {
       detail: `${s.score}/${s.total} · ${s.mistakes} ${s.mistakes === 1 ? t('test.mistake') : t('test.mistakes')}`,
       href: '/hifz/test',
     })),
+    ...coachSessionRows(coachSessions),
   ].sort((a, b) => b.at.localeCompare(a.at));
 
   if (progress === null || settings === null) {
@@ -502,6 +673,23 @@ export default function MyProgressClient() {
     recentTestPcts.length > 0
       ? Math.round(recentTestPcts.reduce((a, b) => a + b, 0) / recentTestPcts.length)
       : null;
+
+  // BB — real analytics (progress.ts helpers, no invented data):
+  // per-day accuracy from real scored sessions (tests + coach),
+  // mistake frequency by type per week, week-over-week comparison,
+  // and per-ayah mistake trends for the hardest ayahs. Anything with
+  // no data renders an honest empty state in the Activity tab.
+  const accuracyRecords = [
+    ...testSessions.map((s) => ({ at: s.at, correct: s.score, total: s.total })),
+    ...coachAccuracyRecords(coachSessions),
+  ];
+  const accTrend = accuracyTrend(accuracyRecords, 14);
+  const mistakeTypeWeeks: MistakeTypeWeek[] = mistakesByTypeOverTime(mistakes, 6);
+  const wow = weekOverWeek(
+    progress,
+    mistakes,
+    testSessions.map((s) => ({ at: s.at, score: s.score, total: s.total })),
+  );
 
   // 12-week activity heatmap (Monday-first columns). Dates are local; a day
   // counts when any ayah was last practised on it (see activityByDate).
@@ -608,11 +796,22 @@ export default function MyProgressClient() {
 
   const doAddSession = () => {
     try {
-      let next = loadProgress();
       const todayStr = localDateString();
+      // Backdating is allowed for any past date — but the streak rule
+      // is explicit and honest: ONLY yesterday can restore a missed
+      // streak day. An older date is recorded in history (minutes +
+      // ayahs) and never touches the streak, so backdated entries
+      // cannot fabricate streak days. A future date is refused.
+      if (!addDate || addDate > todayStr) {
+        setAddMsg('Choose today or a past date — a future date can’t be logged.');
+        return;
+      }
+      let next = loadProgress();
+      let msg: string;
       if (addDate === todayStr) {
         next = recordMinutes(next, addMinutes);
         next = recordTypeActivity(next, addType, addAyahs);
+        msg = t('rb.dash.sessionAddedToday').replace('{a}', String(addAyahs)).replace('{m}', String(addMinutes));
       } else if (addDate === previousLocalDate(todayStr)) {
         // Restore a missed day: yesterday counts toward the streak.
         const last = next.streak.lastActiveDate;
@@ -630,28 +829,51 @@ export default function MyProgressClient() {
           // Stage 6 (§18): a restored streak day can set a new longest streak.
           longestStreak: Math.max(next.longestStreak ?? next.streak.count, newCount),
         };
+        msg = t('rb.dash.sessionAddedYesterday');
       } else {
-        setAddMsg(t('rb.dash.sessionRangeNote'));
-        return;
+        // Older than yesterday: history only. No streak change, no
+        // minutes added to any daily total (minutesToday is today-only
+        // by design) — the minutes and ayahs live in the session record.
+        msg = `Session added for ${addDate} — recorded in your history. Older days don’t change your streak; only yesterday can restore a missed day.`;
       }
       saveProgress(next);
       setProgress(next);
-      const entry = { date: addDate, type: addType, ayahs: addAyahs, minutes: addMinutes };
-      const list = [entry, ...sessions].slice(0, 30);
+      const entry: ExternalSession = { date: addDate, type: addType, ayahs: addAyahs, minutes: addMinutes };
+      // BB: no 30-entry cap — the whole history is kept and paginated
+      // in the Session History list instead.
+      const list = [entry, ...sessions];
       setSessions(list);
       try {
         localStorage.setItem('ili_sessions_v1', JSON.stringify(list));
       } catch {
         /* ignore */
       }
-      setAddMsg(
-        addDate === todayStr
-          ? t('rb.dash.sessionAddedToday').replace('{a}', String(addAyahs)).replace('{m}', String(addMinutes))
-          : t('rb.dash.sessionAddedYesterday'),
-      );
+      setAddMsg(msg);
     } catch {
       setAddMsg(t('rb.dash.sessionSaveFail'));
     }
+  };
+
+  /** Mark every mistake on one word (one ayah) corrected — used by the
+   *  weak-spots chart detail. History is kept, flagged corrected. */
+  const markWordCorrected = (surah: number, ayah: number, word: string) => {
+    const at = new Date().toISOString();
+    const next = mistakes.map((m) =>
+      m.surah === surah && m.ayah === ayah && m.word === word && !m.corrected
+        ? { ...m, corrected: true, correctedAt: at }
+        : m,
+    );
+    saveMistakes(next);
+    setMistakes(next);
+  };
+
+  /** Save / clear the guest display name (local only, settings store). */
+  const saveDisplayName = (name: string) => {
+    const trimmed = name.trim().slice(0, 30);
+    const next = { ...settings, displayName: trimmed ? trimmed : undefined };
+    saveSettings(next);
+    setSettings(next);
+    setEditingName(false);
   };
 
   const clearMistake = (idx: number) => {
@@ -715,10 +937,68 @@ export default function MyProgressClient() {
 
       {tab === 'dashboard' && (
         <div className="space-y-6" role="tabpanel" aria-label={t('rb.dash.tabDashboard')}>
-          {/* Guest-safe greeting: no name is stored anywhere on this device,
-              so no name is shown — never a fake one. No subtitle. */}
+          {/* BB: greeting with the optional guest display name (local
+              only, stored in settings). No name stored = plain "Salam!"
+              — never a fake name. Tap "Add your name" / "Edit name" to
+              set or clear it. */}
           <div>
-            <h2 className="text-[22px] font-bold text-[#111827]">{t('rb.dash.salam')}</h2>
+            <h2 className="text-[22px] font-bold text-[#111827]">
+              {settings.displayName
+                ? `${t('rb.dash.salam').replace(/!+\s*$/, '')} ${settings.displayName}!`
+                : t('rb.dash.salam')}
+            </h2>
+            {editingName ? (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <label className="sr-only" htmlFor="display-name-input">Your display name</label>
+                <input
+                  id="display-name-input"
+                  type="text"
+                  value={nameDraft}
+                  maxLength={30}
+                  placeholder="Your name"
+                  onChange={(e) => setNameDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveDisplayName(nameDraft);
+                    if (e.key === 'Escape') setEditingName(false);
+                  }}
+                  className="min-h-11 rounded-lg border border-[#E8EAED] bg-white px-3 py-1.5 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => saveDisplayName(nameDraft)}
+                  className="min-h-11 rounded-full bg-[#57D798] px-4 py-1.5 text-sm font-bold text-[#102E26]"
+                >
+                  Save name
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingName(false)}
+                  className="min-h-11 rounded-full border border-[#E8EAED] px-4 py-1.5 text-sm font-semibold"
+                >
+                  Cancel
+                </button>
+                {settings.displayName && (
+                  <button
+                    type="button"
+                    onClick={() => saveDisplayName('')}
+                    className="min-h-11 rounded-full border border-red-200 px-4 py-1.5 text-sm font-semibold text-red-700"
+                  >
+                    Clear name
+                  </button>
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setNameDraft(settings.displayName ?? '');
+                  setEditingName(true);
+                }}
+                className="mt-1 text-sm font-semibold text-[#1FA36B] underline"
+              >
+                {settings.displayName ? 'Edit name' : 'Add your name'}
+              </button>
+            )}
           </div>
 
           <StreakCard
@@ -731,16 +1011,21 @@ export default function MyProgressClient() {
 
           {/* Free-features promo — our own simple mosque icon (never
               Tarteel's artwork) and our own line; nothing is upsold,
-              everything is free. */}
+              everything is free. BB: the button now goes to Settings,
+              where the unlocked features live — Mistake Detection is
+              in the Recitation detail there. SettingsClient has no
+              deep-link, so the link lands on Settings and the user
+              taps Recitation. */}
           <section aria-label={t('rb.dash.exploreFree')} className="rounded-2xl border border-[#E8EAED] bg-white p-5 text-center shadow-sm sm:p-6">
             <span className="mx-auto flex h-16 w-16 items-center justify-center" aria-hidden="true">
               <ToolIcon name="mosque" className="h-14 w-14 text-[#C9A227]" />
             </span>
             <p className="mt-3 text-lg font-bold leading-snug text-[#111827]">{t('rb.dash.memBetter')}</p>
             <Link
-              href="/hifz/memorize"
+              href="/hifz/settings"
               className="mt-4 flex min-h-12 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#38BDF8] to-[#34D399] px-5 py-3 text-base font-bold text-[#102E26] hover:brightness-105"
             >{t('rb.dash.exploreAllFree')}</Link>
+            <p className="mt-2 text-xs text-[#6B7280]">Mistake Detection and every other feature are in Settings → Recitation. All free, no Premium.</p>
           </section>
 
           {/* Highlights — Testing Mode on a dark card, like the reference.
@@ -1160,31 +1445,105 @@ export default function MyProgressClient() {
               }
               const ranked = [...byWord.values()].sort((a, b) => b.attempts - a.attempts).slice(0, 10);
               const wash = (n: number) => (n >= 6 ? 'wash-most' : n >= 3 ? 'wash-often' : n >= 2 ? 'wash-some' : 'wash-few');
+              const maxAttempts = ranked.length > 0 ? ranked[0].attempts : 1;
               return ranked.length > 0 ? (
                 <div className="mt-4">
                   <h3 className="text-sm font-bold text-[#111827]">{t('prog.weakSpots')}</h3>
-                  <ul className="mt-2 space-y-2">
+                  <p className="mt-1 text-xs text-[#6B7280]">
+                    Tap a bar to see that word’s detail. Fully visible — nothing here is blurred or locked.
+                  </p>
+                  {/* BB: real interactive bar chart (not a plain list).
+                      Bar length = how often the word was missed. Tapping
+                      a bar opens its detail below with Practise + Mark
+                      corrected. */}
+                  <div className="mt-2 space-y-2" role="list" aria-label={t('prog.weakSpots')}>
                     {ranked.map((w) => {
                       const surah = getSurahById(w.surah);
+                      const key = `${w.surah}:${w.ayah}:${w.word}`;
+                      const isSelected =
+                        selectedWeak !== null &&
+                        selectedWeak.surah === w.surah &&
+                        selectedWeak.ayah === w.ayah &&
+                        selectedWeak.word === w.word;
                       return (
-                        <li key={`${w.surah}:${w.ayah}:${w.word}`} className="flex flex-wrap items-center gap-2 rounded-xl bg-[#F4F5F7] px-3 py-2 text-sm">
-                          <span dir="rtl" lang="ar" className={`font-quran text-lg ${wash(w.attempts)}`}>{w.word}</span>
-                          <span>
-                            {surah ? surah.name : `Surah ${w.surah}`} {w.surah}:{w.ayah} · {t('prog.missed').replace('{n}', String(w.attempts)).replace('{timeWord}', w.attempts === 1 ? t('common.time') : t('common.times'))}
-                            {w.heard ? ` · ${t('rb.dash.heardAs').replace('{heard}', w.heard)}` : ''}
+                        <button
+                          key={key}
+                          type="button"
+                          role="listitem"
+                          aria-pressed={isSelected}
+                          aria-label={`${w.word} — ${surah ? surah.name : `Surah ${w.surah}`} ${w.surah}:${w.ayah}, missed ${w.attempts} ${w.attempts === 1 ? 'time' : 'times'}. Tap for detail.`}
+                          onClick={() =>
+                            setSelectedWeak(isSelected ? null : { surah: w.surah, ayah: w.ayah, word: w.word })
+                          }
+                          className={`block w-full rounded-xl px-3 py-2 text-left ${isSelected ? 'bg-[#E4FFF2] ring-2 ring-[#1FA36B]' : 'bg-[#F4F5F7] hover:bg-[#E8EAED]'}`}
+                        >
+                          <span className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+                            <span>
+                              <span dir="rtl" lang="ar" className={`font-quran text-lg ${wash(w.attempts)}`}>{w.word}</span>
+                              {' '}
+                              <span className="text-[#6B7280]">
+                                {surah ? surah.name : `Surah ${w.surah}`} {w.surah}:{w.ayah}
+                              </span>
+                            </span>
+                            <span className="font-bold text-[#111827]">
+                              {t('prog.missed').replace('{n}', String(w.attempts)).replace('{timeWord}', w.attempts === 1 ? t('common.time') : t('common.times'))}
+                            </span>
                           </span>
-                          <span className="text-xs text-[#6B7280]">
-                            {t('prog.moreToClear').replace('{n}', String(Math.max(0, 3 - Math.min(3, w.attempts))))}
+                          <span className="mt-1.5 block h-3 overflow-hidden rounded-full bg-[#E8EAED]" aria-hidden="true">
+                            <span
+                              className="block h-full rounded-full bg-[#1FA36B]"
+                              style={{ width: `${Math.max(4, (w.attempts / maxAttempts) * 100)}%` }}
+                            />
                           </span>
+                          {w.heard && (
+                            <span className="mt-1 block text-xs text-[#6B7280]">
+                              {t('rb.dash.heardAs').replace('{heard}', w.heard)}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedWeak && (() => {
+                    const w = ranked.find(
+                      (x) => x.surah === selectedWeak.surah && x.ayah === selectedWeak.ayah && x.word === selectedWeak.word,
+                    );
+                    if (!w) return null;
+                    const surah = getSurahById(w.surah);
+                    return (
+                      <div className="mt-3 rounded-xl border border-[#1FA36B] bg-white p-4 text-sm">
+                        <p className="font-bold text-[#111827]">
+                          <span dir="rtl" lang="ar" className="font-quran text-xl">{w.word}</span>
+                          {' '}· {surah ? surah.name : `Surah ${w.surah}`} {w.surah}:{w.ayah}
+                        </p>
+                        <p className="mt-1 text-[#6B7280]">
+                          Missed {w.attempts} {w.attempts === 1 ? 'time' : 'times'}
+                          {w.heard ? ` · heard as “${w.heard}”` : ''}
+                          {` · ${t('prog.moreToClear').replace('{n}', String(Math.max(0, 3 - Math.min(3, w.attempts))))}`}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
                           {surah && (
-                            <Link href={`/hifz/${surah.slug}?mode=recite&ayah=${w.ayah}`} className="ml-auto font-semibold text-[#1FA36B] underline">
+                            <Link
+                              href={`/hifz/${surah.slug}?mode=recite&ayah=${w.ayah}`}
+                              className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+                            >
                               {t('prog.practiseWord')}
                             </Link>
                           )}
-                        </li>
-                      );
-                    })}
-                  </ul>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              markWordCorrected(w.surah, w.ayah, w.word);
+                              setSelectedWeak(null);
+                            }}
+                            className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#1FA36B] px-4 py-2 text-sm font-semibold text-[#1FA36B] hover:bg-[#E4FFF2]"
+                          >
+                            {t('rb.dash.markCorrected')}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
                   <Link
                     href="/hifz/test"
                     className="inline-flex min-h-11 items-center justify-center mt-3 inline-block rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
@@ -1230,6 +1589,13 @@ export default function MyProgressClient() {
                         </span>
                       )}
                       <span className="ml-auto flex gap-2">
+                        {/* BB: hear your own recitation for this mistake.
+                            The session id comes from the mistake itself
+                            when present, otherwise from the same-day
+                            coach session whose range covers this ayah
+                            (audioIdForMistake). No match = honest "No
+                            recording" state. */}
+                        <MistakeAudioButton sessionId={audioIdForMistake(m, coachSessions)} />
                         {surah && (
                           <Link href={`/hifz/${surah.slug}?mode=recite`} className="font-semibold text-[#1FA36B] underline">
                             {t('common.retry')}
@@ -1433,20 +1799,41 @@ export default function MyProgressClient() {
                 {historyRows.length === 0 ? (
                   <p className="mt-2 text-sm text-[#6B7280]">{t('rb.dash.noSessions')}</p>
                 ) : (
-                  <ul className="mt-3 space-y-1 text-sm">
-                    {historyRows.slice(0, 15).map((r, i) => (
-                      <li key={`${r.at}-${i}`} className="flex flex-wrap gap-2 rounded-lg bg-[#F4F5F7] px-3 py-2">
-                        <span className="font-semibold">{r.at}</span>
-                        <span>{r.label}</span>
-                        <span className="text-[#6B7280]">{r.detail}</span>
-                        {r.href && (
-                          <Link href={r.href} className="ml-auto font-semibold text-[#1FA36B] underline">
-                            {t('bm.open')}
-                          </Link>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+                  <>
+                    <ul className="mt-3 space-y-1 text-sm">
+                      {historyRows.slice(0, historyLimit).map((r, i) => (
+                        <li key={`${r.at}-${i}`} className="flex flex-wrap gap-2 rounded-lg bg-[#F4F5F7] px-3 py-2">
+                          <span className="font-semibold">{r.at}</span>
+                          <span>{r.label}</span>
+                          <span className="text-[#6B7280]">{r.detail}</span>
+                          {r.href && (
+                            <Link href={r.href} className="ml-auto font-semibold text-[#1FA36B] underline">
+                              {t('bm.open')}
+                            </Link>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                    {/* BB: the stored history is uncapped; the list shows
+                        15 at a time. */}
+                    {historyRows.length > historyLimit ? (
+                      <button
+                        type="button"
+                        onClick={() => setHistoryLimit((n) => n + 15)}
+                        className="mt-3 min-h-11 rounded-full border border-[#1FA36B] px-4 py-2 text-sm font-semibold text-[#1FA36B] hover:bg-[#E4FFF2]"
+                      >
+                        Show more ({historyRows.length - historyLimit} more)
+                      </button>
+                    ) : historyRows.length > 15 ? (
+                      <button
+                        type="button"
+                        onClick={() => setHistoryLimit(15)}
+                        className="mt-3 min-h-11 rounded-full border border-[#E8EAED] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
+                      >
+                        Show less
+                      </button>
+                    ) : null}
+                  </>
                 )}
               </div>
             )}
@@ -1628,6 +2015,155 @@ export default function MyProgressClient() {
         })()}
       </section>
 
+      {/* BB — Real analytics. Every number below comes from stored
+          records only (test scores, coach sessions, mistake log).
+          Accuracy is real per-session accuracy — there is no synthetic
+          "90% floor" figure anywhere here. A metric with no data yet
+          says so instead of showing an invented number. */}
+      <section aria-labelledby="real-analytics-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
+        <h2 id="real-analytics-heading" className="text-xl font-bold text-[#111827]">Real analytics</h2>
+        <p className="mt-1 text-sm text-[#6B7280]">
+          From your actual test and coaching sessions — never estimated.
+        </p>
+
+        {/* Week over week */}
+        <h3 className="mt-5 text-sm font-bold text-[#111827]">Week over week</h3>
+        <div className="mt-2 grid grid-cols-2 gap-3 text-center">
+          {([
+            { label: 'This week', stats: wow.current },
+            { label: 'Last week', stats: wow.previous },
+          ] as const).map(({ label, stats }) => (
+            <div key={label} className="rounded-xl bg-[#F4F5F7] p-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">{label}</p>
+              <p className="mt-1 text-2xl font-bold text-[#111827]">{stats.ayahs}</p>
+              <p className="text-xs text-[#6B7280]">ayahs · {stats.days} {stats.days === 1 ? 'day' : 'days'}</p>
+              <p className="mt-1 text-xs text-[#6B7280]">
+                {stats.mistakes} mistake {stats.mistakes === 1 ? 'attempt' : 'attempts'}
+                {stats.testAvgPct !== null
+                  ? ` · ${stats.testAvgPct}% test accuracy (${stats.tests} ${stats.tests === 1 ? 'test' : 'tests'})`
+                  : stats.tests === 0 ? ' · no tests' : ''}
+              </p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-[#6B7280]">
+          {wow.current.ayahs - wow.previous.ayahs >= 0 ? '+' : ''}
+          {wow.current.ayahs - wow.previous.ayahs} ayahs vs last week ·{' '}
+          {wow.current.days - wow.previous.days >= 0 ? '+' : ''}
+          {wow.current.days - wow.previous.days} days ·{' '}
+          {wow.current.testAvgPct !== null && wow.previous.testAvgPct !== null
+            ? `${wow.current.testAvgPct - wow.previous.testAvgPct >= 0 ? '+' : ''}${wow.current.testAvgPct - wow.previous.testAvgPct} pts test accuracy`
+            : 'test accuracy comparison needs a test in both weeks'}
+        </p>
+
+        {/* Real accuracy trend — per-day, scored sessions only */}
+        <h3 className="mt-6 text-sm font-bold text-[#111827]">Accuracy trend — last 14 days</h3>
+        {accTrend.every((p) => p.pct === null) ? (
+          <p className="mt-2 text-sm text-[#6B7280]">
+            No test or coaching sessions yet — take a test or recite with the coach and your real accuracy appears here.
+          </p>
+        ) : (
+          <>
+            <div className="mt-3 flex h-28 items-end gap-1" role="img" aria-label="Real accuracy per day over the last 14 days">
+              {accTrend.map((p) => (
+                <div key={p.date} className="flex flex-1 flex-col items-center gap-1">
+                  <div
+                    className={`w-full rounded-t ${p.pct === null ? 'bg-[#E8EAED]' : 'bg-[#1FA36B]'}`}
+                    style={{ height: `${p.pct === null ? 2 : Math.max(8, p.pct)}%` }}
+                    title={p.pct === null ? `${p.date}: no session` : `${p.date}: ${p.pct}% (${p.correct}/${p.total})`}
+                  />
+                  <span className="text-[10px] text-[#6B7280]">
+                    {new Date(`${p.date}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric' })}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-[#6B7280]">
+              Real per-session accuracy (test score + coach words correct). Days with no session are blank — never filled in.
+            </p>
+          </>
+        )}
+
+        {/* Per-ayah trend — weekly mistake counts for the hardest ayahs */}
+        <h3 className="mt-6 text-sm font-bold text-[#111827]">Per-ayah trend — your hardest ayahs</h3>
+        {difficult.length === 0 ? (
+          <p className="mt-2 text-sm text-[#6B7280]">
+            No mistakes logged yet, so there is no per-ayah trend to show.
+          </p>
+        ) : (
+          <div className="mt-2 space-y-4">
+            {difficult.slice(0, 3).map((d) => {
+              const trend = ayahMistakeTrend(mistakes, d.surah, d.ayah, 6);
+              const max = Math.max(1, ...trend.map((x) => x.mistakes));
+              const surah = getSurahById(d.surah);
+              return (
+                <div key={`${d.surah}:${d.ayah}`}>
+                  <p className="text-sm font-semibold text-[#111827]">
+                    {surah ? surah.name : `Surah ${d.surah}`} {d.surah}:{d.ayah} — mistakes per week (fewer is better)
+                  </p>
+                  <div className="mt-2 flex h-16 items-end gap-1" role="img" aria-label={`Weekly mistakes on ${d.surah}:${d.ayah} over the last 6 weeks`}>
+                    {trend.map((x) => (
+                      <div key={x.weekStart} className="flex flex-1 flex-col items-center gap-1">
+                        <div
+                          className="w-full rounded-t bg-[#FF8A00]"
+                          style={{ height: `${x.mistakes === 0 ? 2 : Math.max(10, (x.mistakes / max) * 100)}%` }}
+                          title={`${x.label}: ${x.mistakes} ${x.mistakes === 1 ? 'mistake' : 'mistakes'}`}
+                        />
+                        <span className="text-[10px] text-[#6B7280]">{x.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Mistake frequency by type over time — stacked weekly bars */}
+        <h3 className="mt-6 text-sm font-bold text-[#111827]">Mistakes by type — last 6 weeks</h3>
+        {mistakeTypeWeeks.every((w) => w.total === 0) ? (
+          <p className="mt-2 text-sm text-[#6B7280]">No mistakes logged in the last 6 weeks.</p>
+        ) : (
+          <>
+            <div className="mt-3 flex h-28 items-end gap-2" role="img" aria-label="Mistake attempts per week, split by type, over the last 6 weeks">
+              {mistakeTypeWeeks.map((w) => {
+                const max = Math.max(1, ...mistakeTypeWeeks.map((x) => x.total));
+                return (
+                  <div key={w.weekStart} className="flex flex-1 flex-col items-center gap-1">
+                    <div
+                      className="flex w-full flex-col-reverse overflow-hidden rounded-t"
+                      style={{ height: `${w.total === 0 ? 2 : Math.max(8, (w.total / max) * 100)}%` }}
+                      title={`${w.label}: ${w.total} ${w.total === 1 ? 'mistake' : 'mistakes'}`}
+                    >
+                      {(Object.keys(MISTAKE_TYPE_COLORS) as (keyof typeof MISTAKE_TYPE_COLORS)[]).map((type) => {
+                        const n = w.counts[type] ?? 0;
+                        if (n === 0) return null;
+                        return (
+                          <div
+                            key={type}
+                            style={{ height: `${(n / w.total) * 100}%`, background: MISTAKE_TYPE_COLORS[type], minHeight: 2 }}
+                            title={`${mistakeTypeLabel(type)}: ${n}`}
+                          />
+                        );
+                      })}
+                    </div>
+                    <span className="text-[10px] text-[#6B7280]">{w.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#6B7280]">
+              {(Object.keys(MISTAKE_TYPE_COLORS) as (keyof typeof MISTAKE_TYPE_COLORS)[]).map((type) => (
+                <span key={type} className="flex items-center gap-1">
+                  <span aria-hidden="true" className="h-3 w-3 rounded-sm" style={{ background: MISTAKE_TYPE_COLORS[type] }} />
+                  {mistakeTypeLabel(type)}
+                </span>
+              ))}
+            </p>
+          </>
+        )}
+      </section>
+
       {/* Add Session — off-platform session / streak restore (screenshot 7) */}
       <section aria-labelledby="add-session-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1636,7 +2172,8 @@ export default function MyProgressClient() {
         </div>
         <p className="mt-1 text-sm text-[#6B7280]">
           Read or recited away from the app — from a printed mushaf, in class, with a teacher?
-          Log it here. A session for yesterday restores a missed day&apos;s streak.
+          Log it here. Any past date can be logged; a session for yesterday restores a missed
+          day&apos;s streak, and older days are kept in your history without changing the streak.
         </p>
         <div className="mt-4 flex flex-wrap items-end gap-3">
           <label className="text-xs font-semibold text-[#6B7280]">
@@ -1644,6 +2181,7 @@ export default function MyProgressClient() {
             <input
               type="date"
               value={addDate}
+              max={today}
               onChange={(e) => setAddDate(e.target.value)}
               className="mt-1 block min-h-11 rounded-lg border border-[#E8EAED] bg-[#F4F5F7] px-2 py-1.5 text-sm"
             />
