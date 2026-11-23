@@ -159,7 +159,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
 
-      <body className="min-h-full flex flex-col bg-[#FFFBF2] text-[#1C2420]">
+      <body className="min-h-full flex flex-col bg-[var(--t-page)] text-[#1C2420]">
         <a href="#main-content" className="sr-only-focusable absolute top-2 left-2 z-50 bg-white text-sm px-3 py-2 rounded-md shadow" aria-label="Skip to main content">Skip to content</a>
         <ScrollRestorer />
         <CMPConsent />

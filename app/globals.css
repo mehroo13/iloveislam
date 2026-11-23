@@ -114,7 +114,11 @@ button {
    CSS): brand green #57D798, gold #FFB800 / #F2C94C, dark green #102E26,
    pale mint #E4FFF2, warm cream #FFFBF2. #1FA36B is a deeper green derived
    from #57D798 for text/buttons where the bright mint fails contrast.
-   Site name stays "I Love Islam"; logo mark stays our eight-point star. */
+   Site name stays "I Love Islam"; logo mark stays our eight-point star.
+   Page background is the Tarteel-clean light grey #F4F5F7 (2026-11-23
+   rebuild); the old warm cream #FFFBF2 survives only as the legacy
+   --cream alias and in other workers' hardcoded classes, which the
+   dark/sepia overrides below still remap. */
 :root {
   --brand: #57D798;
   --brand-mint: #71F3AD;
@@ -133,9 +137,23 @@ button {
   --emerald-soft: #E4FFF2;
   --gold: #FFB800;
   --gold-light: #F2C94C;
-  --paper: #FFFBF2;
+  --paper: #F4F5F7;
   --ink: #1c2420;
   --ink-muted: #5b6b62;
+
+  /* Tarteel-clean UI tokens (2026-11-23 rebuild). Other workers use
+     these via var() or the .t-* utility classes below; the dark/sepia
+     [data-theme] blocks redefine them so the new components theme. */
+  --t-page: #F4F5F7;
+  --t-card-bg: #ffffff;
+  --t-card-border: #E8EAED;
+  --t-ink: #111827;
+  --t-muted: #6B7280;
+  --t-accent: #57D798;
+  --t-accent-text: #1FA36B;
+  --t-gold: #F2C94C;
+  --t-chip-bg: #F3F4F6;
+  --t-radius: 16px;
 
   /* Legacy aliases kept for existing pages */
   --green-dark: #102E26;
@@ -143,7 +161,7 @@ button {
   --gold-old: #FFB800;
 
   /* Compare Religions Tool Variables */
-  --bg-page: #FFFBF2;
+  --bg-page: #F4F5F7;
   --card-bg: #ffffff;
   --border-color: #E5E7EB;
   --text-body: #1c2420;
@@ -158,7 +176,7 @@ button {
 
 body {
   font-family: 'DM Sans', sans-serif;
-  background: #ffffff;
+  background: var(--t-page);
   color: #1c2420;
 }
 
@@ -421,6 +439,15 @@ body {
  * dark text on the bright-green / gold buttons is preserved. */
 [data-theme="dark"] {
   color-scheme: dark;
+  /* Tarteel-clean tokens in dark: page #0a0f0d, cards #122019. */
+  --t-page: #0a0f0d;
+  --t-card-bg: #122019;
+  --t-card-border: #24402f;
+  --t-ink: #e8f5ee;
+  --t-muted: #9db3a5;
+  --t-chip-bg: #24352c;
+  --bg-page: #0a0f0d;
+  --paper: #0a0f0d;
 }
 [data-theme="dark"] body {
   background: #0a0f0d;
@@ -437,6 +464,7 @@ body {
 }
 /* Surfaces: cream page, white cards, mint chips, warm off-white, grey track. */
 [data-theme="dark"] .bg-\[\#FFFBF2\] { background-color: #0a0f0d; }
+[data-theme="dark"] .bg-\[\#F4F5F7\] { background-color: #0a0f0d; }
 [data-theme="dark"] .bg-white { background-color: #122019; }
 [data-theme="dark"] .bg-white\/95 { background-color: rgba(18, 32, 25, 0.95); }
 [data-theme="dark"] .bg-\[\#E4FFF2\] { background-color: #16382a; }
@@ -444,6 +472,7 @@ body {
 [data-theme="dark"] .bg-\[\#F7F5EF\] { background-color: #122019; }
 /* Ink: dark-green / near-black headings and muted grey become light. */
 [data-theme="dark"] .text-\[\#102E26\] { color: #e8f5ee; }
+[data-theme="dark"] .text-\[\#111827\] { color: #e8f5ee; }
 [data-theme="dark"] .text-\[\#1C2420\] { color: #e8f5ee; }
 [data-theme="dark"] .text-\[\#0B3D2E\] { color: #bfe9d2; }
 [data-theme="dark"] .text-\[\#146B4D\] { color: #71f3ad; }
@@ -452,6 +481,7 @@ body {
 [data-theme="dark"] .text-\[\#6B7280\] { color: #9db3a5; }
 /* Hairlines + outlined buttons. */
 [data-theme="dark"] .border-\[\#E5E7EB\] { border-color: #24402f; }
+[data-theme="dark"] .border-\[\#E8EAED\] { border-color: #24402f; }
 [data-theme="dark"] .border-\[\#e5e0d3\] { border-color: #24402f; }
 [data-theme="dark"] .border-\[\#E7E2D5\] { border-color: #24402f; }
 [data-theme="dark"] .border-\[\#102E26\] { border-color: #3a5c48; }
@@ -463,6 +493,11 @@ body {
 /* Keep dark text on bright-green / gold buttons (see note above). */
 [data-theme="dark"] .bg-\[\#57D798\] { color: #102e26; }
 [data-theme="dark"] .bg-\[\#FFB800\] { color: #102e26; }
+/* Tarteel-clean utilities in dark: the --t-* tokens above already restyle
+   .t-card/.t-row/.t-chip/.t-section-title; these keep the bright buttons
+   readable (white text on #57D798 is kept per the rebuild spec). */
+[data-theme="dark"] .t-btn-primary,
+[data-theme="dark"] .t-gradient-btn { color: #fff; }
 
 /* Big green-gradient mic/mode button (Tarteel §2.3): pale mint top-left
    → deeper green bottom-right, white icon. */
@@ -481,6 +516,100 @@ body {
   border-radius: 9999px;
 }
 .btn-primary:hover { filter: brightness(1.03); }
+
+/* ===== Tarteel-clean UI utilities (2026-11-23 rebuild) =====
+   Shared by the other rebuild workers. All colours come from the --t-*
+   tokens in :root so dark/sepia themes follow automatically. Nothing
+   here replaces .btn-primary or any existing class. */
+/* White card: 16px radius, thin light border, soft shadow, 16px padding. */
+.t-card {
+  background: var(--t-card-bg);
+  border: 1px solid var(--t-card-border);
+  border-radius: var(--t-radius);
+  box-shadow: 0 1px 3px rgba(17, 24, 39, 0.06);
+  padding: 16px;
+}
+/* Big solid-green rounded button: white bold text, min-height 52px. */
+.t-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 52px;
+  padding: 0.75rem 1.5rem;
+  background: var(--t-accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.25;
+  border: none;
+  border-radius: 28px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.t-btn-primary:hover { filter: brightness(1.05); }
+.t-btn-primary:active { filter: brightness(0.97); }
+.t-btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+/* Gradient button: cyan → green, white bold text, rounded, 52px tall. */
+.t-gradient-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 52px;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(90deg, #38bdf8 0%, var(--t-accent) 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.25;
+  border: none;
+  border-radius: 28px;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 6px 18px rgba(87, 215, 152, 0.35);
+}
+.t-gradient-btn:hover { filter: brightness(1.05); }
+.t-gradient-btn:active { filter: brightness(0.97); }
+.t-gradient-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+/* Section heading: bold, ~15px, near-black ink. */
+.t-section-title {
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--t-ink);
+  margin: 0;
+}
+/* Card row: icon + label + chevron, min-height 52px. Use with
+   .t-row-label (grows) and .t-row-chevron (muted chevron) children. */
+.t-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 52px;
+  padding: 0.5rem 1rem;
+  background: var(--t-card-bg);
+  border: 1px solid var(--t-card-border);
+  border-radius: var(--t-radius);
+  color: var(--t-ink);
+  text-decoration: none;
+}
+.t-row-label { flex: 1 1 auto; min-width: 0; font-weight: 600; }
+.t-row-chevron { flex: none; color: var(--t-muted); }
+/* Pill chip on a light grey background. */
+.t-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: var(--t-chip-bg);
+  color: var(--t-ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.25;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
 
 /* Hidden verses (memorisation mode, Tarteel §2.2): thin light-grey rules,
    one per hidden word, with the faint ayah-end rosette still visible. */
@@ -574,6 +703,15 @@ body {
  * the Tarteel brand feel. */
 [data-theme="sepia"] {
   color-scheme: light;
+  /* Tarteel-clean tokens in sepia: page #f4ecd8, cards #fdf6e3. */
+  --t-page: #f4ecd8;
+  --t-card-bg: #fdf6e3;
+  --t-card-border: #e3d5b3;
+  --t-ink: #433422;
+  --t-muted: #6f6248;
+  --t-chip-bg: #efe6c8;
+  --bg-page: #f4ecd8;
+  --paper: #f4ecd8;
 }
 [data-theme="sepia"] body {
   background: #f4ecd8;
@@ -589,6 +727,7 @@ body {
 }
 /* Surfaces: cream page and white cards become warm paper. */
 [data-theme="sepia"] .bg-\[\#FFFBF2\] { background-color: #f4ecd8; }
+[data-theme="sepia"] .bg-\[\#F4F5F7\] { background-color: #f4ecd8; }
 [data-theme="sepia"] .bg-white { background-color: #fdf6e3; }
 [data-theme="sepia"] .bg-white\/95 { background-color: rgba(253, 246, 227, 0.95); }
 [data-theme="sepia"] .bg-\[\#E4FFF2\] { background-color: #efe6c8; }
@@ -598,6 +737,7 @@ body {
 [data-theme="sepia"] .text-\[\#6B7280\] { color: #6f6248; }
 /* Hairlines become parchment. */
 [data-theme="sepia"] .border-\[\#E5E7EB\] { border-color: #e3d5b3; }
+[data-theme="sepia"] .border-\[\#E8EAED\] { border-color: #e3d5b3; }
 [data-theme="sepia"] .border-\[\#e5e0d3\] { border-color: #e3d5b3; }
 [data-theme="sepia"] .border-\[\#E7E2D5\] { border-color: #e3d5b3; }
 [data-theme="sepia"] .divide-\[\#E5E7EB\] > :not([hidden]) ~ :not([hidden]) { border-color: #e3d5b3; }
