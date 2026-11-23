@@ -14,7 +14,7 @@
 // and standalone at /hifz/setup (where Continue returns to Settings).
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { BISMILLAH } from '../../quran/lib';
 import { getSurahById } from '../surahs';
@@ -140,9 +140,17 @@ export default function BookSettings({
   const [verses, setVerses] = useState<MushafVerse[] | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const t = useT();
+  // Horizontal edition carousel — scrolled so the selected card is
+  // fully visible (see the scroll effect below).
+  const carouselRef = useRef<HTMLDivElement | null>(null);
+  // True once the stored script preference has loaded: the scroll
+  // must wait for it, or it would scroll to the initial 'indopak'
+  // state before the real preference is known.
+  const [prefLoaded, setPrefLoaded] = useState(false);
 
   useEffect(() => {
     setScript(getScriptPref());
+    setPrefLoaded(true);
     try {
       setTajweed(loadSettings().tajweedColors ?? false);
     } catch {
@@ -162,6 +170,19 @@ export default function BookSettings({
       cancelled = true;
     };
   }, []);
+
+  // Keep the selected edition fully visible: the stored script default
+  // (Indo-Pak) is the SECOND card, so on first paint the green border /
+  // check would sit on a half-off-screen card while Madani shows first.
+  // Scroll the selected card into view once the stored preference has
+  // loaded, and again whenever the selection changes. The default and
+  // the card order are unchanged — only the scroll position moves.
+  useEffect(() => {
+    if (!prefLoaded) return;
+    carouselRef.current
+      ?.querySelector(`[data-edition="${script}"]`)
+      ?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [script, prefLoaded]);
 
   const choose = (id: QuranScript) => {
     setScript(id);
@@ -184,6 +205,7 @@ export default function BookSettings({
 
       {/* Swipeable edition cards (horizontal scroll-snap, next card peeking). */}
       <div
+        ref={carouselRef}
         className="mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2"
         role="group"
         aria-label={t('rb.book.edition')}
@@ -193,6 +215,7 @@ export default function BookSettings({
           return (
             <article
               key={ed.id}
+              data-edition={ed.id}
               role="button"
               tabIndex={0}
               aria-pressed={selected}

@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getSurahById, type HifzSurah } from '../surahs';
-import { JUZ_FIRST_PAGE } from '../mushaf';
+import { JUZ_FIRST_PAGE, MUSHAF_TOTAL_PAGES } from '../mushaf';
 import { type MushafVerse } from '../lib/fetch';
 import { SCRIPT_LABELS, useScriptPref } from '../lib/script';
 import { TOPICS } from '../topics';
@@ -429,6 +429,34 @@ export default function MushafPageView({
         <div className="mt-2">
           <PracticeModeList onSelect={selectPracticeMode} />
         </div>
+        {/* Prev / Next page — the single-page replacement for the removed
+            MushafNav chrome: page navigation lives in this sheet now
+            (alongside the chapter / juz / bookmark jumps below). */}
+        <div className="mt-4 flex items-center justify-between gap-2 border-t border-[#E8EAED] pt-4">
+          {page > 1 ? (
+            <Link
+              href={`/hifz/mushaf/${page - 1}`}
+              className="inline-flex min-h-11 items-center rounded-full border border-[#E8EAED] bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-[#F3F4F6]"
+            >
+              ← {t('mushaf.prevPage')}
+            </Link>
+          ) : (
+            <span />
+          )}
+          <span className="text-sm font-semibold text-[#111827]">
+            {t('mushaf.pageOf').replace('{page}', String(page)).replace('{total}', String(MUSHAF_TOTAL_PAGES))}
+          </span>
+          {page < MUSHAF_TOTAL_PAGES ? (
+            <Link
+              href={`/hifz/mushaf/${page + 1}`}
+              className="inline-flex min-h-11 items-center rounded-full border border-[#E8EAED] bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-[#F3F4F6]"
+            >
+              {t('mushaf.nextPage')} →
+            </Link>
+          ) : (
+            <span />
+          )}
+        </div>
         <Link
           href={`/hifz/mushaf?page=${page}`}
           className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[#E8EAED] bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-[#F3F4F6]"
@@ -690,7 +718,14 @@ export default function MushafPageView({
         }}
         onMic={() => selectPracticeMode('recite')}
       />
-      <div className="h-32" aria-hidden="true" />
+      {/* Bottom clearance: the fixed bottom bar's top edge sits 140px
+          above the viewport bottom (76px tab bar + 64px mic orb), so the
+          scroll content needs at least that much space after its last
+          line — otherwise the "Surahs on this page" links end up
+          half-covered by the bar. h-44 (176px) clears it on its own, so
+          the last line stays clear even if the attribution below is
+          ever removed. */}
+      <div className="h-44" aria-hidden="true" />
     </div>
   );
 }

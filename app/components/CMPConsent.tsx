@@ -89,7 +89,11 @@ export default function CMPConsent() {
     <div
       role="dialog"
       aria-label="Cookie consent"
-      className="fixed inset-x-0 bottom-0 z-[60] border-t border-[#e5e0d3] bg-white/95 px-4 py-3 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] backdrop-blur"
+      // z-[66]: above the floating ModeSwitcher pill (z-[65]) so the
+      // first-visit banner never overlaps it — the pill sits behind
+      // the banner until the visitor chooses — and below the
+      // onboarding overlay (z-[70]).
+      className="fixed inset-x-0 bottom-0 z-[66] border-t border-[#e5e0d3] bg-white/95 px-4 py-3 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] backdrop-blur"
     >
       <div className="mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm leading-relaxed text-[#1C2420]">

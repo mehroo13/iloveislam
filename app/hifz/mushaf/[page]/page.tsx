@@ -8,8 +8,7 @@ import { notFound } from 'next/navigation';
 import { MUSHAF_TOTAL_PAGES, surahsOnMushafPage } from '../../mushaf';
 import { getSurahById } from '../../surahs';
 import { fetchMushafPage, breadcrumbJsonLd, SITE_URL } from '../../lib/fetch';
-import { Breadcrumb, Attribution } from '../../components/HifzShared';
-import MushafNav from '../../components/MushafNav';
+import { Attribution } from '../../components/HifzShared';
 import MushafPageView from '../../components/MushafPageView';
 
 export async function generateStaticParams() {
@@ -69,8 +68,16 @@ export default async function MushafPage({
   // see MushafPageView) and transform-scaled to fit, so the container
   // must be ~960px wide on desktop for the fit scale to stay ~1.
   // On a phone the container is fluid and the page scales down.
+  // Tarteel-clean reader: the legacy page chrome (breadcrumb, "Mushaf —
+  // Page N of 604" header, MushafNav prev/next + jump box above and below
+  // the page) is gone — the MushafPageView top bar (sticky) is the only
+  // chrome. Page navigation now lives in the chapter sheet (Prev/Next
+  // links there, plus chapter / juz / bookmark jumps). The h1 stays,
+  // screen-reader-only, so the page keeps its heading for SEO and
+  // accessibility. No top padding: the sticky top bar sits flush at the
+  // top of the viewport, full-screen like the reference.
   return (
-    <main className="mx-auto max-w-5xl px-4 pb-16 pt-6 sm:pt-8">
+    <main className="mx-auto max-w-5xl px-4 pb-16">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -84,31 +91,12 @@ export default async function MushafPage({
           ),
         }}
       />
-      <Breadcrumb
-        items={[
-          { label: 'Home', href: '/' },
-          { label: 'Hifz', href: '/hifz' },
-          { label: 'Mushaf', href: '/hifz/mushaf' },
-          { label: `Page ${n}` },
-        ]}
-      />
+      <h1 className="sr-only">
+        Mushaf — Page {n} of {MUSHAF_TOTAL_PAGES} —{' '}
+        {surahs.map((s) => `Surah ${s.name}`).join(' and ')}
+      </h1>
 
-      <header className="mt-4 text-center">
-        <h1 className="text-2xl font-bold tracking-tight text-[#102E26] sm:text-3xl">
-          Mushaf — Page {n} of {MUSHAF_TOTAL_PAGES}
-        </h1>
-        <p className="mt-1 text-sm text-[#5b6b62]">
-          {surahs.map((s) => `Surah ${s.name}`).join(' · ')} · Read it like the printed Quran
-        </p>
-      </header>
-
-      <MushafNav page={n} />
-
-      <div className="mt-4">
-        <MushafPageView page={n} verses={verses} />
-      </div>
-
-      <MushafNav page={n} />
+      <MushafPageView page={n} verses={verses} />
 
       <Attribution />
     </main>
