@@ -2,7 +2,6 @@
 import type { Metadata } from 'next';
 import SettingsClient from '../components/SettingsClient';
 import SettingsHeader from '../components/SettingsHeader';
-import { Attribution } from '../components/HifzShared';
 import { SITE_URL } from '../lib/fetch';
 
 export const metadata: Metadata = {
@@ -20,7 +19,6 @@ export default function SettingsPage() {
       <div className="mt-6">
         <SettingsClient />
       </div>
-      <Attribution reciterName="Mishary Alafasy" />
     </main>
   );
 }

@@ -1,28 +1,50 @@
-// app/hifz/components/SettingsHeader.tsx — Settings page header.
-// Client component only so the heading follows the interface language;
-// the page itself stays a server component (metadata lives there).
+// app/hifz/components/SettingsHeader.tsx — Settings top bar, Tarteel-style:
+// back arrow in a circle (start side) + bold screen title (end side).
+// No breadcrumb, no big heading + description. Client component only so
+// the title follows the interface language; the pages stay server
+// components (metadata lives there).
 'use client';
 
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useT } from '../lib/i18n';
-import { Breadcrumb } from './HifzShared';
 
-export default function SettingsHeader() {
-  const t = useT();
+const BTN =
+  'flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#111827]/25 bg-transparent text-[#111827] hover:bg-white';
+
+function BackChevron() {
   return (
-    <>
-      <Breadcrumb
-        items={[
-          { label: t('nav.home'), href: '/' },
-          { label: t('crumb.hifz'), href: '/hifz' },
-          { label: t('set.title') },
-        ]}
-      />
-      <header className="mt-4">
-        <h1 className="text-3xl font-bold tracking-tight text-[#102E26] sm:text-4xl">{t('set.title')}</h1>
-        <p className="mt-2 text-sm leading-relaxed text-[#5b6b62] sm:text-base">
-          {t('set.subtitle')}
-        </p>
-      </header>
-    </>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5 rtl:-scale-x-100"
+      aria-hidden="true"
+    >
+      <path d="M15.75 19.5 8.25 12l7.5-7.5" />
+    </svg>
+  );
+}
+
+export default function SettingsHeader({ title, backHref }: { title?: string; backHref?: string }) {
+  const t = useT();
+  const router = useRouter();
+  const label = title ?? t('set.title');
+  return (
+    <div className="flex items-center justify-between">
+      {backHref ? (
+        <Link href={backHref} aria-label={t('rb.search.goBack')} className={BTN}>
+          <BackChevron />
+        </Link>
+      ) : (
+        <button type="button" onClick={() => router.back()} aria-label={t('rb.search.goBack')} className={BTN}>
+          <BackChevron />
+        </button>
+      )}
+      <h1 className="text-xl font-bold text-[#111827]">{label}</h1>
+    </div>
   );
 }

@@ -1,23 +1,22 @@
-// app/hifz/components/SettingsClient.tsx — Settings (spec §22), restructured
-// into Tarteel-style grouped white cards with icon + label + chevron rows.
-// Restructure + restyle only: every pre-existing setting and behaviour is
-// preserved (language, theme, recitation coach, Quran appearance, data
-// usage, reminders, mic help, account, export/import/clear, privacy,
-// support). New group/row labels are English for now (i18n.ts untouched).
+// app/hifz/components/SettingsClient.tsx — Settings (spec §22), Tarteel-style
+// grouped white cards: bold black section titles inside the card, plain
+// black icon + label-only rows with grey chevrons, no subtitles, no icon
+// chips. Each row expands to its detail panel (the current value lives
+// there, not on the row). Restructure + restyle only: every pre-existing
+// setting and behaviour is preserved (language, theme, recitation coach,
+// Quran appearance, data usage, reminders, sounds, downloads, privacy,
+// account, export/import/clear, mic help, support) — the long blocks
+// (account, your data, mic help, support) now live on detail screens
+// under /hifz/settings/* and are linked from here instead of inline.
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
-  loadProgress, loadMistakes, loadSettings, saveProgress, saveMistakes, saveSettings,
-  exportProgress, importProgress, downloadProgressJson,
-  localDateString,
+  loadSettings, saveSettings,
   type HifzSettings,
 } from '../progress';
 import { mirrorAllToIdb } from '../lib/store';
-import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
-import { loadChallenges, saveChallenges } from '../lib/challenges';
-import AccountSection from './AccountSection';
 import SearchablePicker from './SearchablePicker';
 import {
   RECITERS, TRANSLATIONS, TAFSIRS, TAFSIR_ID, groupByLanguage,
@@ -29,7 +28,6 @@ import {
   resetUiPrefsToDefaults,
   setUiLocale,
   setUiTheme,
-  syncPrefsFromStorage,
   useT,
 } from '../lib/i18n';
 
@@ -101,22 +99,11 @@ function Icon({ name }: { name: string }) {
       return (<svg {...common}><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /></svg>);
     case 'target':
       return (<svg {...common}><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>);
+    case 'user':
+      return (<svg {...common}><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6" /></svg>);
     default:
       return (<svg {...common}><circle cx="12" cy="12" r="10" /></svg>);
   }
-}
-
-function IconChip({ name, danger }: { name: string; danger?: boolean }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-        danger ? 'bg-red-50 text-red-700' : 'bg-[#E4FFF2] text-[#1FA36B]'
-      }`}
-    >
-      <Icon name={name} />
-    </span>
-  );
 }
 
 function Chevron({ expanded }: { expanded?: boolean }) {
@@ -131,7 +118,7 @@ function Chevron({ expanded }: { expanded?: boolean }) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={`shrink-0 text-[#6B7280] transition-transform rtl:-scale-x-100 ${expanded ? 'rotate-90 rtl:-rotate-90' : ''}`}
+      className={`shrink-0 text-[#9CA3AF] transition-transform rtl:-scale-x-100 ${expanded ? 'rotate-90 rtl:-rotate-90' : ''}`}
     >
       <path d="m9 18 6-6-6-6" />
     </svg>
@@ -172,53 +159,38 @@ function Toggle({
   );
 }
 
-/** Group title + white card of divided rows (Tarteel-style). */
+/** White card with the bold black section title as its first row. */
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section aria-label={title}>
-      <h2 className="mb-2 px-1 text-[13px] font-bold uppercase tracking-wide text-[#6B7280]">{title}</h2>
-      <div className="divide-y divide-[#E8EAED] rounded-2xl border border-[#E8EAED] bg-white shadow-sm">
-        {children}
+      <div className="overflow-hidden rounded-xl border border-[#E8EAED] bg-white">
+        <h2 className="border-b border-[#E8EAED] px-4 py-3 text-[17px] font-bold text-[#111827]">{title}</h2>
+        <div className="divide-y divide-[#E8EAED]">{children}</div>
       </div>
     </section>
   );
 }
 
-/** Group title + white padded card (for content blocks, not rows). */
-function Card({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section aria-label={title}>
-      <h2 className="mb-2 px-1 text-[13px] font-bold uppercase tracking-wide text-[#6B7280]">{title}</h2>
-      <div className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">{children}</div>
-    </section>
-  );
-}
-
-/** Icon + label (+ optional value line) + chevron row. Button or link. */
+/** Plain black icon + label only + grey chevron row. Button or link. */
 function Row({
   icon,
   label,
-  value,
   expanded,
   onClick,
   href,
-  danger,
 }: {
   icon: string;
   label: string;
-  value?: string;
   expanded?: boolean;
   onClick?: () => void;
   href?: string;
-  danger?: boolean;
 }) {
   const inner = (
     <>
-      <IconChip name={icon} danger={danger} />
-      <span className="min-w-0 flex-1">
-        <span className={`block truncate text-sm font-semibold ${danger ? 'text-red-700' : 'text-[#111827]'}`}>{label}</span>
-        {value && <span className="block truncate text-xs text-[#6B7280]">{value}</span>}
+      <span aria-hidden="true" className="shrink-0 text-[#111827]">
+        <Icon name={icon} />
       </span>
+      <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-[#111827]">{label}</span>
       <Chevron expanded={expanded} />
     </>
   );
@@ -237,9 +209,31 @@ function Row({
   );
 }
 
-/** Expanded panel under a row, holding the real controls. */
+/** Expanded panel under a row — the row's detail screen. */
 function Panel({ children }: { children: ReactNode }) {
   return <div className="border-t border-[#E8EAED] bg-[#F4F5F7]/60 px-4 py-4">{children}</div>;
+}
+
+/** The row's current value, shown inside its detail panel (not on the row). */
+function Current({ label, value }: { label: string; value: string }) {
+  return (
+    <p className="mb-3 text-xs text-[#6B7280]">
+      {label}: <span className="font-semibold text-[#111827]">{value}</span>
+    </p>
+  );
+}
+
+/** Link row inside a detail panel (e.g. open the coach, mic help). */
+function PanelLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="mt-3 flex items-center justify-between rounded-xl border border-[#E8EAED] bg-white px-4 py-3 text-sm font-semibold text-[#111827] hover:bg-[#E4FFF2]"
+    >
+      <span>{children}</span>
+      <span aria-hidden="true">›</span>
+    </Link>
+  );
 }
 
 function MiniSelect({
@@ -272,11 +266,9 @@ function MiniSelect({
 export default function SettingsClient() {
   const [settings, setSettings] = useState<HifzSettings | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
-  const [importMsg, setImportMsg] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [listen, setListen] = useState<ListenPrefs>({ repeat: 1, pauseSec: 0, speed: 1, wordByWord: false });
   const [tafsirId, setTafsirId] = useState<number>(TAFSIR_ID);
-  const fileRef = useRef<HTMLInputElement | null>(null);
   const t = useT();
 
   const toggleOpen = (key: string) => setOpen((cur) => (cur === key ? null : key));
@@ -341,50 +333,6 @@ export default function SettingsClient() {
     }
   };
 
-  const doExport = () => {
-    try {
-      const progress = loadProgress();
-      const mistakes = loadMistakes();
-      // Stage 7 (§24): the backup must carry EVERYTHING — bookmarks and
-      // group challenges included, not just progress/mistakes/settings.
-      downloadProgressJson(
-        `hifz-${localDateString()}.json`,
-        exportProgress(progress, mistakes, settings!, {
-          bookmarks: loadBookmarks(),
-          challenges: loadChallenges(),
-        }),
-      );
-    } catch {
-      setMsg(t('rb.set.exportFailed'));
-    }
-  };
-
-  const doImport = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = importProgress(String(reader.result ?? ''));
-      if (!result.ok) {
-        setImportMsg(result.error);
-        return;
-      }
-      // Stage 7 (§24): an import restores the whole backup — bookmarks
-      // and challenges included. (Before this fix the import validated
-      // them and then silently dropped them.)
-      saveProgress(result.progress);
-      saveMistakes(result.mistakes);
-      saveSettings(result.settings);
-      saveBookmarks(result.bookmarks);
-      saveChallenges(result.challenges);
-      mirrorAllToIdb();
-      setSettings(result.settings);
-      setImportMsg(t('rb.dash.importedOk'));
-      // An import can carry a different language/theme — apply it at once.
-      syncPrefsFromStorage();
-    };
-    reader.onerror = () => setImportMsg(t('rb.dash.fileUnreadable'));
-    reader.readAsText(file);
-  };
-
   const clearAll = () => {
     if (!window.confirm('Delete ALL your Hifz data on this device — progress, mistakes, goals, settings and saved audio recordings? This cannot be undone. Export first if you want a copy.')) return;
     try {
@@ -404,7 +352,7 @@ export default function SettingsClient() {
 
   if (!settings) {
     return (
-      <div className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm">
+      <div className="rounded-xl border border-[#E8EAED] bg-white p-5">
         <p className="text-sm text-[#6B7280]">{t('set.loading')}</p>
       </div>
     );
@@ -421,27 +369,40 @@ export default function SettingsClient() {
   const listenValue =
     t('rb.set.repeatSpeed').replace('{r}', String(listen.repeat)).replace('{s}', String(listen.speed)) +
     (listen.wordByWord ? t('rb.set.wbwSuffix') : '');
+  const currentLabel = t('mode.current');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {msg && (
         <p role="status" className="rounded-xl border border-[#E8EAED] bg-white px-4 py-3 text-sm font-semibold text-[#1FA36B]">
           {msg}
         </p>
       )}
 
-      {/* Promo banner — Testing Mode (own words, no copied Tarteel copy). */}
+      {/* Promo banner — Testing Mode. Pink gradient with our own simple
+          pill shapes (CSS only, no copied artwork). */}
       <section
         aria-label={t('rb.set.newFeatureTesting')}
-        className="rounded-2xl border border-[#F2C94C] bg-[#FFF7D6] p-5 shadow-sm"
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#FBCFE8] via-[#F472B6] to-[#D946EF] p-5 shadow-sm"
       >
-        <p className="text-xs font-bold uppercase tracking-wide text-[#7A5C00]">{t('rb.set.newFeature')}</p>
-        <h2 className="mt-1 text-lg font-bold text-[#111827]">{t('rb.set.testingMode')}</h2>
-        <p className="mt-1 text-sm leading-relaxed text-[#6B7280]">{t('rb.set.testPromo')}</p>
-        <Link
-          href="/hifz/test"
-          className="mt-3 inline-block rounded-full bg-[#FFB800] px-5 py-2.5 text-sm font-bold text-[#111827] hover:brightness-105"
-        >{t('rb.set.testYourself')}</Link>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-3 top-4 flex w-32 flex-col items-end gap-2.5 rtl:-left-3 rtl:right-auto"
+        >
+          <span className="h-6 w-28 -rotate-6 rounded-full bg-[#60A5FA] shadow-md ring-2 ring-white/50" />
+          <span className="h-6 w-24 rotate-3 rounded-full bg-[#A78BFA] shadow-md ring-2 ring-white/50" />
+          <span className="h-6 w-20 -rotate-3 rounded-full bg-[#FB7185] shadow-md ring-2 ring-white/50" />
+          <span className="h-6 w-16 rotate-6 rounded-full bg-[#FBBF24] shadow-md ring-2 ring-white/50" />
+          <span className="mt-1 h-3 w-3 rotate-45 rounded-[2px] bg-[#FDE68A] shadow" />
+        </div>
+        <div className="relative max-w-[62%]">
+          <h2 className="text-[17px] font-bold leading-snug text-[#111827]">{t('rb.set.newFeatureTesting')}</h2>
+          <p className="mt-1 text-[13px] leading-relaxed text-[#3F3F46]">{t('rb.set.testPromo')}</p>
+          <Link
+            href="/hifz/test"
+            className="mt-3 inline-block rounded-full bg-[#FFB800] px-5 py-2.5 text-sm font-bold text-[#111827] shadow-sm hover:brightness-105"
+          >{t('rb.set.testYourself')}</Link>
+        </div>
       </section>
 
       {/* Experiences */}
@@ -450,12 +411,12 @@ export default function SettingsClient() {
           <Row
             icon="mic"
             label={t('set.recitation')}
-            value={reciterName(settings.reciterId)}
             expanded={open === 'recitation'}
             onClick={() => toggleOpen('recitation')}
           />
           {open === 'recitation' && (
             <Panel>
+              <Current label={currentLabel} value={reciterName(settings.reciterId)} />
               <div className="divide-y divide-[#E8EAED]">
                 <Toggle
                   label={t('set.detectMistakes')}
@@ -476,13 +437,8 @@ export default function SettingsClient() {
                   onChange={(v) => update({ dontProgress: v })}
                 />
               </div>
-              <Link
-                href="/hifz/recite"
-                className="mt-3 flex items-center justify-between rounded-xl border border-[#E8EAED] bg-white px-4 py-3 text-sm font-semibold text-[#111827] hover:bg-[#E4FFF2]"
-              >
-                <span>{t('rb.set.openCoach')}</span>
-                <span aria-hidden="true">›</span>
-              </Link>
+              <PanelLink href="/hifz/recite">{t('rb.set.openCoach')}</PanelLink>
+              <PanelLink href="/hifz/settings/microphone">{t('set.micHelp')}</PanelLink>
             </Panel>
           )}
         </div>
@@ -490,12 +446,12 @@ export default function SettingsClient() {
           <Row
             icon="headphones"
             label={t('surah.modeListening')}
-            value={listenValue}
             expanded={open === 'listening'}
             onClick={() => toggleOpen('listening')}
           />
           {open === 'listening' && (
             <Panel>
+              <Current label={currentLabel} value={listenValue} />
               <div className="space-y-4">
                 <MiniSelect
                   label={t('surah.repeatEach')}
@@ -556,12 +512,15 @@ export default function SettingsClient() {
           <Row
             icon="layers"
             label={t('rb.set.mushafLayout')}
-            value={(settings.mushafLines ?? 15) === 15 ? t('set.mushaf15') : t('set.mushaf16')}
             expanded={open === 'layout'}
             onClick={() => toggleOpen('layout')}
           />
           {open === 'layout' && (
             <Panel>
+              <Current
+                label={currentLabel}
+                value={(settings.mushafLines ?? 15) === 15 ? t('set.mushaf15') : t('set.mushaf16')}
+              />
               <MiniSelect
                 label={t('set.mushafLayout')}
                 value={String(settings.mushafLines ?? 15)}
@@ -575,13 +534,7 @@ export default function SettingsClient() {
                 The Madani mushaf is 15 lines a page. Compact text shows the same page slightly
                 smaller; page breaks never change.
               </p>
-              <Link
-                href="/hifz/setup"
-                className="mt-3 flex items-center justify-between rounded-xl border border-[#E8EAED] bg-white px-4 py-3 text-sm font-semibold text-[#111827] hover:bg-[#E4FFF2]"
-              >
-                <span>Book settings — mushaf edition &amp; tajweed</span>
-                <span aria-hidden="true">›</span>
-              </Link>
+              <PanelLink href="/hifz/setup">Book settings — mushaf edition &amp; tajweed</PanelLink>
             </Panel>
           )}
         </div>
@@ -589,12 +542,15 @@ export default function SettingsClient() {
           <Row
             icon="eye-off"
             label={t('rb.set.hiddenVerses')}
-            value={settings.showForHidden ? t('rb.set.washesVisible') : t('rb.set.hiddenStayHidden')}
             expanded={open === 'hidden'}
             onClick={() => toggleOpen('hidden')}
           />
           {open === 'hidden' && (
             <Panel>
+              <Current
+                label={currentLabel}
+                value={settings.showForHidden ? t('rb.set.washesVisible') : t('rb.set.hiddenStayHidden')}
+              />
               <div className="divide-y divide-[#E8EAED]">
                 <Toggle
                   label={t('set.showForHidden')}
@@ -616,12 +572,15 @@ export default function SettingsClient() {
           <Row
             icon="star"
             label={t('rb.set.marking')}
-            value={(settings.highlightMistakes ?? true) ? t('rb.set.mistakesOn') : t('rb.set.mistakesOff')}
             expanded={open === 'marking'}
             onClick={() => toggleOpen('marking')}
           />
           {open === 'marking' && (
             <Panel>
+              <Current
+                label={currentLabel}
+                value={(settings.highlightMistakes ?? true) ? t('rb.set.mistakesOn') : t('rb.set.mistakesOff')}
+              />
               <div className="divide-y divide-[#E8EAED]">
                 <Toggle
                   label={t('set.highlightMistakes')}
@@ -635,12 +594,6 @@ export default function SettingsClient() {
                   checked={settings.tajweedColors ?? false}
                   onChange={(v) => update({ tajweedColors: v })}
                 />
-                <Toggle
-                  label={t('set.topicColors')}
-                  hint={t('rb.set.topicHint')}
-                  checked={settings.topicColors ?? true}
-                  onChange={(v) => update({ topicColors: v })}
-                />
               </div>
             </Panel>
           )}
@@ -653,12 +606,12 @@ export default function SettingsClient() {
           <Row
             icon="globe"
             label={t('set.language')}
-            value={localeName}
             expanded={open === 'language'}
             onClick={() => toggleOpen('language')}
           />
           {open === 'language' && (
             <Panel>
+              <Current label={currentLabel} value={localeName} />
               <MiniSelect
                 label={t('set.interfaceLanguage')}
                 value={settings.language ?? 'en'}
@@ -673,12 +626,12 @@ export default function SettingsClient() {
           <Row
             icon="sun"
             label={t('set.theme')}
-            value={themeLabel}
             expanded={open === 'theme'}
             onClick={() => toggleOpen('theme')}
           />
           {open === 'theme' && (
             <Panel>
+              <Current label={currentLabel} value={themeLabel} />
               <div className="flex flex-wrap gap-2" role="group" aria-label={t('set.theme')}>
                 {(
                   [
@@ -712,7 +665,6 @@ export default function SettingsClient() {
           <Row
             icon="bell"
             label={t('set.reminders')}
-            value={t('rb.set.noPush')}
             expanded={open === 'reminders'}
             onClick={() => toggleOpen('reminders')}
           />
@@ -724,44 +676,58 @@ export default function SettingsClient() {
         </div>
       </Group>
 
-      {/* Sounds & Haptics — only rows with a real setting behind them.
-          There is no "session start/stop" sound and no "dropped connection"
-          sound anywhere in the app (no such fields in HifzSettings, no
-          sound prefs in the codebase), so those two rows are omitted
-          rather than added as dead rows. */}
+      {/* Sounds & Haptics — chevron rows; the toggles live on the detail
+          panels. There is no "session start/stop" sound and no "dropped
+          connection" sound anywhere in the app (no such fields in
+          HifzSettings, no sound prefs in the codebase), so those two rows
+          are omitted rather than added as dead rows. */}
       <Group title={t('rb.set.sounds')}>
-        <div className="flex items-center gap-3 px-4">
-          <IconChip name="volume" />
-          <div className="min-w-0 flex-1">
-            <Toggle
-              label={t('rb.set.mistakeFeedback')}
-              hint="The coach flags wrong, extra and missed words as you recite. Off = follow-along only, no mistake flags."
-              checked={settings.detectMistakes ?? true}
-              onChange={(v) => update({ detectMistakes: v })}
-            />
-          </div>
+        <div>
+          <Row
+            icon="volume"
+            label={t('rb.set.mistakeFeedback')}
+            expanded={open === 'mistakeSound'}
+            onClick={() => toggleOpen('mistakeSound')}
+          />
+          {open === 'mistakeSound' && (
+            <Panel>
+              <Toggle
+                label={t('rb.set.mistakeFeedback')}
+                hint="The coach flags wrong, extra and missed words as you recite. Off = follow-along only, no mistake flags."
+                checked={settings.detectMistakes ?? true}
+                onChange={(v) => update({ detectMistakes: v })}
+              />
+            </Panel>
+          )}
         </div>
-        <div className="flex items-center gap-3 px-4">
-          <IconChip name="target" />
-          <div className="min-w-0 flex-1">
-            <Toggle
-              label={t('rb.set.testingMode')}
-              hint={t('rb.set.soundHint')}
-              checked={settings.testSound ?? true}
-              onChange={(v) => update({ testSound: v })}
-            />
-          </div>
+        <div>
+          <Row
+            icon="target"
+            label={t('rb.set.testingMode')}
+            expanded={open === 'testSound'}
+            onClick={() => toggleOpen('testSound')}
+          />
+          {open === 'testSound' && (
+            <Panel>
+              <Toggle
+                label={t('rb.set.testingMode')}
+                hint={t('rb.set.soundHint')}
+                checked={settings.testSound ?? true}
+                onChange={(v) => update({ testSound: v })}
+              />
+            </Panel>
+          )}
         </div>
       </Group>
 
       {/* Downloads — each row opens the real picker (same catalogues and
-          storage keys the surah pages use). */}
+          storage keys the surah pages use). The picker button already
+          shows the current selection. */}
       <Group title={t('rb.set.downloads')}>
         <div>
           <Row
             icon="download"
             label={t('rb.set.reciters')}
-            value={reciterName(settings.reciterId)}
             expanded={open === 'reciters'}
             onClick={() => toggleOpen('reciters')}
           />
@@ -783,7 +749,6 @@ export default function SettingsClient() {
           <Row
             icon="download"
             label={t('rb.set.translations')}
-            value={translationName(settings.translationId)}
             expanded={open === 'translations'}
             onClick={() => toggleOpen('translations')}
           />
@@ -805,7 +770,6 @@ export default function SettingsClient() {
           <Row
             icon="download"
             label={t('surah.tafsir')}
-            value={tafsirName(tafsirId)}
             expanded={open === 'tafsir'}
             onClick={() => toggleOpen('tafsir')}
           />
@@ -825,13 +789,15 @@ export default function SettingsClient() {
         </div>
       </Group>
 
-      {/* Privacy */}
+      {/* Privacy — the last section on the page, like Tarteel. Your Data
+          and Account live here as single rows to their detail screens
+          (both are data matters); the long privacy paragraph now lives
+          inside the Data Usage detail panel. */}
       <Group title={t('set.privacy')}>
         <div>
           <Row
             icon="database"
             label={t('set.dataUsage')}
-            value={(settings.saveAudio ?? true) ? t('rb.set.audioSaved') : t('rb.set.audioNotSaved')}
             expanded={open === 'data'}
             onClick={() => toggleOpen('data')}
           />
@@ -845,13 +811,17 @@ export default function SettingsClient() {
                   onChange={(v) => update({ saveAudio: v })}
                 />
               </div>
-              <p className="mt-3 text-sm text-[#6B7280]">
+              <p className="mt-3 text-sm leading-relaxed text-[#6B7280]">
                 Progress is also mirrored into IndexedDB on this device (with a one-time migration of
                 your existing progress), so it survives even if localStorage is cleared by the browser.
-                As a guest, nothing is ever sent to a server. If you choose to create an optional
-                account (see “Account” below), your progress is also backed up to your
-                account so it follows you to other devices — and only then.
+                As a guest, nothing is ever sent to a server. If you choose to create an optional{' '}
+                <Link href="/hifz/settings/account" className="font-semibold text-[#111827] underline">
+                  account
+                </Link>
+                , your progress is also backed up to your account so it follows you to other devices —
+                and only then.
               </p>
+              <p className="mt-3 text-sm leading-relaxed text-[#6B7280]">{t('rb.set.privacyLong')}</p>
             </Panel>
           )}
         </div>
@@ -863,87 +833,26 @@ export default function SettingsClient() {
           <Row
             icon="trash"
             label={t('rb.set.deleteAudio')}
-            value={t('rb.set.deleteAudioNote')}
-            danger
             onClick={clearAll}
           />
         </div>
-        <div className="px-4 py-4">
-          <p className="text-sm leading-relaxed text-[#6B7280]">{t('rb.set.privacyLong')}</p>
+        <div>
+          <Row icon="database" label={t('set.yourData')} href="/hifz/settings/data" />
+        </div>
+        <div>
+          <Row icon="user" label={t('rb.set.account')} href="/hifz/settings/account" />
         </div>
       </Group>
 
-      {/* More — Account */}
-      <section aria-label={t('rb.set.account')}>
-        <h2 className="mb-2 px-1 text-[13px] font-bold uppercase tracking-wide text-[#6B7280]">{t('rb.set.account')}</h2>
-        <AccountSection />
-      </section>
-
-      {/* More — Your data */}
-      <Card title={t('set.yourData')}>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={doExport}
-            className="min-h-11 rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
-          >
-            {t('set.export')}
-          </button>
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="min-h-11 rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#111827] hover:bg-[#E4FFF2]"
-          >
-            {t('set.import')}
-          </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".json,application/json"
-            className="hidden"
-            aria-label={t('rb.dash.chooseExport')}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) doImport(f);
-              e.target.value = '';
-            }}
-          />
-          <button
-            type="button"
-            onClick={clearAll}
-            className="min-h-11 rounded-full border border-red-700 px-5 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50"
-          >
-            {t('set.clear')}
-          </button>
-        </div>
-        {importMsg && (
-          <p role="status" className="mt-3 text-sm font-semibold text-[#1FA36B]">{importMsg}</p>
-        )}
-        <p className="mt-3 text-sm text-[#6B7280]">{t('rb.dash.backupNote')}</p>
-      </Card>
-
-      {/* More — Microphone help */}
-      <Card title={t('set.micHelp')}>
-        {/* Logical `ps-*` (not `pl-*`) so the list indent mirrors in RTL. */}
-        <ul className="list-disc space-y-1 ps-5 text-sm leading-relaxed text-[#6B7280]">
-          <li>{t('rb.set.micPerm')}</li>
-          <li>{t('rb.set.micQuiet')}</li>
-          <li>{t('rb.set.micMadd')}</li>
-          <li>{t('rb.set.micOffline')}</li>
-          <li>{t('rb.set.micStuck')}</li>
-        </ul>
-      </Card>
-
-      {/* More — Support / donate (Settings only) */}
-      <Card title={t('set.support')}>
-        <p className="text-sm leading-relaxed text-[#6B7280]">{t('rb.set.donateNote')}</p>
-        <a
-          href="/about#support"
-          className="mt-3 inline-block rounded-full bg-[#FFB800] px-5 py-2.5 text-sm font-bold text-[#111827] hover:brightness-105"
+      {/* Footer link only — the page's sections end at Privacy. */}
+      <div className="pt-1 text-center">
+        <Link
+          href="/hifz/settings/support"
+          className="text-sm font-semibold text-[#1FA36B] underline-offset-2 hover:underline"
         >
-          {t('set.donate')}
-        </a>
-      </Card>
+          {t('set.support')} ›
+        </Link>
+      </div>
     </div>
   );
 }
