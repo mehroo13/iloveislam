@@ -19,10 +19,15 @@
  *    picks (e.g. WhatsApp) — the file leaves the device only through
  *    the channel the user chose; or a plain download, so the user can
  *    send the file themselves.
- *  - Recordings live only as an in-memory blob for the current browser
- *    session. They are never persisted (no localStorage / IndexedDB, no
- *    server), so a past session simply has no audio to share — the UI
- *    says so instead of pretending otherwise.
+ *  - Recordings live as an in-memory blob for the current browser
+ *    session — and, when the user has "Save session audio on this
+ *    device" on, ALSO as a persisted blob in the IndexedDB
+ *    `session-audio` store (see lib/store.ts: saveSessionAudio), so a
+ *    past session's recording can still be shared or downloaded from
+ *    session history. A past session with no persisted audio still has
+ *    nothing to share — the UI says so instead of pretending otherwise.
+ *    Nothing is ever uploaded by the app; sharing hands the file to the
+ *    app the user picks, downloading saves it to their device.
  *
  * Everything is free; no account, no Premium tier.
  */
@@ -34,6 +39,41 @@ import { useT } from '../lib/i18n';
 export interface SharedRecording {
   blob: Blob;
   fileName: string;
+}
+
+/**
+ * Build a SharedRecording from a PERSISTED session-audio blob (loaded
+ * from the IndexedDB `session-audio` store via loadSessionAudio /
+ * listSessionAudios) so share/download can be offered from session
+ * history rows, not just for the just-finished session. The blob is
+ * used as-is — shareRecording / downloadRecording never care whether
+ * it came from memory or from storage.
+ */
+export function sharedRecordingFromStored(
+  blob: Blob,
+  fileName: string,
+): SharedRecording {
+  return { blob, fileName };
+}
+
+/**
+ * File name for a stored recording, from its stored meta (date +
+ * range label, e.g. "67:1–5"). Falls back to a dated generic name when
+ * the range label cannot be parsed — never throws.
+ */
+export function fileNameForStoredAudio(
+  meta: { date: string; rangeLabel: string },
+  ext: string,
+): string {
+  const stamp = (() => {
+    const d = new Date(meta.date);
+    if (Number.isNaN(d.getTime())) return 'undated';
+    return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`;
+  })();
+  const m = meta.rangeLabel.match(/(\d+):(\d+)(?:[–-](\d+))?/);
+  if (!m) return `hifz-recitation-${stamp}.${ext}`;
+  const toAyah = m[3] ?? m[2];
+  return `hifz-recitation-s${m[1]}-${m[2]}-${toAyah}-${stamp}.${ext}`;
 }
 
 /** File extension for a MediaRecorder mime type (WebM is the usual case). */

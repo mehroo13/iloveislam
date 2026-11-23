@@ -58,7 +58,17 @@
  *    research §5 step 2.6). Never shown as missed.
  *  - The adapter NEVER emits tajweed labels, scores or rule names. Tilawa's
  *    pronunciation error classes exist in the engine but are unsupported in
- *    v1 (`capabilities.unsupported`) and are never surfaced.
+ *    v1 (`capabilities.unsupported`) and are never surfaced. Measured
+ *    2026-11-23: both shipped model manifests (`spliced-clean-lite` and
+ *    `spliced-clean`, `models-v1.json`) list ONLY the four memorization
+ *    classes as `supported`, so `short_vowel` — the class a pure
+ *    vowel-only (tashkeel) error would need — cannot fire on this model
+ *    version, and the adapter never populates a heard word for the
+ *    harakat-strict comparison to compare against. See the coach for the
+ *    removed dead branch.
+ *  - Pause: Tilawa has no session pause. The adapter's `pause()` suspends
+ *    the prepared AudioContext (no frames reach the tracker, so the
+ *    audio-delivered session clock stops) and `resume()` resumes it.
  *
  * PRIVACY: audio is processed on-device by the ONNX model and never leaves
  * the device. No audio is stored — the coach keeps word references only.
@@ -296,6 +306,19 @@ export interface RecitationSession {
    */
   stop(): Promise<SessionResult>;
   /**
+   * Pause the take: suspend the prepared AudioContext so no audio
+   * reaches the tracker (Tilawa itself has no pause API — the session
+   * clock counts audio delivered, so it pauses with the context), and
+   * mark the session paused. The coach separately pauses its own
+   * MediaRecorder and its wall-clock timer. Idempotent; a no-op for a
+   * file-driven session with no prepared context. Resume with resume().
+   */
+  pause(): Promise<void>;
+  /** Resume a paused take (resume the AudioContext). Idempotent. */
+  resume(): Promise<void>;
+  /** True while the take is paused. */
+  readonly paused: boolean;
+  /**
    * Abandon the take WITHOUT producing a result: stop the mic, close
    * the AudioContext, dispose the session. Used when the user leaves
    * mid-take ("Back to listening", mode switch) or when a new take must
@@ -493,6 +516,13 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
     opts.onLevel?.(db);
   };
   let mic: Microphone | null = null;
+  /** The AudioContext behind the prepared mic capture (set in
+   * startMic). Suspending it is how pause() stops audio reaching the
+   * tracker — Tilawa exposes no pause of its own. Null for file-driven
+   * sessions, where pause() is a no-op. */
+  let preparedContext: AudioContext | null = null;
+  /** True while the take is paused (see pause()/resume()). */
+  let paused = false;
   let stopped = false;
   let stopPromise: Promise<SessionResult> | null = null;
   let abortPromise: Promise<void> | null = null;
@@ -724,6 +754,7 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       // tracker, and quiet speech still has a chance to lock. Voice
       // detection for the UI lives in app/hifz/lib/vad.ts (AdaptiveVad) —
       // display-only, never a gate on the audio path.
+      preparedContext = prepared?.context ?? null;
       mic = await tilawa.listen(session, {
         vad: false,
         onLevel: recordLevel,
@@ -734,10 +765,38 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       await session.pushAudio(samples, sampleRate);
     },
     getAudioHealth,
+    async pause() {
+      if (paused || stopped) return;
+      paused = true;
+      // Suspend the context: the worklet stops pulling frames, so no
+      // audio reaches the tracker and the session clock (audio-delivered
+      // ms) stops advancing. The tracker itself has no pause call.
+      if (preparedContext && preparedContext.state === 'running') {
+        await preparedContext.suspend().catch(() => undefined);
+      }
+    },
+    async resume() {
+      if (!paused || stopped) return;
+      paused = false;
+      if (preparedContext && preparedContext.state === 'suspended') {
+        await preparedContext.resume().catch(() => undefined);
+      }
+    },
+    get paused() {
+      return paused;
+    },
     stop(): Promise<SessionResult> {
       if (stopPromise) return stopPromise;
       stopped = true;
       stopPromise = (async () => {
+        // A paused take must be resumed first so mic.stop() can drain
+        // the session cleanly.
+        if (paused) {
+          paused = false;
+          if (preparedContext && preparedContext.state === 'suspended') {
+            await preparedContext.resume().catch(() => undefined);
+          }
+        }
         if (mic) {
           await mic.stop();
           mic = null;

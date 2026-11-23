@@ -15,12 +15,15 @@
  *
  * ENGINE: Tilawa (`@tilawa/core`, MIT, on-device) via app/hifz/lib/tilawa.ts.
  * Audio is processed on-device and never uploaded by the app. A recording
- * of your recitation is kept only as an in-memory blob for this browser
- * session, and leaves the device only if you choose to share or download
- * it (see ShareAudio.tsx — explicit, per-recitation, user-initiated; no
- * auto-share, no default-on toggle). The mistake log keeps word references
- * (surah:ayah:word) only (spec §8.2). The Web Speech API is NOT used
- * (research §3 forbids it as the core engine).
+ * of your recitation is kept as an in-memory blob for this browser
+ * session — and, when "Save session audio on this device" is on, it is
+ * ALSO persisted in the IndexedDB `session-audio` store (see
+ * lib/store.ts) so a past session can still be played back and shared
+ * from history. It leaves the device only if you choose to share or
+ * download it (see ShareAudio.tsx — explicit, per-recitation,
+ * user-initiated; no auto-share, no default-on toggle). The mistake log
+ * keeps word references (surah:ayah:word) only (spec §8.2). The Web
+ * Speech API is NOT used (research §3 forbids it as the core engine).
  *
  * FEEDBACK HONESTY (measured 2026-11-21, tools/test-tilawa.mjs, lite tier):
  *  - The checker confirms almost no wrong words on clean recitation (0
@@ -84,6 +87,8 @@ import {
   type WordEvent,
 } from '../lib/tilawa';
 import { AdaptiveVad } from '../lib/vad';
+import { loadSessionAudio, saveSessionAudio } from '../lib/store';
+import { listCoachSessions, recordCoachSession } from '../lib/session-records';
 
 /* ------------------------------------------------------------------ */
 /*  Copy — research §6, verbatim where the research says verbatim.     */
@@ -188,10 +193,17 @@ function clamp01(n: number): number {
   return Math.max(0, Math.min(1, n));
 }
 
-/** Strip Arabic diacritics + tatweel so "ignore harakat" can compare the
- * bare letters of what was heard vs what was expected. */
-export function stripDiacritics(s: string): string {
-  return s.replace(/[\u064B-\u0652\u0670\u0640]/g, '').trim();
+/** Id for a coach session — also the key of its stored audio, when the
+ * recording is persisted (see lib/store.ts saveSessionAudio). */
+function newSessionId(): string {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+  } catch {
+    /* fall through to the timestamp fallback */
+  }
+  return `session-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -292,10 +304,15 @@ export default function RecitationCoach({
   const [highlightOn, setHighlightOn] = useState(true);
   const [highlightToast, setHighlightToast] = useState<string | null>(null);
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
-  // The recording blob behind recordingUrl — kept in memory only, for the
+  // The recording blob behind recordingUrl — kept in memory for the
   // current browser session, so it can be shared with a teacher or
-  // downloaded (see ShareAudio.tsx). Never persisted, never uploaded.
+  // downloaded (see ShareAudio.tsx). When the `saveAudio` setting is on
+  // it is ALSO persisted in the IndexedDB `session-audio` store at the
+  // end of the session, and the listen-back below then plays the
+  // persisted blob. Never uploaded.
   const [recording, setRecording] = useState<SharedRecording | null>(null);
+  // True while the user has paused a live take (Pause/Resume button).
+  const [paused, setPaused] = useState(false);
   const [pendingFix, setPendingFix] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recordChunksRef = useRef<Blob[]>([]);
@@ -313,6 +330,16 @@ export default function RecitationCoach({
   const playQueueRef = useRef<number[]>([]);
   const recordingStartRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Pause bookkeeping: wall-clock ms spent paused this take, and when
+  // the current pause started (0 = not paused). The recording timer
+  // subtracts both, so the displayed time excludes paused time — the
+  // same way the engine's session clock does (no audio delivered while
+  // the AudioContext is suspended).
+  const pausedTotalRef = useRef<number>(0);
+  const pauseStartRef = useRef<number>(0);
+  // Id of the current coach session (new id per take, set in
+  // startRecording). Keys the stored audio and the session record.
+  const sessionIdRef = useRef<string | null>(null);
   // Guards for the recording lifecycle (2026-11-22 mic fix): a tap must
   // never start two sessions, and a new session must never start before
   // the previous one fully ended.
@@ -506,6 +533,9 @@ export default function RecitationCoach({
     setSelectedMistake(null);
     setRecordingUrl(null);
     setRecording(null);
+    setPaused(false);
+    pausedTotalRef.current = 0;
+    pauseStartRef.current = 0;
     setLiveWords({});
     setSelfMarks({});
     if (mode === 'mic' || mode === 'follow') void loadEngineNow();
@@ -612,6 +642,9 @@ export default function RecitationCoach({
       clearTimeout(stallTimerRef.current);
       stallTimerRef.current = null;
     }
+    setPaused(false);
+    pausedTotalRef.current = 0;
+    pauseStartRef.current = 0;
     setLevel(0);
     setVoiceDetected(false);
     voiceDetectedRef.current = false;
@@ -692,6 +725,12 @@ export default function RecitationCoach({
     // fire-and-forget, leaving its context closing while the new one
     // started.)
     await abortLiveSession();
+    // New take, new session id — keys the stored audio and the session
+    // record written when this take ends.
+    sessionIdRef.current = newSessionId();
+    setPaused(false);
+    pausedTotalRef.current = 0;
+    pauseStartRef.current = 0;
     const expected = scope.map((a) => ({ surah: a.surah, ayah: a.ayah, text: a.text }));
     const session = engine.startSession({
       surah,
@@ -779,7 +818,14 @@ export default function RecitationCoach({
     recordingStartRef.current = Date.now();
     setRecordingSecs(0);
     timerRef.current = setInterval(() => {
-      setRecordingSecs(Math.floor((Date.now() - recordingStartRef.current) / 1000));
+      // Paused time is excluded: while paused the timer shows the time
+      // actually spent reciting, matching the engine's session clock.
+      const pausedMs =
+        pausedTotalRef.current +
+        (pauseStartRef.current > 0 ? Date.now() - pauseStartRef.current : 0);
+      setRecordingSecs(
+        Math.max(0, Math.floor((Date.now() - recordingStartRef.current - pausedMs) / 1000)),
+      );
       // Mirror the callback count into state (throttled to 2×/s) so the
       // UI can tell "mic connected" from "no frames at all".
       setFramesSeen((prev) => (prev === levelCountRef.current ? prev : levelCountRef.current));
@@ -803,6 +849,70 @@ export default function RecitationCoach({
     }, 2500);
   }, [scopeAyahs, surah, settings, t, stopAudio, abortLiveSession]);
 
+  /**
+   * Pause a live take: suspend the engine session (its AudioContext, so
+   * no audio reaches the tracker and its session clock stops), pause the
+   * own-recording MediaRecorder, stop the stall watch, and freeze the
+   * wall-clock timer. The mic stream stays open — nothing is torn down,
+   * so Resume picks the same take back up.
+   */
+  const pauseRecording = useCallback(async () => {
+    const session = sessionRef.current;
+    if (!session || micState !== 'recording' || paused) return;
+    pauseStartRef.current = Date.now();
+    setPaused(true);
+    if (stallTimerRef.current) {
+      clearTimeout(stallTimerRef.current);
+      stallTimerRef.current = null;
+    }
+    try {
+      await session.pause();
+    } catch {
+      /* pause is best-effort — the take stays live */
+    }
+    try {
+      if (recorderRef.current && recorderRef.current.state === 'recording') {
+        recorderRef.current.pause();
+      }
+    } catch {
+      /* recording unavailable — reciting still counts */
+    }
+  }, [micState, paused]);
+
+  /** Resume a paused take: resume the engine session + recorder, bank
+   * the paused wall-clock time, and re-arm the stall watch. */
+  const resumeRecording = useCallback(async () => {
+    const session = sessionRef.current;
+    if (!session || micState !== 'recording' || !paused) return;
+    if (pauseStartRef.current > 0) {
+      pausedTotalRef.current += Date.now() - pauseStartRef.current;
+      pauseStartRef.current = 0;
+    }
+    setPaused(false);
+    try {
+      await session.resume();
+    } catch {
+      /* resume is best-effort */
+    }
+    try {
+      if (recorderRef.current && recorderRef.current.state === 'paused') {
+        recorderRef.current.resume();
+      }
+    } catch {
+      /* recording unavailable — reciting still counts */
+    }
+    if (stallTimerRef.current) clearTimeout(stallTimerRef.current);
+    stallTimerRef.current = setTimeout(() => {
+      const health = sessionRef.current?.getAudioHealth();
+      if (!sessionRef.current || !health) return;
+      if (health.levelCallbacks === 0) {
+        setAudioStalled(true);
+      } else if (health.silentInput) {
+        setSilentInput(true);
+      }
+    }, 2500);
+  }, [micState, paused]);
+
   const stopRecording = useCallback(async () => {
     const session = sessionRef.current;
     if (!session) return;
@@ -814,7 +924,27 @@ export default function RecitationCoach({
       clearTimeout(stallTimerRef.current);
       stallTimerRef.current = null;
     }
+    // A paused take resumes its recorder first, so the capture can be
+    // stopped cleanly (the adapter resumes the AudioContext inside
+    // stop() itself). Bank the paused time so the timer stays honest.
+    if (paused) {
+      if (pauseStartRef.current > 0) {
+        pausedTotalRef.current += Date.now() - pauseStartRef.current;
+        pauseStartRef.current = 0;
+      }
+      setPaused(false);
+      try {
+        if (recorderRef.current && recorderRef.current.state === 'paused') {
+          recorderRef.current.resume();
+        }
+      } catch {
+        /* recording unavailable — reciting still counts */
+      }
+    }
     // Stop the own-recording capture and keep it as a blob URL (device only).
+    // `pendingRecording` carries the blob past session.stop() so it can
+    // be persisted below, once the result (and its mistake count) is known.
+    let pendingRecording: SharedRecording | null = null;
     try {
       if (recorderRef.current && recorderRef.current.state !== 'inactive') {
         await new Promise<void>((resolve) => {
@@ -828,7 +958,7 @@ export default function RecitationCoach({
         if (blob.size > 0) {
           setRecordingUrl(URL.createObjectURL(blob));
           const scope = scopeAyahs();
-          setRecording({
+          pendingRecording = {
             blob,
             fileName: recordingFileName(
               surah,
@@ -836,7 +966,8 @@ export default function RecitationCoach({
               scope[scope.length - 1]?.ayah ?? 0,
               audioExtension(mimeType),
             ),
-          });
+          };
+          setRecording(pendingRecording);
         }
       }
     } catch {
@@ -870,24 +1001,24 @@ export default function RecitationCoach({
     const confirmedKeys = new Set(
       res.mistakes.map((m) => wordKey(m.location.surah, m.location.ayah, m.location.word)),
     );
-    // Harakat option (§22): when "strict harakat" is OFF, a word the engine
-    // heard with only the vowel marks different counts as correct.
-    const harakatStrict = settings?.harakatStrict ?? false;
+    // Harakat (tashkeel) — DEAD CODE REMOVED (BA, 2026-11-23): the old
+    // branch re-graded a "wrong" word as correct when "strict harakat"
+    // was off and the heard word differed only in vowel marks. It could
+    // never fire: Tilawa tracks positions, it does not transcribe words,
+    // so `found.heard` is never populated, and both shipped model
+    // manifests list ONLY the four memorization classes as supported —
+    // `short_vowel`, the class a pure vowel-only error would need, is in
+    // `capabilities.unsupported` for this model version (see lib/tilawa.ts).
+    // The setting therefore cannot do what its copy promises. The toggle
+    // and its copy live in SettingsClient / i18n (not this file) and
+    // still need removing or rewording there — see the handoff.
     const words: FeedbackWord[] = [];
     for (const a of scope) {
       for (const w of splitWords(a.text)) {
         const found = res.words.find(
           (rw) => rw.surah === a.surah && rw.ayah === a.ayah && rw.wordIndex === w.index,
         );
-        let status: FeedbackWord['status'] = found ? found.status : 'not-reached';
-        if (
-          !harakatStrict &&
-          status === 'wrong' &&
-          found?.heard &&
-          stripDiacritics(found.heard) === stripDiacritics(w.display)
-        ) {
-          status = 'correct';
-        }
+        const status: FeedbackWord['status'] = found ? found.status : 'not-reached';
         words.push({
           key: wordKey(a.surah, a.ayah, w.index + 1),
           display: w.display,
@@ -962,7 +1093,45 @@ export default function RecitationCoach({
         };
       }),
     });
-  }, [persistAttempt, peeked, scopeAyahs, mode, settings, t]);
+
+    // Session record + persisted audio (BA, 2026-11-23). Follow-along
+    // returns early above, so it never gets a record — nothing was
+    // judged there. Accuracy is the REAL measured accuracy from this
+    // session's result (correct / reached words), never a formula
+    // derived from the mistake log.
+    const sessionId = sessionIdRef.current ?? newSessionId();
+    let audioId: string | undefined;
+    if (pendingRecording && settings?.saveAudio === true) {
+      const saved = await saveSessionAudio(sessionId, pendingRecording.blob, {
+        date: new Date().toISOString(),
+        rangeLabel: scopeLabel,
+        durationSec: Math.round(res.durationMs / 1000),
+        mistakes: missedWords.length,
+      });
+      if (saved) {
+        audioId = sessionId;
+        // Listen-back plays the PERSISTED blob, not just the in-memory
+        // one — the audio you hear is the audio that is stored.
+        const stored = await loadSessionAudio(sessionId);
+        if (stored) {
+          setRecordingUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return URL.createObjectURL(stored.blob);
+          });
+          setRecording({ blob: stored.blob, fileName: pendingRecording.fileName });
+        }
+      }
+    }
+    recordCoachSession({
+      id: sessionId,
+      date: new Date().toISOString(),
+      range: scopeLabel,
+      durationSec: Math.round(res.durationMs / 1000),
+      accuracy: res.reachedCount > 0 ? (res.correctCount / res.reachedCount) * 100 : 0,
+      mistakes: missedWords.length,
+      ...(audioId ? { audioId } : {}),
+    });
+  }, [persistAttempt, peeked, scopeAyahs, scopeLabel, mode, paused, settings, t]);
 
   /**
    * Switching practice mode mid-take (or leaving for the Listen step)
@@ -1102,12 +1271,23 @@ export default function RecitationCoach({
     setStep('feedback');
     const allCorrect = !peeked && mistakes.length === 0 && reachedCount > 0;
     persistAttempt({ scope, allCorrect, peeked, minutes: 0.5, mistakes });
+    // Self-marked practice is still a coach session: record it with its
+    // REAL measured accuracy (self-marked correct / reached). No audio
+    // exists for a self-marked session, so there is no audioId.
+    recordCoachSession({
+      id: newSessionId(),
+      date: new Date().toISOString(),
+      range: scopeLabel,
+      durationSec: 0,
+      accuracy: reachedCount > 0 ? (correctCount / reachedCount) * 100 : 0,
+      mistakes: mistakes.length,
+    });
     // Self-marked mistakes show as self-marked in the session's log view
     // (source 'self-mark' is persisted with the entry, Stage 5 §11).
     setSelfMarkedMistakes(
       mistakes.map((m) => ({ ...m, date: new Date().toISOString(), attempts: 1 })),
     );
-  }, [persistAttempt, peeked, scopeAyahs, selfMarks]);
+  }, [persistAttempt, peeked, scopeAyahs, scopeLabel, selfMarks]);
 
   /* ---------------- navigation ---------------- */
 
@@ -1681,13 +1861,37 @@ export default function RecitationCoach({
                       <Link href="/hifz/diagnostics" className="font-semibold text-[#1FA36B] underline">microphone check</Link>.
                     </p>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => void stopRecording()}
-                    className="mt-4 rounded-full bg-[#B42318] px-6 py-3 text-sm font-semibold text-white hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B42318]"
-                  >
-                    {t('coach.stopCheck')}
-                  </button>
+                  {paused && (
+                    <p role="status" className="mt-2 text-sm font-semibold text-[#102E26]">
+                      Paused — the checker is not listening. Tap “Resume” to continue the same take.
+                    </p>
+                  )}
+                  <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                    {paused ? (
+                      <button
+                        type="button"
+                        onClick={() => void resumeRecording()}
+                        className="rounded-full bg-[#1FA36B] px-6 py-3 text-sm font-semibold text-white hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+                      >
+                        Resume
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => void pauseRecording()}
+                        className="rounded-full border border-[#102E26] px-6 py-3 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+                      >
+                        Pause
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => void stopRecording()}
+                      className="rounded-full bg-[#B42318] px-6 py-3 text-sm font-semibold text-white hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B42318]"
+                    >
+                      {t('coach.stopCheck')}
+                    </button>
+                  </div>
                 </div>
               )}
               {micState === 'checking' && (
@@ -1895,7 +2099,11 @@ export default function RecitationCoach({
           {mode !== 'self-mark' && (
             <div className="mt-4 rounded-xl border border-[#E5E7EB] p-4">
               <p className="text-sm font-bold text-[#102E26]">{t('coach.listenBack')}</p>
-              <p className="mt-1 text-xs text-[#5b6b62]">Recorded on this device only. It stays here unless you choose to share or download it below — the app never uploads it, and it is not saved past this browser session.</p>
+              <p className="mt-1 text-xs text-[#5b6b62]">
+                {settings?.saveAudio === true
+                  ? 'Recorded on this device only, and saved on this device so you can listen back to it later from your session history. It stays here unless you choose to share or download it below — the app never uploads it.'
+                  : 'Recorded on this device only. It stays here unless you choose to share or download it below — the app never uploads it, and it is not saved past this browser session. Turn on “Save session audio on this device” in Settings to keep recordings for later.'}
+              </p>
               {recordingUrl && <audio controls src={recordingUrl} className="mt-2 w-full" />}
               <div className="mt-3">
                 <ShareAudioButtons
@@ -2172,20 +2380,21 @@ export default function RecitationCoach({
           })()}
           words={feedbackWords.filter((w) => w.status !== 'not-reached').length}
           history={(() => {
+            // Real session records (BA, 2026-11-23): one row per finished
+            // coach session, with the accuracy actually measured in that
+            // session. The old code derived rows from the mistake log
+            // with a synthetic `Math.max(90, 100 - total)` accuracy —
+            // a session with few logged mistakes is not automatically
+            // 90%+, and a session with no mistakes logged is not
+            // automatically 100%. Sessions recorded before this change
+            // have no record and simply do not appear here.
             const rows: HistoryRow[] = [];
-            const byDay = new Map<string, { correct: number; total: number; range: string }>();
-            for (const m of persistedMistakes) {
-              const day = m.date.slice(0, 10);
-              const r = byDay.get(day) ?? { correct: 0, total: 0, range: `${m.surah}:${m.ayah}` };
-              r.total += 1;
-              byDay.set(day, r);
-            }
-            for (const [day, r] of [...byDay.entries()].slice(-6)) {
+            for (const s of listCoachSessions().slice(-6)) {
               rows.push({
-                date: day,
-                range: r.range,
-                accuracy: r.total > 0 ? Math.max(90, 100 - r.total) : 100,
-                mistakesPerPage: r.total,
+                date: s.date.slice(0, 10),
+                range: s.range,
+                accuracy: s.accuracy,
+                mistakesPerPage: s.mistakes,
               });
             }
             return rows;

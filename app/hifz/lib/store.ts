@@ -13,6 +13,12 @@
 
 const DB_NAME = 'ili-hifz';
 const STORE = 'kv';
+/** Session recordings live in their own store: blobs cannot go in the
+ * JSON `kv` mirror, and a recording must survive independently of the
+ * progress keys (BA, 2026-11-23). */
+const AUDIO_STORE = 'session-audio';
+/** DB v2 adds the `session-audio` store (v1 had only `kv`). */
+const DB_VERSION = 2;
 const KEYS = [
   'ili_hifz_v1',
   'ili_hifz_mistakes_v1',
@@ -44,10 +50,13 @@ function openDb(): Promise<IDBDatabase | null> {
   dbPromise = new Promise((resolve) => {
     try {
       if (typeof indexedDB === 'undefined') return resolve(null);
-      const req = indexedDB.open(DB_NAME, 1);
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
       req.onupgradeneeded = () => {
         if (!req.result.objectStoreNames.contains(STORE)) {
           req.result.createObjectStore(STORE);
+        }
+        if (!req.result.objectStoreNames.contains(AUDIO_STORE)) {
+          req.result.createObjectStore(AUDIO_STORE);
         }
       };
       req.onsuccess = () => resolve(req.result);
@@ -120,5 +129,180 @@ export async function readKeyFromIdb(key: string): Promise<string | null> {
     });
   } catch {
     return null;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Session audio — IndexedDB store `session-audio` (BA, 2026-11-23).  */
+/*  Recordings are local-only and saved ONLY when the user has the     */
+/*  `saveAudio` setting on (explicit opt-in; the coach calls these     */
+/*  functions only in that case). Nothing is ever uploaded. Blobs      */
+/*  cannot live in the JSON `kv` mirror, hence the separate store.     */
+/*  No cap on the number of recordings: if storage ever fills, the     */
+/*  oldest recordings are dropped to make room for the newest one.     */
+/* ------------------------------------------------------------------ */
+
+/** Metadata stored alongside each session recording. */
+export interface SessionAudioMeta {
+  /** ISO timestamp of the session end. */
+  date: string;
+  /** Human range label, e.g. "67:1–5". */
+  rangeLabel: string;
+  /** Session length in seconds (excludes any paused time). */
+  durationSec: number;
+  /** Number of missed/wrong words in the session. */
+  mistakes: number;
+}
+
+export interface SessionAudioEntry {
+  id: string;
+  blob: Blob;
+  meta: SessionAudioMeta;
+}
+
+interface StoredAudio {
+  blob: Blob;
+  meta: SessionAudioMeta;
+}
+
+function idbRequest<T>(req: IDBRequest<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error ?? new Error('IndexedDB request failed'));
+  });
+}
+
+function isQuotaError(err: unknown): boolean {
+  return (
+    err instanceof DOMException &&
+    (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED')
+  );
+}
+
+/** Save one session recording, keyed by session id. Returns true when
+ * the recording is stored. On QuotaExceededError the oldest recordings
+ * are deleted (newest kept) and the save is retried; returns false only
+ * when even the newest recording alone cannot fit. */
+export async function saveSessionAudio(
+  sessionId: string,
+  blob: Blob,
+  meta: SessionAudioMeta,
+): Promise<boolean> {
+  try {
+    const db = await openDb();
+    if (!db) return false;
+    const value: StoredAudio = { blob, meta };
+    try {
+      const tx = db.transaction(AUDIO_STORE, 'readwrite');
+      tx.objectStore(AUDIO_STORE).put(value, sessionId);
+      await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error ?? new Error('IndexedDB transaction failed'));
+      });
+      return true;
+    } catch (err) {
+      if (!isQuotaError(err)) return false;
+      // Storage full: drop the oldest recordings, newest first-kept,
+      // and retry. Each retry drops one more oldest entry; give up only
+      // when no older recording is left to drop.
+      const entries = await listSessionAudios();
+      const older = entries
+        .filter((e) => e.id !== sessionId)
+        .sort((a, b) => a.meta.date.localeCompare(b.meta.date));
+      for (const entry of older) {
+        try {
+          await deleteSessionAudio(entry.id);
+        } catch {
+          /* keep trying the next oldest */
+        }
+        try {
+          const tx = db.transaction(AUDIO_STORE, 'readwrite');
+          tx.objectStore(AUDIO_STORE).put(value, sessionId);
+          await new Promise<void>((resolve, reject) => {
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error ?? new Error('IndexedDB transaction failed'));
+          });
+          return true;
+        } catch (retryErr) {
+          if (!isQuotaError(retryErr)) return false;
+          // Still full — drop the next oldest and try again.
+        }
+      }
+      return false;
+    }
+  } catch {
+    return false;
+  }
+}
+
+/** Load one stored recording (blob + meta), or null when absent. */
+export async function loadSessionAudio(sessionId: string): Promise<SessionAudioEntry | null> {
+  try {
+    const db = await openDb();
+    if (!db) return null;
+    const tx = db.transaction(AUDIO_STORE, 'readonly');
+    const store = tx.objectStore(AUDIO_STORE);
+    const value = await idbRequest<StoredAudio | undefined>(store.get(sessionId));
+    if (!value || !(value.blob instanceof Blob) || !value.meta) return null;
+    return { id: sessionId, blob: value.blob, meta: value.meta };
+  } catch {
+    return null;
+  }
+}
+
+/** All stored recordings, newest first. */
+export async function listSessionAudios(): Promise<SessionAudioEntry[]> {
+  try {
+    const db = await openDb();
+    if (!db) return [];
+    const tx = db.transaction(AUDIO_STORE, 'readonly');
+    const store = tx.objectStore(AUDIO_STORE);
+    const [keys, values] = await Promise.all([
+      idbRequest<IDBValidKey[]>(store.getAllKeys()),
+      idbRequest<StoredAudio[]>(store.getAll()),
+    ]);
+    const entries: SessionAudioEntry[] = [];
+    for (let i = 0; i < keys.length; i++) {
+      const value = values[i];
+      if (typeof keys[i] === 'string' && value?.blob instanceof Blob && value.meta) {
+        entries.push({ id: keys[i] as string, blob: value.blob, meta: value.meta });
+      }
+    }
+    entries.sort((a, b) => b.meta.date.localeCompare(a.meta.date));
+    return entries;
+  } catch {
+    return [];
+  }
+}
+
+/** Delete one stored recording. */
+export async function deleteSessionAudio(sessionId: string): Promise<void> {
+  try {
+    const db = await openDb();
+    if (!db) return;
+    const tx = db.transaction(AUDIO_STORE, 'readwrite');
+    tx.objectStore(AUDIO_STORE).delete(sessionId);
+    await new Promise<void>((resolve) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+  } catch {
+    /* delete failure is never fatal */
+  }
+}
+
+/** Delete every stored recording. */
+export async function deleteAllSessionAudio(): Promise<void> {
+  try {
+    const db = await openDb();
+    if (!db) return;
+    const tx = db.transaction(AUDIO_STORE, 'readwrite');
+    tx.objectStore(AUDIO_STORE).clear();
+    await new Promise<void>((resolve) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+  } catch {
+    /* delete failure is never fatal */
   }
 }
