@@ -8,7 +8,6 @@ import { notFound } from 'next/navigation';
 import { MUSHAF_TOTAL_PAGES, surahsOnMushafPage } from '../../mushaf';
 import { getSurahById } from '../../surahs';
 import { fetchMushafPage, breadcrumbJsonLd, SITE_URL } from '../../lib/fetch';
-import { Attribution } from '../../components/HifzShared';
 import MushafPageView from '../../components/MushafPageView';
 
 export async function generateStaticParams() {
@@ -71,11 +70,12 @@ export default async function MushafPage({
   // Tarteel-clean reader: the legacy page chrome (breadcrumb, "Mushaf —
   // Page N of 604" header, MushafNav prev/next + jump box above and below
   // the page) is gone — the MushafPageView top bar (sticky) is the only
-  // chrome. Page navigation now lives in the chapter sheet (Prev/Next
-  // links there, plus chapter / juz / bookmark jumps). The h1 stays,
-  // screen-reader-only, so the page keeps its heading for SEO and
-  // accessibility. No top padding: the sticky top bar sits flush at the
-  // top of the viewport, full-screen like the reference.
+  // top chrome. Page navigation lives under the page (Prev/Next row +
+  // ← / → keys) and in the chapter sheet (chapter / juz / bookmark
+  // jumps). The h1 stays, screen-reader-only, so the page keeps its
+  // heading for SEO and accessibility. No top padding: the sticky top
+  // bar sits flush at the top of the viewport, full-screen like the
+  // reference.
   return (
     <main className="mx-auto max-w-5xl px-4 pb-16">
       <script
@@ -97,8 +97,6 @@ export default async function MushafPage({
       </h1>
 
       <MushafPageView page={n} verses={verses} />
-
-      <Attribution />
     </main>
   );
 }

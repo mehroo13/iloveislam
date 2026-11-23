@@ -1,8 +1,12 @@
 // app/hifz/components/MushafPageFrame.tsx — one Madani mushaf page frame:
-// the gold-bordered page, its lines (grouped by Quran.com's canonical
+// the black-banner page, its lines (grouped by Quran.com's canonical
 // line_number — no line break is ever invented), ornamental surah headers,
 // Bismillah, ayah-end rosettes, juz markers, kashida justification and
-// the weak-word / topic markings.
+// the weak-word markings.
+//
+// Tarteel-clean page (2026-11-23 re-check): the page is plain white
+// edge to edge — no card frame, no gold anywhere, no topic wash, no
+// footer. Clean black Uthmani text with tajweed colours only.
 //
 // This is the pure page renderer, shared by the single-page view
 // (MushafPageView, inside its scaled viewport) and the continuous reader
@@ -25,8 +29,6 @@ import {
   type MushafVerse,
   type MushafWord,
 } from '../lib/fetch';
-import { SCRIPT_LABELS } from '../lib/script';
-import { getAyahTopic, TOPIC_BY_ID } from '../topics';
 import { fillMushafFrame } from '../lib/kashida';
 import { useT } from '../lib/i18n';
 import { normalizeArabic } from '../lib/alignment';
@@ -63,31 +65,32 @@ function StarMark({ className }: { className?: string }) {
 function SurahHeader({ surah }: { surah: HifzSurah }) {
   return (
     <div className="my-5">
-      <div className="relative rounded-2xl border-2 border-[#FFB800] bg-gradient-to-b from-[#FFF6D6] to-[#FFF1BF] px-4 pb-3 pt-4 text-center shadow-sm">
-        {/* Corner diamonds */}
-        <span aria-hidden="true" className="absolute left-2 top-2 h-2 w-2 rotate-45 bg-[#FFB800]" />
-        <span aria-hidden="true" className="absolute right-2 top-2 h-2 w-2 rotate-45 bg-[#FFB800]" />
-        <span aria-hidden="true" className="absolute bottom-2 left-2 h-2 w-2 rotate-45 bg-[#FFB800]" />
-        <span aria-hidden="true" className="absolute bottom-2 right-2 h-2 w-2 rotate-45 bg-[#FFB800]" />
-        {/* Star overlapping the top border, as on a printed mushaf header */}
-        <span
-          aria-hidden="true"
-          className="absolute -top-3 left-1/2 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full border border-[#FFB800] bg-[#FFF6D6] text-[#FFB800]"
-        >
-          <StarMark className="h-3.5 w-3.5" />
+      {/* Ornate black banner in the style of a printed mushaf header: a
+          black band with a white hairline frame, eight-point-star
+          ornaments at the ends and a white arched cartouche holding the
+          surah name. Our own ornament (CSS/SVG) — no gold anywhere on
+          the page. The banner carries the Arabic name only, as on
+          Tarteel's reader: the English meta line (number, meaning, ayah
+          count, revelation) is gone. */}
+      <div className="relative border-2 border-[#111827] bg-[#111827] px-10 py-2 text-center">
+        {/* Inner hairline frame */}
+        <span aria-hidden="true" className="pointer-events-none absolute inset-1 border border-white/70" />
+        {/* End ornaments */}
+        <span aria-hidden="true" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white">
+          <StarMark className="h-5 w-5" />
         </span>
-        <div className="rounded-xl border border-[#FFB800]/60 bg-[#FFFFFF]/80 px-3 py-2">
+        <span aria-hidden="true" className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white">
+          <StarMark className="h-5 w-5" />
+        </span>
+        {/* Centre cartouche */}
+        <div className="relative mx-auto w-fit max-w-full rounded-b-lg rounded-t-full border-2 border-[#111827] bg-white px-8 py-1.5">
           {/* Fixed size (no sm: variant): inside the scaled page the type
               must not depend on the viewport width — the transform scales
-              it. text-4xl is the size desktop already used. */}
-          <p dir="rtl" lang="ar" translate="no" className="font-quran-madani text-4xl leading-snug text-[#111827]">
-            {surah.arabic}
+              it. */}
+          <p dir="rtl" lang="ar" translate="no" className="font-quran-madani text-[2rem] leading-snug text-[#111827]">
+            سُورَةُ {surah.arabic}
           </p>
         </div>
-        <p className="mt-2 border-t border-[#FFB800]/40 pt-2 text-xs font-bold uppercase tracking-wider text-[#7A5C00]">
-          Surah {surah.id} · {surah.name} · {surah.meaning} · {surah.ayahCount} ayahs ·{' '}
-          {surah.revelation}
-        </p>
       </div>
       {surah.id !== 1 && surah.id !== 9 && (
         <p dir="rtl" lang="ar" translate="no" className="font-quran-madani mt-4 text-center text-3xl text-[#111827]">
@@ -102,12 +105,50 @@ function JuzMarker({ n }: { n: number }) {
   const t = useT();
   return (
     <div className="my-3 flex items-center gap-3" aria-label={t('rb.mpf.juzStart').replace('{n}', String(n))}>
-      <span className="h-px flex-1 bg-[#FFB800]/50" aria-hidden="true" />
-      <span className="rounded-full border border-[#FFB800] bg-[#FFF6D6] px-3 py-1 text-xs font-bold text-[#7A5C00]">
+      <span className="h-px flex-1 bg-[#111827]/40" aria-hidden="true" />
+      <span className="rounded-full bg-[#111827] px-3 py-1 text-xs font-bold text-white">
         Juz {n}
       </span>
-      <span className="h-px flex-1 bg-[#FFB800]/50" aria-hidden="true" />
+      <span className="h-px flex-1 bg-[#111827]/40" aria-hidden="true" />
     </div>
+  );
+}
+
+/** Arabic-Indic digits (٠١٢٣٤٥٦٧٨٩) for ayah-end rosettes. */
+const ARABIC_INDIC_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+function toArabicIndic(n: number): string {
+  return String(n)
+    .split('')
+    .map((d) => ARABIC_INDIC_DIGITS[Number(d)] ?? d)
+    .join('');
+}
+
+/** Ayah-end marker: an eight-point-star rosette (two overlapping squares
+ *  inside a circle — the site's own geometric motif) in black with the
+ *  ayah number in Arabic-Indic numerals, as on a printed mushaf. The
+ *  number is derived from the verse key, not from the upstream word
+ *  text (Quran.com ships the end marker with a Western numeral). Grey
+ *  in memorise mode, where the words are hidden. */
+function AyahRosette({ ayah, muted = false }: { ayah: number; muted?: boolean }) {
+  const color = muted ? '#9CA3AF' : '#111827';
+  return (
+    <span className="relative mx-1 inline-flex h-8 w-8 items-center justify-center align-middle">
+      <svg
+        viewBox="0 0 40 40"
+        className="absolute inset-0 h-full w-full"
+        aria-hidden="true"
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+      >
+        <circle cx="20" cy="20" r="14.5" fill="#FFFFFF" />
+        <rect x="9.5" y="9.5" width="21" height="21" />
+        <rect x="9.5" y="9.5" width="21" height="21" transform="rotate(45 20 20)" />
+      </svg>
+      <span className="relative text-[1rem] font-bold leading-none" style={{ color }}>
+        {toArabicIndic(ayah)}
+      </span>
+    </span>
   );
 }
 
@@ -118,8 +159,6 @@ export interface MushafPageFrameProps {
   /** Smaller type on the same 15-line Madani page — this is a text-size
    *  choice only; it never re-flows the page into 16 lines. */
   compactText: boolean;
-  /** Colour-code ayahs by topic (study aid). */
-  topicColors: boolean;
   /** Memorisation mode: words hidden as grey rules. */
   hidden: boolean;
   /** How many words (in reading order across this page) are revealed. */
@@ -141,7 +180,6 @@ export default function MushafPageFrame({
   verses,
   script,
   compactText,
-  topicColors,
   hidden,
   revealed,
   frequentMistakes,
@@ -186,7 +224,7 @@ export default function MushafPageFrame({
       cancelAnimationFrame(raf);
       observer?.disconnect();
     };
-  }, [page, verses, script, compactText, topicColors, hidden, revealed, frequentMistakes, mistakeMarkingOn, tajweedOn]);
+  }, [page, verses, script, compactText, hidden, revealed, frequentMistakes, mistakeMarkingOn, tajweedOn]);
 
   // Group words by mushaf line, in verse order. Do NOT re-sort by
   // `position`: positions restart at 1 for every verse, so sorting by
@@ -281,14 +319,8 @@ export default function MushafPageFrame({
     if (hidden) {
       lineContent = display.map((w, i) => {
         if (w.isEnd) {
-          return (
-            <span
-              key={`${w.verseKey}-${i}`}
-              className="hidden-ayah-rosette mx-1 inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#E8EAED] align-middle text-[1rem] font-bold text-[#9CA3AF]"
-            >
-              {w.text}
-            </span>
-          );
+          const ayahNum = Number(w.verseKey.split(':')[1]);
+          return <AyahRosette key={`${w.verseKey}-${i}`} ayah={ayahNum} muted />;
         }
         // Memorisation mode: unrevealed words are thin grey rules — except
         // weak words, which show as thicker RED rules, so the user sees
@@ -348,8 +380,10 @@ export default function MushafPageFrame({
       let runKey = '';
       const flush = () => {
         if (runSegs.length === 0) return;
-        const [rs, ra] = runKey.split(':').map(Number);
-        const topic = topicColors ? TOPIC_BY_ID[getAyahTopic(rs, ra)] : null;
+        // No topic wash: the page is clean text with tajweed colours
+        // only (2026-11-23 re-check). The topic wash used to wrap each
+        // ayah run in a tinted span (Al-Fatihah's 'worship' wash
+        // #E3EAFB was the light-blue wash on the live page).
         let content: React.ReactNode;
         const useSpans =
           runSegs.some((s) => s.weak) || (tajweedOn && runSegs.some((s) => s.tj));
@@ -375,42 +409,15 @@ export default function MushafPageFrame({
           });
           content = <Fragment key={`r-${runKey}-${nodes.length}`}>{children}</Fragment>;
         }
-        nodes.push(
-          topic ? (
-            <span
-              key={`r-${runKey}-${nodes.length}`}
-              style={{
-                background: topic.wash,
-                borderRadius: '0.25em',
-                padding: '0 0.15em',
-                WebkitBoxDecorationBreak: 'clone',
-                boxDecorationBreak: 'clone',
-              }}
-            >
-              {content}
-            </span>
-          ) : (
-            content
-          ),
-        );
+        nodes.push(content);
         runSegs = [];
         runKey = '';
       };
       display.forEach((w, i) => {
         if (w.isEnd) {
           flush();
-          const [es, ea] = w.verseKey.split(':').map(Number);
-          const etopic = topicColors ? TOPIC_BY_ID[getAyahTopic(es, ea)] : null;
-          const ecolor = etopic ? etopic.color : '#1FA36B';
-          nodes.push(
-            <span
-              key={`${w.verseKey}-${i}`}
-              className="mx-1 inline-flex h-7 w-7 items-center justify-center rounded-full border align-middle text-[1rem] font-bold"
-              style={{ borderColor: ecolor, color: ecolor }}
-            >
-              {w.text}
-            </span>,
-          );
+          const [, ea] = w.verseKey.split(':').map(Number);
+          nodes.push(<AyahRosette key={`${w.verseKey}-${i}`} ayah={ea} />);
         } else {
           if (runSegs.length === 0) runKey = w.verseKey;
           runSegs.push({ text: w.text, weak: w.weak, tj: w.weak ? '' : tajweedOn ? tajweedClass(w.text) : '' });
@@ -452,14 +459,14 @@ export default function MushafPageFrame({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, verses, script, frequentMistakes, mistakeMarkingOn, onWeakCount]);
 
-  // Tarteel-clean page card: white page on a light-grey app background
-  // (the grey is set by the parent reader / page view). The ornate gold
-  // surah header inside is unchanged.
+  // Tarteel-clean page: the white page fills the screen edge to edge —
+  // no card border, no rounded frame, no footer. (Attribution lives in
+  // Settings/About, not on the page.)
   return (
-    <div className="rounded-2xl border border-[#E8EAED] bg-white p-2 shadow-sm sm:p-4">
+    <div className="bg-white">
       <div
         ref={frameRef}
-        className={`flex min-h-[62vh] flex-col rounded-xl bg-white px-6 ${
+        className={`flex min-h-[62vh] flex-col bg-white px-6 ${
           shortPage ? 'justify-center py-14' : 'justify-start py-6'
         }`}
       >
@@ -469,9 +476,6 @@ export default function MushafPageFrame({
           <p className="py-10 text-center text-sm text-[#6B7280]">{t('rb.mpf.pageFailed')}</p>
         )}
       </div>
-      <p className="mt-3 text-center text-xs text-[#6B7280]">
-        Page {page} of 604 · Madani Mushaf · {SCRIPT_LABELS[script]} · Text via Quran.com
-      </p>
     </div>
   );
 }

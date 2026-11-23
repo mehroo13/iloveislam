@@ -43,13 +43,11 @@ import MushafPageFrame, { MUSHAF_PAGE_WIDTH } from './MushafPageFrame';
 import {
   JUZ_FIRST_PAGE,
   MUSHAF_TOTAL_PAGES,
-  SURAH_FIRST_PAGE,
   surahsOnMushafPage,
 } from '../mushaf';
-import { ALL_SURAHS, getSurahById } from '../surahs';
+import { getSurahById } from '../surahs';
 import { SCRIPT_LABELS, useScriptPref, type QuranScript } from '../lib/script';
 import { useT } from '../lib/i18n';
-import { TOPICS } from '../topics';
 import { loadMistakes, loadProgress, saveProgress, markAttempt, loadSettings, saveSettings } from '../progress';
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { normalizeArabic } from '../lib/alignment';
@@ -312,18 +310,24 @@ export function MushafBottomBar({
   );
 }
 
-/** Slide-over sheet (left = chapter list, right = reader settings). */
+/** Slide-over sheet (left = chapter list, right = reader settings).
+ *  `dragHandle` replaces the big title bar with a small centred
+ *  drag-handle pill + close button, like Tarteel's bottom sheet — used
+ *  by the chapter / juz lists drawer, whose first content is Recently
+ *  Read, not a title. */
 export function ReaderSheet({
   open,
   onClose,
   side,
   title,
+  dragHandle,
   children,
 }: {
   open: boolean;
   onClose: () => void;
   side: 'left' | 'right';
   title: string;
+  dragHandle?: boolean;
   children: React.ReactNode;
 }) {
   const t = useT();
@@ -341,17 +345,32 @@ export function ReaderSheet({
           side === 'left' ? 'left-0' : 'right-0'
         }`}
       >
-        <div className="flex items-center justify-between gap-2 border-b border-[#E8EAED] px-4 py-3">
-          <h2 className="min-w-0 truncate text-base font-bold text-[#111827]">{title}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t('common.close')}
-            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[#111827] hover:bg-[#F3F4F6]"
-          >
-            <IconClose className="h-5 w-5" />
-          </button>
-        </div>
+        {dragHandle ? (
+          <div className="flex items-center justify-between px-4 pb-1 pt-3">
+            <span className="w-11 shrink-0" aria-hidden="true" />
+            <span aria-hidden="true" className="h-1.5 w-10 rounded-full bg-[#D1D5DB]" />
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={t('common.close')}
+              className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-[#111827] hover:bg-[#F3F4F6]"
+            >
+              <IconClose className="h-5 w-5" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-2 border-b border-[#E8EAED] px-4 py-3">
+            <h2 className="min-w-0 truncate text-base font-bold text-[#111827]">{title}</h2>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={t('common.close')}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[#111827] hover:bg-[#F3F4F6]"
+            >
+              <IconClose className="h-5 w-5" />
+            </button>
+          </div>
+        )}
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{children}</div>
       </div>
     </div>
@@ -442,7 +461,6 @@ const ReaderSlot = memo(function ReaderSlot({
   height,
   script,
   compactText,
-  topicColors,
   hidden,
   revealed,
   frequentMistakes,
@@ -458,7 +476,6 @@ const ReaderSlot = memo(function ReaderSlot({
   height: number | undefined;
   script: QuranScript;
   compactText: boolean;
-  topicColors: boolean;
   hidden: boolean;
   revealed: number;
   frequentMistakes: ReadonlySet<string>;
@@ -487,7 +504,6 @@ const ReaderSlot = memo(function ReaderSlot({
             verses={verses}
             script={script}
             compactText={compactText}
-            topicColors={topicColors}
             hidden={hidden}
             revealed={revealed}
             frequentMistakes={frequentMistakes}
@@ -576,7 +592,6 @@ export default function MushafReader() {
   // Reader view state (same preferences as the single-page view).
   const [script, setScript] = useScriptPref();
   const [compactText, setCompactText] = useState(false);
-  const [topicColors, setTopicColors] = useState(true);
   const [hideVerses, setHideVerses] = useState(false);
   const [revealedMap, setRevealedMap] = useState<Record<number, number>>({});
   const [peekCount, setPeekCount] = useState(0);
@@ -677,14 +692,8 @@ export default function MushafReader() {
     });
   }, []);
 
-  // Jump panel state.
-  const [jumpPage, setJumpPage] = useState('');
-  const [jumpSurah, setJumpSurah] = useState('');
-  const [jumpJuz, setJumpJuz] = useState('');
-  const [ayahSurah, setAyahSurah] = useState('');
-  const [ayahNum, setAyahNum] = useState('');
-  const [ayahError, setAyahError] = useState<string | null>(null);
-  const [ayahBusy, setAyahBusy] = useState(false);
+  // (Jump-to-page/surah/juz/ayah used to live in the chapter sheet;
+  // the sheet is lists-only now — see the chapter sheet below.)
 
   // Refs (mirrors for handlers that must not re-subscribe).
   const pagesRef = useRef(pages);
@@ -765,12 +774,10 @@ export default function MushafReader() {
       if (raw) {
         const parsed = JSON.parse(raw) as {
           mushafLines?: number;
-          topicColors?: boolean;
           highlightMistakes?: boolean;
           tajweedColors?: boolean;
         };
         if (parsed.mushafLines === 16) setCompactText(true);
-        if (parsed.topicColors === false) setTopicColors(false);
         if (parsed.highlightMistakes === false) setMistakeMarkingOn(false);
         if (parsed.tajweedColors === true) setTajweedOn(true);
       }
@@ -1287,8 +1294,8 @@ export default function MushafReader() {
     [jumpToPage, scheduleSave],
   );
 
-  // Practice-mode selection from the chapter sheet / mic button — the
-  // reader's replacement for the hidden global ModeSwitcher pill. Ask
+  // Practice-mode selection from the mic button — the reader's
+  // replacement for the hidden global ModeSwitcher pill. Ask
   // the mounted page to apply it in place first (Memorise / Reading
   // are handled above); otherwise navigate exactly as the switcher did.
   const selectPracticeMode = useCallback(
@@ -1316,42 +1323,6 @@ export default function MushafReader() {
     return () => window.removeEventListener('keydown', onKey);
   }, [mounted, mode, currentPage, jumpToPage]);
 
-  /* ------------------------------ jump ---------------------------- */
-  const doJumpPage = () => {
-    const n = Number(jumpPage);
-    if (Number.isInteger(n) && n >= 1 && n <= MUSHAF_TOTAL_PAGES) jumpToPage(n);
-  };
-
-  const doJumpAyah = async () => {
-    const s = Number(ayahSurah);
-    const a = Number(ayahNum);
-    const surah = getSurahById(s);
-    if (!surah) {
-      setAyahError(t('reader.ayahChooseSurah'));
-      return;
-    }
-    if (!Number.isInteger(a) || a < 1 || a > surah.ayahCount) {
-      setAyahError(t('reader.ayahCount').replace('{name}', surah.name).replace('{count}', String(surah.ayahCount)));
-      return;
-    }
-    setAyahError(null);
-    setAyahBusy(true);
-    try {
-      const res = await fetch(`/api/quran/verses/by_key/${s}:${a}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const pageNo = Number(data?.verse?.page_number);
-      if (!Number.isInteger(pageNo) || pageNo < 1 || pageNo > MUSHAF_TOTAL_PAGES) {
-        throw new Error('No page number returned');
-      }
-      jumpToPage(pageNo);
-    } catch {
-      setAyahError(t('reader.ayahNotFound'));
-    } finally {
-      setAyahBusy(false);
-    }
-  };
-
   /* ---------------------------- render ---------------------------- */
   const surahsHere = useMemo(
     () => surahsOnMushafPage(currentPage).map(getSurahById).filter((s): s is NonNullable<typeof s> => Boolean(s)),
@@ -1374,8 +1345,8 @@ export default function MushafReader() {
 
       {/* Tarteel-clean top bar: hamburger | centre location pill |
           bookmark / search / settings. No gift icon (Premium affordance).
-          Prev/next, jump, mode, zoom, hide and the other toolbar
-          functions moved into the chapter sheet / settings sheet below. */}
+          Mode, zoom, hide and the other toolbar functions moved into
+          the chapter sheet / settings sheet below. */}
       <div ref={toolbarRef} className="fixed inset-x-0 top-0 z-40 border-b border-[#E8EAED] bg-white/95 backdrop-blur">
         <div className="mx-auto max-w-5xl">
           <MushafTopBar
@@ -1397,186 +1368,16 @@ export default function MushafReader() {
         </div>
       </div>
 
-      {/* Chapter / Juz sheet (hamburger + centre pill). Practice modes,
-          jump-to (page / surah / juz / ayah), prev/next and the full
-          surah list. */}
-      <ReaderSheet open={navOpen} onClose={() => setNavOpen(false)} side="left" title={t('rb.list.chaptersJuz')}>
-        <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">{t('mode.practiceMode')}</p>
-        <div className="mt-2">
-          <PracticeModeList onSelect={selectPracticeMode} />
-        </div>
-        <p className="mt-5 text-xs font-bold uppercase tracking-wide text-[#6B7280]">{t('reader.jumpTo')}</p>
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={() => jumpToPage(currentPage - 1, 0, true)}
-            disabled={currentPage <= 1}
-            className="min-h-11 flex-1 rounded-full border border-[#E8EAED] bg-white px-3 py-2 text-sm font-semibold text-[#111827] hover:bg-[#F3F4F6] disabled:opacity-40"
-          >
-            ← {t('reader.prev')}
-          </button>
-          <span className="text-sm font-semibold text-[#111827]" aria-live="polite">
-            {t('reader.pageOf').replace('{page}', String(currentPage)).replace('{total}', String(MUSHAF_TOTAL_PAGES))}
-          </span>
-          <button
-            type="button"
-            onClick={() => jumpToPage(currentPage + 1, 0, true)}
-            disabled={currentPage >= MUSHAF_TOTAL_PAGES}
-            className="min-h-11 flex-1 rounded-full border border-[#E8EAED] bg-white px-3 py-2 text-sm font-semibold text-[#111827] hover:bg-[#F3F4F6] disabled:opacity-40"
-          >
-            {t('reader.next')} →
-          </button>
-        </div>
-        <div className="mt-4 space-y-3">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              doJumpPage();
-            }}
-            className="flex items-end gap-2"
-          >
-            <div className="flex-1">
-              <label htmlFor="reader-jump-page" className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">
-                {t('reader.pageLabel')}
-              </label>
-              <input
-                id="reader-jump-page"
-                type="number"
-                min={1}
-                max={604}
-                value={jumpPage}
-                onChange={(e) => setJumpPage(e.target.value)}
-                placeholder={t('reader.pagePlaceholder')}
-                className="mt-1 w-full min-h-11 rounded-full border border-[#E8EAED] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
-              />
-            </div>
-            <button type="submit" className="min-h-11 rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white">
-              {t('reader.go')}
-            </button>
-          </form>
-          <div>
-            <label htmlFor="reader-jump-surah" className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">
-              {t('reader.surahLabel')}
-            </label>
-            <select
-              id="reader-jump-surah"
-              value={jumpSurah}
-              onChange={(e) => {
-                const id = Number(e.target.value);
-                setJumpSurah(e.target.value);
-                if (id >= 1 && id <= 114) jumpToPage(SURAH_FIRST_PAGE[id]);
-              }}
-              className="mt-1 w-full min-h-11 rounded-full border border-[#E8EAED] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
-            >
-              <option value="">{t('reader.chooseSurah')}</option>
-              {ALL_SURAHS.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.id}. {s.name} ({s.meaning})
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="reader-jump-juz" className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">
-              {t('reader.juzJumpLabel')}
-            </label>
-            <select
-              id="reader-jump-juz"
-              value={jumpJuz}
-              onChange={(e) => {
-                const j = Number(e.target.value);
-                setJumpJuz(e.target.value);
-                if (j >= 1 && j <= 30) jumpToPage(JUZ_FIRST_PAGE[j]);
-              }}
-              className="mt-1 w-full min-h-11 rounded-full border border-[#E8EAED] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
-            >
-              <option value="">{t('reader.chooseJuz')}</option>
-              {Array.from({ length: 30 }, (_, i) => i + 1).map((j) => (
-                <option key={j} value={j}>
-                  {t('reader.juzOption').replace('{j}', String(j)).replace('{p}', String(JUZ_FIRST_PAGE[j]))}
-                </option>
-              ))}
-            </select>
-          </div>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void doJumpAyah();
-            }}
-            className="flex items-end gap-2"
-          >
-            <div className="flex-1">
-              <label htmlFor="reader-jump-ayah-surah" className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">
-                {t('reader.ayahSurah')}
-              </label>
-              <select
-                id="reader-jump-ayah-surah"
-                value={ayahSurah}
-                onChange={(e) => {
-                  setAyahSurah(e.target.value);
-                  setAyahError(null);
-                }}
-                className="mt-1 w-full min-h-11 rounded-full border border-[#E8EAED] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
-              >
-                <option value="">{t('reader.chooseAyahSurah')}</option>
-                {ALL_SURAHS.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.id}. {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="w-24">
-              <label htmlFor="reader-jump-ayah-num" className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">
-                {t('reader.ayahNum')}
-              </label>
-              <input
-                id="reader-jump-ayah-num"
-                type="number"
-                min={1}
-                value={ayahNum}
-                onChange={(e) => {
-                  setAyahNum(e.target.value);
-                  setAyahError(null);
-                }}
-                placeholder="#"
-                className="mt-1 w-full min-h-11 rounded-full border border-[#E8EAED] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={ayahBusy}
-              className="min-h-11 rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-            >
-              {ayahBusy ? '…' : 'Go'}
-            </button>
-          </form>
-        </div>
-        {ayahError && (
-          <p role="status" className="mt-2 text-sm text-red-700">
-            {ayahError}
-          </p>
-        )}
-        {surahsHere.length > 0 && (
-          <div className="mt-4 border-t border-[#E8EAED] pt-3">
-            <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">{t('reader.onThisPage')}</p>
-            <ul className="mt-1 space-y-1 text-sm">
-              {surahsHere.map((s) => (
-                <li key={s.id} className="flex flex-wrap items-center gap-x-3">
-                  <Link href={`/hifz/${s.slug}`} className="font-semibold text-[#1FA36B] hover:underline">
-                    Surah {s.name} ({s.meaning})
-                  </Link>
-                  <Link href={`/hifz/${s.slug}?mode=recite`} className="text-[#6B7280] hover:underline">
-                    {t('reader.reciteCoach')}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        <div className="mt-5 border-t border-[#E8EAED] pt-4">
-          <SurahList />
-        </div>
+      {/* Chapter / Juz sheet (hamburger + centre pill). Lists only, in
+          Tarteel's order: Recently Read (real history only, hidden when
+          empty), "Chapter and Juz Lists" label, Chapters / Parts /
+          Bookmarks pills, sort + shown-progress labels, Juz headers +
+          surah rows, and the 1–30 Juz quick-jump rail. No Practice Mode
+          rows (mode switching lives in the reader bottom bar), no
+          prev/next, no jump-to forms, no "on this page" block — the
+          lists start at the top of the sheet. */}
+      <ReaderSheet open={navOpen} onClose={() => setNavOpen(false)} side="left" title={t('rb.list.chaptersJuz')} dragHandle>
+        <SurahList variant="drawer" />
       </ReaderSheet>
 
       {/* Reader settings sheet (gear): mode, zoom, script, text size,
@@ -1659,16 +1460,6 @@ export default function MushafReader() {
           </button>
           <button
             type="button"
-            onClick={() => setTopicColors((v) => !v)}
-            aria-pressed={topicColors}
-            className={`min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold ${
-              topicColors ? 'bg-[#102E26] text-white' : 'border border-[#E8EAED] bg-white text-[#111827] hover:bg-[#F3F4F6]'
-            }`}
-          >
-            {topicColors ? t('reader.topicOn') : t('reader.topicOff')}
-          </button>
-          <button
-            type="button"
             onClick={toggleTajweed}
             aria-pressed={tajweedOn}
             className={`min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold ${
@@ -1692,21 +1483,6 @@ export default function MushafReader() {
             {hideVerses ? t('reader.showVerses') : t('reader.hideWords')}
           </button>
         </div>
-        {topicColors && (
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {TOPICS.map((t) => (
-              <li
-                key={t.id}
-                className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold"
-                style={{ borderColor: t.color, color: t.color, background: t.wash }}
-                title={t.description}
-              >
-                <span className="h-2 w-2 rounded-full" style={{ background: t.color }} aria-hidden="true" />
-                {t.name}
-              </li>
-            ))}
-          </ul>
-        )}
         {tajweedOn && (
           <p className="mt-3 text-xs text-[#6B7280]">{t('rb.reader.tajweedNote')}</p>
         )}
@@ -1754,7 +1530,6 @@ export default function MushafReader() {
                   height={heights.get(n)}
                   script={script}
                   compactText={compactText}
-                  topicColors={topicColors}
                   hidden={hideVerses}
                   revealed={revealedFor(n)}
                   frequentMistakes={frequentMistakes}

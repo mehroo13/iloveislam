@@ -1,12 +1,17 @@
 // app/hifz/components/SurahList.tsx — the one surah list, used by the
-// homepage and the Hifz hub. Tarteel-style "Chapter and Juz Lists"
-// (2026-11-23): Recently Read card, Chapters / Parts / Bookmarks tabs,
-// ascending/descending sort, per-surah memorisation markers, Juz header
-// rows grouping the surahs, and a right-edge 1–30 Juz quick-jump rail.
-// All / Started / Memorised progress-filter chips (restored 2026-11-23
-// from the pre-rebuild list) sit under the search box on the Chapters tab.
-// Search (English name, meaning, number, or Arabic name — diacritics
-// optional) stays at the top and every row still navigates to its surah.
+// homepage, the Hifz hub, and the reader's chapter / juz drawer.
+// Tarteel-style "Chapter and Juz Lists" (2026-11-23): Recently Read card,
+// Chapters / Parts / Bookmarks tabs, ascending/descending sort, per-surah
+// memorisation markers, Juz header rows grouping the surahs, and a
+// right-edge 1–30 Juz quick-jump rail.
+// The `drawer` variant is the reader-sheet version: no search box, no
+// All / Started / Memorised filter chips, no big heading — Recently Read
+// (when there is real history) sits at the very top, then the small grey
+// "Chapter and Juz Lists" label, the tabs, and a small Juz Amma link
+// below the tabs; the footer is a nav link row (Home, My Progress,
+// Bookmarks, Goals, Challenges, Settings) so every destination stays
+// reachable without the bottom tabs. The `full` variant (homepage / hub)
+// keeps the search, the filter chips, the big heading and the old footer.
 // Progress and bookmarks come only from on-device storage — nothing is
 // invented: rows without memorisation data show no marker, and the
 // Recently Read card hides entirely when there is no history.
@@ -36,8 +41,9 @@ type Tab = 'chapters' | 'parts' | 'bookmarks';
 type SortDir = 'asc' | 'desc';
 type ProgressFilter = 'all' | 'started' | 'memorised';
 
-export default function SurahList() {
+export default function SurahList({ variant = 'full' }: { variant?: 'full' | 'drawer' }) {
   const t = useT();
+  const drawer = variant === 'drawer';
   const [q, setQ] = useState('');
   const [tab, setTab] = useState<Tab>('chapters');
   const [filter, setFilter] = useState<ProgressFilter>('all');
@@ -142,23 +148,24 @@ export default function SurahList() {
 
   return (
     <section aria-labelledby="surahs-heading">
-      {/* Search — English name, meaning, number, or Arabic name */}
-      <label className="block">
-        <span className="sr-only">{t('list.searchSurahs')}</span>
-        <input
-          type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder={t('list.searchPlaceholder')}
-          className="w-full rounded-full border border-[#E8EAED] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#1FA36B]"
-        />
-      </label>
+      {/* Search — English name, meaning, number, or Arabic name.
+          Full variant only: the drawer has no search box (Tarteel's
+          lists drawer doesn't either — search lives on Search tab). */}
+      {!drawer && (
+        <label className="block">
+          <span className="sr-only">{t('list.searchSurahs')}</span>
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={t('list.searchPlaceholder')}
+            className="w-full rounded-full border border-[#E8EAED] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#1FA36B]"
+          />
+        </label>
+      )}
 
-      {/* Progress filter — All / Started / Memorised. Chips only on the
-          Chapters tab (searching forces the Chapters list, so the filter
-          applies to the searched list too); Parts and Bookmarks tabs
-          don't list surah rows, so the chips hide there. */}
-      {activeTab === 'chapters' && (
+      {/* Progress filter — All / Started / Memorised. Full variant only. */}
+      {!drawer && activeTab === 'chapters' && (
         <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={t('rb.list.filterProgress')}>
           {(
             [
@@ -210,12 +217,18 @@ export default function SurahList() {
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="surahs-heading" className="text-xl font-bold text-[#111827] sm:text-2xl">{t('rb.list.chapterJuzLists')}</h2>
-        <Link href="/hifz/juz-amma" className="text-sm font-semibold text-[#1FA36B] hover:underline">
-          {t('list.juzAmmaPath')}
-        </Link>
-      </div>
+      {/* Drawer: small grey label, like Tarteel's — Recently Read above
+          it, tabs below it. Full: big heading + Juz Amma link. */}
+      {drawer ? (
+        <p id="surahs-heading" className="mt-4 text-[15px] text-[#6B7280]">{t('rb.list.chapterJuzLists')}</p>
+      ) : (
+        <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="surahs-heading" className="text-xl font-bold text-[#111827] sm:text-2xl">{t('rb.list.chapterJuzLists')}</h2>
+          <Link href="/hifz/juz-amma" className="text-sm font-semibold text-[#1FA36B] hover:underline">
+            {t('list.juzAmmaPath')}
+          </Link>
+        </div>
+      )}
 
       {/* Tabs: Chapters / Parts / Bookmarks */}
       <div className="mt-3 flex gap-2" role="tablist" aria-label={t('rb.list.chapterJuzLists')}>
@@ -247,6 +260,15 @@ export default function SurahList() {
           </button>
         ))}
       </div>
+
+      {/* Juz Amma, kept as a small link below the tabs in the drawer
+          (it also lives on the hub); the full variant has it by the
+          heading instead. */}
+      {drawer && (
+        <Link href="/hifz/juz-amma" className="mt-3 block text-sm font-semibold text-[#1FA36B] hover:underline">
+          {t('list.juzAmmaPath')}
+        </Link>
+      )}
 
       {/* Sort + shown-progress controls */}
       <div className="mt-3 flex items-start justify-between gap-3 px-1">
@@ -421,24 +443,50 @@ export default function SurahList() {
         </div>
       )}
 
-      <p className="mt-3 text-sm text-[#6B7280]">
-        {filtered.length} {t('common.of')} {ALL_SURAHS.length} {t('list.surahsWord')} ·{' '}
-        <Link href="/hifz/plans" className="font-semibold text-[#1FA36B] underline">
-          {t('common.plans')}
-        </Link>
-        {' · '}
-        <Link href="/hifz/test" className="font-semibold text-[#1FA36B] underline">
-          {t('common.testMode')}
-        </Link>
-        {' · '}
-        <Link href="/hifz/voice-search" className="font-semibold text-[#1FA36B] underline">
-          {t('common.voiceSearch')}
-        </Link>
-        {' · '}
-        <Link href="/hifz/challenges" className="font-semibold text-[#1FA36B] underline">
-          {t('common.challenges')}
-        </Link>
-      </p>
+      {/* Drawer footer: nav link row so every destination stays
+          reachable without the bottom tabs. Full footer: list count +
+          Plans / Test / Voice Search / Challenges links. */}
+      {drawer ? (
+        <nav aria-label={t('nav.sections')} className="mt-5 border-t border-[#E8EAED] pt-4">
+          <ul className="flex flex-wrap gap-x-4 gap-y-2">
+            {(
+              [
+                ['/', 'nav.home'],
+                ['/hifz/my-progress', 'common.myProgress'],
+                ['/hifz/bookmarks', 'hub.bookmarks'],
+                ['/hifz/goals', 'rb.goals.goals'],
+                ['/hifz/challenges', 'common.challenges'],
+                ['/hifz/settings', 'surah.settings'],
+              ] as const
+            ).map(([href, key]) => (
+              <li key={href}>
+                <Link href={href} className="text-sm font-semibold text-[#1FA36B] hover:underline">
+                  {t(key)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      ) : (
+        <p className="mt-3 text-sm text-[#6B7280]">
+          {filtered.length} {t('common.of')} {ALL_SURAHS.length} {t('list.surahsWord')} ·{' '}
+          <Link href="/hifz/plans" className="font-semibold text-[#1FA36B] underline">
+            {t('common.plans')}
+          </Link>
+          {' · '}
+          <Link href="/hifz/test" className="font-semibold text-[#1FA36B] underline">
+            {t('common.testMode')}
+          </Link>
+          {' · '}
+          <Link href="/hifz/voice-search" className="font-semibold text-[#1FA36B] underline">
+            {t('common.voiceSearch')}
+          </Link>
+          {' · '}
+          <Link href="/hifz/challenges" className="font-semibold text-[#1FA36B] underline">
+            {t('common.challenges')}
+          </Link>
+        </p>
+      )}
     </section>
   );
 }

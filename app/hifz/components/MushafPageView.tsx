@@ -3,7 +3,7 @@
 //
 // The page itself renders in MushafPageFrame (shared with the continuous
 // reader); this component owns the single-page chrome around it: the
-// memorise / script / topic / zoom controls and the scaled-page viewport
+// memorise / script / zoom controls and the scaled-page viewport
 // (fixed 970px design width, CSS `zoom` to fit — see the scaled-page note
 // below). For the full continuous reader, use /hifz/mushaf.
 'use client';
@@ -15,13 +15,12 @@ import { getSurahById, type HifzSurah } from '../surahs';
 import { JUZ_FIRST_PAGE, MUSHAF_TOTAL_PAGES } from '../mushaf';
 import { type MushafVerse } from '../lib/fetch';
 import { SCRIPT_LABELS, useScriptPref } from '../lib/script';
-import { TOPICS } from '../topics';
 import { loadMistakes, loadProgress, saveProgress, markAttempt, loadSettings, saveSettings } from '../progress';
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { normalizeArabic } from '../lib/alignment';
 import { MODE_EVENT, ayahKeyForRevealedWord, lastReadSlug, requestMode, saveMode, type HifzMode } from '../lib/mode';
 import MushafPageFrame, { MUSHAF_PAGE_WIDTH } from './MushafPageFrame';
-import { MushafTopBar, MushafBottomBar, ReaderSheet, PracticeModeList } from './MushafReader';
+import { MushafTopBar, MushafBottomBar, ReaderSheet } from './MushafReader';
 import SurahList from './SurahList';
 import { useT } from '../lib/i18n';
 
@@ -85,8 +84,8 @@ export default function MushafPageView({
       /* storage unavailable — the button just doesn't persist */
     }
   }, [page]);
-  // Practice-mode selection from the chapter sheet / mic button — the
-  // single-page replacement for the hidden global ModeSwitcher pill.
+  // Practice-mode selection from the mic button — the single-page
+  // replacement for the hidden global ModeSwitcher pill.
   // Memorise / Reading are applied in place (listener below); anything
   // else navigates exactly as the switcher did.
   const selectPracticeMode = useCallback(
@@ -107,8 +106,6 @@ export default function MushafPageView({
   const [hideVerses, setHideVerses] = useState(hideInitial);
   const [revealedCount, setRevealedCount] = useState(0);
   const [peekCount, setPeekCount] = useState(0);
-  // Colour-code the mushaf by ayah topic (study aid, §23). Default on.
-  const [topicColors, setTopicColors] = useState(true);
   // Mistake-history marking (Tarteel row 17, §5.1): words the user has
   // missed repeatedly show in a stronger colour — red + dotted underline,
   // the same marking the coach uses for a wrong word — and stay visible
@@ -320,15 +317,28 @@ export default function MushafPageView({
       if (q.get('memorize') === '1') setHideVerses(true);
       const raw = localStorage.getItem('ili_hifz_settings_v1');
       if (raw) {
-        const parsed = JSON.parse(raw) as { mushafLines?: number; topicColors?: boolean; tajweedColors?: boolean };
+        const parsed = JSON.parse(raw) as { mushafLines?: number; tajweedColors?: boolean };
         if (parsed.mushafLines === 16) setCompactText(true);
-        if (parsed.topicColors === false) setTopicColors(false);
         if (parsed.tajweedColors === true) setTajweedOn(true);
       }
     } catch {
       /* defaults */
     }
   }, []);
+
+  // Keyboard page turning: ← / → move a page, as in the continuous
+  // reader. Ignored while typing or while a sheet is open.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return;
+      if (navOpen || settingsOpen) return;
+      if (e.key === 'ArrowLeft' && page > 1) router.push(`/hifz/mushaf/${page - 1}`);
+      if (e.key === 'ArrowRight' && page < MUSHAF_TOTAL_PAGES) router.push(`/hifz/mushaf/${page + 1}`);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [navOpen, settingsOpen, page, router]);
 
   const surahIds = [...new Set(verses.map((v) => Number(v.verse_key.split(':')[0])))];
   const surahs = surahIds.map(getSurahById).filter((s): s is HifzSurah => Boolean(s));
@@ -402,7 +412,7 @@ export default function MushafPageView({
     <div>
       {/* Tarteel-clean top bar (sticky): hamburger | centre location
           pill | bookmark / search / settings. No gift icon (Premium
-          affordance). Hide, zoom, script, topic and tajweed controls
+          affordance). Hide, zoom, script and tajweed controls
           moved into the settings sheet; the chapter list into the
           hamburger sheet. */}
       <div className="sticky top-0 z-40 -mx-4 border-b border-[#E8EAED] bg-white/95 px-2 backdrop-blur sm:px-3">
@@ -423,53 +433,20 @@ export default function MushafPageView({
         </div>
       </div>
 
-      {/* Chapter / Juz sheet (hamburger + centre pill). */}
-      <ReaderSheet open={navOpen} onClose={() => setNavOpen(false)} side="left" title={t('rb.list.chaptersJuz')}>
-        <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">{t('mode.practiceMode')}</p>
-        <div className="mt-2">
-          <PracticeModeList onSelect={selectPracticeMode} />
-        </div>
-        {/* Prev / Next page — the single-page replacement for the removed
-            MushafNav chrome: page navigation lives in this sheet now
-            (alongside the chapter / juz / bookmark jumps below). */}
-        <div className="mt-4 flex items-center justify-between gap-2 border-t border-[#E8EAED] pt-4">
-          {page > 1 ? (
-            <Link
-              href={`/hifz/mushaf/${page - 1}`}
-              className="inline-flex min-h-11 items-center rounded-full border border-[#E8EAED] bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-[#F3F4F6]"
-            >
-              {t('mushaf.prevPage')}
-            </Link>
-          ) : (
-            <span />
-          )}
-          <span className="text-sm font-semibold text-[#111827]">
-            {t('mushaf.pageOf').replace('{page}', String(page)).replace('{total}', String(MUSHAF_TOTAL_PAGES))}
-          </span>
-          {page < MUSHAF_TOTAL_PAGES ? (
-            <Link
-              href={`/hifz/mushaf/${page + 1}`}
-              className="inline-flex min-h-11 items-center rounded-full border border-[#E8EAED] bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-[#F3F4F6]"
-            >
-              {t('mushaf.nextPage')}
-            </Link>
-          ) : (
-            <span />
-          )}
-        </div>
-        <Link
-          href={`/hifz/mushaf?page=${page}`}
-          className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[#E8EAED] bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-[#F3F4F6]"
-        >
-          {t('mpv.continuousReader')}
-        </Link>
-        <div className="mt-5 border-t border-[#E8EAED] pt-4">
-          <SurahList />
-        </div>
+      {/* Chapter / Juz sheet (hamburger + centre pill). Lists only, in
+          Tarteel's order: Recently Read (real history only, hidden when
+          empty), "Chapter and Juz Lists" label, Chapters / Parts /
+          Bookmarks pills, sort + shown-progress labels, Juz headers +
+          surah rows, and the 1–30 Juz quick-jump rail. No Practice Mode
+          rows (mode switching lives in the reader bottom bar), no
+          prev/next row, no "Continuous reader" pill — the lists start
+          at the top of the sheet. */}
+      <ReaderSheet open={navOpen} onClose={() => setNavOpen(false)} side="left" title={t('rb.list.chaptersJuz')} dragHandle>
+        <SurahList variant="drawer" />
       </ReaderSheet>
 
-      {/* Reader settings sheet (gear): zoom, script, text size, topic +
-          tajweed colours, hide words. */}
+      {/* Reader settings sheet (gear): zoom, script, text size, tajweed
+          colours, hide words. */}
       <ReaderSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} side="right" title={t('reader.readerSettings')}>
         <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">{t('reader.readerZoom')}</p>
         <div className="mt-2 flex items-center gap-1 rounded-full border border-[#E8EAED] bg-white p-0.5" role="group" aria-label={t('mpv.zoomGroup')}>
@@ -534,16 +511,6 @@ export default function MushafPageView({
           </button>
           <button
             type="button"
-            onClick={() => setTopicColors((v) => !v)}
-            aria-pressed={topicColors}
-            className={`min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold ${
-              topicColors ? 'bg-[#102E26] text-white' : 'border border-[#E8EAED] bg-white text-[#111827] hover:bg-[#F3F4F6]'
-            }`}
-          >
-            {topicColors ? t('reader.topicOn') : t('reader.topicOff')}
-          </button>
-          <button
-            type="button"
             onClick={toggleTajweed}
             aria-pressed={tajweedOn}
             className={`min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold ${
@@ -567,25 +534,6 @@ export default function MushafPageView({
             {hideVerses ? t('mpv.showVerses') : t('mpv.hideVersesMemorise')}
           </button>
         </div>
-        {topicColors && (
-          <div className="mt-4 rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">{t('mpv.topicsTitle')}</p>
-            <ul className="mt-2 flex flex-wrap gap-2">
-              {TOPICS.map((tp) => (
-                <li
-                  key={tp.id}
-                  className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold"
-                  style={{ borderColor: tp.color, color: tp.color, background: tp.wash }}
-                  title={tp.description}
-                >
-                  <span className="h-2 w-2 rounded-full" style={{ background: tp.color }} aria-hidden="true" />
-                  {tp.name}
-                </li>
-              ))}
-            </ul>
-            <p className="mt-2 text-xs text-[#6B7280]">{t('mpv.topicsNote')}</p>
-          </div>
-        )}
         {tajweedOn && (
           <p className="mt-3 text-xs text-[#6B7280]">{t('rb.reader.tajweedNote')}</p>
         )}
@@ -610,7 +558,11 @@ export default function MushafPageView({
         </p>
       )}
 
-      <div className="mt-4 rounded-2xl bg-[#F2F2F2] p-2 sm:p-4">
+      {/* Full-bleed page: no grey frame, no margin — the white mushaf
+          page fills the screen edge to edge, as on Tarteel. The -mx-4
+          cancels the main column's px-4, exactly like the sticky top
+          bar above. */}
+      <div className="-mx-4">
         {/* Scaled-page viewport: the frame inside is always
             MUSHAF_PAGE_WIDTH wide and is scaled with CSS `zoom` to fit
             (see the scaled-page note above). The viewport's height is the
@@ -641,7 +593,6 @@ export default function MushafPageView({
               verses={verses}
               script={script}
               compactText={compactText}
-              topicColors={topicColors}
               hidden={hideVerses}
               revealed={revealedCount}
               frequentMistakes={frequentMistakes}
@@ -653,30 +604,34 @@ export default function MushafPageView({
         </div>
       </div>
 
-      {/* Surahs on this page — jump back into the study view / coach */}
-      {surahs.length > 0 && (
-        <nav aria-label={t('mpv.surahsOnPage')} className="mt-6 rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-[#111827]">{t('mpv.onThisPage')}</h2>
-          <ul className="mt-3 space-y-2 text-sm">
-            {surahs.map((s) => (
-              <li key={s.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <Link href={`/hifz/${s.slug}`} className="font-semibold text-[#1FA36B] hover:underline">
-                  Surah {s.name} ({s.meaning})
-                </Link>
-                <Link href={`/hifz/${s.slug}?mode=recite`} className="text-[#6B7280] hover:underline">
-                  {t('mpv.reciteCoach')}
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-sm text-[#6B7280]">
-            {t('mpv.preferList')}{' '}
-            <Link href="/hifz" className="font-semibold text-[#1FA36B] underline">
-              {t('mpv.browseSurahs')}
-            </Link>
-          </p>
-        </nav>
-      )}
+      {/* Page turning — the single-page view has no swipe and the chapter
+          sheet no longer carries Prev/Next, so the turn controls live
+          under the page (and on ← / → keys, see below). */}
+      <div className="mt-4 flex items-center justify-between gap-2">
+        {page > 1 ? (
+          <Link
+            href={`/hifz/mushaf/${page - 1}`}
+            className="inline-flex min-h-11 items-center rounded-full border border-[#E8EAED] bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-[#F3F4F6]"
+          >
+            {t('mushaf.prevPage')}
+          </Link>
+        ) : (
+          <span />
+        )}
+        <span className="text-sm font-semibold text-[#111827]">
+          {t('mushaf.pageOf').replace('{page}', String(page)).replace('{total}', String(MUSHAF_TOTAL_PAGES))}
+        </span>
+        {page < MUSHAF_TOTAL_PAGES ? (
+          <Link
+            href={`/hifz/mushaf/${page + 1}`}
+            className="inline-flex min-h-11 items-center rounded-full border border-[#E8EAED] bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-[#F3F4F6]"
+          >
+            {t('mushaf.nextPage')}
+          </Link>
+        ) : (
+          <span />
+        )}
+      </div>
 
       {/* Peek controls while words are hidden — floating above the
           bottom bar so they are always in reach. */}
@@ -721,10 +676,8 @@ export default function MushafPageView({
       {/* Bottom clearance: the fixed bottom bar's top edge sits 140px
           above the viewport bottom (76px tab bar + 64px mic orb), so the
           scroll content needs at least that much space after its last
-          line — otherwise the "Surahs on this page" links end up
-          half-covered by the bar. h-44 (176px) clears it on its own, so
-          the last line stays clear even if the attribution below is
-          ever removed. */}
+          line — otherwise the last line of the page ends up half-covered
+          by the bar. h-44 (176px) clears it on its own. */}
       <div className="h-44" aria-hidden="true" />
     </div>
   );
