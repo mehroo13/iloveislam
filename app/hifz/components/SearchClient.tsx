@@ -1,11 +1,13 @@
 // app/hifz/components/SearchClient.tsx — Search (spec §22).
-// Tarteel-style Search screen (2026-11-23): light grey background, back
-// arrow, "Search" title, a search-field pill with a green mic button at
-// its right (→ /hifz/voice-search), and clean white result cards.
+// Tarteel-style Search screen (2026-11-23): full-bleed light grey, back
+// arrow top-left, "Search" title top-right, a large empty middle area
+// where results appear, and the search pill docked at the bottom with a
+// green mic button at its right (→ /hifz/voice-search). The Jump-to-a-place
+// controls and the voice-search card live BELOW the fold as a secondary
+// section, so the first viewport is just the minimal Tarteel layout.
 // Arabic/English text search, search by surah / juz / page, and Similar
 // Verses: results show Arabic + translation with share/copy and Continue
-// Reading. The dark-green Voice Search card is now a clean white card
-// with green accents — no dark navy. All behaviour is unchanged.
+// Reading. All behaviour is unchanged.
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
@@ -91,32 +93,106 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
   };
 
   return (
-    <div className="rounded-3xl bg-[#F1F2F4] px-3 py-4 sm:px-5 sm:py-5">
-      {/* Header: back arrow + "Search" title */}
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          aria-label={t('rb.search.goBack')}
-          className="flex h-11 w-11 items-center justify-center rounded-full border border-[#111827]/25 bg-transparent text-[#111827] hover:bg-white"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
-            <path d="M15.75 19.5 8.25 12l7.5-7.5" />
-          </svg>
-        </button>
-        <h2 className="text-xl font-bold text-[#111827]">{t('common.search')}</h2>
-      </div>
+    <div className="bg-[#F1F2F4]">
+      {/* First viewport — Tarteel minimal screen: header, empty results
+          area, search pill docked at the bottom. The pill is sticky so it
+          stays at the bottom while scrolling through results, and sits
+          just above the keyboard (100dvh) when typing. No bottom nav or
+          floating mode pill is rendered here — those are removed globally. */}
+      <div className="flex min-h-[100dvh] flex-col px-3 py-4 sm:px-5 sm:py-5">
+        {/* Header: back arrow top-left + "Search" title top-right */}
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            aria-label={t('rb.search.goBack')}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-[#111827]/25 bg-transparent text-[#111827] hover:bg-white"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
+              <path d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+          </button>
+          <h2 className="text-xl font-bold text-[#111827]">{t('common.search')}</h2>
+        </div>
 
-      <div className="mt-5 space-y-5">
-        {/* Text search — pill with a green mic button at its right */}
-        <section aria-label={t('search.sectionLabel')}>
+        {/* Results — appear in the large empty middle area */}
+        <div className="mt-5 flex-1">
+          {error && (
+            <p role="alert" className="px-2 text-sm text-red-700">{error}</p>
+          )}
+          {searched && (
+            <section aria-label={t('search.resultsLabel')} className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
+              <h2 className="text-xl font-bold text-[#111827]">{t('search.results')}</h2>
+              {q.trim() && (
+                <p dir="auto" className="mt-1 text-sm text-[#6B7280]">
+                  {t('search.forQuery').replace('{q}', q.trim()).replace('{n}', String(total)).replace('{ayahWord}', total === 1 ? t('common.ayah') : t('common.ayahs'))}
+                </p>
+              )}
+              {results.length === 0 && !loading ? (
+                <p className="mt-3 text-sm text-[#6B7280]">
+                  {t('search.nothingFound')}
+                </p>
+              ) : (
+                <ul className="mt-4 space-y-5">
+                  {results.map((r) => {
+                    const [s, a] = r.verse_key.split(':').map(Number);
+                    const surah = getSurahById(s);
+                    const translation = stripHtml(r.translations?.[0]?.text ?? '');
+                    return (
+                      <li key={r.verse_key} className="border-b border-[#E8EAED] pb-5 last:border-0 last:pb-0">
+                        <p className="flex items-center gap-2 text-sm">
+                          <span className="rounded-md border border-[#E8EAED] px-2 py-0.5 text-xs font-bold">{r.verse_key}</span>
+                          <span className="font-bold">{surah ? surah.name : `Surah ${s}`}</span>
+                        </p>
+                        <p dir="rtl" lang="ar" className="font-quran mt-3 text-right text-2xl leading-loose sm:text-3xl">
+                          {r.text}
+                        </p>
+                        {translation && (
+                          <p className="mt-2 text-sm leading-relaxed text-[#111827]/85">{translation}</p>
+                        )}
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void shareResult(r)}
+                            className="min-h-11 rounded-full border border-[#E8EAED] px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B]"
+                          >
+                            {t('search.share')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void copyText(`${r.text} (${r.verse_key})`, r.verse_key)}
+                            className="min-h-11 rounded-full border border-[#E8EAED] px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B]"
+                          >
+                            {copied === r.verse_key ? t('search.copied') : t('search.copy')}
+                          </button>
+                          {surah && (
+                            <Link
+                              href={`/hifz/${surah.slug}?mode=recite&ayah=${a}`}
+                              className="inline-flex min-h-11 items-center justify-center ml-auto rounded-full bg-[#102E26] px-4 py-1.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+                            >
+                              {t('search.continueReading')}
+                            </Link>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+          )}
+        </div>
+
+        {/* Search pill — docked at the bottom: light-grey rounded-full
+            pill with magnifier + green circular mic button at its right */}
+        <div className="sticky bottom-4 mt-6">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               void runSearch(q);
             }}
           >
-            <div className="flex items-center gap-2 rounded-full border border-[#E8EAED] bg-white py-1.5 pl-4 pr-1.5 shadow-sm focus-within:border-[#1FA36B]">
+            <div className="flex items-center gap-2 rounded-full border border-transparent bg-[#E8EAED] py-1.5 pl-4 pr-1.5 shadow-sm focus-within:border-[#1FA36B] focus-within:bg-white">
               <svg viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0" aria-hidden="true">
                 <path d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
               </svg>
@@ -145,77 +221,16 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
               </Link>
             </div>
           </form>
-          <p className="mt-2 px-2 text-xs text-[#6B7280]">
-            Type Arabic or English words to find the ayah. Or recite a phrase —{' '}
-            <Link href="/hifz/voice-search" className="inline-block py-1 font-semibold text-[#1FA36B] underline">{t('rb.search.voiceFinds')} →</Link>
-          </p>
-          {error && (
-            <p role="alert" className="mt-3 px-2 text-sm text-red-700">{error}</p>
-          )}
-        </section>
+        </div>
+      </div>
 
-        {/* Results — clean white cards on the light grey background */}
-        {searched && (
-          <section aria-label={t('search.resultsLabel')} className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
-            <h2 className="text-xl font-bold text-[#111827]">{t('search.results')}</h2>
-            {q.trim() && (
-              <p dir="auto" className="mt-1 text-sm text-[#6B7280]">
-                {t('search.forQuery').replace('{q}', q.trim()).replace('{n}', String(total)).replace('{ayahWord}', total === 1 ? t('common.ayah') : t('common.ayahs'))}
-              </p>
-            )}
-            {results.length === 0 && !loading ? (
-              <p className="mt-3 text-sm text-[#6B7280]">
-                {t('search.nothingFound')}
-              </p>
-            ) : (
-              <ul className="mt-4 space-y-5">
-                {results.map((r) => {
-                  const [s, a] = r.verse_key.split(':').map(Number);
-                  const surah = getSurahById(s);
-                  const translation = stripHtml(r.translations?.[0]?.text ?? '');
-                  return (
-                    <li key={r.verse_key} className="border-b border-[#E8EAED] pb-5 last:border-0 last:pb-0">
-                      <p className="flex items-center gap-2 text-sm">
-                        <span className="rounded-md border border-[#E8EAED] px-2 py-0.5 text-xs font-bold">{r.verse_key}</span>
-                        <span className="font-bold">{surah ? surah.name : `Surah ${s}`}</span>
-                      </p>
-                      <p dir="rtl" lang="ar" className="font-quran mt-3 text-right text-2xl leading-loose sm:text-3xl">
-                        {r.text}
-                      </p>
-                      {translation && (
-                        <p className="mt-2 text-sm leading-relaxed text-[#111827]/85">{translation}</p>
-                      )}
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => void shareResult(r)}
-                          className="min-h-11 rounded-full border border-[#E8EAED] px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B]"
-                        >
-                          {t('search.share')}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void copyText(`${r.text} (${r.verse_key})`, r.verse_key)}
-                          className="min-h-11 rounded-full border border-[#E8EAED] px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B]"
-                        >
-                          {copied === r.verse_key ? t('search.copied') : t('search.copy')}
-                        </button>
-                        {surah && (
-                          <Link
-                            href={`/hifz/${surah.slug}?mode=recite&ayah=${a}`}
-                            className="inline-flex min-h-11 items-center justify-center ml-auto rounded-full bg-[#102E26] px-4 py-1.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
-                          >
-                            {t('search.continueReading')}
-                          </Link>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
-        )}
+      {/* Below the fold — secondary section: hint, Jump to a place, and
+          the voice-search card. None of this shows in the first viewport. */}
+      <div className="space-y-5 px-3 pb-10 sm:px-5">
+        <p className="px-2 text-xs text-[#6B7280]">
+          Type Arabic or English words to find the ayah. Or recite a phrase —{' '}
+          <Link href="/hifz/voice-search" className="inline-block py-1 font-semibold text-[#1FA36B] underline">{t('rb.search.voiceFinds')} →</Link>
+        </p>
 
         {/* Jump to surah / juz / page */}
         <section aria-labelledby="jump-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">

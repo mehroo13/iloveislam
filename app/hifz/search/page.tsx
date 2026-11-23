@@ -1,7 +1,10 @@
 // app/hifz/search/page.tsx — Search hub (spec §22).
+// Tarteel-style minimal screen: no breadcrumb, no big page heading — the
+// SearchClient renders the back arrow + "Search" title, the empty results
+// area and the bottom-docked search pill itself.
 import type { Metadata } from 'next';
 import SearchClient from '../components/SearchClient';
-import { Breadcrumb, Attribution } from '../components/HifzShared';
+import { Attribution } from '../components/HifzShared';
 import { SITE_URL } from '../lib/fetch';
 
 export const metadata: Metadata = {
@@ -19,24 +22,11 @@ export default async function SearchPage({
 }) {
   const q = (await searchParams)?.q ?? '';
   return (
-    <main className="mx-auto max-w-3xl px-4 pb-16 pt-6 sm:pt-8">
-      <Breadcrumb
-        items={[
-          { label: 'Home', href: '/' },
-          { label: 'Hifz', href: '/hifz' },
-          { label: 'Search' },
-        ]}
-      />
-      <header className="mt-4">
-        <h1 className="text-3xl font-bold tracking-tight text-[#102E26] sm:text-4xl">Search</h1>
-        <p className="mt-2 text-sm leading-relaxed text-[#5b6b62] sm:text-base">
-          Find an ayah by words, by voice, or jump straight to a surah, juz or page.
-        </p>
-      </header>
-      <div className="mt-6">
-        <SearchClient initialQuery={q} />
+    <main className="mx-auto w-full max-w-3xl pb-10">
+      <SearchClient initialQuery={q} />
+      <div className="px-4 pt-6">
+        <Attribution reciterName="Mishary Alafasy" />
       </div>
-      <Attribution reciterName="Mishary Alafasy" />
     </main>
   );
 }
