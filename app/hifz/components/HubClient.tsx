@@ -28,13 +28,13 @@ export default function HubClient() {
   return (
     <>
       <header className="mt-4 text-center">
-        <p dir="rtl" lang="ar" className="font-quran text-3xl text-[#57D798] sm:text-4xl">
+        <p dir="rtl" lang="ar" className="font-quran text-3xl text-[#1FA36B] sm:text-4xl">
           خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ
         </p>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#102E26] sm:text-4xl">
+        <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#111827] sm:text-4xl">
           {t('hub.title')}
         </h1>
-        <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-[#5b6b62] sm:text-base">
+        <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-[#6B7280] sm:text-base">
           {t('hub.subtitle')}
         </p>
         <div className="mt-5 flex flex-wrap justify-center gap-3">
@@ -47,17 +47,18 @@ export default function HubClient() {
         </div>
       </header>
 
-      {/* New Goal hero — dark green card, intention first (screenshot style,
-          our own words and mark). */}
-      <section aria-labelledby="new-goal-heading" className="mt-6 overflow-hidden rounded-2xl bg-[#102E26] text-white shadow-sm">
+      {/* New Goal hero — clean white card with green accents (clean
+          restyle 2026-11-23; was dark green). Intention first, our own
+          words and mark. */}
+      <section aria-labelledby="new-goal-heading" className="mt-6 overflow-hidden rounded-2xl border border-[#E8EAED] bg-white shadow-sm">
         <div className="p-5 sm:p-6">
-          <h2 id="new-goal-heading" className="text-2xl font-bold">{t('hub.goalTitle')}</h2>
-          <p className="mt-2 max-w-lg text-sm leading-relaxed text-white/80">
+          <h2 id="new-goal-heading" className="text-2xl font-bold text-[#111827]">{t('hub.goalTitle')}</h2>
+          <p className="mt-2 max-w-lg text-sm leading-relaxed text-[#6B7280]">
             {t('hub.goalBody')}
           </p>
-          <p className="mt-4 border-t border-white/15 pt-4 text-sm italic text-white/70">
+          <p className="mt-4 border-t border-[#E8EAED] pt-4 text-sm italic text-[#6B7280]">
             “The most beloved deeds to Allah are the most consistent, even if they are small.”
-            <span className="mt-1 block text-xs not-italic text-white/50">Sahih al-Bukhari</span>
+            <span className="mt-1 block text-xs not-italic text-[#6B7280]/70">Sahih al-Bukhari</span>
           </p>
           <Link
             href="/hifz/goals"
@@ -70,17 +71,17 @@ export default function HubClient() {
 
       {/* Suggestions — horizontal scroll cards */}
       <section aria-labelledby="suggestions-heading" className="mt-6">
-        <h2 id="suggestions-heading" className="text-lg font-bold text-[#102E26]">{t('hub.suggestions')}</h2>
-        <p className="text-sm text-[#5b6b62]">{t('hub.suggestionsHint')}</p>
+        <h2 id="suggestions-heading" className="text-lg font-bold text-[#111827]">{t('hub.suggestions')}</h2>
+        <p className="text-sm text-[#6B7280]">{t('hub.suggestionsHint')}</p>
         <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
           {SUGGESTIONS.map((c) => (
             <Link
               key={c.href}
               href={c.href}
-              className="w-52 shrink-0 rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm hover:border-[#57D798]"
+              className="w-52 shrink-0 rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm hover:border-[#57D798]"
             >
-              <span className="block font-bold text-[#102E26]">{t(c.labelKey)}</span>
-              <span className="mt-1 block text-sm text-[#5b6b62]">{t(c.noteKey)}</span>
+              <span className="block font-bold text-[#111827]">{t(c.labelKey)}</span>
+              <span className="mt-1 block text-sm text-[#6B7280]">{t(c.noteKey)}</span>
               <span className="mt-3 block text-sm font-bold text-[#1FA36B]">{t('hub.start')}</span>
             </Link>
           ))}
@@ -95,14 +96,14 @@ export function HubMoreLinks() {
   const t = useT();
   return (
     <section aria-labelledby="more-heading" className="mt-8">
-      <h2 id="more-heading" className="text-xl font-bold text-[#102E26]">{t('hub.more')}</h2>
-      <ul className="mt-3 divide-y divide-[#E5E7EB] rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
+      <h2 id="more-heading" className="text-xl font-bold text-[#111827]">{t('hub.more')}</h2>
+      <ul className="mt-3 divide-y divide-[#E8EAED] rounded-2xl border border-[#E8EAED] bg-white shadow-sm">
         {MORE_LINKS.map((l) => (
           <li key={l.href}>
-            <Link href={l.href} className="flex min-w-0 items-center justify-between gap-3 px-4 py-3 hover:bg-[#FFFBF2]">
+            <Link href={l.href} className="flex min-w-0 items-center justify-between gap-3 px-4 py-3 hover:bg-[#F4F5F7]">
               <span className="min-w-0">
-                <span className="block font-semibold text-[#102E26]">{t(l.labelKey)}</span>
-                <span className="block truncate text-sm text-[#5b6b62]">{t(l.noteKey)}</span>
+                <span className="block font-semibold text-[#111827]">{t(l.labelKey)}</span>
+                <span className="block truncate text-sm text-[#6B7280]">{t(l.noteKey)}</span>
               </span>
               <span aria-hidden="true" className="shrink-0 font-bold text-[#1FA36B]">→</span>
             </Link>
