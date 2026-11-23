@@ -14,9 +14,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   loadProgress, saveProgress, markAttempt, recordMinutes, recordTypeActivity,
-  loadMistakes, pickTestPool, revisionDue,
-  type HifzProgress,
+  loadMistakes, saveMistakes, addMistake, markMistakesCorrected, pickTestPool, revisionDue,
+  type HifzProgress, type MistakeEntry,
 } from '../progress';
+import { buildTestInsights, type TestInsight } from '../lib/insights';
 import { ALL_SURAHS, getSurahById } from '../surahs';
 import { getJuz } from '../juz';
 import { saveBestTestPct } from '../badges';
@@ -27,7 +28,8 @@ import { useT } from '../lib/i18n';
 type Scope = 'memorised' | 'practised' | 'any' | 'weakest';
 type Phase = 'setup' | 'testing' | 'done';
 type Duration = 5 | 10 | 20;
-type QLength = 'short' | 'medium' | 'long';
+/** Per-test time limit in minutes (0 = no limit). */
+type TimeLimitMinutes = 0 | 5 | 10 | 15 | 30;
 /** The six test types (Stage 4, Part 6). */
 type TestType = 'sequential' | 'random' | 'middle' | 'completion' | 'revision' | 'difficult';
 
@@ -49,14 +51,29 @@ function allAyahs(): TestQuestion[] {
   return out;
 }
 
-const SPAN_BY_LENGTH: Record<QLength, number> = { short: 1, medium: 2, long: 3 };
+/** Question length, in mushaf lines (1–15). The slider is the single
+ *  source of truth; the presets below just set it.
+ *  Lines → ayahs uses the real Quran totals: 6,236 ayahs across 604
+ *  pages × 15 lines = 9,060 lines, so one line is ~0.69 ayahs. A long
+ *  ayah covers more lines than a short one, so the span is approximate
+ *  — the question text itself is what the user recites, and it always
+ *  covers the full span (see loadQuestion). */
+const LINES_PER_AYAH = 6236 / 9060;
+/** Preset line counts for the Short / Medium / Long buttons. */
+const LINE_PRESETS = { short: 2, medium: 5, long: 10 } as const;
+/** Words per mushaf line, for the "stop mid-ayah" cap when "Extend
+ *  question to the ayah's end" is off: ~77,430 words ÷ 9,060 lines. */
+const WORDS_PER_LINE = 9;
 
 export default function TestClient() {
   const [progress, setProgress] = useState<HifzProgress | null>(null);
   const [scope, setScope] = useState<Scope>('memorised');
   const [duration, setDuration] = useState<Duration>(10);
-  const [qLength, setQLength] = useState<QLength>('medium');
+  /** Question length in mushaf lines, 1–15 (default 5). Wired into the
+   *  question span by spanFor — this slider is live, not decorative. */
   const [qLines, setQLines] = useState(5);
+  /** Per-test time limit in minutes (0 = unlimited, the default). */
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState<TimeLimitMinutes>(0);
   const [extendToEnd, setExtendToEnd] = useState(true);
   const [temporary, setTemporary] = useState(false);
   const [ranges, setRanges] = useState<RangeSelection[]>([]);
@@ -96,6 +113,16 @@ export default function TestClient() {
   const [eyeOff, setEyeOff] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [streak, setStreak] = useState(0);
+  /** Colour flash after marking: the card turns green on Correct, red
+   *  on Missed, for a beat before the next question loads. */
+  const [markFlash, setMarkFlash] = useState<'correct' | 'missed' | null>(null);
+  /** True when the test ended because the time limit ran out. */
+  const [timeUp, setTimeUp] = useState(false);
+  const advanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Clear a pending advance if the component unmounts mid-flash.
+  useEffect(() => () => {
+    if (advanceRef.current) clearTimeout(advanceRef.current);
+  }, []);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Stage 6 (§19): the timer writes elapsed into state every second; the
   // persist effect below reads it from a ref so it does not re-save on
@@ -119,10 +146,11 @@ export default function TestClient() {
       seconds: elapsedRef.current,
       type: testType,
       scope,
+      timeLimitMinutes,
       startedAt: startedAtRef.current,
       temporary,
     });
-  }, [phase, questions, idx, results, mistakesTotal, testType, scope, temporary]);
+  }, [phase, questions, idx, results, mistakesTotal, testType, scope, timeLimitMinutes, temporary]);
 
   // Persist the best Test Mode score for the accuracy badges (see badges.ts),
   // and record the completed session in the local test history.
@@ -172,6 +200,16 @@ export default function TestClient() {
     return undefined;
   }, [phase, paused]);
 
+  // Time limit enforcement: when a limit is set and the clock reaches
+  // it, the test ends now (the current unanswered question counts as
+  // missed on the done screen). 0 = unlimited, never enforced.
+  useEffect(() => {
+    if (phase === 'testing' && timeLimitMinutes > 0 && elapsed >= timeLimitMinutes * 60) {
+      setTimeUp(true);
+      setPhase('done');
+    }
+  }, [phase, elapsed, timeLimitMinutes]);
+
   const counts = useMemo(() => {
     if (!progress) return { memorised: 0, learning: 0, practised: 0 };
     let memorised = 0;
@@ -185,18 +223,26 @@ export default function TestClient() {
 
   const weakestCount = useMemo(() => {
     try {
-      return new Set(loadMistakes().map((m) => `${m.surah}:${m.ayah}`)).size;
+      // Corrected mistakes are history, not weak spots — they must not
+      // keep an ayah in the weakest count (or pool) once fixed.
+      return new Set(
+        loadMistakes().filter((m) => !m.corrected).map((m) => `${m.surah}:${m.ayah}`),
+      ).size;
     } catch {
       return 0;
     }
   }, [progress]);
 
   const spanFor = useCallback(() => {
-    const base = SPAN_BY_LENGTH[qLength];
+    // Lines → ayahs from the real Quran totals (see LINES_PER_AYAH).
+    // 1 line → 1 ayah minimum; 15 lines → 10 ayahs, so the longest
+    // questions genuinely reach fifteen mushaf lines.
+    const base = Math.max(1, Math.round(qLines * LINES_PER_AYAH));
     // "Extend Question to Ayah's End" (on by default): a question runs to
-    // the end of its final ayah. Off = it can stop mid-ayah, so cap at 1.
+    // the end of its final ayah. Off = it can stop mid-ayah, so cap at 1
+    // ayah and let loadQuestion truncate the words to the line count.
     return extendToEnd ? base : 1;
-  }, [qLength, extendToEnd]);
+  }, [qLines, extendToEnd]);
 
   const withSpan = useCallback(
     (qs: { surah: number; ayah: number }[]) => {
@@ -267,6 +313,9 @@ export default function TestClient() {
         const mistakes = loadMistakes();
         const byAyah = new Map<string, number>();
         for (const m of mistakes) {
+          // Corrected mistakes are fixed — they must not keep an ayah
+          // dominating the weakest pool.
+          if (m.corrected) continue;
           const k = `${m.surah}:${m.ayah}`;
           byAyah.set(k, (byAyah.get(k) ?? 0) + m.attempts);
         }
@@ -316,27 +365,40 @@ export default function TestClient() {
     setRevealedWords(0);
     setRevealedRest(false);
     try {
-      const res = await fetch(
-        `/api/quran/verses/by_key/${q.surah}:${q.ayah}?fields=text_indopak&translations=20`,
+      // Fetch every ayah in the span, not just the first: a 15-line
+      // question spans several ayahs, and the hidden words must cover
+      // all of them or the length setting is a lie.
+      const parts = await Promise.all(
+        Array.from({ length: q.span }, (_, k) => q.ayah + k).map(async (ayah) => {
+          const res = await fetch(
+            `/api/quran/verses/by_key/${q.surah}:${ayah}?fields=text_indopak&translations=20`,
+          );
+          if (!res.ok) throw new Error('Verse request failed');
+          return res.json();
+        }),
       );
-      if (!res.ok) throw new Error('Verse request failed');
-      const data = await res.json();
-      const v = data?.verse;
-      const arabic: unknown = v?.text_indopak;
-      if (typeof arabic === 'string' && arabic.trim()) {
-        const clean = arabic.trim().replace(/[ﭐ-﷿]/g, '');
-        const words = clean.split(/\s+/).filter(Boolean);
-        setPromptWords(words);
-        // The prompt is the first few words; the rest stays hidden.
-        setPrompt(words.slice(0, 3).join(' '));
-        setRevealedWords(3);
+      const allWords: string[] = [];
+      for (const data of parts) {
+        const arabic: unknown = data?.verse?.text_indopak;
+        if (typeof arabic === 'string' && arabic.trim()) {
+          allWords.push(...arabic.trim().replace(/[ﭐ-﷿]/g, '').split(/\s+/).filter(Boolean));
+        }
       }
+      if (allWords.length === 0) throw new Error('Verse request failed');
+      // "Extend to the ayah's end" off: stop mid-ayah at the line count
+      // (about 9 words per mushaf line). On: the whole span, to the end
+      // of the final ayah.
+      const words = extendToEnd ? allWords : allWords.slice(0, Math.max(3, qLines * WORDS_PER_LINE));
+      setPromptWords(words);
+      // The prompt is the first few words; the rest stays hidden.
+      setPrompt(words.slice(0, 3).join(' '));
+      setRevealedWords(3);
     } catch {
       setNotice('The question text could not be loaded — check your connection and try again.');
     } finally {
       setLoadingQ(false);
     }
-  }, []);
+  }, [extendToEnd, qLines]);
 
   const startTest = useCallback(async () => {
     if (!progress) return;
@@ -408,6 +470,8 @@ export default function TestClient() {
     setElapsed(0);
     setStreak(0);
     setPaused(false);
+    setMarkFlash(null);
+    setTimeUp(false);
     setPhase('testing');
     void loadQuestion(pool[0]);
   }, [progress, duration, poolForScope, loadQuestion, testType, ranges, rangeAyahs, startSurah, startAyah, withSpan, shuffle]);
@@ -424,6 +488,7 @@ export default function TestClient() {
     startedAtRef.current = saved.startedAt;
     setTestType(saved.type as TestType);
     setScope(saved.scope as Scope);
+    setTimeLimitMinutes((saved.timeLimitMinutes ?? 0) as TimeLimitMinutes);
     setQuestions(saved.questions);
     setIdx(saved.idx);
     setResults(saved.results);
@@ -432,6 +497,8 @@ export default function TestClient() {
     elapsedRef.current = saved.seconds;
     setStreak(0);
     setPaused(false);
+    setMarkFlash(null);
+    setTimeUp(false);
     setTemporary(saved.temporary);
     setUnfinished(null);
     setPhase('testing');
@@ -457,7 +524,9 @@ export default function TestClient() {
 
   const answer = useCallback(
     (correct: boolean) => {
-      if (!progress || idx >= questions.length) return;
+      // Ignore taps while the green/red flash is showing — one mark per
+      // question.
+      if (!progress || idx >= questions.length || markFlash !== null) return;
       const q = questions[idx];
       // A question counts as correct only with zero mistakes: a reveal, or
       // a missed mark, makes it a miss. The mistakes counter is a running
@@ -475,25 +544,108 @@ export default function TestClient() {
         next = recordTypeActivity(next, 'revision', q.span);
         saveProgress(next);
         setProgress(next);
+        if (!ok) {
+          // Log the miss into the word-level mistake log, so test
+          // mistakes appear in Mistake History — not just as an ayah
+          // reference on the done screen. The anchor is the first word
+          // the user could not continue with: the next unrevealed word,
+          // or the first hidden word when the rest was revealed. Only
+          // logged when the question text actually loaded — a failed
+          // load leaves no word to point at, and an empty entry would
+          // be invented data.
+          const missedIdx = revealedRest
+            ? 3
+            : Math.min(revealedWords, promptWords.length - 1);
+          if (promptWords.length > missedIdx && missedIdx >= 0) {
+            const word = promptWords[missedIdx];
+            saveMistakes(
+              addMistake(loadMistakes(), {
+                surah: q.surah,
+                ayah: q.ayah,
+                word,
+                expected: word,
+                wordIndex: missedIdx,
+                type: 'missed',
+                source: 'self-mark',
+                date: new Date().toISOString(),
+              }),
+            );
+          }
+        } else {
+          // A clean recall fixes this ayah's earlier mistakes: history
+          // is kept, flagged corrected, and it stops counting as a weak
+          // spot (same rule as the coach's clean recitation).
+          let log = loadMistakes();
+          let changed = false;
+          for (let k = 0; k < q.span; k++) {
+            const nextLog = markMistakesCorrected(log, q.surah, q.ayah + k);
+            if (nextLog !== log) {
+              log = nextLog;
+              changed = true;
+            }
+          }
+          if (changed) saveMistakes(log);
+        }
       }
       if (!ok) setMistakesTotal((m) => m + 1);
       setResults((r) => [...r, ok]);
       setStreak((s) => (ok ? s + 1 : 0));
-      if (idx + 1 >= questions.length) {
-        setPhase('done');
-      } else {
-        const nextIdx = idx + 1;
-        setIdx(nextIdx);
-        void loadQuestion(questions[nextIdx]);
-      }
+      // Flash the card green (correct) or red (missed) for a beat so the
+      // user actually sees it, then move on. The old code advanced
+      // instantly, which is why the colour promise could never be seen.
+      setMarkFlash(ok ? 'correct' : 'missed');
+      if (advanceRef.current) clearTimeout(advanceRef.current);
+      advanceRef.current = setTimeout(() => {
+        setMarkFlash(null);
+        if (idx + 1 >= questions.length) {
+          setPhase('done');
+        } else {
+          const nextIdx = idx + 1;
+          setIdx(nextIdx);
+          void loadQuestion(questions[nextIdx]);
+        }
+      }, 900);
     },
-    [progress, idx, questions, revealedWords, revealedRest, temporary, loadQuestion],
+    [progress, idx, questions, revealedWords, revealedRest, temporary, loadQuestion, markFlash, promptWords],
   );
 
   const skip = useCallback(() => {
     // Swipe / Next skips the question (counts as a miss, like a wrong answer).
     answer(false);
   }, [answer]);
+
+  // Per-user insights, generated only from the user's own test sessions
+  // and mistake log (see lib/insights). On the done screen the session
+  // that just finished is prepended so the numbers include it at once;
+  // everywhere else it is the stored history. With no data yet the
+  // builder returns honest empty-state text, never an invented tip.
+  const insights: TestInsight[] = useMemo(() => {
+    let mistakes: MistakeEntry[] = [];
+    try {
+      mistakes = loadMistakes();
+    } catch {
+      mistakes = [];
+    }
+    const sessionList: TestSessionRecord[] =
+      phase === 'done' && results.length > 0
+        ? [
+            {
+              at: new Date().toISOString(),
+              type: testType,
+              scope,
+              score: results.filter(Boolean).length,
+              total: results.length,
+              mistakes: mistakesTotal,
+              seconds: elapsed,
+              missed: questions
+                .filter((_, i) => !results[i])
+                .map((q) => ({ surah: q.surah, ayah: q.ayah, span: q.span })),
+            },
+            ...sessions,
+          ]
+        : sessions;
+    return buildTestInsights({ mistakes, sessions: sessionList, surahs: ALL_SURAHS });
+  }, [phase, results, questions, mistakesTotal, elapsed, testType, scope, sessions, progress]);
 
   if (progress === null) {
     return (
@@ -524,6 +676,9 @@ export default function TestClient() {
                   : 'A hard test is honest feedback, not a failure. Recite the missed ayahs with the coach and test again tomorrow.'}
           </p>
           <p className="mt-2 text-sm text-white/60">
+            {timeUp
+              ? 'Time ran out — the test ended at the time limit. Unanswered questions count as missed.'
+              : null}
             {mistakesTotal === 1 ? t('test.mistakeOne') : t('test.mistakesMany').replace('{n}', String(mistakesTotal))}
             {temporary ? t('test.tempNote') : t('test.savedNote')}
           </p>
@@ -542,6 +697,34 @@ export default function TestClient() {
               {t('test.seeQueue')}
             </Link>
           </div>
+        </section>
+        {/* What your tests show — per-user insights from your own test
+            history and mistake log (lib/insights). No fixed tips, nothing
+            invented: with no data yet this says so honestly. */}
+        <section aria-label="What your tests show" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+          <h2 className="text-lg font-bold text-[#102E26]">What your tests show</h2>
+          <p className="mt-1 text-sm text-[#5b6b62]">
+            From your own tests and misses on this device — nothing here is guessed.
+          </p>
+          <ul className="mt-3 space-y-2">
+            {insights.map((ins, i) => {
+              const surah = ins.surah ? getSurahById(ins.surah) : undefined;
+              return (
+                <li key={`insight-${i}`} className="rounded-xl border border-[#E5E7EB] px-4 py-3 text-sm">
+                  <span className="block font-bold text-[#102E26]">{ins.title}</span>
+                  <span className="block mt-0.5 leading-relaxed text-[#5b6b62]">{ins.body}</span>
+                  {surah && ins.ayah && (
+                    <Link
+                      href={`/hifz/${surah.slug}?mode=recite&ayah=${ins.ayah}`}
+                      className="mt-1 inline-block font-semibold text-[#1FA36B] underline"
+                    >
+                      {t('test.reciteCoach')}
+                    </Link>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </section>
         {questions.some((_, i) => !results[i]) && (
           <section aria-label="Review missed ayahs" className="rounded-2xl border border-[#DC2626]/40 bg-white p-5 shadow-sm sm:p-6">
@@ -612,6 +795,12 @@ export default function TestClient() {
     const acc = results.length > 0 ? Math.round((correctSoFar / results.length) * 100) : 100;
     const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
     const ss = String(elapsed % 60).padStart(2, '0');
+    // With a time limit the pill counts DOWN the time left; without one
+    // it counts the elapsed time up.
+    const remainingSecs = timeLimitMinutes > 0 ? Math.max(0, timeLimitMinutes * 60 - elapsed) : null;
+    const rmm = remainingSecs === null ? mm : String(Math.floor(remainingSecs / 60)).padStart(2, '0');
+    const rss = remainingSecs === null ? ss : String(remainingSecs % 60).padStart(2, '0');
+    const lowTime = remainingSecs !== null && remainingSecs <= 60;
     const hiddenCount = Math.max(0, promptWords.length - revealedWords);
     return (
       <div className="space-y-4">
@@ -671,8 +860,11 @@ export default function TestClient() {
           </section>
         ) : (
           <>
-        {/* Question card — dark navy deck card */}
-        <section aria-label="Test question" className={`test-card overflow-hidden ${results.length > 0 && idx > 0 ? '' : ''}`}>
+        {/* Question card — dark navy deck card. It turns green when the
+            question is marked correct, red when missed (markFlash, set in
+            answer()), using the .test-card-correct / .test-card-wrong
+            classes in globals.css. */}
+        <section aria-label="Test question" className={`test-card overflow-hidden ${markFlash === 'correct' ? 'test-card-correct' : markFlash === 'missed' ? 'test-card-wrong' : ''}`}>
           <div className="p-6 sm:p-8">
             {loadingQ ? (
               <p className="py-10 text-center text-white/70">{t('test.loadingQuestion')}</p>
@@ -696,6 +888,11 @@ export default function TestClient() {
                   continues{!extendToEnd ? '' : ', to the end of the ayah'}. The card turns green
                   when you get it right, red when there is a mistake.
                 </p>
+                {markFlash && (
+                  <p role="status" className="mt-3 text-base font-bold text-white">
+                    {markFlash === 'correct' ? '✓ Correct — well recalled.' : '✗ Missed — it joins your revision queue.'}
+                  </p>
+                )}
               </>
             )}
           </div>
@@ -735,9 +932,12 @@ export default function TestClient() {
           <span className="rounded-full border border-[#E5E7EB] bg-white px-3 py-1.5 text-sm font-bold">
             🔥 {streak}
           </span>
-          <span className="rounded-full border border-[#E5E7EB] bg-white px-3 py-1.5 text-sm font-bold">
+          <span
+            className={`rounded-full border px-3 py-1.5 text-sm font-bold ${lowTime ? 'border-[#DC2626] bg-[#FEE2E2] text-[#DC2626]' : 'border-[#E5E7EB] bg-white'}`}
+            title={timeLimitMinutes > 0 ? `Time left of your ${timeLimitMinutes}-minute limit` : 'Elapsed time — no time limit set'}
+          >
             <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#DC2626]" aria-hidden="true" />
-            {mm}:{ss}
+            {rmm}:{rss}{remainingSecs !== null ? ' left' : ''}
           </span>
           <button
             type="button"
@@ -754,7 +954,8 @@ export default function TestClient() {
           <button
             type="button"
             onClick={revealNext}
-            className="min-h-11 rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
+            disabled={markFlash !== null}
+            className="min-h-11 rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2] disabled:opacity-50"
             title="Reveal the next word — counts as a mistake"
           >
             {t('test.revealWord')}
@@ -762,7 +963,8 @@ export default function TestClient() {
           <button
             type="button"
             onClick={revealRest}
-            className="min-h-11 rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
+            disabled={markFlash !== null}
+            className="min-h-11 rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2] disabled:opacity-50"
             title="Reveal the rest of the ayah — counts as a mistake"
           >
             {t('test.revealRest')}
@@ -770,7 +972,8 @@ export default function TestClient() {
           <button
             type="button"
             onClick={skip}
-            className="min-h-11 rounded-full border border-[#E5E7EB] px-5 py-2.5 text-sm font-semibold hover:border-[#1FA36B]"
+            disabled={markFlash !== null}
+            className="min-h-11 rounded-full border border-[#E5E7EB] px-5 py-2.5 text-sm font-semibold hover:border-[#1FA36B] disabled:opacity-50"
           >
             {t('test.skip')}
           </button>
@@ -782,14 +985,16 @@ export default function TestClient() {
           <button
             type="button"
             onClick={() => answer(true)}
-            className="min-h-11 rounded-full bg-[#102E26] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+            disabled={markFlash !== null}
+            className="min-h-11 rounded-full bg-[#102E26] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] disabled:opacity-50"
           >
             {t('test.correctBtn')}
           </button>
           <button
             type="button"
             onClick={() => answer(false)}
-            className="min-h-11 rounded-full bg-[#DC2626] px-6 py-2.5 text-sm font-semibold text-white hover:bg-red-800"
+            disabled={markFlash !== null}
+            className="min-h-11 rounded-full bg-[#DC2626] px-6 py-2.5 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-50"
           >
             {t('test.missedBtn')}
           </button>
@@ -1017,38 +1222,57 @@ export default function TestClient() {
                 </button>
               ))}
             </div>
+            <p className="mt-3 text-sm font-semibold">Time limit</p>
+            <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Test time limit">
+              {([0, 5, 10, 15, 30] as TimeLimitMinutes[]).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  aria-pressed={timeLimitMinutes === m}
+                  onClick={() => setTimeLimitMinutes(m)}
+                  className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${timeLimitMinutes === m ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+                >
+                  {m === 0 ? 'No limit' : `${m} min`}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-[#5b6b62]">
+              {timeLimitMinutes === 0
+                ? 'No time limit — test at your own pace.'
+                : `The test ends when ${timeLimitMinutes} minutes are up, even with questions left.`}
+            </p>
           </div>
           <div>
             <p className="text-sm font-semibold">{t('test.qLength')}</p>
             <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Question length">
-              {(['short', 'medium', 'long'] as QLength[]).map((l) => {
-                const lengthLabel = l === 'short' ? t('test.lengthShort') : l === 'medium' ? t('test.lengthMedium') : t('test.lengthLong');
-                return (
+              {(['short', 'medium', 'long'] as const).map((l) => (
                 <button
                   key={l}
                   type="button"
-                  aria-pressed={qLength === l}
-                  onClick={() => setQLength(l)}
-                  className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold capitalize ${qLength === l ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+                  aria-pressed={qLines === LINE_PRESETS[l]}
+                  onClick={() => setQLines(LINE_PRESETS[l])}
+                  className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold capitalize ${qLines === LINE_PRESETS[l] ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
                 >
-                  {lengthLabel} ({SPAN_BY_LENGTH[l]} {SPAN_BY_LENGTH[l] === 1 ? t('common.ayah') : t('common.ayahs')})
+                  {l === 'short' ? t('test.lengthShort') : l === 'medium' ? t('test.lengthMedium') : t('test.lengthLong')} ({LINE_PRESETS[l]} lines)
                 </button>
-                );
-              })}
+              ))}
             </div>
             <label className="mt-2 flex items-center gap-2 text-xs font-semibold text-[#5b6b62]">
               {t('test.linesPerQuestion')}
               <input
                 type="range"
                 min={1}
-                max={10}
+                max={15}
                 value={qLines}
-                onChange={(e) => setQLines(Number(e.target.value))}
-                aria-label="Question length in lines"
+                onChange={(e) => setQLines(Math.min(15, Math.max(1, Number(e.target.value) || 1)))}
+                aria-label="Question length in mushaf lines, 1 to 15"
                 className="w-28"
               />
-              {qLines}
+              {qLines} {qLines === 1 ? 'line' : 'lines'}
             </label>
+            <p className="mt-1 text-xs text-[#5b6b62]">
+              About {Math.max(1, Math.round(qLines * LINES_PER_AYAH))} {Math.max(1, Math.round(qLines * LINES_PER_AYAH)) === 1 ? 'ayah' : 'ayahs'} per question — a long ayah covers more lines than a short one, so this is approximate.
+            </p>
           </div>
         </div>
 
@@ -1113,41 +1337,52 @@ export default function TestClient() {
         )}
       </section>
 
-      {/* Suggested for you */}
+      {/* Suggested for you — real pointers from your own tests and misses
+          (lib/insights), not fixed cards. With no history yet this says so
+          honestly. The two scope shortcuts stay below as quick ways in. */}
       <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <h2 className="text-xl font-bold text-[#102E26]">{t('test.suggested')}</h2>
         <ul className="mt-3 space-y-2">
-          <li>
-            <button
-              type="button"
-              onClick={() => {
-                setScope('weakest');
-                setNotice('Weakest Link selected — the test will use your most-missed ayahs first.');
-              }}
-              className="w-full rounded-xl border border-[#E5E7EB] px-4 py-3 text-left hover:border-[#1FA36B]"
-            >
-              <span className="block font-bold">{t('test.weakestLink')}</span>
-              <span className="block text-sm text-[#5b6b62]">
-                Tests you on the ayahs you miss most ({weakestCount} weak {weakestCount === 1 ? 'ayah' : 'ayahs'}).
-              </span>
-            </button>
-          </li>
-          <li>
-            <button
-              type="button"
-              onClick={() => {
-                setScope('memorised');
-                setNotice('Your Memorization selected — the test covers what you have marked memorised.');
-              }}
-              className="w-full rounded-xl border border-[#E5E7EB] px-4 py-3 text-left hover:border-[#1FA36B]"
-            >
-              <span className="block font-bold">{t('test.scopeMemorised')}</span>
-              <span className="block text-sm text-[#5b6b62]">
-                The strict test: only what you claim to know ({counts.memorised} ayahs).
-              </span>
-            </button>
-          </li>
+          {insights.map((ins, i) => {
+            const surah = ins.surah ? getSurahById(ins.surah) : undefined;
+            return (
+              <li key={`suggested-${i}`} className="rounded-xl border border-[#E5E7EB] px-4 py-3 text-sm">
+                <span className="block font-bold text-[#102E26]">{ins.title}</span>
+                <span className="block mt-0.5 leading-relaxed text-[#5b6b62]">{ins.body}</span>
+                {surah && ins.ayah && (
+                  <Link
+                    href={`/hifz/${surah.slug}?mode=recite&ayah=${ins.ayah}`}
+                    className="mt-1 inline-block font-semibold text-[#1FA36B] underline"
+                  >
+                    {t('test.reciteCoach')}
+                  </Link>
+                )}
+              </li>
+            );
+          })}
         </ul>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setScope('weakest');
+              setNotice('Weakest Link selected — the test will use your most-missed ayahs first.');
+            }}
+            className="min-h-11 rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
+          >
+            {t('test.weakestLink')} ({weakestCount} weak {weakestCount === 1 ? 'ayah' : 'ayahs'})
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setScope('memorised');
+              setNotice('Your Memorization selected — the test covers what you have marked memorised.');
+            }}
+            className="min-h-11 rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
+          >
+            {t('test.scopeMemorised')} ({counts.memorised} ayahs)
+          </button>
+        </div>
         <p className="mt-3 text-xs text-[#5b6b62]">
           Questions never repeat within a session until the whole range is covered, then they recycle.
           A new session starts fresh.

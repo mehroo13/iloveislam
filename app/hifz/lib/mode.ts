@@ -195,7 +195,11 @@ export interface TestSessionRecord {
   missed: { surah: number; ayah: number; span: number }[];
 }
 
-const MAX_TEST_SESSIONS = 20;
+/** Completed test sessions are kept in full (device-local history, newest
+ *  first). The old cap of 20 deleted older sessions; 200 keeps years of
+ *  tests while staying far inside localStorage limits. The Recent tests
+ *  list on the test page still shows only the latest 8. */
+const MAX_TEST_SESSIONS = 200;
 
 export function loadTestSessions(): TestSessionRecord[] {
   try {
@@ -236,6 +240,9 @@ export interface InProgressTest {
   seconds: number;
   type: string;
   scope: string;
+  /** Per-test time limit in minutes chosen at setup (0 or absent =
+   *  unlimited). Saved so a resumed test keeps the same limit. */
+  timeLimitMinutes?: number;
   /** ISO timestamp the test was started. */
   startedAt: string;
   /** Temporary sessions record nothing — but they can still be resumed. */
@@ -250,6 +257,7 @@ function isValidInProgress(value: unknown): value is InProgressTest {
   if (!Array.isArray(v.results) || v.results.length !== v.idx) return false;
   if (typeof v.mistakes !== 'number' || typeof v.seconds !== 'number') return false;
   if (typeof v.type !== 'string' || typeof v.scope !== 'string') return false;
+  if (v.timeLimitMinutes !== undefined && (typeof v.timeLimitMinutes !== 'number' || v.timeLimitMinutes < 0)) return false;
   if (typeof v.startedAt !== 'string' || typeof v.temporary !== 'boolean') return false;
   return v.questions.every(
     (q) =>
