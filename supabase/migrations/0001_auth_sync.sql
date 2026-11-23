@@ -115,6 +115,17 @@ create policy "own challenge memberships" on public.challenge_members
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- ------------------------------------------------------------------
+-- Table privileges: RLS policies filter rows, but they do NOT grant
+-- table access. Without these, even a signed-in user gets
+-- `42501 permission denied` on every sync read/write (verified live
+-- 2026-11-23: an authenticated select/upsert on sync_docs failed with
+-- 42501). Guests never touch these tables, so grants go to the
+-- `authenticated` role only — never to `anon`.
+-- ------------------------------------------------------------------
+grant select, insert, update, delete on all tables in schema public to authenticated;
+grant usage, select on all sequences in schema public to authenticated;
+
+-- ------------------------------------------------------------------
 -- Profile row auto-created on sign-up (keeps `profiles` in sync with
 -- auth.users without any client write).
 -- ------------------------------------------------------------------
