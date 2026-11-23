@@ -663,7 +663,7 @@ export default function MushafPageView({
         </div>
       )}
 
-      {/* Bottom bar: Mistakes / bookmarks / hide + the big mic orb. */}
+      {/* Bottom bar: Mistakes / bookmarks / hide / practice modes + the big mic orb. */}
       <MushafBottomBar
         hideActive={hideVerses}
         onToggleHide={() => {
@@ -672,6 +672,7 @@ export default function MushafPageView({
           setPeekCount(0);
         }}
         onMic={() => selectPracticeMode('recite')}
+        onSelectMode={selectPracticeMode}
       />
       {/* Bottom clearance: the fixed bottom bar's top edge sits 140px
           above the viewport bottom (76px tab bar + 64px mic orb), so the

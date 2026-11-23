@@ -157,9 +157,10 @@ function readSavedPos(): SavedPos | null {
 /* ------------------------------------------------------------------ */
 /*  Reader chrome (Tarteel-clean) — shared with MushafPageView.       */
 /*  Top bar: hamburger | centre location pill | bookmark / search /   */
-/*  settings. Bottom bar: Mistakes pill, bookmarks, hide toggle and   */
-/*  the big green mic orb. No gift icon (that was a Premium afford-   */
-/*  ance) and no Tarteel logo, name, artwork or exact text.           */
+/*  settings. Bottom bar: Mistakes pill, bookmarks, hide toggle,      */
+/*  practice-mode picker and the big green mic orb. No gift icon       */
+/*  (that was a Premium affordance) and no Tarteel logo, name,         */
+/*  artwork or exact text.                                             */
 /* ------------------------------------------------------------------ */
 
 function IconMenu({ className }: { className?: string }) {
@@ -298,13 +299,17 @@ export function MushafBottomBar({
   hideActive,
   onToggleHide,
   onMic,
+  onSelectMode,
 }: {
   hideActive: boolean;
   onToggleHide: () => void;
   /** Starts Recite mode (mic tap = Recite, as in the reference). */
   onMic: () => void;
+  /** Practice-mode picker (Reading / Recite / Listen / Memorise / Test). */
+  onSelectMode?: (m: HifzMode) => void;
 }) {
   const t = useT();
+  const [modesOpen, setModesOpen] = useState(false);
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-[76px] z-40">
       <div className="mx-auto flex max-w-5xl items-end justify-between gap-2 px-3 sm:px-4">
@@ -331,6 +336,23 @@ export function MushafBottomBar({
           >
             <IconEyeOff className="h-5 w-5" />
           </button>
+          {onSelectMode && (
+            <button
+              type="button"
+              onClick={() => setModesOpen(true)}
+              aria-label={t('mode.practiceMode')}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-white text-[#111827] shadow-md ring-1 ring-[#E8EAED] hover:bg-[#F3F4F6]"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-5 w-5" aria-hidden="true">
+                <line x1="8" y1="6" x2="21" y2="6" />
+                <line x1="8" y1="12" x2="21" y2="12" />
+                <line x1="8" y1="18" x2="21" y2="18" />
+                <line x1="3" y1="6" x2="3.01" y2="6" />
+                <line x1="3" y1="12" x2="3.01" y2="12" />
+                <line x1="3" y1="18" x2="3.01" y2="18" />
+              </svg>
+            </button>
+          )}
         </div>
         <button
           type="button"
@@ -341,6 +363,16 @@ export function MushafBottomBar({
           <IconMic className="h-8 w-8" />
         </button>
       </div>
+      {onSelectMode && (
+        <ReaderSheet open={modesOpen} onClose={() => setModesOpen(false)} side="right" title={t('mode.practiceMode')}>
+          <PracticeModeList
+            onSelect={(m) => {
+              setModesOpen(false);
+              onSelectMode(m);
+            }}
+          />
+        </ReaderSheet>
+      )}
     </div>
   );
 }
@@ -2114,7 +2146,7 @@ export default function MushafReader() {
         </div>
       )}
 
-      {/* Bottom bar: Mistakes / bookmarks / hide + the big mic orb. */}
+      {/* Bottom bar: Mistakes / bookmarks / hide / practice modes + the big mic orb. */}
       <MushafBottomBar
         hideActive={hideVerses}
         onToggleHide={() => {
@@ -2123,6 +2155,7 @@ export default function MushafReader() {
           setPeekCount(0);
         }}
         onMic={() => selectPracticeMode('recite')}
+        onSelectMode={selectPracticeMode}
       />
 
       {/* Listen bar (word-by-word follow-along): floats above the
