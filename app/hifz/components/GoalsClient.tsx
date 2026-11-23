@@ -43,6 +43,8 @@ interface Goal {
   remindTime?: string;
   /** Optional deadline (YYYY-MM-DD) for flexible goals. */
   deadline?: string;
+  /** Archived goals hide from Active / Today's / Upcoming; they live in Archived. */
+  archived?: boolean;
 }
 
 const GOALS_KEY = 'ili_goals_v1';
@@ -113,7 +115,7 @@ function currentMonthEnd(): string {
 
 type Suggestion = { label: string; note: string; action: GoalAction; range: string; portion: string; schedule: string };
 
-export default function GoalsClient({ preset }: { preset?: string }) {
+export default function GoalsClient({ preset, createOpenSignal }: { preset?: string; createOpenSignal?: number }) {
   const t = useT();
   const SUGGESTIONS: Suggestion[] = [
     { label: t('hub.completeQuran'), note: t('hub.completeQuranNote'), action: 'Recite', range: 'Whole Quran (114 surahs)', portion: '1 page a day', schedule: 'Every day' },
@@ -143,9 +145,15 @@ export default function GoalsClient({ preset }: { preset?: string }) {
   const [recurring, setRecurring] = useState(true);
   const [deadline, setDeadline] = useState('');
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
+  // Progress-hub tab: the create form (templates + new-goal form +
+  // suggestions) opens behind a START A NEW GOAL button.
+  const [showCreate, setShowCreate] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
-    setGoals(loadGoals());
+    const loaded = loadGoals();
+    setGoals(loaded);
+    if (loaded.length === 0 || preset === 'kahf') setShowCreate(true);
     try {
       setProgress(loadProgress());
     } catch {
@@ -160,6 +168,12 @@ export default function GoalsClient({ preset }: { preset?: string }) {
       setRecurring(true);
     }
   }, [preset]);
+
+  // Opened from My Progress → Dashboard ("Start a new goal"): open the
+  // create form when the signal changes.
+  useEffect(() => {
+    if (createOpenSignal && createOpenSignal > 0) setShowCreate(true);
+  }, [createOpenSignal]);
 
   const persist = (next: Goal[]) => {
     setGoals(next);
@@ -199,6 +213,9 @@ export default function GoalsClient({ preset }: { preset?: string }) {
   };
 
   const deleteGoal = (id: string) => persist(goals.filter((g) => g.id !== id));
+
+  const setArchived = (id: string, archived: boolean) =>
+    persist(goals.map((g) => (g.id === id ? { ...g, archived } : g)));
 
   const setReminder = (id: string, remind: boolean, remindTime?: string) => {
     persist(
@@ -264,6 +281,45 @@ export default function GoalsClient({ preset }: { preset?: string }) {
     };
   };
 
+  // --- Progress-hub tab sections: Active / Today's / Upcoming / Archived,
+  // all from the same stored goals — nothing is computed from new data.
+  const activeGoals = goals.filter((g) => !g.archived);
+  const archivedGoals = goals.filter((g) => g.archived);
+  /** Is this goal due today, from its schedule + real practice in range? */
+  const isDueToday = (g: Goal): boolean => {
+    const dow = new Date().getDay(); // 0 = Sunday
+    if (g.schedule === 'Every day') return true;
+    if (g.schedule === 'Weekdays') return dow >= 1 && dow <= 5;
+    if (g.schedule === 'Every Friday') return dow === 5;
+    if (g.schedule === '3 days a week') {
+      const p = goalProgress(g);
+      if (!p) return true; // unmeasurable range — show it rather than hide it
+      const practisedDays = p.days.filter((d) => d.practised).length;
+      return !p.practisedToday && practisedDays < 3;
+    }
+    return true; // unknown schedule — show in Today rather than lose it
+  };
+  const todaysGoals = activeGoals.filter(isDueToday);
+  const upcomingGoals = activeGoals.filter((g) => !isDueToday(g));
+
+  /** One compact row for the Today's / Upcoming lists. */
+  const GoalRow = ({ g }: { g: Goal }) => {
+    const p = goalProgress(g);
+    const pct = p && p.total > 0 ? Math.round((p.memorised / p.total) * 100) : null;
+    return (
+      <li className="flex flex-wrap items-center gap-2 rounded-xl bg-[#FFFBF2] px-3 py-2 text-sm">
+        <span className="font-semibold text-[#102E26]">{g.name}</span>
+        <span className="text-[#5b6b62]">
+          {g.range} · {g.portion} · {g.schedule}
+        </span>
+        {pct !== null && <span className="font-bold text-[#1FA36B]">{pct}% memorised</span>}
+        <Link href="/hifz/recite" className="ml-auto font-semibold text-[#1FA36B] underline">
+          Practise now →
+        </Link>
+      </li>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {savedMsg && (
@@ -294,11 +350,23 @@ export default function GoalsClient({ preset }: { preset?: string }) {
         </section>
       )}
 
-      {/* My goals */}
-      {goals.length > 0 && (
+      {/* Start a new goal — opens the templates + create form below. */}
+      <div>
+        <button
+          type="button"
+          aria-expanded={showCreate}
+          onClick={() => setShowCreate((v) => !v)}
+          className="min-h-11 rounded-full bg-[#57D798] px-6 py-3 text-sm font-bold text-[#102E26] hover:brightness-105"
+        >
+          {showCreate ? 'Close' : 'START A NEW GOAL'}
+        </button>
+      </div>
+
+      {/* Active goals */}
+      {activeGoals.length > 0 && (
         <section aria-labelledby="mine-heading" className="space-y-4">
-          <h2 id="mine-heading" className="text-xl font-bold text-[#102E26]">{t('goal.myGoals')}</h2>
-          {goals.map((g) => {
+          <h2 id="mine-heading" className="text-xl font-bold text-[#102E26]">Active</h2>
+          {activeGoals.map((g) => {
             const p = goalProgress(g);
             const pct = p && p.total > 0 ? Math.round((p.memorised / p.total) * 100) : null;
             return (
@@ -384,6 +452,13 @@ export default function GoalsClient({ preset }: { preset?: string }) {
                   </Link>
                   <button
                     type="button"
+                    onClick={() => setArchived(g.id, true)}
+                    className="text-sm font-semibold text-[#5b6b62] underline"
+                  >
+                    Archive
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => deleteGoal(g.id)}
                     className="text-sm font-semibold text-red-700 underline"
                   >
@@ -396,6 +471,76 @@ export default function GoalsClient({ preset }: { preset?: string }) {
         </section>
       )}
 
+      {activeGoals.length === 0 && (
+        <p><span className="rounded-full bg-[#E5E7EB] px-3 py-1 text-xs font-bold text-[#5b6b62]">None</span></p>
+      )}
+
+      {/* Today's goals — active goals whose schedule falls today. */}
+      <section aria-labelledby="today-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+        <h2 id="today-heading" className="text-xl font-bold text-[#102E26]">Today&apos;s goals</h2>
+        {todaysGoals.length === 0 ? (
+          <p className="mt-3"><span className="rounded-full bg-[#E5E7EB] px-3 py-1 text-xs font-bold text-[#5b6b62]">None</span></p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {todaysGoals.map((g) => (
+              <GoalRow key={g.id} g={g} />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Upcoming goals — active goals not due today. */}
+      <section aria-labelledby="upcoming-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+        <h2 id="upcoming-heading" className="text-xl font-bold text-[#102E26]">Upcoming goals</h2>
+        {upcomingGoals.length === 0 ? (
+          <p className="mt-3"><span className="rounded-full bg-[#E5E7EB] px-3 py-1 text-xs font-bold text-[#5b6b62]">None</span></p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {upcomingGoals.map((g) => (
+              <GoalRow key={g.id} g={g} />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Archived goals — collapsible; archiving never deletes a goal. */}
+      <section aria-labelledby="archived-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="archived-heading" className="text-xl font-bold text-[#102E26]">Archived</h2>
+          <button
+            type="button"
+            aria-expanded={showArchived}
+            onClick={() => setShowArchived((v) => !v)}
+            className="min-h-11 rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
+          >
+            {showArchived ? 'Hide' : `Show (${archivedGoals.length})`}
+          </button>
+        </div>
+        {showArchived &&
+          (archivedGoals.length === 0 ? (
+            <p className="mt-3"><span className="rounded-full bg-[#E5E7EB] px-3 py-1 text-xs font-bold text-[#5b6b62]">None</span></p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {archivedGoals.map((g) => (
+                <li key={g.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-[#FFFBF2] px-3 py-2 text-sm">
+                  <span className="font-semibold text-[#102E26]">{g.name}</span>
+                  <span className="text-[#5b6b62]">{g.range} · {g.portion} · {g.schedule}</span>
+                  <span className="ml-auto flex gap-3">
+                    <button type="button" onClick={() => setArchived(g.id, false)} className="font-semibold text-[#1FA36B] underline">
+                      Unarchive
+                    </button>
+                    <button type="button" onClick={() => deleteGoal(g.id)} className="font-semibold text-red-700 underline">
+                      {t('goal.deleteGoal')}
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ))}
+      </section>
+
+      {showCreate && (
+        <>
       {/* Stage 6 (§17): one-tap templates for the six goal kinds in the brief. */}
       <section aria-labelledby="templates-heading">
         <h2 id="templates-heading" className="text-xl font-bold text-[#102E26]">Start from a template</h2>
@@ -572,6 +717,8 @@ export default function GoalsClient({ preset }: { preset?: string }) {
           ))}
         </div>
       </section>
+        </>
+      )}
 
       <p className="text-sm text-[#5b6b62]">
         {t('goal.footerA')}{' '}

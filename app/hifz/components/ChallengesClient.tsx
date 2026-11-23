@@ -201,7 +201,7 @@ export default function ChallengesClient() {
       </section>
 
       {/* Quran League — time-boxed, goal-led, points, teams */}
-      <section aria-labelledby="league-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+      <section id="community-league" aria-labelledby="league-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <h2 id="league-heading" className="text-xl font-bold text-[#102E26]">{t('chal.league')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           A time-boxed race to goodness: join a League, set a memorisation goal (for example 80
@@ -329,7 +329,7 @@ export default function ChallengesClient() {
       )}
 
       {/* Create */}
-      <section aria-labelledby="create-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+      <section id="community-create" aria-labelledby="create-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <h2 id="create-heading" className="text-xl font-bold text-[#102E26]">{t('chal.startChallenge')}</h2>
         <div className="mt-4 space-y-4">
           <label className="block text-sm font-semibold">
@@ -401,7 +401,7 @@ export default function ChallengesClient() {
       </section>
 
       {/* Join with a bare code */}
-      <section aria-labelledby="join-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+      <section id="community-join" aria-labelledby="join-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <h2 id="join-heading" className="text-xl font-bold text-[#102E26]">{t('chal.joinCode')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
           Got a code but no link? Enter it here with the surah, target and length your

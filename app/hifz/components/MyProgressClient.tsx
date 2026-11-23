@@ -24,6 +24,8 @@ import { loadTestSessions, loadInProgressTest, type TestSessionRecord, type InPr
 import { getSurahById, ALL_SURAHS } from '../surahs';
 import { buildBadgeSnapshot, loadBestTestPct } from '../badges';
 import BadgesGrid from './BadgesGrid';
+import GoalsClient from './GoalsClient';
+import ChallengesClient from './ChallengesClient';
 import ToolIcon from '../../components/ToolIcon';
 import { useT } from '../lib/i18n';
 
@@ -44,6 +46,119 @@ function GoalRing({ done, target }: { done: number; target: number }) {
         {pct}%
       </text>
     </svg>
+  );
+}
+
+
+const TABS = [
+  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'goals', label: 'Goals' },
+  { id: 'memorization', label: 'Memorization' },
+  { id: 'activity', label: 'Activity' },
+  { id: 'community', label: 'Community' },
+] as const;
+type ProgressTab = (typeof TABS)[number]['id'];
+
+/** Streak card (Dashboard + Activity tabs): flame, day count, longest
+ *  streak, and Fri–Thu week diamonds from real practice data. */
+function StreakCard({ streak, longestStreak, activity }: {
+  streak: number;
+  longestStreak: number;
+  activity: Record<string, number>;
+}) {
+  const now = new Date();
+  const back = (now.getDay() - 5 + 7) % 7; // days since Friday (5)
+  const friday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - back);
+  const labels = ['Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
+  const days = labels.map((label, i) => {
+    const d = new Date(friday.getFullYear(), friday.getMonth(), friday.getDate() + i);
+    const key = localDateString(d);
+    return { label, date: key, active: (activity[key] ?? 0) > 0, future: d > now };
+  });
+  return (
+    <div className="t-card rounded-2xl p-5 shadow-sm">
+      <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
+        <ToolIcon name="flame" className="h-4 w-4 text-[#FFB800]" /> Streak
+      </p>
+      <p className="mt-2 text-4xl font-bold text-[#102E26]">{streak} Day</p>
+      <p className="mt-1 text-sm text-[#5b6b62]">
+        Longest Streak {longestStreak} Day
+      </p>
+      <div className="mt-4 flex items-start justify-between gap-1" role="img" aria-label="Days practised this week, Friday to Thursday">
+        {days.map((d) => (
+          <span key={d.date} className="flex flex-1 flex-col items-center gap-1.5" title={`${d.label} ${d.date}: ${d.active ? 'practised' : d.future ? 'not yet' : 'no practice recorded'}`}>
+            <span
+              className={`block h-3.5 w-3.5 rotate-45 rounded-[3px] ${d.active ? 'bg-[#1FA36B]' : d.future ? 'border border-[#E5E7EB] bg-transparent' : 'bg-[#E5E7EB]'}`}
+            />
+            <span className="text-[10px] font-semibold text-[#5b6b62]">{d.label}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** One per-type daily goal card (Dashboard Today's Goals + Memorization
+ *  Goals). A target of 0 renders as "Not Set" — targets default to 3/3/5,
+ *  so this is only a defensive branch, never invented data. */
+function TypeGoalCard({ type, goal, onTargetChange, onLog }: {
+  type: GoalType;
+  goal: { done: number; target: number };
+  onTargetChange: (type: GoalType, target: number) => void;
+  onLog: (type: GoalType, count: number) => void;
+}) {
+  const t = useT();
+  const met = goal.target > 0 && goal.done >= goal.target;
+  return (
+    <div className="rounded-xl border border-[#E5E7EB] bg-[#FFFBF2] p-4">
+      <div className="flex items-center gap-3">
+        {goal.target > 0 ? (
+          <GoalRing done={goal.done} target={goal.target} />
+        ) : (
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#E5E7EB] text-xs font-bold text-[#5b6b62]">Not set</span>
+        )}
+        <div className="min-w-0">
+          <p className="font-bold text-[#102E26]">{GOAL_TYPE_LABELS[type]}</p>
+          <p className="text-sm text-[#5b6b62]">
+            {goal.target > 0 ? (
+              <>{goal.done} / {goal.target} {t('common.ayahs')} {met ? t('prog.goalMetShort') : t('prog.today')}</>
+            ) : (
+              'Not Set'
+            )}
+          </p>
+        </div>
+      </div>
+      <p className="mt-2 text-xs leading-relaxed text-[#5b6b62]">{GOAL_TYPE_DESCRIPTIONS[type]}</p>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <label className="flex items-center gap-1.5 text-xs font-semibold text-[#5b6b62]">
+          {t('prog.target')}
+          <select
+            value={goal.target}
+            onChange={(e) => onTargetChange(type, Number(e.target.value))}
+            className="min-h-11 rounded-lg border border-[#E5E7EB] bg-white px-2 py-1.5 text-sm"
+            aria-label={`${GOAL_TYPE_LABELS[type]} daily target in ayahs`}
+          >
+            {TYPE_GOAL_OPTIONS.map((n) => (
+              <option key={n} value={n}>{t('prog.ayahsOption').replace('{n}', String(n))}</option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          onClick={() => onLog(type, 1)}
+          className="min-h-11 rounded-full border border-[#1FA36B] px-3 py-1.5 text-xs font-semibold text-[#1FA36B] hover:bg-[#E4FFF2]"
+        >
+          {t('prog.plusOne')}
+        </button>
+        <button
+          type="button"
+          onClick={() => onLog(type, 5)}
+          className="min-h-11 rounded-full border border-[#1FA36B] px-3 py-1.5 text-xs font-semibold text-[#1FA36B] hover:bg-[#E4FFF2]"
+        >
+          {t('prog.plusFive')}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -102,6 +217,14 @@ export default function MyProgressClient() {
   }, []);
   // Engagement chart range.
   const [chartRange, setChartRange] = useState<'day' | 'week' | 'month'>('day');
+  // 5-tab progress hub (Dashboard / Goals / Memorization / Activity /
+  // Community), in the style of the Tarteel app screenshots.
+  const [tab, setTab] = useState<ProgressTab>('dashboard');
+  // Signal from the Dashboard's START A NEW GOAL button: opens the
+  // Goals tab's create form (GoalsClient watches this prop).
+  const [goalsCreateSignal, setGoalsCreateSignal] = useState(0);
+  // Real local groups, for the Community tab's My Groups card.
+  const [groups, setGroups] = useState(() => loadChallenges());
 
   const reload = useCallback(() => {
     try {
@@ -111,6 +234,7 @@ export default function MyProgressClient() {
       setNotice(getStorageNotice());
       setTestSessions(loadTestSessions());
       setUnfinishedTest(loadInProgressTest());
+      setGroups(loadChallenges());
     } catch {
       setProgress(null);
       setNotice(t('prog.loadError'));
@@ -119,6 +243,16 @@ export default function MyProgressClient() {
 
   useEffect(() => {
     reload();
+    try {
+      const q = new URLSearchParams(window.location.search);
+      const requested = q.get('tab');
+      if (
+        requested === 'goals' || requested === 'memorization' ||
+        requested === 'activity' || requested === 'community' || requested === 'dashboard'
+      ) setTab(requested);
+    } catch {
+      /* ignore */
+    }
     // Offline coach (§15.10): is the service worker actually controlling this page?
     try {
       if ('serviceWorker' in navigator) {
@@ -164,6 +298,7 @@ export default function MyProgressClient() {
   const memorised = Object.entries(progress.ayahs).filter(([, a]) => a.status === 'memorised');
   const learning = Object.entries(progress.ayahs).filter(([, a]) => a.status === 'learning');
   const goalPct = Math.min(100, Math.round((minutesToday / progress.dailyGoalMinutes) * 100));
+  const memorisedPct = Math.round((memorised.length / 6236) * 100);
   // Per-type daily goals (§15.8): separate targets + counters.
   const typeGoals = getTypeGoals(progress);
 
@@ -391,25 +526,39 @@ export default function MyProgressClient() {
         </p>
       )}
 
-      {/* Streak + daily goal */}
-      <section aria-labelledby="streak-heading" className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
-            <ToolIcon name="flame" className="h-4 w-4 text-[#FFB800]" /> {t('prog.streak')}
-          </p>
-          <p className="mt-2 text-4xl font-bold text-[#102E26]">{streak}</p>
-          <p className="mt-1 text-sm text-[#5b6b62]">
-            {streak === 0
-              ? t('prog.noStreak')
-              : streak === 1
-                ? t('prog.dayInRow')
-                : t('prog.daysInRow')}
-          </p>
-          <p className="mt-1 text-sm text-[#5b6b62]">
-            Longest streak: <strong className="text-[#102E26]">{longestStreak}</strong>{' '}
-            {longestStreak === 1 ? 'day' : 'days'}
-          </p>
-        </div>
+      {/* 5-tab progress hub — Dashboard / Goals / Memorization / Activity / Community. */}
+      <div role="tablist" aria-label="Progress sections" className="flex gap-1 overflow-x-auto border-b border-[#E8EAED] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {TABS.map((tb) => (
+          <button
+            key={tb.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === tb.id}
+            onClick={() => setTab(tb.id)}
+            className={`shrink-0 border-b-2 px-3 py-2 text-sm font-semibold ${
+              tab === tb.id
+                ? 'border-[#1FA36B] font-bold text-[#111827]'
+                : 'border-transparent text-[#6B7280] hover:text-[#111827]'
+            }`}
+          >
+            {tb.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'dashboard' && (
+        <div className="space-y-6" role="tabpanel" aria-label="Dashboard">
+          {/* Guest-safe greeting: no name is stored anywhere on this device,
+              so no name is shown — never a fake one. */}
+          <div>
+            <h2 className="text-2xl font-bold text-[#102E26]">Salam!</h2>
+            <p className="mt-1 text-sm text-[#5b6b62]">
+              Your hifz at a glance — every number below comes from your practice on this device.
+            </p>
+          </div>
+
+          <section aria-label="Streak and daily goal" className="grid gap-4 sm:grid-cols-2">
+            <StreakCard streak={streak} longestStreak={longestStreak} activity={activity} />
         <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">{t('prog.dailyGoal')}</p>
           <p className="mt-2 text-4xl font-bold text-[#102E26]">
@@ -435,20 +584,61 @@ export default function MyProgressClient() {
             </select>
           </label>
         </div>
-        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">{t('prog.memorised')}</p>
-          <p className="mt-2 text-4xl font-bold text-[#102E26]">{memorised.length}</p>
-          <p className="mt-1 text-sm text-[#5b6b62]">
-            {learning.length} {learning.length === 1 ? 'ayah' : 'ayahs'} learning · an ayah counts
-            as memorised after 3 correct recitations in a row.
-          </p>
-          {progress.activePlan && (
-            <p className="mt-2 text-sm text-[#5b6b62]">
-              {t('prog.activePlan').replace('{days}', String(progress.activePlan.planDays)).replace('{day}', String(progress.activePlan.currentDay))}
+          </section>
+
+          {/* Free-features promo — our own line; nothing is upsold, everything is free. */}
+          <section aria-label="Explore free features" className="t-card rounded-2xl p-5 shadow-sm sm:p-6">
+            <h2 className="text-xl font-bold text-[#102E26]">Keep going — every tool here is free</h2>
+            <p className="mt-1 text-sm text-[#5b6b62]">
+              Recite with the coach, test yourself, set goals and track every ayah — no account, no limits, no cost.
             </p>
-          )}
-        </div>
-      </section>
+            <Link
+              href="/hifz/memorize"
+              className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full bg-gradient-to-r from-cyan-400 to-[#57D798] px-5 py-2.5 text-sm font-bold text-[#102E26] hover:brightness-105"
+            >
+              Explore all features →
+            </Link>
+          </section>
+
+          {/* Highlights — Testing Mode, with the real best score when one exists. */}
+          <section aria-label="Highlights" className="t-card rounded-2xl p-5 shadow-sm sm:p-6">
+            <h2 className="text-xl font-bold text-[#102E26]">Highlights</h2>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#FFFBF2] px-4 py-3">
+              <div>
+                <p className="font-bold text-[#102E26]">Testing Mode</p>
+                <p className="text-sm text-[#5b6b62]">
+                  {bestTestPct !== null
+                    ? `Your best test score so far is ${bestTestPct}%.`
+                    : 'Test what you have memorised — six test types, instant scores.'}
+                </p>
+              </div>
+              <Link href="/hifz/test" className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]">
+                Open Test Mode →
+              </Link>
+            </div>
+          </section>
+
+          {/* Today's goals — the three per-type daily goals, with a way to start a new goal. */}
+          <section aria-labelledby="today-goals-heading" className="t-card rounded-2xl p-5 shadow-sm sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 id="today-goals-heading" className="text-xl font-bold text-[#102E26]">Today&apos;s goals</h2>
+              <button
+                type="button"
+                onClick={() => { setGoalsCreateSignal((n) => n + 1); setTab('goals'); }}
+                className="min-h-11 rounded-full bg-[#57D798] px-5 py-2 text-sm font-bold text-[#102E26] hover:brightness-105"
+              >
+                START A NEW GOAL
+              </button>
+            </div>
+            <p className="mt-1 text-sm text-[#5b6b62]">
+              One goal per kind of practice, in ayahs per day.
+            </p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+              {(Object.keys(GOAL_TYPE_LABELS) as GoalType[]).map((type) => (
+                <TypeGoalCard key={type} type={type} goal={typeGoals[type]} onTargetChange={changeTypeTarget} onLog={logType} />
+              ))}
+            </div>
+          </section>
 
       {/* Stage 6 (§18): totals — every number traces to stored progress. */}
       <section aria-label="Totals" className="grid grid-cols-2 gap-4 sm:grid-cols-5">
@@ -483,7 +673,7 @@ export default function MyProgressClient() {
           <p className="mt-1 text-3xl font-bold text-[#102E26]">
             {typeGoals.reading.done}<span className="text-lg text-[#5b6b62]"> / {typeGoals.reading.target}</span>
           </p>
-          <p className="mt-1 text-xs text-[#5b6b62]">ayahs · log more in the goals below</p>
+          <p className="mt-1 text-xs text-[#5b6b62]">ayahs · log more on the Goals tab</p>
         </div>
       </section>
 
@@ -520,9 +710,9 @@ export default function MyProgressClient() {
                 {peeked.length > 0 ? `${peeked.length} peeked at and not yet recited clean. ` : ''}
                 {due.length > 0 ? `${due.length} due by the revision schedule.` : ''}
               </p>
-              <a href="#revision" className="mt-3 inline-block font-semibold text-[#1FA36B] underline">
+              <button type="button" onClick={() => setTab('memorization')} className="mt-3 inline-block font-semibold text-[#1FA36B] underline">
                 See the revision queue →
-              </a>
+              </button>
             </>
           ) : (
             <p className="mt-2 text-sm text-[#5b6b62]">
@@ -558,158 +748,97 @@ export default function MyProgressClient() {
         </div>
       </section>
 
-      {/* Badges — free achievements earned by practice (§23) */}
-      <BadgesGrid snapshot={badgeSnapshot} />
-
-      {/* Add Session — off-platform session / streak restore (screenshot 7) */}
-      <section aria-labelledby="add-session-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 id="add-session-heading" className="text-xl font-bold text-[#102E26]">{t('prog.addSession')}</h2>
-          <span className="rounded-full bg-[#57D798] px-3 py-1 text-xs font-bold text-[#102E26]">+ ADD SESSION</span>
-        </div>
-        <p className="mt-1 text-sm text-[#5b6b62]">
-          Read or recited away from the app — from a printed mushaf, in class, with a teacher?
-          Log it here. A session for yesterday restores a missed day&apos;s streak.
-        </p>
-        <div className="mt-4 flex flex-wrap items-end gap-3">
-          <label className="text-xs font-semibold text-[#5b6b62]">
-            {t('prog.date')}
-            <input
-              type="date"
-              value={addDate}
-              onChange={(e) => setAddDate(e.target.value)}
-              className="mt-1 block min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
-            />
-          </label>
-          <label className="text-xs font-semibold text-[#5b6b62]">
-            {t('prog.type')}
-            <select
-              value={addType}
-              onChange={(e) => setAddType(e.target.value as GoalType)}
-              className="mt-1 block min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
-            >
-              {(Object.keys(GOAL_TYPE_LABELS) as GoalType[]).map((t) => (
-                <option key={t} value={t}>{GOAL_TYPE_LABELS[t]}</option>
-              ))}
-            </select>
-          </label>
-          <label className="text-xs font-semibold text-[#5b6b62]">
-            {t('prog.ayahs')}
-            <input
-              type="number"
-              min={1}
-              max={6236}
-              value={addAyahs}
-              onChange={(e) => setAddAyahs(Number(e.target.value) || 1)}
-              className="mt-1 block w-20 min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
-            />
-          </label>
-          <label className="text-xs font-semibold text-[#5b6b62]">
-            {t('prog.minutesLabel')}
-            <input
-              type="number"
-              min={1}
-              max={600}
-              value={addMinutes}
-              onChange={(e) => setAddMinutes(Number(e.target.value) || 1)}
-              className="mt-1 block w-20 min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
-            />
-          </label>
-          <button
-            type="button"
-            onClick={doAddSession}
-            className="min-h-11 rounded-full bg-[#57D798] px-5 py-2 text-sm font-bold text-[#102E26] hover:brightness-105"
-          >
-            {t('prog.addSessionBtn')}
-          </button>
-        </div>
-        {addMsg && (
-          <p role="status" className="mt-3 text-sm font-semibold text-[#1FA36B]">{addMsg}</p>
-        )}
-        {sessions.length > 0 && (
-          <ul className="mt-3 space-y-1 text-sm">
-            {sessions.slice(0, 5).map((sess, i) => (
-              <li key={i} className="flex flex-wrap gap-2 rounded-lg bg-[#FFFBF2] px-3 py-2">
-                <span className="font-semibold">{sess.date}</span>
-                <span>{GOAL_TYPE_LABELS[sess.type as GoalType] ?? sess.type}</span>
-                <span className="text-[#5b6b62]">{sess.ayahs} ayahs · {sess.minutes} min</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {/* Engagement chart — time / ayahs by day, week, month */}
-      <section aria-labelledby="engagement-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 id="engagement-heading" className="text-xl font-bold text-[#102E26]">{t('prog.engagement')}</h2>
-          <div className="flex gap-1" role="group" aria-label="Chart range">
-            {(['day', 'week', 'month'] as const).map((r) => (
-              <button
-                key={r}
-                type="button"
-                aria-pressed={chartRange === r}
-                onClick={() => setChartRange(r)}
-                className={`min-h-11 rounded-full px-3 py-1 text-xs font-bold capitalize ${chartRange === r ? 'bg-[#E5E7EB] text-[#102E26]' : 'border border-[#E5E7EB] text-[#5b6b62]'}`}
-              >
-                {r === 'day' ? t('prog.day') : r === 'week' ? t('prog.week') : t('prog.month')}
-              </button>
-            ))}
-          </div>
-        </div>
-        {(() => {
-          const now = new Date();
-          const buckets: { label: string; value: number }[] = [];
-          if (chartRange === 'day') {
-            for (let i = 13; i >= 0; i--) {
-              const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-              const key = localDateString(d);
-              buckets.push({ label: d.toLocaleDateString(undefined, { weekday: 'short' }), value: activity[key] ?? 0 });
-            }
-          } else if (chartRange === 'week') {
-            for (let i = 7; i >= 0; i--) {
-              const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i * 7);
-              const start = new Date(end.getFullYear(), end.getMonth(), end.getDate() - 6);
-              let v = 0;
-              for (const [day, c] of Object.entries(activity)) {
-                if (day >= localDateString(start) && day <= localDateString(end)) v += c;
-              }
-              buckets.push({ label: `W-${i}`, value: v });
-            }
-          } else {
-            for (let i = 5; i >= 0; i--) {
-              const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-              const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-              let v = 0;
-              for (const [day, c] of Object.entries(activity)) {
-                if (day.startsWith(key)) v += c;
-              }
-              buckets.push({ label: d.toLocaleDateString(undefined, { month: 'short' }), value: v });
-            }
-          }
-          const max = Math.max(1, ...buckets.map((b) => b.value));
-          return (
-            <div>
-              <div className="mt-4 flex h-28 items-end gap-1" role="img" aria-label={`${t('prog.ayahsPractised')} — ${chartRange === 'day' ? t('prog.perDay') : chartRange === 'week' ? t('prog.perWeek') : t('prog.perMonth')}`}>
-                {buckets.map((b, i) => (
-                  <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                    <div
-                      className="w-full rounded-t bg-[#57D798]"
-                      style={{ height: `${Math.max(b.value > 0 ? 8 : 2, (b.value / max) * 100)}%` }}
-                      title={`${b.label}: ${b.value} ${b.value === 1 ? t('common.ayah') : t('common.ayahs')}`}
-                    />
-                    <span className="text-[10px] text-[#5b6b62]">{b.label}</span>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-2 text-xs text-[#5b6b62]">
-                {t('prog.ayahsPractised')} — {chartRange === 'day' ? t('prog.perDay') : chartRange === 'week' ? t('prog.perWeek') : t('prog.perMonth')}.
-                Built from your ayah records — never invented.
+      {/* Continue where you left off + favourites */}
+      {(lastRead || bookmarks.length > 0) && (
+        <section aria-labelledby="continue-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+          {lastRead && (
+            <>
+              <h2 id="continue-heading" className="text-xl font-bold text-[#102E26]">{t('prog.continue')}</h2>
+              <p className="mt-1 text-sm text-[#5b6b62]">
+                {t('prog.lastRead')} <strong>{lastRead.name}</strong> —{' '}
+                {new Date(lastRead.at).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}.
               </p>
+              <Link href={`/hifz/${lastRead.slug}`} className="mt-3 inline-block rounded-full bg-[#57D798] px-4 py-2 text-sm font-bold text-[#102E26] hover:brightness-105">
+                {t('prog.continueReading').replace('{name}', lastRead.name)}
+              </Link>
+            </>
+          )}
+          {bookmarks.length > 0 && (
+            <div className={lastRead ? 'mt-5' : ''}>
+              <h3 className="text-sm font-bold text-[#102E26]">{t('prog.favourites')}</h3>
+              {/* Stage 6 (§19): the shared bookmark store also holds Mushaf
+                  page bookmarks (no surahNumber) — only ayah bookmarks
+                  belong in this list; page bookmarks show on /hifz/bookmarks. */}
+              <ul className="mt-2 space-y-1 text-sm">
+                {bookmarks
+                  .filter((b) => typeof b.surahNumber === 'number')
+                  .slice(0, 10).map((b, i) => {
+                  const bs = getSurahById(b.surahNumber);
+                  return (
+                    <li key={i} className="flex flex-wrap items-center gap-2 rounded-lg bg-[#FFFBF2] px-3 py-2">
+                      <span>{bs ? bs.name : b.surahName ?? `Surah ${b.surahNumber}`} {b.surahNumber}:{b.verseNumber}</span>
+                      {bs && (
+                        <Link href={`/hifz/${bs.slug}?ayah=${b.verseNumber}`} className="ml-auto font-semibold text-[#1FA36B] underline">
+                          {t('prog.open')}
+                        </Link>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+              {bookmarks.filter((b) => typeof b.surahNumber === 'number').length > 10 && (
+                <p className="mt-2 text-xs text-[#5b6b62]">{t('prog.showingBookmarks').replace('{n}', String(bookmarks.filter((b) => typeof b.surahNumber === 'number').length))}</p>
+              )}
+              <Link href="/hifz/bookmarks" className="mt-3 inline-block font-semibold text-[#1FA36B] underline">
+                View all bookmarks →
+              </Link>
             </div>
-          );
-        })()}
-      </section>
+          )}
+        </section>
+      )}
+
+        </div>
+      )}
+
+      {tab === 'goals' && (
+        <div role="tabpanel" aria-label="Goals">
+          <GoalsClient createOpenSignal={goalsCreateSignal} />
+        </div>
+      )}
+
+      {tab === 'memorization' && (
+        <div className="space-y-6" role="tabpanel" aria-label="Memorization">
+          {/* Memorization completion — memorised ayahs out of all 6,236. */}
+          <section aria-labelledby="completion-heading" className="t-card rounded-2xl p-5 shadow-sm sm:p-6">
+            <h2 id="completion-heading" className="text-xl font-bold text-[#102E26]">Memorization completion</h2>
+            <p className="mt-2 text-4xl font-bold text-[#102E26]">{memorisedPct}%</p>
+            <p className="mt-1 text-sm text-[#5b6b62]">
+              {memorised.length} of 6,236 ayahs memorised · {learning.length} {learning.length === 1 ? 'ayah' : 'ayahs'} learning · an ayah counts as memorised after 3 correct recitations in a row.
+            </p>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E5E7EB]" role="progressbar" aria-valuenow={memorisedPct} aria-valuemin={0} aria-valuemax={100} aria-label="Memorization completion">
+              <div className="h-full rounded-full bg-[#1FA36B]" style={{ width: `${memorisedPct}%` }} />
+            </div>
+            {progress.activePlan && (
+              <p className="mt-2 text-sm text-[#5b6b62]">
+                {t('prog.activePlan').replace('{days}', String(progress.activePlan.planDays)).replace('{day}', String(progress.activePlan.currentDay))}
+              </p>
+            )}
+          </section>
+
+          {/* Goals — Memorization Goal and Review Goal cards (real values, or "Not Set"). */}
+          <section aria-labelledby="mem-goals-heading" className="t-card rounded-2xl p-5 shadow-sm sm:p-6">
+            <h2 id="mem-goals-heading" className="text-xl font-bold text-[#102E26]">Goals</h2>
+            <p className="mt-1 text-sm text-[#5b6b62]">
+              Your daily memorisation and review targets, in ayahs per day.
+            </p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <TypeGoalCard type="memorisation" goal={typeGoals.memorisation} onTargetChange={changeTypeTarget} onLog={logType} />
+              <TypeGoalCard type="revision" goal={typeGoals.revision} onTargetChange={changeTypeTarget} onLog={logType} />
+            </div>
+            <p className="mt-3 text-sm text-[#5b6b62]">
+              Change or add goals any time on the <button type="button" onClick={() => setTab('goals')} className="font-semibold text-[#1FA36B] underline">Goals tab</button>.
+            </p>
+          </section>
 
       {/* Memorised map — all 114 surahs */}
       <section aria-labelledby="map-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
@@ -736,94 +865,6 @@ export default function MyProgressClient() {
               </Link>
             );
           })}
-        </div>
-      </section>
-
-      {/* Per-type daily goals (§15.8) — memorisation, revision, reading separately */}
-      <section aria-labelledby="goals-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="goals-heading" className="text-xl font-bold text-[#102E26]">{t('prog.goalsHeading')}</h2>
-        <p className="mt-1 text-sm text-[#5b6b62]">
-          One goal per kind of practice, in ayahs per day. Coach attempts count toward
-          memorisation, test questions toward revision; reading is logged by hand below.
-        </p>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          {(Object.keys(GOAL_TYPE_LABELS) as GoalType[]).map((type) => {
-            const g = typeGoals[type];
-            const met = g.done >= g.target;
-            return (
-              <div key={type} className="rounded-xl border border-[#E5E7EB] bg-[#FFFBF2] p-4">
-                <div className="flex items-center gap-3">
-                  <GoalRing done={g.done} target={g.target} />
-                  <div className="min-w-0">
-                    <p className="font-bold text-[#102E26]">{GOAL_TYPE_LABELS[type]}</p>
-                    <p className="text-sm text-[#5b6b62]">
-                      {g.done} / {g.target} {t('common.ayahs')} {met ? t('prog.goalMetShort') : t('prog.today')}
-                    </p>
-                  </div>
-                </div>
-                <p className="mt-2 text-xs leading-relaxed text-[#5b6b62]">{GOAL_TYPE_DESCRIPTIONS[type]}</p>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <label className="flex items-center gap-1.5 text-xs font-semibold text-[#5b6b62]">
-                    {t('prog.target')}
-                    <select
-                      value={g.target}
-                      onChange={(e) => changeTypeTarget(type, Number(e.target.value))}
-                      className="min-h-11 rounded-lg border border-[#E5E7EB] bg-white px-2 py-1.5 text-sm"
-                      aria-label={`${GOAL_TYPE_LABELS[type]} daily target in ayahs`}
-                    >
-                      {TYPE_GOAL_OPTIONS.map((n) => (
-                        <option key={n} value={n}>{t('prog.ayahsOption').replace('{n}', String(n))}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => logType(type, 1)}
-                    className="min-h-11 rounded-full border border-[#1FA36B] px-3 py-1.5 text-xs font-semibold text-[#1FA36B] hover:bg-[#E4FFF2]"
-                  >
-                    {t('prog.plusOne')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => logType(type, 5)}
-                    className="min-h-11 rounded-full border border-[#1FA36B] px-3 py-1.5 text-xs font-semibold text-[#1FA36B] hover:bg-[#E4FFF2]"
-                  >
-                    {t('prog.plusFive')}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Weekly challenge + activity heatmap */}
-      <section aria-labelledby="challenge-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="challenge-heading" className="text-xl font-bold text-[#102E26]">{t('prog.challenge')}</h2>
-        <p className="mt-1 text-sm text-[#5b6b62]">
-          Practise on {WEEK_CHALLENGE_DAYS} days this week — {weekDays} of {WEEK_CHALLENGE_DAYS} done.
-          {weekDays >= WEEK_CHALLENGE_DAYS ? ' Challenge complete — well done.' : ' A day counts when you practise any ayah.'}
-        </p>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E5E7EB]" role="progressbar" aria-valuenow={weekDays} aria-valuemin={0} aria-valuemax={WEEK_CHALLENGE_DAYS} aria-label="Weekly challenge progress">
-          <div className="h-full rounded-full bg-[#FFB800]" style={{ width: `${Math.min(100, (weekDays / WEEK_CHALLENGE_DAYS) * 100)}%` }} />
-        </div>
-        <h3 className="mt-6 text-sm font-bold text-[#102E26]">{t('prog.activityHeading')}</h3>
-        <p className="mt-1 text-xs text-[#5b6b62]">
-          One square per day; darker means more ayahs practised that day. Built from your
-          ayah records, so it works on progress saved before this view existed.
-        </p>
-        <div className="mt-3 flex gap-[3px] overflow-x-auto pb-1" role="img" aria-label={t('prog.heatmapLabel').replace('{n}', String(Object.keys(activity).length))}>
-          {heatmapWeeks.map((week, wi) => (
-            <div key={wi} className="flex shrink-0 flex-col gap-[3px]">
-              {week.map((day) => (
-                <span
-                  key={day.date}
-                  title={day.count < 0 ? day.date : t('prog.practisedOnDay').replace('{date}', day.date).replace('{n}', String(day.count)).replace('{ayahWord}', day.count === 1 ? t('common.ayah') : t('common.ayahs'))}
-                  className={`h-3 w-3 rounded-[3px] ${heatColor(day.count)}`}
-                />
-              ))}
-            </div>
-          ))}
         </div>
       </section>
 
@@ -956,55 +997,6 @@ export default function MyProgressClient() {
           </ul>
         )}
       </section>
-
-      {/* Continue where you left off + favourites */}
-      {(lastRead || bookmarks.length > 0) && (
-        <section aria-labelledby="continue-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-          {lastRead && (
-            <>
-              <h2 id="continue-heading" className="text-xl font-bold text-[#102E26]">{t('prog.continue')}</h2>
-              <p className="mt-1 text-sm text-[#5b6b62]">
-                {t('prog.lastRead')} <strong>{lastRead.name}</strong> —{' '}
-                {new Date(lastRead.at).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}.
-              </p>
-              <Link href={`/hifz/${lastRead.slug}`} className="mt-3 inline-block rounded-full bg-[#57D798] px-4 py-2 text-sm font-bold text-[#102E26] hover:brightness-105">
-                {t('prog.continueReading').replace('{name}', lastRead.name)}
-              </Link>
-            </>
-          )}
-          {bookmarks.length > 0 && (
-            <div className={lastRead ? 'mt-5' : ''}>
-              <h3 className="text-sm font-bold text-[#102E26]">{t('prog.favourites')}</h3>
-              {/* Stage 6 (§19): the shared bookmark store also holds Mushaf
-                  page bookmarks (no surahNumber) — only ayah bookmarks
-                  belong in this list; page bookmarks show on /hifz/bookmarks. */}
-              <ul className="mt-2 space-y-1 text-sm">
-                {bookmarks
-                  .filter((b) => typeof b.surahNumber === 'number')
-                  .slice(0, 10).map((b, i) => {
-                  const bs = getSurahById(b.surahNumber);
-                  return (
-                    <li key={i} className="flex flex-wrap items-center gap-2 rounded-lg bg-[#FFFBF2] px-3 py-2">
-                      <span>{bs ? bs.name : b.surahName ?? `Surah ${b.surahNumber}`} {b.surahNumber}:{b.verseNumber}</span>
-                      {bs && (
-                        <Link href={`/hifz/${bs.slug}?ayah=${b.verseNumber}`} className="ml-auto font-semibold text-[#1FA36B] underline">
-                          {t('prog.open')}
-                        </Link>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-              {bookmarks.filter((b) => typeof b.surahNumber === 'number').length > 10 && (
-                <p className="mt-2 text-xs text-[#5b6b62]">{t('prog.showingBookmarks').replace('{n}', String(bookmarks.filter((b) => typeof b.surahNumber === 'number').length))}</p>
-              )}
-              <Link href="/hifz/bookmarks" className="mt-3 inline-block font-semibold text-[#1FA36B] underline">
-                View all bookmarks →
-              </Link>
-            </div>
-          )}
-        </section>
-      )}
 
       {/* Mistake log — filters, weak-spots ranking, practice-my-mistakes */}
       <section aria-labelledby="mistakes-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
@@ -1310,6 +1302,91 @@ export default function MyProgressClient() {
         </Link>
       </section>
 
+        </div>
+      )}
+
+      {tab === 'activity' && (
+        <div className="space-y-6" role="tabpanel" aria-label="Activity">
+          <StreakCard streak={streak} longestStreak={longestStreak} activity={activity} />
+
+      {/* Add Session — off-platform session / streak restore (screenshot 7) */}
+      <section aria-labelledby="add-session-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="add-session-heading" className="text-xl font-bold text-[#102E26]">{t('prog.addSession')}</h2>
+          <span className="rounded-full bg-[#57D798] px-3 py-1 text-xs font-bold text-[#102E26]">+ ADD SESSION</span>
+        </div>
+        <p className="mt-1 text-sm text-[#5b6b62]">
+          Read or recited away from the app — from a printed mushaf, in class, with a teacher?
+          Log it here. A session for yesterday restores a missed day&apos;s streak.
+        </p>
+        <div className="mt-4 flex flex-wrap items-end gap-3">
+          <label className="text-xs font-semibold text-[#5b6b62]">
+            {t('prog.date')}
+            <input
+              type="date"
+              value={addDate}
+              onChange={(e) => setAddDate(e.target.value)}
+              className="mt-1 block min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+            />
+          </label>
+          <label className="text-xs font-semibold text-[#5b6b62]">
+            {t('prog.type')}
+            <select
+              value={addType}
+              onChange={(e) => setAddType(e.target.value as GoalType)}
+              className="mt-1 block min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+            >
+              {(Object.keys(GOAL_TYPE_LABELS) as GoalType[]).map((t) => (
+                <option key={t} value={t}>{GOAL_TYPE_LABELS[t]}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs font-semibold text-[#5b6b62]">
+            {t('prog.ayahs')}
+            <input
+              type="number"
+              min={1}
+              max={6236}
+              value={addAyahs}
+              onChange={(e) => setAddAyahs(Number(e.target.value) || 1)}
+              className="mt-1 block w-20 min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+            />
+          </label>
+          <label className="text-xs font-semibold text-[#5b6b62]">
+            {t('prog.minutesLabel')}
+            <input
+              type="number"
+              min={1}
+              max={600}
+              value={addMinutes}
+              onChange={(e) => setAddMinutes(Number(e.target.value) || 1)}
+              className="mt-1 block w-20 min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={doAddSession}
+            className="min-h-11 rounded-full bg-[#57D798] px-5 py-2 text-sm font-bold text-[#102E26] hover:brightness-105"
+          >
+            {t('prog.addSessionBtn')}
+          </button>
+        </div>
+        {addMsg && (
+          <p role="status" className="mt-3 text-sm font-semibold text-[#1FA36B]">{addMsg}</p>
+        )}
+        {sessions.length > 0 && (
+          <ul className="mt-3 space-y-1 text-sm">
+            {sessions.slice(0, 5).map((sess, i) => (
+              <li key={i} className="flex flex-wrap gap-2 rounded-lg bg-[#FFFBF2] px-3 py-2">
+                <span className="font-semibold">{sess.date}</span>
+                <span>{GOAL_TYPE_LABELS[sess.type as GoalType] ?? sess.type}</span>
+                <span className="text-[#5b6b62]">{sess.ayahs} ayahs · {sess.minutes} min</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       {/* Stage 6 (§19): session history — memorisation sessions logged by
           hand plus completed tests, newest first. Only what is stored. */}
       <section aria-labelledby="history-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
@@ -1354,6 +1431,111 @@ export default function MyProgressClient() {
                 </li>
               ))}
             </ul>
+          );
+        })()}
+      </section>
+
+      {/* Badges — free achievements earned by practice (§23) */}
+      <BadgesGrid snapshot={badgeSnapshot} />
+
+      {/* Weekly challenge + activity heatmap */}
+      <section aria-labelledby="challenge-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+        <h2 id="challenge-heading" className="text-xl font-bold text-[#102E26]">{t('prog.challenge')}</h2>
+        <p className="mt-1 text-sm text-[#5b6b62]">
+          Practise on {WEEK_CHALLENGE_DAYS} days this week — {weekDays} of {WEEK_CHALLENGE_DAYS} done.
+          {weekDays >= WEEK_CHALLENGE_DAYS ? ' Challenge complete — well done.' : ' A day counts when you practise any ayah.'}
+        </p>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E5E7EB]" role="progressbar" aria-valuenow={weekDays} aria-valuemin={0} aria-valuemax={WEEK_CHALLENGE_DAYS} aria-label="Weekly challenge progress">
+          <div className="h-full rounded-full bg-[#FFB800]" style={{ width: `${Math.min(100, (weekDays / WEEK_CHALLENGE_DAYS) * 100)}%` }} />
+        </div>
+        <h3 className="mt-6 text-sm font-bold text-[#102E26]">{t('prog.activityHeading')}</h3>
+        <p className="mt-1 text-xs text-[#5b6b62]">
+          One square per day; darker means more ayahs practised that day. Built from your
+          ayah records, so it works on progress saved before this view existed.
+        </p>
+        <div className="mt-3 flex gap-[3px] overflow-x-auto pb-1" role="img" aria-label={t('prog.heatmapLabel').replace('{n}', String(Object.keys(activity).length))}>
+          {heatmapWeeks.map((week, wi) => (
+            <div key={wi} className="flex shrink-0 flex-col gap-[3px]">
+              {week.map((day) => (
+                <span
+                  key={day.date}
+                  title={day.count < 0 ? day.date : t('prog.practisedOnDay').replace('{date}', day.date).replace('{n}', String(day.count)).replace('{ayahWord}', day.count === 1 ? t('common.ayah') : t('common.ayahs'))}
+                  className={`h-3 w-3 rounded-[3px] ${heatColor(day.count)}`}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Engagement chart — time / ayahs by day, week, month */}
+      <section aria-labelledby="engagement-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="engagement-heading" className="text-xl font-bold text-[#102E26]">{t('prog.engagement')}</h2>
+          <div className="flex gap-1" role="group" aria-label="Chart range">
+            {(['day', 'week', 'month'] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                aria-pressed={chartRange === r}
+                onClick={() => setChartRange(r)}
+                className={`min-h-11 rounded-full px-3 py-1 text-xs font-bold capitalize ${chartRange === r ? 'bg-[#E5E7EB] text-[#102E26]' : 'border border-[#E5E7EB] text-[#5b6b62]'}`}
+              >
+                {r === 'day' ? t('prog.day') : r === 'week' ? t('prog.week') : t('prog.month')}
+              </button>
+            ))}
+          </div>
+        </div>
+        {(() => {
+          const now = new Date();
+          const buckets: { label: string; value: number }[] = [];
+          if (chartRange === 'day') {
+            for (let i = 13; i >= 0; i--) {
+              const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+              const key = localDateString(d);
+              buckets.push({ label: d.toLocaleDateString(undefined, { weekday: 'short' }), value: activity[key] ?? 0 });
+            }
+          } else if (chartRange === 'week') {
+            for (let i = 7; i >= 0; i--) {
+              const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i * 7);
+              const start = new Date(end.getFullYear(), end.getMonth(), end.getDate() - 6);
+              let v = 0;
+              for (const [day, c] of Object.entries(activity)) {
+                if (day >= localDateString(start) && day <= localDateString(end)) v += c;
+              }
+              buckets.push({ label: `W-${i}`, value: v });
+            }
+          } else {
+            for (let i = 5; i >= 0; i--) {
+              const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+              const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+              let v = 0;
+              for (const [day, c] of Object.entries(activity)) {
+                if (day.startsWith(key)) v += c;
+              }
+              buckets.push({ label: d.toLocaleDateString(undefined, { month: 'short' }), value: v });
+            }
+          }
+          const max = Math.max(1, ...buckets.map((b) => b.value));
+          return (
+            <div>
+              <div className="mt-4 flex h-28 items-end gap-1" role="img" aria-label={`${t('prog.ayahsPractised')} — ${chartRange === 'day' ? t('prog.perDay') : chartRange === 'week' ? t('prog.perWeek') : t('prog.perMonth')}`}>
+                {buckets.map((b, i) => (
+                  <div key={i} className="flex flex-1 flex-col items-center gap-1">
+                    <div
+                      className="w-full rounded-t bg-[#57D798]"
+                      style={{ height: `${Math.max(b.value > 0 ? 8 : 2, (b.value / max) * 100)}%` }}
+                      title={`${b.label}: ${b.value} ${b.value === 1 ? t('common.ayah') : t('common.ayahs')}`}
+                    />
+                    <span className="text-[10px] text-[#5b6b62]">{b.label}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-[#5b6b62]">
+                {t('prog.ayahsPractised')} — {chartRange === 'day' ? t('prog.perDay') : chartRange === 'week' ? t('prog.perWeek') : t('prog.perMonth')}.
+                Built from your ayah records — never invented.
+              </p>
+            </div>
           );
         })()}
       </section>
@@ -1426,6 +1608,57 @@ export default function MyProgressClient() {
           <p role="status" className="mt-3 text-sm font-semibold text-[#1FA36B]">{importMsg}</p>
         )}
       </section>
+
+        </div>
+      )}
+
+      {tab === 'community' && (
+        <div className="space-y-6" role="tabpanel" aria-label="Community">
+          {/* My Groups — real local groups only; no global leaderboard exists. */}
+          <section aria-labelledby="my-groups-heading" className="t-card rounded-2xl p-5 shadow-sm sm:p-6">
+            <h2 id="my-groups-heading" className="text-xl font-bold text-[#102E26]">My Groups</h2>
+            <p dir="rtl" lang="ar" className="font-quran mt-3 text-xl leading-relaxed text-[#102E26]">
+              وَفِي ذَٰلِكَ فَلْيَتَنَافَسِ الْمُتَنَافِسُونَ
+            </p>
+            <p className="mt-1 text-sm text-[#5b6b62]">
+              &ldquo;And in that let the competitors compete.&rdquo; — Quran 83:26
+            </p>
+            <p className="mt-2 text-sm text-[#5b6b62]">
+              Practise together — invite friends to a group challenge and keep each other going.
+            </p>
+            {groups.length > 0 ? (
+              <ul className="mt-3 space-y-1 text-sm">
+                {groups.map((g) => (
+                  <li key={g.id} className="flex flex-wrap gap-2 rounded-lg bg-[#FFFBF2] px-3 py-2">
+                    <span className="font-semibold">{g.name}</span>
+                    <span className="text-[#5b6b62]">{g.code} · {g.members.length} {g.members.length === 1 ? 'member' : 'members'}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-sm text-[#5b6b62]">No groups yet — create one below, or join with a code a friend shared.</p>
+            )}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <a href="#community-join" className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#57D798] px-5 py-2 text-sm font-bold text-[#102E26] hover:brightness-105">
+                JOIN A GROUP
+              </a>
+              <a href="#community-create" className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#102E26] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]">
+                CREATE A GROUP
+              </a>
+              <Link href="/hifz/challenges" className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#E5E7EB] px-5 py-2 text-sm font-semibold hover:border-[#1FA36B]">
+                Open the full challenges page →
+              </Link>
+            </div>
+            <p className="mt-3 text-xs text-[#5b6b62]">
+              Groups live only on this device and in the share links you send — there is no global
+              leaderboard here, only the groups you join. The Quran League below is the same: your
+              own group&apos;s progress, shared by link.
+            </p>
+          </section>
+
+          <ChallengesClient />
+        </div>
+      )}
     </div>
   );
 }
