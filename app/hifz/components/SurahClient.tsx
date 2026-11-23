@@ -369,7 +369,18 @@ export default function SurahClient({
        ayah exactly as in whole-ayah listening. The three functions below
        only touch refs and React setters (plus the stable fetchWbwWords),
        so any render's copy is equivalent — they are driven from the
-       word-audio 'ended' handler via wbwNextRef. ---------- */
+       word-audio 'ended' handler via wbwNextRef.
+       RECITER LIMIT (verified live against api.quran.com 2026-11-23):
+       the `audio=<reciterId>` parameter does NOT change the word clips —
+       with audio=2 and audio=7 the words payload still returns the same
+       `wbw/001_001_001.mp3` audio_url. The wbw clips are one fixed voice
+       with no per-reciter variant in Quran.com v4, so word-by-word clips
+       deliberately ignore the selected reciter. Do NOT "fix" this by
+       passing the reciter id — it was probed and the API ignores it.
+       Per-reciter word-by-word follow-along DOES exist by another route:
+       the ayah audio object carries `segments` (per-word timings inside
+       the selected reciter's continuous audio) — see the Mushaf reader's
+       Listen engine, which highlights words from those timings. ---------- */
   interface WbwWord {
     arabic: string;
     translation: string;

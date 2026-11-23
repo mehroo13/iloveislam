@@ -34,6 +34,15 @@
 // - Slots use `justify-content: safe center`: the 970px frame centres
 //   when it fits and left-aligns (scrollable right) when zoomed past
 //   the viewport, so no part of a page is ever unreachable on the left.
+// - Listen (word-by-word follow-along): the floating mode switcher's
+//   Listen entry plays in place — the selected reciter's continuous
+//   ayah audio, page after page, with each word highlighted in the
+//   mushaf page from Quran.com `audio.segments` timings. See the Listen
+//   engine (after jumpToPage).
+// - Tap-a-line translation: with the layer on (settings sheet, off by
+//   default), tapping a mushaf line shows its translation — and
+//   transliteration (resource 57) when on — in a panel; the page
+//   itself is never altered.
 'use client';
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -51,12 +60,38 @@ import { useT } from '../lib/i18n';
 import { loadMistakes, loadProgress, saveProgress, markAttempt, loadSettings, saveSettings } from '../progress';
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { normalizeArabic } from '../lib/alignment';
-import { MODE_EVENT, ayahKeyForRevealedWord, lastReadSlug, loadMode, requestMode, saveMode, type HifzMode } from '../lib/mode';
+import { MODE_EVENT, ayahKeyForRevealedWord, lastReadSlug, loadMode, requestMode, saveListenPosition, saveMode, type HifzMode } from '../lib/mode';
+import { AUDIO_BASE, RECITERS, TRANSLATIONS, stripHtml } from '../../quran/lib';
 import SurahList from './SurahList';
 import type { MushafVerse } from '../lib/fetch';
 
-const PAGE_QUERY =
+const PAGE_QUERY_BASE =
   'words=true&word_fields=text_uthmani,text_indopak,line_number,page_number,position,char_type_name&fields=text_uthmani';
+/** The page query, with the reciter: `audio=<reciterId>` makes the
+ *  by_page endpoint return each verse's `audio.url` plus
+ *  `audio.segments` — per-word timings inside the reciter's continuous
+ *  ayah audio (see the Listen engine below). */
+const pageQuery = (reciterId: number) => `${PAGE_QUERY_BASE}&audio=${reciterId}`;
+
+/** One Quran.com audio segment: [wordIndex0, wordPosition1, startMs,
+ *  endMs] — the timings of one word inside its ayah's audio. Verified
+ *  live 2026-11-23: every reciter returns one segment per word, in
+ *  word order (2:255: 50 segments for 50 words, reciters 2, 3, 7, 12). */
+type AudioSegment = [number, number, number, number];
+/** MushafVerse plus the reciter audio the by_page endpoint returns when
+ *  `audio=<reciterId>` is requested. `audio` is NOT in the shared
+ *  MushafVerse type (lib/fetch.ts is outside this worker's files), so
+ *  the extension lives here and the fetch casts to it. */
+interface MushafVerseWithAudio extends MushafVerse {
+  audio?: { url?: string; segments?: AudioSegment[] };
+}
+/** One playable verse in the Listen queue. */
+interface ListenItem {
+  key: string;
+  url: string;
+  segments: AudioSegment[];
+  page: number;
+}
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 3;
 const ZOOM_STEP = 0.5;
@@ -466,6 +501,8 @@ const ReaderSlot = memo(function ReaderSlot({
   frequentMistakes,
   mistakeMarkingOn,
   tajweedOn,
+  activeWord,
+  onLineTap,
   registerSlot,
   onRetry,
 }: {
@@ -481,6 +518,10 @@ const ReaderSlot = memo(function ReaderSlot({
   frequentMistakes: ReadonlySet<string>;
   mistakeMarkingOn: boolean;
   tajweedOn: boolean;
+  /** Word-by-word Listen highlight for this page (null elsewhere). */
+  activeWord: { verseKey: string; wordIndex: number } | null;
+  /** Tap-a-line translation layer (undefined when the layer is off). */
+  onLineTap?: (info: { line: number; verses: { key: string; arabic: string }[] }) => void;
   registerSlot: (n: number, el: HTMLDivElement | null) => void;
   onRetry: (n: number) => void;
 }) {
@@ -509,6 +550,8 @@ const ReaderSlot = memo(function ReaderSlot({
             frequentMistakes={frequentMistakes}
             mistakeMarkingOn={mistakeMarkingOn}
             tajweedOn={tajweedOn}
+            activeWord={activeWord}
+            onLineTap={onLineTap}
           />
         ) : failed ? (
           <div className="rounded-2xl border-2 border-[#FFB800] bg-[#F4F5F7] p-6 text-center shadow-sm">
@@ -581,7 +624,7 @@ export default function MushafReader() {
   const [mode, setMode] = useState<Mode>('continuous');
   const [zoom, setZoom] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pages, setPages] = useState<Map<number, MushafVerse[]>>(() => new Map());
+  const [pages, setPages] = useState<Map<number, MushafVerseWithAudio[]>>(() => new Map());
   const [failed, setFailed] = useState<Set<number>>(() => new Set());
   const [heights, setHeights] = useState<Map<number, number>>(() => new Map());
   const [fitScale, setFitScale] = useState(1);
@@ -653,23 +696,30 @@ export default function MushafReader() {
   );
 
   /* Floating mode switcher (Stage 4): Memorise hides the words here,
-     Reading shows them again. Recite / Listen / Test are not handled
-     here — the switcher navigates to the surah reader or /hifz/test. */
+     Reading shows them again, and Listen now plays in place too (the
+     Listen engine below) — only Recite / Test navigate away, exactly
+     as the switcher did. Switching mode stops Listen first (Stage 3
+     contract: never abandon playing audio invisibly). */
   useEffect(() => {
     const onMode = (e: Event) => {
       const m = (e as CustomEvent<{ mode: HifzMode }>).detail?.mode;
       if (m === 'memorise') {
         e.preventDefault();
+        stopListenRef.current();
         setHideVerses(true);
         setRevealedMap({});
         setPeekCount(0);
         saveMode('memorise');
       } else if (m === 'reading') {
         e.preventDefault();
+        stopListenRef.current();
         setHideVerses(false);
         setRevealedMap({});
         setPeekCount(0);
         saveMode('reading');
+      } else if (m === 'listen') {
+        e.preventDefault();
+        startListenRef.current();
       }
     };
     window.addEventListener(MODE_EVENT, onMode);
@@ -680,6 +730,31 @@ export default function MushafReader() {
   // Tajweed colours (display only): the existing "Show Tajweed colours"
   // setting, previously applied only on the surah reader — now also here.
   const [tajweedOn, setTajweedOn] = useState(false);
+  // Listen (word-by-word follow-along in the reader): the selected
+  // reciter's continuous ayah audio, with per-word timings from
+  // Quran.com `audio.segments` driving the in-page highlight.
+  const [reciterId, setReciterId] = useState(7);
+  const reciterIdRef = useRef(7);
+  const [listenActive, setListenActive] = useState(false);
+  const [listenPaused, setListenPaused] = useState(false);
+  const [listenAyah, setListenAyah] = useState<string | null>(null);
+  const [listenPage, setListenPage] = useState(0);
+  const [listenNote, setListenNote] = useState('');
+  const [activeWord, setActiveWord] = useState<{ verseKey: string; wordIndex: number } | null>(null);
+  // Tap-a-line translation layer (off by default): the translation is
+  // the shared settings translation (the same 104 the surah reader
+  // uses); transliteration is Quran.com resource 57, fetched alongside
+  // it. Nothing is rendered into the mushaf page — the translation
+  // appears in a panel below the reader instead.
+  const [mushafTranslationId, setMushafTranslationId] = useState(20);
+  const mushafTranslationIdRef = useRef(20);
+  const [tapTransOn, setTapTransOn] = useState(false);
+  const [showTranslit, setShowTranslit] = useState(false);
+  const showTranslitRef = useRef(false);
+  const [transPanel, setTransPanel] = useState<{ verses: { key: string; arabic: string }[] } | null>(null);
+  const [transData, setTransData] = useState<
+    Map<string, { translation: string; transliteration: string; failed: boolean }>
+  >(() => new Map());
   const toggleTajweed = useCallback(() => {
     setTajweedOn((prev) => {
       const next = !prev;
@@ -699,6 +774,22 @@ export default function MushafReader() {
   const pagesRef = useRef(pages);
   const failedRef = useRef(failed);
   const heightsRef = useRef(heights);
+  // Listen engine refs (see the engine after jumpToPage): the queue,
+  // the run (current page + a page being waited on), the verse now
+  // sounding (for segment lookup on timeupdate), the last highlighted
+  // word (so timeupdate only re-renders when the word changes), and
+  // the mode-handler handoffs (the MODE_EVENT listener is registered
+  // once, before the engine functions exist).
+  const listenAudioRef = useRef<HTMLAudioElement | null>(null);
+  const listenQueueRef = useRef<ListenItem[]>([]);
+  const listenRunRef = useRef<{ page: number; waitingPage: number | null } | null>(null);
+  const listenCurrentRef = useRef<{ key: string; segments: AudioSegment[] } | null>(null);
+  const activeWordRef = useRef<{ verseKey: string; wordIndex: number } | null>(null);
+  const stopListenRef = useRef<() => void>(() => {});
+  const startListenRef = useRef<() => void>(() => {});
+  const playListenVerseRef = useRef<() => void>(() => {});
+  // Translation-panel cache, keyed "verseKey:translationIds".
+  const transCacheRef = useRef(new Map<string, { translation: string; transliteration: string }>());
   const fetchingRef = useRef<Set<number>>(new Set());
   const slotEls = useRef<Map<number, HTMLDivElement>>(new Map());
   const cumRef = useRef<number[]>([]);
@@ -780,6 +871,19 @@ export default function MushafReader() {
         if (parsed.mushafLines === 16) setCompactText(true);
         if (parsed.highlightMistakes === false) setMistakeMarkingOn(false);
         if (parsed.tajweedColors === true) setTajweedOn(true);
+      }
+      // Listen + translation layer: the shared reciter / translation
+      // settings (same source the surah reader uses), plus the reader's
+      // own tap-layer toggles (off by default).
+      const s = loadSettings();
+      setReciterId(s.reciterId);
+      reciterIdRef.current = s.reciterId;
+      setMushafTranslationId(s.translationId);
+      mushafTranslationIdRef.current = s.translationId;
+      if (window.localStorage.getItem('ili_mushaf_tap_trans_v1') === '1') setTapTransOn(true);
+      if (window.localStorage.getItem('ili_mushaf_show_translit_v1') === '1') {
+        setShowTranslit(true);
+        showTranslitRef.current = true;
       }
     } catch {
       /* defaults */
@@ -922,10 +1026,10 @@ export default function MushafReader() {
     if (pagesRef.current.has(n) || fetchingRef.current.has(n)) return;
     fetchingRef.current.add(n);
     try {
-      const res = await fetch(`/api/quran/verses/by_page/${n}?${PAGE_QUERY}`);
+      const res = await fetch(`/api/quran/verses/by_page/${n}?${pageQuery(reciterIdRef.current)}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const verses = (data?.verses ?? []) as MushafVerse[];
+      const verses = (data?.verses ?? []) as MushafVerseWithAudio[];
       const next = new Map(pagesRef.current);
       next.set(n, verses);
       // Evict data far from the current page — long sessions stay light.
@@ -976,6 +1080,69 @@ export default function MushafReader() {
     },
     [fetchPage],
   );
+
+  /* ----------------- reciter / translation settings ---------------- */
+  // Changing the reciter drops every cached page: the segments belong
+  // to the reciter, so each page must refetch with the new reciter's
+  // audio + timings. Listen stops first (its queue holds the old
+  // reciter's clips).
+  const changeReciter = useCallback(
+    (id: number) => {
+      stopListenRef.current();
+      setReciterId(id);
+      reciterIdRef.current = id;
+      try {
+        saveSettings({ ...loadSettings(), reciterId: id });
+      } catch {
+        /* storage unavailable — the picker still applies this session */
+      }
+      pagesRef.current = new Map();
+      setPages(new Map());
+      failedRef.current = new Set();
+      setFailed(new Set());
+      fetchingRef.current = new Set();
+      pumpFetches();
+    },
+    [pumpFetches],
+  );
+
+  // The Mushaf translation is the shared settings translation (the
+  // same 104 the surah reader uses) — one source of truth.
+  const changeTranslation = useCallback((id: number) => {
+    setMushafTranslationId(id);
+    mushafTranslationIdRef.current = id;
+    try {
+      saveSettings({ ...loadSettings(), translationId: id });
+    } catch {
+      /* storage unavailable — the picker still applies this session */
+    }
+  }, []);
+
+  const toggleTapTrans = useCallback(() => {
+    setTapTransOn((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem('ili_mushaf_tap_trans_v1', next ? '1' : '0');
+      } catch {
+        /* storage unavailable */
+      }
+      if (!next) setTransPanel(null);
+      return next;
+    });
+  }, []);
+
+  const toggleTranslit = useCallback(() => {
+    setShowTranslit((prev) => {
+      const next = !prev;
+      showTranslitRef.current = next;
+      try {
+        window.localStorage.setItem('ili_mushaf_show_translit_v1', next ? '1' : '0');
+      } catch {
+        /* storage unavailable */
+      }
+      return next;
+    });
+  }, []);
 
   /* --------------------- position save / restore ------------------ */
   const savePosition = useCallback(() => {
@@ -1180,6 +1347,299 @@ export default function MushafReader() {
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, [jumpToPage]);
+
+  /* ---------------- Listen: word-by-word follow-along --------------
+     The continuous Mushaf reader had no audio at all. Listen plays the
+     selected reciter's whole-ayah audio, page after page, and highlights
+     each word IN the mushaf page as it sounds — driven by Quran.com
+     `audio.segments`, the per-word [index, position, startMs, endMs]
+     timings inside the reciter's own audio (verified live 2026-11-23:
+     one segment per word, in word order, for every reciter tested).
+     This is NOT timestamp-syncing inside a clip we don't own: the
+     timings come from the same response as the audio itself, and the
+     highlight is the segment whose window contains audio.currentTime.
+     It is also NOT the per-word-clip mechanism (wbw/*.mp3): those clips
+     are one fixed voice and ignore the reciter (see SurahClient) — here
+     the voice IS the selected reciter's, because the audio is theirs.
+     Ayahs with no segments (or no audio) still play whole-ayah, with a
+     note, and unplayable clips are skipped, never stalled on. ---------- */
+  const setActiveWordIfChanged = useCallback(
+    (next: { verseKey: string; wordIndex: number } | null) => {
+      const prev = activeWordRef.current;
+      if (prev?.verseKey === next?.verseKey && prev?.wordIndex === next?.wordIndex) return;
+      activeWordRef.current = next;
+      setActiveWord(next);
+    },
+    [],
+  );
+
+  const listenVersesForPage = useCallback(
+    (pageVerses: MushafVerseWithAudio[] | undefined, page: number): ListenItem[] => {
+      const out: ListenItem[] = [];
+      for (const v of pageVerses ?? []) {
+        if (!v.audio?.url) continue;
+        out.push({ key: v.verse_key, url: v.audio.url, segments: v.audio.segments ?? [], page });
+      }
+      return out;
+    },
+    [],
+  );
+
+  const stopListen = useCallback(() => {
+    listenRunRef.current = null;
+    listenQueueRef.current = [];
+    listenCurrentRef.current = null;
+    const a = listenAudioRef.current;
+    if (a) {
+      a.pause();
+      a.removeAttribute('src');
+    }
+    activeWordRef.current = null;
+    setActiveWord(null);
+    setListenAyah(null);
+    setListenPage(0);
+    setListenNote('');
+    setListenActive(false);
+    setListenPaused(false);
+    saveMode('reading');
+  }, []);
+  stopListenRef.current = stopListen;
+
+  const playListenVerse = useCallback(() => {
+    const audio = listenAudioRef.current;
+    const run = listenRunRef.current;
+    if (!run || !audio) return;
+    // Advance through pages until the queue holds a verse, or the
+    // Quran ends. A page already loaded but with no playable verse is
+    // skipped silently; a page not loaded yet is fetched and waited on
+    // (the resume effect below picks it up).
+    while (listenQueueRef.current.length === 0) {
+      const nextPage = run.page + 1;
+      if (nextPage > MUSHAF_TOTAL_PAGES) {
+        stopListen();
+        return;
+      }
+      if (pagesRef.current.has(nextPage)) {
+        run.page = nextPage;
+        listenQueueRef.current = listenVersesForPage(pagesRef.current.get(nextPage), nextPage);
+        if (listenQueueRef.current.length > 0) {
+          setListenPage(nextPage);
+          jumpToPage(nextPage, 0, false);
+        }
+        // else loop on to the page after
+      } else {
+        run.waitingPage = nextPage;
+        void fetchPage(nextPage);
+        return;
+      }
+    }
+    const item = listenQueueRef.current[0];
+    listenCurrentRef.current = { key: item.key, segments: item.segments };
+    setListenAyah(item.key);
+    setListenPage(item.page);
+    const [s, a] = item.key.split(':').map(Number);
+    if (Number.isInteger(s) && Number.isInteger(a)) saveListenPosition(s, a);
+    setListenNote(
+      item.segments.length === 0
+        ? 'Word-by-word highlighting is not available for this ayah — playing the reciter audio.'
+        : '',
+    );
+    setActiveWordIfChanged(null);
+    audio.src = `${AUDIO_BASE}${item.url}`;
+    audio.playbackRate = 1;
+    audio.play().catch(() => {
+      // Unplayable clip — skip to the next ayah rather than stalling.
+      listenQueueRef.current.shift();
+      playListenVerse();
+    });
+  }, [fetchPage, jumpToPage, listenVersesForPage, setActiveWordIfChanged, stopListen]);
+  playListenVerseRef.current = playListenVerse;
+
+  const startMushafListen = useCallback(() => {
+    const page = currentPageRef.current;
+    const pageVerses = pagesRef.current.get(page);
+    const items = listenVersesForPage(pageVerses, page);
+    stopListen();
+    if (pageVerses === undefined) {
+      // Current page not loaded yet — wait for it, then start (the
+      // resume effect below picks it up once it arrives).
+      listenRunRef.current = { page, waitingPage: page };
+      setListenActive(true);
+      setListenPage(page);
+      setListenNote('Loading this page’s audio…');
+      void fetchPage(page);
+      return;
+    }
+    // Page loaded (even with no playable verse — playListenVerse
+    // advances to the next playable page on its own).
+    listenRunRef.current = { page, waitingPage: null };
+    listenQueueRef.current = items;
+    setListenActive(true);
+    setListenPaused(false);
+    setListenNote('');
+    saveMode('listen');
+    playListenVerse();
+  }, [fetchPage, listenVersesForPage, playListenVerse, stopListen]);
+  startListenRef.current = startMushafListen;
+
+  const toggleListenPause = useCallback(() => {
+    const audio = listenAudioRef.current;
+    if (!listenRunRef.current || !audio) return;
+    if (audio.paused) {
+      void audio.play().catch(() => {});
+      setListenPaused(false);
+    } else {
+      audio.pause();
+      setListenPaused(true);
+    }
+  }, []);
+
+  // Resume a Listen run that is waiting on a page to load.
+  useEffect(() => {
+    const run = listenRunRef.current;
+    if (!run || run.waitingPage === null) return;
+    const wp = run.waitingPage;
+    if (failed.has(wp)) {
+      stopListen();
+      setListenNote('This page’s audio could not be loaded. Check your connection and try again.');
+      return;
+    }
+    const pageVerses = pages.get(wp);
+    if (!pageVerses) return;
+    run.waitingPage = null;
+    const items = listenVersesForPage(pageVerses, wp);
+    if (items.length === 0) {
+      // Page loaded but nothing playable on it — advance from here.
+      run.page = wp;
+      listenQueueRef.current = [];
+      playListenVerse();
+      return;
+    }
+    run.page = wp;
+    listenQueueRef.current = items;
+    setListenPage(wp);
+    jumpToPage(wp, 0, false);
+    playListenVerse();
+  }, [pages, failed, jumpToPage, listenVersesForPage, playListenVerse, stopListen]);
+
+  // One <audio> element drives Listen: timeupdate maps the sounding
+  // position onto the current verse's segments (between words, the last
+  // sounded word stays lit until the next starts); ended / error moves
+  // to the next ayah. Unmount pauses the audio so Listen never plays
+  // invisibly after leaving the reader.
+  useEffect(() => {
+    const audio = listenAudioRef.current;
+    if (!audio) return;
+    const onTime = () => {
+      const cur = listenCurrentRef.current;
+      if (!cur || cur.segments.length === 0) return;
+      const ms = audio.currentTime * 1000;
+      let idx = -1;
+      for (let i = 0; i < cur.segments.length; i++) {
+        const seg = cur.segments[i];
+        if (ms >= seg[2] && ms < seg[3]) {
+          idx = i;
+          break;
+        }
+      }
+      if (idx === -1) {
+        for (let i = cur.segments.length - 1; i >= 0; i--) {
+          if (ms >= cur.segments[i][3]) {
+            idx = i;
+            break;
+          }
+        }
+      }
+      setActiveWordIfChanged(
+        idx === -1 ? null : { verseKey: cur.key, wordIndex: cur.segments[idx][0] },
+      );
+    };
+    const onEnded = () => {
+      listenQueueRef.current.shift();
+      setActiveWordIfChanged(null);
+      playListenVerseRef.current();
+    };
+    const onError = () => {
+      listenQueueRef.current.shift();
+      setActiveWordIfChanged(null);
+      playListenVerseRef.current();
+    };
+    audio.addEventListener('timeupdate', onTime);
+    audio.addEventListener('ended', onEnded);
+    audio.addEventListener('error', onError);
+    return () => {
+      audio.removeEventListener('timeupdate', onTime);
+      audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('error', onError);
+      audio.pause();
+    };
+  }, [setActiveWordIfChanged]);
+
+  /* ---------------- tap-a-line translation -------------------------
+     Tapping a mushaf line (only while the layer is on) fetches that
+     line's ayahs' translation — and transliteration (resource 57) when
+     the toggle is on — in ONE by_key request per ayah, through the same
+     proxy. Results are cached per verse + translation set. The panel
+     shows the translation / transliteration below the reader; the
+     mushaf page itself is never altered. In memorise mode the Arabic
+     is withheld from the panel (it would reveal the hidden words). */
+  const handleLineTap = useCallback(
+    (info: { line: number; verses: { key: string; arabic: string }[] }) => {
+      setTransPanel({ verses: info.verses });
+      const ids = showTranslitRef.current
+        ? `${mushafTranslationIdRef.current},57`
+        : String(mushafTranslationIdRef.current);
+      for (const v of info.verses) {
+        const cacheKey = `${v.key}:${ids}`;
+        const cached = transCacheRef.current.get(cacheKey);
+        if (cached) {
+          setTransData((prev) => {
+            const next = new Map(prev);
+            next.set(cacheKey, { ...cached, failed: false });
+            return next;
+          });
+          continue;
+        }
+        fetch(`/api/quran/verses/by_key/${v.key}?fields=text_uthmani&translations=${ids}`)
+          .then((res) => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+          })
+          .then((data) => {
+            const trs = (data?.verse?.translations ?? []) as {
+              resource_id?: number;
+              text?: string;
+            }[];
+            const entry = {
+              translation: stripHtml(
+                String(trs.find((x) => x.resource_id === mushafTranslationIdRef.current)?.text ?? ''),
+              ),
+              transliteration: stripHtml(
+                String(trs.find((x) => x.resource_id === 57)?.text ?? ''),
+              ),
+            };
+            transCacheRef.current.set(cacheKey, entry);
+            setTransData((prev) => {
+              const next = new Map(prev);
+              next.set(cacheKey, { ...entry, failed: false });
+              return next;
+            });
+          })
+          .catch(() => {
+            setTransData((prev) => {
+              const next = new Map(prev);
+              next.set(cacheKey, { translation: '', transliteration: '', failed: true });
+              return next;
+            });
+          });
+      }
+    },
+    [],
+  );
+
+  const reciterName = RECITERS.find((r) => r.id === reciterId)?.name ?? 'Mishary Alafasy';
+  const translationName =
+    TRANSLATIONS.find((tr) => tr.id === mushafTranslationId)?.name ?? 'Saheeh International';
 
   /* ------------------------------ zoom ---------------------------- */
   // Re-anchoring runs in a post-commit effect (below): the scroll
@@ -1486,6 +1946,75 @@ export default function MushafReader() {
         {tajweedOn && (
           <p className="mt-3 text-xs text-[#6B7280]">{t('rb.reader.tajweedNote')}</p>
         )}
+        {/* Listen in the reader (word-by-word follow-along): the reciter
+            whose voice + word timings play. Changing it refetches the
+            pages with the new reciter's audio. */}
+        <p className="mt-5 text-xs font-bold uppercase tracking-wide text-[#6B7280]">{t('mode.listen')}</p>
+        <label className="mt-2 flex min-w-0 items-center gap-2 text-sm font-medium text-[#111827]">
+          <span className="shrink-0">{t('surah.reciter')}</span>
+          <select
+            value={reciterId}
+            onChange={(e) => changeReciter(Number(e.target.value))}
+            className="min-h-11 min-w-0 flex-1 rounded-lg border border-[#E5E7EB] bg-white px-2 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+          >
+            {RECITERS.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="mt-2 text-xs leading-relaxed text-[#6B7280]">
+          Listen plays this reciter in the Mushaf reader, highlighting each word as it sounds — in the
+          reciter&apos;s own voice.
+        </p>
+        {/* Tap-a-line translation layer (off by default): tapping a
+            mushaf line shows its translation — and transliteration, when
+            on — in a panel. The page itself is never altered. */}
+        <p className="mt-5 text-xs font-bold uppercase tracking-wide text-[#6B7280]">{t('common.translation')}</p>
+        <label className="mt-2 flex min-w-0 items-center gap-2 text-sm font-medium text-[#111827]">
+          <span className="shrink-0">{t('surah.translation')}</span>
+          <select
+            value={mushafTranslationId}
+            onChange={(e) => changeTranslation(Number(e.target.value))}
+            className="min-h-11 min-w-0 flex-1 rounded-lg border border-[#E5E7EB] bg-white px-2 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+          >
+            {TRANSLATIONS.map((tr) => (
+              <option key={tr.id} value={tr.id}>
+                {tr.name} ({tr.lang})
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="mt-2 space-y-2">
+          <button
+            type="button"
+            onClick={toggleTapTrans}
+            aria-pressed={tapTransOn}
+            className={`min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold ${
+              tapTransOn ? 'bg-[#102E26] text-white' : 'border border-[#E8EAED] bg-white text-[#111827] hover:bg-[#F3F4F6]'
+            }`}
+          >
+            Tap a line for translation
+          </button>
+          <button
+            type="button"
+            onClick={toggleTranslit}
+            aria-pressed={showTranslit}
+            className={`min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold ${
+              showTranslit ? 'bg-[#102E26] text-white' : 'border border-[#E8EAED] bg-white text-[#111827] hover:bg-[#F3F4F6]'
+            }`}
+          >
+            Show transliteration
+          </button>
+        </div>
+        <p className="mt-2 text-xs leading-relaxed text-[#6B7280]">
+          {tapTransOn
+            ? `Tap any mushaf line to see its ${translationName} translation${
+                showTranslit ? ' and transliteration' : ''
+              } in a panel below the reader.`
+            : 'Turn on “Tap a line for translation” to read a line’s translation without leaving the Mushaf.'}
+        </p>
         {mistakeMarkingOn && (
           <p className="mt-3 text-xs text-[#6B7280]">
             <span className="live-word-wrong font-semibold">{t('mpv.weakLabel')}</span> {t('reader.weakNote')}
@@ -1535,6 +2064,8 @@ export default function MushafReader() {
                   frequentMistakes={frequentMistakes}
                   mistakeMarkingOn={mistakeMarkingOn}
                   tajweedOn={tajweedOn}
+                  activeWord={listenPage === n ? activeWord : null}
+                  onLineTap={tapTransOn ? handleLineTap : undefined}
                   registerSlot={registerSlot}
                   onRetry={retryPage}
                 />
@@ -1593,6 +2124,111 @@ export default function MushafReader() {
         }}
         onMic={() => selectPracticeMode('recite')}
       />
+
+      {/* Listen bar (word-by-word follow-along): floats above the
+          bottom bar while Listen is running — play/pause, the ayah now
+          sounding, the reciter, stop. The floating mode switcher's
+          Listen entry starts this in place. */}
+      <audio ref={listenAudioRef} preload="auto" className="hidden" aria-hidden="true" />
+      {listenActive && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-[216px] z-40">
+          <div className="mx-auto flex w-fit max-w-[calc(100vw-1.5rem)] flex-col items-center gap-2 px-3">
+            <div className="pointer-events-auto flex min-h-11 flex-wrap items-center justify-center gap-1 rounded-full bg-[#102E26] py-1 pl-2 pr-1 text-white shadow-md">
+              <button
+                type="button"
+                onClick={toggleListenPause}
+                aria-label={listenPaused ? 'Resume listening' : 'Pause listening'}
+                className="min-h-9 rounded-full bg-white/15 px-3 py-1 text-sm font-semibold hover:bg-white/25"
+              >
+                {listenPaused ? 'Resume' : 'Pause'}
+              </button>
+              <span className="px-2 text-sm font-semibold">
+                {listenAyah ? `Listening: ${listenAyah}` : t('mode.listen')}
+              </span>
+              <span className="hidden px-1 text-xs text-white/70 sm:inline">{reciterName}</span>
+              <button
+                type="button"
+                onClick={() => stopListen()}
+                aria-label={t('surah.stopListening')}
+                className="min-h-9 rounded-full bg-white/15 px-3 py-1 text-sm font-semibold hover:bg-white/25"
+              >
+                {t('surah.stopListening')}
+              </button>
+            </div>
+            {listenNote && (
+              <p className="pointer-events-auto max-w-md rounded-full bg-white px-3 py-1 text-center text-xs font-semibold text-[#6B7280] shadow-md ring-1 ring-[#E8EAED]">
+                {listenNote}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tap-a-line translation panel: the translation (and
+          transliteration, when on) of the tapped line's ayahs. The
+          mushaf page is never altered. In memorise mode the Arabic is
+          withheld — it would reveal the hidden words. */}
+      {transPanel && (
+        <div
+          className="fixed inset-x-0 bottom-[152px] z-50"
+          role="dialog"
+          aria-label={t('common.translation')}
+        >
+          <div className="mx-auto max-w-2xl px-3">
+            <div className="max-h-[45vh] overflow-y-auto rounded-2xl bg-white p-4 shadow-xl ring-1 ring-[#E8EAED]">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">
+                  {t('common.translation')} · {translationName}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setTransPanel(null)}
+                  aria-label={t('common.close')}
+                  className="inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center rounded-full text-[#111827] hover:bg-[#F3F4F6]"
+                >
+                  <IconClose className="h-5 w-5" />
+                </button>
+              </div>
+              <ul className="mt-2 space-y-4">
+                {transPanel.verses.map((v) => {
+                  const ids = showTranslit
+                    ? `${mushafTranslationId},57`
+                    : String(mushafTranslationId);
+                  const entry = transData.get(`${v.key}:${ids}`);
+                  return (
+                    <li key={v.key}>
+                      <p className="text-xs font-bold text-[#6B7280]">{v.key}</p>
+                      {!hideVerses && (
+                        <p dir="rtl" lang="ar" translate="no" className="font-quran mt-1 text-right text-xl leading-relaxed text-[#102E26]">
+                          {v.arabic}
+                        </p>
+                      )}
+                      {entry === undefined ? (
+                        <p className="mt-1 text-sm text-[#6B7280]">Loading…</p>
+                      ) : entry.failed ? (
+                        <p className="mt-1 text-sm text-[#6B7280]">
+                          Could not load the translation right now.
+                        </p>
+                      ) : (
+                        <>
+                          {entry.translation && (
+                            <p className="mt-1 text-sm leading-relaxed text-[#1C2420]">{entry.translation}</p>
+                          )}
+                          {showTranslit && entry.transliteration && (
+                            <p className="mt-1 text-sm italic leading-relaxed text-[#5b6b62]">
+                              {entry.transliteration}
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

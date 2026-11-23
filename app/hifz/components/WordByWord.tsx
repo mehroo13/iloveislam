@@ -5,6 +5,12 @@
 // position — its `text` field is a Uthmani code glyph and is never shown.
 // Degrades gracefully: on failure the ayah still shows Arabic + translation
 // and this block says "Word-by-word is unavailable right now".
+// RECITER LIMIT (verified live against api.quran.com 2026-11-23): the word
+// clips (`wbw/*.mp3`) are one fixed voice — `audio=<reciterId>` does not
+// change them (probed with reciters 2 and 7: identical audio_url), so the
+// "Hear it" clips deliberately ignore the selected reciter. There is no
+// per-reciter word-clip variant in Quran.com v4; do not wire a reciter id
+// in here expecting it to change the voice.
 'use client';
 
 import { useEffect, useState } from 'react';

@@ -149,6 +149,18 @@ export interface MushafPageFrameProps {
   /** The "Show Tajweed colours" setting (display only — the heuristic
    *  in SharedSheets.tajweedClass, never detection). Off by default. */
   tajweedOn?: boolean;
+  /** Word-by-word Listen highlight: the verse + word index (among the
+   *  verse's `char_type_name === 'word'` words, in payload order — the
+   *  same order as Quran.com `audio.segments`) currently sounding.
+   *  Rendered as a soft background on that one word, via an inline
+   *  style (no new CSS): the line stays a text run, so kashida
+   *  justification is untouched. Ignored in memorise mode. */
+  activeWord?: { verseKey: string; wordIndex: number } | null;
+  /** Tap-a-line translation layer (MushafReader): when set, tapping a
+   *  mushaf line reports its ayahs (key + Arabic as rendered); the
+   *  reader shows their translation / transliteration in a panel, so
+   *  the page layout is never disturbed. */
+  onLineTap?: (info: { line: number; verses: { key: string; arabic: string }[] }) => void;
   /** Called with the number of weak words on this page (drives the
    *  legend in the single-page view; the reader does not need it). */
   onWeakCount?: (n: number) => void;
@@ -164,6 +176,8 @@ export default function MushafPageFrame({
   frequentMistakes,
   mistakeMarkingOn,
   tajweedOn = false,
+  activeWord = null,
+  onLineTap,
   onWeakCount,
 }: MushafPageFrameProps) {
   const t = useT();
@@ -203,7 +217,10 @@ export default function MushafPageFrame({
       cancelAnimationFrame(raf);
       observer?.disconnect();
     };
-  }, [page, verses, script, compactText, hidden, revealed, frequentMistakes, mistakeMarkingOn, tajweedOn]);
+    // activeWord re-runs the fill: highlighting swaps one word between a
+    // plain text node and a span, and the fill must re-measure the line.
+    // The highlight span has no padding, so the fill lands identically.
+  }, [page, verses, script, compactText, hidden, revealed, frequentMistakes, mistakeMarkingOn, tajweedOn, activeWord]);
 
   // Group words by mushaf line, in verse order. Do NOT re-sort by
   // `position`: positions restart at 1 for every verse, so sorting by
@@ -225,6 +242,15 @@ export default function MushafPageFrame({
   let key = 0;
   // Weak (frequently missed) words on this page — drives the legend.
   let weakOnPage = 0;
+  // Per-verse word counter (one per verse key, across all lines of the
+  // page): the index of each `char_type_name === 'word'` word in payload
+  // order. This is the same order as Quran.com `audio.segments`, so the
+  // Listen engine's segment index maps straight onto a display word.
+  // Pause-mark-only words are words in the payload too (and have their
+  // own segment); when one merges into the previous word, the merged
+  // entry takes the mark's index, so its segment highlights the word
+  // the mark hangs off. Ayah-end rosettes are markers, not words (-1).
+  const verseWordCounters = new Map<string, number>();
 
   for (const lineNo of [...lines.keys()].sort((a, b) => a - b)) {
     const words = lines.get(lineNo)!;
@@ -243,7 +269,7 @@ export default function MushafPageFrame({
 
     // Clean the display text for the chosen script, merging mark-only
     // words into the previous word.
-    const display: { text: string; isEnd: boolean; verseKey: string; globalIdx: number; weak: boolean }[] = [];
+    const display: { text: string; isEnd: boolean; verseKey: string; globalIdx: number; weak: boolean; verseWordIdx: number }[] = [];
     for (const w of words) {
       const raw = script === 'uthmani' ? w.text_uthmani : w.text_indopak ?? w.text_uthmani;
       const text =
@@ -251,8 +277,16 @@ export default function MushafPageFrame({
       if (!text) continue;
       if (w.char_type_name !== 'end' && isPauseMarkOnly(text) && display.length > 0) {
         display[display.length - 1].text += text;
+        // The mark is its own word (and segment): the merged entry takes
+        // the mark's index so its segment highlights this word.
+        const c = verseWordCounters.get(w.verseKey) ?? 0;
+        verseWordCounters.set(w.verseKey, c + 1);
+        display[display.length - 1].verseWordIdx = c;
         continue;
       }
+      const verseWordIdx =
+        w.char_type_name === 'end' ? -1 : (verseWordCounters.get(w.verseKey) ?? 0);
+      if (w.char_type_name !== 'end') verseWordCounters.set(w.verseKey, verseWordIdx + 1);
       display.push({
         text,
         isEnd: w.char_type_name === 'end',
@@ -262,6 +296,7 @@ export default function MushafPageFrame({
         // checked on the bare word: merged pause marks normalise away,
         // so a merged word still matches its mistake-log entry.
         weak: w.char_type_name === 'end' ? false : isFrequentMistake(w.verseKey, text),
+        verseWordIdx,
       });
     }
     if (display.length === 0) continue;
@@ -348,7 +383,7 @@ export default function MushafPageFrame({
       // on a wash. Tajweed colours split the same way when the setting
       // is on.
       const nodes: React.ReactNode[] = [];
-      let runSegs: { text: string; weak: boolean; tj: string }[] = [];
+      let runSegs: { text: string; weak: boolean; tj: string; active: boolean }[] = [];
       let runKey = '';
       const flush = () => {
         if (runSegs.length === 0) return;
@@ -358,7 +393,9 @@ export default function MushafPageFrame({
         // #E3EAFB was the light-blue wash on the live page).
         let content: React.ReactNode;
         const useSpans =
-          runSegs.some((s) => s.weak) || (tajweedOn && runSegs.some((s) => s.tj));
+          runSegs.some((s) => s.weak) ||
+          (tajweedOn && runSegs.some((s) => s.tj)) ||
+          runSegs.some((s) => s.active);
         if (!useSpans) {
           content = runSegs.map((s) => s.text).join(' ');
         } else {
@@ -367,7 +404,19 @@ export default function MushafPageFrame({
             if (si > 0) children.push(' ');
             children.push(
               s.weak ? (
-                <span key={`${runKey}-w${si}`} className="live-word-wrong">
+                <span
+                  key={`${runKey}-w${si}`}
+                  className="live-word-wrong"
+                  style={s.active ? { background: '#D9FBE8', borderRadius: '0.2em' } : undefined}
+                >
+                  {s.text}
+                </span>
+              ) : s.active ? (
+                // Word-by-word Listen highlight: a soft green background
+                // on the one sounding word. Inline style only (no new
+                // CSS, no padding) so the line's width — and the kashida
+                // fill — does not move when the highlight moves.
+                <span key={`${runKey}-w${si}`} style={{ background: '#D9FBE8', borderRadius: '0.2em' }}>
                   {s.text}
                 </span>
               ) : s.tj ? (
@@ -392,7 +441,16 @@ export default function MushafPageFrame({
           nodes.push(<AyahRosette key={`${w.verseKey}-${i}`} ayah={ea} />);
         } else {
           if (runSegs.length === 0) runKey = w.verseKey;
-          runSegs.push({ text: w.text, weak: w.weak, tj: w.weak ? '' : tajweedOn ? tajweedClass(w.text) : '' });
+          runSegs.push({
+            text: w.text,
+            weak: w.weak,
+            tj: w.weak ? '' : tajweedOn ? tajweedClass(w.text) : '',
+            active:
+              activeWord !== null &&
+              !hidden &&
+              w.verseKey === activeWord.verseKey &&
+              w.verseWordIdx === activeWord.wordIndex,
+          });
         }
       });
       flush();
@@ -413,7 +471,36 @@ export default function MushafPageFrame({
       // a word must never be split across lines to make the layout fit.
       // At the fixed design width no word is ever wider than the line,
       // so this guard costs nothing and can only prevent a split.
-      <p key={`l-${lineNo}`} dir="rtl" lang="ar" translate="no" className={lineClass} style={{ overflowWrap: 'normal', wordBreak: 'normal' }}>
+      // onLineTap (tap-a-line translation layer): tapping a line reports
+      // its ayahs to the reader, which shows their translation /
+      // transliteration in a panel. The tap adds no element to the page,
+      // so the mushaf layout is untouched.
+      <p
+        key={`l-${lineNo}`}
+        dir="rtl"
+        lang="ar"
+        translate="no"
+        className={`${lineClass}${onLineTap ? ' cursor-pointer' : ''}`}
+        style={{ overflowWrap: 'normal', wordBreak: 'normal' }}
+        onClick={
+          onLineTap
+            ? () => {
+                const byKey = new Map<string, string[]>();
+                for (const w of display) {
+                  if (w.isEnd) continue;
+                  const arr = byKey.get(w.verseKey) ?? [];
+                  arr.push(w.text);
+                  byKey.set(w.verseKey, arr);
+                }
+                const verses = [...byKey].map(([verseKey, parts]) => ({
+                  key: verseKey,
+                  arabic: parts.join(' '),
+                }));
+                if (verses.length > 0) onLineTap({ line: lineNo, verses });
+              }
+            : undefined
+        }
+      >
         {lineContent}
       </p>,
     );
