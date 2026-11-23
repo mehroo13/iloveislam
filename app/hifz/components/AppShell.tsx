@@ -3,27 +3,78 @@
 //
 // Bottom tabs (NOT top tabs — the screenshots + updated spec win over the
 // earlier top-tab plan): Home | Mushaf | Memorize | Search | Progress.
-// Plus: 3-screen skippable onboarding (dark green, our own wording — no
-// Tarteel copy), theme application (light/dark/sepia), and the IndexedDB
-// mirror migration (localStorage data is never lost).
+// White bar, inline SVG icons, active tab green with a green underline.
+// Plus: 4-step skippable onboarding (light screens in the reference
+// style, our own wording — no copied logo, name or text; step 4 is Book
+// Settings), theme application
+// (light/dark/sepia), and the IndexedDB mirror migration (localStorage
+// data is never lost).
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ComponentType } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { migrateToIdb } from '../lib/store';
 import { useSyncUiPrefs, useT } from '../lib/i18n';
+import BookSettings from './BookSettings';
 
-const TABS: { href: string; labelKey: string; icon: string; match: (p: string) => boolean }[] = [
+type IconProps = { className?: string };
+
+function HomeIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  );
+}
+
+function MushafIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+    </svg>
+  );
+}
+
+function MemorizeIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+function SearchIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
+function ProgressIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <line x1="12" y1="20" x2="12" y2="10" />
+      <line x1="18" y1="20" x2="18" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="16" />
+    </svg>
+  );
+}
+
+const TABS: { href: string; labelKey: string; icon: ComponentType<IconProps>; match: (p: string) => boolean }[] = [
   // Home is the homepage `/` (the app's front page: Continue + surah list).
   // It also stays highlighted on reader pages that belong to no other tab
   // (surah / ayah / juz pages) — see the fallback in BottomTabs below.
   // The old /hifz hub is still one tap away from the homepage.
-  { href: '/', labelKey: 'nav.home', icon: '⌂', match: (p) => p === '/' || p === '/hifz' },
-  { href: '/hifz/mushaf', labelKey: 'nav.mushaf', icon: '▤', match: (p) => p.startsWith('/hifz/mushaf') },
-  { href: '/hifz/memorize', labelKey: 'nav.memorize', icon: '◐', match: (p) => p.startsWith('/hifz/memorize') || p.startsWith('/hifz/test') || p.startsWith('/hifz/recite') },
-  { href: '/hifz/search', labelKey: 'nav.search', icon: '⌕', match: (p) => p.startsWith('/hifz/search') || p.startsWith('/hifz/voice-search') },
-  { href: '/hifz/my-progress', labelKey: 'nav.progress', icon: '▦', match: (p) => p.startsWith('/hifz/my-progress') || p.startsWith('/hifz/goals') || p.startsWith('/hifz/plans') || p.startsWith('/hifz/challenges') },
+  { href: '/', labelKey: 'nav.home', icon: HomeIcon, match: (p) => p === '/' || p === '/hifz' },
+  { href: '/hifz/mushaf', labelKey: 'nav.mushaf', icon: MushafIcon, match: (p) => p.startsWith('/hifz/mushaf') },
+  { href: '/hifz/memorize', labelKey: 'nav.memorize', icon: MemorizeIcon, match: (p) => p.startsWith('/hifz/memorize') || p.startsWith('/hifz/test') || p.startsWith('/hifz/recite') },
+  { href: '/hifz/search', labelKey: 'nav.search', icon: SearchIcon, match: (p) => p.startsWith('/hifz/search') || p.startsWith('/hifz/voice-search') },
+  { href: '/hifz/my-progress', labelKey: 'nav.progress', icon: ProgressIcon, match: (p) => p.startsWith('/hifz/my-progress') || p.startsWith('/hifz/goals') || p.startsWith('/hifz/plans') || p.startsWith('/hifz/challenges') },
 ];
 
 export function BottomTabs() {
@@ -48,6 +99,7 @@ export function BottomTabs() {
       <ul className="mx-auto flex max-w-3xl items-stretch justify-around">
         {TABS.map((tab) => {
           const active = tab.href === activeHref;
+          const Icon = tab.icon;
           return (
             <li key={tab.href} className="flex-1">
               <Link
@@ -57,9 +109,7 @@ export function BottomTabs() {
                   active ? 'text-[#1FA36B]' : 'text-[#5b6b62]'
                 }`}
               >
-                <span aria-hidden="true" className={`text-xl leading-none ${active ? 'text-[#57D798]' : ''}`}>
-                  {tab.icon}
-                </span>
+                <Icon className="h-6 w-6" />
                 {t(tab.labelKey)}
                 {active && <span aria-hidden="true" className="h-1 w-8 rounded-full bg-[#57D798]" />}
               </Link>
@@ -86,10 +136,13 @@ export function ThemeApplier() {
 
 const ONBOARD_KEY = 'ili_onboarded_v1';
 
-/** Onboarding — max 3 screens, skippable, never asks for email/password.
- * Dark-green screens in the style of the reference (our own words and our
- * own eight-point-star mark — no copied logo, name or wording). Shown once;
- * "Skip" is always visible. */
+/** Onboarding — 4 steps, skippable, never asks for email/password.
+ * Light screens in the reference style (light grey background, white card, dark
+ * text, green accents) in our own words and our own eight-point-star
+ * mark — no copied logo, name or wording. Steps 1–3 introduce the
+ * coach; step 4 is Book Settings (mushaf edition + tajweed colours),
+ * whose Continue finishes onboarding. Shown once; "Skip" is always
+ * visible. */
 export function Onboarding() {
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0);
@@ -137,62 +190,78 @@ export function Onboarding() {
       bubbles: [{ text: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ', kind: 'correct' }],
     },
   ];
-  const s = screens[step];
+  const s = screens[Math.min(step, 2)];
+  const isBookStep = step === 3;
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label="Welcome to I Love Islam Hifz"
-      className="fixed inset-0 z-[70] flex flex-col bg-[#102E26] text-white"
+      className="fixed inset-0 z-[70] flex flex-col bg-[#F2F4F3] text-[#102E26]"
     >
       <div className="flex items-center justify-between px-5 pt-5">
         <p className="text-sm font-bold tracking-wide">
-          I LOVE ISLAM <span className="text-[#57D798]">· HIFZ</span>
+          I LOVE ISLAM <span className="text-[#1FA36B]">· HIFZ</span>
         </p>
         <button
           type="button"
           onClick={done}
-          className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/40 px-4 py-1.5 text-sm font-semibold hover:bg-white/10"
+          className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#D8DEDB] bg-white px-4 py-1.5 text-sm font-semibold text-[#102E26] hover:bg-[#E8EAED]"
         >
           {t('ob.skip')}
         </button>
       </div>
-      <div className="flex flex-1 flex-col justify-center px-6">
-        <div className="space-y-3">
-          {s.bubbles.map((b, i) => (
-            <p
-              key={i}
-              dir="rtl"
-              lang="ar"
-              className={`font-quran w-fit max-w-full rounded-2xl px-5 py-3 text-2xl leading-relaxed ${
-                b.kind === 'mistake' ? 'bg-[#DC2626] text-white' : 'bg-white text-[#102E26]'
-              }`}
+      {isBookStep ? (
+        <div className="flex-1 overflow-y-auto px-5 pb-8 pt-4">
+          <div className="mb-5 flex gap-2" aria-hidden="true">
+            {[0, 1, 2, 3].map((i) => (
+              <span key={i} className={`h-1.5 flex-1 rounded-full ${i === step ? 'bg-[#57D798]' : 'bg-[#D5DBD7]'}`} />
+            ))}
+          </div>
+          <BookSettings onContinue={done} />
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-1 flex-col justify-center px-6">
+            <div className="space-y-3">
+              {s.bubbles.map((b, i) => (
+                <p
+                  key={i}
+                  dir="rtl"
+                  lang="ar"
+                  className={`font-quran w-fit max-w-full rounded-2xl px-5 py-3 text-2xl leading-relaxed ${
+                    b.kind === 'mistake'
+                      ? 'bg-[#DC2626] text-white'
+                      : 'border border-[#E8EAED] bg-white text-[#102E26] shadow-sm'
+                  }`}
+                >
+                  {b.text}
+                </p>
+              ))}
+            </div>
+            <h2 className="mt-8 text-3xl font-bold leading-tight text-[#102E26]">{s.title}</h2>
+            <p className="mt-3 max-w-md text-base leading-relaxed text-[#43564D]">{s.body}</p>
+          </div>
+          <div className="px-6 pb-8">
+            <div className="mb-4 flex gap-2" aria-hidden="true">
+              {[0, 1, 2, 3].map((i) => (
+                <span key={i} className={`h-1.5 flex-1 rounded-full ${i === step ? 'bg-[#57D798]' : 'bg-[#D5DBD7]'}`} />
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setStep(step + 1)}
+              className="w-full rounded-full bg-[#57D798] py-3.5 text-base font-bold text-[#102E26] hover:brightness-105"
             >
-              {b.text}
+              {t('ob.next')}
+            </button>
+            <p className="mt-3 text-center text-xs text-[#5b6b62]">
+              {t('ob.freeNote')}
             </p>
-          ))}
-        </div>
-        <h2 className="mt-8 text-3xl font-bold leading-tight">{s.title}</h2>
-        <p className="mt-3 max-w-md text-base leading-relaxed text-white/80">{s.body}</p>
-      </div>
-      <div className="px-6 pb-8">
-        <div className="mb-4 flex gap-2" aria-hidden="true">
-          {screens.map((_, i) => (
-            <span key={i} className={`h-1.5 flex-1 rounded-full ${i === step ? 'bg-[#57D798]' : 'bg-white/25'}`} />
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={() => (step < 2 ? setStep(step + 1) : done())}
-          className="w-full rounded-full bg-[#57D798] py-3.5 text-base font-bold text-[#102E26] hover:brightness-105"
-        >
-          {step < 2 ? t('ob.next') : t('ob.getStarted')}
-        </button>
-        <p className="mt-3 text-center text-xs text-white/60">
-          {t('ob.freeNote')}
-        </p>
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
