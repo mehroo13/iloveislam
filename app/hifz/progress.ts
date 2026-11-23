@@ -278,7 +278,7 @@ export function createDefaultSettings(now: Date = new Date()): HifzSettings {
     dontProgress: false,
     highlightMistakes: true,
     showForHidden: false,
-    tajweedColors: false,
+    tajweedColors: true,
     hideAyahMarkers: false,
     saveAudio: true,
     testSound: true,

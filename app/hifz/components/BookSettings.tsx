@@ -135,8 +135,8 @@ export default function BookSettings({
   /** If set, Continue navigates here instead (standalone /hifz/setup). */
   continueHref?: string;
 }) {
-  const [script, setScript] = useState<QuranScript>('indopak');
-  const [tajweed, setTajweed] = useState(false);
+  const [script, setScript] = useState<QuranScript>('uthmani');
+  const [tajweed, setTajweed] = useState(true);
   const [verses, setVerses] = useState<MushafVerse[] | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const t = useT();
@@ -144,7 +144,7 @@ export default function BookSettings({
   // fully visible (see the scroll effect below).
   const carouselRef = useRef<HTMLDivElement | null>(null);
   // True once the stored script preference has loaded: the scroll
-  // must wait for it, or it would scroll to the initial 'indopak'
+  // must wait for it, or it would scroll to the initial 'uthmani'
   // state before the real preference is known.
   const [prefLoaded, setPrefLoaded] = useState(false);
 
@@ -154,7 +154,7 @@ export default function BookSettings({
     try {
       setTajweed(loadSettings().tajweedColors ?? false);
     } catch {
-      /* storage unavailable — default off */
+      /* storage unavailable — default on */
     }
     let cancelled = false;
     void fetchMushafPage(1)

@@ -2,7 +2,7 @@
 //
 // Two scripts, one rule:
 //   - READER (surah page, ayah page, juz pages): the user's script —
-//     Indo-Pak (default) or Madani / Uthmani (Quran.com v4 text_uthmani).
+//     Madani / Uthmani (default) or Indo-Pak (Quran.com v4 text_uthmani).
 //     The reader fetches BOTH fields so switching scripts needs no refetch.
 //   - COACH (RecitationCoach, Test Mode, Word-by-word): ALWAYS Indo-Pak.
 //     The coach's word alignment (app/hifz/lib/alignment.ts, splitWords)
@@ -31,10 +31,10 @@ export const BOTH_SCRIPT_FIELDS = 'text_indopak,text_uthmani';
 
 export function getScriptPref(): QuranScript {
   try {
-    if (typeof window === 'undefined') return 'indopak';
-    return window.localStorage.getItem(SCRIPT_KEY) === 'uthmani' ? 'uthmani' : 'indopak';
+    if (typeof window === 'undefined') return 'uthmani';
+    return window.localStorage.getItem(SCRIPT_KEY) === 'indopak' ? 'indopak' : 'uthmani';
   } catch {
-    return 'indopak';
+    return 'uthmani';
   }
 }
 
@@ -48,7 +48,7 @@ export function setScriptPref(script: QuranScript): void {
 
 /** React hook for the reader pages: script state, persisted. */
 export function useScriptPref(): [QuranScript, (s: QuranScript) => void] {
-  const [script, setScript] = useState<QuranScript>('indopak');
+  const [script, setScript] = useState<QuranScript>('uthmani');
   useEffect(() => {
     setScript(getScriptPref());
   }, []);
