@@ -349,22 +349,33 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
         </section>
       )}
 
-      {/* Start a new goal — opens the templates + create form below. */}
+      {/* Start a new goal — a white card, like the reference. Tapping it
+          opens the templates + create form below Archived; tapping again
+          closes it. Never a green "Close" pill. */}
       <div>
         <button
           type="button"
           aria-expanded={showCreate}
           onClick={() => setShowCreate((v) => !v)}
-          className="min-h-11 rounded-full bg-[#57D798] px-6 py-3 text-sm font-bold text-[#102E26] hover:brightness-105"
+          className="flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl border border-[#E8EAED] bg-white px-4 py-3 text-sm font-bold text-[#111827] shadow-sm hover:border-[#1FA36B]"
         >
-          {showCreate ? 'Close' : 'START A NEW GOAL'}
+          {showCreate ? t('rb.dash.closeForm') : t('rb.dash.startNewGoal')}
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#57D798] text-[#102E26]" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </span>
         </button>
       </div>
 
-      {/* Active goals */}
-      {activeGoals.length > 0 && (
-        <section aria-labelledby="mine-heading" className="space-y-4">
+      {/* Active goals — always shown, with the reference's description. */}
+      <section aria-labelledby="mine-heading" className="space-y-4">
+        <div>
           <h2 id="mine-heading" className="text-xl font-bold text-[#111827]">{t('rb.goals.active')}</h2>
+          <p className="mt-1 text-sm text-[#6B7280]">{t('rb.dash.activeDesc')}</p>
+        </div>
+        {activeGoals.length > 0 && (
+          <>
           {activeGoals.map((g) => {
             const p = goalProgress(g);
             const pct = p && p.total > 0 ? Math.round((p.memorised / p.total) * 100) : null;
@@ -461,57 +472,62 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
               </article>
             );
           })}
-        </section>
-      )}
-
-      {activeGoals.length === 0 && (
-        <p><span className="rounded-full bg-[#E8EAED] px-3 py-1 text-xs font-bold text-[#6B7280]">{t('rb.goals.none')}</span></p>
-      )}
-
-      {/* Today's goals — active goals whose schedule falls today. */}
-      <section aria-labelledby="today-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="today-heading" className="text-xl font-bold text-[#111827]">{t('rb.goals.todayGoals')}</h2>
-        {todaysGoals.length === 0 ? (
-          <p className="mt-3"><span className="rounded-full bg-[#E8EAED] px-3 py-1 text-xs font-bold text-[#6B7280]">{t('rb.goals.none')}</span></p>
-        ) : (
-          <ul className="mt-3 space-y-2">
-            {todaysGoals.map((g) => (
-              <GoalRow key={g.id} g={g} />
-            ))}
-          </ul>
+          </>
         )}
       </section>
 
-      {/* Upcoming goals — active goals not due today. */}
-      <section aria-labelledby="upcoming-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="upcoming-heading" className="text-xl font-bold text-[#111827]">{t('rb.goals.upcoming')}</h2>
-        {upcomingGoals.length === 0 ? (
-          <p className="mt-3"><span className="rounded-full bg-[#E8EAED] px-3 py-1 text-xs font-bold text-[#6B7280]">{t('rb.goals.none')}</span></p>
-        ) : (
-          <ul className="mt-3 space-y-2">
-            {upcomingGoals.map((g) => (
-              <GoalRow key={g.id} g={g} />
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {/* Archived goals — collapsible; archiving never deletes a goal. */}
-      <section aria-labelledby="archived-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="archived-heading" className="text-xl font-bold text-[#111827]">{t('rb.goals.archived')}</h2>
-          <button
-            type="button"
-            aria-expanded={showArchived}
-            onClick={() => setShowArchived((v) => !v)}
-            className="min-h-11 rounded-full border border-[#E8EAED] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
-          >
-            {showArchived ? t('rb.common.hide') : t('rb.goals.showN').replace('{n}', String(archivedGoals.length))}
-          </button>
+      {/* Today's goals — small-caps label + white card, like the reference. */}
+      <section aria-labelledby="today-heading">
+        <h2 id="today-heading" className="text-xs font-bold uppercase tracking-wide text-[#111827]">{t('rb.goals.todayGoals')}</h2>
+        <div className="mt-2 rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm">
+          {todaysGoals.length === 0 ? (
+            <p className="text-center text-base text-[#111827]">{t('rb.goals.none')}</p>
+          ) : (
+            <ul className="space-y-2">
+              {todaysGoals.map((g) => (
+                <GoalRow key={g.id} g={g} />
+              ))}
+            </ul>
+          )}
         </div>
+      </section>
+
+      {/* Upcoming goals — small-caps label + white card, like the reference. */}
+      <section aria-labelledby="upcoming-heading">
+        <h2 id="upcoming-heading" className="text-xs font-bold uppercase tracking-wide text-[#111827]">{t('rb.goals.upcoming')}</h2>
+        <div className="mt-2 rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm">
+          {upcomingGoals.length === 0 ? (
+            <p className="text-center text-base text-[#111827]">{t('rb.goals.none')}</p>
+          ) : (
+            <ul className="space-y-2">
+              {upcomingGoals.map((g) => (
+                <GoalRow key={g.id} g={g} />
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      {/* Archived goals — chevron header + description, like the reference;
+          archiving never deletes a goal. */}
+      <section aria-labelledby="archived-heading">
+        <button
+          type="button"
+          aria-expanded={showArchived}
+          onClick={() => setShowArchived((v) => !v)}
+          className="flex w-full items-center justify-between text-left"
+        >
+          <h2 id="archived-heading" className="text-xl font-bold text-[#111827]">{t('rb.goals.archived')}</h2>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${showArchived ? 'rotate-180' : ''}`}>
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+        <p className="mt-1 text-sm text-[#6B7280]">{t('rb.dash.archivedDesc')}</p>
         {showArchived &&
           (archivedGoals.length === 0 ? (
-            <p className="mt-3"><span className="rounded-full bg-[#E8EAED] px-3 py-1 text-xs font-bold text-[#6B7280]">{t('rb.goals.none')}</span></p>
+            <div className="mt-2 rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm">
+              <p className="text-center text-base text-[#111827]">{t('rb.goals.none')}</p>
+            </div>
           ) : (
             <ul className="mt-3 space-y-2">
               {archivedGoals.map((g) => (

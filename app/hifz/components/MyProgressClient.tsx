@@ -9,8 +9,8 @@ import {
   createDefaultProgress,
   loadProgress, saveProgress, loadMistakes, saveMistakes, loadSettings, saveSettings,
   exportProgress, importProgress, downloadProgressJson,
-  currentStreakCount, localDateString, isDailyGoalMet, ayahsPractisedOn,
-  getStorageNotice, setDailyGoal, DAILY_GOAL_OPTIONS,
+  currentStreakCount, localDateString,
+  getStorageNotice,
   activityByDate, weekPracticeDays, surahStrength, revisionDue, daysSince,
   peekedDue, mistakeTypeLabel, markMistakesCorrected,
   getTypeGoals, setTypeGoalTarget, recordTypeActivity, recordMinutes, previousLocalDate,
@@ -22,7 +22,7 @@ import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { loadChallenges, saveChallenges } from '../lib/challenges';
 import { loadTestSessions, loadInProgressTest, type TestSessionRecord, type InProgressTest } from '../lib/mode';
 import { getSurahById, ALL_SURAHS } from '../surahs';
-import { buildBadgeSnapshot, loadBestTestPct } from '../badges';
+import { buildBadgeSnapshot, evaluateBadges, loadBestTestPct } from '../badges';
 import BadgesGrid from './BadgesGrid';
 import GoalsClient from './GoalsClient';
 import ChallengesClient from './ChallengesClient';
@@ -60,12 +60,61 @@ const TABS = [
 ] as const;
 type ProgressTab = (typeof TABS)[number]['id'];
 
-/** Streak card (Dashboard + Activity tabs): flame, day count, longest
- *  streak, and Fri–Thu week diamonds from real practice data. */
-function StreakCard({ streak, longestStreak, activity }: {
+/** Tarteel-style top bar for the progress hub: back arrow in a circle
+ *  (left), our own I Love Islam logo mark centred, profile + settings
+ *  (right). The logo is our own mark (public/logo.svg) — never Tarteel's. */
+function HubTopBar() {
+  const t = useT();
+  return (
+    <div className="flex items-center justify-between">
+      <Link
+        href="/hifz"
+        aria-label={t('rb.dash.backToHifz')}
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#111827] text-[#111827] hover:bg-white"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+      </Link>
+      <Link href="/" aria-label="I Love Islam — home" className="shrink-0">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.svg" alt="I Love Islam" width={36} height={36} className="h-9 w-9" />
+      </Link>
+      <span className="flex shrink-0 items-center gap-1">
+        <Link
+          href="/hifz/settings"
+          aria-label="Profile"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-[#111827] hover:bg-white"
+        >
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="8.5" r="3.2" fill="currentColor" stroke="none" />
+            <path d="M5.5 19.5c1.2-3.2 3.6-4.8 6.5-4.8s5.3 1.6 6.5 4.8" fill="currentColor" stroke="none" />
+          </svg>
+        </Link>
+        <Link
+          href="/hifz/settings"
+          aria-label="Settings"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-[#111827] hover:bg-white"
+        >
+          <ToolIcon name="settings" className="h-6 w-6" />
+        </Link>
+      </span>
+    </div>
+  );
+}
+
+/** Streak card (Dashboard + Activity tabs), rebuilt to Tarteel's
+ *  horizontal layout: flame in a circle at the left with the orange day
+ *  count below it, a mint-green panel in the middle with Fri–Thu day
+ *  labels + diamonds and "Longest Streak N Day" at the bottom, and a
+ *  bell + green plus-in-circle at the right. */
+function StreakCard({ streak, longestStreak, activity, addHref, onBell }: {
   streak: number;
   longestStreak: number;
   activity: Record<string, number>;
+  addHref: string;
+  onBell: () => void;
 }) {
   const t = useT();
   const now = new Date();
@@ -75,26 +124,73 @@ function StreakCard({ streak, longestStreak, activity }: {
   const days = labels.map((label, i) => {
     const d = new Date(friday.getFullYear(), friday.getMonth(), friday.getDate() + i);
     const key = localDateString(d);
-    return { label, date: key, active: (activity[key] ?? 0) > 0, future: d > now };
+    const isToday = key === localDateString(now);
+    return { label, date: key, active: (activity[key] ?? 0) > 0, future: d > now, isToday };
   });
   return (
-    <div className="t-card rounded-2xl p-5 shadow-sm">
-      <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#6B7280]">
-        <ToolIcon name="flame" className="h-4 w-4 text-[#FFB800]" /> {t('prog.streak')}
-      </p>
-      <p className="mt-2 text-4xl font-bold text-[#111827]">{streak} {t('rb.dash.dayWord')}</p>
-      <p className="mt-1 text-sm text-[#6B7280]">
-        {t('rb.dash.longestStreak')} {longestStreak} {t('rb.dash.dayWord')}
-      </p>
-      <div className="mt-4 flex items-start justify-between gap-1" role="img" aria-label={t('rb.dash.weekLabel')}>
-        {days.map((d) => (
-          <span key={d.date} className="flex flex-1 flex-col items-center gap-1.5" title={`${d.label} ${d.date}: ${d.active ? t('rb.dash.stPractised') : d.future ? t('rb.dash.stNotYet') : t('rb.dash.stNoPractice')}`}>
+    <div className="flex items-stretch gap-3 rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm">
+      {/* Left: flame in a circle, day count below. */}
+      <div className="flex w-14 shrink-0 flex-col items-center justify-center">
+        <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-[#F4F5F7] ring-4 ring-[#FFE9C2]">
+          <ToolIcon name="flame" className="h-7 w-7 text-[#FF8A00]" />
+        </span>
+        <p className="mt-1.5 whitespace-nowrap text-sm font-bold text-[#FF8A00]">
+          {streak} {t('rb.dash.dayWord')}
+        </p>
+      </div>
+      {/* Middle: mint panel — day labels, diamonds, longest streak. */}
+      <div className="min-w-0 flex-1 rounded-xl bg-[#D9F7E8] px-3 py-2.5">
+        <div className="flex items-start justify-between gap-1" role="img" aria-label={t('rb.dash.weekLabel')}>
+          {days.map((d) => (
             <span
-              className={`block h-3.5 w-3.5 rotate-45 rounded-[3px] ${d.active ? 'bg-[#1FA36B]' : d.future ? 'border border-[#E8EAED] bg-transparent' : 'bg-[#E8EAED]'}`}
-            />
-            <span className="text-[10px] font-semibold text-[#6B7280]">{d.label}</span>
-          </span>
-        ))}
+              key={d.date}
+              className="flex flex-1 flex-col items-center gap-1.5"
+              title={`${d.label} ${d.date}: ${d.active ? t('rb.dash.stPractised') : d.future ? t('rb.dash.stNotYet') : t('rb.dash.stNoPractice')}`}
+            >
+              <span className={`text-[11px] font-semibold ${d.isToday ? 'font-bold text-[#1FA36B]' : 'text-[#5b8a6e]'}`}>{d.label}</span>
+              <span
+                className={`flex h-5 w-5 rotate-45 items-center justify-center rounded-[4px] ${
+                  d.active
+                    ? 'bg-[#1FA36B]'
+                    : d.future
+                      ? 'border border-[#9DB8A8] bg-transparent'
+                      : 'bg-[#C4D8CB]'
+                }`}
+              >
+                {d.active && (
+                  <ToolIcon name="check" className="h-3 w-3 -rotate-45 text-white" />
+                )}
+              </span>
+            </span>
+          ))}
+        </div>
+        <p className="mt-2 text-center text-xs">
+          <span className="text-[#5b8a6e]">{t('rb.dash.longestStreak')} </span>
+          <span className="font-bold text-[#1FA36B]">{longestStreak} {t('rb.dash.dayWord')}</span>
+        </p>
+      </div>
+      {/* Right: bell (reminders) + green plus (log a session). */}
+      <div className="flex w-8 shrink-0 flex-col items-center justify-between py-1">
+        <button
+          type="button"
+          onClick={onBell}
+          aria-label={t('rb.dash.reminders')}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-[#1FA36B] hover:bg-[#E4FFF2]"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+          </svg>
+        </button>
+        <a
+          href={addHref}
+          aria-label={t('rb.dash.addSessionLink')}
+          className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#1FA36B] text-[#1FA36B] hover:bg-[#E4FFF2]"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </a>
       </div>
     </div>
   );
@@ -164,6 +260,62 @@ function TypeGoalCard({ type, goal, onTargetChange, onLog }: {
   );
 }
 
+/** Memorization tab goal row (Tarteel layout): a collapsible "Memorization"
+/ *  / "Review" heading, then a white card "Memorization Goal / Not Set"
+ *  (or the real done/target) with a chevron. Tapping the card reveals the
+ *  ring + target controls underneath — that is the goal detail. */
+function MemGoalRow({ label, goalLabel, type, goal, onTargetChange, onLog }: {
+  label: string;
+  goalLabel: string;
+  type: GoalType;
+  goal: { done: number; target: number };
+  onTargetChange: (type: GoalType, target: number) => void;
+  onLog: (type: GoalType, count: number) => void;
+}) {
+  const [open, setOpen] = useState(true);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const value = goal.target > 0 ? `${goal.done} / ${goal.target} ayahs` : 'Not Set';
+  return (
+    <div>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between py-1 text-left"
+      >
+        <span className="text-base font-bold text-[#111827]">{label}</span>
+        <ToolIcon
+          name="chevronDown"
+          className={`h-5 w-5 text-[#9CA3AF] transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open && (
+        <>
+          <button
+            type="button"
+            aria-expanded={detailOpen}
+            onClick={() => setDetailOpen((v) => !v)}
+            className="mt-2 flex w-full items-center justify-between rounded-xl border border-[#E8EAED] bg-white p-4 text-left shadow-sm"
+          >
+            <span>
+              <span className="block text-base text-[#111827]">{goalLabel}</span>
+              <span className="mt-0.5 block text-xl font-bold text-[#1FA36B]">{value}</span>
+            </span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m9 6 6 6-6 6" />
+            </svg>
+          </button>
+          {detailOpen && (
+            <div className="mt-3">
+              <TypeGoalCard type={type} goal={goal} onTargetChange={onTargetChange} onLog={onLog} />
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function MyProgressClient() {
   const [progress, setProgress] = useState<HifzProgress | null>(null);
   const [mistakes, setMistakes] = useState<MistakeEntry[]>([]);
@@ -219,6 +371,11 @@ export default function MyProgressClient() {
   }, []);
   // Engagement chart range.
   const [chartRange, setChartRange] = useState<'day' | 'week' | 'month'>('day');
+  // Activity tab: collapsible Session History card + Achievements grid.
+  const [showHistory, setShowHistory] = useState(false);
+  const [showBadges, setShowBadges] = useState(false);
+  // Activity tab: Pages chart range (Tarteel's "Last 3 Days" dropdown).
+  const [pagesRange, setPagesRange] = useState<'3' | '7' | '14'>('3');
   // 5-tab progress hub (Dashboard / Goals / Memorization / Activity /
   // Community), in the style of the Tarteel app screenshots.
   const [tab, setTab] = useState<ProgressTab>('dashboard');
@@ -279,6 +436,24 @@ export default function MyProgressClient() {
     progress === null
       ? buildBadgeSnapshot(createDefaultProgress(), { bestTestPct: null })
       : buildBadgeSnapshot(progress, { bestTestPct: loadBestTestPct() });
+  const earnedCount = evaluateBadges(badgeSnapshot).filter((r) => r.earned).length;
+
+  // Activity tab — Session History rows (hand-logged sessions + completed
+  // tests, newest first). Computed once here so the compact card and the
+  // expanded list share the same rows and count.
+  const historyRows: { at: string; label: string; detail: string; href?: string }[] = [
+    ...sessions.map((s) => ({
+      at: s.date,
+      label: GOAL_TYPE_LABELS[s.type as GoalType] ?? s.type,
+      detail: t('rb.dash.sessionRow').replace('{a}', String(s.ayahs)).replace('{m}', String(s.minutes)),
+    })),
+    ...testSessions.map((s) => ({
+      at: s.at.slice(0, 10),
+      label: t('rb.dash.sessionTest').replace('{type}', s.type),
+      detail: `${s.score}/${s.total} · ${s.mistakes} ${s.mistakes === 1 ? t('test.mistake') : t('test.mistakes')}`,
+      href: '/hifz/test',
+    })),
+  ].sort((a, b) => b.at.localeCompare(a.at));
 
   if (progress === null || settings === null) {
     return (
@@ -294,12 +469,7 @@ export default function MyProgressClient() {
 
   const today = localDateString();
   const streak = currentStreakCount(progress.streak, today);
-  const goalMet = isDailyGoalMet(progress, today);
-  const practisedToday = ayahsPractisedOn(progress, today);
-  const minutesToday = progress.minutesToday.date === today ? progress.minutesToday.minutes : 0;
   const memorised = Object.entries(progress.ayahs).filter(([, a]) => a.status === 'memorised');
-  const learning = Object.entries(progress.ayahs).filter(([, a]) => a.status === 'learning');
-  const goalPct = Math.min(100, Math.round((minutesToday / progress.dailyGoalMinutes) * 100));
   const memorisedPct = Math.round((memorised.length / 6236) * 100);
   // Per-type daily goals (§15.8): separate targets + counters.
   const typeGoals = getTypeGoals(progress);
@@ -353,12 +523,6 @@ export default function MyProgressClient() {
   })();
   const heatColor = (count: number) =>
     count < 0 ? 'bg-transparent' : count === 0 ? 'bg-[#E8EAED]' : count <= 1 ? 'bg-[#bcd8c6]' : count <= 3 ? 'bg-[#7fb894]' : 'bg-[#1FA36B]';
-
-  const changeGoal = (minutes: number) => {
-    const next = setDailyGoal(progress, minutes as 5 | 10 | 15 | 30);
-    saveProgress(next);
-    setProgress(next);
-  };
 
   const changeTypeTarget = (type: GoalType, target: number) => {
     const next = setTypeGoalTarget(progress, type, target);
@@ -522,6 +686,7 @@ export default function MyProgressClient() {
 
   return (
     <div className="space-y-6">
+      <HubTopBar />
       {notice && (
         <p role="status" className="rounded-xl border border-[#E8EAED] bg-white px-4 py-3 text-sm text-[#6B7280]">
           {notice}
@@ -537,10 +702,10 @@ export default function MyProgressClient() {
             role="tab"
             aria-selected={tab === tb.id}
             onClick={() => setTab(tb.id)}
-            className={`shrink-0 border-b-2 px-3 py-2 text-sm font-semibold ${
+            className={`shrink-0 border-b-[3px] px-3 py-2 text-[15px] ${
               tab === tb.id
-                ? 'border-[#1FA36B] font-bold text-[#111827]'
-                : 'border-transparent text-[#6B7280] hover:text-[#111827]'
+                ? 'border-black font-bold text-black'
+                : 'border-transparent font-medium text-[#6B7280] hover:text-[#111827]'
             }`}
           >
             {t(tb.label)}
@@ -551,78 +716,72 @@ export default function MyProgressClient() {
       {tab === 'dashboard' && (
         <div className="space-y-6" role="tabpanel" aria-label={t('rb.dash.tabDashboard')}>
           {/* Guest-safe greeting: no name is stored anywhere on this device,
-              so no name is shown — never a fake one. */}
+              so no name is shown — never a fake one. No subtitle. */}
           <div>
-            <h2 className="text-2xl font-bold text-[#111827]">{t('rb.dash.salam')}</h2>
-            <p className="mt-1 text-sm text-[#6B7280]">{t('rb.dash.atAGlance')}</p>
+            <h2 className="text-[22px] font-bold text-[#111827]">{t('rb.dash.salam')}</h2>
           </div>
 
-          <section aria-label={t('rb.dash.streakGoal')} className="grid gap-4 sm:grid-cols-2">
-            <StreakCard streak={streak} longestStreak={longestStreak} activity={activity} />
-        <div className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">{t('prog.dailyGoal')}</p>
-          <p className="mt-2 text-4xl font-bold text-[#111827]">
-            {minutesToday}<span className="text-lg text-[#6B7280]"> / {progress.dailyGoalMinutes} min</span>
-          </p>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E8EAED]" role="progressbar" aria-valuenow={goalPct} aria-valuemin={0} aria-valuemax={100} aria-label={t('rb.dash.dailyGoalProgress')}>
-            <div className="h-full rounded-full bg-[#1FA36B]" style={{ width: `${goalPct}%` }} />
-          </div>
-          <p className="mt-2 text-sm text-[#6B7280]">
-            {t('prog.practisedToday').replace('{n}', String(practisedToday)).replace('{ayahWord}', practisedToday === 1 ? t('common.ayah') : t('common.ayahs'))}
-            {goalMet ? t('prog.goalMet') : t('prog.goalNotMet')}
-          </p>
-          <label className="mt-3 flex items-center gap-2 text-sm font-medium">
-            {t('prog.goal')}
-            <select
-              value={progress.dailyGoalMinutes}
-              onChange={(e) => changeGoal(Number(e.target.value))}
-              className="min-h-11 rounded-lg border border-[#E8EAED] bg-[#F4F5F7] px-2 py-1.5 text-sm"
-            >
-              {DAILY_GOAL_OPTIONS.map((m) => (
-                <option key={m} value={m}>{t('prog.minutes').replace('{n}', String(m))}</option>
-              ))}
-            </select>
-          </label>
-        </div>
-          </section>
+          <StreakCard
+            streak={streak}
+            longestStreak={longestStreak}
+            activity={activity}
+            addHref="/hifz/my-progress?tab=activity#add-session-heading"
+            onBell={() => setTab('goals')}
+          />
 
-          {/* Free-features promo — our own line; nothing is upsold, everything is free. */}
-          <section aria-label={t('rb.dash.exploreFree')} className="t-card rounded-2xl p-5 shadow-sm sm:p-6">
-            <h2 className="text-xl font-bold text-[#111827]">{t('rb.dash.keepGoing')}</h2>
-            <p className="mt-1 text-sm text-[#6B7280]">{t('rb.dash.reciteCoachDesc')}</p>
+          {/* Free-features promo — our own simple mosque icon (never
+              Tarteel's artwork) and our own line; nothing is upsold,
+              everything is free. */}
+          <section aria-label={t('rb.dash.exploreFree')} className="rounded-2xl border border-[#E8EAED] bg-white p-5 text-center shadow-sm sm:p-6">
+            <span className="mx-auto flex h-16 w-16 items-center justify-center" aria-hidden="true">
+              <ToolIcon name="mosque" className="h-14 w-14 text-[#C9A227]" />
+            </span>
+            <p className="mt-3 text-lg font-bold leading-snug text-[#111827]">{t('rb.dash.memBetter')}</p>
             <Link
               href="/hifz/memorize"
-              className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full bg-gradient-to-r from-cyan-400 to-[#57D798] px-5 py-2.5 text-sm font-bold text-[#102E26] hover:brightness-105"
-            >{t('rb.dash.exploreFeatures')} →</Link>
+              className="mt-4 flex min-h-12 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#38BDF8] to-[#34D399] px-5 py-3 text-base font-bold text-[#102E26] hover:brightness-105"
+            >{t('rb.dash.exploreAllFree')}</Link>
           </section>
 
-          {/* Highlights — Testing Mode, with the real best score when one exists. */}
-          <section aria-label={t('rb.dash.highlights')} className="t-card rounded-2xl p-5 shadow-sm sm:p-6">
+          {/* Highlights — Testing Mode on a dark card, like the reference.
+              No copied artwork: the decoration is plain CSS shapes. */}
+          <section aria-label={t('rb.dash.highlights')}>
             <h2 className="text-xl font-bold text-[#111827]">{t('rb.dash.highlights')}</h2>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#F4F5F7] px-4 py-3">
-              <div>
-                <p className="font-bold text-[#111827]">{t('rb.set.testingMode')}</p>
-                <p className="text-sm text-[#6B7280]">
-                  {bestTestPct !== null
-                    ? t('rb.dash.bestTestScore').replace('{pct}', String(bestTestPct))
-                    : t('rb.dash.testTypes')}
-                </p>
-              </div>
-              <Link href="/hifz/test" className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]">{t('rb.dash.openTestMode')} →</Link>
-            </div>
+            <Link href="/hifz/test" className="relative mt-3 block overflow-hidden rounded-2xl bg-[#111827] p-5 text-white shadow-sm">
+              <span aria-hidden="true" className="pointer-events-none absolute -right-6 -top-10 h-32 w-32 rounded-full bg-[#38BDF8]/25 blur-xl" />
+              <span aria-hidden="true" className="pointer-events-none absolute -bottom-8 right-16 h-24 w-24 rounded-full bg-[#34D399]/25 blur-xl" />
+              <span aria-hidden="true" className="pointer-events-none absolute right-6 top-10 h-10 w-24 rotate-[-8deg] rounded-full bg-[#F472B6]/30 blur-md" />
+              <span className="relative text-xs font-semibold text-white/70">{t('rb.dash.testingModeLabel')}</span>
+              <p className="relative mt-10 text-lg font-bold">{t('rb.dash.newFeature')}</p>
+              <p className="relative mt-1 max-w-[260px] text-sm leading-relaxed text-white/80">{t('rb.dash.testRandom')}</p>
+              <p className="relative mt-3 text-sm font-bold tracking-wide text-white/90">
+                {t('rb.dash.testYourselfNow')} <span aria-hidden="true">↗</span>
+              </p>
+            </Link>
           </section>
 
           {/* Today's goals — the three per-type daily goals, with a way to start a new goal. */}
-          <section aria-labelledby="today-goals-heading" className="t-card rounded-2xl p-5 shadow-sm sm:p-6">
+          <section aria-labelledby="today-goals-heading">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 id="today-goals-heading" className="text-xl font-bold text-[#111827]">{t('rb.goals.todayGoals')}</h2>
               <button
                 type="button"
-                onClick={() => { setGoalsCreateSignal((n) => n + 1); setTab('goals'); }}
-                className="min-h-11 rounded-full bg-[#57D798] px-5 py-2 text-sm font-bold text-[#102E26] hover:brightness-105"
-              >{t('rb.dash.startNewGoal')}</button>
+                onClick={() => setTab('goals')}
+                className="text-sm font-medium text-[#6B7280] hover:text-[#111827]"
+              >{t('rb.dash.seeAll')}</button>
             </div>
-            <p className="mt-1 text-sm text-[#6B7280]">{t('rb.dash.oneGoalPerKind')}</p>
+            <button
+              type="button"
+              onClick={() => { setGoalsCreateSignal((n) => n + 1); setTab('goals'); }}
+              className="mt-3 flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl border border-[#E8EAED] bg-white px-4 py-3 text-sm font-bold text-[#111827] shadow-sm hover:border-[#1FA36B]"
+            >
+              {t('rb.dash.startNewGoal')}
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#57D798] text-[#102E26]" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </span>
+            </button>
             <div className="mt-4 grid gap-4 sm:grid-cols-3">
               {(Object.keys(GOAL_TYPE_LABELS) as GoalType[]).map((type) => (
                 <TypeGoalCard key={type} type={type} goal={typeGoals[type]} onTargetChange={changeTypeTarget} onLog={logType} />
@@ -784,33 +943,31 @@ export default function MyProgressClient() {
 
       {tab === 'memorization' && (
         <div className="space-y-6" role="tabpanel" aria-label={t('rb.dash.tabMemorization')}>
-          {/* Memorization completion — memorised ayahs out of all 6,236. */}
-          <section aria-labelledby="completion-heading" className="t-card rounded-2xl p-5 shadow-sm sm:p-6">
-            <h2 id="completion-heading" className="text-xl font-bold text-[#111827]">{t('rb.dash.memCompletion')}</h2>
-            <p className="mt-2 text-4xl font-bold text-[#111827]">{memorisedPct}%</p>
-            <p className="mt-1 text-sm text-[#6B7280]">
-              {memorised.length} of 6,236 ayahs memorised · {learning.length} {learning.length === 1 ? 'ayah' : 'ayahs'} learning · an ayah counts as memorised after 3 correct recitations in a row.
-            </p>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E8EAED]" role="progressbar" aria-valuenow={memorisedPct} aria-valuemin={0} aria-valuemax={100} aria-label={t('rb.dash.memCompletion')}>
-              <div className="h-full rounded-full bg-[#1FA36B]" style={{ width: `${memorisedPct}%` }} />
-            </div>
-            {progress.activePlan && (
-              <p className="mt-2 text-sm text-[#6B7280]">
-                {t('prog.activePlan').replace('{days}', String(progress.activePlan.planDays)).replace('{day}', String(progress.activePlan.currentDay))}
-              </p>
-            )}
-          </section>
+          {/* Memorization completion — compact row, like the reference:
+              label + green percent + chevron to the memorised list below. */}
+          <a
+            href="#memorised-ayahs"
+            className="flex items-center justify-between rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm"
+            aria-label={`${t('rb.dash.memCompletion')} — ${memorisedPct}%`}
+          >
+            <span>
+              <span className="block text-base text-[#111827]">{t('rb.dash.memCompletion')}</span>
+              <span className="mt-0.5 block text-xl font-bold text-[#1FA36B]">{memorisedPct}%</span>
+            </span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m9 6 6 6-6 6" />
+            </svg>
+          </a>
 
-          {/* Goals — Memorization Goal and Review Goal cards (real values, or "Not Set"). */}
-          <section aria-labelledby="mem-goals-heading" className="t-card rounded-2xl p-5 shadow-sm sm:p-6">
+          {/* Goals — Memorization Goal and Review Goal cards. The ring +
+              target controls live behind each card's chevron (the goal
+              detail), not inline. */}
+          <section aria-labelledby="mem-goals-heading">
             <h2 id="mem-goals-heading" className="text-xl font-bold text-[#111827]">{t('rb.goals.goals')}</h2>
-            <p className="mt-1 text-sm text-[#6B7280]">{t('rb.dash.dailyTargets')}</p>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <TypeGoalCard type="memorisation" goal={typeGoals.memorisation} onTargetChange={changeTypeTarget} onLog={logType} />
-              <TypeGoalCard type="revision" goal={typeGoals.revision} onTargetChange={changeTypeTarget} onLog={logType} />
+            <div className="mt-4 space-y-5">
+              <MemGoalRow label="Memorization" goalLabel={t('rb.dash.memGoal')} type="memorisation" goal={typeGoals.memorisation} onTargetChange={changeTypeTarget} onLog={logType} />
+              <MemGoalRow label="Review" goalLabel={t('rb.dash.reviewGoal')} type="revision" goal={typeGoals.revision} onTargetChange={changeTypeTarget} onLog={logType} />
             </div>
-            <p className="mt-3 text-sm text-[#6B7280]">{t('rb.dash.changeGoals')}<button type="button" onClick={() => setTab('goals')} className="font-semibold text-[#1FA36B] underline">{t('rb.dash.goalsTab')}</button>.
-            </p>
           </section>
 
       {/* Memorised map — all 114 surahs */}
@@ -934,7 +1091,7 @@ export default function MyProgressClient() {
       </section>
 
       {/* Memorised ayahs */}
-      <section aria-labelledby="memorised-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
+      <section id="memorised-ayahs" aria-labelledby="memorised-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
         <h2 id="memorised-heading" className="text-xl font-bold text-[#111827]">{t('prog.memorisedAyahs')}</h2>
         {memorised.length === 0 ? (
           <p className="mt-2 text-sm text-[#6B7280]">
@@ -1244,7 +1401,232 @@ export default function MyProgressClient() {
 
       {tab === 'activity' && (
         <div className="space-y-6" role="tabpanel" aria-label={t('rb.dash.tabActivity')}>
-          <StreakCard streak={streak} longestStreak={longestStreak} activity={activity} />
+          <StreakCard
+            streak={streak}
+            longestStreak={longestStreak}
+            activity={activity}
+            addHref="#add-session-heading"
+            onBell={() => setTab('goals')}
+          />
+
+          {/* Session History — compact card with the real count; tap the
+              chevron to see the full list. */}
+          <section aria-labelledby="history-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm">
+            <button
+              type="button"
+              aria-expanded={showHistory}
+              onClick={() => setShowHistory((v) => !v)}
+              className="flex w-full items-center justify-between text-left"
+            >
+              <span>
+                <span className="block text-base text-[#111827]">{t('rb.dash.sessionHistory')}</span>
+                <span className="mt-0.5 block text-xl font-bold text-[#1FA36B]">{historyRows.length}</span>
+              </span>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${showHistory ? 'rotate-90' : ''}`}>
+                <path d="m9 6 6 6-6 6" />
+              </svg>
+            </button>
+            {showHistory && (
+              <div className="mt-3">
+                <h2 id="history-heading" className="sr-only">{t('rb.dash.sessionHistory')}</h2>
+                <p className="text-sm text-[#6B7280]">{t('rb.dash.sessionsNote')}</p>
+                {historyRows.length === 0 ? (
+                  <p className="mt-2 text-sm text-[#6B7280]">{t('rb.dash.noSessions')}</p>
+                ) : (
+                  <ul className="mt-3 space-y-1 text-sm">
+                    {historyRows.slice(0, 15).map((r, i) => (
+                      <li key={`${r.at}-${i}`} className="flex flex-wrap gap-2 rounded-lg bg-[#F4F5F7] px-3 py-2">
+                        <span className="font-semibold">{r.at}</span>
+                        <span>{r.label}</span>
+                        <span className="text-[#6B7280]">{r.detail}</span>
+                        {r.href && (
+                          <Link href={r.href} className="ml-auto font-semibold text-[#1FA36B] underline">
+                            {t('bm.open')}
+                          </Link>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </section>
+
+          {/* Achievements — free badges. Nothing earned yet shows the
+              honest empty line, like the reference. */}
+          <section aria-labelledby="achievements-heading">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 id="achievements-heading" className="text-xl font-bold text-[#111827]">{t('rb.dash.achievements')}</h2>
+              <button
+                type="button"
+                onClick={() => setShowBadges((v) => !v)}
+                className="text-sm font-medium text-[#6B7280] hover:text-[#111827]"
+              >{t('rb.dash.seeAll')}</button>
+            </div>
+            {earnedCount === 0 ? (
+              <p className="mt-2 text-sm text-[#6B7280]">{t('rb.dash.noBadgesYet')}</p>
+            ) : showBadges ? (
+              <div className="mt-3"><BadgesGrid snapshot={badgeSnapshot} /></div>
+            ) : (
+              <p className="mt-2 text-sm text-[#6B7280]">
+                {earnedCount} of 20 earned — tap See All to view them.
+              </p>
+            )}
+          </section>
+
+          {/* Activity Tracker — free, no lock: the real 12-week heatmap
+              plus this week's challenge progress. */}
+          <section aria-labelledby="tracker-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
+            <h2 id="tracker-heading" className="text-xl font-bold text-[#111827]">{t('rb.dash.activityTracker')}</h2>
+            <p className="mt-1 text-sm text-[#6B7280]">
+              {t('rb.dash.weeklyProgress').replaceAll('{total}', String(WEEK_CHALLENGE_DAYS)).replace('{done}', String(weekDays))}
+              {weekDays >= WEEK_CHALLENGE_DAYS ? ' ' + t('rb.dash.challengeDone') : ' ' + t('rb.dash.dayCounts')}
+            </p>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E8EAED]" role="progressbar" aria-valuenow={weekDays} aria-valuemin={0} aria-valuemax={WEEK_CHALLENGE_DAYS} aria-label={t('rb.dash.weeklyChallenge')}>
+              <div className="h-full rounded-full bg-[#FFB800]" style={{ width: `${Math.min(100, (weekDays / WEEK_CHALLENGE_DAYS) * 100)}%` }} />
+            </div>
+            <h3 className="mt-6 text-sm font-bold text-[#111827]">{t('prog.activityHeading')}</h3>
+            <p className="mt-1 text-xs text-[#6B7280]">
+              One square per day; darker means more ayahs practised that day. Built from your
+              ayah records, so it works on progress saved before this view existed.
+            </p>
+            <div className="mt-3 flex gap-[3px] overflow-x-auto pb-1" role="img" aria-label={t('prog.heatmapLabel').replace('{n}', String(Object.keys(activity).length))}>
+              {heatmapWeeks.map((week, wi) => (
+                <div key={wi} className="flex shrink-0 flex-col gap-[3px]">
+                  {week.map((day) => (
+                    <span
+                      key={day.date}
+                      title={day.count < 0 ? day.date : t('prog.practisedOnDay').replace('{date}', day.date).replace('{n}', String(day.count)).replace('{ayahWord}', day.count === 1 ? t('common.ayah') : t('common.ayahs'))}
+                      className={`h-3 w-3 rounded-[3px] ${heatColor(day.count)}`}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Pages — ayahs practised per day over the selected range.
+              Honest note: this device tracks ayahs practised, not Mushaf
+              pages, so the bars count ayahs per day. */}
+          <section aria-labelledby="pages-heading">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 id="pages-heading" className="text-xl font-bold text-[#111827]">{t('rb.dash.pagesChart')}</h2>
+              <label className="sr-only" htmlFor="pages-range">{t('rb.dash.pagesChart')}</label>
+              <select
+                id="pages-range"
+                value={pagesRange}
+                onChange={(e) => setPagesRange(e.target.value as '3' | '7' | '14')}
+                className="min-h-11 rounded-lg border border-[#E8EAED] bg-white px-2 py-1.5 text-sm font-semibold text-[#111827]"
+              >
+                <option value="3">{t('rb.dash.last3Days')}</option>
+                <option value="7">{t('rb.dash.last7Days')}</option>
+                <option value="14">{t('rb.dash.last14Days')}</option>
+              </select>
+            </div>
+            {(() => {
+              const n = Number(pagesRange);
+              const now = new Date();
+              const buckets: { label: string; value: number }[] = [];
+              for (let i = n - 1; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+                const key = localDateString(d);
+                buckets.push({
+                  label: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+                  value: activity[key] ?? 0,
+                });
+              }
+              const max = Math.max(1, ...buckets.map((b) => b.value));
+              return (
+                <div className="mt-3 rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm">
+                  <div className="flex h-28 items-end gap-1" role="img" aria-label={`${t('rb.dash.ayahsPerDay')} — ${t('rb.dash.pagesChart')}`}>
+                    {buckets.map((b, i) => (
+                      <div key={i} className="flex flex-1 flex-col items-center gap-1">
+                        <div
+                          className="w-full rounded-t bg-[#57D798]"
+                          style={{ height: `${Math.max(b.value > 0 ? 8 : 2, (b.value / max) * 100)}%` }}
+                          title={`${b.label}: ${b.value} ${b.value === 1 ? t('common.ayah') : t('common.ayahs')}`}
+                        />
+                        <span className="text-[10px] text-[#6B7280]">{b.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-[#6B7280]">{t('rb.dash.ayahsPerDay')}</p>
+                </div>
+              );
+            })()}
+          </section>
+
+      {/* Engagement chart — time / ayahs by day, week, month */}
+      <section aria-labelledby="engagement-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="engagement-heading" className="text-xl font-bold text-[#111827]">{t('prog.engagement')}</h2>
+          <div className="flex gap-1" role="group" aria-label={t('rb.dash.chartRange')}>
+            {(['day', 'week', 'month'] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                aria-pressed={chartRange === r}
+                onClick={() => setChartRange(r)}
+                className={`min-h-11 rounded-full px-3 py-1 text-xs font-bold capitalize ${chartRange === r ? 'bg-[#E8EAED] text-[#111827]' : 'border border-[#E8EAED] text-[#6B7280]'}`}
+              >
+                {r === 'day' ? t('prog.day') : r === 'week' ? t('prog.week') : t('prog.month')}
+              </button>
+            ))}
+          </div>
+        </div>
+        {(() => {
+          const now = new Date();
+          const buckets: { label: string; value: number }[] = [];
+          if (chartRange === 'day') {
+            for (let i = 13; i >= 0; i--) {
+              const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+              const key = localDateString(d);
+              buckets.push({ label: d.toLocaleDateString(undefined, { weekday: 'short' }), value: activity[key] ?? 0 });
+            }
+          } else if (chartRange === 'week') {
+            for (let i = 7; i >= 0; i--) {
+              const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i * 7);
+              const start = new Date(end.getFullYear(), end.getMonth(), end.getDate() - 6);
+              let v = 0;
+              for (const [day, c] of Object.entries(activity)) {
+                if (day >= localDateString(start) && day <= localDateString(end)) v += c;
+              }
+              buckets.push({ label: `W-${i}`, value: v });
+            }
+          } else {
+            for (let i = 5; i >= 0; i--) {
+              const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+              const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+              let v = 0;
+              for (const [day, c] of Object.entries(activity)) {
+                if (day.startsWith(key)) v += c;
+              }
+              buckets.push({ label: d.toLocaleDateString(undefined, { month: 'short' }), value: v });
+            }
+          }
+          const max = Math.max(1, ...buckets.map((b) => b.value));
+          return (
+            <div>
+              <div className="mt-4 flex h-28 items-end gap-1" role="img" aria-label={`${t('prog.ayahsPractised')} — ${chartRange === 'day' ? t('prog.perDay') : chartRange === 'week' ? t('prog.perWeek') : t('prog.perMonth')}`}>
+                {buckets.map((b, i) => (
+                  <div key={i} className="flex flex-1 flex-col items-center gap-1">
+                    <div
+                      className="w-full rounded-t bg-[#57D798]"
+                      style={{ height: `${Math.max(b.value > 0 ? 8 : 2, (b.value / max) * 100)}%` }}
+                      title={`${b.label}: ${b.value} ${b.value === 1 ? t('common.ayah') : t('common.ayahs')}`}
+                    />
+                    <span className="text-[10px] text-[#6B7280]">{b.label}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-[#6B7280]">
+                {t('prog.ayahsPractised')} — {chartRange === 'day' ? t('prog.perDay') : chartRange === 'week' ? t('prog.perWeek') : t('prog.perMonth')}.
+                Built from your ayah records — never invented.
+              </p>
+            </div>
+          );
+        })()}
+      </section>
 
       {/* Add Session — off-platform session / streak restore (screenshot 7) */}
       <section aria-labelledby="add-session-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
@@ -1324,153 +1706,8 @@ export default function MyProgressClient() {
         )}
       </section>
 
-      {/* Stage 6 (§19): session history — memorisation sessions logged by
-          hand plus completed tests, newest first. Only what is stored. */}
-      <section aria-labelledby="history-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="history-heading" className="text-xl font-bold text-[#111827]">{t('rb.dash.sessionHistory')}</h2>
-        <p className="mt-1 text-sm text-[#6B7280]">{t('rb.dash.sessionsNote')}</p>
-        {(() => {
-          const rows: { at: string; label: string; detail: string; href?: string }[] = [
-            ...sessions.map((s) => ({
-              at: s.date,
-              label: GOAL_TYPE_LABELS[s.type as GoalType] ?? s.type,
-              detail: t('rb.dash.sessionRow').replace('{a}', String(s.ayahs)).replace('{m}', String(s.minutes)),
-            })),
-            ...testSessions.map((s) => ({
-              at: s.at.slice(0, 10),
-              label: t('rb.dash.sessionTest').replace('{type}', s.type),
-              detail: `${s.score}/${s.total} · ${s.mistakes} ${s.mistakes === 1 ? t('test.mistake') : t('test.mistakes')}`,
-              href: '/hifz/test',
-            })),
-          ].sort((a, b) => b.at.localeCompare(a.at));
-          if (rows.length === 0) {
-            return (
-              <p className="mt-2 text-sm text-[#6B7280]">{t('rb.dash.noSessions')}</p>
-            );
-          }
-          return (
-            <ul className="mt-3 space-y-1 text-sm">
-              {rows.slice(0, 15).map((r, i) => (
-                <li key={`${r.at}-${i}`} className="flex flex-wrap gap-2 rounded-lg bg-[#F4F5F7] px-3 py-2">
-                  <span className="font-semibold">{r.at}</span>
-                  <span>{r.label}</span>
-                  <span className="text-[#6B7280]">{r.detail}</span>
-                  {r.href && (
-                    <Link href={r.href} className="ml-auto font-semibold text-[#1FA36B] underline">
-                      {t('bm.open')}
-                    </Link>
-                  )}
-                </li>
-              ))}
-            </ul>
-          );
-        })()}
-      </section>
 
-      {/* Badges — free achievements earned by practice (§23) */}
-      <BadgesGrid snapshot={badgeSnapshot} />
 
-      {/* Weekly challenge + activity heatmap */}
-      <section aria-labelledby="challenge-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="challenge-heading" className="text-xl font-bold text-[#111827]">{t('prog.challenge')}</h2>
-        <p className="mt-1 text-sm text-[#6B7280]">
-          {t('rb.dash.weeklyProgress').replaceAll('{total}', String(WEEK_CHALLENGE_DAYS)).replace('{done}', String(weekDays))}
-          {weekDays >= WEEK_CHALLENGE_DAYS ? ' ' + t('rb.dash.challengeDone') : ' ' + t('rb.dash.dayCounts')}
-        </p>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E8EAED]" role="progressbar" aria-valuenow={weekDays} aria-valuemin={0} aria-valuemax={WEEK_CHALLENGE_DAYS} aria-label={t('rb.dash.weeklyChallenge')}>
-          <div className="h-full rounded-full bg-[#FFB800]" style={{ width: `${Math.min(100, (weekDays / WEEK_CHALLENGE_DAYS) * 100)}%` }} />
-        </div>
-        <h3 className="mt-6 text-sm font-bold text-[#111827]">{t('prog.activityHeading')}</h3>
-        <p className="mt-1 text-xs text-[#6B7280]">
-          One square per day; darker means more ayahs practised that day. Built from your
-          ayah records, so it works on progress saved before this view existed.
-        </p>
-        <div className="mt-3 flex gap-[3px] overflow-x-auto pb-1" role="img" aria-label={t('prog.heatmapLabel').replace('{n}', String(Object.keys(activity).length))}>
-          {heatmapWeeks.map((week, wi) => (
-            <div key={wi} className="flex shrink-0 flex-col gap-[3px]">
-              {week.map((day) => (
-                <span
-                  key={day.date}
-                  title={day.count < 0 ? day.date : t('prog.practisedOnDay').replace('{date}', day.date).replace('{n}', String(day.count)).replace('{ayahWord}', day.count === 1 ? t('common.ayah') : t('common.ayahs'))}
-                  className={`h-3 w-3 rounded-[3px] ${heatColor(day.count)}`}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Engagement chart — time / ayahs by day, week, month */}
-      <section aria-labelledby="engagement-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 id="engagement-heading" className="text-xl font-bold text-[#111827]">{t('prog.engagement')}</h2>
-          <div className="flex gap-1" role="group" aria-label={t('rb.dash.chartRange')}>
-            {(['day', 'week', 'month'] as const).map((r) => (
-              <button
-                key={r}
-                type="button"
-                aria-pressed={chartRange === r}
-                onClick={() => setChartRange(r)}
-                className={`min-h-11 rounded-full px-3 py-1 text-xs font-bold capitalize ${chartRange === r ? 'bg-[#E8EAED] text-[#111827]' : 'border border-[#E8EAED] text-[#6B7280]'}`}
-              >
-                {r === 'day' ? t('prog.day') : r === 'week' ? t('prog.week') : t('prog.month')}
-              </button>
-            ))}
-          </div>
-        </div>
-        {(() => {
-          const now = new Date();
-          const buckets: { label: string; value: number }[] = [];
-          if (chartRange === 'day') {
-            for (let i = 13; i >= 0; i--) {
-              const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-              const key = localDateString(d);
-              buckets.push({ label: d.toLocaleDateString(undefined, { weekday: 'short' }), value: activity[key] ?? 0 });
-            }
-          } else if (chartRange === 'week') {
-            for (let i = 7; i >= 0; i--) {
-              const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i * 7);
-              const start = new Date(end.getFullYear(), end.getMonth(), end.getDate() - 6);
-              let v = 0;
-              for (const [day, c] of Object.entries(activity)) {
-                if (day >= localDateString(start) && day <= localDateString(end)) v += c;
-              }
-              buckets.push({ label: `W-${i}`, value: v });
-            }
-          } else {
-            for (let i = 5; i >= 0; i--) {
-              const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-              const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-              let v = 0;
-              for (const [day, c] of Object.entries(activity)) {
-                if (day.startsWith(key)) v += c;
-              }
-              buckets.push({ label: d.toLocaleDateString(undefined, { month: 'short' }), value: v });
-            }
-          }
-          const max = Math.max(1, ...buckets.map((b) => b.value));
-          return (
-            <div>
-              <div className="mt-4 flex h-28 items-end gap-1" role="img" aria-label={`${t('prog.ayahsPractised')} — ${chartRange === 'day' ? t('prog.perDay') : chartRange === 'week' ? t('prog.perWeek') : t('prog.perMonth')}`}>
-                {buckets.map((b, i) => (
-                  <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                    <div
-                      className="w-full rounded-t bg-[#57D798]"
-                      style={{ height: `${Math.max(b.value > 0 ? 8 : 2, (b.value / max) * 100)}%` }}
-                      title={`${b.label}: ${b.value} ${b.value === 1 ? t('common.ayah') : t('common.ayahs')}`}
-                    />
-                    <span className="text-[10px] text-[#6B7280]">{b.label}</span>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-2 text-xs text-[#6B7280]">
-                {t('prog.ayahsPractised')} — {chartRange === 'day' ? t('prog.perDay') : chartRange === 'week' ? t('prog.perWeek') : t('prog.perMonth')}.
-                Built from your ayah records — never invented.
-              </p>
-            </div>
-          );
-        })()}
-      </section>
 
       {/* Offline coach (§15.10) */}
       <section aria-labelledby="offline-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
@@ -1538,18 +1775,22 @@ export default function MyProgressClient() {
 
       {tab === 'community' && (
         <div className="space-y-6" role="tabpanel" aria-label={t('rb.dash.tabCommunity')}>
-          {/* My Groups — real local groups only; no global leaderboard exists. */}
-          <section aria-labelledby="my-groups-heading" className="t-card rounded-2xl p-5 shadow-sm sm:p-6">
-            <h2 id="my-groups-heading" className="text-xl font-bold text-[#111827]">{t('rb.dash.myGroups')}</h2>
+          {/* My Groups — heading outside the card, like the reference. */}
+          <h2 className="text-xl font-bold text-[#111827]">{t('rb.dash.myGroups')}</h2>
+          <section aria-labelledby="my-groups-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 text-center shadow-sm sm:p-6">
+            <h3 id="my-groups-heading" className="sr-only">{t('rb.dash.myGroups')}</h3>
+            <span className="mx-auto flex h-12 w-12 items-center justify-center text-[#9CA3AF]" aria-hidden="true">
+              <ToolIcon name="share" className="h-8 w-8" />
+            </span>
             <p dir="rtl" lang="ar" className="font-quran mt-3 text-xl leading-relaxed text-[#111827]">
               وَفِي ذَٰلِكَ فَلْيَتَنَافَسِ الْمُتَنَافِسُونَ
             </p>
-            <p className="mt-1 text-sm text-[#6B7280]">
+            <p className="mt-1 text-sm text-[#111827]">
               &ldquo;And in that let the competitors compete.&rdquo; — Quran 83:26
             </p>
-            <p className="mt-2 text-sm text-[#6B7280]">{t('rb.dash.practiseTogether')}</p>
+            <p className="mt-3 text-sm leading-relaxed text-[#6B7280]">{t('rb.dash.practiseTogether')}</p>
             {groups.length > 0 ? (
-              <ul className="mt-3 space-y-1 text-sm">
+              <ul className="mt-3 space-y-1 text-left text-sm">
                 {groups.map((g) => (
                   <li key={g.id} className="flex flex-wrap gap-2 rounded-lg bg-[#F4F5F7] px-3 py-2">
                     <span className="font-semibold">{g.name}</span>
@@ -1560,15 +1801,13 @@ export default function MyProgressClient() {
             ) : (
               <p className="mt-3 text-sm text-[#6B7280]">{t('rb.dash.noGroups')}</p>
             )}
-            <div className="mt-4 flex flex-wrap gap-2">
-              <a href="#community-join" className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#57D798] px-5 py-2 text-sm font-bold text-[#102E26] hover:brightness-105">{t('rb.dash.joinGroup')}</a>
-              <a href="#community-create" className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#102E26] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]">{t('rb.dash.createGroup')}</a>
-              <Link href="/hifz/challenges" className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#E8EAED] px-5 py-2 text-sm font-semibold hover:border-[#1FA36B]">{t('rb.dash.openChallenges')} →</Link>
+            <div className="mt-4 flex flex-col items-center gap-2">
+              <a href="#community-join" className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-black bg-white px-6 py-2 text-sm font-bold text-black hover:bg-[#F4F5F7]">{t('rb.dash.joinGroup')}</a>
+              <a href="#community-create" className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-black bg-white px-6 py-2 text-sm font-bold text-black hover:bg-[#F4F5F7]">{t('rb.dash.createGroup')}</a>
+              <Link href="/hifz/challenges" className="mt-1 inline-flex min-h-11 items-center justify-center text-sm font-semibold text-[#1FA36B] underline">{t('rb.dash.openChallenges')} →</Link>
             </div>
-            <p className="mt-3 text-xs text-[#6B7280]">
-              Groups live only on this device and in the share links you send — there is no global
-              leaderboard here, only the groups you join. The Quran League below is the same: your
-              own group&apos;s progress, shared by link.
+            <p className="mt-3 text-xs leading-relaxed text-[#6B7280]">
+              {t('rb.dash.groupsNoteShort')}
             </p>
           </section>
 
