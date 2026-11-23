@@ -153,7 +153,10 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
   useEffect(() => {
     const loaded = loadGoals();
     setGoals(loaded);
-    if (loaded.length === 0 || preset === 'kahf') setShowCreate(true);
+    // Deep-link only: the create form opens when a suggestion preset
+    // asked for it. It stays closed otherwise — even with no goals yet,
+    // so the Goals tab shows the START A NEW GOAL card like Tarteel.
+    if (preset === 'kahf') setShowCreate(true);
     try {
       setProgress(loadProgress());
     } catch {

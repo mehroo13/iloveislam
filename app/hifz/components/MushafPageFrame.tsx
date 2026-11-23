@@ -21,7 +21,6 @@ import { Fragment, useEffect, useRef } from 'react';
 import { BISMILLAH } from '../../quran/lib';
 import { getSurahById, type HifzSurah } from '../surahs';
 import type { QuranScript } from '../lib/script';
-import { JUZ_PAGES } from '../juz';
 import {
   cleanMushafIndopak,
   cleanMushafUthmani,
@@ -43,13 +42,6 @@ export const MUSHAF_PAGE_WIDTH = 970;
 
 interface WordWithVerse extends MushafWord {
   verseKey: string;
-}
-
-/** Verse keys that open a juz, e.g. "2:142" opens Juz 2. */
-const JUZ_START_KEYS = new Map<string, number>();
-for (const juz of JUZ_PAGES) {
-  const first = juz.segments[0];
-  JUZ_START_KEYS.set(`${first.surahId}:${first.fromAyah}`, juz.n);
 }
 
 /** Eight-point star (two overlapping squares) — the site's brand mark. */
@@ -97,19 +89,6 @@ function SurahHeader({ surah }: { surah: HifzSurah }) {
           {BISMILLAH}
         </p>
       )}
-    </div>
-  );
-}
-
-function JuzMarker({ n }: { n: number }) {
-  const t = useT();
-  return (
-    <div className="my-3 flex items-center gap-3" aria-label={t('rb.mpf.juzStart').replace('{n}', String(n))}>
-      <span className="h-px flex-1 bg-[#111827]/40" aria-hidden="true" />
-      <span className="rounded-full bg-[#111827] px-3 py-1 text-xs font-bold text-white">
-        Juz {n}
-      </span>
-      <span className="h-px flex-1 bg-[#111827]/40" aria-hidden="true" />
     </div>
   );
 }
@@ -242,7 +221,6 @@ export default function MushafPageFrame({
   }
 
   const renderedHeaders = new Set<number>();
-  const renderedJuzMarkers = new Set<number>();
   const blocks: React.ReactNode[] = [];
   let key = 0;
   // Weak (frequently missed) words on this page — drives the legend.
@@ -260,12 +238,6 @@ export default function MushafPageFrame({
           blocks.push(<SurahHeader key={`h-${key++}`} surah={surah} />);
           renderedHeaders.add(Number(sidStr));
         }
-      }
-      // A juz starts on this line when the verse key opens a juz.
-      const juzN = JUZ_START_KEYS.get(w.verseKey);
-      if (juzN !== undefined && !renderedJuzMarkers.has(juzN)) {
-        blocks.push(<JuzMarker key={`j-${key++}`} n={juzN} />);
-        renderedJuzMarkers.add(juzN);
       }
     }
 

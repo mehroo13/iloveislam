@@ -168,7 +168,7 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
       {showUpdateBanner && (
         <div role="status" className="flex items-center justify-center gap-3 bg-[#102E26] px-4 py-2 text-white">
           <p className="min-w-0 truncate text-xs font-semibold sm:text-sm">
-            App updated — refresh for the latest version
+            Update available
           </p>
           <button
             type="button"
