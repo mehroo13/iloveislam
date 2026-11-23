@@ -1364,12 +1364,12 @@ export default function RecitationCoach({
       <audio ref={audioRef} preload="none" className="hidden" />
       <h2 className="text-xl font-bold text-[#102E26]">{t('common.recite')} {surahName}</h2>
       <p className="mt-1 text-sm text-[#5b6b62]">
-        Listen, hide the verse, then recite it aloud. The checker follows your recitation word by word, on this device.
+        {t('coach.introRecite')}
       </p>
 
       {!online && (
         <p role="status" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">
-          You are offline. The checker still works if it was downloaded on this device before; Quran text and audio need a connection.
+          {t('coach.offlineNote')}
         </p>
       )}
       {storageNotice && (
@@ -1560,8 +1560,7 @@ export default function RecitationCoach({
           </div>
           {mode === 'follow' && (
             <p className="mt-2 text-sm text-[#5b6b62]">
-              Follow-along: recite with the text visible and the app highlights each word as
-              you say it. Nothing is judged, nothing is logged as a mistake.
+              {t('coach.followAlongNote')}
             </p>
           )}
 
@@ -1616,7 +1615,7 @@ export default function RecitationCoach({
           </div>
           {peeked && (
             <p role="status" className="mt-2 text-sm text-[#5b6b62]">
-              You peeked {peekCount} {peekCount === 1 ? 'time' : 'times'} — this attempt counts as a miss for streak purposes. That is honest practice, not a failure.
+              {t('coach.peekedTimes').replace('{n}', String(peekCount)).replace('{times}', peekCount === 1 ? t('ins.timeOne') : t('ins.timeMany'))}
             </p>
           )}
 
@@ -1734,7 +1733,7 @@ export default function RecitationCoach({
 
               {engineState === 'ready' && micState !== 'recording' && micState !== 'checking' && (
                 <>
-                  <p className="text-sm text-[#5b6b62]">We need the microphone to hear your recitation. Audio is processed on your device and never uploaded. Sharing a recording with your teacher is always your choice, after the session — nothing is sent automatically.</p>
+                  <p className="text-sm text-[#5b6b62]">{t('coach.micExplain')}</p>
                   <p className="mt-1 text-sm text-[#5b6b62]">{t('coach.takeBreath')}</p>
                   {/* Bottom bar: live stat pills + 4 round buttons + big gradient mic */}
                   <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
@@ -1851,19 +1850,19 @@ export default function RecitationCoach({
                   )}
                   {audioStalled && (
                     <p role="alert" className="mx-auto mt-2 max-w-md rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm text-left">
-                      The microphone is not sending any sound yet. Check it is not muted or covered, then tap “Stop &amp; check” and try again — or run the{' '}
-                      <Link href="/hifz/diagnostics" className="font-semibold text-[#1FA36B] underline">microphone check</Link>.
+                      {t('coach.micNoSoundA').replace('{stop}', t('coach.stopCheck'))}
+                      <Link href="/hifz/diagnostics" className="font-semibold text-[#1FA36B] underline">{t('coach.micCheckLink')}</Link>{t('coach.micNoSoundB')}
                     </p>
                   )}
                   {silentInput && !audioStalled && (
                     <p role="alert" className="mx-auto mt-2 max-w-md rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm text-left">
-                      The microphone is connected, but it is sending only silence — no sound is reaching the app at all. Check the mic is not muted or covered and that the right input is selected, then tap “Stop &amp; check” and try again — or run the{' '}
-                      <Link href="/hifz/diagnostics" className="font-semibold text-[#1FA36B] underline">microphone check</Link>.
+                      {t('coach.micSilenceA').replace('{stop}', t('coach.stopCheck'))}
+                      <Link href="/hifz/diagnostics" className="font-semibold text-[#1FA36B] underline">{t('coach.micCheckLink')}</Link>{t('coach.micSilenceB')}
                     </p>
                   )}
                   {paused && (
                     <p role="status" className="mt-2 text-sm font-semibold text-[#102E26]">
-                      Paused — the checker is not listening. Tap “Resume” to continue the same take.
+                      {t('coach.pausedNote').replace('{resume}', t('test.resume'))}
                     </p>
                   )}
                   <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -1873,7 +1872,7 @@ export default function RecitationCoach({
                         onClick={() => void resumeRecording()}
                         className="rounded-full bg-[#1FA36B] px-6 py-3 text-sm font-semibold text-white hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
                       >
-                        Resume
+                        {t('test.resume')}
                       </button>
                     ) : (
                       <button
@@ -1881,7 +1880,7 @@ export default function RecitationCoach({
                         onClick={() => void pauseRecording()}
                         className="rounded-full border border-[#102E26] px-6 py-3 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
                       >
-                        Pause
+                        {t('test.pause')}
                       </button>
                     )}
                     <button
@@ -1909,7 +1908,7 @@ export default function RecitationCoach({
           ) : (
             <div className="mt-5">
               <p className="text-sm text-[#5b6b62]">
-                Listen above, recite from memory, then mark each word yourself: correct, or not quite. Self-marked words are flagged as self-marked in the log.
+                {t('coach.selfMarkIntro')}
               </p>
               <div className="mt-3 space-y-3">
                 {scopeAyahs().map((a) => (
@@ -1977,7 +1976,7 @@ export default function RecitationCoach({
               // sound; it is the checker that could not follow the words
               // (too short / too quiet / never locked on).
               <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">
-                We heard your voice, but the checker could not follow the words. Try holding the phone a little closer, reciting a little louder and slower, and giving it a second to start listening before the first word — then try again.
+                {t('coach.couldNotFollow')}
               </p>
             ) : (
               // The mic delivered no sound at all in this take (level
@@ -1985,9 +1984,8 @@ export default function RecitationCoach({
               // accurate. Point at the mic check so a dead capture can be
               // diagnosed instead of retried blindly.
               <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">
-                We didn&apos;t hear anything. Check your mic and try again. If it keeps happening, run the{' '}
-                <Link href="/hifz/diagnostics" className="font-semibold text-[#1FA36B] underline">microphone check</Link>{' '}
-                — it will tell you whether the microphone itself is working.
+                {t('coach.heardNothingA')}
+                <Link href="/hifz/diagnostics" className="font-semibold text-[#1FA36B] underline">{t('coach.micCheckLink')}</Link>{t('coach.heardNothingB')}
               </p>
             )
           ) : result.trackedElsewhere ? (
@@ -2004,7 +2002,7 @@ export default function RecitationCoach({
             <p role="status" className="mt-3 text-base font-semibold">{feedbackSummary}</p>
           )}
           {peeked && (
-            <p className="mt-2 text-sm text-[#5b6b62]">You peeked during this attempt, so it counts as a miss for your streak.</p>
+            <p className="mt-2 text-sm text-[#5b6b62]">{t('coach.peekStreakNote')}</p>
           )}
 
           {/* Session summary: accuracy %, mistakes by type, time, peeks. */}
@@ -2064,7 +2062,7 @@ export default function RecitationCoach({
             if (extras.length === 0) return null;
             return (
               <div className="mt-4 rounded-xl border border-[#E5E7EB] p-4">
-                <p className="text-sm font-bold text-[#102E26]">Extra words &amp; skipped passages</p>
+                <p className="text-sm font-bold text-[#102E26]">{t('coach.extraSkippedTitle')}</p>
                 <ul className="mt-2 space-y-1.5 text-sm">
                   {extras.map((m, i) => {
                     const ayahText = scopeAyahs().find((x) => x.surah === m.location.surah && x.ayah === m.location.ayah)?.text ?? '';
@@ -2073,16 +2071,13 @@ export default function RecitationCoach({
                       <li key={`${m.errorClass}:${m.location.surah}:${m.location.ayah}:${m.location.word}:${i}`}>
                         {m.errorClass === 'added_word' ? (
                           <>
-                            An extra word was heard near{' '}
-                            <span dir="rtl" lang="ar" translate="no" className="font-quran text-base">{anchor}</span>{' '}
-                            ({m.location.surah}:{m.location.ayah}). The checker does not write down
-                            what was said, so the extra word itself is not shown.
+                            {t('coach.extraWordNearA')}
+                            <span dir="rtl" lang="ar" translate="no" className="font-quran text-base">{anchor}</span>{t('coach.extraWordNearB').replace('{ref}', `${m.location.surah}:${m.location.ayah}`)}
                           </>
                         ) : (
                           <>
-                            The recitation jumped ahead at{' '}
-                            <span dir="rtl" lang="ar" translate="no" className="font-quran text-base">{anchor}</span>{' '}
-                            ({m.location.surah}:{m.location.ayah}) — a passage was skipped.
+                            {t('coach.jumpedAheadA')}
+                            <span dir="rtl" lang="ar" translate="no" className="font-quran text-base">{anchor}</span>{t('coach.jumpedAheadB').replace('{ref}', `${m.location.surah}:${m.location.ayah}`)}
                           </>
                         )}
                       </li>
@@ -2101,8 +2096,8 @@ export default function RecitationCoach({
               <p className="text-sm font-bold text-[#102E26]">{t('coach.listenBack')}</p>
               <p className="mt-1 text-xs text-[#5b6b62]">
                 {settings?.saveAudio === true
-                  ? 'Recorded on this device only, and saved on this device so you can listen back to it later from your session history. It stays here unless you choose to share or download it below — the app never uploads it.'
-                  : 'Recorded on this device only. It stays here unless you choose to share or download it below — the app never uploads it, and it is not saved past this browser session. Turn on “Save session audio on this device” in Settings to keep recordings for later.'}
+                  ? t('coach.listenBackSaved')
+                  : t('coach.listenBackNotSaved').replace('{setting}', t('set.saveAudio')).replace('{settings}', t('set.title'))}
               </p>
               {recordingUrl && <audio controls src={recordingUrl} className="mt-2 w-full" />}
               <div className="mt-3">
@@ -2204,12 +2199,12 @@ export default function RecitationCoach({
                   )?.errorClass;
                   const typeLabel =
                     eventClass === 'wrong_word'
-                      ? 'Said differently'
+                      ? t('coach.saidDifferently')
                       : eventClass === 'added_word'
-                        ? 'Extra word heard near here'
+                        ? t('coach.extraWordHere')
                         : eventClass === 'skipped_passage'
-                          ? 'Passage skipped here'
-                          : 'Missed';
+                          ? t('coach.passageSkippedHere')
+                          : t('coach.missed');
                   const similarSlug = getSurahById(ss)?.slug;
                   return (
                     <div className="mt-3 rounded-xl border border-[#E5E7EB] p-3">
@@ -2217,8 +2212,8 @@ export default function RecitationCoach({
                         {fw?.status === 'missed' ? t('coach.missedWord') : t('coach.incorrectWord')} — {ss}:{ay}
                       </p>
                       <p className="mt-1 text-xs text-[#5b6b62]">
-                        Word {wd} of {wordTotal} in this ayah · {typeLabel}
-                        {fw?.confirmed ? ' · confirmed by the checker' : ' · not confirmed by the checker — treat as “not heard”, not as a certain mistake'}
+                        {t('coach.wordOfInAyah').replace('{n}', String(wd)).replace('{total}', String(wordTotal))} · {typeLabel}
+                        {fw?.confirmed ? t('coach.confirmedByChecker') : t('coach.notConfirmedByChecker')}
                       </p>
                       <div className="mt-2 rounded-lg border border-[#E5E7EB] p-3">
                         <p className="flex items-baseline justify-between gap-3">
@@ -2275,7 +2270,7 @@ export default function RecitationCoach({
                         </button>
                       </div>
                       <p className="mt-2 text-xs text-[#5b6b62]">
-                        Removing a wrongly-flagged word stops it counting in your mistake history and test scores. You can put it back by reciting the ayah again.
+                        {t('coach.removeWrongFlagNote')}
                       </p>
                     </div>
                   );
@@ -2325,7 +2320,7 @@ export default function RecitationCoach({
             </button>
             {pendingFix ? (
               <p className="rounded-full border border-[#FFB800] bg-[#FFFBF2] min-h-11 px-5 py-2.5 text-sm font-semibold text-[#102E26]">
-                Fix these words first — “Don&apos;t progress until a mistake is fixed” is on in Settings. Tap “Retry these words” above.
+                {t('coach.fixFirstNote').replace('{dontProgress}', t('set.dontProgress')).replace('{settings}', t('set.title')).replace('{retry}', t('coach.retryWords'))}
               </p>
             ) : currentIndex < ayahs.length - 1 ? (
               <button
@@ -2348,7 +2343,7 @@ export default function RecitationCoach({
       )}
 
       <p className="mt-6 border-t border-[#E5E7EB] pt-3 text-xs text-[#5b6b62]">
-        Quran text, translation and audio via Quran.com. Your recitation audio never leaves your device unless you choose to share it with your teacher. A teacher is still needed for tajweed — this tool checks words, not tajweed.
+        {t('coach.attributionNote')}
       </p>
 
       {showMistakeHistory && (

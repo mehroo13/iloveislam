@@ -1473,7 +1473,7 @@ export default function MushafReader() {
     if (Number.isInteger(s) && Number.isInteger(a)) saveListenPosition(s, a);
     setListenNote(
       item.segments.length === 0
-        ? 'Word-by-word highlighting is not available for this ayah — playing the reciter audio.'
+        ? t('reader.wbwUnavailableNote')
         : '',
     );
     setActiveWordIfChanged(null);
@@ -1484,7 +1484,7 @@ export default function MushafReader() {
       listenQueueRef.current.shift();
       playListenVerse();
     });
-  }, [fetchPage, jumpToPage, listenVersesForPage, setActiveWordIfChanged, stopListen]);
+  }, [fetchPage, jumpToPage, listenVersesForPage, setActiveWordIfChanged, stopListen, t]);
   playListenVerseRef.current = playListenVerse;
 
   const startMushafListen = useCallback(() => {
@@ -1498,7 +1498,7 @@ export default function MushafReader() {
       listenRunRef.current = { page, waitingPage: page };
       setListenActive(true);
       setListenPage(page);
-      setListenNote('Loading this page’s audio…');
+      setListenNote(t('reader.loadingPageAudio'));
       void fetchPage(page);
       return;
     }
@@ -1511,7 +1511,7 @@ export default function MushafReader() {
     setListenNote('');
     saveMode('listen');
     playListenVerse();
-  }, [fetchPage, listenVersesForPage, playListenVerse, stopListen]);
+  }, [fetchPage, listenVersesForPage, playListenVerse, stopListen, t]);
   startListenRef.current = startMushafListen;
 
   const toggleListenPause = useCallback(() => {
@@ -1533,7 +1533,7 @@ export default function MushafReader() {
     const wp = run.waitingPage;
     if (failed.has(wp)) {
       stopListen();
-      setListenNote('This page’s audio could not be loaded. Check your connection and try again.');
+      setListenNote(t('reader.pageAudioFailed'));
       return;
     }
     const pageVerses = pages.get(wp);
@@ -1552,7 +1552,7 @@ export default function MushafReader() {
     setListenPage(wp);
     jumpToPage(wp, 0, false);
     playListenVerse();
-  }, [pages, failed, jumpToPage, listenVersesForPage, playListenVerse, stopListen]);
+  }, [pages, failed, jumpToPage, listenVersesForPage, playListenVerse, stopListen, t]);
 
   // One <audio> element drives Listen: timeupdate maps the sounding
   // position onto the current verse's segments (between words, the last
@@ -2027,7 +2027,7 @@ export default function MushafReader() {
               tapTransOn ? 'bg-[#102E26] text-white' : 'border border-[#E8EAED] bg-white text-[#111827] hover:bg-[#F3F4F6]'
             }`}
           >
-            Tap a line for translation
+            {t('reader.tapLineTranslation')}
           </button>
           <button
             type="button"
@@ -2037,15 +2037,15 @@ export default function MushafReader() {
               showTranslit ? 'bg-[#102E26] text-white' : 'border border-[#E8EAED] bg-white text-[#111827] hover:bg-[#F3F4F6]'
             }`}
           >
-            Show transliteration
+            {t('reader.showTransliteration')}
           </button>
         </div>
         <p className="mt-2 text-xs leading-relaxed text-[#6B7280]">
           {tapTransOn
-            ? `Tap any mushaf line to see its ${translationName} translation${
-                showTranslit ? ' and transliteration' : ''
-              } in a panel below the reader.`
-            : 'Turn on “Tap a line for translation” to read a line’s translation without leaving the Mushaf.'}
+            ? t('reader.tapTransHint')
+                .replace('{name}', translationName)
+                .replace('{extra}', showTranslit ? t('reader.tapTransHintExtra') : '')
+            : t('reader.tapTransOffHint').replace('{label}', t('reader.tapLineTranslation'))}
         </p>
         {mistakeMarkingOn && (
           <p className="mt-3 text-xs text-[#6B7280]">
@@ -2170,13 +2170,13 @@ export default function MushafReader() {
               <button
                 type="button"
                 onClick={toggleListenPause}
-                aria-label={listenPaused ? 'Resume listening' : 'Pause listening'}
+                aria-label={listenPaused ? t('reader.resumeListening') : t('reader.pauseListening')}
                 className="min-h-9 rounded-full bg-white/15 px-3 py-1 text-sm font-semibold hover:bg-white/25"
               >
-                {listenPaused ? 'Resume' : 'Pause'}
+                {listenPaused ? t('test.resume') : t('test.pause')}
               </button>
               <span className="px-2 text-sm font-semibold">
-                {listenAyah ? `Listening: ${listenAyah}` : t('mode.listen')}
+                {listenAyah ? t('reader.listeningAyah').replace('{ayah}', listenAyah) : t('mode.listen')}
               </span>
               <span className="hidden px-1 text-xs text-white/70 sm:inline">{reciterName}</span>
               <button
@@ -2240,7 +2240,7 @@ export default function MushafReader() {
                         <p className="mt-1 text-sm text-[#6B7280]">Loading…</p>
                       ) : entry.failed ? (
                         <p className="mt-1 text-sm text-[#6B7280]">
-                          Could not load the translation right now.
+                          {t('reader.translationFailed')}
                         </p>
                       ) : (
                         <>

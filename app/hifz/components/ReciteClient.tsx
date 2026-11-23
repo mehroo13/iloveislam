@@ -69,8 +69,7 @@ export default function ReciteClient() {
         {t('recite.start').replace('{surah}', surah.name).replace('{ref}', `${surah.id}:${ayah}`)}
       </button>
       <p className="mt-3 text-sm text-[#5b6b62]">
-        The coach checks which words you said — it does not judge tajweed. A teacher is still
-        needed for tajweed. Your voice never leaves this device unless you choose to share a recording.
+        {t('recite.coachNote')}
       </p>
     </div>
   );

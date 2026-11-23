@@ -188,9 +188,7 @@ export default function ChallengesClient() {
 
       {/* How it works — one short line, not a dashboard of cards */}
       <p className="rounded-xl bg-[#E4FFF2] px-4 py-3 text-sm leading-relaxed text-[#102E26]">
-        How it works: create a challenge and share its link. When a member opens your link,
-        your progress joins their view — and when they share their link back, their progress
-        joins yours. No accounts, no server, nothing uploaded.
+        {t('chal.howItWorks')}
       </p>
 
       {/* Motivational verse — the same verse as the Community tab of My
@@ -237,21 +235,18 @@ export default function ChallengesClient() {
       <section aria-labelledby="rqgq-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <h2 id="rqgq-heading" className="text-xl font-bold text-[#102E26]">{t('chal.rqgq')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
-          Each Ramadan: read or recite 90% or more of the Quran during the month, and a physical
-          mushaf is donated on your behalf to a Muslim in need. One per person. Free to join.
+          {t('chal.ramadanIntro')}
         </p>
         <div className="mt-4">
           <div className="flex items-baseline justify-between gap-2 text-sm">
             <span className="font-bold text-[#102E26]">0% {t('chal.progressWord')}</span>
             <span className="text-[#5b6b62]">30 {t('chal.daysLeft')} · 604 {t('chal.pagesTotal')}</span>
           </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#E5E7EB]" role="progressbar" aria-valuenow={0} aria-valuemin={0} aria-valuemax={100} aria-label="Ramadan challenge progress">
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#E5E7EB]" role="progressbar" aria-valuenow={0} aria-valuemin={0} aria-valuemax={100} aria-label={t('chal.ramadanProgressLabel')}>
             <div className="h-full rounded-full bg-[#57D798]" style={{ width: '0%' }} />
           </div>
           <p className="mt-2 text-sm text-[#5b6b62]">
-            Reading, listening and recitation all count; off-platform sessions logged on My
-            Progress count too. Your live percentage appears here once Ramadan begins — at 90%
-            you get an in-app confirmation that a mushaf will be donated on your behalf.
+            {t('chal.ramadanProgressNote')}
           </p>
           <Link href="/hifz/my-progress" className="inline-flex min-h-11 items-center justify-center mt-3 inline-block rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]">
             {t('chal.logSessions')}
@@ -263,20 +258,18 @@ export default function ChallengesClient() {
       <section id="community-league" aria-labelledby="league-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <h2 id="league-heading" className="text-xl font-bold text-[#102E26]">{t('chal.league')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
-          A time-boxed race to goodness: join a League, set a memorisation goal (for example 80
-          pages in 80 days, one page a day), get a daily plan until the deadline, and earn points
-          by reciting or revising. Points move you up the leaderboard.
+          {t('chal.leagueIntro')}
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           {[
-            { name: 'Ramadan 1448 League', goal: '80 pages in 80 days', note: 'One page a day until Ramadan' },
-            { name: 'Surah Al-Baqarah Challenge', goal: '48 pages in 48 days', note: 'The longest surah, one page a day' },
-            { name: 'Surah Ali ’Imran Team', goal: 'Your pace, your team', note: 'Memorise together, revise together' },
+            { nameKey: 'chal.tplRamadanName', goalKey: 'chal.tplRamadanGoal', noteKey: 'chal.tplRamadanNote' },
+            { nameKey: 'chal.tplBaqarahName', goalKey: 'chal.tplBaqarahGoal', noteKey: 'chal.tplBaqarahNote' },
+            { nameKey: 'chal.tplImranName', goalKey: 'chal.tplImranGoal', noteKey: 'chal.tplImranNote' },
           ].map((l) => (
-            <article key={l.name} className="rounded-xl border border-[#E5E7EB] p-4">
-              <h3 className="font-bold text-[#102E26]">{l.name}</h3>
-              <p className="mt-1 text-sm text-[#5b6b62]">{l.goal}</p>
-              <p className="text-xs text-[#5b6b62]">{l.note}</p>
+            <article key={l.nameKey} className="rounded-xl border border-[#E5E7EB] p-4">
+              <h3 className="font-bold text-[#102E26]">{t(l.nameKey)}</h3>
+              <p className="mt-1 text-sm text-[#5b6b62]">{t(l.goalKey)}</p>
+              <p className="text-xs text-[#5b6b62]">{t(l.noteKey)}</p>
               <Link href="/hifz/goals" className="mt-3 inline-block rounded-full bg-[#57D798] px-4 py-2 text-sm font-bold text-[#102E26] hover:brightness-105">
                 {t('chal.joinGoal')}
               </Link>
@@ -284,9 +277,7 @@ export default function ChallengesClient() {
           ))}
         </div>
         <p className="mt-3 text-xs text-[#5b6b62]">
-          Leagues run on the same no-account group challenges above: create a challenge, share
-          its link, and your group&apos;s progress is the leaderboard. No prizes are promised
-          here — points and places are the reward.
+          {t('chal.leagueFootnote')}
         </p>
       </section>
 

@@ -136,8 +136,7 @@ export function MistakeHistorySheet({
         </ul>
       )}
       <p className="mt-4 text-center text-xs text-[#5b6b62]">
-        ⓘ The checker flags words, not tajweed. If a word was flagged wrongly, remove it —
-        it stops counting in your history and test scores.
+        {t('sheet.checkerFlagsNote')}
       </p>
     </BottomSheet>
   );
@@ -200,7 +199,7 @@ export function SessionAnalyticsSheet({
 
       <div className="mt-5 flex items-center justify-between">
         <p className="text-xs font-bold uppercase tracking-wider text-[#5b6b62]">{t('sheet.trend')}</p>
-        <div className="flex gap-1" role="group" aria-label="Trend metric">
+        <div className="flex gap-1" role="group" aria-label={t('sheet.trendMetricLabel')}>
           {(['pg', 'pct'] as const).map((m) => (
             <button
               key={m}
@@ -217,7 +216,7 @@ export function SessionAnalyticsSheet({
         </div>
       </div>
       {pts.length > 1 ? (
-        <svg viewBox="0 0 200 70" className="mt-2 w-full" role="img" aria-label="Accuracy trend across recent sessions">
+        <svg viewBox="0 0 200 70" className="mt-2 w-full" role="img" aria-label={t('sheet.accuracyTrendLabel')}>
           <polyline points={coords.join(' ')} fill="none" stroke="#EA580C" strokeWidth="2" strokeLinejoin="round" />
           {coords.map((c, i) => {
             const [x, y] = c.split(',').map(Number);
@@ -227,7 +226,7 @@ export function SessionAnalyticsSheet({
       ) : (
         <p className="mt-2 text-sm text-[#5b6b62]">{t('sheet.trendEmpty')}</p>
       )}
-      <p className="text-xs text-[#5b6b62]">Long press on the graph to browse between sessions (web: hover a dot).</p>
+      <p className="text-xs text-[#5b6b62]">{t('sheet.graphHint')}</p>
 
       <p className="mt-5 text-xs font-bold uppercase tracking-wider text-[#5b6b62]">{t('sheet.sessionHistory')}</p>
       {latestSessionAudio ? (
@@ -236,7 +235,7 @@ export function SessionAnalyticsSheet({
             {t('sheet.thisSession')} {latestSessionAudio.range} · {latestSessionAudio.date}
           </p>
           <p className="mt-1 text-xs text-[#5b6b62]">
-            Your recording is still on this device. Share it with your teacher, or download it to send yourself.
+            {t('sheet.shareRecordingNote')}
           </p>
           <div className="mt-2">
             <ShareAudioButtons recording={latestSessionAudio} />
@@ -244,7 +243,7 @@ export function SessionAnalyticsSheet({
         </div>
       ) : (
         <p className="mt-2 text-xs text-[#5b6b62]">
-          Recordings are kept only in this browser session and are not saved, so past sessions have no audio to share. Recite with the microphone and the session you just finished will offer sharing here.
+          {t('sheet.noSavedRecordingNote')}
         </p>
       )}
       {history.length === 0 ? (
@@ -269,15 +268,15 @@ export function SessionAnalyticsSheet({
 
 /* ---------------- Tajweed colours — display only ---------------- */
 
-const TAJWEED_GUIDE: { cls: string; name: string; note: string }[] = [
-  { cls: 'tj-madd-laazim', name: 'Madd Laazim (6 counts)', note: 'Longest stretch, e.g. الضَّالِّينَ' },
-  { cls: 'tj-madd-wajib', name: 'Madd Wajib Muttasil (4–5 counts)', note: 'Hamzah after a madd letter, e.g. سَمَاء' },
-  { cls: 'tj-madd-aarid', name: "Madd 'Aarid li-Sukoon (2/4/6 at stopping)", note: 'At a stop, e.g. الْعَالَمِينَ' },
-  { cls: 'tj-madd-tabeei', name: "Madd Tabee'i (2 counts)", note: 'Natural stretch, e.g. قَالَ' },
-  { cls: 'tj-ghunna', name: 'Ghunna (nasal, 2 counts)', note: 'Noon / meem with shaddah' },
-  { cls: 'tj-qalqalah', name: 'Qalqalah', note: 'ق ط ب ج د with sukoon' },
-  { cls: 'tj-tafkhim', name: 'Tafkhim (heavy letters)', note: 'خ ص ض غ ط ق ظ and heavy ر' },
-  { cls: 'tj-silent', name: 'Silent letters', note: 'Letters not pronounced' },
+const TAJWEED_GUIDE: { cls: string; nameKey: string; noteKey: string }[] = [
+  { cls: 'tj-madd-laazim', nameKey: 'sheet.tjNameLaazim', noteKey: 'sheet.tjNoteLaazim' },
+  { cls: 'tj-madd-wajib', nameKey: 'sheet.tjNameWajib', noteKey: 'sheet.tjNoteWajib' },
+  { cls: 'tj-madd-aarid', nameKey: 'sheet.tjNameAarid', noteKey: 'sheet.tjNoteAarid' },
+  { cls: 'tj-madd-tabeei', nameKey: 'sheet.tjNameTabeei', noteKey: 'sheet.tjNoteTabeei' },
+  { cls: 'tj-ghunna', nameKey: 'sheet.tjNameGhunna', noteKey: 'sheet.tjNoteGhunna' },
+  { cls: 'tj-qalqalah', nameKey: 'sheet.tjNameQalqalah', noteKey: 'sheet.tjNoteQalqalah' },
+  { cls: 'tj-tafkhim', nameKey: 'sheet.tjNameTafkhim', noteKey: 'sheet.tjNoteTafkhim' },
+  { cls: 'tj-silent', nameKey: 'sheet.tjNameSilent', noteKey: 'sheet.tjNoteSilent' },
 ];
 
 /** Word-level Tajweed colour (whole word coloured, so Arabic letter-joining
@@ -299,19 +298,17 @@ export function TajweedGuide({ onClose }: { onClose: () => void }) {
   return (
     <BottomSheet title={t('sheet.tajweedTitle')} onClose={onClose}>
       <p className="text-sm text-[#5b6b62]">
-        These colours show where a tajweed rule <em>applies</em> in the text. They do not
-        check your recitation — this app checks words only, never tajweed. A teacher is
-        still needed for tajweed.
+        {t('sheet.tajweedColoursNote')}
       </p>
       <ul className="mt-3 space-y-2">
         {TAJWEED_GUIDE.map((g) => (
-          <li key={g.name} className="flex items-baseline gap-3 rounded-xl border border-[#E5E7EB] px-3 py-2 text-sm">
+          <li key={g.nameKey} className="flex items-baseline gap-3 rounded-xl border border-[#E5E7EB] px-3 py-2 text-sm">
             <span aria-hidden="true" className={`font-quran text-xl ${g.cls}`}>
               بِسْمِ
             </span>
             <span>
-              <span className="font-bold">{g.name}</span>
-              <span className="block text-xs text-[#5b6b62]">{g.note}</span>
+              <span className="font-bold">{t(g.nameKey)}</span>
+              <span className="block text-xs text-[#5b6b62]">{t(g.noteKey)}</span>
             </span>
           </li>
         ))}

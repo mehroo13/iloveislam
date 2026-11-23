@@ -340,7 +340,7 @@ export default function BookSettings({
               </div>
               <p className="mt-3 text-sm leading-relaxed text-[#6B7280]">{t(ed.description)}</p>
               <p className="mt-1.5 text-sm text-[#111827]">
-                <span className="font-bold">15 Lines</span> / 604 pages
+                <span className="font-bold">{t('rb.book.lines15')}</span> {t('rb.book.ofPages').replace('{n}', '604')}
               </p>
             </article>
           );

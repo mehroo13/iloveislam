@@ -32,6 +32,9 @@ export interface TestInsightsInput {
   sessions: TestSessionRecord[];
   /** Surah catalogue for names ({ id, name }). */
   surahs: { id: number; name: string }[];
+  /** The locale-bound translate function (useT) — every user-facing
+   *  string the builder emits goes through it. */
+  t: (key: string) => string;
 }
 
 function surahName(surahs: { id: number; name: string }[], id: number): string {
@@ -47,13 +50,13 @@ function sessionPct(s: TestSessionRecord): number | null {
  *  Returns at most four insights, most actionable first. With no sessions
  *  and no uncorrected mistakes, returns a single honest empty-state
  *  insight — never an invented suggestion. */
-export function buildTestInsights({ mistakes, sessions, surahs }: TestInsightsInput): TestInsight[] {
+export function buildTestInsights({ mistakes, sessions, surahs, t }: TestInsightsInput): TestInsight[] {
   const open = mistakes.filter((m) => !m.corrected);
   if (sessions.length === 0 && open.length === 0) {
     return [
       {
-        title: 'No test history yet',
-        body: 'Take your first test and your pointers will appear here — built from your own results and misses, so there is nothing to show until you have some.',
+        title: t('ins.noHistoryTitle'),
+        body: t('ins.noHistoryBody'),
       },
     ];
   }
@@ -73,11 +76,13 @@ export function buildTestInsights({ mistakes, sessions, surahs }: TestInsightsIn
     const [id, agg] = weakestSurah;
     const name = surahName(surahs, id);
     out.push({
-      title: `Hardest surah so far: ${name}`,
-      body:
-        `${agg.attempts} missed ${agg.attempts === 1 ? 'word' : 'words'} across ${agg.ayahs.size} ` +
-        `${agg.ayahs.size === 1 ? 'ayah' : 'ayahs'} in ${name} are still uncorrected. ` +
-        `Recite those ayahs with the coach before your next test.`,
+      title: t('ins.hardestSurahTitle').replace('{name}', name),
+      body: t('ins.hardestSurahBody')
+        .replace('{a}', String(agg.attempts))
+        .replace('{words}', agg.attempts === 1 ? t('ins.wordOne') : t('ins.wordMany'))
+        .replace('{b}', String(agg.ayahs.size))
+        .replace('{ayahs}', agg.ayahs.size === 1 ? t('ins.ayahOne') : t('ins.ayahMany'))
+        .replace('{name}', name),
       surah: id,
     });
   }
@@ -94,11 +99,12 @@ export function buildTestInsights({ mistakes, sessions, surahs }: TestInsightsIn
   const worstAyah = [...byAyah.values()].sort((a, b) => b.attempts - a.attempts)[0];
   if (worstAyah) {
     out.push({
-      title: `Most-missed ayah: ${worstAyah.surah}:${worstAyah.ayah}`,
-      body:
-        `Missed ${worstAyah.attempts} ${worstAyah.attempts === 1 ? 'time' : 'times'} ` +
-        `(${worstAyah.words.size} different ${worstAyah.words.size === 1 ? 'word' : 'words'}), ` +
-        `still uncorrected. Make it the first ayah of your next revision round.`,
+      title: t('ins.mostMissedTitle').replace('{ref}', `${worstAyah.surah}:${worstAyah.ayah}`),
+      body: t('ins.mostMissedBody')
+        .replace('{a}', String(worstAyah.attempts))
+        .replace('{times}', worstAyah.attempts === 1 ? t('ins.timeOne') : t('ins.timeMany'))
+        .replace('{b}', String(worstAyah.words.size))
+        .replace('{words}', worstAyah.words.size === 1 ? t('ins.wordOne') : t('ins.wordMany')),
       surah: worstAyah.surah,
       ayah: worstAyah.ayah,
     });
@@ -116,20 +122,26 @@ export function buildTestInsights({ mistakes, sessions, surahs }: TestInsightsIn
       const recentAvg = Math.round(avg(recent));
       const earlierAvg = Math.round(avg(earlier));
       const diff = recentAvg - earlierAvg;
+      const trendBody = (key: string) =>
+        t(key)
+          .replace('{n}', String(recent.length))
+          .replace('{tests}', recent.length === 1 ? t('ins.testOne') : t('ins.testMany'))
+          .replace('{a}', String(recentAvg))
+          .replace('{b}', String(earlierAvg));
       if (diff >= 5) {
         out.push({
-          title: 'Your scores are improving',
-          body: `Your last ${recent.length} ${recent.length === 1 ? 'test' : 'tests'} averaged ${recentAvg}%, up from ${earlierAvg}% before that. Whatever you changed is working — keep it up.`,
+          title: t('ins.improvingTitle'),
+          body: trendBody('ins.improvingBody'),
         });
       } else if (diff <= -5) {
         out.push({
-          title: 'Your scores have slipped',
-          body: `Your last ${recent.length} ${recent.length === 1 ? 'test' : 'tests'} averaged ${recentAvg}%, down from ${earlierAvg}% before that. Shorter, more frequent revision of the missed ayahs below should pull it back.`,
+          title: t('ins.slippedTitle'),
+          body: trendBody('ins.slippedBody'),
         });
       } else {
         out.push({
-          title: 'Your scores are steady',
-          body: `Your last ${recent.length} ${recent.length === 1 ? 'test' : 'tests'} averaged ${recentAvg}%, about the same as the ${earlierAvg}% before that.`,
+          title: t('ins.steadyTitle'),
+          body: trendBody('ins.steadyBody'),
         });
       }
     }
@@ -139,11 +151,11 @@ export function buildTestInsights({ mistakes, sessions, surahs }: TestInsightsIn
   const reviseNext = [...byAyah.values()].sort((a, b) => b.attempts - a.attempts).slice(0, 3);
   if (reviseNext.length > 0) {
     const list = reviseNext
-      .map((a) => `${surahName(surahs, a.surah)} ${a.surah}:${a.ayah} (${a.attempts} ${a.attempts === 1 ? 'miss' : 'misses'})`)
+      .map((a) => `${surahName(surahs, a.surah)} ${a.surah}:${a.ayah} (${a.attempts} ${a.attempts === 1 ? t('ins.missOne') : t('ins.missMany')})`)
       .join(', ');
     out.push({
-      title: 'Revise next',
-      body: `Start with ${list}.`,
+      title: t('ins.reviseNextTitle'),
+      body: t('ins.reviseNextBody').replace('{list}', list),
       surah: reviseNext[0].surah,
       ayah: reviseNext[0].ayah,
     });
@@ -152,8 +164,10 @@ export function buildTestInsights({ mistakes, sessions, surahs }: TestInsightsIn
   if (out.length === 0) {
     // Sessions exist, but every mistake so far has been corrected.
     out.push({
-      title: 'Nothing missed on record',
-      body: `You have ${sessions.length} completed ${sessions.length === 1 ? 'test' : 'tests'} and no uncorrected misses — every mistake so far has been fixed. Test a surah you have not tried yet to find the next weak spot.`,
+      title: t('ins.nothingMissedTitle'),
+      body: t('ins.nothingMissedBody')
+        .replace('{n}', String(sessions.length))
+        .replace('{tests}', sessions.length === 1 ? t('ins.testOne') : t('ins.testMany')),
     });
   }
 

@@ -368,28 +368,28 @@ export default function SettingsClient() {
   /** Send one test reminder right now (only if permission is granted). */
   const sendTestReminder = async () => {
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
-      setReminderNote('Turn a reminder on first — your browser will ask permission, then you can test it.');
+      setReminderNote(t('notif.turnOnFirst'));
       return;
     }
     try {
       if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({
           type: 'SHOW_REMINDER',
-          title: 'Time to practise your Hifz',
-          body: 'This is a test reminder — your daily reminders will look like this.',
+          title: t('notif.reminderTitle'),
+          body: t('notif.testReminderBody'),
           url: '/hifz/goals',
         });
       } else {
         const reg = await navigator.serviceWorker.ready;
-        await reg.showNotification('Time to practise your Hifz', {
-          body: 'This is a test reminder — your daily reminders will look like this.',
+        await reg.showNotification(t('notif.reminderTitle'), {
+          body: t('notif.testReminderBody'),
           icon: '/icon-192.png',
           tag: 'hifz-reminder-test',
         });
       }
-      setReminderNote('Test reminder sent — it should appear as a notification now.');
+      setReminderNote(t('notif.testSent'));
     } catch {
-      setReminderNote('Could not send the test reminder — the service worker is not ready. Try again in a moment.');
+      setReminderNote(t('notif.testFailed'));
     }
   };
 
@@ -397,12 +397,12 @@ export default function SettingsClient() {
       ../lib/store) purges saved recording blobs only. Progress, mistakes,
       goals and settings are untouched — unlike clear-all below. */
   const deleteAudioOnly = async () => {
-    if (!window.confirm('Delete all saved audio recordings on this device? Your progress, mistakes, goals and settings will stay exactly as they are.')) return;
+    if (!window.confirm(t('rb.set.deleteAudioConfirm'))) return;
     try {
       await deleteAllSessionAudio();
-      setMsg('Saved audio recordings deleted. Your progress, mistakes, goals and settings were kept.');
+      setMsg(t('rb.set.deleteAudioDeleted'));
     } catch {
-      setMsg('Could not delete saved audio — browser storage is unavailable. Nothing was deleted.');
+      setMsg(t('rb.set.deleteAudioFailed'));
     }
   };
 
@@ -410,7 +410,7 @@ export default function SettingsClient() {
 
   const translationGroups = useMemo(() => groupByLanguage(TRANSLATIONS), []);
   const tafsirGroups = useMemo(() => groupByLanguage(TAFSIRS), []);
-  const reciterGroups = useMemo(() => [{ lang: 'Reciters', items: RECITERS }], []);
+  const reciterGroups = useMemo(() => [{ lang: t('rb.set.reciters'), items: RECITERS }], [t]);
 
   useEffect(() => {
     try {
@@ -471,7 +471,7 @@ export default function SettingsClient() {
   };
 
   const clearAll = () => {
-    if (!window.confirm('Delete ALL your Hifz data on this device — progress, mistakes, goals, settings and saved audio recordings? This cannot be undone. Export first if you want a copy.')) return;
+    if (!window.confirm(t('rb.set.deleteAllConfirm'))) return;
     try {
       for (const k of Object.keys(localStorage)) {
         if (k.startsWith('ili_') || k.startsWith('quran_bookmarks')) localStorage.removeItem(k);
@@ -557,7 +557,7 @@ export default function SettingsClient() {
               <div className="divide-y divide-[#E8EAED]">
                 <Toggle
                   label={t('set.detectMistakes')}
-                  hint="Flag incorrect, extra, missed and skipped words as you recite. Off = follow-along only: the app highlights words but never judges them."
+                  hint={t('rb.set.detectMistakesHint')}
                   checked={settings.detectMistakes ?? true}
                   onChange={(v) => update({ detectMistakes: v })}
                 />
@@ -810,22 +810,19 @@ export default function SettingsClient() {
                 label={currentLabel}
                 value={
                   perm === 'denied'
-                    ? 'Blocked in this browser'
+                    ? t('rb.set.reminderBlocked')
                     : reminderGoals.some((g) => g.remind)
-                      ? `On — next reminder ${nextReminderText() ?? ''}`
-                      : 'Off'
+                      ? t('rb.set.reminderOnNext').replace('{time}', nextReminderText() ?? '')
+                      : t('common.off')
                 }
               />
               <p className="mb-3 text-sm leading-relaxed text-[#6B7280]">
-                Reminders are local only: the app shows a notification on this device at the time
-                you pick. Nothing is sent to a server and there is no push subscription.
-                {perm === 'denied' &&
-                  ' Notifications are currently blocked for this site in your browser settings — allow them there before turning a reminder on.'}
+                {t('rb.set.remindersLocalNote')}
+                {perm === 'denied' && ` ${t('rb.set.remindersBlockedNote')}`}
               </p>
               {reminderGoals.length === 0 ? (
                 <p className="text-sm leading-relaxed text-[#6B7280]">
-                  No goals yet — create a goal on the Goals page first, then turn its reminder on
-                  here (your browser will ask permission first).
+                  {t('rb.set.noGoalsForReminder')}
                 </p>
               ) : (
                 <div className="divide-y divide-[#E8EAED]">
@@ -840,7 +837,7 @@ export default function SettingsClient() {
                       />
                       {g.remind && (
                         <label className="flex items-center gap-2 pb-2 text-sm font-semibold text-[#111827]">
-                          At
+                          {t('rb.set.atLabel')}
                           <input
                             type="time"
                             value={g.remindTime ?? '08:00'}
@@ -863,7 +860,7 @@ export default function SettingsClient() {
                   }}
                   className="mt-3 min-h-11 rounded-full border border-[#E8EAED] bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-[#E4FFF2]"
                 >
-                  Send a test reminder now
+                  {t('notif.sendTestReminder')}
                 </button>
               )}
               {reminderNote && (
@@ -872,8 +869,7 @@ export default function SettingsClient() {
                 </p>
               )}
               <p className="mt-3 text-xs leading-relaxed text-[#6B7280]">
-                Your daily goal and streak are also shown on the home screen and Progress tab —
-                open the app once a day and the streak stays alive.
+                {t('rb.set.streakHomeNote')}
               </p>
             </Panel>
           )}
@@ -897,7 +893,7 @@ export default function SettingsClient() {
             <Panel>
               <Toggle
                 label={t('rb.set.mistakeFeedback')}
-                hint="The coach flags wrong, extra and missed words as you recite. Off = follow-along only, no mistake flags."
+                hint={t('rb.set.mistakeFeedbackHint')}
                 checked={settings.detectMistakes ?? true}
                 onChange={(v) => update({ detectMistakes: v })}
               />
@@ -1016,14 +1012,11 @@ export default function SettingsClient() {
                 />
               </div>
               <p className="mt-3 text-sm leading-relaxed text-[#6B7280]">
-                Progress is also mirrored into IndexedDB on this device (with a one-time migration of
-                your existing progress), so it survives even if localStorage is cleared by the browser.
-                As a guest, nothing is ever sent to a server. If you choose to create an optional{' '}
+                {t('rb.set.indexedDbNoteA')}
                 <Link href="/hifz/settings/account" className="font-semibold text-[#111827] underline">
-                  account
+                  {t('rb.set.accountWord')}
                 </Link>
-                , your progress is also backed up to your account so it follows you to other devices —
-                and only then.
+                {t('rb.set.indexedDbNoteB')}
               </p>
               <p className="mt-3 text-sm leading-relaxed text-[#6B7280]">{t('rb.set.privacyLong')}</p>
             </Panel>
@@ -1034,15 +1027,14 @@ export default function SettingsClient() {
               mistakes, goals and settings stay exactly as they are. */}
           <Row
             icon="trash"
-            label="Delete audio recordings"
+            label={t('rb.set.deleteAudioRecordings')}
             expanded={open === 'deleteAudio'}
             onClick={() => toggleOpen('deleteAudio')}
           />
           {open === 'deleteAudio' && (
             <Panel>
               <p className="text-sm leading-relaxed text-[#6B7280]">
-                Deletes only your saved recitation audio recordings on this device. Your progress,
-                mistakes, goals and settings stay exactly as they are.
+                {t('rb.set.deleteAudioOnlyNote')}
               </p>
               <button
                 type="button"
@@ -1051,7 +1043,7 @@ export default function SettingsClient() {
                 }}
                 className="mt-3 min-h-11 rounded-full bg-[#B91C1C] px-4 py-2 text-sm font-semibold text-white hover:bg-[#991B1B]"
               >
-                Delete audio recordings
+                {t('rb.set.deleteAudioRecordings')}
               </button>
             </Panel>
           )}
@@ -1061,22 +1053,21 @@ export default function SettingsClient() {
               goals, settings and saved audio. Labelled honestly. */}
           <Row
             icon="trash"
-            label="Delete all data"
+            label={t('rb.set.deleteAllData')}
             expanded={open === 'deleteAll'}
             onClick={() => toggleOpen('deleteAll')}
           />
           {open === 'deleteAll' && (
             <Panel>
               <p className="text-sm leading-relaxed text-[#6B7280]">
-                Deletes ALL your Hifz data on this device — progress, mistakes, goals, settings
-                and saved audio recordings. This cannot be undone. Export first if you want a copy.
+                {t('rb.set.deleteAllNote')}
               </p>
               <button
                 type="button"
                 onClick={clearAll}
                 className="mt-3 min-h-11 rounded-full bg-[#B91C1C] px-4 py-2 text-sm font-semibold text-white hover:bg-[#991B1B]"
               >
-                Delete all data
+                {t('rb.set.deleteAllData')}
               </button>
             </Panel>
           )}

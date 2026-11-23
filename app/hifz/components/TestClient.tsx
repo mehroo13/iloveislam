@@ -644,8 +644,8 @@ export default function TestClient() {
             ...sessions,
           ]
         : sessions;
-    return buildTestInsights({ mistakes, sessions: sessionList, surahs: ALL_SURAHS });
-  }, [phase, results, questions, mistakesTotal, elapsed, testType, scope, sessions, progress]);
+    return buildTestInsights({ mistakes, sessions: sessionList, surahs: ALL_SURAHS, t });
+  }, [phase, results, questions, mistakesTotal, elapsed, testType, scope, sessions, progress, t]);
 
   if (progress === null) {
     return (
@@ -701,10 +701,10 @@ export default function TestClient() {
         {/* What your tests show — per-user insights from your own test
             history and mistake log (lib/insights). No fixed tips, nothing
             invented: with no data yet this says so honestly. */}
-        <section aria-label="What your tests show" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-          <h2 className="text-lg font-bold text-[#102E26]">What your tests show</h2>
+        <section aria-label={t('test.insightsTitle')} className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+          <h2 className="text-lg font-bold text-[#102E26]">{t('test.insightsTitle')}</h2>
           <p className="mt-1 text-sm text-[#5b6b62]">
-            From your own tests and misses on this device — nothing here is guessed.
+            {t('test.insightsSub')}
           </p>
           <ul className="mt-3 space-y-2">
             {insights.map((ins, i) => {
@@ -727,10 +727,10 @@ export default function TestClient() {
           </ul>
         </section>
         {questions.some((_, i) => !results[i]) && (
-          <section aria-label="Review missed ayahs" className="rounded-2xl border border-[#DC2626]/40 bg-white p-5 shadow-sm sm:p-6">
+          <section aria-label={t('test.reviewMissedLabel')} className="rounded-2xl border border-[#DC2626]/40 bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-lg font-bold text-[#102E26]">{t('test.reviewMissed')}</h2>
             <p className="mt-1 text-sm text-[#5b6b62]">
-              These go into your revision queue. Recite each one with the coach until it is clean.
+              {t('test.reviewMissedNote')}
             </p>
             <ul className="mt-3 space-y-2">
               {questions.map((q, i) => {
@@ -838,7 +838,7 @@ export default function TestClient() {
         </div>
 
         {paused ? (
-          <section aria-label="Test paused" className="rounded-2xl border border-[#E5E7EB] bg-white p-6 text-center shadow-sm sm:p-8">
+          <section aria-label={t('test.pausedLabel')} className="rounded-2xl border border-[#E5E7EB] bg-white p-6 text-center shadow-sm sm:p-8">
             <p className="text-xl font-bold text-[#102E26]">{t('test.pause')}</p>
             <p className="mt-2 text-sm text-[#5b6b62]">{t('test.paused')}</p>
             <div className="mt-5 flex flex-wrap justify-center gap-2">
@@ -864,7 +864,7 @@ export default function TestClient() {
             question is marked correct, red when missed (markFlash, set in
             answer()), using the .test-card-correct / .test-card-wrong
             classes in globals.css. */}
-        <section aria-label="Test question" className={`test-card overflow-hidden ${markFlash === 'correct' ? 'test-card-correct' : markFlash === 'missed' ? 'test-card-wrong' : ''}`}>
+        <section aria-label={t('test.questionLabel')} className={`test-card overflow-hidden ${markFlash === 'correct' ? 'test-card-correct' : markFlash === 'missed' ? 'test-card-wrong' : ''}`}>
           <div className="p-6 sm:p-8">
             {loadingQ ? (
               <p className="py-10 text-center text-white/70">{t('test.loadingQuestion')}</p>
@@ -884,13 +884,11 @@ export default function TestClient() {
                   </p>
                 )}
                 <p className="mt-4 text-sm text-white/60">
-                  Recite onward from memory — keep going past the first ayah if the question
-                  continues{!extendToEnd ? '' : ', to the end of the ayah'}. The card turns green
-                  when you get it right, red when there is a mistake.
+                  {t('test.reciteOnwardA')}{!extendToEnd ? '' : t('test.reciteOnwardEnd')}{t('test.reciteOnwardB')}
                 </p>
                 {markFlash && (
                   <p role="status" className="mt-3 text-base font-bold text-white">
-                    {markFlash === 'correct' ? '✓ Correct — well recalled.' : '✗ Missed — it joins your revision queue.'}
+                    {markFlash === 'correct' ? t('test.flashCorrect') : t('test.flashMissed')}
                   </p>
                 )}
               </>
@@ -900,15 +898,15 @@ export default function TestClient() {
             <p className="text-sm font-bold text-white">
               {eyeOff ? '—' : `${q.surah} ${surah ? surah.name : ''}`}
               <span className="block text-xs font-normal text-white/80">
-                {eyeOff ? t('test.verseHidden') : `Verse ${q.ayah}${q.span > 1 ? `–${q.ayah + q.span - 1}` : ''}`}
+                {eyeOff ? t('test.verseHidden') : `${t('test.verseNum').replace('{n}', String(q.ayah))}${q.span > 1 ? `–${q.ayah + q.span - 1}` : ''}`}
               </span>
             </p>
             <button
               type="button"
               onClick={() => setEyeOff((v) => !v)}
               aria-pressed={eyeOff}
-              aria-label="Hide or show the surah and verse"
-              title="Hide the surah name and verse number"
+              aria-label={t('test.hideSurahLabel')}
+              title={t('test.hideSurahTitle')}
               className="rounded-full bg-white/15 px-3 py-1.5 text-sm font-bold text-white hover:bg-white/25"
             >
               {eyeOff ? '👁' : '👁‍🗨'}
@@ -934,10 +932,10 @@ export default function TestClient() {
           </span>
           <span
             className={`rounded-full border px-3 py-1.5 text-sm font-bold ${lowTime ? 'border-[#DC2626] bg-[#FEE2E2] text-[#DC2626]' : 'border-[#E5E7EB] bg-white'}`}
-            title={timeLimitMinutes > 0 ? `Time left of your ${timeLimitMinutes}-minute limit` : 'Elapsed time — no time limit set'}
+            title={timeLimitMinutes > 0 ? t('test.timeLeftTitle').replace('{n}', String(timeLimitMinutes)) : t('test.elapsedTitle')}
           >
             <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#DC2626]" aria-hidden="true" />
-            {rmm}:{rss}{remainingSecs !== null ? ' left' : ''}
+            {remainingSecs !== null ? t('test.timeRemaining').replace('{time}', `${rmm}:${rss}`) : `${rmm}:${rss}`}
           </span>
           <button
             type="button"
@@ -956,7 +954,7 @@ export default function TestClient() {
             onClick={revealNext}
             disabled={markFlash !== null}
             className="min-h-11 rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2] disabled:opacity-50"
-            title="Reveal the next word — counts as a mistake"
+            title={t('test.revealWordTitle')}
           >
             {t('test.revealWord')}
           </button>
@@ -965,7 +963,7 @@ export default function TestClient() {
             onClick={revealRest}
             disabled={markFlash !== null}
             className="min-h-11 rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2] disabled:opacity-50"
-            title="Reveal the rest of the ayah — counts as a mistake"
+            title={t('test.revealRestTitle')}
           >
             {t('test.revealRest')}
           </button>
@@ -1000,9 +998,7 @@ export default function TestClient() {
           </button>
         </div>
         <p className="text-center text-xs text-[#5b6b62]">
-          Marking is on trust — the coach on the ayah page checks your recitation word by word
-          if you want verification instead. A question counts as correct only with zero mistakes;
-          revealing counts against you.
+          {t('test.markingTrustNote')}
         </p>
           </>
         )}
@@ -1016,14 +1012,13 @@ export default function TestClient() {
           test was left mid-way — it restores the exact question list and
           the answers already given. */}
       {phase === 'setup' && unfinished && (
-        <section aria-label="Unfinished test" className="rounded-2xl border border-[#FFB800] bg-[#FFFBF2] p-5 shadow-sm sm:p-6">
-          <h2 className="text-lg font-bold text-[#102E26]">Unfinished test — pick up where you stopped</h2>
+        <section aria-label={t('test.unfinishedLabel')} className="rounded-2xl border border-[#FFB800] bg-[#FFFBF2] p-5 shadow-sm sm:p-6">
+          <h2 className="text-lg font-bold text-[#102E26]">{t('test.unfinishedTitle')}</h2>
           <p className="mt-1 text-sm text-[#5b6b62]">
-            {unfinished.results.length} of {unfinished.questions.length} questions answered ·{' '}
-            {unfinished.results.filter(Boolean).length} correct so far · started{' '}
-            {new Date(unfinished.startedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}{' '}
-            at {new Date(unfinished.startedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
-            {unfinished.temporary ? ' · temporary session' : ''}.
+            {t('test.unfinishedAnswered').replace('{a}', String(unfinished.results.length)).replace('{b}', String(unfinished.questions.length))} ·{' '}
+            {t('test.unfinishedCorrect').replace('{n}', String(unfinished.results.filter(Boolean).length))} ·{' '}
+            {t('test.unfinishedStarted').replace('{date}', new Date(unfinished.startedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })).replace('{time}', new Date(unfinished.startedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }))}
+            {unfinished.temporary ? ` · ${t('test.unfinishedTemporary')}` : ''}.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
@@ -1031,14 +1026,14 @@ export default function TestClient() {
               onClick={resumeTest}
               className="min-h-11 rounded-full bg-[#57D798] px-5 py-2 text-sm font-bold text-[#102E26] hover:brightness-105"
             >
-              Resume test
+              {t('test.resumeTest')}
             </button>
             <button
               type="button"
               onClick={discardUnfinished}
               className="min-h-11 rounded-full border border-[#E5E7EB] px-5 py-2 text-sm font-semibold hover:border-red-700 hover:text-red-700"
             >
-              Discard it
+              {t('test.discardUnfinished')}
             </button>
           </div>
         </section>
@@ -1052,30 +1047,27 @@ export default function TestClient() {
             type="button"
             onClick={() => {
               setTemporary((t) => !t);
-              setNotice(temporary ? null : 'Temporary session on — activity from this session won’t be saved.');
+              setNotice(temporary ? null : t('test.temporaryOnNote'));
             }}
             aria-pressed={temporary}
-            title="Temporary Session — nothing from this session is recorded"
+            title={t('test.temporaryTitle')}
             className={`min-h-11 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${temporary ? 'bg-[#FFB800] text-[#102E26]' : 'border border-[#E5E7EB]'}`}
           >
             {t('test.temporaryBtn')}{temporary ? ' ✓' : ''}
           </button>
         </div>
         <p className="mt-2 text-sm leading-relaxed text-[#5b6b62]">
-          You have {counts.memorised} memorised {counts.memorised === 1 ? 'ayah' : 'ayahs'} and{' '}
-          {counts.learning} learning. A test drops you at random places with no cue — the way
-          a teacher tests you. Revealing a word counts as a mistake, exactly like peeking
-          in the coach.
+          {t('test.setupIntro').replace('{a}', String(counts.memorised)).replace('{ayahs}', counts.memorised === 1 ? t('common.ayah') : t('common.ayahs')).replace('{b}', String(counts.learning))}
         </p>
         {temporary && (
           <p className="mt-2 rounded-lg bg-[#FFFBF2] px-3 py-2 text-sm font-semibold text-[#102E26]">
-            Temporary — activity from this session won’t be saved. Good for passing the phone around.
+            {t('test.temporaryNote')}
           </p>
         )}
 
         <div className="mt-5">
           <p className="text-sm font-semibold">{t('test.type')}</p>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2" role="group" aria-label="Test type">
+          <div className="mt-2 grid gap-2 sm:grid-cols-2" role="group" aria-label={t('test.type')}>
             {(
               [
                 ['sequential', t('test.typeSequential'), t('test.typeSequentialDesc')],
@@ -1156,17 +1148,17 @@ export default function TestClient() {
             </div>
             <p className="mt-1 text-xs text-[#5b6b62]">
               {testType === 'middle'
-                ? 'Start from the middle ignores this starting ayah — it drops you at a random ayah in the middle of your range instead.'
+                ? t('test.runsMiddleNote')
                 : testType === 'completion'
-                  ? 'The test runs from this ayah to the end of the surah (up to 20 questions).'
-                  : 'The test runs in order from this ayah.'}
+                  ? t('test.runsToEnd')
+                  : t('test.runsInOrder')}
             </p>
           </div>
         )}
 
         <div className="mt-5">
           <p className="text-sm font-semibold">{t('test.whatToTest')}</p>
-          <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Test scope">
+          <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t('test.whatToTest')}>
             {(
               [
                 ['memorised', t('test.scopeMemorised')],
@@ -1187,16 +1179,14 @@ export default function TestClient() {
             ))}
           </div>
           <p className="mt-2 text-xs text-[#5b6b62]">
-            “Your Memorization” is the range the app builds from what you have marked memorised
-            and recited from memory. “Weakest Link” tests the ayahs you miss most.
+            {t('test.scopeNote').replace('{mem}', t('test.scopeMemorised')).replace('{weak}', t('test.weakestLinkShort'))}
           </p>
         </div>
 
         <div className="mt-5">
           <p className="text-sm font-semibold">{t('test.customRange')}</p>
           <p className="text-xs text-[#5b6b62]">
-            Pick by Surah, Juz, Hizb, Rub or Page — tap any number of sections, in any order,
-            or combine them (e.g. Surah Al-Mulk + Juz 30). Saved ranges appear under “Your Ranges”.
+            {t('test.customRangeNote').replace('{ranges}', t('sheet.yourRanges'))}
           </p>
           <div className="mt-2">
             <RangeWheel selected={ranges} onChange={setRanges} />
@@ -1209,7 +1199,7 @@ export default function TestClient() {
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <div>
             <p className="text-sm font-semibold">{t('test.duration')}</p>
-            <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Session duration">
+            <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t('test.duration')}>
               {([5, 10, 20] as Duration[]).map((n) => (
                 <button
                   key={n}
@@ -1222,8 +1212,8 @@ export default function TestClient() {
                 </button>
               ))}
             </div>
-            <p className="mt-3 text-sm font-semibold">Time limit</p>
-            <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Test time limit">
+            <p className="mt-3 text-sm font-semibold">{t('test.timeLimit')}</p>
+            <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t('test.timeLimitLabel')}>
               {([0, 5, 10, 15, 30] as TimeLimitMinutes[]).map((m) => (
                 <button
                   key={m}
@@ -1232,19 +1222,19 @@ export default function TestClient() {
                   onClick={() => setTimeLimitMinutes(m)}
                   className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${timeLimitMinutes === m ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
                 >
-                  {m === 0 ? 'No limit' : `${m} min`}
+                  {m === 0 ? t('test.noTimeLimit') : t('test.minShort').replace('{n}', String(m))}
                 </button>
               ))}
             </div>
             <p className="mt-1 text-xs text-[#5b6b62]">
               {timeLimitMinutes === 0
-                ? 'No time limit — test at your own pace.'
-                : `The test ends when ${timeLimitMinutes} minutes are up, even with questions left.`}
+                ? t('test.noLimitNote')
+                : t('test.limitEndsNote').replace('{n}', String(timeLimitMinutes))}
             </p>
           </div>
           <div>
             <p className="text-sm font-semibold">{t('test.qLength')}</p>
-            <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Question length">
+            <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t('test.qLength')}>
               {(['short', 'medium', 'long'] as const).map((l) => (
                 <button
                   key={l}
@@ -1265,13 +1255,13 @@ export default function TestClient() {
                 max={15}
                 value={qLines}
                 onChange={(e) => setQLines(Math.min(15, Math.max(1, Number(e.target.value) || 1)))}
-                aria-label="Question length in mushaf lines, 1 to 15"
+                aria-label={t('test.linesSliderLabel')}
                 className="w-28"
               />
-              {qLines} {qLines === 1 ? 'line' : 'lines'}
+              {qLines} {qLines === 1 ? t('common.line') : t('common.lines')}
             </label>
             <p className="mt-1 text-xs text-[#5b6b62]">
-              About {Math.max(1, Math.round(qLines * LINES_PER_AYAH))} {Math.max(1, Math.round(qLines * LINES_PER_AYAH)) === 1 ? 'ayah' : 'ayahs'} per question — a long ayah covers more lines than a short one, so this is approximate.
+              {t('test.aboutAyahsPerQ').replace('{n}', String(Math.max(1, Math.round(qLines * LINES_PER_AYAH)))).replace('{ayahs}', Math.max(1, Math.round(qLines * LINES_PER_AYAH)) === 1 ? t('common.ayah') : t('common.ayahs'))}
             </p>
           </div>
         </div>
@@ -1285,8 +1275,7 @@ export default function TestClient() {
           {t('test.extend')}
         </label>
         <p className="mt-1 text-xs text-[#5b6b62]">
-          On: each question runs to the end of its final ayah, even past the line count.
-          Off: a question can stop mid-ayah.
+          {t('test.extendHint')}
         </p>
 
         <button
@@ -1298,9 +1287,9 @@ export default function TestClient() {
         </button>
         {counts.practised === 0 && (
           <p className="mt-3 text-sm text-[#5b6b62]">
-            Nothing practised yet — your first test will use new ayahs from the whole Quran.{' '}
+            {t('test.nothingPractisedNote')}{' '}
             <Link href="/hifz/juz-amma" className="font-semibold text-[#1FA36B] underline">
-              Start with Juz Amma first →
+              {t('test.startJuzAmmaFirst')}
             </Link>
           </p>
         )}
@@ -1366,26 +1355,25 @@ export default function TestClient() {
             type="button"
             onClick={() => {
               setScope('weakest');
-              setNotice('Weakest Link selected — the test will use your most-missed ayahs first.');
+              setNotice(t('test.weakestSelectedNote').replace('{weak}', t('test.weakestLinkShort')));
             }}
             className="min-h-11 rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
           >
-            {t('test.weakestLink')} ({weakestCount} weak {weakestCount === 1 ? 'ayah' : 'ayahs'})
+            {t('test.weakestLinkCount').replace('{weak}', t('test.weakestLink')).replace('{n}', String(weakestCount)).replace('{ayahs}', weakestCount === 1 ? t('common.ayah') : t('common.ayahs'))}
           </button>
           <button
             type="button"
             onClick={() => {
               setScope('memorised');
-              setNotice('Your Memorization selected — the test covers what you have marked memorised.');
+              setNotice(t('test.memorisedSelectedNote').replace('{mem}', t('test.scopeMemorised')));
             }}
             className="min-h-11 rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
           >
-            {t('test.scopeMemorised')} ({counts.memorised} ayahs)
+            {t('test.scopeMemorised')} ({counts.memorised} {counts.memorised === 1 ? t('common.ayah') : t('common.ayahs')})
           </button>
         </div>
         <p className="mt-3 text-xs text-[#5b6b62]">
-          Questions never repeat within a session until the whole range is covered, then they recycle.
-          A new session starts fresh.
+          {t('test.noRepeatNote')}
         </p>
       </section>
 
@@ -1393,13 +1381,13 @@ export default function TestClient() {
       <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <h2 className="text-xl font-bold text-[#102E26]">{t('test.howScored')}</h2>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed text-[#5b6b62]">
-          <li>A question counts as correct only with zero mistakes.</li>
-          <li>Revealing a word (‹) counts as a mistake; revealing the rest of the ayah («) counts as a mistake.</li>
-          <li>The mistakes counter is a running total for the whole session, not per question.</li>
-          <li>Correct, with no reveal: the ayah’s correct streak grows — 3 in a row makes it memorised.</li>
-          <li>Missed, or revealed: the streak resets to 0 and the ayah joins your revision queue.</li>
-          <li>Each question counts as a minute of practice towards your daily goal and streak (unless the session is Temporary).</li>
-          <li>A test never adds new memorisation — it only affects scores of passages already marked memorised.</li>
+          <li>{t('test.rule1')}</li>
+          <li>{t('test.rule2')}</li>
+          <li>{t('test.rule3')}</li>
+          <li>{t('test.rule4')}</li>
+          <li>{t('test.rule5')}</li>
+          <li>{t('test.rule6')}</li>
+          <li>{t('test.rule7')}</li>
         </ul>
       </section>
     </div>

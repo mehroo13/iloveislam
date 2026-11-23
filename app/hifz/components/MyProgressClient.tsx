@@ -12,9 +12,9 @@ import {
   currentStreakCount, localDateString,
   getStorageNotice,
   activityByDate, weekPracticeDays, surahStrength, revisionDue, daysSince,
-  peekedDue, mistakeTypeLabel, markMistakesCorrected,
+  peekedDue, markMistakesCorrected,
   getTypeGoals, setTypeGoalTarget, recordTypeActivity, recordMinutes, previousLocalDate,
-  GOAL_TYPE_LABELS, GOAL_TYPE_DESCRIPTIONS, TYPE_GOAL_OPTIONS,
+  TYPE_GOAL_OPTIONS,
   completedSurahs, completedJuz, activitySummary, strongestSurahThisWeek, difficultAyahs,
   accuracyTrend, mistakesByTypeOverTime, weekOverWeek, ayahMistakeTrend,
   type GoalType, type HifzProgress, type MistakeEntry, type HifzSettings,
@@ -35,7 +35,7 @@ import BadgesGrid from './BadgesGrid';
 import GoalsClient from './GoalsClient';
 import ChallengesClient from './ChallengesClient';
 import ToolIcon from '../../components/ToolIcon';
-import { useT } from '../lib/i18n';
+import { useT, useUiLocale } from '../lib/i18n';
 
 /** Small SVG progress ring for one per-type daily goal. */
 function GoalRing({ done, target }: { done: number; target: number }) {
@@ -64,6 +64,7 @@ function GoalRing({ done, target }: { done: number; target: number }) {
  *  the session id. A mistake with no recording honestly says "No
  *  recording" — never a fake player. */
 function MistakeAudioButton({ sessionId }: { sessionId?: string }) {
+  const t = useT();
   const [state, setState] = useState<'idle' | 'loading' | 'playing' | 'none' | 'error'>('idle');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const urlRef = useRef<string | null>(null);
@@ -72,7 +73,7 @@ function MistakeAudioButton({ sessionId }: { sessionId?: string }) {
     if (urlRef.current && urlRef.current.startsWith('blob:')) URL.revokeObjectURL(urlRef.current);
   }, []);
   if (!sessionId) {
-    return <span className="text-xs text-[#6B7280]">No recording</span>;
+    return <span className="text-xs text-[#6B7280]">{t('rb.dash.audioNoRecording')}</span>;
   }
   const play = async () => {
     if (state === 'playing') {
@@ -107,25 +108,66 @@ function MistakeAudioButton({ sessionId }: { sessionId?: string }) {
       className="font-semibold text-[#1FA36B] underline disabled:opacity-50"
     >
       {state === 'loading'
-        ? 'Loading…'
+        ? t('common.loading')
         : state === 'playing'
-          ? 'Pause recitation'
+          ? t('rb.dash.audioPauseRecitation')
           : state === 'none'
-            ? 'No recording'
+            ? t('rb.dash.audioNoRecording')
             : state === 'error'
-              ? 'Couldn’t play'
-              : 'Hear my recitation'}
+              ? t('rb.dash.audioCouldntPlay')
+              : t('rb.dash.audioHearRecitation')}
     </button>
   );
 }
 
+/** Local translated labels for stored enum values (progress.ts keeps
+ *  English labels for these; the client maps them to translated keys
+ *  instead — progress.ts itself is never touched). */
+function goalTypeLabel(type: GoalType, t: (key: string) => string): string {
+  return type === 'memorisation' ? t('goal.typeMemorisation') : type === 'revision' ? t('goal.typeRevision') : t('goal.typeReading');
+}
+function goalTypeDesc(type: GoalType, t: (key: string) => string): string {
+  return type === 'memorisation' ? t('goal.typeMemorisationDesc') : type === 'revision' ? t('goal.typeRevisionDesc') : t('goal.typeReadingDesc');
+}
+function mistakeTypeLabelT(type: MistakeType | undefined, t: (key: string) => string): string {
+  switch (type) {
+    case 'incorrect': return t('mistake.typeIncorrect');
+    case 'extra': return t('mistake.typeExtra');
+    case 'repeated': return t('mistake.typeRepeated');
+    case 'sequence': return t('mistake.typeSequence');
+    case 'skipped': return t('mistake.typeSkipped');
+    case 'missed':
+    default: return t('coach.missed');
+  }
+}
+function testSessionTypeLabel(type: string, t: (key: string) => string): string {
+  switch (type) {
+    case 'sequential': return t('test.typeSequential');
+    case 'random': return t('test.typeRandom');
+    case 'middle': return t('test.typeMiddle');
+    case 'completion': return t('test.typeCompletion');
+    case 'revision': return t('test.typeRevision');
+    case 'difficult': return t('test.typeDifficult');
+    default: return type;
+  }
+}
+function testSessionScopeLabel(scope: string, t: (key: string) => string): string {
+  switch (scope) {
+    case 'memorised': return t('test.scopeMemorised');
+    case 'practised': return t('test.scopePractised');
+    case 'weakest': return t('test.weakestLinkShort');
+    case 'any': return t('test.scopeAny');
+    default: return scope;
+  }
+}
+
 /** BB: coach sessions (CoachSessionRecord) into history rows, using the
  *  REAL measured accuracy from each record — never a derived figure. */
-function coachSessionRows(sessions: CoachSessionRecord[]): { at: string; label: string; detail: string }[] {
+function coachSessionRows(sessions: CoachSessionRecord[], t: (key: string) => string): { at: string; label: string; detail: string }[] {
   return sessions.map((s) => ({
     at: s.date.slice(0, 10),
-    label: 'Coaching',
-    detail: `${Math.round(s.accuracy)}% correct · ${s.mistakes} ${s.mistakes === 1 ? 'mistake' : 'mistakes'} · ${s.range}`,
+    label: t('rb.dash.coachingLabel'),
+    detail: `${t('rb.dash.pctCorrect').replace('{pct}', String(Math.round(s.accuracy)))} · ${s.mistakes === 1 ? t('rb.dash.oneMistake') : t('rb.dash.nMistakes').replace('{n}', String(s.mistakes))} · ${s.range}`,
   }));
 }
 
@@ -194,14 +236,14 @@ function HubTopBar() {
           <path d="M15 18l-6-6 6-6" />
         </svg>
       </Link>
-      <Link href="/" aria-label="I Love Islam — home" className="shrink-0">
+      <Link href="/" aria-label={`I Love Islam — ${t('nav.home')}`} className="shrink-0">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.svg" alt="I Love Islam" width={36} height={36} className="h-9 w-9" />
       </Link>
       <span className="flex shrink-0 items-center gap-1">
         <Link
           href="/hifz/settings"
-          aria-label="Profile"
+          aria-label={t('rb.dash.profileLabel')}
           className="flex h-10 w-10 items-center justify-center rounded-full text-[#111827] hover:bg-white"
         >
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -212,7 +254,7 @@ function HubTopBar() {
         </Link>
         <Link
           href="/hifz/settings"
-          aria-label="Settings"
+          aria-label={t('set.title')}
           className="flex h-10 w-10 items-center justify-center rounded-full text-[#111827] hover:bg-white"
         >
           <ToolIcon name="settings" className="h-6 w-6" />
@@ -235,6 +277,7 @@ function StreakCard({ streak, longestStreak, activity, addHref, onBell }: {
   onBell: () => void;
 }) {
   const t = useT();
+  const locale = useUiLocale();
   const now = new Date();
   // BB: the streak count is a true circular progress ring — progress
   // toward the user's longest streak (their own best, never an
@@ -246,11 +289,11 @@ function StreakCard({ streak, longestStreak, activity, addHref, onBell }: {
   const ringC = 2 * Math.PI * ringR;
   const back = (now.getDay() - 5 + 7) % 7; // days since Friday (5)
   const friday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - back);
-  const labels = ['Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
-  const days = labels.map((label, i) => {
+  const days = [0, 1, 2, 3, 4, 5, 6].map((i) => {
     const d = new Date(friday.getFullYear(), friday.getMonth(), friday.getDate() + i);
     const key = localDateString(d);
     const isToday = key === localDateString(now);
+    const label = new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(d);
     return { label, date: key, active: (activity[key] ?? 0) > 0, future: d > now, isToday };
   });
   return (
@@ -265,7 +308,7 @@ function StreakCard({ streak, longestStreak, activity, addHref, onBell }: {
             viewBox="0 0 56 56"
             className="absolute inset-0"
             role="img"
-            aria-label={`Streak ${streak} days — ${ringPct}% of your longest streak of ${longestStreak} days`}
+            aria-label={t('rb.dash.streakRingLabel').replace('{n}', String(streak)).replace('{pct}', String(ringPct)).replace('{m}', String(longestStreak))}
           >
             <circle cx="28" cy="28" r={ringR} fill="none" stroke="#FFE9C2" strokeWidth="5" />
             <circle
@@ -360,17 +403,17 @@ function TypeGoalCard({ type, goal, onTargetChange, onLog }: {
           <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#E8EAED] text-xs font-bold text-[#6B7280]">{t('rb.dash.notSet')}</span>
         )}
         <div className="min-w-0">
-          <p className="font-bold text-[#111827]">{GOAL_TYPE_LABELS[type]}</p>
+          <p className="font-bold text-[#111827]">{goalTypeLabel(type, t)}</p>
           <p className="text-sm text-[#6B7280]">
             {goal.target > 0 ? (
               <>{goal.done} / {goal.target} {t('common.ayahs')} {met ? t('prog.goalMetShort') : t('prog.today')}</>
             ) : (
-              'Not Set'
+              t('rb.dash.notSet')
             )}
           </p>
         </div>
       </div>
-      <p className="mt-2 text-xs leading-relaxed text-[#6B7280]">{GOAL_TYPE_DESCRIPTIONS[type]}</p>
+      <p className="mt-2 text-xs leading-relaxed text-[#6B7280]">{goalTypeDesc(type, t)}</p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <label className="flex items-center gap-1.5 text-xs font-semibold text-[#6B7280]">
           {t('prog.target')}
@@ -378,7 +421,7 @@ function TypeGoalCard({ type, goal, onTargetChange, onLog }: {
             value={goal.target}
             onChange={(e) => onTargetChange(type, Number(e.target.value))}
             className="min-h-11 rounded-lg border border-[#E8EAED] bg-white px-2 py-1.5 text-sm"
-            aria-label={t('rb.dash.dailyTargetInAyahs').replace('{label}', GOAL_TYPE_LABELS[type])}
+            aria-label={t('rb.dash.dailyTargetInAyahs').replace('{label}', goalTypeLabel(type, t))}
           >
             {TYPE_GOAL_OPTIONS.map((n) => (
               <option key={n} value={n}>{t('prog.ayahsOption').replace('{n}', String(n))}</option>
@@ -418,7 +461,8 @@ function MemGoalRow({ label, goalLabel, type, goal, onTargetChange, onLog }: {
 }) {
   const [open, setOpen] = useState(true);
   const [detailOpen, setDetailOpen] = useState(false);
-  const value = goal.target > 0 ? `${goal.done} / ${goal.target} ayahs` : 'Not Set';
+  const t = useT();
+  const value = goal.target > 0 ? `${goal.done} / ${goal.target} ${t('common.ayahs')}` : t('rb.dash.notSet');
   return (
     <div>
       <button
@@ -614,7 +658,7 @@ export default function MyProgressClient() {
   const historyRows: { at: string; label: string; detail: string; href?: string }[] = [
     ...sessions.map((s) => ({
       at: s.date,
-      label: GOAL_TYPE_LABELS[s.type as GoalType] ?? s.type,
+      label: goalTypeLabel(s.type as GoalType, t) ?? s.type,
       detail: t('rb.dash.sessionRow').replace('{a}', String(s.ayahs)).replace('{m}', String(s.minutes)),
     })),
     ...testSessions.map((s) => ({
@@ -623,7 +667,7 @@ export default function MyProgressClient() {
       detail: `${s.score}/${s.total} · ${s.mistakes} ${s.mistakes === 1 ? t('test.mistake') : t('test.mistakes')}`,
       href: '/hifz/test',
     })),
-    ...coachSessionRows(coachSessions),
+    ...coachSessionRows(coachSessions, t),
   ].sort((a, b) => b.at.localeCompare(a.at));
 
   if (progress === null || settings === null) {
@@ -949,13 +993,13 @@ export default function MyProgressClient() {
             </h2>
             {editingName ? (
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <label className="sr-only" htmlFor="display-name-input">Your display name</label>
+                <label className="sr-only" htmlFor="display-name-input">{t('rb.dash.displayNameLabel')}</label>
                 <input
                   id="display-name-input"
                   type="text"
                   value={nameDraft}
                   maxLength={30}
-                  placeholder="Your name"
+                  placeholder={t('rb.dash.namePlaceholder')}
                   onChange={(e) => setNameDraft(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') saveDisplayName(nameDraft);
@@ -968,14 +1012,14 @@ export default function MyProgressClient() {
                   onClick={() => saveDisplayName(nameDraft)}
                   className="min-h-11 rounded-full bg-[#57D798] px-4 py-1.5 text-sm font-bold text-[#102E26]"
                 >
-                  Save name
+                  {t('rb.dash.saveName')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setEditingName(false)}
                   className="min-h-11 rounded-full border border-[#E8EAED] px-4 py-1.5 text-sm font-semibold"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 {settings.displayName && (
                   <button
@@ -983,7 +1027,7 @@ export default function MyProgressClient() {
                     onClick={() => saveDisplayName('')}
                     className="min-h-11 rounded-full border border-red-200 px-4 py-1.5 text-sm font-semibold text-red-700"
                   >
-                    Clear name
+                    {t('rb.dash.clearName')}
                   </button>
                 )}
               </div>
@@ -996,7 +1040,7 @@ export default function MyProgressClient() {
                 }}
                 className="mt-1 text-sm font-semibold text-[#1FA36B] underline"
               >
-                {settings.displayName ? 'Edit name' : 'Add your name'}
+                {settings.displayName ? t('rb.dash.editName') : t('rb.dash.addName')}
               </button>
             )}
           </div>
@@ -1025,7 +1069,7 @@ export default function MyProgressClient() {
               href="/hifz/settings"
               className="mt-4 flex min-h-12 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#38BDF8] to-[#34D399] px-5 py-3 text-base font-bold text-[#102E26] hover:brightness-105"
             >{t('rb.dash.exploreAllFree')}</Link>
-            <p className="mt-2 text-xs text-[#6B7280]">Mistake Detection and every other feature are in Settings → Recitation. All free, no Premium.</p>
+            <p className="mt-2 text-xs text-[#6B7280]">{t('rb.dash.settingsPromoNote').replace('{feature}', t('set.detectMistakes')).replace('{settings}', t('set.title')).replace('{recitation}', t('set.recitation'))}</p>
           </section>
 
           {/* Highlights — Testing Mode on a dark card, like the reference.
@@ -1068,7 +1112,7 @@ export default function MyProgressClient() {
               </span>
             </button>
             <div className="mt-4 grid gap-4 sm:grid-cols-3">
-              {(Object.keys(GOAL_TYPE_LABELS) as GoalType[]).map((type) => (
+              {(['memorisation', 'revision', 'reading'] as GoalType[]).map((type) => (
                 <TypeGoalCard key={type} type={type} goal={typeGoals[type]} onTargetChange={changeTypeTarget} onLog={logType} />
               ))}
             </div>
@@ -1085,21 +1129,21 @@ export default function MyProgressClient() {
           <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">{t('rb.dash.juzCompleted')}</p>
           <p className="mt-1 text-3xl font-bold text-[#111827]">{completedJuzList.length}</p>
           <p className="mt-1 text-xs text-[#6B7280]">
-            of 30{completedJuzList.length > 0 ? ` · Juz ${completedJuzList.join(', ')}` : ''}
+            {t('rb.dash.of30')}{completedJuzList.length > 0 ? ` · Juz ${completedJuzList.join(', ')}` : ''}
           </p>
         </div>
         <div className="rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">{t('rb.dash.thisWeek')}</p>
           <p className="mt-1 text-3xl font-bold text-[#111827]">{summary.weekAyahs}</p>
           <p className="mt-1 text-xs text-[#6B7280]">
-            {summary.weekAyahs === 1 ? 'ayah' : 'ayahs'} · {summary.weekDays} {summary.weekDays === 1 ? 'day' : 'days'}
+            {summary.weekAyahs === 1 ? t('common.ayah') : t('common.ayahs')} · {summary.weekDays} {summary.weekDays === 1 ? t('common.day') : t('common.days')}
           </p>
         </div>
         <div className="rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">{t('rb.dash.thisMonth')}</p>
           <p className="mt-1 text-3xl font-bold text-[#111827]">{summary.monthAyahs}</p>
           <p className="mt-1 text-xs text-[#6B7280]">
-            {summary.monthAyahs === 1 ? 'ayah' : 'ayahs'} · {summary.monthDays} {summary.monthDays === 1 ? 'day' : 'days'}
+            {summary.monthAyahs === 1 ? t('common.ayah') : t('common.ayahs')} · {summary.monthDays} {summary.monthDays === 1 ? t('common.day') : t('common.days')}
           </p>
         </div>
         <div className="rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm">
@@ -1121,7 +1165,7 @@ export default function MyProgressClient() {
             <>
               <p className="mt-2 text-xl font-bold text-[#111827]">{strongestWeek.name}</p>
               <p className="mt-1 text-sm text-[#6B7280]">
-                {strongestWeek.ayahsPractised} {strongestWeek.ayahsPractised === 1 ? 'ayah' : 'ayahs'} practised in the last 7 days.
+                {t('rb.dash.strongestPractised').replace('{n}', String(strongestWeek.ayahsPractised)).replace('{ayahs}', strongestWeek.ayahsPractised === 1 ? t('common.ayah') : t('common.ayahs'))}
               </p>
               <Link href={`/hifz/${strongestWeek.slug}`} className="mt-3 inline-block font-semibold text-[#1FA36B] underline">{t('rb.dash.openIt')} →</Link>
             </>
@@ -1134,7 +1178,7 @@ export default function MyProgressClient() {
           {revisionNeeded > 0 ? (
             <>
               <p className="mt-2 text-xl font-bold text-[#111827]">
-                {revisionNeeded} {revisionNeeded === 1 ? 'ayah' : 'ayahs'}
+                {revisionNeeded} {revisionNeeded === 1 ? t('common.ayah') : t('common.ayahs')}
               </p>
               <p className="mt-1 text-sm text-[#6B7280]">
                 {peeked.length > 0 ? t('rb.dash.peekedDue').replace('{n}', String(peeked.length)) + ' ' : ''}
@@ -1152,7 +1196,7 @@ export default function MyProgressClient() {
             <>
               <p className="mt-2 text-xl font-bold text-[#111827]">{lastRead.name}</p>
               <p className="mt-1 text-sm text-[#6B7280]">
-                Last read {new Date(lastRead.at).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}.
+                {t('rb.dash.lastReadOn').replace('{date}', new Date(lastRead.at).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }))}
               </p>
               <Link href={`/hifz/${lastRead.slug}`} className="mt-3 inline-block font-semibold text-[#1FA36B] underline">{t('rb.dash.continueReading')} →</Link>
             </>
@@ -1250,8 +1294,8 @@ export default function MyProgressClient() {
           <section aria-labelledby="mem-goals-heading">
             <h2 id="mem-goals-heading" className="text-xl font-bold text-[#111827]">{t('rb.goals.goals')}</h2>
             <div className="mt-4 space-y-5">
-              <MemGoalRow label="Memorization" goalLabel={t('rb.dash.memGoal')} type="memorisation" goal={typeGoals.memorisation} onTargetChange={changeTypeTarget} onLog={logType} />
-              <MemGoalRow label="Review" goalLabel={t('rb.dash.reviewGoal')} type="revision" goal={typeGoals.revision} onTargetChange={changeTypeTarget} onLog={logType} />
+              <MemGoalRow label={goalTypeLabel('memorisation', t)} goalLabel={t('rb.dash.memGoal')} type="memorisation" goal={typeGoals.memorisation} onTargetChange={changeTypeTarget} onLog={logType} />
+              <MemGoalRow label={goalTypeLabel('revision', t)} goalLabel={t('rb.dash.reviewGoal')} type="revision" goal={typeGoals.revision} onTargetChange={changeTypeTarget} onLog={logType} />
             </div>
           </section>
 
@@ -1287,7 +1331,7 @@ export default function MyProgressClient() {
         <p className="mt-1 text-sm text-[#6B7280]">{t('rb.dash.strengthHint')}</p>
         {strengths.length === 0 ? (
           <p className="mt-2 text-sm text-[#6B7280]">
-            No strength yet — recite an ayah with the coach and it appears here.{' '}
+            {t('rb.dash.noStrengthYet')}{' '}
             <Link href="/hifz/juz-amma" className="font-semibold text-[#1FA36B] underline">{t('rb.dash.startJuzAmma')} →</Link>
           </p>
         ) : (
@@ -1321,7 +1365,7 @@ export default function MyProgressClient() {
         {peeked.length > 0 && (
           <div className="mt-4">
             <h3 className="text-sm font-bold text-[#111827]">
-              Peeked — revise these first ({peeked.length})
+              {t('rb.dash.peekedReviseFirst').replace('{n}', String(peeked.length))}
             </h3>
             <p className="mt-1 text-xs text-[#6B7280]">{t('rb.dash.revealedNote')}</p>
             <ul className="mt-2 space-y-2">
@@ -1380,7 +1424,7 @@ export default function MyProgressClient() {
         <h2 id="memorised-heading" className="text-xl font-bold text-[#111827]">{t('prog.memorisedAyahs')}</h2>
         {memorised.length === 0 ? (
           <p className="mt-2 text-sm text-[#6B7280]">
-            Nothing memorised yet. Recite an ayah correctly three times in a row and it appears here.{' '}
+            {t('rb.dash.nothingMemorisedYet')}{' '}
             <Link href="/hifz/juz-amma" className="font-semibold text-[#1FA36B] underline">{t('rb.dash.startJuzAmma')} →</Link>
           </p>
         ) : (
@@ -1450,7 +1494,7 @@ export default function MyProgressClient() {
                 <div className="mt-4">
                   <h3 className="text-sm font-bold text-[#111827]">{t('prog.weakSpots')}</h3>
                   <p className="mt-1 text-xs text-[#6B7280]">
-                    Tap a bar to see that word’s detail. Fully visible — nothing here is blurred or locked.
+                    {t('rb.dash.weakSpotsHint')}
                   </p>
                   {/* BB: real interactive bar chart (not a plain list).
                       Bar length = how often the word was missed. Tapping
@@ -1471,7 +1515,7 @@ export default function MyProgressClient() {
                           type="button"
                           role="listitem"
                           aria-pressed={isSelected}
-                          aria-label={`${w.word} — ${surah ? surah.name : `Surah ${w.surah}`} ${w.surah}:${w.ayah}, missed ${w.attempts} ${w.attempts === 1 ? 'time' : 'times'}. Tap for detail.`}
+                          aria-label={t('rb.dash.weakSpotBarLabel').replace('{word}', w.word).replace('{ref}', `${surah ? surah.name : `Surah ${w.surah}`} ${w.surah}:${w.ayah}`).replace('{n}', String(w.attempts)).replace('{times}', w.attempts === 1 ? t('common.time') : t('common.times'))}
                           onClick={() =>
                             setSelectedWeak(isSelected ? null : { surah: w.surah, ayah: w.ayah, word: w.word })
                           }
@@ -1517,8 +1561,8 @@ export default function MyProgressClient() {
                           {' '}· {surah ? surah.name : `Surah ${w.surah}`} {w.surah}:{w.ayah}
                         </p>
                         <p className="mt-1 text-[#6B7280]">
-                          Missed {w.attempts} {w.attempts === 1 ? 'time' : 'times'}
-                          {w.heard ? ` · heard as “${w.heard}”` : ''}
+                          {t('rb.dash.missedTimes').replace('{n}', String(w.attempts)).replace('{times}', w.attempts === 1 ? t('common.time') : t('common.times'))}
+                          {w.heard ? ` · ${t('rb.dash.heardAs').replace('{heard}', w.heard)}` : ''}
                           {` · ${t('prog.moreToClear').replace('{n}', String(Math.max(0, 3 - Math.min(3, w.attempts))))}`}
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
@@ -1577,7 +1621,7 @@ export default function MyProgressClient() {
                       <span>
                         {surah ? surah.name : `Surah ${m.surah}`} {m.surah}:{m.ayah}
                         {typeof m.wordIndex === 'number' ? ` · ${t('rb.dash.wordNum').replace('{n}', String(m.wordIndex + 1))}` : ''} ·{' '}
-                        {mistakeTypeLabel(m.type)} · {m.attempts}{' '}
+                        {mistakeTypeLabelT(m.type, t)} · {m.attempts}{' '}
                         {m.attempts === 1 ? t('common.time') : t('common.times')}
                         {m.source === 'self-mark' ? ` · ${t('prog.selfMarked')}` : ''}
                         {m.heard ? ` · ${t('rb.dash.heardAs').replace('{heard}', m.heard)}` : ''}
@@ -1585,7 +1629,7 @@ export default function MyProgressClient() {
                       </span>
                       {m.corrected && (
                         <span className="rounded-full bg-[#E4FFF2] px-2 py-0.5 text-xs font-bold text-[#1FA36B]">
-                          Corrected{m.correctedAt ? ` · ${new Date(m.correctedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}
+                          {t('rb.dash.correctedLabel')}{m.correctedAt ? ` · ${new Date(m.correctedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}
                         </span>
                       )}
                       <span className="ml-auto flex gap-2">
@@ -1677,9 +1721,8 @@ export default function MyProgressClient() {
               return (
                 <li key={`${d.surah}:${d.ayah}`} className="flex flex-wrap items-center gap-2 rounded-xl bg-[#F4F5F7] px-3 py-2 text-sm">
                   <span>
-                    {surah ? surah.name : `Surah ${d.surah}`} {d.surah}:{d.ayah} · missed{' '}
-                    {d.attempts} {d.attempts === 1 ? 'time' : 'times'} · {d.words} {d.words === 1 ? 'word' : 'words'} · last{' '}
-                    {new Date(d.lastMistake).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    {surah ? surah.name : `Surah ${d.surah}`} {d.surah}:{d.ayah} ·{' '}
+                    {t('rb.dash.difficultRow').replace('{a}', String(d.attempts)).replace('{times}', d.attempts === 1 ? t('common.time') : t('common.times')).replace('{b}', String(d.words)).replace('{words}', d.words === 1 ? t('ins.wordOne') : t('ins.wordMany')).replace('{date}', new Date(d.lastMistake).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}
                   </span>
                   {surah && (
                     <Link href={`/hifz/${surah.slug}?mode=recite&ayah=${d.ayah}`} className="ml-auto font-semibold text-[#1FA36B] underline">
@@ -1698,7 +1741,7 @@ export default function MyProgressClient() {
         <h2 id="tests-heading" className="text-xl font-bold text-[#111827]">{t('rb.dash.testPerf')}</h2>
         {testSessions.length === 0 ? (
           <p className="mt-2 text-sm text-[#6B7280]">
-            No tests taken yet. Take a test and your scores appear here — best, recent average, and every past test to review.{' '}
+            {t('rb.dash.noTestsYet')}{' '}
             <Link href="/hifz/test" className="font-semibold text-[#1FA36B] underline">{t('rb.dash.takeFirstTest')} →</Link>
           </p>
         ) : (
@@ -1723,8 +1766,8 @@ export default function MyProgressClient() {
                   <span className="font-bold text-[#111827]">
                     {s.score}/{s.total} · {s.total > 0 ? Math.round((s.score / s.total) * 100) : 0}%
                   </span>
-                  <span className="text-[#6B7280]">{s.type} · {s.scope}</span>
-                  <span className="text-[#6B7280]">{s.mistakes} {s.mistakes === 1 ? 'mistake' : 'mistakes'}</span>
+                  <span className="text-[#6B7280]">{testSessionTypeLabel(s.type, t)} · {testSessionScopeLabel(s.scope, t)}</span>
+                  <span className="text-[#6B7280]">{s.mistakes === 1 ? t('rb.dash.oneMistake') : t('rb.dash.nMistakes').replace('{n}', String(s.mistakes))}</span>
                   <span className="ml-auto text-xs text-[#6B7280]">
                     {new Date(s.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                   </span>
@@ -1822,7 +1865,7 @@ export default function MyProgressClient() {
                         onClick={() => setHistoryLimit((n) => n + 15)}
                         className="mt-3 min-h-11 rounded-full border border-[#1FA36B] px-4 py-2 text-sm font-semibold text-[#1FA36B] hover:bg-[#E4FFF2]"
                       >
-                        Show more ({historyRows.length - historyLimit} more)
+                        {t('rb.dash.showMoreN').replace('{n}', String(historyRows.length - historyLimit))}
                       </button>
                     ) : historyRows.length > 15 ? (
                       <button
@@ -1830,7 +1873,7 @@ export default function MyProgressClient() {
                         onClick={() => setHistoryLimit(15)}
                         className="mt-3 min-h-11 rounded-full border border-[#E8EAED] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
                       >
-                        Show less
+                        {t('rb.dash.showLess')}
                       </button>
                     ) : null}
                   </>
@@ -1856,7 +1899,7 @@ export default function MyProgressClient() {
               <div className="mt-3"><BadgesGrid snapshot={badgeSnapshot} /></div>
             ) : (
               <p className="mt-2 text-sm text-[#6B7280]">
-                {earnedCount} of 20 earned — tap See All to view them.
+                {t('rb.dash.badgesEarnedNote').replace('{n}', String(earnedCount)).replace('{seeAll}', t('rb.dash.seeAll'))}
               </p>
             )}
           </section>
@@ -1874,8 +1917,7 @@ export default function MyProgressClient() {
             </div>
             <h3 className="mt-6 text-sm font-bold text-[#111827]">{t('prog.activityHeading')}</h3>
             <p className="mt-1 text-xs text-[#6B7280]">
-              One square per day; darker means more ayahs practised that day. Built from your
-              ayah records, so it works on progress saved before this view existed.
+              {t('rb.dash.heatmapNote')}
             </p>
             <div className="mt-3 flex gap-[3px] overflow-x-auto pb-1" role="img" aria-label={t('prog.heatmapLabel').replace('{n}', String(Object.keys(activity).length))}>
               {heatmapWeeks.map((week, wi) => (
@@ -2008,7 +2050,7 @@ export default function MyProgressClient() {
               </div>
               <p className="mt-2 text-xs text-[#6B7280]">
                 {t('prog.ayahsPractised')} — {chartRange === 'day' ? t('prog.perDay') : chartRange === 'week' ? t('prog.perWeek') : t('prog.perMonth')}.
-                Built from your ayah records — never invented.
+                {t('rb.dash.builtFromRecords')}
               </p>
             </div>
           );
@@ -2021,56 +2063,56 @@ export default function MyProgressClient() {
           "90% floor" figure anywhere here. A metric with no data yet
           says so instead of showing an invented number. */}
       <section aria-labelledby="real-analytics-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="real-analytics-heading" className="text-xl font-bold text-[#111827]">Real analytics</h2>
+        <h2 id="real-analytics-heading" className="text-xl font-bold text-[#111827]">{t('rb.dash.realAnalytics')}</h2>
         <p className="mt-1 text-sm text-[#6B7280]">
-          From your actual test and coaching sessions — never estimated.
+          {t('rb.dash.realAnalyticsSub')}
         </p>
 
         {/* Week over week */}
-        <h3 className="mt-5 text-sm font-bold text-[#111827]">Week over week</h3>
+        <h3 className="mt-5 text-sm font-bold text-[#111827]">{t('rb.dash.weekOverWeek')}</h3>
         <div className="mt-2 grid grid-cols-2 gap-3 text-center">
           {([
-            { label: 'This week', stats: wow.current },
-            { label: 'Last week', stats: wow.previous },
+            { label: t('rb.dash.thisWeekLabel'), stats: wow.current },
+            { label: t('rb.dash.lastWeekLabel'), stats: wow.previous },
           ] as const).map(({ label, stats }) => (
             <div key={label} className="rounded-xl bg-[#F4F5F7] p-3">
               <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">{label}</p>
               <p className="mt-1 text-2xl font-bold text-[#111827]">{stats.ayahs}</p>
-              <p className="text-xs text-[#6B7280]">ayahs · {stats.days} {stats.days === 1 ? 'day' : 'days'}</p>
+              <p className="text-xs text-[#6B7280]">{t('common.ayahs')} · {stats.days} {stats.days === 1 ? t('common.day') : t('common.days')}</p>
               <p className="mt-1 text-xs text-[#6B7280]">
-                {stats.mistakes} mistake {stats.mistakes === 1 ? 'attempt' : 'attempts'}
+                {stats.mistakes === 1 ? t('rb.dash.mistakeAttemptsOne').replace('{n}', String(stats.mistakes)) : t('rb.dash.mistakeAttemptsMany').replace('{n}', String(stats.mistakes))}
                 {stats.testAvgPct !== null
-                  ? ` · ${stats.testAvgPct}% test accuracy (${stats.tests} ${stats.tests === 1 ? 'test' : 'tests'})`
-                  : stats.tests === 0 ? ' · no tests' : ''}
+                  ? t('rb.dash.testAccuracyPart').replace('{pct}', String(stats.testAvgPct)).replace('{tests}', stats.tests === 1 ? t('rb.dash.oneTest') : t('rb.dash.nTests').replace('{n}', String(stats.tests)))
+                  : stats.tests === 0 ? t('rb.dash.noTestsPart') : ''}
               </p>
             </div>
           ))}
         </div>
         <p className="mt-2 text-xs text-[#6B7280]">
           {wow.current.ayahs - wow.previous.ayahs >= 0 ? '+' : ''}
-          {wow.current.ayahs - wow.previous.ayahs} ayahs vs last week ·{' '}
+          {t('rb.dash.wowAyahsDelta').replace('{n}', String(wow.current.ayahs - wow.previous.ayahs))} ·{' '}
           {wow.current.days - wow.previous.days >= 0 ? '+' : ''}
-          {wow.current.days - wow.previous.days} days ·{' '}
+          {t('rb.dash.wowDaysDelta').replace('{n}', String(wow.current.days - wow.previous.days))} ·{' '}
           {wow.current.testAvgPct !== null && wow.previous.testAvgPct !== null
-            ? `${wow.current.testAvgPct - wow.previous.testAvgPct >= 0 ? '+' : ''}${wow.current.testAvgPct - wow.previous.testAvgPct} pts test accuracy`
-            : 'test accuracy comparison needs a test in both weeks'}
+            ? `${wow.current.testAvgPct - wow.previous.testAvgPct >= 0 ? '+' : ''}${t('rb.dash.wowPtsDelta').replace('{n}', String(wow.current.testAvgPct - wow.previous.testAvgPct))}`
+            : t('rb.dash.wowNoCompare')}
         </p>
 
         {/* Real accuracy trend — per-day, scored sessions only */}
-        <h3 className="mt-6 text-sm font-bold text-[#111827]">Accuracy trend — last 14 days</h3>
+        <h3 className="mt-6 text-sm font-bold text-[#111827]">{t('rb.dash.accuracyTrend14')}</h3>
         {accTrend.every((p) => p.pct === null) ? (
           <p className="mt-2 text-sm text-[#6B7280]">
-            No test or coaching sessions yet — take a test or recite with the coach and your real accuracy appears here.
+            {t('rb.dash.noAccuracyYet')}
           </p>
         ) : (
           <>
-            <div className="mt-3 flex h-28 items-end gap-1" role="img" aria-label="Real accuracy per day over the last 14 days">
+            <div className="mt-3 flex h-28 items-end gap-1" role="img" aria-label={t('rb.dash.accuracyTrendLabel')}>
               {accTrend.map((p) => (
                 <div key={p.date} className="flex flex-1 flex-col items-center gap-1">
                   <div
                     className={`w-full rounded-t ${p.pct === null ? 'bg-[#E8EAED]' : 'bg-[#1FA36B]'}`}
                     style={{ height: `${p.pct === null ? 2 : Math.max(8, p.pct)}%` }}
-                    title={p.pct === null ? `${p.date}: no session` : `${p.date}: ${p.pct}% (${p.correct}/${p.total})`}
+                    title={p.pct === null ? t('rb.dash.noSessionDay').replace('{date}', p.date) : t('rb.dash.dayAccuracyTitle').replace('{date}', p.date).replace('{pct}', String(p.pct)).replace('{correct}', String(p.correct)).replace('{total}', String(p.total))}
                   />
                   <span className="text-[10px] text-[#6B7280]">
                     {new Date(`${p.date}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric' })}
@@ -2079,16 +2121,16 @@ export default function MyProgressClient() {
               ))}
             </div>
             <p className="mt-2 text-xs text-[#6B7280]">
-              Real per-session accuracy (test score + coach words correct). Days with no session are blank — never filled in.
+              {t('rb.dash.accuracyCaption')}
             </p>
           </>
         )}
 
         {/* Per-ayah trend — weekly mistake counts for the hardest ayahs */}
-        <h3 className="mt-6 text-sm font-bold text-[#111827]">Per-ayah trend — your hardest ayahs</h3>
+        <h3 className="mt-6 text-sm font-bold text-[#111827]">{t('rb.dash.perAyahTrend')}</h3>
         {difficult.length === 0 ? (
           <p className="mt-2 text-sm text-[#6B7280]">
-            No mistakes logged yet, so there is no per-ayah trend to show.
+            {t('rb.dash.noPerAyahTrend')}
           </p>
         ) : (
           <div className="mt-2 space-y-4">
@@ -2099,15 +2141,15 @@ export default function MyProgressClient() {
               return (
                 <div key={`${d.surah}:${d.ayah}`}>
                   <p className="text-sm font-semibold text-[#111827]">
-                    {surah ? surah.name : `Surah ${d.surah}`} {d.surah}:{d.ayah} — mistakes per week (fewer is better)
+                    {surah ? surah.name : `Surah ${d.surah}`} {d.surah}:{d.ayah} — {t('rb.dash.mistakesPerWeekBetter')}
                   </p>
-                  <div className="mt-2 flex h-16 items-end gap-1" role="img" aria-label={`Weekly mistakes on ${d.surah}:${d.ayah} over the last 6 weeks`}>
+                  <div className="mt-2 flex h-16 items-end gap-1" role="img" aria-label={t('rb.dash.weeklyMistakesLabel').replace('{ref}', `${d.surah}:${d.ayah}`)}>
                     {trend.map((x) => (
                       <div key={x.weekStart} className="flex flex-1 flex-col items-center gap-1">
                         <div
                           className="w-full rounded-t bg-[#FF8A00]"
                           style={{ height: `${x.mistakes === 0 ? 2 : Math.max(10, (x.mistakes / max) * 100)}%` }}
-                          title={`${x.label}: ${x.mistakes} ${x.mistakes === 1 ? 'mistake' : 'mistakes'}`}
+                          title={t('rb.dash.barCountTitle').replace('{label}', x.label).replace('{n}', String(x.mistakes)).replace('{word}', x.mistakes === 1 ? t('test.mistake') : t('test.mistakes'))}
                         />
                         <span className="text-[10px] text-[#6B7280]">{x.label}</span>
                       </div>
@@ -2120,12 +2162,12 @@ export default function MyProgressClient() {
         )}
 
         {/* Mistake frequency by type over time — stacked weekly bars */}
-        <h3 className="mt-6 text-sm font-bold text-[#111827]">Mistakes by type — last 6 weeks</h3>
+        <h3 className="mt-6 text-sm font-bold text-[#111827]">{t('rb.dash.mistakesByType6w')}</h3>
         {mistakeTypeWeeks.every((w) => w.total === 0) ? (
-          <p className="mt-2 text-sm text-[#6B7280]">No mistakes logged in the last 6 weeks.</p>
+          <p className="mt-2 text-sm text-[#6B7280]">{t('rb.dash.noMistakes6w')}</p>
         ) : (
           <>
-            <div className="mt-3 flex h-28 items-end gap-2" role="img" aria-label="Mistake attempts per week, split by type, over the last 6 weeks">
+            <div className="mt-3 flex h-28 items-end gap-2" role="img" aria-label={t('rb.dash.mistakeAttemptsByWeek')}>
               {mistakeTypeWeeks.map((w) => {
                 const max = Math.max(1, ...mistakeTypeWeeks.map((x) => x.total));
                 return (
@@ -2133,7 +2175,7 @@ export default function MyProgressClient() {
                     <div
                       className="flex w-full flex-col-reverse overflow-hidden rounded-t"
                       style={{ height: `${w.total === 0 ? 2 : Math.max(8, (w.total / max) * 100)}%` }}
-                      title={`${w.label}: ${w.total} ${w.total === 1 ? 'mistake' : 'mistakes'}`}
+                      title={t('rb.dash.barCountTitle').replace('{label}', w.label).replace('{n}', String(w.total)).replace('{word}', w.total === 1 ? t('test.mistake') : t('test.mistakes'))}
                     >
                       {(Object.keys(MISTAKE_TYPE_COLORS) as (keyof typeof MISTAKE_TYPE_COLORS)[]).map((type) => {
                         const n = w.counts[type] ?? 0;
@@ -2142,7 +2184,7 @@ export default function MyProgressClient() {
                           <div
                             key={type}
                             style={{ height: `${(n / w.total) * 100}%`, background: MISTAKE_TYPE_COLORS[type], minHeight: 2 }}
-                            title={`${mistakeTypeLabel(type)}: ${n}`}
+                            title={`${mistakeTypeLabelT(type, t)}: ${n}`}
                           />
                         );
                       })}
@@ -2156,7 +2198,7 @@ export default function MyProgressClient() {
               {(Object.keys(MISTAKE_TYPE_COLORS) as (keyof typeof MISTAKE_TYPE_COLORS)[]).map((type) => (
                 <span key={type} className="flex items-center gap-1">
                   <span aria-hidden="true" className="h-3 w-3 rounded-sm" style={{ background: MISTAKE_TYPE_COLORS[type] }} />
-                  {mistakeTypeLabel(type)}
+                  {mistakeTypeLabelT(type, t)}
                 </span>
               ))}
             </p>
@@ -2171,9 +2213,7 @@ export default function MyProgressClient() {
           <span className="rounded-full bg-[#57D798] px-3 py-1 text-xs font-bold text-[#102E26]">{t('rb.dash.addSession')}</span>
         </div>
         <p className="mt-1 text-sm text-[#6B7280]">
-          Read or recited away from the app — from a printed mushaf, in class, with a teacher?
-          Log it here. Any past date can be logged; a session for yesterday restores a missed
-          day&apos;s streak, and older days are kept in your history without changing the streak.
+          {t('rb.dash.addSessionNote')}
         </p>
         <div className="mt-4 flex flex-wrap items-end gap-3">
           <label className="text-xs font-semibold text-[#6B7280]">
@@ -2193,8 +2233,8 @@ export default function MyProgressClient() {
               onChange={(e) => setAddType(e.target.value as GoalType)}
               className="mt-1 block min-h-11 rounded-lg border border-[#E8EAED] bg-[#F4F5F7] px-2 py-1.5 text-sm"
             >
-              {(Object.keys(GOAL_TYPE_LABELS) as GoalType[]).map((t) => (
-                <option key={t} value={t}>{GOAL_TYPE_LABELS[t]}</option>
+              {(['memorisation', 'revision', 'reading'] as GoalType[]).map((ty) => (
+                <option key={ty} value={ty}>{goalTypeLabel(ty, t)}</option>
               ))}
             </select>
           </label>
@@ -2236,8 +2276,8 @@ export default function MyProgressClient() {
             {sessions.slice(0, 5).map((sess, i) => (
               <li key={i} className="flex flex-wrap gap-2 rounded-lg bg-[#F4F5F7] px-3 py-2">
                 <span className="font-semibold">{sess.date}</span>
-                <span>{GOAL_TYPE_LABELS[sess.type as GoalType] ?? sess.type}</span>
-                <span className="text-[#6B7280]">{sess.ayahs} ayahs · {sess.minutes} min</span>
+                <span>{goalTypeLabel(sess.type as GoalType, t)}</span>
+                <span className="text-[#6B7280]">{sess.ayahs} {sess.ayahs === 1 ? t('common.ayah') : t('common.ayahs')} · {t('test.minShort').replace('{n}', String(sess.minutes))}</span>
               </li>
             ))}
           </ul>
@@ -2332,7 +2372,7 @@ export default function MyProgressClient() {
                 {groups.map((g) => (
                   <li key={g.id} className="flex flex-wrap gap-2 rounded-lg bg-[#F4F5F7] px-3 py-2">
                     <span className="font-semibold">{g.name}</span>
-                    <span className="text-[#6B7280]">{g.code} · {g.members.length} {g.members.length === 1 ? 'member' : 'members'}</span>
+                    <span className="text-[#6B7280]">{g.code} · {g.members.length} {g.members.length === 1 ? t('chal.member') : t('chal.members')}</span>
                   </li>
                 ))}
               </ul>

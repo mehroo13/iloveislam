@@ -1127,8 +1127,7 @@ export default function SurahClient({
             </p>
             <h2 className="mt-2 text-xl font-bold sm:text-2xl">{t('surah.reciteSurah').replace('{name}', surah.name)}</h2>
             <p className="mt-1 max-w-xl text-sm leading-relaxed text-white/80">
-              Listen, hide the verse, then recite it from memory. The checker follows your
-              recitation word by word, on this device — your audio never leaves your device unless you choose to share it.
+              {t('surah.reciteIntro')}
             </p>
           </div>
           {!coachOpen && (
@@ -1159,7 +1158,7 @@ export default function SurahClient({
         )}
         {coachOpen && coachAyahs.length === 0 && (
           <p className="mt-4 rounded-xl bg-white/10 px-4 py-3 text-sm">
-            The verses could not be loaded, so the coach cannot start. Check your connection and reload the page.
+            {t('surah.versesFailed')}
           </p>
         )}
       </section>
@@ -1422,8 +1421,7 @@ export default function SurahClient({
         </div>
         {listen.wordByWord && (
           <p className="mt-2 text-xs leading-relaxed text-[#5b6b62]">
-            Word by word: each word is played on its own and highlighted in the Arabic line as it
-            sounds. If an ayah has no word audio, the whole ayah plays instead.
+            {t('surah.wbwIntro')}
           </p>
         )}
         {listenPlaying && playingKey && (

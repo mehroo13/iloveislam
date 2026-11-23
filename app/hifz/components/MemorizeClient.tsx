@@ -156,7 +156,7 @@ export default function MemorizeClient() {
             {t('mem.fullProgress')}
           </Link>
         </div>
-        <div className="mt-4 flex gap-1" role="group" aria-label="Tracker view">
+        <div className="mt-4 flex gap-1" role="group" aria-label={t('mem.trackerViewLabel')}>
           {(
             [
               ['chapter', t('mem.tabChapter')],

@@ -57,7 +57,7 @@ export default function HubClient() {
             {t('hub.goalBody')}
           </p>
           <p className="mt-4 border-t border-[#E8EAED] pt-4 text-sm italic text-[#6B7280]">
-            “The most beloved deeds to Allah are the most consistent, even if they are small.”
+            {t('hub.hadithQuote')}
             <span className="mt-1 block text-xs not-italic text-[#6B7280]/70">Sahih al-Bukhari</span>
           </p>
           <Link
