@@ -51,7 +51,7 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
   const [isInstalled, setIsInstalled] = useState(false);
   const [canInstall, setCanInstall] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showUpdateToast, setShowUpdateToast] = useState(false);
+  const [showUpdateBanner, setShowUpdateBanner] = useState(false);
 
   // Register service worker
   useEffect(() => {
@@ -72,8 +72,10 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
     // Listen for SW messages
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data?.type === 'SW_UPDATED') {
-        setShowUpdateToast(true);
-        setTimeout(() => setShowUpdateToast(false), 5000);
+        // Stays up until the user refreshes or dismisses it — the old
+        // 5-second auto-hide meant users on an installed old version
+        // never saw the prompt at all.
+        setShowUpdateBanner(true);
       }
     });
   }, []);
@@ -158,26 +160,34 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
 
   return (
     <PWAContext.Provider value={{ isOnline, isInstalled, canInstall, installApp, getToolOfflineStatus }}>
-      {children}
-
-      {/* Update Available Toast - DISABLED - User reported blocking functionality */}
-      {false && showUpdateToast && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] animate-slide-up">
-          <div className="bg-blue-800 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 max-w-sm">
-            <span className="text-lg"></span>
-            <div>
-              <p className="text-sm font-semibold">App updated</p>
-              <p className="text-xs text-blue-200">Refresh for the latest version</p>
-            </div>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg text-xs font-semibold transition-colors"
-            >
-              Refresh
-            </button>
-          </div>
+      {/* Update notice — a slim banner in normal page flow at the very
+        top, NOT a fixed/overlay toast: the old floating toast covered
+        content and buttons, so it was disabled. In-flow it pushes
+        content down instead of covering anything, and it never blocks
+        interaction. Refresh loads the new service-worker version. */}
+      {showUpdateBanner && (
+        <div role="status" className="flex items-center justify-center gap-3 bg-[#102E26] px-4 py-2 text-white">
+          <p className="min-w-0 truncate text-xs font-semibold sm:text-sm">
+            App updated — refresh for the latest version
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="shrink-0 rounded-full bg-[#57D798] px-3 py-1 text-xs font-bold text-[#102E26] hover:brightness-110"
+          >
+            Refresh
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowUpdateBanner(false)}
+            aria-label="Dismiss update notice"
+            className="shrink-0 rounded-full px-2 py-1 text-xs font-bold text-white/70 hover:text-white"
+          >
+            ✕
+          </button>
         </div>
       )}
+      {children}
     </PWAContext.Provider>
   );
 }

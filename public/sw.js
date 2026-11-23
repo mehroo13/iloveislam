@@ -1,4 +1,4 @@
-// I Love Islam — Advanced Service Worker v3.0.0
+// I Love Islam — Advanced Service Worker v3.0.1
 // Offline-first PWA for the single-purpose Hifz app (rebrand 2026-11-21).
 //
 // Offline coach (§15.10): the coach model (Tilawa, hosted on tilawa.dev,
@@ -10,7 +10,7 @@
 // from cache. Voice Search still needs the network (browser speech
 // recognition); the page says so.
 
-const CACHE_VERSION = 'hifz-v3.0.0';
+const CACHE_VERSION = 'hifz-v3.0.1';
 const STATIC_CACHE = 'hifz-static-v3';
 const DYNAMIC_CACHE = 'hifz-dynamic-v3';
 const API_CACHE = 'hifz-api-v3';

@@ -1,125 +1,22 @@
 // app/hifz/components/AppShell.tsx — the app shell for /hifz/* (spec §22,
 // screenshot rebuild 2026-11-21).
 //
-// Bottom tabs (NOT top tabs — the screenshots + updated spec win over the
-// earlier top-tab plan): Home | Mushaf | Memorize | Search | Progress.
-// White bar, inline SVG icons, active tab green with a green underline.
-// Plus: 4-step skippable onboarding (light screens in the reference
-// style, our own wording — no copied logo, name or text; step 4 is Book
-// Settings), theme application
-// (light/dark/sepia), and the IndexedDB mirror migration (localStorage
-// data is never lost).
+// No bottom tab bar: no Tarteel screenshot has one, so the tabs are gone
+// (SiteChrome no longer renders them). The destinations the tabs used to
+// carry are reachable from the reader's hamburger drawer instead — the
+// drawer worker (W4) added the nav link row there (Home, My Progress,
+// Bookmarks, Goals, Challenges, Settings); this file owns no nav data. Plus: 4-step skippable
+// onboarding (light screens in the reference style, our own wording —
+// no copied logo, name or text; step 4 is Book Settings), theme
+// application (light/dark/sepia), and the IndexedDB mirror migration
+// (localStorage data is never lost).
 'use client';
 
-import { useEffect, useState, type ComponentType } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { migrateToIdb } from '../lib/store';
 import { useSyncUiPrefs, useT } from '../lib/i18n';
 import BookSettings from './BookSettings';
 
-type IconProps = { className?: string };
-
-function HomeIcon({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      <polyline points="9 22 9 12 15 12 15 22" />
-    </svg>
-  );
-}
-
-function MushafIcon({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-    </svg>
-  );
-}
-
-function MemorizeIcon({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-    </svg>
-  );
-}
-
-function SearchIcon({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-      <circle cx="11" cy="11" r="8" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
-  );
-}
-
-function ProgressIcon({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-      <line x1="12" y1="20" x2="12" y2="10" />
-      <line x1="18" y1="20" x2="18" y2="4" />
-      <line x1="6" y1="20" x2="6" y2="16" />
-    </svg>
-  );
-}
-
-const TABS: { href: string; labelKey: string; icon: ComponentType<IconProps>; match: (p: string) => boolean }[] = [
-  // Home is the homepage `/` (the app's front page: Continue + surah list).
-  // It also stays highlighted on reader pages that belong to no other tab
-  // (surah / ayah / juz pages) — see the fallback in BottomTabs below.
-  // The old /hifz hub is still one tap away from the homepage.
-  { href: '/', labelKey: 'nav.home', icon: HomeIcon, match: (p) => p === '/' || p === '/hifz' },
-  { href: '/hifz/mushaf', labelKey: 'nav.mushaf', icon: MushafIcon, match: (p) => p.startsWith('/hifz/mushaf') },
-  { href: '/hifz/memorize', labelKey: 'nav.memorize', icon: MemorizeIcon, match: (p) => p.startsWith('/hifz/memorize') || p.startsWith('/hifz/test') || p.startsWith('/hifz/recite') },
-  { href: '/hifz/search', labelKey: 'nav.search', icon: SearchIcon, match: (p) => p.startsWith('/hifz/search') || p.startsWith('/hifz/voice-search') },
-  { href: '/hifz/my-progress', labelKey: 'nav.progress', icon: ProgressIcon, match: (p) => p.startsWith('/hifz/my-progress') || p.startsWith('/hifz/goals') || p.startsWith('/hifz/plans') || p.startsWith('/hifz/challenges') },
-];
-
-export function BottomTabs() {
-  const pathname = usePathname() ?? '';
-  const t = useT();
-  // The tab whose match() fits this route, if any. Reader pages (surah,
-  // ayah, juz) match no tab — they belong to Home, so Home stays lit there
-  // instead of leaving the bar with nothing active. Non-app routes never
-  // render these tabs at all (SiteChrome), so the fallback only fires
-  // inside /hifz/*.
-  const matched = TABS.find((tab) => tab.match(pathname));
-  const activeHref = matched ? matched.href : pathname === '/' || pathname.startsWith('/hifz') ? '/' : null;
-  // BottomTabs renders on `/` too (via SiteChrome in the root layout),
-  // where the hifz layout — and ThemeApplier — never runs. So the tabs
-  // themselves apply the saved theme + language on mount.
-  useSyncUiPrefs();
-  return (
-    <nav
-      aria-label={t('nav.sections')}
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-[#E8EAED] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
-    >
-      <ul className="mx-auto flex max-w-3xl items-stretch justify-around">
-        {TABS.map((tab) => {
-          const active = tab.href === activeHref;
-          const Icon = tab.icon;
-          return (
-            <li key={tab.href} className="flex-1">
-              <Link
-                href={tab.href}
-                aria-current={active ? 'page' : undefined}
-                className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${
-                  active ? 'text-[#1FA36B]' : 'text-[#6B7280]'
-                }`}
-              >
-                <Icon className="h-6 w-6" />
-                {t(tab.labelKey)}
-                {active && <span aria-hidden="true" className="h-1 w-8 rounded-full bg-[#57D798]" />}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
-  );
-}
 
 /** Apply the saved theme (light/dark/sepia) + language (lang/dir) to
  *  <html>. The store (lib/i18n) is the live source: it reads

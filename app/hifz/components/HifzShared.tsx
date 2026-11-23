@@ -1,33 +1,20 @@
 // app/hifz/components/HifzShared.tsx — shared components for the hub:
-// breadcrumb, attribution footer, surah hero.
-// Client component only so the hero chrome follows the interface language.
+// attribution footer, surah hero. (The breadcrumb used to live here
+// too; Tarteel has no breadcrumbs anywhere, so Breadcrumb now renders
+// nothing — the export stays so the 18 call sites in /hifz pages keep
+// compiling, and the pages themselves are untouched.)
 'use client';
 
-import Link from 'next/link';
 import type { HifzSurah } from '../surahs';
 import { ATTRIBUTION } from '../lib/fetch';
 import { BISMILLAH } from '../../quran/lib';
 import { useT } from '../lib/i18n';
 
+/** No breadcrumbs in the app (Tarteel has none). Kept as a no-op so
+ *  existing call sites compile; renders nothing. */
 export function Breadcrumb({ items }: { items: { label: string; href?: string }[] }) {
-  return (
-    <nav aria-label="Breadcrumb" className="text-sm text-[#5b6b62]">
-      <ol className="flex flex-wrap items-center gap-1.5">
-        {items.map((item, i) => (
-          <li key={i} className="flex items-center gap-1.5">
-            {i > 0 && <span aria-hidden="true">›</span>}
-            {item.href ? (
-              <Link href={item.href} className="inline-block py-1 font-semibold text-[#1FA36B] hover:underline">
-                {item.label}
-              </Link>
-            ) : (
-              <span aria-current="page" className="font-semibold text-[#1C2420]">{item.label}</span>
-            )}
-          </li>
-        ))}
-      </ol>
-    </nav>
-  );
+  void items;
+  return null;
 }
 
 export function Attribution({ reciterName }: { reciterName?: string }) {

@@ -1,11 +1,13 @@
 // app/hifz/layout.tsx — hub wrapper. Shared treatment for /hifz/*:
-// cream pages (Tarteel look), centred reading column, skippable
-// onboarding, theme + language application (see AppShell / lib/i18n).
-// The bottom tab bar lives in SiteChrome (root layout) so it also shows
-// on the homepage `/` — it is NOT rendered here (no double tabs).
+// light-grey pages #F4F5F7 (the Tarteel look — no warm cream),
+// centred reading column, skippable onboarding, theme + language
+// application (see AppShell / lib/i18n). There is no bottom tab bar
+// and no floating mode pill in this shell: Tarteel has neither — mode
+// switching lives in the reader (bottom bar + mic orb), and the
+// reader's hamburger drawer carries the navigation for the
+// destinations the old tabs used to serve (drawer worker's scope).
 import type { Metadata } from 'next';
 import { Onboarding, ThemeApplier } from './components/AppShell';
-import ModeSwitcher from './components/ModeSwitcher';
 import SyncWatcher from './components/SyncWatcher';
 
 export const metadata: Metadata = {
@@ -21,12 +23,11 @@ const PREFS_SCRIPT = `(function(){try{var s=JSON.parse(localStorage.getItem('ili
 
 export default function HifzLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#FFFBF2] text-[#1C2420]">
+    <div className="min-h-screen bg-[#F4F5F7] text-[#1C2420]">
       <script dangerouslySetInnerHTML={{ __html: PREFS_SCRIPT }} />
       <ThemeApplier />
       <SyncWatcher />
       <Onboarding />
-      <ModeSwitcher />
       {children}
     </div>
   );
