@@ -28,6 +28,47 @@ function stripHtml(s: string): string {
   return s.replace(/<[^>]*>/g, '').trim();
 }
 
+// Text search is paged 10 results at a time (Quran.com `page` param,
+// passed through by the /api/quran proxy).
+const PAGE_SIZE = 10;
+
+// Recent searches: only queries the user actually submitted, newest
+// first, capped at 15. Shared key with VoiceSearchClient so a voice
+// search shows up here too (and vice versa). Empty state renders
+// nothing — history is never invented.
+const RECENT_SEARCHES_KEY = 'ili_hifz_recent_searches_v1';
+const MAX_RECENT_SEARCHES = 15;
+
+function loadRecentSearches(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_SEARCHES_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+      .slice(0, MAX_RECENT_SEARCHES);
+  } catch {
+    return [];
+  }
+}
+
+function recordRecentSearch(query: string): string[] {
+  const trimmed = query.trim();
+  if (!trimmed) return loadRecentSearches();
+  // Dedupe (case-insensitive): a repeat moves to the top, no duplicate.
+  const next = [
+    trimmed,
+    ...loadRecentSearches().filter((x) => x.toLowerCase() !== trimmed.toLowerCase()),
+  ].slice(0, MAX_RECENT_SEARCHES);
+  try {
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(next));
+  } catch {
+    /* storage unavailable — search still works */
+  }
+  return next;
+}
+
 export default function SearchClient({ initialQuery }: { initialQuery?: string }) {
   const [q, setQ] = useState(initialQuery ?? '');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -36,6 +77,12 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  // Pagination: `page` is the last page loaded; `activeQuery` is the
+  // query those results belong to (the input `q` may have changed since).
+  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [activeQuery, setActiveQuery] = useState('');
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const t = useT();
   const router = useRouter();
 
@@ -44,27 +91,75 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
   const [jumpJuz, setJumpJuz] = useState(1);
   const [jumpPage, setJumpPage] = useState(3);
 
+  // Fresh search (page 1): replaces results and records the query in
+  // recent-search history.
   const runSearch = useCallback(async (query: string) => {
     const queryTrim = query.trim();
     if (!queryTrim) return;
     setLoading(true);
     setError(null);
     setSearched(true);
+    setActiveQuery(queryTrim);
+    setRecentSearches(recordRecentSearch(queryTrim));
     try {
       const res = await fetch(
-        `/api/quran/search?q=${encodeURIComponent(queryTrim)}&size=10&language=en`,
+        `/api/quran/search?q=${encodeURIComponent(queryTrim)}&size=${PAGE_SIZE}&page=1&language=en`,
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const list = (data?.search?.results ?? []) as SearchResult[];
       setResults(list);
       setTotal(Number(data?.search?.total_results ?? list.length) || list.length);
+      setPage(1);
     } catch {
       setError(tr('search.error', getUiLocale()));
       setResults([]);
+      setPage(1);
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  // Load more: fetches the next page for the active query and appends
+  // it (deduped by verse key). Shown only while results < total.
+  const loadMore = useCallback(async () => {
+    const queryTrim = activeQuery.trim();
+    if (!queryTrim || loading || loadingMore) return;
+    if (total > 0 && results.length >= total) return;
+    const nextPage = page + 1;
+    setLoadingMore(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/quran/search?q=${encodeURIComponent(queryTrim)}&size=${PAGE_SIZE}&page=${nextPage}&language=en`,
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const list = (data?.search?.results ?? []) as SearchResult[];
+      setTotal(Number(data?.search?.total_results ?? total) || total);
+      setResults((prev) => {
+        const seen = new Set(prev.map((r) => r.verse_key));
+        return [...prev, ...list.filter((r) => !seen.has(r.verse_key))];
+      });
+      setPage(nextPage);
+    } catch {
+      setError(tr('search.error', getUiLocale()));
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [activeQuery, loading, loadingMore, page, results.length, total]);
+
+  const clearRecentSearches = useCallback(() => {
+    try {
+      localStorage.removeItem(RECENT_SEARCHES_KEY);
+    } catch {
+      /* storage unavailable */
+    }
+    setRecentSearches([]);
+  }, []);
+
+  useEffect(() => {
+    setRecentSearches(loadRecentSearches());
   }, []);
 
   useEffect(() => {
@@ -119,6 +214,40 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
         <div className="mt-5 flex-1">
           {error && (
             <p role="alert" className="px-2 text-sm text-red-700">{error}</p>
+          )}
+          {/* Recent searches — only queries the user actually submitted.
+              Nothing renders when there is no history. Tapping a chip
+              re-runs that query. */}
+          {recentSearches.length > 0 && (
+            <section aria-label="Recent searches" className="mb-4 rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-sm font-bold text-[#111827]">Recent searches</h2>
+                <button
+                  type="button"
+                  onClick={clearRecentSearches}
+                  className="min-h-11 rounded-full px-3 py-1.5 text-sm font-semibold text-[#1FA36B] hover:bg-[#F1F2F4]"
+                >
+                  Clear
+                </button>
+              </div>
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {recentSearches.map((item) => (
+                  <li key={item}>
+                    <button
+                      type="button"
+                      dir="auto"
+                      onClick={() => {
+                        setQ(item);
+                        void runSearch(item);
+                      }}
+                      className="min-h-11 rounded-full border border-[#E8EAED] bg-[#F1F2F4] px-3.5 py-1.5 text-sm font-semibold text-[#111827] hover:border-[#1FA36B]"
+                    >
+                      {item}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
           {searched && (
             <section aria-label={t('search.resultsLabel')} className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
@@ -178,6 +307,22 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
                     );
                   })}
                 </ul>
+              )}
+              {/* Pagination — appends the next page while results < total. */}
+              {results.length > 0 && results.length < total && (
+                <div className="mt-5 text-center">
+                  <p className="text-xs text-[#6B7280]">
+                    Showing {results.length} of {total}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void loadMore()}
+                    disabled={loadingMore}
+                    className="mt-2 min-h-11 rounded-full bg-[#102E26] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B] disabled:opacity-50"
+                  >
+                    {loadingMore ? t('search.searching') : 'Load more'}
+                  </button>
+                </div>
               )}
             </section>
           )}

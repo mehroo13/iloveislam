@@ -47,6 +47,43 @@ function stripHtml(s: string): string {
   return s.replace(/<[^>]*>/g, '').trim();
 }
 
+// Recent searches: only queries the user actually submitted (typed or
+// recited), newest first, capped at 15. Shared key with SearchClient so
+// a text search shows up here too (and vice versa). Empty state renders
+// nothing — history is never invented.
+const RECENT_SEARCHES_KEY = 'ili_hifz_recent_searches_v1';
+const MAX_RECENT_SEARCHES = 15;
+
+function loadRecentSearches(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_SEARCHES_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+      .slice(0, MAX_RECENT_SEARCHES);
+  } catch {
+    return [];
+  }
+}
+
+function recordRecentSearch(query: string): string[] {
+  const trimmed = query.trim();
+  if (!trimmed) return loadRecentSearches();
+  // Dedupe (case-insensitive): a repeat moves to the top, no duplicate.
+  const next = [
+    trimmed,
+    ...loadRecentSearches().filter((x) => x.toLowerCase() !== trimmed.toLowerCase()),
+  ].slice(0, MAX_RECENT_SEARCHES);
+  try {
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(next));
+  } catch {
+    /* storage unavailable — search still works */
+  }
+  return next;
+}
+
 type SpeechRecognitionCtor = new () => {
   lang: string;
   interimResults: boolean;
@@ -74,7 +111,12 @@ export default function VoiceSearchClient() {
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [searchedQuery, setSearchedQuery] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const recogRef = useRef<InstanceType<SpeechRecognitionCtor> | null>(null);
+
+  useEffect(() => {
+    setRecentSearches(loadRecentSearches());
+  }, []);
 
   useEffect(() => {
     setSpeechSupported(getSpeechRecognition() !== null);
@@ -94,6 +136,8 @@ export default function VoiceSearchClient() {
     setNotice(null);
     setResults(null);
     setSearchedQuery(trimmed);
+    // Typed and recited queries both count as submitted searches.
+    setRecentSearches(recordRecentSearch(trimmed));
     try {
       const res = await fetch(
         `/api/quran/search?q=${encodeURIComponent(trimmed)}&size=5&language=en`,
@@ -135,6 +179,15 @@ export default function VoiceSearchClient() {
       setSearching(false);
     }
   }, [t]);
+
+  const clearRecentSearches = useCallback(() => {
+    try {
+      localStorage.removeItem(RECENT_SEARCHES_KEY);
+    } catch {
+      /* storage unavailable */
+    }
+    setRecentSearches([]);
+  }, []);
 
   const startListening = useCallback(() => {
     const Ctor = getSpeechRecognition();
@@ -257,6 +310,41 @@ export default function VoiceSearchClient() {
           <p role="status" className="mt-3 text-sm text-[#5b6b62]">{notice}</p>
         )}
       </section>
+
+      {/* Recent searches — only queries the user actually submitted.
+          Nothing renders when there is no history. Tapping a chip
+          re-runs that query. */}
+      {recentSearches.length > 0 && (
+        <section aria-label="Recent searches" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-bold text-[#102E26]">Recent searches</h2>
+            <button
+              type="button"
+              onClick={clearRecentSearches}
+              className="min-h-11 rounded-full px-3 py-1.5 text-sm font-semibold text-[#1FA36B] hover:bg-[#F1F2F4]"
+            >
+              Clear
+            </button>
+          </div>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {recentSearches.map((item) => (
+              <li key={item}>
+                <button
+                  type="button"
+                  dir="auto"
+                  onClick={() => {
+                    setQuery(item);
+                    void runSearch(item);
+                  }}
+                  className="min-h-11 rounded-full border border-[#E5E7EB] bg-[#F1F2F4] px-3.5 py-1.5 text-sm font-semibold text-[#102E26] hover:border-[#1FA36B]"
+                >
+                  {item}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {results !== null && results.length > 0 && (
         <section aria-labelledby="results-heading">
