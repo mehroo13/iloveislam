@@ -29,6 +29,7 @@ import { SCRIPT_LABELS } from '../lib/script';
 import { getAyahTopic, TOPIC_BY_ID } from '../topics';
 import { fillMushafFrame } from '../lib/kashida';
 import { normalizeArabic } from '../lib/alignment';
+import { tajweedClass } from './SharedSheets';
 
 /** Strong red for weak-word marking — the coach's wrong-word red. */
 const WEAK_WORD_RED = '#DC2626';
@@ -125,6 +126,9 @@ export interface MushafPageFrameProps {
   frequentMistakes: ReadonlySet<string>;
   /** The "Highlight mistake history" setting. */
   mistakeMarkingOn: boolean;
+  /** The "Show Tajweed colours" setting (display only — the heuristic
+   *  in SharedSheets.tajweedClass, never detection). Off by default. */
+  tajweedOn?: boolean;
   /** Called with the number of weak words on this page (drives the
    *  legend in the single-page view; the reader does not need it). */
   onWeakCount?: (n: number) => void;
@@ -140,6 +144,7 @@ export default function MushafPageFrame({
   revealed,
   frequentMistakes,
   mistakeMarkingOn,
+  tajweedOn = false,
   onWeakCount,
 }: MushafPageFrameProps) {
   const fontClass = script === 'uthmani' ? 'font-quran-madani' : 'font-quran';
@@ -178,7 +183,7 @@ export default function MushafPageFrame({
       cancelAnimationFrame(raf);
       observer?.disconnect();
     };
-  }, [page, verses, script, compactText, topicColors, hidden, revealed, frequentMistakes, mistakeMarkingOn]);
+  }, [page, verses, script, compactText, topicColors, hidden, revealed, frequentMistakes, mistakeMarkingOn, tajweedOn]);
 
   // Group words by mushaf line, in verse order. Do NOT re-sort by
   // `position`: positions restart at 1 for every verse, so sorting by
@@ -286,6 +291,8 @@ export default function MushafPageFrame({
         // weak words, which show as thicker RED rules, so the user sees
         // where their weak words are without the word being revealed.
         // A revealed (peeked) weak word keeps the red dotted underline.
+        // A revealed word otherwise takes its tajweed colour when the
+        // setting is on (display only — same heuristic as reading view).
         if (w.globalIdx >= revealed) {
           return w.weak ? (
             <span
@@ -310,6 +317,10 @@ export default function MushafPageFrame({
           <span key={`${w.verseKey}-${i}`} className="live-word-wrong">
             {w.text}{' '}
           </span>
+        ) : tajweedOn && tajweedClass(w.text) ? (
+          <span key={`${w.verseKey}-${i}`} className={tajweedClass(w.text)}>
+            {w.text}{' '}
+          </span>
         ) : (
           <span key={`${w.verseKey}-${i}`}>
             {w.text}{' '}
@@ -325,17 +336,21 @@ export default function MushafPageFrame({
       // plain string exactly as before, so kashida justification is
       // untouched (the filler measures across text nodes either way).
       // A weak word gets the red dotted underline (the coach's
-      // .live-word-wrong), never a topic tint, so the two markings
-      // cannot be confused even where a weak word sits on a wash.
+      // .live-word-wrong), never a topic tint and never a tajweed colour,
+      // so the markings cannot be confused even where a weak word sits
+      // on a wash. Tajweed colours split the same way when the setting
+      // is on.
       const nodes: React.ReactNode[] = [];
-      let runSegs: { text: string; weak: boolean }[] = [];
+      let runSegs: { text: string; weak: boolean; tj: string }[] = [];
       let runKey = '';
       const flush = () => {
         if (runSegs.length === 0) return;
         const [rs, ra] = runKey.split(':').map(Number);
         const topic = topicColors ? TOPIC_BY_ID[getAyahTopic(rs, ra)] : null;
         let content: React.ReactNode;
-        if (!runSegs.some((s) => s.weak)) {
+        const useSpans =
+          runSegs.some((s) => s.weak) || (tajweedOn && runSegs.some((s) => s.tj));
+        if (!useSpans) {
           content = runSegs.map((s) => s.text).join(' ');
         } else {
           const children: React.ReactNode[] = [];
@@ -344,6 +359,10 @@ export default function MushafPageFrame({
             children.push(
               s.weak ? (
                 <span key={`${runKey}-w${si}`} className="live-word-wrong">
+                  {s.text}
+                </span>
+              ) : s.tj ? (
+                <span key={`${runKey}-w${si}`} className={s.tj}>
                   {s.text}
                 </span>
               ) : (
@@ -391,7 +410,7 @@ export default function MushafPageFrame({
           );
         } else {
           if (runSegs.length === 0) runKey = w.verseKey;
-          runSegs.push({ text: w.text, weak: w.weak });
+          runSegs.push({ text: w.text, weak: w.weak, tj: w.weak ? '' : tajweedOn ? tajweedClass(w.text) : '' });
         }
       });
       flush();
@@ -430,11 +449,14 @@ export default function MushafPageFrame({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, verses, script, frequentMistakes, mistakeMarkingOn, onWeakCount]);
 
+  // Tarteel-clean page card: white page on a light-grey app background
+  // (the grey is set by the parent reader / page view). The ornate gold
+  // surah header inside is unchanged.
   return (
-    <div className="rounded-2xl border-2 border-[#FFB800] bg-[#FFFBF2] p-2 shadow-sm sm:p-4">
+    <div className="rounded-2xl border border-[#E5E7EB] bg-white p-2 shadow-sm sm:p-4">
       <div
         ref={frameRef}
-        className={`flex min-h-[62vh] flex-col rounded-xl border border-[#FFB800]/60 bg-[#FFFBF2] px-6 ${
+        className={`flex min-h-[62vh] flex-col rounded-xl bg-white px-6 ${
           shortPage ? 'justify-center py-14' : 'justify-start py-6'
         }`}
       >

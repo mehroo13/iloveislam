@@ -8,16 +8,21 @@
 // below). For the full continuous reader, use /hifz/mushaf.
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { getSurahById, type HifzSurah } from '../surahs';
+import { JUZ_FIRST_PAGE } from '../mushaf';
 import { type MushafVerse } from '../lib/fetch';
 import { SCRIPT_LABELS, useScriptPref } from '../lib/script';
 import { TOPICS } from '../topics';
-import { loadMistakes, loadProgress, saveProgress, markAttempt } from '../progress';
+import { loadMistakes, loadProgress, saveProgress, markAttempt, loadSettings, saveSettings } from '../progress';
+import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { normalizeArabic } from '../lib/alignment';
-import { MODE_EVENT, ayahKeyForRevealedWord, saveMode, type HifzMode } from '../lib/mode';
+import { MODE_EVENT, ayahKeyForRevealedWord, lastReadSlug, requestMode, saveMode, type HifzMode } from '../lib/mode';
 import MushafPageFrame, { MUSHAF_PAGE_WIDTH } from './MushafPageFrame';
+import { MushafTopBar, MushafBottomBar, ReaderSheet, PracticeModeList } from './MushafReader';
+import SurahList from './SurahList';
 import { useT } from '../lib/i18n';
 
 /** Missed this many times in total before a word counts as a weak word. */
@@ -38,7 +43,65 @@ export default function MushafPageView({
   hideInitial?: boolean;
 }) {
   const t = useT();
+  const router = useRouter();
   const [script, setScript] = useScriptPref();
+  // Tarteel-clean chrome: chapter sheet + reader settings sheet.
+  const [navOpen, setNavOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  // Tajweed colours (display only): the existing "Show Tajweed colours"
+  // setting, previously applied only on the surah reader — now also here.
+  const [tajweedOn, setTajweedOn] = useState(false);
+  const toggleTajweed = useCallback(() => {
+    setTajweedOn((prev) => {
+      const next = !prev;
+      try {
+        saveSettings({ ...loadSettings(), tajweedColors: next });
+      } catch {
+        /* storage unavailable — the toggle still applies this session */
+      }
+      return next;
+    });
+  }, []);
+  // Bookmark this page (shared list with the continuous reader and the
+  // bookmarks page).
+  const [pageBookmarked, setPageBookmarked] = useState(false);
+  useEffect(() => {
+    try {
+      setPageBookmarked(loadBookmarks().some((b) => b.kind === 'page' && b.page === page));
+    } catch {
+      setPageBookmarked(false);
+    }
+  }, [page]);
+  const togglePageBookmark = useCallback(() => {
+    try {
+      const list = loadBookmarks();
+      const exists = list.some((b) => b.kind === 'page' && b.page === page);
+      const next = exists
+        ? list.filter((b) => !(b.kind === 'page' && b.page === page))
+        : [...list, { kind: 'page' as const, page, addedAt: Date.now() }];
+      saveBookmarks(next);
+      setPageBookmarked(!exists);
+    } catch {
+      /* storage unavailable — the button just doesn't persist */
+    }
+  }, [page]);
+  // Practice-mode selection from the chapter sheet / mic button — the
+  // single-page replacement for the hidden global ModeSwitcher pill.
+  // Memorise / Reading are applied in place (listener below); anything
+  // else navigates exactly as the switcher did.
+  const selectPracticeMode = useCallback(
+    (m: HifzMode) => {
+      setNavOpen(false);
+      if (requestMode(m)) return;
+      if (m === 'test') {
+        router.push('/hifz/test');
+        return;
+      }
+      if (m === 'reading') return; // already reading, handled in place
+      router.push(`/hifz/${lastReadSlug()}?mode=${m}`);
+    },
+    [router],
+  );
   // Memorisation mode (§22, screenshot 4): words hidden as thin grey rules,
   // revealed word-by-word by peeking. ?memorize=1 opens the page hidden.
   const [hideVerses, setHideVerses] = useState(hideInitial);
@@ -257,9 +320,10 @@ export default function MushafPageView({
       if (q.get('memorize') === '1') setHideVerses(true);
       const raw = localStorage.getItem('ili_hifz_settings_v1');
       if (raw) {
-        const parsed = JSON.parse(raw) as { mushafLines?: number; topicColors?: boolean };
+        const parsed = JSON.parse(raw) as { mushafLines?: number; topicColors?: boolean; tajweedColors?: boolean };
         if (parsed.mushafLines === 16) setCompactText(true);
         if (parsed.topicColors === false) setTopicColors(false);
+        if (parsed.tajweedColors === true) setTajweedOn(true);
       }
     } catch {
       /* defaults */
@@ -268,6 +332,14 @@ export default function MushafPageView({
 
   const surahIds = [...new Set(verses.map((v) => Number(v.verse_key.split(':')[0])))];
   const surahs = surahIds.map(getSurahById).filter((s): s is HifzSurah => Boolean(s));
+  // Juz for the location pill (largest juz whose first page is <= this one).
+  const juzHere = (() => {
+    let j = 1;
+    for (let n = 1; n <= 30; n++) {
+      if (JUZ_FIRST_PAGE[n] <= page) j = n;
+    }
+    return j;
+  })();
 
   const peekedAyahsRef = useRef<Set<string>>(new Set());
   // Peek recording (Stage 4): a peek is help-needed for that ayah —
@@ -328,169 +400,193 @@ export default function MushafPageView({
 
   return (
     <div>
-      {/* Memorisation mode + view controls (screenshot 4) */}
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-2" role="group" aria-label={t('mpv.viewGroup')}>
-        <button
-          type="button"
-          onClick={() => {
-            setHideVerses((h) => !h);
-            setRevealedCount(0);
-            setPeekCount(0);
-          }}
-          aria-pressed={hideVerses}
-          className={`rounded-full min-h-11 px-4 py-2 text-sm font-semibold ${
-            hideVerses ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
-          }`}
-        >
-          {hideVerses ? t('mpv.showVerses') : t('mpv.hideVersesMemorise')}
-        </button>
-        {hideVerses && (
-          <>
-            <button
-              type="button"
-              onClick={peekNext}
-              aria-label={t('mpv.revealNextWord')}
-              className="rounded-full min-h-11 border border-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
-            >
-              {t('mpv.nextWord')}
-            </button>
-            <button
-              type="button"
-              onClick={peekRest}
-              aria-label={t('mpv.revealRestPage')}
-              className="rounded-full min-h-11 border border-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
-            >
-              {t('mpv.revealRest')}
-            </button>
-            <span className="text-xs font-semibold text-[#5b6b62]">
-              {peekCount === 1
-                ? t('mpv.peekOne').replace('{n}', String(peekCount)).replace('{r}', String(revealedCount))
-                : t('mpv.peekMany').replace('{n}', String(peekCount)).replace('{r}', String(revealedCount))}
-            </span>
-          </>
-        )}
+      {/* Tarteel-clean top bar (sticky): hamburger | centre location
+          pill | bookmark / search / settings. No gift icon (Premium
+          affordance). Hide, zoom, script, topic and tajweed controls
+          moved into the settings sheet; the chapter list into the
+          hamburger sheet. */}
+      <div className="sticky top-0 z-40 -mx-4 border-b border-[#E5E7EB] bg-white/95 px-2 backdrop-blur sm:px-3">
+        <div className="mx-auto max-w-5xl">
+          <MushafTopBar
+            title={surahs[0]?.name ?? 'Mushaf'}
+            subtitle={`Page ${page} | ${t('reader.juzLabel').replace('{n}', String(juzHere))}`}
+            bookmarked={pageBookmarked}
+            bookmarkAria={
+              pageBookmarked
+                ? t('reader.removeBookmarkAria').replace('{n}', String(page))
+                : t('reader.bookmarkAria').replace('{n}', String(page))
+            }
+            onToggleBookmark={togglePageBookmark}
+            onOpenNav={() => setNavOpen(true)}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
+        </div>
+      </div>
+
+      {/* Chapter / Juz sheet (hamburger + centre pill). */}
+      <ReaderSheet open={navOpen} onClose={() => setNavOpen(false)} side="left" title="Chapters & Juz">
+        <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">Practice mode</p>
+        <div className="mt-2">
+          <PracticeModeList onSelect={selectPracticeMode} />
+        </div>
         <Link
           href={`/hifz/mushaf?page=${page}`}
-          className="rounded-full min-h-11 inline-flex items-center border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
+          className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
         >
           {t('mpv.continuousReader')}
         </Link>
-        <button
-          type="button"
-          onClick={() => setCompactText((v) => !v)}
-          aria-pressed={compactText}
-          className={`rounded-full min-h-11 px-4 py-2 text-sm font-semibold ${
-            compactText ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
-          }`}
+        <div className="mt-5 border-t border-[#E5E7EB] pt-4">
+          <SurahList />
+        </div>
+      </ReaderSheet>
+
+      {/* Reader settings sheet (gear): zoom, script, text size, topic +
+          tajweed colours, hide words. */}
+      <ReaderSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} side="right" title={t('reader.readerSettings')}>
+        <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">{t('reader.readerZoom')}</p>
+        <div className="mt-2 flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white p-0.5" role="group" aria-label={t('mpv.zoomGroup')}>
+          <button
+            type="button"
+            onClick={() => applyZoom(zoom - ZOOM_STEP)}
+            disabled={zoom <= MIN_ZOOM}
+            aria-label={t('mpv.zoomOut')}
+            className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full text-lg font-bold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
+          >
+            −
+          </button>
+          <span className="w-12 text-center text-sm font-semibold text-[#102E26]" aria-live="polite">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            type="button"
+            onClick={() => applyZoom(zoom + ZOOM_STEP)}
+            disabled={zoom >= MAX_ZOOM}
+            aria-label={t('mpv.zoomIn')}
+            className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full text-lg font-bold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={() => applyZoom(MIN_ZOOM)}
+            disabled={zoom === MIN_ZOOM}
+            className="min-h-10 flex-1 rounded-full px-3 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
+          >
+            {t('mpv.fitPage')}
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-[#5b6b62]">{t('mpv.zoomNote')}</p>
+        <p className="mt-5 text-xs font-bold uppercase tracking-wide text-[#5b6b62]">{t('mpv.script')}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2" role="group" aria-label={t('mpv.script')}>
+          {(['indopak', 'uthmani'] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setScript(s)}
+              aria-pressed={script === s}
+              className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${
+                script === s ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
+              }`}
+            >
+              {SCRIPT_LABELS[s]}
+            </button>
+          ))}
+        </div>
+        {script === 'indopak' && <p className="mt-2 text-xs text-[#5b6b62]">{t('mpv.indopakNote')}</p>}
+        <div className="mt-4 space-y-2">
+          <button
+            type="button"
+            onClick={() => setCompactText((v) => !v)}
+            aria-pressed={compactText}
+            className={`min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold ${
+              compactText ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
+            }`}
+          >
+            {compactText ? t('mpv.compactText') : t('mpv.largeText')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setTopicColors((v) => !v)}
+            aria-pressed={topicColors}
+            className={`min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold ${
+              topicColors ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
+            }`}
+          >
+            {topicColors ? t('reader.topicOn') : t('reader.topicOff')}
+          </button>
+          <button
+            type="button"
+            onClick={toggleTajweed}
+            aria-pressed={tajweedOn}
+            className={`min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold ${
+              tajweedOn ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
+            }`}
+          >
+            {t('set.tajweedColors')}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setHideVerses((h) => !h);
+              setRevealedCount(0);
+              setPeekCount(0);
+            }}
+            aria-pressed={hideVerses}
+            className={`min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold ${
+              hideVerses ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
+            }`}
+          >
+            {hideVerses ? t('mpv.showVerses') : t('mpv.hideVersesMemorise')}
+          </button>
+        </div>
+        {topicColors && (
+          <div className="mt-4 rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">{t('mpv.topicsTitle')}</p>
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {TOPICS.map((tp) => (
+                <li
+                  key={tp.id}
+                  className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold"
+                  style={{ borderColor: tp.color, color: tp.color, background: tp.wash }}
+                  title={tp.description}
+                >
+                  <span className="h-2 w-2 rounded-full" style={{ background: tp.color }} aria-hidden="true" />
+                  {tp.name}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-[#5b6b62]">{t('mpv.topicsNote')}</p>
+          </div>
+        )}
+        {tajweedOn && (
+          <p className="mt-3 text-xs text-[#5b6b62]">
+            Tajweed colours show where a rule applies in the text. They do not check your recitation — this app checks words only, never tajweed. A teacher is still needed for tajweed.
+          </p>
+        )}
+        {mistakeMarkingOn && weakOnPage > 0 && (
+          <p className="mt-3 text-xs text-[#5b6b62]">
+            <span className="live-word-wrong font-semibold">{t('mpv.weakLabel')}</span>{' '}
+            {weakOnPage === 1
+              ? t('mpv.weakOne').replace('{n}', String(weakOnPage))
+              : t('mpv.weakMany').replace('{n}', String(weakOnPage))}
+          </p>
+        )}
+        <Link
+          href="/hifz/settings"
+          className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
         >
-          {compactText ? t('mpv.compactText') : t('mpv.largeText')}
-        </button>
-      </div>
+          All settings →
+        </Link>
+      </ReaderSheet>
+
       {hideVerses && (
-        <p className="mt-2 text-center text-sm text-[#5b6b62]">
+        <p className="mt-3 text-center text-sm text-[#5b6b62]">
           {t('mpv.hideNote')}
           {mistakeMarkingOn && weakOnPage > 0 ? ` ${t('mpv.hideNoteRed')}` : ''}
         </p>
       )}
 
-      {/* Script picker — same preference as the reader */}
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-2" role="group" aria-label={t('mpv.script')}>
-        <span className="text-sm font-semibold text-[#102E26]">{t('mpv.script')}</span>
-        {(['indopak', 'uthmani'] as const).map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => setScript(s)}
-            aria-pressed={script === s}
-            className={`rounded-full min-h-11 px-4 py-2 text-sm font-semibold ${
-              script === s
-                ? 'bg-[#102E26] text-white'
-                : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
-            }`}
-          >
-            {SCRIPT_LABELS[s]}
-          </button>
-        ))}
-      </div>
-      {script === 'indopak' && (
-        <p className="mt-2 text-center text-xs text-[#5b6b62]">
-          {t('mpv.indopakNote')}
-        </p>
-      )}
-
-      {/* Topic legend (§23) — what each ayah colour means. */}
-      {topicColors && (
-        <div className="mx-auto mt-4 max-w-3xl rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
-            {t('mpv.topicsTitle')}
-          </p>
-          <ul className="mt-2 flex flex-wrap gap-2">
-            {TOPICS.map((t) => (
-              <li
-                key={t.id}
-                className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold"
-                style={{ borderColor: t.color, color: t.color, background: t.wash }}
-                title={t.description}
-              >
-                <span className="h-2 w-2 rounded-full" style={{ background: t.color }} aria-hidden="true" />
-                {t.name}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-2 text-xs text-[#5b6b62]">
-            {t('mpv.topicsNote')}
-          </p>
-        </div>
-      )}
-
-      {/* Mistake-history legend — only when this page has weak words.
-          No mistakes yet (or marking off): no marking, no legend. */}
-      {mistakeMarkingOn && weakOnPage > 0 && (
-        <p className="mx-auto mt-3 max-w-3xl text-center text-xs text-[#5b6b62]">
-          <span className="live-word-wrong font-semibold">{t('mpv.weakLabel')}</span>{' '}
-          {weakOnPage === 1
-            ? t('mpv.weakOne').replace('{n}', String(weakOnPage))
-            : t('mpv.weakMany').replace('{n}', String(weakOnPage))}
-        </p>
-      )}
-
-      {/* Zoom controls — one-hand friendly, above the page. */}
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-2" role="group" aria-label={t('mpv.zoomGroup')}>
-        <button
-          type="button"
-          onClick={() => applyZoom(zoom - ZOOM_STEP)}
-          disabled={zoom <= MIN_ZOOM}
-          aria-label={t('mpv.zoomOut')}
-          className="rounded-full min-h-11 border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
-        >
-          −
-        </button>
-        <span className="w-12 text-center text-sm font-semibold text-[#102E26]" aria-live="polite">
-          {Math.round(zoom * 100)}%
-        </span>
-        <button
-          type="button"
-          onClick={() => applyZoom(zoom + ZOOM_STEP)}
-          disabled={zoom >= MAX_ZOOM}
-          aria-label={t('mpv.zoomIn')}
-          className="rounded-full min-h-11 border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
-        >
-          +
-        </button>
-        <button
-          type="button"
-          onClick={() => applyZoom(MIN_ZOOM)}
-          disabled={zoom === MIN_ZOOM}
-          className="rounded-full min-h-11 border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
-        >
-          {t('mpv.fitPage')}
-        </button>
-      </div>
-      <p className="mt-2 text-center text-xs text-[#5b6b62]">
-        {t('mpv.zoomNote')}
-      </p>
-
-      <div className="mt-4">
+      <div className="mt-4 rounded-2xl bg-[#F2F2F2] p-2 sm:p-4">
         {/* Scaled-page viewport: the frame inside is always
             MUSHAF_PAGE_WIDTH wide and is scaled with CSS `zoom` to fit
             (see the scaled-page note above). The viewport's height is the
@@ -526,6 +622,7 @@ export default function MushafPageView({
               revealed={revealedCount}
               frequentMistakes={frequentMistakes}
               mistakeMarkingOn={mistakeMarkingOn}
+              tajweedOn={tajweedOn}
               onWeakCount={setWeakOnPage}
             />
           </div>
@@ -556,6 +653,48 @@ export default function MushafPageView({
           </p>
         </nav>
       )}
+
+      {/* Peek controls while words are hidden — floating above the
+          bottom bar so they are always in reach. */}
+      {hideVerses && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-[152px] z-40">
+          <div className="mx-auto flex w-fit max-w-[calc(100vw-1.5rem)] flex-wrap items-center justify-center gap-2 px-3">
+            <button
+              type="button"
+              onClick={peekNext}
+              aria-label={t('mpv.revealNextWord')}
+              className="pointer-events-auto min-h-11 rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#102E26] shadow-md ring-1 ring-[#FFB800] hover:bg-[#FFFBF2]"
+            >
+              {t('mpv.nextWord')}
+            </button>
+            <button
+              type="button"
+              onClick={peekRest}
+              aria-label={t('mpv.revealRestPage')}
+              className="pointer-events-auto min-h-11 rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#102E26] shadow-md ring-1 ring-[#FFB800] hover:bg-[#FFFBF2]"
+            >
+              {t('mpv.revealRest')}
+            </button>
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#5b6b62] shadow-md ring-1 ring-[#E5E7EB]">
+              {peekCount === 1
+                ? t('mpv.peekOne').replace('{n}', String(peekCount)).replace('{r}', String(revealedCount))
+                : t('mpv.peekMany').replace('{n}', String(peekCount)).replace('{r}', String(revealedCount))}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom bar: Mistakes / bookmarks / hide + the big mic orb. */}
+      <MushafBottomBar
+        hideActive={hideVerses}
+        onToggleHide={() => {
+          setHideVerses((h) => !h);
+          setRevealedCount(0);
+          setPeekCount(0);
+        }}
+        onMic={() => selectPracticeMode('recite')}
+      />
+      <div className="h-32" aria-hidden="true" />
     </div>
   );
 }

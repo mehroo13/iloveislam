@@ -62,6 +62,12 @@ export default function ModeSwitcher() {
   const t = useT();
   const router = useRouter();
   const pathname = usePathname() ?? '';
+  // Hidden on the Mushaf reader routes (/hifz/mushaf, /hifz/mushaf/[page]):
+  // the reader has its own mode entry — the big mic button starts Recite
+  // and the chapter sheet lists all five modes — so the floating pill
+  // would collide with the mic button. Every mode stays reachable from
+  // the reader through that sheet; see MushafReader / MushafPageView.
+  const onMushafRoute = pathname === '/hifz/mushaf' || pathname.startsWith('/hifz/mushaf/');
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<HifzMode>('reading');
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -120,6 +126,8 @@ export default function ModeSwitcher() {
     },
     [pathname, router],
   );
+
+  if (onMushafRoute) return null;
 
   return (
     <div ref={panelRef} className="fixed bottom-[76px] right-3 z-[65] sm:right-5">

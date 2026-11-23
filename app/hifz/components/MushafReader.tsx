@@ -50,10 +50,11 @@ import { ALL_SURAHS, getSurahById } from '../surahs';
 import { SCRIPT_LABELS, useScriptPref, type QuranScript } from '../lib/script';
 import { useT } from '../lib/i18n';
 import { TOPICS } from '../topics';
-import { loadMistakes, loadProgress, saveProgress, markAttempt } from '../progress';
+import { loadMistakes, loadProgress, saveProgress, markAttempt, loadSettings, saveSettings } from '../progress';
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { normalizeArabic } from '../lib/alignment';
-import { MODE_EVENT, ayahKeyForRevealedWord, saveMode, type HifzMode } from '../lib/mode';
+import { MODE_EVENT, ayahKeyForRevealedWord, lastReadSlug, loadMode, requestMode, saveMode, type HifzMode } from '../lib/mode';
+import SurahList from './SurahList';
 import type { MushafVerse } from '../lib/fetch';
 
 const PAGE_QUERY =
@@ -121,6 +122,317 @@ function readSavedPos(): SavedPos | null {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Reader chrome (Tarteel-clean) — shared with MushafPageView.       */
+/*  Top bar: hamburger | centre location pill | bookmark / search /   */
+/*  settings. Bottom bar: Mistakes pill, bookmarks, hide toggle and   */
+/*  the big green mic orb. No gift icon (that was a Premium afford-   */
+/*  ance) and no Tarteel logo, name, artwork or exact text.           */
+/* ------------------------------------------------------------------ */
+
+function IconMenu({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className={className} aria-hidden="true">
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  );
+}
+function IconBookmark({ className, filled }: { className?: string; filled?: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d="M6 3h12v18l-6-4.5L6 21V3z" />
+    </svg>
+  );
+}
+function IconSearch({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className={className} aria-hidden="true">
+      <circle cx="11" cy="11" r="7" />
+      <path d="M20 20l-3.5-3.5" />
+    </svg>
+  );
+}
+function IconGear({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="3.2" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.89a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87c.26.6.85 1 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z" />
+    </svg>
+  );
+}
+function IconBook({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14z" />
+      <path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5" />
+    </svg>
+  );
+}
+function IconEyeOff({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d="M17.94 17.94A10.6 10.6 0 0 1 12 19c-7 0-10-7-10-7a17.6 17.6 0 0 1 4.06-4.94M9.9 4.24A9.5 9.5 0 0 1 12 4c7 0 10 7 10 7a17.7 17.7 0 0 1-2.16 3.19M14.12 14.12A3 3 0 1 1 9.88 9.88" />
+      <path d="M2 2l20 20" />
+    </svg>
+  );
+}
+function IconMic({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-6a3.5 3.5 0 1 0-7 0v6A3.5 3.5 0 0 0 12 15z" />
+      <path d="M19 11.5a7 7 0 0 1-14 0H3.5a8.5 8.5 0 0 0 7.3 8.4V22h2.4v-2.1a8.5 8.5 0 0 0 7.3-8.4H19z" />
+    </svg>
+  );
+}
+function IconClose({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className={className} aria-hidden="true">
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
+}
+
+export function MushafTopBar({
+  title,
+  subtitle,
+  bookmarked,
+  bookmarkAria,
+  onToggleBookmark,
+  onOpenNav,
+  onOpenSettings,
+}: {
+  /** Surah name on the current page (or "Mushaf"). */
+  title: string;
+  /** "Page N | Juz N" — Hizb is omitted: no hizb dataset exists in the
+   *  repo, and the number must not be invented. */
+  subtitle: string;
+  bookmarked: boolean;
+  bookmarkAria: string;
+  onToggleBookmark: () => void;
+  onOpenNav: () => void;
+  onOpenSettings: () => void;
+}) {
+  const t = useT();
+  return (
+    <div className="flex items-center gap-1.5 px-2 py-2 sm:gap-2 sm:px-3">
+      <button
+        type="button"
+        onClick={onOpenNav}
+        aria-label="Open chapter list"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[#102E26] hover:bg-[#F3F4F6]"
+      >
+        <IconMenu className="h-6 w-6" />
+      </button>
+      <button
+        type="button"
+        onClick={onOpenNav}
+        aria-label="Open chapter list"
+        className="min-w-0 flex-1 rounded-xl bg-[#F3F4F6] px-3 py-1.5 text-center hover:bg-[#EDEEF0]"
+      >
+        <span className="block truncate text-sm font-bold leading-tight text-[#102E26]">{title}</span>
+        <span className="block truncate text-xs leading-tight text-[#5b6b62]">{subtitle}</span>
+      </button>
+      <button
+        type="button"
+        onClick={onToggleBookmark}
+        aria-pressed={bookmarked}
+        aria-label={bookmarkAria}
+        className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-full hover:bg-[#F3F4F6] ${
+          bookmarked ? 'text-[#FFB800]' : 'text-[#102E26]'
+        }`}
+      >
+        <IconBookmark className="h-6 w-6" filled={bookmarked} />
+      </button>
+      <Link
+        href="/hifz/search"
+        aria-label="Search"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[#102E26] hover:bg-[#F3F4F6]"
+      >
+        <IconSearch className="h-6 w-6" />
+      </Link>
+      <button
+        type="button"
+        onClick={onOpenSettings}
+        aria-label={t('reader.readerSettings')}
+        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[#102E26] hover:bg-[#F3F4F6]"
+      >
+        <IconGear className="h-6 w-6" />
+      </button>
+    </div>
+  );
+}
+
+export function MushafBottomBar({
+  hideActive,
+  onToggleHide,
+  onMic,
+}: {
+  hideActive: boolean;
+  onToggleHide: () => void;
+  /** Starts Recite mode (mic tap = Recite, as in the reference). */
+  onMic: () => void;
+}) {
+  const t = useT();
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-[76px] z-40">
+      <div className="mx-auto flex max-w-5xl items-end justify-between gap-2 px-3 sm:px-4">
+        <div className="pointer-events-auto flex items-center gap-2">
+          <Link
+            href="/hifz/my-progress"
+            className="inline-flex min-h-11 items-center rounded-full bg-white px-4 py-2 text-sm font-bold text-[#102E26] shadow-md ring-1 ring-[#E5E7EB] hover:bg-[#FFFBF2]"
+          >
+            Mistakes
+          </Link>
+          <Link
+            href="/hifz/bookmarks"
+            aria-label="Bookmarks"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-white text-[#102E26] shadow-md ring-1 ring-[#E5E7EB] hover:bg-[#FFFBF2]"
+          >
+            <IconBook className="h-5 w-5" />
+          </Link>
+          <button
+            type="button"
+            onClick={onToggleHide}
+            aria-pressed={hideActive}
+            aria-label={hideActive ? t('reader.showVerses') : t('reader.hideWords')}
+            className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-full shadow-md ring-1 ring-[#E5E7EB] hover:bg-[#FFFBF2] ${
+              hideActive ? 'bg-[#102E26] text-white' : 'bg-white text-[#102E26]'
+            }`}
+          >
+            <IconEyeOff className="h-5 w-5" />
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={onMic}
+          aria-label="Recite with the coach"
+          className="pointer-events-auto inline-flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#4ADE80,#1FA36B_55%,#06B6D4)] text-white shadow-[0_10px_28px_rgba(31,163,107,0.55)] ring-4 ring-white/70 transition-transform hover:scale-105 active:scale-95"
+        >
+          <IconMic className="h-8 w-8" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Slide-over sheet (left = chapter list, right = reader settings). */
+export function ReaderSheet({
+  open,
+  onClose,
+  side,
+  title,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  side: 'left' | 'right';
+  title: string;
+  children: React.ReactNode;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-[70]" role="dialog" aria-label={title} aria-modal="true">
+      <button
+        type="button"
+        aria-label="Close"
+        onClick={onClose}
+        className="absolute inset-0 h-full w-full cursor-default bg-black/40"
+      />
+      <div
+        className={`absolute inset-y-0 flex w-full max-w-sm flex-col bg-white shadow-xl ${
+          side === 'left' ? 'left-0' : 'right-0'
+        }`}
+      >
+        <div className="flex items-center justify-between gap-2 border-b border-[#E5E7EB] px-4 py-3">
+          <h2 className="min-w-0 truncate text-base font-bold text-[#102E26]">{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[#102E26] hover:bg-[#F3F4F6]"
+          >
+            <IconClose className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+const PRACTICE_MODES: HifzMode[] = ['reading', 'recite', 'listen', 'memorise', 'test'];
+const MODE_LABEL_KEYS: Record<HifzMode, string> = {
+  reading: 'mode.reading',
+  recite: 'mode.recite',
+  listen: 'mode.listen',
+  memorise: 'mode.memorise',
+  test: 'mode.test',
+};
+const MODE_DESC_KEYS: Record<HifzMode, string> = {
+  reading: 'mode.descReading',
+  recite: 'mode.descRecite',
+  listen: 'mode.descListen',
+  memorise: 'mode.descMemorise',
+  test: 'mode.descTest',
+};
+const MODE_ICONS: Record<HifzMode, string> = {
+  reading: '▤',
+  recite: '🎙',
+  listen: '♪',
+  memorise: '◐',
+  test: '✎',
+};
+
+/** All five practice modes as a list — the reader's replacement for the
+ *  hidden global ModeSwitcher pill (see ModeSwitcher.tsx). The caller
+ *  applies the mode in place when it can, else navigates. */
+export function PracticeModeList({ onSelect }: { onSelect: (m: HifzMode) => void }) {
+  const t = useT();
+  const [current, setCurrent] = useState<HifzMode>('reading');
+  useEffect(() => {
+    setCurrent(loadMode());
+    const onMode = (e: Event) => {
+      const m = (e as CustomEvent<{ mode: HifzMode }>).detail?.mode;
+      if (m) setCurrent(m);
+    };
+    window.addEventListener(MODE_EVENT, onMode);
+    return () => window.removeEventListener(MODE_EVENT, onMode);
+  }, []);
+  return (
+    <ul className="space-y-1">
+      {PRACTICE_MODES.map((m) => (
+        <li key={m}>
+          <button
+            type="button"
+            onClick={() => onSelect(m)}
+            aria-current={current === m}
+            className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-[#FFFBF2] ${
+              current === m ? 'bg-[#E4FFF2]' : ''
+            }`}
+          >
+            <span aria-hidden="true" className="mt-0.5 text-lg leading-none">
+              {MODE_ICONS[m]}
+            </span>
+            <span className="min-w-0">
+              <span className="flex items-center gap-2 text-sm font-bold text-[#102E26]">
+                {t(MODE_LABEL_KEYS[m])}
+                {current === m && (
+                  <span className="rounded-full bg-[#1FA36B] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    {t('mode.current')}
+                  </span>
+                )}
+              </span>
+              <span className="mt-0.5 block text-xs leading-snug text-[#5b6b62]">
+                {t(MODE_DESC_KEYS[m])}
+              </span>
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  One slot in the list: a mounted frame, or a sized placeholder.     */
 /* ------------------------------------------------------------------ */
 
@@ -136,6 +448,7 @@ const ReaderSlot = memo(function ReaderSlot({
   revealed,
   frequentMistakes,
   mistakeMarkingOn,
+  tajweedOn,
   registerSlot,
   onRetry,
 }: {
@@ -151,6 +464,7 @@ const ReaderSlot = memo(function ReaderSlot({
   revealed: number;
   frequentMistakes: ReadonlySet<string>;
   mistakeMarkingOn: boolean;
+  tajweedOn: boolean;
   registerSlot: (n: number, el: HTMLDivElement | null) => void;
   onRetry: (n: number) => void;
 }) {
@@ -179,6 +493,7 @@ const ReaderSlot = memo(function ReaderSlot({
             revealed={revealed}
             frequentMistakes={frequentMistakes}
             mistakeMarkingOn={mistakeMarkingOn}
+            tajweedOn={tajweedOn}
           />
         ) : failed ? (
           <div className="rounded-2xl border-2 border-[#FFB800] bg-[#FFFBF2] p-6 text-center shadow-sm">
@@ -199,7 +514,7 @@ const ReaderSlot = memo(function ReaderSlot({
           // on the column scales it visually).
           <div
             style={{ height: height ?? EST_PAGE_HEIGHT }}
-            className="rounded-2xl border-2 border-[#FFB800]/40 bg-[#FFFBF2] p-6"
+            className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm"
             aria-label={t('reader.loadingAria').replace('{page}', String(page))}
           >
             <div className="mx-auto h-4 w-32 animate-pulse rounded bg-[#E5E7EB]" />
@@ -255,8 +570,8 @@ export default function MushafReader() {
   const [failed, setFailed] = useState<Set<number>>(() => new Set());
   const [heights, setHeights] = useState<Map<number, number>>(() => new Map());
   const [fitScale, setFitScale] = useState(1);
-  const [toolbarH, setToolbarH] = useState(96);
-  const [jumpOpen, setJumpOpen] = useState(false);
+  const [toolbarH, setToolbarH] = useState(60);
+  const [navOpen, setNavOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Reader view state (same preferences as the single-page view).
@@ -348,6 +663,20 @@ export default function MushafReader() {
   }, []);
   const [frequentMistakes, setFrequentMistakes] = useState<ReadonlySet<string>>(() => new Set());
   const [mistakeMarkingOn, setMistakeMarkingOn] = useState(true);
+  // Tajweed colours (display only): the existing "Show Tajweed colours"
+  // setting, previously applied only on the surah reader — now also here.
+  const [tajweedOn, setTajweedOn] = useState(false);
+  const toggleTajweed = useCallback(() => {
+    setTajweedOn((prev) => {
+      const next = !prev;
+      try {
+        saveSettings({ ...loadSettings(), tajweedColors: next });
+      } catch {
+        /* storage unavailable — the toggle still applies this session */
+      }
+      return next;
+    });
+  }, []);
 
   // Jump panel state.
   const [jumpPage, setJumpPage] = useState('');
@@ -370,7 +699,7 @@ export default function MushafReader() {
   const zoomRef = useRef(1);
   const currentPageRef = useRef(1);
   const modeRef = useRef<Mode>('continuous');
-  const toolbarHRef = useRef(96);
+  const toolbarHRef = useRef(60);
   const pendingScrollRef = useRef<{ page: number; frac: number } | null>(null);
   // True from mount until the restore scroll has landed and the layout
   // has settled — while true, scroll events must not save/sync, or a
@@ -439,10 +768,12 @@ export default function MushafReader() {
           mushafLines?: number;
           topicColors?: boolean;
           highlightMistakes?: boolean;
+          tajweedColors?: boolean;
         };
         if (parsed.mushafLines === 16) setCompactText(true);
         if (parsed.topicColors === false) setTopicColors(false);
         if (parsed.highlightMistakes === false) setMistakeMarkingOn(false);
+        if (parsed.tajweedColors === true) setTajweedOn(true);
       }
     } catch {
       /* defaults */
@@ -514,7 +845,7 @@ export default function MushafReader() {
     const observer = new ResizeObserver(update);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [mounted, jumpOpen, settingsOpen]);
+  }, [mounted, navOpen, settingsOpen]);
 
   useEffect(() => {
     scaleRef.current = scale;
@@ -819,7 +1150,7 @@ export default function MushafReader() {
       currentPageRef.current = page;
       setCurrentPage(page);
       pendingScrollRef.current = { page, frac };
-      setJumpOpen(false);
+      setNavOpen(false);
       scheduleSave();
       syncUrl(push);
     },
@@ -957,6 +1288,24 @@ export default function MushafReader() {
     [jumpToPage, scheduleSave],
   );
 
+  // Practice-mode selection from the chapter sheet / mic button — the
+  // reader's replacement for the hidden global ModeSwitcher pill. Ask
+  // the mounted page to apply it in place first (Memorise / Reading
+  // are handled above); otherwise navigate exactly as the switcher did.
+  const selectPracticeMode = useCallback(
+    (m: HifzMode) => {
+      setNavOpen(false);
+      if (requestMode(m)) return;
+      if (m === 'test') {
+        router.push('/hifz/test');
+        return;
+      }
+      if (m === 'reading') return; // already reading, handled in place
+      router.push(`/hifz/${lastReadSlug()}?mode=${m}`);
+    },
+    [router],
+  );
+
   // Page mode: arrow keys turn pages; scroll to the top of the page.
   useEffect(() => {
     if (!mounted || mode !== 'page') return;
@@ -1021,410 +1370,371 @@ export default function MushafReader() {
   const revealedFor = (n: number) => (hideVerses ? revealedMap[n] ?? 0 : 0);
 
   return (
-    <div data-mushaf-reader>
+    <div data-mushaf-reader className="min-h-screen bg-[#F2F2F2]">
       <h1 className="sr-only">{t('reader.title')}</h1>
 
-      {/* Fixed toolbar: indicator, mode, zoom, jump, memorise. */}
-      <div ref={toolbarRef} className="fixed inset-x-0 top-0 z-40 border-b border-[#E5E7EB] bg-[#FFFBF2]/95 backdrop-blur">
-        <div className="mx-auto max-w-5xl px-3 pb-2 pt-2 sm:px-4">
-          {/* Row 1: prev / indicator / next */}
-          <div className="flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => jumpToPage(currentPage - 1, 0, true)}
-              disabled={currentPage <= 1}
-              aria-label={t('reader.prevPage')}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-[#E5E7EB] bg-white px-3 text-sm font-semibold text-[#102E26] hover:bg-[#FFF6D6] disabled:opacity-40"
-            >
-              ← <span className="ml-1 hidden sm:inline">{t('reader.prev')}</span>
-            </button>
-            <div className="min-w-0 flex-1 text-center">
-              <p className="truncate text-sm font-bold text-[#102E26]" aria-live="polite">
-                {t('reader.pageOf').replace('{page}', String(currentPage)).replace('{total}', String(MUSHAF_TOTAL_PAGES))}
-              </p>
-              <p className="truncate text-xs text-[#5b6b62]">
-                {surahsHere.map((s) => t('reader.surahOnPage').replace('{name}', s.name)).join(' · ') || '—'} · {t('reader.juzLabel').replace('{n}', String(juzHere))}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => jumpToPage(currentPage + 1, 0, true)}
-              disabled={currentPage >= MUSHAF_TOTAL_PAGES}
-              aria-label={t('reader.nextPage')}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-[#E5E7EB] bg-white px-3 text-sm font-semibold text-[#102E26] hover:bg-[#FFF6D6] disabled:opacity-40"
-            >
-              <span className="mr-1 hidden sm:inline">{t('reader.next')}</span> →
-            </button>
-          </div>
-          {/* Progress */}
-          <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-[#E5E7EB]" aria-hidden="true">
-            <div className="h-full rounded-full bg-[#1FA36B]" style={{ width: `${(currentPage / MUSHAF_TOTAL_PAGES) * 100}%` }} />
-          </div>
-          {/* Row 2: mode, zoom, jump, hide, settings */}
-          <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-            <div className="flex rounded-full border border-[#E5E7EB] bg-white p-0.5" role="group" aria-label={t('reader.readingMode')}>
-              {(['continuous', 'page'] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => switchMode(m)}
-                  aria-pressed={mode === m}
-                  className={`min-h-10 rounded-full px-3 py-1.5 text-sm font-semibold ${
-                    mode === m ? 'bg-[#102E26] text-white' : 'text-[#102E26] hover:bg-[#FFFBF2]'
-                  }`}
-                >
-                  {m === 'continuous' ? t('reader.continuous') : t('reader.pageMode')}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white p-0.5" role="group" aria-label={t('reader.readerZoom')}>
-              <button
-                type="button"
-                onClick={() => applyZoom(zoom - ZOOM_STEP)}
-                disabled={zoom <= MIN_ZOOM}
-                aria-label={t('reader.zoomOut')}
-                className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full text-lg font-bold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
-              >
-                −
-              </button>
-              <span className="w-12 text-center text-sm font-semibold text-[#102E26]" aria-live="polite">
-                {Math.round(zoom * 100)}%
-              </span>
-              <button
-                type="button"
-                onClick={() => applyZoom(zoom + ZOOM_STEP)}
-                disabled={zoom >= MAX_ZOOM}
-                aria-label={t('reader.zoomIn')}
-                className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full text-lg font-bold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
-              >
-                +
-              </button>
-              <button
-                type="button"
-                onClick={() => applyZoom(MIN_ZOOM)}
-                disabled={zoom === MIN_ZOOM}
-                className="min-h-10 rounded-full px-3 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
-              >
-                {t('reader.resetZoom')}
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setJumpOpen((v) => !v);
-                setSettingsOpen(false);
-              }}
-              aria-pressed={jumpOpen}
-              aria-expanded={jumpOpen}
-              className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${
-                jumpOpen ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
-              }`}
-            >
-              {t('reader.jumpTo')}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setHideVerses((h) => !h);
-                setRevealedMap({});
-                setPeekCount(0);
-              }}
-              aria-pressed={hideVerses}
-              className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${
-                hideVerses ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
-              }`}
-            >
-              {hideVerses ? t('reader.showVerses') : t('reader.hideWords')}
-            </button>
-            <button
-              type="button"
-              onClick={togglePageBookmark}
-              aria-pressed={pageBookmarked}
-              aria-label={pageBookmarked ? t('reader.removeBookmarkAria').replace('{n}', String(currentPage)) : t('reader.bookmarkAria').replace('{n}', String(currentPage))}
-              className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${
-                pageBookmarked ? 'border-[#FFB800] bg-[#FFB800]/15 text-[#7A5C00]' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
-              }`}
-            >
-              {pageBookmarked ? t('reader.pageSaved') : t('reader.bookmarkPage')}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSettingsOpen((v) => !v);
-                setJumpOpen(false);
-              }}
-              aria-pressed={settingsOpen}
-              aria-expanded={settingsOpen}
-              aria-label={t('reader.readerSettings')}
-              className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-3 text-sm font-semibold ${
-                settingsOpen ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
-              }`}
-            >
-              ⚙
-            </button>
-          </div>
-          {hideVerses && (
-            <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  recordPeekForPage(pages.get(currentPage), revealedMap[currentPage] ?? 0);
-                  setRevealedMap((m) => ({ ...m, [currentPage]: (m[currentPage] ?? 0) + 1 }));
-                  setPeekCount((c) => c + 1);
-                }}
-                className="min-h-11 rounded-full border border-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
-              >
-                {t('reader.nextWord')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  recordPeekRestForPage(pages.get(currentPage));
-                  setRevealedMap((m) => ({ ...m, [currentPage]: 100000 }));
-                  setPeekCount((c) => c + 1);
-                }}
-                className="min-h-11 rounded-full border border-[#FFB800] px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
-              >
-                {t('reader.revealRest')}
-              </button>
-              <span className="text-xs font-semibold text-[#5b6b62]">
-                {peekCount === 1
-                  ? t('reader.peekOne').replace('{n}', String(peekCount)).replace('{page}', String(currentPage))
-                  : t('reader.peekMany').replace('{n}', String(peekCount)).replace('{page}', String(currentPage))}
-              </span>
-            </div>
-          )}
-
-          {/* Jump panel */}
-          {jumpOpen && (
-            <div className="mt-2 rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    doJumpPage();
-                  }}
-                  className="flex items-end gap-2"
-                >
-                  <div className="flex-1">
-                    <label htmlFor="reader-jump-page" className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
-                      {t('reader.pageLabel')}
-                    </label>
-                    <input
-                      id="reader-jump-page"
-                      type="number"
-                      min={1}
-                      max={604}
-                      value={jumpPage}
-                      onChange={(e) => setJumpPage(e.target.value)}
-                      placeholder={t('reader.pagePlaceholder')}
-                      className="mt-1 w-full min-h-11 rounded-full border border-[#E5E7EB] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
-                    />
-                  </div>
-                  <button type="submit" className="min-h-11 rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white">
-                    {t('reader.go')}
-                  </button>
-                </form>
-                <div>
-                  <label htmlFor="reader-jump-surah" className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
-                    {t('reader.surahLabel')}
-                  </label>
-                  <select
-                    id="reader-jump-surah"
-                    value={jumpSurah}
-                    onChange={(e) => {
-                      const id = Number(e.target.value);
-                      setJumpSurah(e.target.value);
-                      if (id >= 1 && id <= 114) jumpToPage(SURAH_FIRST_PAGE[id]);
-                    }}
-                    className="mt-1 w-full min-h-11 rounded-full border border-[#E5E7EB] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
-                  >
-                    <option value="">{t('reader.chooseSurah')}</option>
-                    {ALL_SURAHS.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.id}. {s.name} ({s.meaning})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="reader-jump-juz" className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
-                    {t('reader.juzJumpLabel')}
-                  </label>
-                  <select
-                    id="reader-jump-juz"
-                    value={jumpJuz}
-                    onChange={(e) => {
-                      const j = Number(e.target.value);
-                      setJumpJuz(e.target.value);
-                      if (j >= 1 && j <= 30) jumpToPage(JUZ_FIRST_PAGE[j]);
-                    }}
-                    className="mt-1 w-full min-h-11 rounded-full border border-[#E5E7EB] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
-                  >
-                    <option value="">{t('reader.chooseJuz')}</option>
-                    {Array.from({ length: 30 }, (_, i) => i + 1).map((j) => (
-                      <option key={j} value={j}>
-                        {t('reader.juzOption').replace('{j}', String(j)).replace('{p}', String(JUZ_FIRST_PAGE[j]))}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    void doJumpAyah();
-                  }}
-                  className="flex items-end gap-2"
-                >
-                  <div className="flex-1">
-                    <label htmlFor="reader-jump-ayah-surah" className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
-                      {t('reader.ayahSurah')}
-                    </label>
-                    <select
-                      id="reader-jump-ayah-surah"
-                      value={ayahSurah}
-                      onChange={(e) => {
-                        setAyahSurah(e.target.value);
-                        setAyahError(null);
-                      }}
-                      className="mt-1 w-full min-h-11 rounded-full border border-[#E5E7EB] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
-                    >
-                      <option value="">{t('reader.chooseAyahSurah')}</option>
-                      {ALL_SURAHS.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.id}. {s.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="w-24">
-                    <label htmlFor="reader-jump-ayah-num" className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
-                      {t('reader.ayahNum')}
-                    </label>
-                    <input
-                      id="reader-jump-ayah-num"
-                      type="number"
-                      min={1}
-                      value={ayahNum}
-                      onChange={(e) => {
-                        setAyahNum(e.target.value);
-                        setAyahError(null);
-                      }}
-                      placeholder="#"
-                      className="mt-1 w-full min-h-11 rounded-full border border-[#E5E7EB] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={ayahBusy}
-                    className="min-h-11 rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-                  >
-                    {ayahBusy ? '…' : 'Go'}
-                  </button>
-                </form>
-              </div>
-              {ayahError && (
-                <p role="status" className="mt-2 text-sm text-red-700">
-                  {ayahError}
-                </p>
-              )}
-              {surahsHere.length > 0 && (
-                <div className="mt-3 border-t border-[#E5E7EB] pt-3">
-                  <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">{t('reader.onThisPage')}</p>
-                  <ul className="mt-1 space-y-1 text-sm">
-                    {surahsHere.map((s) => (
-                      <li key={s.id} className="flex flex-wrap items-center gap-x-3">
-                        <Link href={`/hifz/${s.slug}`} className="font-semibold text-[#1FA36B] hover:underline">
-                          Surah {s.name} ({s.meaning})
-                        </Link>
-                        <Link href={`/hifz/${s.slug}?mode=recite`} className="text-[#5b6b62] hover:underline">
-                          {t('reader.reciteCoach')}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Settings panel */}
-          {settingsOpen && (
-            <div className="mt-2 rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
-              <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('reader.quranScript')}>
-                <span className="text-sm font-semibold text-[#102E26]">{t('mpv.script')}</span>
-                {(['indopak', 'uthmani'] as const).map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setScript(s)}
-                    aria-pressed={script === s}
-                    className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${
-                      script === s ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
-                    }`}
-                  >
-                    {SCRIPT_LABELS[s]}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCompactText((v) => !v)}
-                  aria-pressed={compactText}
-                  className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${
-                    compactText ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
-                  }`}
-                >
-                  {compactText ? t('mpv.compactText') : t('mpv.largeText')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTopicColors((v) => !v)}
-                  aria-pressed={topicColors}
-                  className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${
-                    topicColors ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
-                  }`}
-                >
-                  {topicColors ? t('reader.topicOn') : t('reader.topicOff')}
-                </button>
-              </div>
-              {topicColors && (
-                <ul className="mt-3 flex flex-wrap gap-2">
-                  {TOPICS.map((t) => (
-                    <li
-                      key={t.id}
-                      className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold"
-                      style={{ borderColor: t.color, color: t.color, background: t.wash }}
-                      title={t.description}
-                    >
-                      <span className="h-2 w-2 rounded-full" style={{ background: t.color }} aria-hidden="true" />
-                      {t.name}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {mistakeMarkingOn && (
-                <p className="mt-3 text-xs text-[#5b6b62]">
-                  <span className="live-word-wrong font-semibold">{t('mpv.weakLabel')}</span> {t('reader.weakNote')}
-                </p>
-              )}
-              <p className="mt-3 text-xs text-[#5b6b62]">
-                {t('reader.zoomNote')}
-              </p>
-            </div>
-          )}
+      {/* Tarteel-clean top bar: hamburger | centre location pill |
+          bookmark / search / settings. No gift icon (Premium affordance).
+          Prev/next, jump, mode, zoom, hide and the other toolbar
+          functions moved into the chapter sheet / settings sheet below. */}
+      <div ref={toolbarRef} className="fixed inset-x-0 top-0 z-40 border-b border-[#E5E7EB] bg-white/95 backdrop-blur">
+        <div className="mx-auto max-w-5xl">
+          <MushafTopBar
+            title={surahsHere[0]?.name ?? 'Mushaf'}
+            subtitle={`Page ${currentPage} | ${t('reader.juzLabel').replace('{n}', String(juzHere))}`}
+            bookmarked={pageBookmarked}
+            bookmarkAria={
+              pageBookmarked
+                ? t('reader.removeBookmarkAria').replace('{n}', String(currentPage))
+                : t('reader.bookmarkAria').replace('{n}', String(currentPage))
+            }
+            onToggleBookmark={togglePageBookmark}
+            onOpenNav={() => setNavOpen(true)}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
+        </div>
+        <div className="h-0.5 overflow-hidden bg-[#E5E7EB]" aria-hidden="true">
+          <div className="h-full bg-[#1FA36B]" style={{ width: `${(currentPage / MUSHAF_TOTAL_PAGES) * 100}%` }} />
         </div>
       </div>
+
+      {/* Chapter / Juz sheet (hamburger + centre pill). Practice modes,
+          jump-to (page / surah / juz / ayah), prev/next and the full
+          surah list. */}
+      <ReaderSheet open={navOpen} onClose={() => setNavOpen(false)} side="left" title="Chapters & Juz">
+        <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">Practice mode</p>
+        <div className="mt-2">
+          <PracticeModeList onSelect={selectPracticeMode} />
+        </div>
+        <p className="mt-5 text-xs font-bold uppercase tracking-wide text-[#5b6b62]">{t('reader.jumpTo')}</p>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => jumpToPage(currentPage - 1, 0, true)}
+            disabled={currentPage <= 1}
+            className="min-h-11 flex-1 rounded-full border border-[#E5E7EB] bg-white px-3 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
+          >
+            ← {t('reader.prev')}
+          </button>
+          <span className="text-sm font-semibold text-[#102E26]" aria-live="polite">
+            {t('reader.pageOf').replace('{page}', String(currentPage)).replace('{total}', String(MUSHAF_TOTAL_PAGES))}
+          </span>
+          <button
+            type="button"
+            onClick={() => jumpToPage(currentPage + 1, 0, true)}
+            disabled={currentPage >= MUSHAF_TOTAL_PAGES}
+            className="min-h-11 flex-1 rounded-full border border-[#E5E7EB] bg-white px-3 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
+          >
+            {t('reader.next')} →
+          </button>
+        </div>
+        <div className="mt-4 space-y-3">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              doJumpPage();
+            }}
+            className="flex items-end gap-2"
+          >
+            <div className="flex-1">
+              <label htmlFor="reader-jump-page" className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
+                {t('reader.pageLabel')}
+              </label>
+              <input
+                id="reader-jump-page"
+                type="number"
+                min={1}
+                max={604}
+                value={jumpPage}
+                onChange={(e) => setJumpPage(e.target.value)}
+                placeholder={t('reader.pagePlaceholder')}
+                className="mt-1 w-full min-h-11 rounded-full border border-[#E5E7EB] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
+              />
+            </div>
+            <button type="submit" className="min-h-11 rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white">
+              {t('reader.go')}
+            </button>
+          </form>
+          <div>
+            <label htmlFor="reader-jump-surah" className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
+              {t('reader.surahLabel')}
+            </label>
+            <select
+              id="reader-jump-surah"
+              value={jumpSurah}
+              onChange={(e) => {
+                const id = Number(e.target.value);
+                setJumpSurah(e.target.value);
+                if (id >= 1 && id <= 114) jumpToPage(SURAH_FIRST_PAGE[id]);
+              }}
+              className="mt-1 w-full min-h-11 rounded-full border border-[#E5E7EB] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
+            >
+              <option value="">{t('reader.chooseSurah')}</option>
+              {ALL_SURAHS.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.id}. {s.name} ({s.meaning})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="reader-jump-juz" className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
+              {t('reader.juzJumpLabel')}
+            </label>
+            <select
+              id="reader-jump-juz"
+              value={jumpJuz}
+              onChange={(e) => {
+                const j = Number(e.target.value);
+                setJumpJuz(e.target.value);
+                if (j >= 1 && j <= 30) jumpToPage(JUZ_FIRST_PAGE[j]);
+              }}
+              className="mt-1 w-full min-h-11 rounded-full border border-[#E5E7EB] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
+            >
+              <option value="">{t('reader.chooseJuz')}</option>
+              {Array.from({ length: 30 }, (_, i) => i + 1).map((j) => (
+                <option key={j} value={j}>
+                  {t('reader.juzOption').replace('{j}', String(j)).replace('{p}', String(JUZ_FIRST_PAGE[j]))}
+                </option>
+              ))}
+            </select>
+          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void doJumpAyah();
+            }}
+            className="flex items-end gap-2"
+          >
+            <div className="flex-1">
+              <label htmlFor="reader-jump-ayah-surah" className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
+                {t('reader.ayahSurah')}
+              </label>
+              <select
+                id="reader-jump-ayah-surah"
+                value={ayahSurah}
+                onChange={(e) => {
+                  setAyahSurah(e.target.value);
+                  setAyahError(null);
+                }}
+                className="mt-1 w-full min-h-11 rounded-full border border-[#E5E7EB] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
+              >
+                <option value="">{t('reader.chooseAyahSurah')}</option>
+                {ALL_SURAHS.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.id}. {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="w-24">
+              <label htmlFor="reader-jump-ayah-num" className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">
+                {t('reader.ayahNum')}
+              </label>
+              <input
+                id="reader-jump-ayah-num"
+                type="number"
+                min={1}
+                value={ayahNum}
+                onChange={(e) => {
+                  setAyahNum(e.target.value);
+                  setAyahError(null);
+                }}
+                placeholder="#"
+                className="mt-1 w-full min-h-11 rounded-full border border-[#E5E7EB] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={ayahBusy}
+              className="min-h-11 rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {ayahBusy ? '…' : 'Go'}
+            </button>
+          </form>
+        </div>
+        {ayahError && (
+          <p role="status" className="mt-2 text-sm text-red-700">
+            {ayahError}
+          </p>
+        )}
+        {surahsHere.length > 0 && (
+          <div className="mt-4 border-t border-[#E5E7EB] pt-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">{t('reader.onThisPage')}</p>
+            <ul className="mt-1 space-y-1 text-sm">
+              {surahsHere.map((s) => (
+                <li key={s.id} className="flex flex-wrap items-center gap-x-3">
+                  <Link href={`/hifz/${s.slug}`} className="font-semibold text-[#1FA36B] hover:underline">
+                    Surah {s.name} ({s.meaning})
+                  </Link>
+                  <Link href={`/hifz/${s.slug}?mode=recite`} className="text-[#5b6b62] hover:underline">
+                    {t('reader.reciteCoach')}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div className="mt-5 border-t border-[#E5E7EB] pt-4">
+          <SurahList />
+        </div>
+      </ReaderSheet>
+
+      {/* Reader settings sheet (gear): mode, zoom, script, text size,
+          topic + tajweed colours, hide words. */}
+      <ReaderSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} side="right" title={t('reader.readerSettings')}>
+        <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b62]">{t('reader.readingMode')}</p>
+        <div className="mt-2 flex rounded-full border border-[#E5E7EB] bg-white p-0.5" role="group" aria-label={t('reader.readingMode')}>
+          {(['continuous', 'page'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => switchMode(m)}
+              aria-pressed={mode === m}
+              className={`min-h-10 flex-1 rounded-full px-3 py-1.5 text-sm font-semibold ${
+                mode === m ? 'bg-[#102E26] text-white' : 'text-[#102E26] hover:bg-[#FFFBF2]'
+              }`}
+            >
+              {m === 'continuous' ? t('reader.continuous') : t('reader.pageMode')}
+            </button>
+          ))}
+        </div>
+        <p className="mt-5 text-xs font-bold uppercase tracking-wide text-[#5b6b62]">{t('reader.readerZoom')}</p>
+        <div className="mt-2 flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white p-0.5" role="group" aria-label={t('reader.readerZoom')}>
+          <button
+            type="button"
+            onClick={() => applyZoom(zoom - ZOOM_STEP)}
+            disabled={zoom <= MIN_ZOOM}
+            aria-label={t('reader.zoomOut')}
+            className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full text-lg font-bold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
+          >
+            −
+          </button>
+          <span className="w-12 text-center text-sm font-semibold text-[#102E26]" aria-live="polite">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            type="button"
+            onClick={() => applyZoom(zoom + ZOOM_STEP)}
+            disabled={zoom >= MAX_ZOOM}
+            aria-label={t('reader.zoomIn')}
+            className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full text-lg font-bold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={() => applyZoom(MIN_ZOOM)}
+            disabled={zoom === MIN_ZOOM}
+            className="min-h-10 flex-1 rounded-full px-3 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] disabled:opacity-40"
+          >
+            {t('reader.resetZoom')}
+          </button>
+        </div>
+        <p className="mt-5 text-xs font-bold uppercase tracking-wide text-[#5b6b62]">{t('reader.quranScript')}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2" role="group" aria-label={t('reader.quranScript')}>
+          {(['indopak', 'uthmani'] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setScript(s)}
+              aria-pressed={script === s}
+              className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${
+                script === s ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
+              }`}
+            >
+              {SCRIPT_LABELS[s]}
+            </button>
+          ))}
+        </div>
+        <div className="mt-4 space-y-2">
+          <button
+            type="button"
+            onClick={() => setCompactText((v) => !v)}
+            aria-pressed={compactText}
+            className={`min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold ${
+              compactText ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
+            }`}
+          >
+            {compactText ? t('mpv.compactText') : t('mpv.largeText')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setTopicColors((v) => !v)}
+            aria-pressed={topicColors}
+            className={`min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold ${
+              topicColors ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
+            }`}
+          >
+            {topicColors ? t('reader.topicOn') : t('reader.topicOff')}
+          </button>
+          <button
+            type="button"
+            onClick={toggleTajweed}
+            aria-pressed={tajweedOn}
+            className={`min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold ${
+              tajweedOn ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
+            }`}
+          >
+            {t('set.tajweedColors')}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setHideVerses((h) => !h);
+              setRevealedMap({});
+              setPeekCount(0);
+            }}
+            aria-pressed={hideVerses}
+            className={`min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold ${
+              hideVerses ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] bg-white text-[#102E26] hover:bg-[#FFFBF2]'
+            }`}
+          >
+            {hideVerses ? t('reader.showVerses') : t('reader.hideWords')}
+          </button>
+        </div>
+        {topicColors && (
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {TOPICS.map((t) => (
+              <li
+                key={t.id}
+                className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold"
+                style={{ borderColor: t.color, color: t.color, background: t.wash }}
+                title={t.description}
+              >
+                <span className="h-2 w-2 rounded-full" style={{ background: t.color }} aria-hidden="true" />
+                {t.name}
+              </li>
+            ))}
+          </ul>
+        )}
+        {tajweedOn && (
+          <p className="mt-3 text-xs text-[#5b6b62]">
+            Tajweed colours show where a rule applies in the text. They do not check your recitation — this app checks words only, never tajweed. A teacher is still needed for tajweed.
+          </p>
+        )}
+        {mistakeMarkingOn && (
+          <p className="mt-3 text-xs text-[#5b6b62]">
+            <span className="live-word-wrong font-semibold">{t('mpv.weakLabel')}</span> {t('reader.weakNote')}
+          </p>
+        )}
+        <p className="mt-3 text-xs text-[#5b6b62]">{t('reader.zoomNote')}</p>
+        <Link
+          href="/hifz/settings"
+          className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2]"
+        >
+          All settings →
+        </Link>
+      </ReaderSheet>
 
       {/* Spacer for the fixed toolbar. */}
       <div style={{ height: toolbarH }} aria-hidden="true" />
 
-      {/* Reader content. */}
-      <div ref={containerRef} className="mx-auto max-w-5xl px-3 pb-28 pt-4 sm:px-4">
+      {/* Reader content — light-grey app background, white page cards. */}
+      <div ref={containerRef} className="mx-auto max-w-5xl bg-[#F2F2F2] px-3 pb-44 pt-4 sm:px-4">
         <div ref={contentRef} style={{ zoom: String(scale), touchAction: 'pan-x pan-y' }}>
           {!mounted ? (
-            <div className="rounded-2xl border-2 border-[#FFB800]/40 bg-[#FFFBF2] p-6 text-center text-sm text-[#5b6b62]">
+            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 text-center text-sm text-[#5b6b62]">
               {t('reader.loadingReader')}
             </div>
           ) : (
@@ -1454,6 +1764,7 @@ export default function MushafReader() {
                   revealed={revealedFor(n)}
                   frequentMistakes={frequentMistakes}
                   mistakeMarkingOn={mistakeMarkingOn}
+                  tajweedOn={tajweedOn}
                   registerSlot={registerSlot}
                   onRetry={retryPage}
                 />
@@ -1465,6 +1776,53 @@ export default function MushafReader() {
           {t('reader.footer')}
         </p>
       </div>
+
+      {/* Peek controls while words are hidden — floating above the
+          bottom bar so they are always in reach. */}
+      {hideVerses && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-[152px] z-40">
+          <div className="mx-auto flex w-fit max-w-[calc(100vw-1.5rem)] flex-wrap items-center justify-center gap-2 px-3">
+            <button
+              type="button"
+              onClick={() => {
+                recordPeekForPage(pages.get(currentPage), revealedMap[currentPage] ?? 0);
+                setRevealedMap((m) => ({ ...m, [currentPage]: (m[currentPage] ?? 0) + 1 }));
+                setPeekCount((c) => c + 1);
+              }}
+              className="pointer-events-auto min-h-11 rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#102E26] shadow-md ring-1 ring-[#FFB800] hover:bg-[#FFFBF2]"
+            >
+              {t('reader.nextWord')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                recordPeekRestForPage(pages.get(currentPage));
+                setRevealedMap((m) => ({ ...m, [currentPage]: 100000 }));
+                setPeekCount((c) => c + 1);
+              }}
+              className="pointer-events-auto min-h-11 rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#102E26] shadow-md ring-1 ring-[#FFB800] hover:bg-[#FFFBF2]"
+            >
+              {t('reader.revealRest')}
+            </button>
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#5b6b62] shadow-md ring-1 ring-[#E5E7EB]">
+              {peekCount === 1
+                ? t('reader.peekOne').replace('{n}', String(peekCount)).replace('{page}', String(currentPage))
+                : t('reader.peekMany').replace('{n}', String(peekCount)).replace('{page}', String(currentPage))}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom bar: Mistakes / bookmarks / hide + the big mic orb. */}
+      <MushafBottomBar
+        hideActive={hideVerses}
+        onToggleHide={() => {
+          setHideVerses((h) => !h);
+          setRevealedMap({});
+          setPeekCount(0);
+        }}
+        onMic={() => selectPracticeMode('recite')}
+      />
     </div>
   );
 }
