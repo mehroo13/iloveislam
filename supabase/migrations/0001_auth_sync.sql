@@ -125,6 +125,14 @@ create policy "own challenge memberships" on public.challenge_members
 grant select, insert, update, delete on all tables in schema public to authenticated;
 grant usage, select on all sequences in schema public to authenticated;
 
+-- The admin API (account-deletion route) uses the service-role key,
+-- which bypasses RLS but still needs table privileges: without these,
+-- it fails with `403 permission denied for table profiles` (verified
+-- live 2026-11-23). service_role is server-only and never reaches the
+-- browser, so these grants do not widen what any user can do.
+grant select, insert, update, delete on all tables in schema public to service_role;
+grant usage, select on all sequences in schema public to service_role;
+
 -- ------------------------------------------------------------------
 -- Profile row auto-created on sign-up (keeps `profiles` in sync with
 -- auth.users without any client write).

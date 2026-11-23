@@ -505,11 +505,19 @@ export async function migrateGuestToAccount(): Promise<{ ok: boolean; merged: bo
   if (!user) return { ok: false, merged: false };
   const pulled = await pullAndMerge();
   if (!pulled.ok) {
-    // No cloud data yet (fresh account): upload the whole local snapshot.
+    // Pull failed (cloud unreachable): try a direct upload of the local
+    // snapshot anyway.
     const pushed = await pushDocs(SYNC_DOC_TYPES);
     return { ok: pushed, merged: false };
   }
-  return { ok: true, merged: pulled.merged };
+  if (!pulled.merged) {
+    // Fresh account: pull succeeded but found no cloud data, so nothing
+    // was uploaded. Push the whole local snapshot now — without this the
+    // account has no backup at all, even though the UI says it does.
+    const pushed = await pushDocs(SYNC_DOC_TYPES);
+    return { ok: pushed, merged: false };
+  }
+  return { ok: true, merged: true };
 }
 
 /** Snapshot fingerprint for the dirty check: a cheap hash of the local

@@ -74,13 +74,18 @@ export default function AccountSection() {
       if (userId && migratedFor.current !== userId) {
         migratedFor.current = userId;
         const result = await migrateGuestToAccount();
-        if (alive && result.ok) {
+        if (!alive) return;
+        if (result.ok) {
           setMsg(
             result.merged
               ? 'Signed in. Your progress on this device was merged with your account backup — nothing was lost.'
               : 'Signed in. Your progress on this device is now backed up to your account.',
           );
           refreshLastSynced();
+        } else {
+          // Never claim a backup that did not happen: the progress is
+          // safe on this device, and "Back up now" retries the upload.
+          setErr('Could not back up your progress just now — it is safe on this device. Tap “Back up now” to retry.');
         }
       }
     };
@@ -125,7 +130,9 @@ export default function AccountSection() {
         if (r.needsEmailConfirmation) {
           setMsg('Account created. Check your email to confirm it — then your progress on this device will be backed up.');
         } else {
-          setMsg('Account created. Your progress on this device is now backed up to your account.');
+          // No backup claim here: the session watcher runs the migration
+          // right after sign-up and reports the real outcome.
+          setMsg('Account created. Backing up your progress on this device…');
         }
       } else {
         if (!password) {
