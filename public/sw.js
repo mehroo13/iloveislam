@@ -371,6 +371,10 @@ async function syncNewsletterSubscriptions() {
 }
 
 // ==================== PUSH NOTIFICATIONS ====================
+// NOTE: no push subscription exists anywhere in the app — nothing ever
+// subscribes, so this handler never fires. Reminders are local only
+// (SHOW_REMINDER above). This handler is kept only so a future, explicitly
+// approved push feature would have somewhere to land; it is not wired up.
 self.addEventListener('push', (event) => {
   if (!event.data) return;
 
@@ -424,6 +428,29 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+  // Local reminders (opt-in only, no push, no server): the app shell
+  // (PWAProvider) checks the stored goals while the app is open and
+  // asks the worker to show the notification at the goal's reminder
+  // time. The worker is the one that calls showNotification, so the
+  // reminder appears as a system notification. Each goal fires at most
+  // once a day — the page tracks that, not the worker.
+  if (event.data?.type === 'SHOW_REMINDER') {
+    const title = event.data.title || 'Time to practise your Hifz';
+    event.waitUntil(
+      self.registration.showNotification(title, {
+        body: event.data.body || '',
+        icon: '/icon-192.png',
+        badge: '/favicon.png',
+        vibrate: [100, 50, 100],
+        tag: event.data.goalId ? `hifz-reminder-${event.data.goalId}` : 'hifz-reminder',
+        renotify: true,
+        data: {
+          url: event.data.url || '/hifz/goals',
+          dateOfArrival: Date.now(),
+        },
+      })
+    );
   }
   if (event.data?.type === 'CACHE_TOOL') {
     // Cache a specific tool page on demand

@@ -16,7 +16,7 @@ import {
   loadSettings, saveSettings,
   type HifzSettings,
 } from '../progress';
-import { mirrorAllToIdb } from '../lib/store';
+import { mirrorAllToIdb, deleteAllSessionAudio } from '../lib/store';
 import SearchablePicker from './SearchablePicker';
 import {
   RECITERS, TRANSLATIONS, TAFSIRS, TAFSIR_ID, groupByLanguage,
@@ -271,6 +271,141 @@ export default function SettingsClient() {
   const [tafsirId, setTafsirId] = useState<number>(TAFSIR_ID);
   const t = useT();
 
+  /* --- Reminders (opt-in local notifications, no push, no server) ---
+     Goals live under the same key GoalsClient uses ('ili_goals_v1'), with
+     the same shape ({ id, name, remind, remindTime }) — toggling here and
+     toggling on the Goals page are the same setting. Notification
+     permission is requested ONLY when the user turns a reminder on. */
+  type ReminderGoal = { id: string; name: string; remind?: boolean; remindTime?: string };
+  const GOALS_KEY = 'ili_goals_v1';
+  const [reminderGoals, setReminderGoals] = useState<ReminderGoal[]>([]);
+  const [perm, setPerm] = useState<string>('unsupported');
+  const [reminderNote, setReminderNote] = useState<string | null>(null);
+
+  const loadReminderGoals = (): ReminderGoal[] => {
+    try {
+      const raw = localStorage.getItem(GOALS_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as ReminderGoal[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const persistReminderGoals = (next: ReminderGoal[]) => {
+    try {
+      // Merge into the stored goals (not a blind overwrite) so fields
+      // GoalsClient owns (range, schedule, sessions…) survive.
+      const raw = localStorage.getItem(GOALS_KEY);
+      const stored = raw ? (JSON.parse(raw) as Record<string, unknown>[]) : [];
+      const byId = new Map(next.map((g) => [g.id, g]));
+      const merged = Array.isArray(stored)
+        ? stored.map((g) =>
+            byId.has(String(g.id))
+              ? { ...g, remind: byId.get(String(g.id))!.remind, remindTime: byId.get(String(g.id))!.remindTime }
+              : g,
+          )
+        : next;
+      localStorage.setItem(GOALS_KEY, JSON.stringify(merged));
+    } catch {
+      /* storage unavailable — state stays in memory for this visit */
+    }
+    setReminderGoals(next);
+    // The app shell (PWAProvider) re-checks due reminders on this event.
+    window.dispatchEvent(new Event('ili-reminders-changed'));
+  };
+
+  /** Turn a goal's reminder on/off. Enabling requests notification
+      permission at that moment only; if it is denied (or already
+      blocked) the reminder stays off and the UI says so honestly. */
+  const setReminderGoal = async (id: string, remind: boolean, remindTime?: string) => {
+    if (remind) {
+      if (typeof Notification === 'undefined') {
+        setReminderNote('This browser does not support notifications, so reminders cannot be turned on here.');
+        return;
+      }
+      if (Notification.permission === 'denied') {
+        setReminderNote('Notifications are blocked for this site in your browser settings, so the reminder was not turned on. Allow notifications for this site first, then try again.');
+        return;
+      }
+      if (Notification.permission !== 'granted') {
+        const result = await Notification.requestPermission();
+        setPerm(result);
+        if (result !== 'granted') {
+          setReminderNote('Notification permission was not given, so the reminder was not turned on. Nothing was changed.');
+          return;
+        }
+      }
+      setReminderNote(null);
+    }
+    persistReminderGoals(
+      reminderGoals.map((g) =>
+        g.id === id
+          ? { ...g, remind, ...(remindTime !== undefined ? { remindTime } : {}) }
+          : g,
+      ),
+    );
+  };
+
+  /** Next due reminder across enabled goals, e.g. "today at 08:00". */
+  const nextReminderText = (): string | null => {
+    const enabled = reminderGoals.filter((g) => g.remind && g.remindTime);
+    if (enabled.length === 0) return null;
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    let best: { day: 'today' | 'tomorrow'; mins: number; time: string } | null = null;
+    for (const g of enabled) {
+      const [h, m] = (g.remindTime ?? '').split(':').map(Number);
+      if (!Number.isFinite(h) || !Number.isFinite(m)) continue;
+      const mins = h * 60 + m;
+      const cand = mins > nowMin ? { day: 'today' as const, mins, time: g.remindTime! } : { day: 'tomorrow' as const, mins: mins + 1440, time: g.remindTime! };
+      if (!best || cand.mins < best.mins) best = cand;
+    }
+    return best ? `${best.day} at ${best.time}` : null;
+  };
+
+  /** Send one test reminder right now (only if permission is granted). */
+  const sendTestReminder = async () => {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+      setReminderNote('Turn a reminder on first — your browser will ask permission, then you can test it.');
+      return;
+    }
+    try {
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'SHOW_REMINDER',
+          title: 'Time to practise your Hifz',
+          body: 'This is a test reminder — your daily reminders will look like this.',
+          url: '/hifz/goals',
+        });
+      } else {
+        const reg = await navigator.serviceWorker.ready;
+        await reg.showNotification('Time to practise your Hifz', {
+          body: 'This is a test reminder — your daily reminders will look like this.',
+          icon: '/icon-192.png',
+          tag: 'hifz-reminder-test',
+        });
+      }
+      setReminderNote('Test reminder sent — it should appear as a notification now.');
+    } catch {
+      setReminderNote('Could not send the test reminder — the service worker is not ready. Try again in a moment.');
+    }
+  };
+
+  /** TRUE audio-only delete: deleteAllSessionAudio() (audio blob store,
+      ../lib/store) purges saved recording blobs only. Progress, mistakes,
+      goals and settings are untouched — unlike clear-all below. */
+  const deleteAudioOnly = async () => {
+    if (!window.confirm('Delete all saved audio recordings on this device? Your progress, mistakes, goals and settings will stay exactly as they are.')) return;
+    try {
+      await deleteAllSessionAudio();
+      setMsg('Saved audio recordings deleted. Your progress, mistakes, goals and settings were kept.');
+    } catch {
+      setMsg('Could not delete saved audio — browser storage is unavailable. Nothing was deleted.');
+    }
+  };
+
   const toggleOpen = (key: string) => setOpen((cur) => (cur === key ? null : key));
 
   const translationGroups = useMemo(() => groupByLanguage(TRANSLATIONS), []);
@@ -294,6 +429,8 @@ export default function SettingsClient() {
     } catch {
       /* default tafsir stands */
     }
+    setReminderGoals(loadReminderGoals());
+    setPerm(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported');
   }, []);
 
   const update = (patch: Partial<HifzSettings>) => {
@@ -670,7 +807,80 @@ export default function SettingsClient() {
           />
           {open === 'reminders' && (
             <Panel>
-              <p className="text-sm leading-relaxed text-[#6B7280]">{t('rb.set.noPushNote')}</p>
+              {/* Real opt-in local reminders (no push, no server): the app
+                  itself shows a notification on this device at the goal's
+                  reminder time. Permission is requested only when a
+                  reminder is turned on. The per-goal in-app banner on the
+                  Goals page still exists alongside this. */}
+              <Current
+                label={currentLabel}
+                value={
+                  perm === 'denied'
+                    ? 'Blocked in this browser'
+                    : reminderGoals.some((g) => g.remind)
+                      ? `On — next reminder ${nextReminderText() ?? ''}`
+                      : 'Off'
+                }
+              />
+              <p className="mb-3 text-sm leading-relaxed text-[#6B7280]">
+                Reminders are local only: the app shows a notification on this device at the time
+                you pick. Nothing is sent to a server and there is no push subscription.
+                {perm === 'denied' &&
+                  ' Notifications are currently blocked for this site in your browser settings — allow them there before turning a reminder on.'}
+              </p>
+              {reminderGoals.length === 0 ? (
+                <p className="text-sm leading-relaxed text-[#6B7280]">
+                  No goals yet — create a goal on the Goals page first, then turn its reminder on
+                  here (your browser will ask permission first).
+                </p>
+              ) : (
+                <div className="divide-y divide-[#E8EAED]">
+                  {reminderGoals.map((g) => (
+                    <div key={g.id} className="py-1">
+                      <Toggle
+                        label={g.name}
+                        checked={!!g.remind}
+                        onChange={(v) => {
+                          void setReminderGoal(g.id, v, g.remindTime ?? '08:00');
+                        }}
+                      />
+                      {g.remind && (
+                        <label className="flex items-center gap-2 pb-2 text-sm font-semibold text-[#111827]">
+                          At
+                          <input
+                            type="time"
+                            value={g.remindTime ?? '08:00'}
+                            onChange={(e) => {
+                              void setReminderGoal(g.id, true, e.target.value);
+                            }}
+                            className="min-h-11 rounded-lg border border-[#E8EAED] bg-white px-2 py-1.5 text-sm"
+                          />
+                        </label>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {reminderGoals.some((g) => g.remind) && perm === 'granted' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void sendTestReminder();
+                  }}
+                  className="mt-3 min-h-11 rounded-full border border-[#E8EAED] bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-[#E4FFF2]"
+                >
+                  Send a test reminder now
+                </button>
+              )}
+              {reminderNote && (
+                <p role="status" className="mt-3 text-sm leading-relaxed text-[#111827]">
+                  {reminderNote}
+                </p>
+              )}
+              <p className="mt-3 text-xs leading-relaxed text-[#6B7280]">
+                Your daily goal and streak are also shown on the home screen and Progress tab —
+                open the app once a day and the streak stays alive.
+              </p>
             </Panel>
           )}
         </div>
@@ -826,15 +1036,56 @@ export default function SettingsClient() {
           )}
         </div>
         <div>
-          {/* No audio-only delete exists in the app: recordings are
-              per-session blobs gated by the save-audio toggle above, and
-              the only delete is the existing clear-all. This row runs
-              that same clear-all, and says so plainly before confirming. */}
+          {/* Audio-only delete: purges saved recording blobs only — progress,
+              mistakes, goals and settings stay exactly as they are. */}
           <Row
             icon="trash"
-            label={t('rb.set.deleteAudio')}
-            onClick={clearAll}
+            label="Delete audio recordings"
+            expanded={open === 'deleteAudio'}
+            onClick={() => toggleOpen('deleteAudio')}
           />
+          {open === 'deleteAudio' && (
+            <Panel>
+              <p className="text-sm leading-relaxed text-[#6B7280]">
+                Deletes only your saved recitation audio recordings on this device. Your progress,
+                mistakes, goals and settings stay exactly as they are.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  void deleteAudioOnly();
+                }}
+                className="mt-3 min-h-11 rounded-full bg-[#B91C1C] px-4 py-2 text-sm font-semibold text-white hover:bg-[#991B1B]"
+              >
+                Delete audio recordings
+              </button>
+            </Panel>
+          )}
+        </div>
+        <div>
+          {/* Delete everything: the existing clear-all — progress, mistakes,
+              goals, settings and saved audio. Labelled honestly. */}
+          <Row
+            icon="trash"
+            label="Delete all data"
+            expanded={open === 'deleteAll'}
+            onClick={() => toggleOpen('deleteAll')}
+          />
+          {open === 'deleteAll' && (
+            <Panel>
+              <p className="text-sm leading-relaxed text-[#6B7280]">
+                Deletes ALL your Hifz data on this device — progress, mistakes, goals, settings
+                and saved audio recordings. This cannot be undone. Export first if you want a copy.
+              </p>
+              <button
+                type="button"
+                onClick={clearAll}
+                className="mt-3 min-h-11 rounded-full bg-[#B91C1C] px-4 py-2 text-sm font-semibold text-white hover:bg-[#991B1B]"
+              >
+                Delete all data
+              </button>
+            </Panel>
+          )}
         </div>
         <div>
           <Row icon="database" label={t('set.yourData')} href="/hifz/settings/data" />

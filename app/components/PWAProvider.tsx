@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, createContext, useContext } from 'react';
+import { loadProgress, ayahsPractisedOn, localDateString } from '../hifz/progress';
 
 // ==================== TYPES ====================
 interface BeforeInstallPromptEvent extends Event {
@@ -80,12 +81,87 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
     });
   }, []);
 
+  // Local reminders — OPT-IN only, no push, no server.
+  // The user turns a reminder on per goal in Settings (or on the Goals
+  // page); permission is requested only at that moment. This scheduler
+  // runs while the app is open: once a minute it checks the stored goals
+  // ('ili_goals_v1', same key/shape GoalsClient uses) and, for a reminded
+  // goal whose time has arrived today, asks the service worker to show
+  // the notification (SHOW_REMINDER → registration.showNotification).
+  // Each goal fires at most once a day ('ili_reminders_fired_v1'), and
+  // never on a day the user has already practised — the same rule as the
+  // Goals page in-app banner. A service worker cannot wake itself at a
+  // future time, so reminders fire while the app (or its tab) is open;
+  // nothing is promised beyond that.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const GOALS_KEY = 'ili_goals_v1';
+    const FIRED_KEY = 'ili_reminders_fired_v1';
+
+    const checkReminders = () => {
+      try {
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+        if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return;
+        const raw = localStorage.getItem(GOALS_KEY);
+        if (!raw) return;
+        const goals = JSON.parse(raw) as { id: string; name: string; remind?: boolean; remindTime?: string }[];
+        if (!Array.isArray(goals)) return;
+        const now = new Date();
+        const today = localDateString(now);
+        const nowMin = now.getHours() * 60 + now.getMinutes();
+        // Don't nag after today's practice — same rule as the Goals banner.
+        let practised = false;
+        try {
+          const progress = loadProgress();
+          practised =
+            ayahsPractisedOn(progress, today) > 0 ||
+            (progress.minutesToday.date === today && progress.minutesToday.minutes > 0);
+        } catch {
+          /* practice check unavailable — still remind */
+        }
+        if (practised) return;
+        const firedRaw = localStorage.getItem(FIRED_KEY);
+        const fired = (firedRaw ? JSON.parse(firedRaw) : {}) as Record<string, string>;
+        let changed = false;
+        for (const g of goals) {
+          if (!g.remind || !g.remindTime) continue;
+          const [h, m] = g.remindTime.split(':').map(Number);
+          if (!Number.isFinite(h) || !Number.isFinite(m)) continue;
+          if (h * 60 + m > nowMin) continue; // not due yet
+          if (fired[g.id] === today) continue; // already shown today
+          navigator.serviceWorker.controller.postMessage({
+            type: 'SHOW_REMINDER',
+            goalId: g.id,
+            title: 'Time to practise your Hifz',
+            body: `${g.name} — open the app to keep your streak going.`,
+            url: '/hifz/goals',
+          });
+          fired[g.id] = today;
+          changed = true;
+        }
+        if (changed) localStorage.setItem(FIRED_KEY, JSON.stringify(fired));
+      } catch {
+        /* reminders must never break the app */
+      }
+    };
+
+    checkReminders();
+    const timer = setInterval(checkReminders, 60 * 1000);
+    const onChange = () => checkReminders();
+    window.addEventListener('ili-reminders-changed', onChange);
+    window.addEventListener('focus', onChange);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('ili-reminders-changed', onChange);
+      window.removeEventListener('focus', onChange);
+    };
+  }, []);
+
   // Online/Offline detection
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     setIsOnline(navigator.onLine);
-
     const handleOnline = () => {
       setIsOnline(true);
 

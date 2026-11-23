@@ -146,6 +146,18 @@ export default function ChallengesClient() {
         joins yours. No accounts, no server, nothing uploaded.
       </p>
 
+      {/* Motivational verse — the same verse as the Community tab of My
+          Progress (Al-Mutaffifin 83:26): "And in that let the competitors
+          compete." */}
+      <blockquote className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-4 text-center shadow-sm">
+        <p dir="rtl" lang="ar" className="font-quran text-xl leading-relaxed text-[#111827]">
+          وَفِي ذَٰلِكَ فَلْيَتَنَافَسِ الْمُتَنَافِسُونَ
+        </p>
+        <p className="mt-1 text-sm text-[#111827]">
+          &ldquo;And in that let the competitors compete.&rdquo; — Quran 83:26
+        </p>
+      </blockquote>
+
       {/* Accept a Challenge — suggested challenges (dark card, screenshot style) */}
       <section aria-labelledby="accept-heading" className="rounded-2xl bg-[#102E26] p-5 text-white shadow-sm sm:p-6">
         <h2 id="accept-heading" className="text-xl font-bold">{t('chal.accept')}</h2>
