@@ -162,8 +162,10 @@ export interface HifzSettings {
   /** Screenshot/spec rebuild 2026-11-21 (§22) — all optional for old saves. */
   /** Mistake detection on/off (coach). */
   detectMistakes?: boolean;
-  /** Harakat (tashkeel) strictness: true = a harakat-only difference counts
-      as a mistake; false = ignore harakat differences (checker + self-mark). */
+  /** Harakat (tashkeel) strictness — RETIRED 2026-11-23: the Tilawa engine
+      tracks word positions only and never transcribes, so a vowel-only
+      difference cannot be detected (see RecitationCoach/tilawa notes).
+      Field kept so old saves still parse; no UI or code reads it. */
   harakatStrict?: boolean;
   /** "Don't progress until mistake is fixed" — hold on a mistaken ayah. */
   dontProgress?: boolean;

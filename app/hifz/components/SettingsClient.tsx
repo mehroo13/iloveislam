@@ -562,12 +562,6 @@ export default function SettingsClient() {
                   onChange={(v) => update({ detectMistakes: v })}
                 />
                 <Toggle
-                  label={t('set.strictHarakat')}
-                  hint={t('rb.set.harakatHint')}
-                  checked={settings.harakatStrict ?? false}
-                  onChange={(v) => update({ harakatStrict: v })}
-                />
-                <Toggle
                   label={t('set.dontProgress')}
                   hint={t('rb.set.retryHint')}
                   checked={settings.dontProgress ?? false}
