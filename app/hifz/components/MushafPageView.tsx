@@ -438,7 +438,7 @@ export default function MushafPageView({
               href={`/hifz/mushaf/${page - 1}`}
               className="inline-flex min-h-11 items-center rounded-full border border-[#E8EAED] bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-[#F3F4F6]"
             >
-              ← {t('mushaf.prevPage')}
+              {t('mushaf.prevPage')}
             </Link>
           ) : (
             <span />
@@ -451,7 +451,7 @@ export default function MushafPageView({
               href={`/hifz/mushaf/${page + 1}`}
               className="inline-flex min-h-11 items-center rounded-full border border-[#E8EAED] bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-[#F3F4F6]"
             >
-              {t('mushaf.nextPage')} →
+              {t('mushaf.nextPage')}
             </Link>
           ) : (
             <span />
