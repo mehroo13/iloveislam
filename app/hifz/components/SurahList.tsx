@@ -3,6 +3,8 @@
 // (2026-11-23): Recently Read card, Chapters / Parts / Bookmarks tabs,
 // ascending/descending sort, per-surah memorisation markers, Juz header
 // rows grouping the surahs, and a right-edge 1–30 Juz quick-jump rail.
+// All / Started / Memorised progress-filter chips (restored 2026-11-23
+// from the pre-rebuild list) sit under the search box on the Chapters tab.
 // Search (English name, meaning, number, or Arabic name — diacritics
 // optional) stays at the top and every row still navigates to its surah.
 // Progress and bookmarks come only from on-device storage — nothing is
@@ -32,11 +34,13 @@ function normArabic(s: string): string {
 
 type Tab = 'chapters' | 'parts' | 'bookmarks';
 type SortDir = 'asc' | 'desc';
+type ProgressFilter = 'all' | 'started' | 'memorised';
 
 export default function SurahList() {
   const t = useT();
   const [q, setQ] = useState('');
   const [tab, setTab] = useState<Tab>('chapters');
+  const [filter, setFilter] = useState<ProgressFilter>('all');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [showProgress, setShowProgress] = useState(true);
   const [lastRead, setLastRead] = useState<HifzSurah | null>(null);
@@ -106,8 +110,19 @@ export default function SurahList() {
           (needleAr.length > 0 && normArabic(s.arabic).includes(needleAr)),
       );
     }
+    // Progress filter (restored from the pre-rebuild list): applies on top
+    // of the search, using the same per-surah counts as the row markers.
+    // 'started' = any ayah memorised or learning; 'memorised' = every ayah
+    // of the surah memorised.
+    if (filter !== 'all') {
+      list = list.filter((s) => {
+        const c = surahCounts.get(s.id) ?? { memorised: 0, learning: 0 };
+        if (filter === 'started') return c.memorised + c.learning > 0;
+        return c.memorised >= s.ayahCount && s.ayahCount > 0;
+      });
+    }
     return [...list].sort((a, b) => (sortDir === 'asc' ? a.id - b.id : b.id - a.id));
-  }, [q, sortDir]);
+  }, [q, sortDir, filter, surahCounts]);
 
   const juzOrder = useMemo(
     () => (sortDir === 'asc' ? Array.from({ length: 30 }, (_, i) => i + 1) : Array.from({ length: 30 }, (_, i) => 30 - i)),
@@ -138,6 +153,36 @@ export default function SurahList() {
           className="w-full rounded-full border border-[#E8EAED] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#1FA36B]"
         />
       </label>
+
+      {/* Progress filter — All / Started / Memorised. Chips only on the
+          Chapters tab (searching forces the Chapters list, so the filter
+          applies to the searched list too); Parts and Bookmarks tabs
+          don't list surah rows, so the chips hide there. */}
+      {activeTab === 'chapters' && (
+        <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filter by progress">
+          {(
+            [
+              ['all', t('list.filterAll')],
+              ['started', t('list.filterStarted')],
+              ['memorised', t('prog.memorised')],
+            ] as [ProgressFilter, string][]
+          ).map(([f, label]) => (
+            <button
+              key={f}
+              type="button"
+              aria-pressed={filter === f}
+              onClick={() => setFilter(f)}
+              className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${
+                filter === f
+                  ? 'bg-[#1FA36B] text-white shadow-sm'
+                  : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E8EAED]'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Recently Read — only when there is real history, never faked */}
       {!searching && recentlyRead && (
@@ -249,18 +294,22 @@ export default function SurahList() {
               <ul className="overflow-hidden rounded-2xl border border-[#E8EAED] bg-white shadow-sm">
                 {searching
                   ? filtered.map((s) => <SurahRow key={s.slug} s={s} counts={surahCounts.get(s.id)} showProgress={showProgress} />)
-                  : juzOrder.map((j) => (
-                      <Fragment key={j}>
-                        <li id={`juz-head-${j}`} className="scroll-mt-24 bg-[#F3F4F6] px-4 py-2 text-sm font-semibold text-[#111827]">
-                          Juz {j}
-                        </li>
-                        {filtered
-                          .filter((s) => s.juz === j)
-                          .map((s) => (
+                  : juzOrder.map((j) => {
+                      // A progress filter can empty a whole Juz — skip its
+                      // header rather than showing a header with no rows.
+                      const rows = filtered.filter((s) => s.juz === j);
+                      if (rows.length === 0) return null;
+                      return (
+                        <Fragment key={j}>
+                          <li id={`juz-head-${j}`} className="scroll-mt-24 bg-[#F3F4F6] px-4 py-2 text-sm font-semibold text-[#111827]">
+                            Juz {j}
+                          </li>
+                          {rows.map((s) => (
                             <SurahRow key={s.slug} s={s} counts={surahCounts.get(s.id)} showProgress={showProgress} />
                           ))}
-                      </Fragment>
-                    ))}
+                        </Fragment>
+                      );
+                    })}
               </ul>
             )}
           </div>
