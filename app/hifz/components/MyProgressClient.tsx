@@ -891,10 +891,10 @@ export default function MyProgressClient() {
   };
 
   // Stage 5 (§11): delete controls. Mistake history is deleted outright;
-  // audio is different — recordings are never stored past the recitation
-  // session (in-memory blob only, gone when the coach closes), so there is
-  // no stored audio file to delete. The control that matters is stopping
-  // new recordings, which is the saveAudio setting below.
+  // audio is different — recordings are stored on-device (IndexedDB,
+  // BA 2026-11-23) when the saveAudio setting is on, and deleted via
+  // deleteAllSessionAudio (Settings → Privacy). The control that matters
+  // for future takes is stopping new recordings, the saveAudio setting below.
   const clearAllMistakes = () => {
     saveMistakes([]);
     setMistakes([]);
@@ -1621,9 +1621,9 @@ export default function MyProgressClient() {
                 })}
             </ul>
             {/* Stage 5 (§11): delete controls. History is deleted outright.
-                Audio is never stored past the session, so the control is
-                the recording switch — turning it off stops new recordings
-                being kept for listen-back. */}
+                Audio is stored on-device when recordings are on (IndexedDB),
+                so the controls are the recording switch (stops new saves)
+                and Delete audio recordings in Settings → Privacy. */}
             <div className="mt-4 rounded-xl border border-[#E8EAED] p-4">
               <p className="text-sm font-bold text-[#111827]">{t('rb.dash.recordingsHistory')}</p>
               <p className="mt-1 text-xs leading-relaxed text-[#6B7280]">{t('rb.set.recordingNote')}</p>
