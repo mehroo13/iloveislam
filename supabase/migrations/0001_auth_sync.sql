@@ -22,6 +22,11 @@
 -- * All rows CASCADE on auth user deletion.
 
 -- Profiles: minimal PII, email only.
+-- NOTE: citext must exist before the profiles table (fresh projects do
+-- not have it by default — the first dashboard run failed with
+-- `type "citext" does not exist` until the extension was created).
+create extension if not exists citext;
+
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   email citext,
