@@ -15,6 +15,17 @@ import {
   CHALLENGE_TARGET_OPTIONS, CHALLENGE_DAY_OPTIONS,
   type GroupChallenge,
 } from '../lib/challenges';
+import { getSupabase } from '../lib/supabase';
+
+/** One row of the public global leaderboard aggregate (migration 0002
+ *  RPC `global_leaderboard`). Display name + totals only — no user id,
+ *  no email, nothing identifying. */
+type GlobalRow = {
+  displayName: string;
+  memorisedAyahs: number;
+  currentStreak: number;
+  longestStreak: number;
+};
 
 export default function ChallengesClient() {
   const t = useT();
@@ -35,6 +46,42 @@ export default function ChallengesClient() {
   const [joinTarget, setJoinTarget] = useState<number>(10);
   const [joinDays, setJoinDays] = useState<number>(7);
   const [joinName, setJoinName] = useState('');
+
+  // Global leaderboard (DRAFT): reads the public aggregate via the
+  // `global_leaderboard` RPC (migration 0002 — NOT applied yet). Until
+  // the migration is applied the RPC does not exist and every failure
+  // lands here: the board simply stays empty. No error is ever shown,
+  // and no names are invented or seeded.
+  const [globalRows, setGlobalRows] = useState<GlobalRow[]>([]);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const sb = getSupabase();
+        if (!sb) return;
+        const { data, error } = await sb.rpc('global_leaderboard', { p_limit: 50 });
+        if (!alive || error || !Array.isArray(data)) return;
+        const rows: GlobalRow[] = [];
+        for (const r of data as unknown[]) {
+          if (typeof r !== 'object' || r === null) continue;
+          const rec = r as Record<string, unknown>;
+          if (typeof rec.display_name !== 'string' || !rec.display_name.trim()) continue;
+          rows.push({
+            displayName: rec.display_name.trim().slice(0, 40),
+            memorisedAyahs: typeof rec.memorised_ayahs === 'number' ? rec.memorised_ayahs : 0,
+            currentStreak: typeof rec.current_streak === 'number' ? rec.current_streak : 0,
+            longestStreak: typeof rec.longest_streak === 'number' ? rec.longest_streak : 0,
+          });
+        }
+        setGlobalRows(rows);
+      } catch {
+        /* RPC missing / offline / unconfigured: board stays empty. */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const persist = useCallback((next: GroupChallenge[]) => {
     saveChallenges(next);
@@ -487,6 +534,35 @@ export default function ChallengesClient() {
             {t('chal.joinWithCode')}
           </button>
         </div>
+      </section>
+
+      {/* Global leaderboard — DRAFT, launches empty. The RPC behind it
+          (migration 0002) is not applied yet, so until it is reviewed
+          and applied this always shows the empty state below. No names
+          are invented or seeded; rows appear only for members who
+          choose to appear, once the opt-in exists. */}
+      <section aria-labelledby="global-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
+        <h2 id="global-heading" className="text-xl font-bold text-[#102E26]">{t('chal.globalLeaderboard')}</h2>
+        <p className="mt-1 text-sm text-[#5b6b62]">{t('chal.globalNote')}</p>
+        {globalRows.length === 0 ? (
+          <p className="mt-4 rounded-xl bg-[#E4FFF2] px-4 py-3 text-sm leading-relaxed text-[#102E26]">
+            {t('chal.globalEmpty')}
+          </p>
+        ) : (
+          <ol className="mt-4 space-y-2">
+            {globalRows.map((r, i) => (
+              <li key={`${r.displayName}-${i}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E5E7EB] px-4 py-3 text-sm">
+                <span className="font-bold text-[#102E26]">
+                  <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#E4FFF2] text-xs font-bold">{i + 1}</span>
+                  {r.displayName}
+                </span>
+                <span className="text-[#5b6b62]">
+                  {r.memorisedAyahs} {t('chal.ayahsOpt')} · {t('chal.globalStreak')} {r.currentStreak}
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
       </section>
     </div>
   );
