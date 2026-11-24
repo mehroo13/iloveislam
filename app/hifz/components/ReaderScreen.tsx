@@ -1033,24 +1033,45 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     playingWordKeyRef.current = null;
     setPlayingWordKey(null);
     audio.src = `${AUDIO_BASE}${item.url}`;
-    audio
-      .play()
-      .then(() => {
-        if (playRunRef.current === run) setPlay('playing');
-      })
-      .catch((err: unknown) => {
-        if (playRunRef.current !== run) return;
-        if ((err as { name?: string })?.name === 'NotAllowedError') {
-          // Autoplay blocked (the fetch outlasted the tap's
-          // activation): stop and ask for another tap instead of
-          // silently skipping through the whole queue.
-          stopPlayback();
-          showPlayError('Audio was blocked — please tap Play again.');
-        } else {
+    // One play attempt for this clip. Two rejections are NOT "unplayable":
+    // AbortError means the play was cut short by a pause (the user paused
+    // while this clip was still loading) or by a superseding skip — never
+    // skip on it, or the pause silently un-pauses itself and the next
+    // "resume" tap pauses again instead. NotSupportedError can mean the
+    // element still holds the PREVIOUS clip's error while the new src
+    // loads: retry once shortly; if that fails too, the error event owns
+    // the skip, so the retry must not skip on its own (or one bad clip
+    // would be skipped twice).
+    const attemptPlay = (isRetry: boolean) => {
+      audio
+        .play()
+        .then(() => {
+          if (playRunRef.current === run) setPlay('playing');
+        })
+        .catch((err: unknown) => {
+          if (playRunRef.current !== run) return;
+          const name = (err as { name?: string })?.name;
+          if (name === 'AbortError') return;
+          if (name === 'NotAllowedError') {
+            // Autoplay blocked (the fetch outlasted the tap's
+            // activation): stop and ask for another tap instead of
+            // silently skipping through the whole queue.
+            stopPlayback();
+            showPlayError('Audio was blocked — please tap Play again.');
+            return;
+          }
+          if (name === 'NotSupportedError' && !isRetry) {
+            window.setTimeout(() => {
+              if (playRunRef.current === run && playStateRef.current !== 'paused') attemptPlay(true);
+            }, 700);
+            return;
+          }
+          if (isRetry) return; // the error event owns the skip from here
           // Unplayable clip — skip to the next ayah, never stall.
           playNextRef.current();
-        }
-      });
+        });
+    };
+    attemptPlay(false);
   }, [stopPlayback, setPlay, showPlayError]);
   playNextRef.current = playNext;
 
@@ -1176,6 +1197,21 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       playNextRef.current();
     };
     const onError = () => {
+      // A clip that fails while paused must not restart the audio by
+      // itself: point the element at the next ayah and stay paused, so
+      // Resume plays it instead of the player resuming on its own.
+      if (playStateRef.current === 'paused') {
+        const item = playQueueRef.current.shift();
+        if (!item) {
+          stopPlayback();
+          return;
+        }
+        playCurrentRef.current = item;
+        playingWordKeyRef.current = null;
+        setPlayingWordKey(null);
+        audio.src = `${AUDIO_BASE}${item.url}`;
+        return;
+      }
       playNextRef.current();
     };
     audio.addEventListener('timeupdate', onTime);
