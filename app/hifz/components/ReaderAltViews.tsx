@@ -21,6 +21,7 @@ import { type MushafVerse } from '../lib/fetch';
 import { verseDisplayWords } from '../lib/reader-words';
 import {
   mistakeForKeys,
+  type PeekInfo,
   type ReaderMistake,
 } from '../lib/reader-mistakes';
 import ReaderSurahHeader from './ReaderSurahHeader';
@@ -95,6 +96,18 @@ function AyahWords({
  *  also fires pointer events on the way to turning the page) must not.
  *  Record the pointer-down position, then only accept clicks that
  *  moved less than ~12px. */
+/** Peek info for one verse (Phase 6): the verse + its first three
+ *  spoken words, for the test-mode mistake row. */
+function versePeekInfo(v: MushafVerse): PeekInfo {
+  const [sidStr, ayahStr] = v.verse_key.split(':');
+  const snippet = v.words
+    .filter((w) => w.char_type_name !== 'end')
+    .slice(0, 3)
+    .map((w) => w.text_uthmani ?? '')
+    .join(' ');
+  return { surah: Number(sidStr), ayah: Number(ayahStr), display: snippet };
+}
+
 export function useTapGuard() {
   const pos = useRef<{ x: number; y: number } | null>(null);
   return {
@@ -160,7 +173,10 @@ export function ReaderTextMode({
   hideVerses: boolean;
   /** Keys of revealed verses: `V${verse_key}`. */
   revealed: ReadonlySet<string>;
-  onReveal: (key: string) => void;
+  /** Tap handler for a hidden verse (tap-to-peek). The second arg
+   *  is the peek info (verse + its first words) so the reader can
+   *  log the peek in a test take (Phase 6). */
+  onReveal: (key: string, info?: PeekInfo) => void;
   /** Font size in rem. */
   textSize: number;
   onTextSizeChange: (n: number) => void;
@@ -218,7 +234,7 @@ export function ReaderTextMode({
                 onClick={
                   hidden
                     ? (e) => {
-                        if (guard.ok(e)) onReveal(key);
+                        if (guard.ok(e)) onReveal(key, versePeekInfo(v));
                       }
                     : undefined
                 }
@@ -270,7 +286,10 @@ export function ReaderTranslationMode({
   verses: MushafVerse[];
   hideVerses: boolean;
   revealed: ReadonlySet<string>;
-  onReveal: (key: string) => void;
+  /** Tap handler for a hidden verse (tap-to-peek). The second arg
+   *  is the peek info (verse + its first words) so the reader can
+   *  log the peek in a test take (Phase 6). */
+  onReveal: (key: string, info?: PeekInfo) => void;
   /** Words spoken correctly this take (Phase 3): engine keys
    *  `surah:ayah:word` (1-based). */
   highlightedWords?: ReadonlySet<string>;
@@ -329,7 +348,7 @@ export function ReaderTranslationMode({
                   onClick={
                     hidden
                       ? (e) => {
-                          if (guard.ok(e)) onReveal(key);
+                          if (guard.ok(e)) onReveal(key, versePeekInfo(v));
                         }
                       : undefined
                   }

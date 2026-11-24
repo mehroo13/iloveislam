@@ -22,6 +22,14 @@
 // button; recognised words are console.logged and kept in state for
 // Phase 3 highlighting. Tilawa tracks the declared passage, so the
 // "transcript" is the expected words it locked onto. No bottom tab bar.
+//
+// Phase 6 (Testing Mode): a take that starts with Hide Verses on is
+// a memorisation test — the text stays blurred while the engine
+// tracks underneath, a tap on a blurred line/verse peeks AND logs a
+// 'peek' mistake (peeks count in the score — see the Phase 6 report),
+// and on stop the text unblurs and a score popup shows the engine
+// accuracy + the mistake count (word mistakes + peeks). A normal
+// visible take shows no popup.
 
 'use client';
 
@@ -39,8 +47,8 @@ import ReaderMistakes from './ReaderMistakes';
 import { ReaderTextMode, ReaderTranslationMode } from './ReaderAltViews';
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { readerWordKey } from '../lib/reader-words';
-import { saveReaderSession, surahName } from '../lib/reader-sessions';
-import { type ReaderMistake } from '../lib/reader-mistakes';
+import { MIN_READER_SESSION_MS, saveReaderSession, surahName } from '../lib/reader-sessions';
+import { type PeekInfo, type ReaderMistake } from '../lib/reader-mistakes';
 import {
   loadEngine,
   engineSupport,
@@ -253,6 +261,18 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
    * text/translation views. */
   const [hideVerses, setHideVerses] = useState(false);
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
+  /* Phase 6 (Testing Mode): refs the mic callbacks read without
+   * stale closures. `hideVersesRef` mirrors the toggle; `testTakeRef`
+   * is true while the live take started with the text hidden (a
+   * memorisation test); `peekMapRef` holds the peeks logged this
+   * take, keyed `peek:…` — the mistakeMap state alone cannot be
+   * read from stopMic's stable callback. */
+  const hideVersesRef = useRef(false);
+  useEffect(() => {
+    hideVersesRef.current = hideVerses;
+  }, [hideVerses]);
+  const testTakeRef = useRef(false);
+  const peekMapRef = useRef(new Map<string, ReaderMistake>());
   /* Page bookmark, persisted in the shared bookmarks store. */
   const [bookmarked, setBookmarked] = useState(false);
   useEffect(() => {
@@ -309,12 +329,40 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     );
     setBookmarked(!exists);
   }, [page]);
-  const reveal = useCallback((key: string) => {
+  const reveal = useCallback((key: string, info?: PeekInfo) => {
     setRevealed((r) => {
       const next = new Set(r);
       next.add(key);
       return next;
     });
+    // Phase 6 — peek logging: a tap on a blurred line/verse DURING a
+    // live test take (mic recording, text hidden at take start) is a
+    // peek — the reciter needed help, so it joins the mistake list
+    // with kind 'peek' and counts in the live count and the final
+    // score. A peek outside a test take (browsing with hidden verses,
+    // or a normal visible take) is not a mistake and is not logged.
+    // DECISION: a peek counts as a mistake in the score. Mehran can
+    // redirect this (e.g. peeks shown but not counted) — see the
+    // Phase 6 report.
+    if (info && micStateRef.current === 'recording' && testTakeRef.current) {
+      const peekKey = `peek:${key}`;
+      const entry: ReaderMistake = {
+        key: peekKey,
+        surah: info.surah,
+        ayah: info.ayah,
+        word: 0,
+        display: info.display,
+        type: 'peek',
+      };
+      peekMapRef.current.set(peekKey, entry);
+      setMistakeMap((prev) => {
+        if (prev.has(peekKey)) return prev;
+        const next = new Map(prev);
+        next.set(peekKey, entry);
+        return next;
+      });
+      console.log('[reader-mic] peek:', peekKey, info.display);
+    }
   }, []);
   const revealedLines = useMemo(() => {
     const out = new Set<number>();
@@ -383,6 +431,15 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   /** The current take's mistakes in passage order, for the modal. */
   const mistakesList = useMemo(() => [...mistakeMap.values()], [mistakeMap]);
   const mistakeCount = mistakeMap.size;
+  /** Phase 6 — the finished test take's score popup. Only set for a
+   *  test take that counts (audio heard, ≥ 3 s); a normal visible
+   *  take never shows it. Cleared on a new take and on page change. */
+  const [testScore, setTestScore] = useState<{
+    accuracy: number;
+    mistakes: number;
+    peeks: number;
+    wordMistakes: number;
+  } | null>(null);
   const [micToast, setMicToast] = useState<string | null>(null);
   const engineRef = useRef<RecitationEngine | null>(null);
   const engineStateRef = useRef<'idle' | 'loading' | 'ready' | 'failed' | 'unsupported'>('idle');
@@ -519,7 +576,12 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         // observed) count as missed even when the checker never
         // confirmed them live; graced words (tracker blind spots)
         // do not. The red highlights persist after stop for review.
+        // Phase 6: peeks logged during a test take survive the stop —
+        // they are merged in front of the word mistakes (passage
+        // order is not defined for a peek, which covers a whole
+        // line/verse).
         const finalMistakes = new Map<string, ReaderMistake>();
+        for (const [k, m] of peekMapRef.current) finalMistakes.set(k, m);
         for (const w of result.words) {
           if (w.status === 'wrong' || w.status === 'missed') {
             const k = readerWordKey(w.surah, w.ayah, w.word);
@@ -547,6 +609,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         // AudioContext from an out-of-gesture prepare on first use):
         // leave the message up so the user can read it — the retry tap
         // runs in-gesture with the engine already loaded.
+        testTakeRef.current = false;
         setMic('idle');
         setMicToast("Microphone isn't sending audio — please tap the mic and try again.");
         micTimerRef.current = window.setTimeout(() => setMicToast(null), 4000);
@@ -562,6 +625,9 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         const mistakeWords = result.words
           .filter((w) => w.status === 'wrong' || w.status === 'missed')
           .map((w) => w.display);
+        // Phase 6: peeks count as mistakes, so they join the saved
+        // record's count and word list.
+        const peekLabels = [...peekMapRef.current.values()].map((m) => `Peek: Ayah ${m.ayah}`);
         const saved = saveReaderSession({
           surah: meta.surah,
           fromAyah: meta.fromAyah,
@@ -572,6 +638,8 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           missed: result.missedCount,
           mistakeWords,
           micHeardAudio: result.micHeardAudio,
+          peeks: peekMapRef.current.size,
+          peekLabels,
         });
         if (saved) {
           console.log('[reader-mic] session saved:', {
@@ -585,6 +653,39 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           console.log('[reader-mic] session not saved: take too short or no audio heard');
         }
       }
+      // Phase 6 — test score: a take that started with the text
+      // hidden and still has it hidden at stop is a memorisation
+      // test. When it counts as a session (audio heard, ≥ 3 s),
+      // unblur the text so the green/red review is visible, and
+      // show the score popup: accuracy from the engine result,
+      // mistake count = word mistakes + peeks. A normal visible take
+      // shows no popup; a dead or too-short take shows none either
+      // (an accidental tap should not pop a score). The flag is
+      // cleared so a later stop cannot re-show the score.
+      if (
+        result &&
+        testTakeRef.current &&
+        hideVersesRef.current &&
+        result.micHeardAudio &&
+        result.durationMs >= MIN_READER_SESSION_MS
+      ) {
+        const wordMistakes = result.words.filter((w) => w.status === 'wrong' || w.status === 'missed').length;
+        const peekCount = peekMapRef.current.size;
+        const accuracy = result.reachedCount > 0 ? (result.correctCount / result.reachedCount) * 100 : 0;
+        setHideVerses(false);
+        setTestScore({
+          accuracy: Math.round(accuracy),
+          mistakes: wordMistakes + peekCount,
+          peeks: peekCount,
+          wordMistakes,
+        });
+        console.log('[reader-mic] test score:', {
+          accuracy: Math.round(accuracy),
+          mistakes: wordMistakes + peekCount,
+          peeks: peekCount,
+        });
+      }
+      testTakeRef.current = false;
       micTimerRef.current = window.setTimeout(() => {
         setMic('idle');
         setMicToast(null);
@@ -670,6 +771,14 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     setHighlightedWords(new Set());
     setMistakeMap(new Map());
     setMistakeTooltip(null);
+    // Phase 6: a take that starts with the text hidden is a
+    // memorisation test. Re-hide anything peeked in an earlier take
+    // so the test is fair, clear the old score, and start a fresh
+    // peek log.
+    testTakeRef.current = hideVersesRef.current;
+    peekMapRef.current.clear();
+    setTestScore(null);
+    if (testTakeRef.current) setRevealed(new Set());
     const session = engine.startSession({
       surah: expected.surah,
       fromAyah: expected.fromAyah,
@@ -790,6 +899,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     setHighlightedWords(new Set()); // the new page starts unhighlighted
     setMistakeMap(new Map()); // and with no red words
     setMistakeTooltip(null);
+    setTestScore(null); // and with no score popup
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
@@ -1111,7 +1221,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                   zoom={scale * shrink}
                   hideVerses={hideVerses}
                   revealedLines={revealedLines}
-                  onRevealLine={(ln) => reveal(`L${page}:${ln}`)}
+                  onRevealLine={(ln, info) => reveal(`L${page}:${ln}`, info)}
                   highlightedWords={highlightedWords}
                   mistakes={mistakeMap}
                   onMistakeWordClick={openMistakeTooltip}
@@ -1305,6 +1415,74 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
             <p className="pt-1 text-[13px] leading-snug" style={{ color: INK }}>
               {surahName(mistakeTooltip.mistake.surah)} · Ayah {mistakeTooltip.mistake.ayah}
             </p>
+          </div>
+        </>
+      )}
+
+      {/* Test score popup (Phase 6): after a memorisation test (a
+          take that started with the text hidden), the text is
+          unblurred and the score shows — accuracy from the engine
+          result, mistake count = word mistakes + peeks. Dismissible
+          by backdrop, X, or Done; "Review mistakes" dismisses it
+          and opens the Mistakes modal. It never appears for a normal
+          visible take. */}
+      {testScore && (
+        <>
+          <button
+            type="button"
+            aria-label="Close test score"
+            data-testid="test-score-backdrop"
+            onClick={() => setTestScore(null)}
+            className="fixed inset-0 z-50 cursor-default"
+            style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+          />
+          <div
+            role="dialog"
+            aria-label="Test score"
+            data-testid="test-score-popup"
+            className="fixed left-1/2 top-1/2 z-50 w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-3xl bg-white px-6 py-6 text-center shadow-2xl"
+          >
+            <p className="text-[13px] font-bold uppercase tracking-wide" style={{ color: '#16A34A' }}>
+              Test complete
+            </p>
+            <p data-testid="test-score-accuracy" className="pt-2 text-[30px] font-bold leading-tight" style={{ color: INK }}>
+              Accuracy: {testScore.accuracy}%
+            </p>
+            <p data-testid="test-score-mistakes" className="pt-1 text-[16px] font-semibold" style={{ color: testScore.mistakes > 0 ? '#DC2626' : '#16A34A' }}>
+              {testScore.mistakes === 0
+                ? 'No mistakes — well done!'
+                : `${testScore.mistakes} Mistake${testScore.mistakes === 1 ? '' : 's'}`}
+            </p>
+            {testScore.peeks > 0 && (
+              <p className="pt-1 text-[13px] leading-snug" style={{ color: MUTED }}>
+                Including {testScore.peeks} peek{testScore.peeks === 1 ? '' : 's'} — you looked at the text{' '}
+                {testScore.peeks === 1 ? 'once' : `${testScore.peeks} times`}.
+              </p>
+            )}
+            <div className="flex gap-2 pt-5">
+              {testScore.mistakes > 0 && (
+                <button
+                  type="button"
+                  data-testid="test-score-review"
+                  onClick={() => {
+                    setTestScore(null);
+                    setOpenModal('mistakes');
+                  }}
+                  className="h-11 flex-1 rounded-full border-[1.5px] border-[#111827] bg-white text-[15px] font-bold"
+                  style={{ color: INK }}
+                >
+                  Review mistakes
+                </button>
+              )}
+              <button
+                type="button"
+                data-testid="test-score-done"
+                onClick={() => setTestScore(null)}
+                className="h-11 flex-1 rounded-full bg-[#16A34A] text-[15px] font-bold text-white"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </>
       )}

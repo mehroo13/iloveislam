@@ -33,6 +33,7 @@ import {
 } from '../lib/reader-words';
 import {
   mistakeForKeys,
+  type PeekInfo,
   type ReaderMistake,
 } from '../lib/reader-mistakes';
 import ReaderSurahHeader from './ReaderSurahHeader';
@@ -98,7 +99,10 @@ interface ReaderPageProps {
   hideVerses?: boolean;
   /** Line numbers (Madani line_no on this page) already revealed. */
   revealedLines?: ReadonlySet<number>;
-  onRevealLine?: (lineNo: number) => void;
+  /** Tap handler for a hidden line (tap-to-peek). The second arg is
+   *  the peek info (first verse on the line + its first words) so
+   *  the reader can log the peek in a test take (Phase 6). */
+  onRevealLine?: (lineNo: number, info?: PeekInfo) => void;
   /** Words the reciter has said correctly this take (Phase 3):
    *  engine keys `surah:ayah:word` (1-based). Those words light up
    *  green; the set is owned by the parent (cleared on page change /
@@ -323,7 +327,20 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
 
     // A hidden line (Hide Verses mode, not yet peeked) blurs until
     // tapped; the tap guard keeps a swipe from revealing it.
-    // (`hidden` is computed above, before the word loop.)
+    // (`hidden` is computed above, before the word loop.) The peek
+    // info (Phase 6) is the first verse on the line + its first
+    // words, so the reader can log the peek in a test take.
+    const peekInfo: PeekInfo | undefined = (() => {
+      const first = display.find((w) => !w.isEnd);
+      if (!first) return undefined;
+      const [sidStr, ayahStr] = first.verseKey.split(':');
+      const snippet = display
+        .filter((w) => !w.isEnd)
+        .slice(0, 3)
+        .map((w) => w.text)
+        .join(' ');
+      return { surah: Number(sidStr), ayah: Number(ayahStr), display: snippet };
+    })();
     blocks.push(
       <p
         key={`l-${lineNo}`}
@@ -335,7 +352,7 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
         onClick={
           hidden
             ? (e) => {
-                if (tapGuard.ok(e)) onRevealLine?.(lineNo);
+                if (tapGuard.ok(e)) onRevealLine?.(lineNo, peekInfo);
               }
             : undefined
         }

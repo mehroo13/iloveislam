@@ -59,6 +59,13 @@ export interface ReaderSessionInput {
   mistakeWords: string[];
   /** True when the mic demonstrably heard sound during the take. */
   micHeardAudio: boolean;
+  /** Phase 6: test-mode peeks this take (taps on blurred lines /
+   *  verses while reciting from memory). A peek counts as a mistake
+   *  — see the Phase 6 report for the decision — so it is added to
+   *  the saved `mistakes` count, with a label per peek. */
+  peeks?: number;
+  /** One label per peek, e.g. "Peek: Ayah 4". */
+  peekLabels?: string[];
 }
 
 /** Surah number → display name, e.g. 1 → "Al-Fatihah". */
@@ -89,8 +96,10 @@ export function saveReaderSession(input: ReaderSessionInput): CoachSessionRecord
       // Same convention as the coach: 0 when the tracker reached no
       // word (nothing was confirmed correct).
       accuracy: input.reached > 0 ? (input.correct / input.reached) * 100 : 0,
-      mistakes: input.missed,
-      mistakeWords: [...input.mistakeWords],
+      // Peeks count as mistakes (Phase 6 decision), so they join the
+      // count and the word list.
+      mistakes: input.missed + (input.peeks ?? 0),
+      mistakeWords: [...input.mistakeWords, ...(input.peekLabels ?? [])],
     };
     recordCoachSession(record);
     // Feed the shared progress store (minutes today), so the old hub

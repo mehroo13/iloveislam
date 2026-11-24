@@ -9,6 +9,15 @@
 // highlighting — so a mistake paints exactly the word it is about,
 // never a neighbour.
 //
+// Phase 6 (Testing Mode): a peek — tapping a blurred line/verse to
+// reveal it during a test take — is also a mistake, kind `peek`.
+// Its key is `peek:L{page}:{line}` (Madani page) or `peek:V{surah}:{ayah}`
+// (text/translation views), `word` is 0 (a whole verse/line, not one
+// word), and `display` is the first few words of the peeked text. A
+// peek key never matches a word span, so it never paints a word red;
+// it only shows in the Mistakes modal, the live count, the final
+// score, and the saved session.
+//
 // HONESTY: Tilawa is a tracker, not a transcriber. It knows the
 // expected word and that the user said something else (or skipped
 // it), but it cannot supply the actual spoken word — the adapter
@@ -19,23 +28,36 @@
 // spoken words, and it is not wired up — see the header of
 // ReaderScreen's mistake handling.
 
-/** The two word-level mistake kinds the Tilawa checker can confirm. */
-export type ReaderMistakeType = 'wrong' | 'missed';
+/** The mistake kinds: word-level (Tilawa checker) + test-mode peek. */
+export type ReaderMistakeType = 'wrong' | 'missed' | 'peek';
 
 export interface ReaderMistake {
-  /** Engine word key `surah:ayah:word` (1-based word in the ayah). */
+  /** Engine word key `surah:ayah:word` (1-based word in the ayah),
+   *  or a peek key `peek:L{page}:{line}` / `peek:V{surah}:{ayah}`. */
   key: string;
   surah: number;
   ayah: number;
-  /** 1-based word index inside the ayah. */
+  /** 1-based word index inside the ayah; 0 for a peek (whole
+   *  verse/line, not a single word). */
   word: number;
-  /** Display form of the EXPECTED word (Uthmani, as rendered). */
+  /** Display form of the EXPECTED word (Uthmani, as rendered) — or,
+   *  for a peek, the first few words of the peeked text. */
   display: string;
   type: ReaderMistakeType;
 }
 
+/** Info about a peeked line/verse, passed up from the page renderer
+ *  so the reader can log the peek in the test-mode mistake list. */
+export interface PeekInfo {
+  surah: number;
+  ayah: number;
+  /** First few words of the peeked text, for the mistake row. */
+  display: string;
+}
+
 /** Badge text for a mistake kind. */
 export function mistakeTypeLabel(type: ReaderMistakeType): string {
+  if (type === 'peek') return 'Peeked';
   return type === 'wrong' ? 'Wrong word' : 'Skipped word';
 }
 
