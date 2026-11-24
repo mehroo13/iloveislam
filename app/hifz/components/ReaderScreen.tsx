@@ -263,7 +263,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         (pageFootRef.current?.offsetHeight ?? 0) +
         28; // pt-3 + pb-4 + gaps
       const avail = main.clientHeight - chrome;
-      const h = frame.scrollHeight;
+      // getBoundingClientRect (not scrollHeight): scrollHeight ignores
+      // the CSS zoom on the frame and reports the unzoomed height,
+      // which over-shrinks dense pages to a narrow column.
+      const h = frame.getBoundingClientRect().height;
       if (h <= 0 || avail <= 0) return;
       if (h > avail) {
         const next = Math.max(0.3, Math.min(1, shrinkRef.current * (avail / h)));
