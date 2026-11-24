@@ -138,7 +138,7 @@ function IconLantern() {
 /* Streak ring: grey track + an orange arc at the top, flame centre. */
 function StreakRing() {
   return (
-    <svg viewBox="0 0 64 64" className="h-14 w-14" aria-hidden="true">
+    <svg viewBox="0 0 64 64" className="h-[72px] w-[72px]" aria-hidden="true">
       <defs>
         <linearGradient id="fireGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#FBBF24" />
@@ -171,7 +171,7 @@ function StreakRing() {
  * sparkles on black, as in the Step 5 banner decoration. */
 function HighlightsGraphic() {
   return (
-    <div className="pointer-events-none relative h-[104px] overflow-hidden" aria-hidden="true">
+    <div className="pointer-events-none relative h-[92px] overflow-hidden" aria-hidden="true">
       <svg viewBox="0 0 220 104" className="absolute inset-0 h-full w-full" fill="none" stroke="#FFFFFF" strokeWidth="1" opacity="0.5">
         <path d="M150 52 L20 4" />
         <path d="M150 52 L8 30" />
@@ -179,14 +179,14 @@ function HighlightsGraphic() {
         <path d="M150 52 L8 74" />
         <path d="M150 52 L20 100" />
       </svg>
-      <div className="absolute right-[18px] top-[10px] flex h-[20px] w-[86px] -rotate-[10deg] items-center justify-center rounded-full bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] shadow-md">
-        <span className="h-[6px] w-[44px] rounded-full bg-white/60" />
+      <div className="absolute right-[18px] top-[10px] flex h-[20px] w-[100px] -rotate-[10deg] items-center justify-center rounded-full bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] shadow-md">
+        <span className="h-[6px] w-[52px] rounded-full bg-white/60" />
       </div>
-      <div className="absolute left-[18px] top-[36px] flex h-[20px] w-[86px] rotate-[8deg] items-center justify-center rounded-full bg-gradient-to-r from-[#A855F7] to-[#C084FC] shadow-md">
-        <span className="h-[6px] w-[44px] rounded-full bg-white/60" />
+      <div className="absolute left-[18px] top-[36px] flex h-[20px] w-[100px] rotate-[8deg] items-center justify-center rounded-full bg-gradient-to-r from-[#A855F7] to-[#C084FC] shadow-md">
+        <span className="h-[6px] w-[52px] rounded-full bg-white/60" />
       </div>
-      <div className="absolute right-[30px] top-[66px] flex h-[20px] w-[86px] -rotate-[8deg] items-center justify-center rounded-full bg-gradient-to-r from-[#F472B6] to-[#FB7185] shadow-md">
-        <span className="h-[6px] w-[44px] rounded-full bg-white/60" />
+      <div className="absolute right-[30px] top-[66px] flex h-[20px] w-[100px] -rotate-[8deg] items-center justify-center rounded-full bg-gradient-to-r from-[#F472B6] to-[#FB7185] shadow-md">
+        <span className="h-[6px] w-[52px] rounded-full bg-white/60" />
       </div>
       <div className="absolute right-[6px] top-[44px] h-[22px] w-[22px] rounded-full bg-[#4ADE80]" />
       <IconSparkle className="absolute left-[8px] top-[8px] h-3.5 w-3.5" />
@@ -207,19 +207,19 @@ function DayPill({ day }: { day: string }) {
   const active = day === ACTIVE_DAY;
   return (
     <div
-      className={`flex flex-1 flex-col items-center gap-1.5 rounded-xl px-0.5 py-2 ${active ? 'bg-[#DBFFF4]' : ''}`}
+      className={`flex flex-1 flex-col items-center gap-2 rounded-xl px-0.5 py-2.5 ${active ? 'bg-[#DBFFF4]' : ''}`}
     >
       <span className={`text-[11px] leading-none ${active ? 'font-bold' : ''}`} style={{ color: active ? GREEN : MUTED }}>
         {day}
       </span>
       {active ? (
-        <span className="flex h-5 w-5 rotate-45 items-center justify-center rounded-[4px] bg-[#22C55E]">
+        <span className="flex h-[22px] w-[22px] rotate-45 items-center justify-center rounded-[4px] bg-[#22C55E]">
           <span className="-rotate-45">
             <IconCheck />
           </span>
         </span>
       ) : (
-        <span className="h-5 w-5 rotate-45 rounded-[4px] border-[1.5px] border-dashed border-[#9CA3AF]" />
+        <span className="h-[22px] w-[22px] rotate-45 rounded-[4px] border-[1.5px] border-dashed border-[#9CA3AF]" />
       )}
     </div>
   );
@@ -318,14 +318,14 @@ export default function ReaderDashboard({
         {/* Streak card. */}
         <section className="mt-3 flex items-stretch gap-2 rounded-2xl border border-[#E5E7EB] bg-white p-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
           {/* Ring + count. */}
-          <div className="flex w-[62px] shrink-0 flex-col items-center justify-center gap-1">
+          <div className="flex w-[76px] shrink-0 flex-col items-center justify-center gap-1">
             <StreakRing />
             <p className="text-[15px] font-bold leading-none" style={{ color: '#F97316' }}>
               1 Day
             </p>
           </div>
           {/* Week panel. */}
-          <div className="flex min-w-0 flex-1 flex-col justify-center rounded-xl px-2 py-2" style={{ backgroundColor: '#E9FFF3' }}>
+          <div className="flex min-w-0 flex-1 flex-col justify-center rounded-xl px-2 py-3" style={{ backgroundColor: '#E9FFF3' }}>
             <div className="flex gap-0.5">
               {WEEK.map((d) => (
                 <DayPill key={d} day={d} />
@@ -342,12 +342,16 @@ export default function ReaderDashboard({
           </div>
         </section>
 
-        {/* Promo card. */}
-        <section className="mt-4 flex flex-col items-center rounded-2xl border border-[#E5E7EB] bg-white px-5 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-          <IconLantern />
-          <p className="mt-3 text-center text-[17px] font-bold leading-snug" style={{ color: INK }}>
-            Memorize the Quran better and faster than ever before!
-          </p>
+        {/* Promo card. The button spans the full card width, as in
+            the reference — so the card has no side padding; the icon
+            and text carry their own. */}
+        <section className="mt-4 flex flex-col items-center rounded-2xl border border-[#E5E7EB] bg-white pb-4 pt-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+          <div className="flex flex-col items-center px-5">
+            <IconLantern />
+            <p className="mt-3 text-center text-[17px] font-bold leading-snug" style={{ color: INK }}>
+              Memorize the Quran better and faster than ever before!
+            </p>
+          </div>
           <button
             type="button"
             className="mt-4 h-10 w-full rounded-full text-[17px] font-bold shadow-sm"
@@ -366,13 +370,13 @@ export default function ReaderDashboard({
             Highlights
           </h2>
           <div className="mt-2 flex gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <article className="flex h-[228px] w-[220px] shrink-0 flex-col overflow-hidden rounded-2xl bg-black p-3.5">
+            <article className="flex h-[228px] w-[220px] shrink-0 flex-col overflow-hidden rounded-2xl bg-black p-3">
               <p className="text-[13px] font-semibold leading-snug text-white">Product 📱 - Testing Mode</p>
               <div className="mt-2 flex-1">
                 <HighlightsGraphic />
               </div>
               <p className="text-[15px] font-bold leading-snug text-white">New Feature</p>
-              <p className="mt-0.5 text-[13px] leading-snug" style={{ color: '#9CA3AF' }}>
+              <p className="mt-0.5 text-[12px] leading-snug" style={{ color: '#9CA3AF' }}>
                 Test your memorization randomly from anywhere in the Quran.
               </p>
               <div className="mt-2 flex items-end justify-between">
