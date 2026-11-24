@@ -28,6 +28,7 @@ import {
   type TajweedSurah,
 } from '../lib/tajweed';
 import ReaderSurahHeader from './ReaderSurahHeader';
+import { useTapGuard } from './ReaderAltViews';
 
 const ARABIC_INDIC_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 function toArabicIndic(n: number): string {
@@ -81,13 +82,20 @@ interface ReaderPageProps {
   /** Called with the page's longest line's natural width (px, at the
    *  2.1rem line font), so the parent can size the frame. */
   onMeasure: (maxNatural: number) => void;
+  /** Hide Verses mode (Phase 1): when on, each ayah line is blurred
+   *  until tapped (tap-to-peek). */
+  hideVerses?: boolean;
+  /** Line numbers (Madani line_no on this page) already revealed. */
+  revealedLines?: ReadonlySet<number>;
+  onRevealLine?: (lineNo: number) => void;
 }
 
-export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasure }: ReaderPageProps) {
+export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasure, hideVerses, revealedLines, onRevealLine }: ReaderPageProps) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const measureRef = useRef<HTMLDivElement | null>(null);
   const onMeasureRef = useRef(onMeasure);
   onMeasureRef.current = onMeasure;
+  const tapGuard = useTapGuard();
 
   // Measure the longest line's natural width (from the data, with the
   // real font — independent of the filler's tatweel). Runs when the
@@ -254,8 +262,30 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
       }
     }
 
+    // A hidden line (Hide Verses mode, not yet peeked) blurs until
+    // tapped; the tap guard keeps a swipe from revealing it.
+    const hidden = !!hideVerses && !revealedLines?.has(lineNo);
     blocks.push(
-      <p key={`l-${lineNo}`} dir="rtl" lang="ar" translate="no" className={lineClass}>
+      <p
+        key={`l-${lineNo}`}
+        dir="rtl"
+        lang="ar"
+        translate="no"
+        className={lineClass}
+        onPointerDown={hidden ? tapGuard.down : undefined}
+        onClick={
+          hidden
+            ? (e) => {
+                if (tapGuard.ok(e)) onRevealLine?.(lineNo);
+              }
+            : undefined
+        }
+        style={
+          hidden
+            ? { filter: 'blur(7px)', cursor: 'pointer', userSelect: 'none' }
+            : undefined
+        }
+      >
         {lineContent}
       </p>,
     );

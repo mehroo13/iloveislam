@@ -5,12 +5,22 @@
 // settings), scrollable mushaf page, fixed bottom bar (Mistakes,
 // book, eye-off, glowing mic). Horizontal swipe (touch + mouse drag)
 // turns the page like a physical Mushaf; the top-bar pill updates.
-// Mic / Mistakes / book / eye are visual only in this step — no
-// recording logic, no navigation. No bottom tab bar.
+//
+// Phase 1 (live wiring): every top/bottom icon works. One modal open
+// at a time (a single openModal state). Hamburger → Dashboard, pill →
+// ChapterSheet, bookmark toggles a persisted page bookmark, search →
+// Search overlay, gift → Welcome overlay, gear → Settings, Mistakes
+// → mistakes modal (mock data), Book → Mushaf Layout sheet (Book /
+// Quran Text / Translation modes — persisted), eye-off → Hide Verses
+// (blur + tap-to-peek). The page carries a header row (surah left,
+// Juz/Hizb right) and a bottom-right page number, and a full Madani
+// page is fitted to the viewport height (whole-page reference).
+// The mic is still visual only — no recording logic yet. No bottom
+// tab bar.
 
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SURAH_FIRST_PAGE, MUSHAF_TOTAL_PAGES, surahsOnMushafPage } from '../mushaf';
 import type { ReaderPageData } from '../lib/reader-page';
 import ReaderPage from './ReaderPage';
@@ -19,6 +29,13 @@ import ReaderSearch from './ReaderSearch';
 import ReaderGift from './ReaderGift';
 import ReaderSettings from './ReaderSettings';
 import ReaderDashboard from './ReaderDashboard';
+import ReaderMushafLayout, { type ReaderLayoutMode } from './ReaderMushafLayout';
+import ReaderMistakes from './ReaderMistakes';
+import { ReaderTextMode, ReaderTranslationMode } from './ReaderAltViews';
+import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
+
+/** The one modal open at a time (Phase 1). */
+type ReaderModal = 'dashboard' | 'sheet' | 'search' | 'gift' | 'settings' | 'layout' | 'mistakes';
 
 const PAGE_BG = '#F7F7F5';
 const INK = '#111827';
@@ -73,10 +90,15 @@ function IconGear() {
     </svg>
   );
 }
-function IconBookmark() {
+function IconBookmark({ filled }: { filled?: boolean }) {
   return (
     <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
-      <path d="M6.5 3.5h11V21L12 16.5 6.5 21V3.5Z" fill="#9CA3AF" />
+      <path
+        d="M6.5 3.5h11V21L12 16.5 6.5 21V3.5Z"
+        fill={filled ? '#16A34A' : '#9CA3AF'}
+        stroke={filled ? '#16A34A' : 'none'}
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -122,13 +144,42 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const [designWidths, setDesignWidths] = useState<Record<number, number>>({});
   const [offset, setOffset] = useState(0);
   const [animating, setAnimating] = useState(false);
-  const [dashboardOpen, setDashboardOpen] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [giftOpen, setGiftOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  /* One modal open at a time (Phase 1): opening any modal closes
+   * all others. */
+  const [openModal, setOpenModal] = useState<ReaderModal | null>(null);
+  /* Reading layout (Mushaf Layout sheet), persisted across visits.
+   * Read after mount to avoid a server/client hydration mismatch. */
+  const [layoutMode, setLayoutMode] = useState<ReaderLayoutMode>('book');
+  const [textSize, setTextSize] = useState(1.6);
+  useEffect(() => {
+    try {
+      const v = window.localStorage.getItem('ili_reader_layout_v1');
+      if (v === 'text' || v === 'translation') setLayoutMode(v);
+      const s = Number(window.localStorage.getItem('ili_reader_text_size_v1'));
+      if (Number.isFinite(s) && s >= 1.2 && s <= 2.2) setTextSize(s);
+    } catch {
+      /* storage unavailable — defaults stand */
+    }
+  }, []);
+  /* Hide Verses mode + per-line/verse reveals. Reveal keys:
+   * `L{page}:{line}` for the Madani page, `V{verse_key}` for the
+   * text/translation views. */
+  const [hideVerses, setHideVerses] = useState(false);
+  const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
+  /* Page bookmark, persisted in the shared bookmarks store. */
+  const [bookmarked, setBookmarked] = useState(false);
+  useEffect(() => {
+    setBookmarked(loadBookmarks().some((b) => b.kind === 'page' && b.page === page));
+  }, [page]);
   const [contentWidth, setContentWidth] = useState(390);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const frameWrapRef = useRef<HTMLDivElement | null>(null);
+  const pageHeadRef = useRef<HTMLDivElement | null>(null);
+  const pageFootRef = useRef<HTMLDivElement | null>(null);
+  /* Fit-to-height shrink for the Madani page (whole-page reference):
+   * 1 normally; reduced only when the full page would overflow. */
+  const [shrink, setShrink] = useState(1);
+  const shrinkRef = useRef(1);
   const busyRef = useRef(false);
   const dragRef = useRef<{ startX: number; startY: number; active: boolean; pointerId: number | null }>({
     startX: 0,
@@ -142,6 +193,91 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   // Scale the design-width frame to the (phone-width) content area.
   // Capped at 1 so a short page never blows up on a wide screen.
   const scale = Math.max(0.3, Math.min(1, (contentWidth - 32) / designWidth));
+
+  /* Phase 1 helpers. */
+  const selectLayoutMode = useCallback((m: ReaderLayoutMode) => {
+    setLayoutMode(m);
+    try {
+      window.localStorage.setItem('ili_reader_layout_v1', m);
+    } catch {
+      /* storage unavailable */
+    }
+  }, []);
+  const changeTextSize = useCallback((n: number) => {
+    setTextSize(n);
+    try {
+      window.localStorage.setItem('ili_reader_text_size_v1', String(n));
+    } catch {
+      /* storage unavailable */
+    }
+  }, []);
+  const toggleBookmark = useCallback(() => {
+    const list = loadBookmarks();
+    const exists = list.some((b) => b.kind === 'page' && b.page === page);
+    saveBookmarks(
+      exists
+        ? list.filter((b) => !(b.kind === 'page' && b.page === page))
+        : [...list, { kind: 'page', page, addedAt: Date.now() }],
+    );
+    setBookmarked(!exists);
+  }, [page]);
+  const reveal = useCallback((key: string) => {
+    setRevealed((r) => {
+      const next = new Set(r);
+      next.add(key);
+      return next;
+    });
+  }, []);
+  const revealedLines = useMemo(() => {
+    const out = new Set<number>();
+    const prefix = `L${page}:`;
+    for (const k of revealed) {
+      if (k.startsWith(prefix)) {
+        const n = Number(k.slice(prefix.length));
+        if (Number.isFinite(n)) out.add(n);
+      }
+    }
+    return out;
+  }, [revealed, page]);
+
+  /* A new page (or layout) starts unshrunk; the fit check below
+   * shrinks only when the whole page would overflow the viewport. */
+  useEffect(() => {
+    shrinkRef.current = 1;
+    setShrink(1);
+  }, [page, layoutMode]);
+
+  /* Fit the whole Madani page in the viewport (whole-page reference:
+   * 15 lines + header row + page number, no vertical scroll). Runs
+   * whenever the frame resizes (fonts loading included). The zoom
+   * scales the frame linearly, so one or two passes converge. */
+  useEffect(() => {
+    if (layoutMode !== 'book') return;
+    const main = containerRef.current;
+    const frame = frameWrapRef.current;
+    if (!main || !frame) return;
+    const check = () => {
+      const chrome =
+        (pageHeadRef.current?.offsetHeight ?? 0) +
+        (pageFootRef.current?.offsetHeight ?? 0) +
+        28; // pt-3 + pb-4 + gaps
+      const avail = main.clientHeight - chrome;
+      const h = frame.scrollHeight;
+      if (h <= 0 || avail <= 0) return;
+      if (h > avail) {
+        const next = Math.max(0.3, Math.min(1, shrinkRef.current * (avail / h)));
+        if (Math.abs(next - shrinkRef.current) > 0.005) {
+          shrinkRef.current = next;
+          setShrink(next);
+        }
+      }
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(frame);
+    ro.observe(main);
+    return () => ro.disconnect();
+  }, [page, layoutMode, designWidth, scale]);
 
   // Track the content width (viewport, capped at phone width) so the
   // scale and the slide distance follow resizes / rotations.
@@ -297,50 +433,46 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       {/* Top navigation bar — raised above the chapter-sheet overlay
           while the sheet is open, so the top bar stays undimmed. */}
       <header
-        className={`relative flex shrink-0 items-center gap-2 border-b border-[#E8E8E4] px-3 py-2.5 ${sheetOpen ? 'z-50' : ''}`}
+        className={`relative flex shrink-0 items-center gap-2 border-b border-[#E8E8E4] px-3 py-2.5 ${openModal === 'sheet' ? 'z-50' : ''}`}
         style={{ backgroundColor: PAGE_BG }}
       >
         <button
           type="button"
           aria-label="Dashboard"
-          onClick={() => {
-            setSheetOpen(false);
-            setDashboardOpen(true);
-          }}
+          onClick={() => setOpenModal('dashboard')}
           className="flex h-10 w-10 shrink-0 items-center justify-center"
         >
           <IconMenu />
         </button>
-        <button
-          type="button"
-          aria-label="Chapters and Juz lists"
-          onClick={() => {
-            setDashboardOpen(false);
-            setSheetOpen(true);
-          }}
-          className="flex min-w-0 flex-1 items-center rounded-[12px] border border-[#D1D5DB] bg-white px-3.5 py-1.5 text-left"
-        >
-          <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 items-center rounded-[12px] border border-[#D1D5DB] bg-white px-3.5 py-1.5">
+          <button
+            type="button"
+            aria-label="Chapters and Juz lists"
+            onClick={() => setOpenModal('sheet')}
+            className="min-w-0 flex-1 text-left"
+          >
             <p className="truncate text-[15px] font-bold leading-tight" style={{ color: INK }}>
               {meta.surahName}
             </p>
             <p className="truncate text-[11.5px] leading-tight" style={{ color: MUTED }}>
               Page {page} | Juz {meta.juz} | Hizb {meta.hizb}
             </p>
-          </div>
-          <span className="ml-2 shrink-0">
-            <IconBookmark />
-          </span>
-        </button>
+          </button>
+          <button
+            type="button"
+            aria-label={bookmarked ? 'Remove bookmark for this page' : 'Bookmark this page'}
+            aria-pressed={bookmarked}
+            onClick={toggleBookmark}
+            className="ml-2 shrink-0"
+          >
+            <IconBookmark filled={bookmarked} />
+          </button>
+        </div>
         <div className="flex shrink-0 items-center">
           <button
             type="button"
             aria-label="Search"
-            onClick={() => {
-              setDashboardOpen(false);
-              setSheetOpen(false);
-              setSearchOpen(true);
-            }}
+            onClick={() => setOpenModal('search')}
             className="flex h-9 w-9 items-center justify-center"
           >
             <IconSearch />
@@ -348,12 +480,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           <button
             type="button"
             aria-label="Gifts"
-            onClick={() => {
-              setDashboardOpen(false);
-              setSheetOpen(false);
-              setSearchOpen(false);
-              setGiftOpen(true);
-            }}
+            onClick={() => setOpenModal('gift')}
             className="flex h-9 w-9 items-center justify-center"
           >
             <IconGift />
@@ -361,13 +488,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           <button
             type="button"
             aria-label="Settings"
-            onClick={() => {
-              setDashboardOpen(false);
-              setSheetOpen(false);
-              setSearchOpen(false);
-              setGiftOpen(false);
-              setSettingsOpen(true);
-            }}
+            onClick={() => setOpenModal('settings')}
             className="flex h-9 w-9 items-center justify-center"
           >
             <IconGear />
@@ -384,7 +505,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
       >
-        <div className="mx-auto flex min-h-full w-full max-w-[520px] flex-col justify-start pb-6 pt-32">
+        <div className="mx-auto flex min-h-full w-full max-w-[520px] flex-col justify-start pb-4 pt-3">
           <div
             className="w-full"
             style={{
@@ -392,15 +513,59 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
               transition: animating ? 'transform 280ms ease' : 'none',
             }}
           >
-            <div className="w-full" style={{ zoom: scale }}>
-              <ReaderPage
+            {/* Page header row (whole-page reference): surah name
+                left, Juz / Hizb right. */}
+            <div ref={pageHeadRef} className="flex items-center justify-between px-2 pb-2">
+              <span className="text-[15px] font-medium" style={{ color: INK }}>
+                {meta.surahName}
+              </span>
+              <span className="flex items-center gap-2 text-[15px]" style={{ color: INK }}>
+                <span>Juz {meta.juz}</span>
+                <svg viewBox="0 0 12 12" className="h-3 w-3" aria-hidden="true">
+                  <circle cx="6" cy="6" r="4.5" fill="none" stroke={INK} strokeWidth="1.2" />
+                  <circle cx="6" cy="6" r="1.4" fill={INK} />
+                </svg>
+                <span>Hizb {meta.hizb}</span>
+              </span>
+            </div>
+            {layoutMode === 'book' ? (
+              <div ref={frameWrapRef} className="w-full" style={{ zoom: scale * shrink }}>
+                <ReaderPage
+                  key={page}
+                  page={page}
+                  verses={data.verses}
+                  tajweed={data.tajweed}
+                  designWidth={designWidth}
+                  onMeasure={handleMeasure(page)}
+                  hideVerses={hideVerses}
+                  revealedLines={revealedLines}
+                  onRevealLine={(ln) => reveal(`L${page}:${ln}`)}
+                />
+              </div>
+            ) : layoutMode === 'text' ? (
+              <ReaderTextMode
                 key={page}
-                page={page}
                 verses={data.verses}
-                tajweed={data.tajweed}
-                designWidth={designWidth}
-                onMeasure={handleMeasure(page)}
+                hideVerses={hideVerses}
+                revealed={revealed}
+                onReveal={reveal}
+                textSize={textSize}
+                onTextSizeChange={changeTextSize}
               />
+            ) : (
+              <ReaderTranslationMode
+                key={page}
+                verses={data.verses}
+                hideVerses={hideVerses}
+                revealed={revealed}
+                onReveal={reveal}
+              />
+            )}
+            {/* Page number, bottom-right (whole-page reference). */}
+            <div ref={pageFootRef} className="flex justify-end px-2 pt-2">
+              <span className="text-[15px]" style={{ color: INK }}>
+                {page}
+              </span>
             </div>
           </div>
         </div>
@@ -414,6 +579,8 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         <div className="flex h-full items-center gap-2.5 px-4">
           <button
             type="button"
+            aria-label="Recent mistakes"
+            onClick={() => setOpenModal('mistakes')}
             className="flex h-11 items-center rounded-full border-[1.5px] border-[#111827] bg-white px-5 text-[15px] font-bold shadow-sm"
             style={{ color: INK }}
           >
@@ -421,15 +588,22 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           </button>
           <button
             type="button"
-            aria-label="Book"
+            aria-label="Mushaf Layout"
+            onClick={() => setOpenModal('layout')}
             className="flex h-11 w-11 items-center justify-center rounded-full border border-[#D1D5DB] bg-white shadow-sm"
           >
             <IconBook />
           </button>
           <button
             type="button"
-            aria-label="Hide translation"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-[#D1D5DB] bg-white shadow-sm"
+            aria-label={hideVerses ? 'Show verses' : 'Hide verses'}
+            aria-pressed={hideVerses}
+            onClick={() => setHideVerses((v) => !v)}
+            className="flex h-11 w-11 items-center justify-center rounded-full border shadow-sm"
+            style={{
+              borderColor: hideVerses ? '#16A34A' : '#D1D5DB',
+              backgroundColor: hideVerses ? '#F0FDF4' : '#FFFFFF',
+            }}
           >
             <IconEyeOff />
           </button>
@@ -452,42 +626,52 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           the back button returns to the reader. Its gear opens
           Settings; the Dashboard closes first. */}
       <ReaderDashboard
-        open={dashboardOpen}
-        onClose={() => setDashboardOpen(false)}
-        onOpenSettings={() => {
-          setDashboardOpen(false);
-          setSettingsOpen(true);
-        }}
+        open={openModal === 'dashboard'}
+        onClose={() => setOpenModal(null)}
+        onOpenSettings={() => setOpenModal('settings')}
       />
 
       {/* Search screen (Step 3): full-screen overlay. */}
-      <ReaderSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <ReaderSearch open={openModal === 'search'} onClose={() => setOpenModal(null)} />
 
       {/* Welcome / gift overlay (Step 4): closing returns to the
           reader on Page 1, Al-Fatihah. Never auto-shows on load. */}
       <ReaderGift
-        open={giftOpen}
+        open={openModal === 'gift'}
         onClose={() => {
-          setGiftOpen(false);
+          setOpenModal(null);
           if (page !== 1) jumpToPage(1);
         }}
       />
 
       {/* Settings page (Step 5): full-screen overlay; the back
           button returns to the reader. */}
-      <ReaderSettings open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <ReaderSettings open={openModal === 'settings'} onClose={() => setOpenModal(null)} />
 
       {/* Chapter / Juz selection bottom sheet (Step 2) */}
       <ChapterSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
+        open={openModal === 'sheet'}
+        onClose={() => setOpenModal(null)}
         currentSurahId={surahsOnMushafPage(page)[0] ?? 1}
         currentJuz={meta.juz}
         onSelectSurah={(id) => {
-          setSheetOpen(false);
+          setOpenModal(null);
           jumpToPage(SURAH_FIRST_PAGE[id] ?? 1);
         }}
       />
+
+      {/* Mushaf Layout bottom sheet (Phase 1): the radio selection
+          persists and switches the reader rendering. */}
+      <ReaderMushafLayout
+        open={openModal === 'layout'}
+        onClose={() => setOpenModal(null)}
+        mode={layoutMode}
+        onSelect={selectLayoutMode}
+      />
+
+      {/* Mistakes modal (Phase 1): mock entries for now — real
+          mistakes come from the recitation coach. */}
+      <ReaderMistakes open={openModal === 'mistakes'} onClose={() => setOpenModal(null)} />
     </div>
   );
 }
