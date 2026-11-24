@@ -550,6 +550,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                   tajweed={data.tajweed}
                   designWidth={designWidth}
                   onMeasure={handleMeasure(page)}
+                  zoom={scale * shrink}
                   hideVerses={hideVerses}
                   revealedLines={revealedLines}
                   onRevealLine={(ln) => reveal(`L${page}:${ln}`)}

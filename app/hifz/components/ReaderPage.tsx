@@ -82,6 +82,9 @@ interface ReaderPageProps {
   /** Called with the page's longest line's natural width (px, at the
    *  2.1rem line font), so the parent can size the frame. */
   onMeasure: (maxNatural: number) => void;
+  /** Current zoom of the wrapper around this page (scale * shrink);
+   *  the measurer divides it back out of its readings. */
+  zoom: number;
   /** Hide Verses mode (Phase 1): when on, each ayah line is blurred
    *  until tapped (tap-to-peek). */
   hideVerses?: boolean;
@@ -90,7 +93,7 @@ interface ReaderPageProps {
   onRevealLine?: (lineNo: number) => void;
 }
 
-export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasure, hideVerses, revealedLines, onRevealLine }: ReaderPageProps) {
+export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasure, zoom, hideVerses, revealedLines, onRevealLine }: ReaderPageProps) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const measureRef = useRef<HTMLDivElement | null>(null);
   const onMeasureRef = useRef(onMeasure);
@@ -100,15 +103,22 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
   // Measure the longest line's natural width (from the data, with the
   // real font — independent of the filler's tatweel). Runs when the
   // verses change and again once the fonts load.
+  //
+  // The measurer lives INSIDE the zoomed wrapper, so its
+  // getBoundingClientRect is scaled by the wrapper's zoom: divide the
+  // measured width back out, or the parent sizes the frame from a
+  // zoomed width (page 3 came out 480px, lines wrapped, page shrank
+  // to a narrow column). `zoom` is a dep so a zoom change re-measures;
+  // the divided result is zoom-invariant, so it converges at once.
   useEffect(() => {
     const measure = () => {
       const el = measureRef.current;
-      if (!el) return;
+      if (!el || zoom <= 0) return;
       let max = 0;
       const lineTexts = collectLineTexts(verses);
       for (const { text, rosettes } of lineTexts) {
         el.textContent = text;
-        const w = el.getBoundingClientRect().width + rosettes * 40;
+        const w = el.getBoundingClientRect().width / zoom + rosettes * 40;
         if (w > max) max = w;
       }
       if (max > 0) onMeasureRef.current(max);
@@ -123,7 +133,7 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
     return () => {
       cancelled = true;
     };
-  }, [verses]);
+  }, [verses, zoom]);
 
   // Kashida justification (fill or centre each line) after render,
   // after fonts load, and whenever the frame width changes.
