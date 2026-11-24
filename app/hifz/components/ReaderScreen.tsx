@@ -181,11 +181,12 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const [shrink, setShrink] = useState(1);
   const shrinkRef = useRef(1);
   const busyRef = useRef(false);
-  const dragRef = useRef<{ startX: number; startY: number; active: boolean; pointerId: number | null }>({
+  const dragRef = useRef<{ startX: number; startY: number; active: boolean; pointerId: number | null; captured: boolean }>({
     startX: 0,
     startY: 0,
     active: false,
     pointerId: null,
+    captured: false,
   });
 
   const data = pages[page] ?? initial;
@@ -378,12 +379,11 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
    * left to native scrolling (touch-action: pan-y). */
   const onPointerDown = (e: React.PointerEvent) => {
     if (busyRef.current) return;
-    dragRef.current = { startX: e.clientX, startY: e.clientY, active: true, pointerId: e.pointerId };
-    try {
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    } catch {
-      /* already released */
-    }
+    dragRef.current = { startX: e.clientX, startY: e.clientY, active: true, pointerId: e.pointerId, captured: false };
+    // NOTE: no setPointerCapture here. Capturing on pointerdown
+    // retargets the click to <main>, so buttons and tap-to-peek inside
+    // the page never receive their click. Capture lazily, only once a
+    // horizontal drag is established (see onPointerMove).
   };
   const onPointerMove = (e: React.PointerEvent) => {
     const d = dragRef.current;
@@ -396,6 +396,16 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       d.active = false;
       snapBack();
       return;
+    }
+    // Horizontal drag established — capture the pointer now so the
+    // swipe keeps tracking even if it leaves the element.
+    if (!d.captured) {
+      d.captured = true;
+      try {
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      } catch {
+        /* already released */
+      }
     }
     // Resistance at the ends of the book.
     let o = dx;
