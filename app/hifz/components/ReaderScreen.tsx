@@ -15,8 +15,13 @@
 // (blur + tap-to-peek). The page carries a header row (surah left,
 // Juz/Hizb right) and a bottom-right page number, and a full Madani
 // page is fitted to the viewport height (whole-page reference).
-// The mic is still visual only — no recording logic yet. No bottom
-// tab bar.
+//
+// Phase 2 (live wiring): the mic runs the Tilawa on-device engine
+// (same as the coach, lite tier) — idle mint, recording red + pulsing
+// with a stop square, loading/processing spinner, toasts above the
+// button; recognised words are console.logged and kept in state for
+// Phase 3 highlighting. Tilawa tracks the declared passage, so the
+// "transcript" is the expected words it locked onto. No bottom tab bar.
 
 'use client';
 
@@ -33,6 +38,85 @@ import ReaderMushafLayout, { type ReaderLayoutMode } from './ReaderMushafLayout'
 import ReaderMistakes from './ReaderMistakes';
 import { ReaderTextMode, ReaderTranslationMode } from './ReaderAltViews';
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
+import {
+  loadEngine,
+  engineSupport,
+  type ExpectedAyah,
+  type PreparedMicCapture,
+  type RecitationEngine,
+  type RecitationSession,
+  type SessionResult,
+  type WordEvent,
+} from '../lib/tilawa';
+import type { MushafVerse } from '../lib/fetch';
+
+/* ---------------------------------------------------------------- */
+/*  Reader mic (Phase 2): Tilawa on-device engine. The same engine   */
+/*  and the same mic preparation the coach uses — prepare the mic     */
+/*  synchronously inside the tap (2026-11-22 fix: an AudioContext    */
+/*  created after `await getUserMedia`, outside the gesture, stays    */
+/*  suspended on mobile), one shared stream, no audio upload. The    */
+/*  engine is loaded on demand (dynamic import inside loadEngine,    */
+/*  lite 25 MB tier) and cached by the Cache API after the first      */
+/*  download. Tilawa is a tracker, not a transcriber: the             */
+/*  "transcript" is the sequence of expected words it locked onto.    */
+/* ---------------------------------------------------------------- */
+
+/** Reference text for one take: the current page's ayahs. A Tilawa
+ * session covers a single surah, so a page spanning two surahs uses
+ * the first surah on the page. Ayah-end ornaments (char_type 'end')
+ * are not spoken words and are left out of the expected text. */
+function pageExpected(verses: MushafVerse[]): {
+  surah: number;
+  fromAyah: number;
+  toAyah: number;
+  ayahs: ExpectedAyah[];
+} | null {
+  const bySurah = new Map<number, { ayah: number; text: string }[]>();
+  for (const v of verses) {
+    const [s, a] = v.verse_key.split(':').map(Number);
+    if (!Number.isFinite(s) || !Number.isFinite(a)) continue;
+    const text = v.words
+      .filter((w) => w.char_type_name !== 'end')
+      .map((w) => w.text_uthmani ?? '')
+      .join(' ')
+      .trim();
+    if (!text) continue;
+    const list = bySurah.get(s) ?? [];
+    list.push({ ayah: a, text });
+    bySurah.set(s, list);
+  }
+  const first = [...bySurah.entries()][0];
+  if (!first) return null;
+  const [surah, ayahs] = first;
+  return {
+    surah,
+    fromAyah: ayahs[0].ayah,
+    toAyah: ayahs[ayahs.length - 1].ayah,
+    ayahs: ayahs.map((a) => ({ surah, ayah: a.ayah, text: a.text })),
+  };
+}
+
+/** Mic button state: idle → loading (model download / permission
+ * prompt) → recording → processing → idle. Loading and processing
+ * both show the spinner; the toast says which. */
+type MicState = 'idle' | 'loading' | 'recording' | 'processing';
+
+function IconStop() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-7 w-7" aria-hidden="true">
+      <rect x="6" y="6" width="12" height="12" rx="2" fill="#FFFFFF" />
+    </svg>
+  );
+}
+function IconSpinner() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-7 w-7 animate-spin" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="3" />
+      <path d="M21 12a9 9 0 0 0-9-9" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 /** The one modal open at a time (Phase 1). */
 type ReaderModal = 'dashboard' | 'sheet' | 'search' | 'gift' | 'settings' | 'layout' | 'mistakes';
@@ -240,6 +324,305 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     }
     return out;
   }, [revealed, page]);
+
+  /* Phase 2 — reader mic (Tilawa on-device engine, same as the coach).
+   * `spokenText` is the final transcript so far (the expected words
+   * the tracker locked onto, in passage order); Phase 3 will
+   * highlight words from it. The engine is loaded once and kept for
+   * the reader's lifetime; the model stays in the Cache API. */
+  const [micState, setMicState] = useState<MicState>('idle');
+  const [micSupported, setMicSupported] = useState(true);
+  const [spokenText, setSpokenText] = useState('');
+  const [interimText, setInterimText] = useState('');
+  const [micToast, setMicToast] = useState<string | null>(null);
+  const engineRef = useRef<RecitationEngine | null>(null);
+  const engineStateRef = useRef<'idle' | 'loading' | 'ready' | 'failed' | 'unsupported'>('idle');
+  const enginePromiseRef = useRef<Promise<RecitationEngine | null> | null>(null);
+  const sessionRef = useRef<RecitationSession | null>(null);
+  const micStateRef = useRef<MicState>('idle');
+  /** Words recognised so far this take, keyed "surah:ayah:word" — the
+   * tracker re-emits a word on every locked position event, so the
+   * transcript must dedupe by key. */
+  const micWordsRef = useRef(new Map<string, string>());
+  /** onLevel callbacks this take (capture-health watchdog). */
+  const micLevelRef = useRef(0);
+  const micTimerRef = useRef<number | null>(null);
+  const micWatchdogRef = useRef<number | null>(null);
+
+  const setMic = useCallback((s: MicState) => {
+    micStateRef.current = s;
+    setMicState(s);
+  }, []);
+
+  /** Load the engine on demand (lite 25 MB tier, as the coach uses —
+   * measured identical scores to the 68 MB full tier). One in-flight
+   * load is shared by every caller. */
+  const ensureEngine = useCallback(async (): Promise<RecitationEngine | null> => {
+    if (engineRef.current) return engineRef.current;
+    if (enginePromiseRef.current) return enginePromiseRef.current;
+    if (!engineSupport().supported) {
+      engineStateRef.current = 'unsupported';
+      setMicSupported(false);
+      return null;
+    }
+    engineStateRef.current = 'loading';
+    const p = loadEngine({ tier: 'lite' })
+      .then((eng) => {
+        engineRef.current = eng;
+        engineStateRef.current = 'ready';
+        return eng;
+      })
+      .catch(() => {
+        engineStateRef.current = 'failed';
+        enginePromiseRef.current = null;
+        return null;
+      });
+    enginePromiseRef.current = p;
+    return p;
+  }, []);
+
+  /* Warm the engine in the background once the reader is interactive:
+   * first user interaction, else an idle callback. The model is then
+   * usually ready when the mic is tapped, so prepareMicrophone() runs
+   * synchronously inside that tap (the 2026-11-22 gesture fix). If the
+   * user taps first, the tap shows the loading state and waits instead.
+   * The engine module is never in the first-paint bundle. */
+  useEffect(() => {
+    let started = false;
+    const kick = () => {
+      if (started) return;
+      started = true;
+      void ensureEngine();
+    };
+    window.addEventListener('pointerdown', kick, { once: true });
+    let idleId: number | undefined;
+    let timer: number | undefined;
+    if (typeof window.requestIdleCallback === 'function') {
+      idleId = window.requestIdleCallback(() => kick(), { timeout: 8000 });
+    } else {
+      timer = window.setTimeout(kick, 3000);
+    }
+    return () => {
+      window.removeEventListener('pointerdown', kick);
+      if (idleId !== undefined) window.cancelIdleCallback(idleId);
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [ensureEngine]);
+
+  /* Unmount: stop any live take, release the engine. The model stays
+   * in the Cache API for the next visit. */
+  useEffect(() => {
+    return () => {
+      if (micTimerRef.current !== null) window.clearTimeout(micTimerRef.current);
+      if (micWatchdogRef.current !== null) window.clearTimeout(micWatchdogRef.current);
+      const s = sessionRef.current;
+      sessionRef.current = null;
+      if (s) void s.abort();
+      const eng = engineRef.current;
+      engineRef.current = null;
+      if (eng) void eng.unload();
+    };
+  }, []);
+
+  const stopMic = useCallback(
+    async (why: 'user' | 'dead') => {
+      const session = sessionRef.current;
+      if (!session) return;
+      if (micWatchdogRef.current !== null) {
+        window.clearTimeout(micWatchdogRef.current);
+        micWatchdogRef.current = null;
+      }
+      setMic('processing');
+      setMicToast('Processing recitation...');
+      let result: SessionResult | null = null;
+      try {
+        result = await session.stop();
+      } catch {
+        result = null;
+      }
+      sessionRef.current = null;
+      if (result) {
+        // Final transcript, in passage order: the words the tracker
+        // confirmed as correctly recited.
+        const heard = result.words
+          .filter((w) => w.status === 'correct')
+          .map((w) => w.display)
+          .join(' ');
+        if (heard) {
+          setSpokenText(heard);
+          setInterimText('');
+          console.log('[reader-mic] transcript:', heard);
+        }
+        console.log('[reader-mic] result:', {
+          correct: result.correctCount,
+          reached: result.reachedCount,
+          missed: result.missedCount,
+          noSpeech: result.noSpeech,
+          micHeardAudio: result.micHeardAudio,
+          durationMs: result.durationMs,
+        });
+      }
+      if (why === 'dead') {
+        // Capture never delivered a frame (e.g. a suspended
+        // AudioContext from an out-of-gesture prepare on first use):
+        // leave the message up so the user can read it — the retry tap
+        // runs in-gesture with the engine already loaded.
+        setMic('idle');
+        setMicToast("Microphone isn't sending audio — please tap the mic and try again.");
+        micTimerRef.current = window.setTimeout(() => setMicToast(null), 4000);
+        return;
+      }
+      micTimerRef.current = window.setTimeout(() => {
+        setMic('idle');
+        setMicToast(null);
+      }, 1200);
+    },
+    [setMic],
+  );
+
+  const startMic = useCallback(async () => {
+    // The engine must be ready before prepareMicrophone() can run.
+    if (engineStateRef.current !== 'ready') {
+      setMic('loading');
+      setMicToast('Loading the recitation model… (about 25 MB, first time only)');
+      const eng = await ensureEngine();
+      if (!eng) {
+        setMic('idle');
+        if (engineStateRef.current === 'unsupported') {
+          setMicToast("Recitation check isn't supported on this device or browser.");
+        } else {
+          setMicToast("Couldn't load the recitation model — check your connection and try again.");
+        }
+        return;
+      }
+    }
+    const engine = engineRef.current;
+    if (!engine) {
+      setMic('idle');
+      setMicToast("Couldn't load the recitation model — check your connection and try again.");
+      return;
+    }
+    // MIC PREPARE — MUST stay synchronous in this tap handler, before
+    // any await (2026-11-22 root-cause fix). The context is created +
+    // resumed while the gesture is fresh; listen() then takes
+    // ownership of the prepared capture.
+    let prepared: PreparedMicCapture;
+    try {
+      prepared = engine.prepareMicrophone();
+    } catch (err) {
+      const reason = (err as { reason?: string })?.reason;
+      setMic('idle');
+      if (reason === 'denied') {
+        const msg = 'Please allow microphone access to use this feature.';
+        window.alert(msg);
+        setMicToast(msg);
+      } else if (reason === 'insecure-context') {
+        setMicToast('Microphone needs a secure (https) connection.');
+      } else {
+        setMicToast("Microphone isn't available on this device.");
+      }
+      return;
+    }
+    setMic('loading');
+    setMicToast('Waiting for microphone permission…');
+    // A previous take that never reached stop() is still live: abort
+    // it first, so two live captures never overlap. The new session
+    // only starts once the old one is fully stopped.
+    try {
+      if (sessionRef.current) {
+        await sessionRef.current.abort();
+        sessionRef.current = null;
+      }
+    } catch {
+      /* already gone */
+    }
+    // Reference text: the current page's ayahs (first surah on the
+    // page — a session covers one surah).
+    const expected = pageExpected(data.verses);
+    if (!expected) {
+      prepared.release();
+      setMic('idle');
+      setMicToast('Nothing to recite on this page.');
+      return;
+    }
+    micWordsRef.current = new Map();
+    micLevelRef.current = 0;
+    setSpokenText('');
+    setInterimText('');
+    const session = engine.startSession({
+      surah: expected.surah,
+      fromAyah: expected.fromAyah,
+      toAyah: expected.toAyah,
+      expected: expected.ayahs,
+      onWord: (e: WordEvent) => {
+        if (e.status !== 'correct') return;
+        const key = `${e.surah}:${e.ayah}:${e.word}`;
+        const seen = micWordsRef.current;
+        if (seen.has(key)) return;
+        seen.set(key, e.display);
+        const text = [...seen.values()].join(' ');
+        // The recognised Arabic, in the console for debugging.
+        console.log('[reader-mic] recognised:', e.display);
+        setSpokenText(text);
+        setInterimText(text);
+      },
+      onLevel: () => {
+        micLevelRef.current += 1;
+      },
+      onTrackerState: (s: string) => {
+        console.log('[reader-mic] tracker:', s);
+      },
+    });
+    sessionRef.current = session;
+    try {
+      // listen() takes ownership of `prepared` — on failure it
+      // releases the capture itself, so do NOT release it here.
+      await session.startMic(prepared);
+    } catch (err) {
+      sessionRef.current = null;
+      session.dispose();
+      const reason = (err as { reason?: string })?.reason;
+      setMic('idle');
+      if (reason === 'denied') {
+        const msg = 'Please allow microphone access to use this feature.';
+        window.alert(msg);
+        setMicToast(msg);
+      } else if (reason === 'insecure-context') {
+        setMicToast('Microphone needs a secure (https) connection.');
+      } else {
+        setMicToast("Microphone isn't available on this device.");
+      }
+      return;
+    }
+    setMic('recording');
+    setMicToast('Listening... Recite now.');
+    // Capture-health watchdog: if no audio frames reach the engine
+    // within a few seconds, the capture is dead (e.g. a suspended
+    // AudioContext from an out-of-gesture prepare on first use) —
+    // stop and ask for a retry tap instead of listening to silence.
+    micWatchdogRef.current = window.setTimeout(() => {
+      if (micStateRef.current !== 'recording') return;
+      if (micLevelRef.current === 0) {
+        void stopMic('dead');
+      }
+    }, 4000);
+  }, [ensureEngine, setMic, stopMic, data.verses]);
+
+  const toggleMic = useCallback(() => {
+    if (micStateRef.current === 'recording') {
+      void stopMic('user');
+      return;
+    }
+    if (micStateRef.current === 'loading' || micStateRef.current === 'processing') return;
+    void startMic();
+  }, [startMic, stopMic]);
+
+  /* A page change ends the take: the session's reference text is the
+   * old page's ayahs. */
+  useEffect(() => {
+    if (sessionRef.current) void stopMic('user');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   /* A new page (or layout) starts unshrunk; the fit check below
    * shrinks only when the whole page would overflow the viewport. */
@@ -628,18 +1011,67 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
             <IconEyeOff />
           </button>
         </div>
-        {/* Mic: solid mint, soft green glow, raised above the bar */}
-        <button
-          type="button"
-          aria-label="Recite"
-          className="absolute bottom-3 right-4 flex h-16 w-16 items-center justify-center rounded-full"
-          style={{
-            background: 'radial-gradient(circle at 50% 42%, #C9F7D4 0%, #7BE3A8 48%, #34D399 100%)',
-            boxShadow: '0 0 26px 7px rgba(52, 211, 153, 0.45), 0 4px 14px rgba(0,0,0,0.12)',
-          }}
-        >
-          <IconMic />
-        </button>
+        {/* Mic (Phase 2: Tilawa on-device engine). Idle = mint + mic
+            icon; recording = red, gently pulsing, stop square;
+            loading / processing = spinner. A floating toast above the
+            button reports the state and shows the recognised words as
+            they arrive. */}
+        <div className="absolute bottom-3 right-4 flex flex-col items-end">
+          {micToast && (
+            <div
+              role="status"
+              data-testid="mic-toast"
+              className="mb-3 w-[248px] rounded-2xl border border-[#E5E7EB] bg-white px-3.5 py-2.5 text-left shadow-lg"
+            >
+              <p className="text-[13px] font-bold" style={{ color: INK }}>
+                {micToast}
+              </p>
+              {(interimText || spokenText) && (
+                <p dir="rtl" lang="ar" className="mt-1 text-[14px] leading-snug" style={{ color: MUTED }}>
+                  {interimText || spokenText}
+                </p>
+              )}
+            </div>
+          )}
+          <button
+            type="button"
+            aria-label={
+              micState === 'recording'
+                ? 'Stop reciting'
+                : micState === 'loading'
+                  ? 'Loading recitation model'
+                  : micState === 'processing'
+                    ? 'Processing recitation'
+                    : 'Recite'
+            }
+            aria-pressed={micState === 'recording'}
+            data-mic-state={micState}
+            data-mic-supported={micSupported}
+            onClick={toggleMic}
+            className={`flex h-16 w-16 items-center justify-center rounded-full ${micState === 'recording' ? 'animate-pulse' : ''}`}
+            style={
+              micState === 'recording'
+                ? {
+                    background:
+                      'radial-gradient(circle at 50% 42%, #FCA5A5 0%, #F87171 48%, #DC2626 100%)',
+                    boxShadow: '0 0 26px 7px rgba(220, 38, 38, 0.45), 0 4px 14px rgba(0,0,0,0.12)',
+                  }
+                : {
+                    background:
+                      'radial-gradient(circle at 50% 42%, #C9F7D4 0%, #7BE3A8 48%, #34D399 100%)',
+                    boxShadow: '0 0 26px 7px rgba(52, 211, 153, 0.45), 0 4px 14px rgba(0,0,0,0.12)',
+                  }
+            }
+          >
+            {micState === 'recording' ? (
+              <IconStop />
+            ) : micState === 'loading' || micState === 'processing' ? (
+              <IconSpinner />
+            ) : (
+              <IconMic />
+            )}
+          </button>
+        </div>
       </footer>
 
       {/* Dashboard (Step 6): full-screen overlay from the hamburger;
