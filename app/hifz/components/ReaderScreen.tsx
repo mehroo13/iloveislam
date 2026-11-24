@@ -11,15 +11,14 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getSurahBySlug } from '../surahs';
 import { SURAH_FIRST_PAGE, MUSHAF_TOTAL_PAGES, surahsOnMushafPage } from '../mushaf';
 import type { ReaderPageData } from '../lib/reader-page';
 import ReaderPage from './ReaderPage';
-import SurahList from './SurahList';
 import ChapterSheet from './ChapterSheet';
 import ReaderSearch from './ReaderSearch';
 import ReaderGift from './ReaderGift';
 import ReaderSettings from './ReaderSettings';
+import ReaderDashboard from './ReaderDashboard';
 
 const PAGE_BG = '#F7F7F5';
 const INK = '#111827';
@@ -123,7 +122,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const [designWidths, setDesignWidths] = useState<Record<number, number>>({});
   const [offset, setOffset] = useState(0);
   const [animating, setAnimating] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [dashboardOpen, setDashboardOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
@@ -287,29 +286,9 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     }
   };
 
-  /* Chapter drawer: intercept mushaf-page + surah links so the jump
-   * stays inside this reader; anything else navigates normally. */
-  const onDrawerClick = (e: React.MouseEvent) => {
-    const a = (e.target as HTMLElement).closest('a');
-    if (!a) return;
-    const href = a.getAttribute('href') ?? '';
-    const mushaf = href.match(/^\/hifz\/mushaf\/(\d+)/);
-    if (mushaf) {
-      e.preventDefault();
-      setDrawerOpen(false);
-      jumpToPage(Number(mushaf[1]));
-      return;
-    }
-    const surah = href.match(/^\/hifz\/([a-z0-9-]+)$/);
-    if (surah) {
-      const s = getSurahBySlug(surah[1]);
-      if (s) {
-        e.preventDefault();
-        setDrawerOpen(false);
-        jumpToPage(SURAH_FIRST_PAGE[s.id] ?? 1);
-      }
-    }
-  };
+  /* The chapter drawer was replaced in Step 6: the hamburger now
+   * opens the Dashboard. Chapter navigation stays available via the
+   * central top-bar pill (Step 2 ChapterSheet). */
 
   const meta = data.meta;
 
@@ -323,10 +302,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       >
         <button
           type="button"
-          aria-label="Chapters"
+          aria-label="Dashboard"
           onClick={() => {
             setSheetOpen(false);
-            setDrawerOpen(true);
+            setDashboardOpen(true);
           }}
           className="flex h-10 w-10 shrink-0 items-center justify-center"
         >
@@ -336,7 +315,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           type="button"
           aria-label="Chapters and Juz lists"
           onClick={() => {
-            setDrawerOpen(false);
+            setDashboardOpen(false);
             setSheetOpen(true);
           }}
           className="flex min-w-0 flex-1 items-center rounded-[12px] border border-[#D1D5DB] bg-white px-3.5 py-1.5 text-left"
@@ -358,7 +337,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
             type="button"
             aria-label="Search"
             onClick={() => {
-              setDrawerOpen(false);
+              setDashboardOpen(false);
               setSheetOpen(false);
               setSearchOpen(true);
             }}
@@ -370,7 +349,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
             type="button"
             aria-label="Gifts"
             onClick={() => {
-              setDrawerOpen(false);
+              setDashboardOpen(false);
               setSheetOpen(false);
               setSearchOpen(false);
               setGiftOpen(true);
@@ -383,7 +362,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
             type="button"
             aria-label="Settings"
             onClick={() => {
-              setDrawerOpen(false);
+              setDashboardOpen(false);
               setSheetOpen(false);
               setSearchOpen(false);
               setGiftOpen(false);
@@ -469,36 +448,17 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         </button>
       </footer>
 
-      {/* Chapter drawer */}
-      {drawerOpen && (
-        <div className="absolute inset-0 z-40">
-          <button
-            type="button"
-            aria-label="Close chapters"
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setDrawerOpen(false)}
-          />
-          <div className="absolute inset-y-0 left-0 flex w-[86%] max-w-sm flex-col bg-white shadow-xl">
-            <div className="flex shrink-0 items-center justify-between border-b border-[#E5E7EB] px-4 py-3">
-              <p className="text-[17px] font-bold" style={{ color: INK }}>
-                Chapters
-              </p>
-              <button
-                type="button"
-                aria-label="Close"
-                onClick={() => setDrawerOpen(false)}
-                className="flex h-9 w-9 items-center justify-center text-2xl leading-none"
-                style={{ color: MUTED }}
-              >
-                ×
-              </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto" onClick={onDrawerClick}>
-              <SurahList />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Dashboard (Step 6): full-screen overlay from the hamburger;
+          the back button returns to the reader. Its gear opens
+          Settings; the Dashboard closes first. */}
+      <ReaderDashboard
+        open={dashboardOpen}
+        onClose={() => setDashboardOpen(false)}
+        onOpenSettings={() => {
+          setDashboardOpen(false);
+          setSettingsOpen(true);
+        }}
+      />
 
       {/* Search screen (Step 3): full-screen overlay. */}
       <ReaderSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
