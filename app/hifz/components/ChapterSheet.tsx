@@ -147,7 +147,7 @@ export default function ChapterSheet({
 
         {/* Recently Read */}
         <div className="shrink-0 px-5 pt-3">
-          <p className="text-[15px]" style={{ color: MUTED }}>
+          <p className="text-sm" style={{ color: MUTED }}>
             {t('rb.list.recentlyRead')}
           </p>
           <button
@@ -155,18 +155,18 @@ export default function ChapterSheet({
             onClick={() => onSelectSurah(recentlyRead.id)}
             className="mt-2 flex w-full items-stretch overflow-hidden rounded-xl border border-[#A7E8C8] bg-white text-left shadow-sm"
           >
-            <span className="flex items-center gap-3 px-3 py-2.5">
+            <span className="flex items-center gap-3 px-3 py-1.5">
               <span
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#E8EAED] text-sm font-bold"
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#E8EAED] text-xs font-bold"
                 style={{ color: INK }}
               >
                 {recentlyRead.id}:1
               </span>
               <span>
-                <span className="block text-base font-bold" style={{ color: INK }}>
+                <span className="block text-[14px] font-bold leading-tight" style={{ color: INK }}>
                   {recentlyRead.name}
                 </span>
-                <span className="block text-xs" style={{ color: MUTED }}>
+                <span className="block text-[10px] leading-tight" style={{ color: MUTED }}>
                   PG. {SURAH_FIRST_PAGE[recentlyRead.id] ?? 1}
                 </span>
               </span>
@@ -178,7 +178,7 @@ export default function ChapterSheet({
         </div>
 
         {/* Title */}
-        <p className="shrink-0 px-5 pt-4 text-[17px] font-bold" style={{ color: INK }}>
+        <p className="shrink-0 px-5 pt-4 text-base font-bold" style={{ color: INK }}>
           {t('rb.list.chapterJuzLists')}
         </p>
 
@@ -199,7 +199,7 @@ export default function ChapterSheet({
               role="tab"
               aria-selected={tab === value}
               onClick={() => setTab(value)}
-              className={`inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold ${
+              className={`inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold ${
                 tab === value
                   ? 'border border-[#111827]/20 bg-white text-[#111827] shadow-sm'
                   : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E8EAED]'
@@ -249,7 +249,7 @@ export default function ChapterSheet({
                   <Fragment key={j}>
                     <li
                       id={`juz-head-${j}`}
-                      className="scroll-mt-2 bg-[#F0F0F0] px-5 py-1 text-[13px] font-bold"
+                      className="scroll-mt-2 bg-[#F0F0F0] px-5 py-[3px] text-[13px] font-bold leading-tight"
                       style={{ color: INK }}
                     >
                       Juz {j}
@@ -262,21 +262,21 @@ export default function ChapterSheet({
                         <button
                           type="button"
                           onClick={() => onSelectSurah(s.id)}
-                          className="flex w-full items-center gap-3 px-5 py-1 pr-8 text-left"
+                          className="flex w-full items-center gap-3 px-5 py-[3px] pr-8 text-left"
                         >
                           <span className="w-8 shrink-0 self-start pt-[3px] text-center text-sm font-semibold" style={{ color: INK }}>
                             {s.id}
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[15px] font-bold leading-tight" style={{ color: INK }}>
+                            <span className="block truncate text-[14px] font-bold leading-tight" style={{ color: INK }}>
                               {s.name}
                             </span>
-                            <span className="block text-xs leading-snug" style={{ color: MUTED }}>
+                            <span className="block text-[11px] leading-[1.2]" style={{ color: MUTED }}>
                               {s.ayahCount} {t('rb.list.verses')}
                               <span className="block">{s.revelation === 'Makki' ? 'Meccan' : 'Medinan'}</span>
                             </span>
                           </span>
-                          <span dir="rtl" lang="ar" className="font-quran shrink-0 self-center text-2xl" style={{ color: INK }}>
+                          <span dir="rtl" lang="ar" className="font-quran shrink-0 self-center text-[20px] leading-none" style={{ color: INK }}>
                             {s.arabic}
                           </span>
                         </button>
