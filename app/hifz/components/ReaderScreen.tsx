@@ -12,10 +12,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getSurahBySlug } from '../surahs';
-import { SURAH_FIRST_PAGE, MUSHAF_TOTAL_PAGES } from '../mushaf';
+import { SURAH_FIRST_PAGE, MUSHAF_TOTAL_PAGES, surahsOnMushafPage } from '../mushaf';
 import type { ReaderPageData } from '../lib/reader-page';
 import ReaderPage from './ReaderPage';
 import SurahList from './SurahList';
+import ChapterSheet from './ChapterSheet';
 
 const PAGE_BG = '#F7F7F5';
 const INK = '#111827';
@@ -120,6 +121,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const [offset, setOffset] = useState(0);
   const [animating, setAnimating] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [contentWidth, setContentWidth] = useState(390);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const busyRef = useRef(false);
@@ -307,20 +309,32 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
 
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden" style={{ backgroundColor: PAGE_BG }}>
-      {/* Top navigation bar */}
+      {/* Top navigation bar — raised above the chapter-sheet overlay
+          while the sheet is open, so the top bar stays undimmed. */}
       <header
-        className="flex shrink-0 items-center gap-2 border-b border-[#E8E8E4] px-3 py-2.5"
+        className={`relative flex shrink-0 items-center gap-2 border-b border-[#E8E8E4] px-3 py-2.5 ${sheetOpen ? 'z-50' : ''}`}
         style={{ backgroundColor: PAGE_BG }}
       >
         <button
           type="button"
           aria-label="Chapters"
-          onClick={() => setDrawerOpen(true)}
+          onClick={() => {
+            setSheetOpen(false);
+            setDrawerOpen(true);
+          }}
           className="flex h-10 w-10 shrink-0 items-center justify-center"
         >
           <IconMenu />
         </button>
-        <div className="flex min-w-0 flex-1 items-center rounded-[12px] border border-[#D1D5DB] bg-white px-3.5 py-1.5">
+        <button
+          type="button"
+          aria-label="Chapters and Juz lists"
+          onClick={() => {
+            setDrawerOpen(false);
+            setSheetOpen(true);
+          }}
+          className="flex min-w-0 flex-1 items-center rounded-[12px] border border-[#D1D5DB] bg-white px-3.5 py-1.5 text-left"
+        >
           <div className="min-w-0 flex-1">
             <p className="truncate text-[15px] font-bold leading-tight" style={{ color: INK }}>
               {meta.surahName}
@@ -332,7 +346,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           <span className="ml-2 shrink-0">
             <IconBookmark />
           </span>
-        </div>
+        </button>
         <div className="flex shrink-0 items-center">
           <button type="button" aria-label="Search" className="flex h-9 w-9 items-center justify-center">
             <IconSearch />
@@ -449,6 +463,18 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           </div>
         </div>
       )}
+
+      {/* Chapter / Juz selection bottom sheet (Step 2) */}
+      <ChapterSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        currentSurahId={surahsOnMushafPage(page)[0] ?? 1}
+        currentJuz={meta.juz}
+        onSelectSurah={(id) => {
+          setSheetOpen(false);
+          jumpToPage(SURAH_FIRST_PAGE[id] ?? 1);
+        }}
+      />
     </div>
   );
 }
