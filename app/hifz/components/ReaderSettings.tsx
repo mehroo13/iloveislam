@@ -324,7 +324,7 @@ export default function ReaderSettings({ open, onClose }: { open: boolean; onClo
               <h2 className="text-[15px] font-bold leading-snug" style={{ color: INK }}>
                 New Feature: Testing Mode
               </h2>
-              <p className="mt-1 text-[12.5px] leading-snug" style={{ color: '#4B5563' }}>
+              <p className="mt-1 w-[94%] text-[12.5px] leading-snug" style={{ color: '#4B5563' }}>
                 Test yourself randomly and build confidence reciting from anywhere in the Quran.
               </p>
             </div>
