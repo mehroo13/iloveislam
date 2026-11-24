@@ -205,6 +205,18 @@ function makeLine(text, { avail = 650, forceWrapped = false, wrapAfterFill = fal
   assert.equal(line.style.textAlignLast, 'center');
   assert.equal(shimTextContent(line).includes(T), false, 'centre inserts no tatweel');
 }
+// (a) Centre path sets textAlignLast 'center' — post-fill wrap
+// guard: fill is attempted (shortfall 42), then the live line wraps
+// (the shim's _wrapAfterFill makes any tatweel wrap it) and the
+// guard trims the inserted tatweels until it unwraps; none survive,
+// so the line centres instead of justifying, with no tatweel left.
+{
+  const line = makeLine(WORD.repeat(12) + 'الكت', { wrapAfterFill: true }); // 76 chars, 608px
+  assert.equal(fillMushafLine(line), 'centred');
+  assert.equal(line.style.textAlign, 'center');
+  assert.equal(line.style.textAlignLast, 'center');
+  assert.equal(shimTextContent(line).includes(T), false, 'wrapped fill is restored, no tatweel left');
+}
 // (a) Centre path — the points genuinely cannot close the gap: the
 // loop inserts what fits, then restores the line and centres it (no
 // tatweel left). Shortfall 122 (19% — attempted) but only 3 points

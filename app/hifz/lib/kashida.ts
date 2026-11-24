@@ -448,6 +448,10 @@ export function fillMushafLine(line: HTMLElement): 'filled' | 'centred' | 'left'
       shift: 0,
     }));
     const tooExpensive = new Set<LivePoint>();
+    // Tatweels this run inserted, in insertion order — the post-fill
+    // wrap guard removes them last-in-first, adjusting the recorded
+    // offsets of the ones still in place (see below).
+    const inserted: { node: Text; at: number }[] = [];
     let remaining = shortfall;
     let cursor = 0;
     let guard = 0;
@@ -474,10 +478,44 @@ export function fillMushafLine(line: HTMLElement): 'filled' | 'centred' | 'left'
         continue;
       }
       p.cap -= 1;
+      inserted.push({ node: p.node, at });
       for (const q of live) {
         if (q !== p && q.node === p.node && q.origOffset > p.origOffset) q.shift += 1;
       }
       remaining = after;
+    }
+    // Post-fill wrap guard (2026-11-25): the per-insertion clone
+    // measurement can sit a few px under the live width, so a filled
+    // line can still wrap — live on page 4, line 12: at zoom 0.494 it
+    // wrapped (158px tall), the fit check shrank the page to 0.476,
+    // the shrink re-ran the filler, the line unwrapped, the fit
+    // check restored 0.494 — and the page oscillated between the two
+    // states forever (measured flipping every 2s). Trim inserted
+    // tatweels until the LIVE line unwraps; the frame height is then
+    // stable and the fit check settles. Removing last-in-first keeps
+    // the recorded offsets valid: every earlier removal has already
+    // adjusted the entries still in place (a removal shifts later
+    // offsets in the same node left by one). If no tatweel survives,
+    // the line cannot be stretched without wrapping — centre it.
+    let trimmed = 0;
+    while (inserted.length > 0 && isWrapped(line)) {
+      const last = inserted.pop()!;
+      last.node.data = last.node.data.slice(0, last.at) + last.node.data.slice(last.at + 1);
+      for (const e of inserted) {
+        if (e.node === last.node && e.at > last.at) e.at -= 1;
+      }
+      trimmed += 1;
+    }
+    if (trimmed > 0) {
+      if (inserted.length === 0) {
+        restoreLine(line);
+        line.style.textAlign = 'center';
+        line.style.textAlignLast = 'center';
+        return 'centred';
+      }
+      // Some tatweels were trimmed: the stored `remaining` no longer
+      // counts them — re-measure before judging fullness.
+      remaining = avail - measureNatural(line);
     }
     if (remaining <= 2 || isNearlyFull(remaining, tatW)) {
       // textAlign stays 'start' — line is full. Clear textAlignLast:
