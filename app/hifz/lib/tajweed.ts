@@ -63,6 +63,7 @@ const HEAVY_LETTERS = new Set(['خ', 'ص', 'ض', 'غ', 'ط', 'ق', 'ظ']);
 
 /** Combining marks (harakat, shadda, maddah, superscript alef). */
 function isCombining(ch: string): boolean {
+  if (!ch) return false;
   const code = ch.codePointAt(0) ?? 0;
   return (code >= 0x064b && code <= 0x065f) || code === 0x0670;
 }
@@ -93,6 +94,10 @@ export function parseTajweedText(text: string): ParsedTajweedAyah {
  *  A sukoon (ْ) after a heavy letter takes that letter's blue (the
  *  حْ in ٱلرَّحْمَـٰنِ samples blue in the screenshot). */
 export function tajweedColorAt(plain: string, segments: TajweedSegment[], i: number): string {
+  // Out of range (the Quran.com word is longer than the tajweed word
+  // it aligned to — the two editions tokenise a few words
+  // differently): render black, never crash.
+  if (i < 0 || i >= plain.length) return TAJWEED_BLACK;
   for (const s of segments) {
     if (i >= s.start && i < s.end) {
       return TAJWEED_CODE_COLORS[s.code] ?? TAJWEED_BLACK;
@@ -124,6 +129,7 @@ export function tajweedColorAt(plain: string, segments: TajweedSegment[], i: num
  *  A ر with a kasra (or no vowel) is light. */
 export function isHeavyLetter(plain: string, i: number): boolean {
   const ch = plain[i];
+  if (!ch) return false;
   if (HEAVY_LETTERS.has(ch)) return true;
   if (ch !== 'ر') return false;
   // Look at the vowel immediately after the raa (skipping shadda).
