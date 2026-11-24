@@ -237,7 +237,7 @@ const SECTIONS: SectionDef[] = [
 
 function BannerDecoration() {
   return (
-    <div className="pointer-events-none absolute right-0 top-0 h-full w-[140px] overflow-hidden rounded-r-2xl" aria-hidden="true">
+    <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-[140px] overflow-hidden rounded-r-2xl" aria-hidden="true">
       {/* White rays fanning out from behind the capsules. */}
       <svg viewBox="0 0 140 162" className="absolute inset-0 h-full w-full" fill="none" stroke="#FFFFFF" strokeWidth="1.4" opacity="0.75">
         <path d="M118 78 L18 6" />
@@ -248,18 +248,19 @@ function BannerDecoration() {
       </svg>
       {/* Green circle peeking at the right edge. */}
       <div className="absolute -right-[10px] top-[118px] h-[30px] w-[30px] rounded-full bg-[#4ADE80]" />
-      {/* Capsules: blue, purple, pink — tilted, with a light seam. */}
-      <div className="absolute right-[14px] top-[24px] flex h-[20px] w-[74px] -rotate-[10deg] items-center justify-center rounded-full bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] shadow-md">
+      {/* Capsules: blue, purple, pink — tilted, with a light seam.
+          Right ends bleed off the card edge, as in the reference. */}
+      <div className="absolute -right-[4px] top-[30px] flex h-[20px] w-[74px] -rotate-[10deg] items-center justify-center rounded-full bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] shadow-md">
         <span className="h-[6px] w-[38px] rounded-full bg-white/60" />
       </div>
-      <div className="absolute right-[20px] top-[62px] flex h-[20px] w-[74px] -rotate-[10deg] items-center justify-center rounded-full bg-gradient-to-r from-[#A855F7] to-[#C084FC] shadow-md">
+      <div className="absolute -right-[4px] top-[64px] flex h-[20px] w-[74px] -rotate-[10deg] items-center justify-center rounded-full bg-gradient-to-r from-[#A855F7] to-[#C084FC] shadow-md">
         <span className="h-[6px] w-[38px] rounded-full bg-white/60" />
       </div>
-      <div className="absolute right-[14px] top-[100px] flex h-[20px] w-[74px] -rotate-[10deg] items-center justify-center rounded-full bg-gradient-to-r from-[#F472B6] to-[#FB7185] shadow-md">
+      <div className="absolute -right-[4px] top-[102px] flex h-[20px] w-[74px] -rotate-[10deg] items-center justify-center rounded-full bg-gradient-to-r from-[#F472B6] to-[#FB7185] shadow-md">
         <span className="h-[6px] w-[38px] rounded-full bg-white/60" />
       </div>
-      <IconSparkle className="absolute right-[6px] top-[6px] h-3.5 w-3.5" />
-      <IconSparkle className="absolute right-[104px] top-[88px] h-3 w-3" />
+      <IconSparkle className="absolute -right-[2px] top-[4px] h-3.5 w-3.5" />
+      <IconSparkle className="absolute right-[48px] top-[81px] h-3 w-3" />
     </div>
   );
 }
@@ -317,7 +318,9 @@ export default function ReaderSettings({ open, onClose }: { open: boolean; onClo
           {/* Card 1 — Testing Mode (pink). */}
           <article className="relative flex h-[162px] w-[290px] min-w-[290px] shrink-0 flex-col overflow-hidden rounded-2xl p-4" style={{ backgroundColor: '#FFEDF9' }}>
             <BannerDecoration />
-            <div className="relative z-10 w-[62%]">
+            {/* Text runs full width, as in the reference — the
+                decoration overlaps the last words of the longer lines. */}
+            <div>
               <h2 className="text-[15px] font-bold leading-snug" style={{ color: INK }}>
                 New Feature: Testing Mode
               </h2>
@@ -336,7 +339,7 @@ export default function ReaderSettings({ open, onClose }: { open: boolean; onClo
 
           {/* Card 2 — Get Started (blue, partially visible). */}
           <article className="relative flex h-[162px] w-[290px] min-w-[290px] shrink-0 flex-col overflow-hidden rounded-2xl p-4" style={{ backgroundColor: '#C3DEF3' }}>
-            <div className="relative z-10 w-[62%]">
+            <div>
               <h2 className="text-[15px] font-bold leading-snug" style={{ color: INK }}>
                 Get Started
               </h2>
