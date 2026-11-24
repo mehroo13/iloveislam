@@ -17,33 +17,42 @@
 import { useEffect, useRef, useState } from 'react';
 import { getSurahById } from '../surahs';
 import { BISMILLAH } from '../../quran/lib';
-import {
-  cleanMushafUthmani,
-  isPauseMarkOnly,
-  type MushafVerse,
-} from '../lib/fetch';
+import { type MushafVerse } from '../lib/fetch';
+import { verseDisplayWords } from '../lib/reader-words';
 import ReaderSurahHeader from './ReaderSurahHeader';
 import { ReaderRosette } from './ReaderPage';
 
 const INK = '#111827';
 const MUTED = '#6B7280';
 
-/** Plain flowing text of one verse: cleaned non-end words joined with
- *  spaces (pause-mark-only words attach to the previous word, as in
- *  the Madani renderer). */
-export function versePlainText(v: MushafVerse): string {
-  const out: string[] = [];
-  for (const w of v.words ?? []) {
-    if (w.char_type_name === 'end') continue;
-    const text = cleanMushafUthmani(w.text_uthmani ?? '');
-    if (!text) continue;
-    if (isPauseMarkOnly(text) && out.length > 0) {
-      out[out.length - 1] += text;
-      continue;
-    }
-    out.push(text);
-  }
-  return out.join(' ');
+/**
+ * One ayah rendered as individually identified word spans (Phase 3):
+ * every word gets `id="word-surah-ayah-index"` and lights up green
+ * while any of its engine keys is in highlightedWords. The spaces
+ * between words are plain text nodes, so flowing justification is
+ * unchanged. A word that covers two engine tokens (base word + an
+ * attached pause mark) highlights when either is spoken.
+ */
+function AyahWords({ verse, highlightedWords }: { verse: MushafVerse; highlightedWords?: ReadonlySet<string> }) {
+  const words = verseDisplayWords(verse);
+  return (
+    <>
+      {words.map((w, i) => {
+        const highlighted = w.keys.some((k) => highlightedWords?.has(k));
+        return (
+          <span key={i}>
+            <span
+              id={w.keys[0] ? `word-${w.keys[0].replace(/:/g, '-')}` : undefined}
+              className={`reader-word${highlighted ? ' highlight-green' : ''}`}
+            >
+              {w.text}
+            </span>
+            {i < words.length - 1 ? ' ' : ''}
+          </span>
+        );
+      })}
+    </>
+  );
 }
 
 /** Tap-vs-drag guard: a tap reveals a hidden verse; a swipe (which
@@ -107,6 +116,7 @@ export function ReaderTextMode({
   onReveal,
   textSize,
   onTextSizeChange,
+  highlightedWords,
 }: {
   verses: MushafVerse[];
   hideVerses: boolean;
@@ -116,6 +126,9 @@ export function ReaderTextMode({
   /** Font size in rem. */
   textSize: number;
   onTextSizeChange: (n: number) => void;
+  /** Words spoken correctly this take (Phase 3): engine keys
+   *  `surah:ayah:word` (1-based). */
+  highlightedWords?: ReadonlySet<string>;
 }) {
   const guard = useTapGuard();
   const groups = groupBySurah(verses);
@@ -182,7 +195,7 @@ export function ReaderTextMode({
                   className="font-quran-madani text-justify leading-[2.1]"
                   style={{ fontSize: `${textSize}rem`, color: INK }}
                 >
-                  {versePlainText(v)}{' '}
+                  <AyahWords verse={v} highlightedWords={highlightedWords} />{' '}
                   <ReaderRosette ayah={ayahNum} />
                 </p>
               </div>
@@ -203,11 +216,15 @@ export function ReaderTranslationMode({
   hideVerses,
   revealed,
   onReveal,
+  highlightedWords,
 }: {
   verses: MushafVerse[];
   hideVerses: boolean;
   revealed: ReadonlySet<string>;
   onReveal: (key: string) => void;
+  /** Words spoken correctly this take (Phase 3): engine keys
+   *  `surah:ayah:word` (1-based). */
+  highlightedWords?: ReadonlySet<string>;
 }) {
   const guard = useTapGuard();
   const [translations, setTranslations] = useState<Record<number, Record<number, string>>>({});
@@ -277,7 +294,7 @@ export function ReaderTranslationMode({
                     className="font-quran-madani text-right leading-[2]"
                     style={{ fontSize: '1.5rem', color: INK }}
                   >
-                    {versePlainText(v)}{' '}
+                    <AyahWords verse={v} highlightedWords={highlightedWords} />{' '}
                     <ReaderRosette ayah={ayahNum} />
                   </p>
                 </div>

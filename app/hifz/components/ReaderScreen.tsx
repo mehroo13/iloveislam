@@ -38,6 +38,7 @@ import ReaderMushafLayout, { type ReaderLayoutMode } from './ReaderMushafLayout'
 import ReaderMistakes from './ReaderMistakes';
 import { ReaderTextMode, ReaderTranslationMode } from './ReaderAltViews';
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
+import { readerWordKey } from '../lib/reader-words';
 import {
   loadEngine,
   engineSupport,
@@ -327,13 +328,21 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
 
   /* Phase 2 — reader mic (Tilawa on-device engine, same as the coach).
    * `spokenText` is the final transcript so far (the expected words
-   * the tracker locked onto, in passage order); Phase 3 will
-   * highlight words from it. The engine is loaded once and kept for
-   * the reader's lifetime; the model stays in the Cache API. */
+   * the tracker locked onto, in passage order). Phase 3 highlights
+   * words from the engine's onWord events: each 'correct' word's key
+   * goes into `highlightedWords` and the word's span lights up green.
+   * The engine is loaded once and kept for the reader's lifetime; the
+   * model stays in the Cache API. */
   const [micState, setMicState] = useState<MicState>('idle');
   const [micSupported, setMicSupported] = useState(true);
   const [spokenText, setSpokenText] = useState('');
   const [interimText, setInterimText] = useState('');
+  /** Words spoken correctly this take (Phase 3): engine keys
+   *  `surah:ayah:word` (1-based). The rendered word spans light up
+   *  green while their key is in this set. Cleared on a new take and
+   *  on page change; kept after stop so the reciter can review what
+   *  was said. */
+  const [highlightedWords, setHighlightedWords] = useState<ReadonlySet<string>>(new Set());
   const [micToast, setMicToast] = useState<string | null>(null);
   const engineRef = useRef<RecitationEngine | null>(null);
   const engineStateRef = useRef<'idle' | 'loading' | 'ready' | 'failed' | 'unsupported'>('idle');
@@ -549,22 +558,42 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     micLevelRef.current = 0;
     setSpokenText('');
     setInterimText('');
+    setHighlightedWords(new Set());
     const session = engine.startSession({
       surah: expected.surah,
       fromAyah: expected.fromAyah,
       toAyah: expected.toAyah,
       expected: expected.ayahs,
       onWord: (e: WordEvent) => {
-        if (e.status !== 'correct') return;
-        const key = `${e.surah}:${e.ayah}:${e.word}`;
-        const seen = micWordsRef.current;
-        if (seen.has(key)) return;
-        seen.set(key, e.display);
-        const text = [...seen.values()].join(' ');
-        // The recognised Arabic, in the console for debugging.
-        console.log('[reader-mic] recognised:', e.display);
-        setSpokenText(text);
-        setInterimText(text);
+        const key = readerWordKey(e.surah, e.ayah, e.word);
+        if (e.status === 'correct') {
+          // Light the word up green (Phase 3). The tracker re-emits a
+          // word on every locked position event, so dedupe by key.
+          setHighlightedWords((prev) => {
+            if (prev.has(key)) return prev;
+            const next = new Set(prev);
+            next.add(key);
+            return next;
+          });
+          const seen = micWordsRef.current;
+          if (seen.has(key)) return;
+          seen.set(key, e.display);
+          const text = [...seen.values()].join(' ');
+          // The recognised Arabic, in the console for debugging.
+          console.log('[reader-mic] recognised:', e.display);
+          setSpokenText(text);
+          setInterimText(text);
+        } else if (e.status === 'wrong' || e.status === 'missed') {
+          // The checker flagged this word — it was not said correctly,
+          // so drop any green it had. (Phase 5 will paint it red.)
+          setHighlightedWords((prev) => {
+            if (!prev.has(key)) return prev;
+            const next = new Set(prev);
+            next.delete(key);
+            return next;
+          });
+        }
+        // 'not-reached' is never emitted live — ignore.
       },
       onLevel: () => {
         micLevelRef.current += 1;
@@ -621,6 +650,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
    * old page's ayahs. */
   useEffect(() => {
     if (sessionRef.current) void stopMic('user');
+    setHighlightedWords(new Set()); // the new page starts unhighlighted
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
@@ -943,6 +973,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                   hideVerses={hideVerses}
                   revealedLines={revealedLines}
                   onRevealLine={(ln) => reveal(`L${page}:${ln}`)}
+                  highlightedWords={highlightedWords}
                 />
               </div>
             ) : layoutMode === 'text' ? (
@@ -954,6 +985,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                 onReveal={reveal}
                 textSize={textSize}
                 onTextSizeChange={changeTextSize}
+                highlightedWords={highlightedWords}
               />
             ) : (
               <ReaderTranslationMode
@@ -962,6 +994,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                 hideVerses={hideVerses}
                 revealed={revealed}
                 onReveal={reveal}
+                highlightedWords={highlightedWords}
               />
             )}
             {/* Page number, bottom-right (whole-page reference). */}

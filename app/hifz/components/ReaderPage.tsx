@@ -27,6 +27,10 @@ import {
   TAJWEED_BLACK,
   type TajweedSurah,
 } from '../lib/tajweed';
+import {
+  displayEntriesForLine,
+  type ReaderDisplayEntry,
+} from '../lib/reader-words';
 import ReaderSurahHeader from './ReaderSurahHeader';
 import { useTapGuard } from './ReaderAltViews';
 
@@ -91,9 +95,14 @@ interface ReaderPageProps {
   /** Line numbers (Madani line_no on this page) already revealed. */
   revealedLines?: ReadonlySet<number>;
   onRevealLine?: (lineNo: number) => void;
+  /** Words the reciter has said correctly this take (Phase 3):
+   *  engine keys `surah:ayah:word` (1-based). Those words light up
+   *  green; the set is owned by the parent (cleared on page change /
+   *  new take). */
+  highlightedWords?: ReadonlySet<string>;
 }
 
-export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasure, zoom, hideVerses, revealedLines, onRevealLine }: ReaderPageProps) {
+export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasure, zoom, hideVerses, revealedLines, onRevealLine, highlightedWords }: ReaderPageProps) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const measureRef = useRef<HTMLDivElement | null>(null);
   const onMeasureRef = useRef(onMeasure);
@@ -166,6 +175,10 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
   }
 
   const renderedHeaders = new Set<number>();
+  // Per-ayah engine-word cursor (Phase 3): persists across lines in
+  // this render, so an ayah split over two lines keeps continuous
+  // engine indices. Keyed by verse_key.
+  const engineCursors = new Map<string, number>();
   const blocks: React.ReactNode[] = [];
   let key = 0;
 
@@ -202,17 +215,11 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
       }
     }
 
-    // Clean display text, merging mark-only words into the previous word.
-    const display: { text: string; isEnd: boolean; verseKey: string }[] = [];
-    for (const w of words) {
-      const text = cleanMushafUthmani(w.text);
-      if (!text) continue;
-      if (!w.isEnd && isPauseMarkOnly(text) && display.length > 0) {
-        display[display.length - 1].text += text;
-        continue;
-      }
-      display.push({ text, isEnd: w.isEnd, verseKey: w.verseKey });
-    }
+    // Display text with the engine word keys each word covers (Phase 3
+    // highlighting): cleaned, mark-only words merged into the previous
+    // word — exactly as before, plus the keys. The cursor map keeps an
+    // ayah's indices continuous across its lines.
+    const display: ReaderDisplayEntry[] = displayEntriesForLine(words, engineCursors);
     if (display.length === 0) continue;
 
     const shortLine = display.filter((w) => !w.isEnd).length < 5;
@@ -232,7 +239,7 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
       const sid = Number(sidStr);
       const ayahNum = Number(ayahStr);
       // Collect this ayah's words on this line (in order).
-      const group: { text: string; isEnd: boolean; verseKey: string }[] = [];
+      const group: ReaderDisplayEntry[] = [];
       while (i < display.length && display[i].verseKey === verseKey) {
         group.push(display[i]);
         i++;
@@ -248,10 +255,18 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
         }
         const off = offsets[wi];
         wi++;
+        // Phase 3: every word gets a unique id (word-surah-ayah-index,
+        // mapping cleanly to the engine's word positions) and lights up
+        // green while any of its engine keys is highlighted. The class
+        // sits on the outer span so the tajweed colour runs inside keep
+        // their colours — the green is a soft background wash.
+        const highlighted = g.keys.some((k) => highlightedWords?.has(k));
+        const wordId = g.keys[0] ? `word-${g.keys[0].replace(/:/g, '-')}` : undefined;
+        const wordClass = `reader-word${highlighted ? ' highlight-green' : ''}`;
         if (tj && off >= 0) {
           const runs = colorizeWord(g.text, tj.plain, tj.segments, off);
           lineContent.push(
-            <span key={`${g.verseKey}-${wi}`}>
+            <span key={`${g.verseKey}-${wi}`} id={wordId} className={wordClass}>
               {runs.map((r, ri) => (
                 <span key={ri} style={{ color: r.color }}>
                   {r.text}
@@ -261,7 +276,7 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
           );
         } else {
           lineContent.push(
-            <span key={`${g.verseKey}-${wi}`} style={{ color: TAJWEED_BLACK }}>
+            <span key={`${g.verseKey}-${wi}`} id={wordId} className={wordClass} style={{ color: TAJWEED_BLACK }}>
               {g.text}
             </span>,
           );

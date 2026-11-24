@@ -215,6 +215,18 @@ body {
   text-align-last: justify;
 }
 
+/* Phase 3 — word-by-word recitation highlight. A soft green wash over
+ * the word; the text itself keeps its tajweed colours, so the
+ * highlight must read over them without hiding them. NO padding: the
+ * background alone never changes a word's width, so highlighting
+ * cannot shift the line or break the kashida justification. */
+.reader-word.highlight-green {
+  background-color: rgba(34, 197, 94, 0.32);
+  border-radius: 0.25em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
 /* Brand selection + focus */
 ::selection {
   background: #FFB800;
