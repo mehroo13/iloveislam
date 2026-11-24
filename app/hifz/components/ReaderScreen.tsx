@@ -60,6 +60,7 @@ import {
   type WordEvent,
 } from '../lib/tilawa';
 import type { MushafVerse } from '../lib/fetch';
+import { AUDIO_BASE } from '../../quran/lib';
 
 /* ---------------------------------------------------------------- */
 /*  Reader mic (Phase 2): Tilawa on-device engine. The same engine   */
@@ -113,6 +114,22 @@ function pageExpected(verses: MushafVerse[]): {
  * both show the spinner; the toast says which. */
 type MicState = 'idle' | 'loading' | 'recording' | 'processing';
 
+/** One Quran.com audio segment: [wordIndex0, wordPosition1, startMs,
+ *  endMs] — the same shape MushafReader's Listen uses (see its
+ *  AudioSegment comment: one segment per word, in word order). */
+type AudioSegment = [number, number, number, number];
+/** One playable ayah in the Listen queue. */
+interface PlayItem {
+  key: string;
+  surah: number;
+  ayah: number;
+  url: string;
+  segments: AudioSegment[];
+}
+/** Listen (audio playback) state: idle → loading (fetching the
+ *  page's audio) → playing ⇄ paused → idle. */
+type PlayState = 'idle' | 'loading' | 'playing' | 'paused';
+
 function IconStop() {
   return (
     <svg viewBox="0 0 24 24" className="h-7 w-7" aria-hidden="true">
@@ -132,9 +149,17 @@ function IconSpinner() {
 /** The one modal open at a time (Phase 1). */
 type ReaderModal = 'dashboard' | 'sheet' | 'search' | 'gift' | 'settings' | 'layout' | 'mistakes';
 
-const PAGE_BG = '#F7F7F5';
-const INK = '#111827';
-const MUTED = '#6B7280';
+/* Reader chrome colours (Phase 7): CSS variables, defined in :root
+ * and redefined under [data-theme="dark"] in globals.css — so the
+ * Light / Dark toggle restyles the reader without re-rendering.
+ * Light values are the old literals (#F7F7F5 / #111827 / #6B7280),
+ * so light mode looks exactly as before. SVG icons use these via
+ * style={{ stroke: INK }} / style={{ fill: INK }} — var() does NOT
+ * work in SVG presentation attributes (stroke={INK}), only in the
+ * style prop. */
+const PAGE_BG = 'var(--reader-bg)';
+const INK = 'var(--reader-ink)';
+const MUTED = 'var(--reader-muted)';
 
 function wait(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -149,14 +174,14 @@ function raf(): Promise<void> {
 
 function IconMenu() {
   return (
-    <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke={INK} strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" style={{ stroke: INK }} strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
       <path d="M4 7h16M4 12h16M4 17h16" />
     </svg>
   );
 }
 function IconSearch() {
   return (
-    <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke={INK} strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" style={{ stroke: INK }} strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
       <circle cx="11" cy="11" r="6.5" />
       <path d="M16 16l4.5 4.5" />
     </svg>
@@ -175,7 +200,7 @@ function IconGift() {
 function IconGear() {
   return (
     <svg viewBox="0 0 24 24" className="h-7 w-7" aria-hidden="true">
-      <g fill={INK}>
+      <g style={{ fill: INK }}>
         {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
           <rect key={a} x="11" y="1.5" width="2" height="4.5" rx="1" transform={`rotate(${a} 12 12)`} />
         ))}
@@ -211,7 +236,7 @@ function IconBook() {
     <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
       <path
         d="M12 6.8C10.6 5.2 8.2 4.6 5.6 5.2 4.2 5.5 3.2 6 3.2 6.8v10.4c0 .8 1 1.3 2.4 1 2.6-.6 5-.6 6.4.7 1.4-1.3 3.8-1.3 6.4-.7 1.4.3 2.4-.2 2.4-1V6.8c0-.8-1-1.3-2.4-1.6-2.6-.6-5 0-6.4 1.6Z"
-        fill={INK}
+        style={{ fill: INK }}
       />
       <path d="M12 6.8v11.1" stroke="#FFFFFF" strokeWidth="1.1" />
     </svg>
@@ -219,10 +244,36 @@ function IconBook() {
 }
 function IconEyeOff() {
   return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke={INK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" style={{ stroke: INK }} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M2.5 12C5 7.5 8.5 5.5 12 5.5c3.5 0 7 2 9.5 6.5-2.5 4.5-6 6.5-9.5 6.5-3.5 0-7-2-9.5-6.5Z" />
-      <circle cx="12" cy="12" r="2.6" fill={INK} stroke="none" />
+      <circle cx="12" cy="12" r="2.6" style={{ fill: INK }} stroke="none" />
       <path d="M4.5 4.5l15 15" />
+    </svg>
+  );
+}
+
+/* Phase 7 — Listen icons for the reader's Play button (green play
+ * triangle / pause bars, drawn in the current-ink green). */
+function IconPlaySmall() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+      <path d="M8 5.5v13l11-6.5-11-6.5Z" fill="#16A34A" />
+    </svg>
+  );
+}
+function IconPauseSmall() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+      <rect x="6.5" y="5" width="3.6" height="14" rx="1" fill="#FFFFFF" />
+      <rect x="13.9" y="5" width="3.6" height="14" rx="1" fill="#FFFFFF" />
+    </svg>
+  );
+}
+function IconPlaySpinner() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5 animate-spin" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="rgba(22,163,74,0.3)" strokeWidth="3" />
+      <path d="M21 12a9 9 0 0 0-9-9" fill="none" stroke="#16A34A" strokeWidth="3" strokeLinecap="round" />
     </svg>
   );
 }
@@ -695,6 +746,12 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   );
 
   const startMic = useCallback(async () => {
+    // Listen and the mic exclude each other: stop the audio first.
+    if (playStateRef.current !== 'idle') {
+      setMicToast('Stop the audio playback first, then recite.');
+      micTimerRef.current = window.setTimeout(() => setMicToast(null), 4000);
+      return;
+    }
     // The engine must be ready before prepareMicrophone() can run.
     if (engineStateRef.current !== 'ready') {
       setMic('loading');
@@ -892,16 +949,255 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     void startMic();
   }, [startMic, stopMic]);
 
+  /* ---------------- Phase 7 — Listen (audio playback) -------------
+     Reuses the Mushaf Listen infrastructure (MushafReader.tsx): the
+     same-origin proxy `/api/quran/verses/by_page/{n}?…&audio=7`
+     returns each verse's `audio.url` plus `audio.segments` — the
+     per-word [index, position, startMs, endMs] timings inside the
+     reciter's own audio (Mishary Alafasy, reciter 7 — the old
+     reader's default, and the same voice as the spec's AlQuran
+     Cloud `ar.alafasy` example). AlQuran Cloud's ayah audio carries
+     NO word timings, so it cannot drive the word-by-word highlight;
+     the Quran.com segments are the only source that can — which is
+     why this reuses Listen instead of building a second audio system.
+     The sounding word lights up green through the same highlight
+     set Phase 3 uses (the union below): the segment's 1-based
+     position maps straight onto the engine key `surah:ayah:word` —
+     pause-mark words are their own segments (see MushafPageFrame),
+     so the mapping holds across them. Scope is the first surah on
+     the page (same as a mic take); a page turn stops playback, as
+     it ends a take. The mic and playback exclude each other: you
+     cannot recite-check while audio plays, or play while reciting. */
+  const [playState, setPlayState] = useState<PlayState>('idle');
+  const [playingWordKey, setPlayingWordKey] = useState<string | null>(null);
+  const [playError, setPlayError] = useState<string | null>(null);
+  const playStateRef = useRef<PlayState>('idle');
+  const playingWordKeyRef = useRef<string | null>(null);
+  const playAudioRef = useRef<HTMLAudioElement | null>(null);
+  const playQueueRef = useRef<PlayItem[]>([]);
+  const playCurrentRef = useRef<PlayItem | null>(null);
+  /** Generation counter: a newer start/stop invalidates in-flight
+   *  fetches and play() promises, so a stale one cannot restart
+   *  audio after the user stopped it. */
+  const playRunRef = useRef(0);
+  const playErrorTimerRef = useRef<number | null>(null);
+
+  const setPlay = useCallback((s: PlayState) => {
+    playStateRef.current = s;
+    setPlayState(s);
+  }, []);
+
+  const showPlayError = useCallback((msg: string) => {
+    setPlayError(msg);
+    if (playErrorTimerRef.current !== null) window.clearTimeout(playErrorTimerRef.current);
+    playErrorTimerRef.current = window.setTimeout(() => setPlayError(null), 5000);
+  }, []);
+
+  const stopPlayback = useCallback(() => {
+    playRunRef.current += 1;
+    playQueueRef.current = [];
+    playCurrentRef.current = null;
+    const a = playAudioRef.current;
+    if (a) {
+      a.pause();
+      a.removeAttribute('src');
+      a.load();
+    }
+    playingWordKeyRef.current = null;
+    setPlayingWordKey(null);
+    setPlay('idle');
+  }, [setPlay]);
+
+  const playNextRef = useRef<() => void>(() => {});
+  const playNext = useCallback(() => {
+    const run = playRunRef.current;
+    const audio = playAudioRef.current;
+    if (!audio) return;
+    const item = playQueueRef.current.shift();
+    if (!item) {
+      stopPlayback();
+      return;
+    }
+    playCurrentRef.current = item;
+    playingWordKeyRef.current = null;
+    setPlayingWordKey(null);
+    audio.src = `${AUDIO_BASE}${item.url}`;
+    audio
+      .play()
+      .then(() => {
+        if (playRunRef.current === run) setPlay('playing');
+      })
+      .catch((err: unknown) => {
+        if (playRunRef.current !== run) return;
+        if ((err as { name?: string })?.name === 'NotAllowedError') {
+          // Autoplay blocked (the fetch outlasted the tap's
+          // activation): stop and ask for another tap instead of
+          // silently skipping through the whole queue.
+          stopPlayback();
+          showPlayError('Audio was blocked — please tap Play again.');
+        } else {
+          // Unplayable clip — skip to the next ayah, never stall.
+          playNextRef.current();
+        }
+      });
+  }, [stopPlayback, setPlay, showPlayError]);
+  playNextRef.current = playNext;
+
+  const startPlayback = useCallback(async () => {
+    if (micStateRef.current !== 'idle') {
+      showPlayError('Stop reciting first, then play the audio.');
+      return;
+    }
+    // Listening is not testing: unhide the words so the follow-along
+    // is visible instead of a blurred page.
+    if (hideVersesRef.current) setHideVerses(false);
+    setPlay('loading');
+    setPlayError(null);
+    const run = playRunRef.current + 1;
+    playRunRef.current = run;
+    // The page's ayahs, first surah only (same scope as a mic take).
+    const expected = pageExpected(data.verses);
+    if (!expected) {
+      setPlay('idle');
+      showPlayError('Nothing to play on this page.');
+      return;
+    }
+    let items: PlayItem[] = [];
+    try {
+      const res = await fetch(
+        `/api/quran/verses/by_page/${page}?words=true&word_fields=text_uthmani,text_indopak,line_number,page_number,position,char_type_name&fields=text_uthmani&audio=7`,
+      );
+      if (!res.ok) throw new Error(`by_page ${page}: ${res.status}`);
+      const d = (await res.json()) as {
+        verses?: { verse_key: string; audio?: { url?: string; segments?: AudioSegment[] } }[];
+      };
+      for (const v of d.verses ?? []) {
+        const [s, a] = v.verse_key.split(':').map(Number);
+        if (s !== expected.surah || !v.audio?.url) continue;
+        items.push({ key: v.verse_key, surah: s, ayah: a, url: v.audio.url, segments: v.audio.segments ?? [] });
+      }
+    } catch {
+      if (playRunRef.current !== run) return;
+      setPlay('idle');
+      showPlayError("Couldn't load the audio — check your connection and try again.");
+      return;
+    }
+    if (playRunRef.current !== run) return;
+    if (items.length === 0) {
+      setPlay('idle');
+      showPlayError('No audio for this page yet.');
+      return;
+    }
+    playQueueRef.current = items;
+    playNextRef.current();
+  }, [data.verses, page, setPlay, showPlayError]);
+
+  const togglePlayback = useCallback(() => {
+    const st = playStateRef.current;
+    if (st === 'playing') {
+      const a = playAudioRef.current;
+      if (a) a.pause();
+      setPlay('paused');
+      return;
+    }
+    if (st === 'paused') {
+      const a = playAudioRef.current;
+      if (!a) {
+        void startPlayback();
+        return;
+      }
+      a.play()
+        .then(() => setPlay('playing'))
+        .catch(() => {
+          showPlayError('Audio was blocked — please tap Play again.');
+        });
+      return;
+    }
+    if (st === 'loading') return;
+    void startPlayback();
+  }, [setPlay, showPlayError, startPlayback]);
+
+  /* One <audio> element drives Listen: timeupdate maps the sounding
+   * position onto the current verse's segments (between words, the
+   * last sounded word stays lit until the next starts — the same
+   * rule as MushafReader); ended / error moves to the next ayah.
+   * Unmount pauses the audio so Listen never plays invisibly after
+   * leaving the reader. */
+  useEffect(() => {
+    const audio = new Audio();
+    audio.preload = 'auto';
+    playAudioRef.current = audio;
+    const onTime = () => {
+      const cur = playCurrentRef.current;
+      if (!cur || cur.segments.length === 0) return;
+      const ms = audio.currentTime * 1000;
+      let idx = -1;
+      for (let i = 0; i < cur.segments.length; i++) {
+        const seg = cur.segments[i];
+        if (ms >= seg[2] && ms < seg[3]) {
+          idx = i;
+          break;
+        }
+      }
+      if (idx === -1) {
+        for (let i = cur.segments.length - 1; i >= 0; i--) {
+          if (ms >= cur.segments[i][3]) {
+            idx = i;
+            break;
+          }
+        }
+      }
+      if (idx === -1) {
+        if (playingWordKeyRef.current !== null) {
+          playingWordKeyRef.current = null;
+          setPlayingWordKey(null);
+        }
+        return;
+      }
+      // Segment position (1-based) is the engine word index.
+      const key = readerWordKey(cur.surah, cur.ayah, cur.segments[idx][1]);
+      if (playingWordKeyRef.current !== key) {
+        playingWordKeyRef.current = key;
+        setPlayingWordKey(key);
+      }
+    };
+    const onEnded = () => {
+      playNextRef.current();
+    };
+    const onError = () => {
+      playNextRef.current();
+    };
+    audio.addEventListener('timeupdate', onTime);
+    audio.addEventListener('ended', onEnded);
+    audio.addEventListener('error', onError);
+    return () => {
+      audio.removeEventListener('timeupdate', onTime);
+      audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('error', onError);
+      audio.pause();
+      playAudioRef.current = null;
+    };
+  }, []);
+
+  /** Words lit on screen this take: the recitation greens (Phase 3)
+   *  plus the word currently sounding in Listen (Phase 7). The
+   *  renderers light any key in this set green. */
+  const displayHighlightedWords = useMemo(
+    () => (playingWordKey ? new Set([...highlightedWords, playingWordKey]) : highlightedWords),
+    [highlightedWords, playingWordKey],
+  );
+
   /* A page change ends the take: the session's reference text is the
-   * old page's ayahs. */
+   * old page's ayahs. It also stops Listen (Phase 7). */
   useEffect(() => {
     if (sessionRef.current) void stopMic('user');
+    stopPlayback();
     setHighlightedWords(new Set()); // the new page starts unhighlighted
     setMistakeMap(new Map()); // and with no red words
     setMistakeTooltip(null);
     setTestScore(null); // and with no score popup
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, stopPlayback]);
 
   /* A new page (or layout) starts unshrunk; the fit check below
    * shrinks only when the whole page would overflow the viewport. */
@@ -1195,20 +1491,61 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
             }}
           >
             {/* Page header row (whole-page reference): surah name
-                left, Juz / Hizb right. */}
+                left, Play + Juz / Hizb right. */}
             <div ref={pageHeadRef} className="flex items-center justify-between px-2 pb-2">
               <span className="text-[15px] font-medium" style={{ color: INK }}>
                 {meta.surahName}
               </span>
-              <span className="flex items-center gap-2 text-[15px]" style={{ color: INK }}>
-                <span>Juz {meta.juz}</span>
-                <svg viewBox="0 0 12 12" className="h-3 w-3" aria-hidden="true">
-                  <circle cx="6" cy="6" r="4.5" fill="none" stroke={INK} strokeWidth="1.2" />
-                  <circle cx="6" cy="6" r="1.4" fill={INK} />
-                </svg>
-                <span>Hizb {meta.hizb}</span>
+              <span className="flex items-center gap-2">
+                {/* Phase 7 — Listen: play this surah's recitation
+                    (Mishary Alafasy); the words light up green as
+                    they sound. Tap again to pause, tap once more to
+                    resume; a page turn stops it. */}
+                <button
+                  type="button"
+                  aria-label={
+                    playState === 'playing'
+                      ? 'Pause recitation'
+                      : playState === 'paused'
+                        ? 'Resume recitation'
+                        : playState === 'loading'
+                          ? 'Loading recitation audio'
+                          : `Play ${meta.surahName} recitation`
+                  }
+                  aria-pressed={playState === 'playing'}
+                  data-testid="reader-play-button"
+                  data-play-state={playState}
+                  onClick={togglePlayback}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D1D5DB] bg-white shadow-sm"
+                  style={
+                    playState === 'playing'
+                      ? { backgroundColor: '#16A34A', borderColor: '#16A34A' }
+                      : undefined
+                  }
+                >
+                  {playState === 'playing' ? (
+                    <IconPauseSmall />
+                  ) : playState === 'loading' ? (
+                    <IconPlaySpinner />
+                  ) : (
+                    <IconPlaySmall />
+                  )}
+                </button>
+                <span className="flex items-center gap-2 text-[15px]" style={{ color: INK }}>
+                  <span>Juz {meta.juz}</span>
+                  <svg viewBox="0 0 12 12" className="h-3 w-3" aria-hidden="true">
+                    <circle cx="6" cy="6" r="4.5" fill="none" style={{ stroke: INK }} strokeWidth="1.2" />
+                    <circle cx="6" cy="6" r="1.4" style={{ fill: INK }} />
+                  </svg>
+                  <span>Hizb {meta.hizb}</span>
+                </span>
               </span>
             </div>
+            {playError && (
+              <p role="alert" data-testid="play-error" className="px-2 pb-1 text-center text-[13px] leading-snug" style={{ color: '#DC2626' }}>
+                {playError}
+              </p>
+            )}
             {layoutMode === 'book' ? (
               <div ref={frameWrapRef} className="w-full" style={{ zoom: scale * shrink }}>
                 <ReaderPage
@@ -1222,7 +1559,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                   hideVerses={hideVerses}
                   revealedLines={revealedLines}
                   onRevealLine={(ln, info) => reveal(`L${page}:${ln}`, info)}
-                  highlightedWords={highlightedWords}
+                  highlightedWords={displayHighlightedWords}
                   mistakes={mistakeMap}
                   onMistakeWordClick={openMistakeTooltip}
                 />
@@ -1236,7 +1573,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                 onReveal={reveal}
                 textSize={textSize}
                 onTextSizeChange={changeTextSize}
-                highlightedWords={highlightedWords}
+                highlightedWords={displayHighlightedWords}
                 mistakes={mistakeMap}
                 onMistakeWordClick={openMistakeTooltip}
               />
@@ -1247,7 +1584,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                 hideVerses={hideVerses}
                 revealed={revealed}
                 onReveal={reveal}
-                highlightedWords={highlightedWords}
+                highlightedWords={displayHighlightedWords}
                 mistakes={mistakeMap}
                 onMistakeWordClick={openMistakeTooltip}
               />
@@ -1285,7 +1622,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
             }}
             className="flex h-11 items-center rounded-full border-[1.5px] bg-white px-5 text-[15px] font-bold shadow-sm"
             style={{
-              borderColor: mistakeCount > 0 ? '#DC2626' : '#111827',
+              borderColor: mistakeCount > 0 ? '#DC2626' : INK,
               color: mistakeCount > 0 ? '#DC2626' : INK,
             }}
           >
@@ -1307,7 +1644,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
             className="flex h-11 w-11 items-center justify-center rounded-full border shadow-sm"
             style={{
               borderColor: hideVerses ? '#16A34A' : '#D1D5DB',
-              backgroundColor: hideVerses ? '#F0FDF4' : '#FFFFFF',
+              backgroundColor: hideVerses ? 'var(--reader-mint)' : 'var(--reader-card)',
             }}
           >
             <IconEyeOff />
@@ -1510,8 +1847,18 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       />
 
       {/* Settings page (Step 5): full-screen overlay; the back
-          button returns to the reader. */}
-      <ReaderSettings open={openModal === 'settings'} onClose={() => setOpenModal(null)} />
+          button returns to the reader. Phase 7: TEST YOURSELF opens
+          the reader in Testing Mode (Hide Verses on); the Mushaf
+          Layout row opens the layout sheet. */}
+      <ReaderSettings
+        open={openModal === 'settings'}
+        onClose={() => setOpenModal(null)}
+        onTestYourself={() => {
+          setOpenModal(null);
+          setHideVerses(true);
+        }}
+        onOpenLayout={() => setOpenModal('layout')}
+      />
 
       {/* Chapter / Juz selection bottom sheet (Step 2) */}
       <ChapterSheet

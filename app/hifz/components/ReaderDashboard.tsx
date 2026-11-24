@@ -52,8 +52,8 @@ import {
 } from '../lib/goals';
 import { mirrorKeyToIdb } from '../lib/store';
 
-const INK = '#111827';
-const MUTED = '#6B7280';
+const INK = 'var(--reader-ink)';
+const MUTED = 'var(--reader-muted)';
 const GREEN = '#16A34A';
 
 /* ---------------------------------------------------------------- */
@@ -62,14 +62,14 @@ const GREEN = '#16A34A';
 
 function IconChevronLeft() {
   return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke={INK} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" style={{ stroke: INK }} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M15 5l-7 7 7 7" />
     </svg>
   );
 }
 function IconChevronRight({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className ?? 'h-5 w-5'} fill="none" stroke={INK} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className={className ?? 'h-5 w-5'} fill="none" style={{ stroke: INK }} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M9 5l7 7-7 7" />
     </svg>
   );
@@ -91,7 +91,7 @@ function IconChevronUp({ className }: { className?: string }) {
 function IconGear() {
   return (
     <svg viewBox="0 0 24 24" className="h-7 w-7" aria-hidden="true">
-      <g fill={INK}>
+      <g style={{ fill: INK }}>
         {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
           <rect key={a} x="11" y="1.5" width="2" height="4.5" rx="1" transform={`rotate(${a} 12 12)`} />
         ))}
@@ -104,7 +104,7 @@ function IconGear() {
 function IconProfile() {
   return (
     <svg viewBox="0 0 24 24" className="h-7 w-7" aria-hidden="true">
-      <circle cx="12" cy="12" r="10.5" fill={INK} />
+      <circle cx="12" cy="12" r="10.5" style={{ fill: INK }} />
       <circle cx="12" cy="9" r="3.4" fill="#FFFFFF" />
       <path d="M5.4 19.5c1.2-3.2 3.6-4.8 6.6-4.8s5.4 1.6 6.6 4.8" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" />
     </svg>
@@ -112,7 +112,7 @@ function IconProfile() {
 }
 function IconBell() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="#6B7280" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: MUTED }} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M18 9a6 6 0 1 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 15 18 9" />
       <path d="M10.3 20.5a2 2 0 0 0 3.4 0" />
     </svg>
@@ -128,7 +128,7 @@ function IconPlusCircle() {
 }
 function IconPlusGrey() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: MUTED }} strokeWidth="2" strokeLinecap="round" aria-hidden="true">
       <circle cx="12" cy="12" r="9.5" stroke="#D1D5DB" />
       <path d="M12 8.5v7M8.5 12h7" />
     </svg>
@@ -328,7 +328,7 @@ function StreakCard({ streak }: { streak: StreakInfo }) {
         </p>
       </div>
       {/* Week panel. */}
-      <div className="flex min-w-0 flex-1 flex-col justify-center rounded-xl px-2 py-3" style={{ backgroundColor: '#E9FFF3' }}>
+      <div className="flex min-w-0 flex-1 flex-col justify-center rounded-xl px-2 py-3" style={{ backgroundColor: 'var(--reader-mint)' }}>
         <div className="flex gap-0.5">
           {streak.week.map((d) => (
             <DayPill key={d.label} day={d.label} done={d.done} />
@@ -1173,7 +1173,7 @@ export default function ReaderDashboard({
       role="dialog"
       aria-label="Dashboard"
       className="absolute inset-0 z-[70] flex flex-col transition-opacity duration-200"
-      style={{ backgroundColor: '#F8F8F8', opacity: shown ? 1 : 0 }}
+      style={{ backgroundColor: 'var(--reader-bg)', opacity: shown ? 1 : 0 }}
     >
       {/* Header: back button left, logo centre, profile + gear right.
           Stays fixed while the content below scrolls. */}

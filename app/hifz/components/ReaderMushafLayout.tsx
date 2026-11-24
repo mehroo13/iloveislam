@@ -18,8 +18,8 @@ import { useEffect, useState } from 'react';
 
 export type ReaderLayoutMode = 'book' | 'text' | 'translation';
 
-const INK = '#111827';
-const MUTED = '#9CA3AF';
+const INK = 'var(--reader-ink)';
+const MUTED = 'var(--reader-muted)';
 
 function IconClose() {
   return (
@@ -33,7 +33,7 @@ function IconBookFilled() {
     <svg viewBox="0 0 24 24" className="h-7 w-7 shrink-0" aria-hidden="true">
       <path
         d="M12 6.8C10.6 5.2 8.2 4.6 5.6 5.2 4.2 5.5 3.2 6 3.2 6.8v10.4c0 .8 1 1.3 2.4 1 2.6-.6 5-.6 6.4.7 1.4-1.3 3.8-1.3 6.4-.7 1.4.3 2.4-.2 2.4-1V6.8c0-.8-1-1.3-2.4-1.6-2.6-.6-5 0-6.4 1.6Z"
-        fill={INK}
+        style={{ fill: INK }}
       />
       <path d="M12 6.8v11.1" stroke="#FFFFFF" strokeWidth="1.1" />
     </svg>
@@ -42,7 +42,7 @@ function IconBookFilled() {
 function IconDocLines() {
   return (
     <svg viewBox="0 0 24 24" className="h-7 w-7 shrink-0" aria-hidden="true">
-      <path d="M6 3.5h9.5L19.5 7.5v13H6V3.5Z" fill={INK} />
+      <path d="M6 3.5h9.5L19.5 7.5v13H6V3.5Z" style={{ fill: INK }} />
       <path d="M14.5 3.5v4.5h5" fill="#FFFFFF" opacity="0.85" />
       <path d="M9 12h6M9 15h6" stroke="#FFFFFF" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
@@ -54,12 +54,12 @@ function IconTranslate() {
       <path
         d="M4 5.5h9l-1.2 2.6M6.6 8.1 9.5 14l.9-2M5.4 11.5h5.4M13.5 5.5h6M16.5 5.5v3.2c0 2.6-1.4 4.6-3.4 5.3M15 8.5c.8 1.8 2 3.6 3.6 4.9"
         fill="none"
-        stroke={INK}
+        style={{ stroke: INK }}
         strokeWidth="1.9"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <text x="18.2" y="19.5" fontSize="8.5" fontWeight="700" fill={INK} textAnchor="middle">
+      <text x="18.2" y="19.5" fontSize="8.5" fontWeight="700" style={{ fill: INK }} textAnchor="middle">
         A
       </text>
     </svg>
@@ -176,7 +176,7 @@ export default function ReaderMushafLayout({
                 onClick={() => onSelect(opt.id)}
                 className="flex w-full items-center gap-3 rounded-[12px] bg-white px-4 py-3.5 text-left"
                 style={{
-                  border: selected ? '2px solid #111827' : '1px solid #E5E7EB',
+                  border: selected ? '2px solid var(--reader-ink)' : '1px solid var(--reader-hairline)',
                 }}
               >
                 <Icon />
@@ -192,7 +192,7 @@ export default function ReaderMushafLayout({
                 <span
                   aria-hidden="true"
                   className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full"
-                  style={{ border: selected ? '2px solid #111827' : '2px solid #D1D5DB' }}
+                  style={{ border: selected ? '2px solid var(--reader-ink)' : '2px solid var(--reader-hairline)' }}
                 >
                   {selected && <span className="h-[10px] w-[10px] rounded-full bg-[#111827]" />}
                 </span>

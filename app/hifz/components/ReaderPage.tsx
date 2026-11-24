@@ -58,20 +58,20 @@ export function ReaderRosette({ ayah }: { ayah: number }) {
         className="absolute inset-0 h-full w-full"
         aria-hidden="true"
         fill="none"
-        stroke="#111827"
+        style={{ stroke: 'var(--reader-ink)' }}
       >
-        <circle cx="20" cy="20" r="13" fill="#FFFFFF" strokeWidth="1.25" />
+        <circle cx="20" cy="20" r="13" style={{ fill: 'var(--reader-card)' }} strokeWidth="1.25" />
         <circle cx="20" cy="20" r="10.5" strokeWidth="0.75" />
         {/* Small petals at the diagonals */}
-        <g fill="#111827" stroke="none">
+        <g style={{ fill: 'var(--reader-ink)' }} stroke="none">
           <path d="M 20 3.5 L 21.6 7 L 20 8.5 L 18.4 7 Z" />
           <path d="M 20 36.5 L 21.6 33 L 20 31.5 L 18.4 33 Z" />
           <path d="M 3.5 20 L 7 18.4 L 8.5 20 L 7 21.6 Z" />
           <path d="M 36.5 20 L 33 18.4 L 31.5 20 L 33 21.6 Z" />
         </g>
         {/* Double loop at the top */}
-        <circle cx="16.5" cy="5.5" r="2" fill="#FFFFFF" strokeWidth="1" />
-        <circle cx="23.5" cy="5.5" r="2" fill="#FFFFFF" strokeWidth="1" />
+        <circle cx="16.5" cy="5.5" r="2" style={{ fill: 'var(--reader-card)' }} strokeWidth="1" />
+        <circle cx="23.5" cy="5.5" r="2" style={{ fill: 'var(--reader-card)' }} strokeWidth="1" />
       </svg>
       <span className="relative text-[1rem] font-bold leading-none text-[#111827]">
         {toArabicIndic(ayah)}

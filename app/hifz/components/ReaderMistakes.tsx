@@ -24,8 +24,8 @@ import { useEffect, useState } from 'react';
 import { surahName } from '../lib/reader-sessions';
 import { mistakeTypeLabel, type ReaderMistake } from '../lib/reader-mistakes';
 
-const INK = '#111827';
-const MUTED = '#9CA3AF';
+const INK = 'var(--reader-ink)';
+const MUTED = 'var(--reader-muted)';
 
 function IconClose() {
   return (

@@ -16,18 +16,18 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-const INK = '#111827';
+const INK = 'var(--reader-ink)';
 
 function IconChevronLeft() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" style={{ stroke: INK }} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
       <path d="M14.5 5.5L8 12l6.5 6.5" />
     </svg>
   );
 }
 function IconSearchSmall() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="2.4" strokeLinecap="round" className="h-[18px] w-[18px] shrink-0" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" style={{ stroke: INK }} strokeWidth="2.4" strokeLinecap="round" className="h-[18px] w-[18px] shrink-0" aria-hidden="true">
       <circle cx="11" cy="11" r="6.5" />
       <path d="M16 16l4.5 4.5" />
     </svg>
@@ -74,7 +74,7 @@ export default function ReaderSearch({ open, onClose }: { open: boolean; onClose
       role="dialog"
       aria-label="Search"
       className="absolute inset-0 z-[60] flex flex-col transition-opacity duration-200"
-      style={{ backgroundColor: '#F8F8F8', opacity: shown ? 1 : 0 }}
+      style={{ backgroundColor: 'var(--reader-bg)', opacity: shown ? 1 : 0 }}
     >
       {/* Header: circular back button left, bold "Search" right. */}
       <header className="flex shrink-0 items-center justify-between px-[14px] pt-4">

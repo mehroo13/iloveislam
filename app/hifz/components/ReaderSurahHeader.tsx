@@ -16,8 +16,8 @@ export default function ReaderSurahHeader({ name }: { name: string }) {
         preserveAspectRatio="xMidYMid meet"
       >
         {/* Outer frame: thick black border + thin inner hairline */}
-        <rect x="2" y="2" width="596" height="62" fill="#FFFFFF" stroke="#111827" strokeWidth="3.5" />
-        <rect x="8" y="8" width="584" height="50" fill="none" stroke="#111827" strokeWidth="1" />
+        <rect x="2" y="2" width="596" height="62" style={{ fill: 'var(--reader-card)', stroke: 'var(--reader-ink)' }} strokeWidth="3.5" />
+        <rect x="8" y="8" width="584" height="50" fill="none" style={{ stroke: 'var(--reader-ink)' }} strokeWidth="1" />
         {/* End ornaments (left + mirrored right) */}
         <Ornament transform="translate(10 9)" />
         <Ornament transform="translate(590 9) scale(-1 1)" />
@@ -25,8 +25,7 @@ export default function ReaderSurahHeader({ name }: { name: string }) {
             behind the ornament circles */}
         <path
           d="M 168 33 Q 178 12 210 10 L 390 10 Q 422 12 432 33 Q 422 54 390 56 L 210 56 Q 178 54 168 33 Z"
-          fill="#FFFFFF"
-          stroke="#111827"
+          style={{ fill: 'var(--reader-card)', stroke: 'var(--reader-ink)' }}
           strokeWidth="2"
         />
         {/* Surah name */}
@@ -37,7 +36,7 @@ export default function ReaderSurahHeader({ name }: { name: string }) {
           dominantBaseline="central"
           fontFamily="'Amiri', serif"
           fontSize="25"
-          fill="#111827"
+          style={{ fill: 'var(--reader-ink)' }}
         >
           {name}
         </text>
@@ -50,9 +49,9 @@ export default function ReaderSurahHeader({ name }: { name: string }) {
  *  white circle near its inner edge. Drawn in a 132 x 48 box. */
 function Ornament({ transform }: { transform: string }) {
   return (
-    <g transform={transform} fill="none" stroke="#111827" strokeWidth="2.25" strokeLinecap="round">
+    <g transform={transform} fill="none" style={{ stroke: 'var(--reader-ink)' }} strokeWidth="2.25" strokeLinecap="round">
       {/* Outer rosette: eight filled petals around a centre */}
-      <g fill="#111827" stroke="none">
+      <g style={{ fill: 'var(--reader-ink)' }} stroke="none">
         {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
           <path key={a} d="M 16 24 C 12 16 12 10 16 7 C 20 10 20 16 16 24 Z" transform={`rotate(${a} 16 24)`} />
         ))}
@@ -64,7 +63,7 @@ function Ornament({ transform }: { transform: string }) {
       <path d="M 52 12 C 62 4 76 6 80 14 C 83 20 76 26 68 24" />
       <path d="M 52 36 C 62 44 76 42 80 34 C 83 28 76 22 68 24" />
       {/* Palmette leaves filling the middle */}
-      <g fill="#111827" stroke="none">
+      <g style={{ fill: 'var(--reader-ink)' }} stroke="none">
         <path d="M 44 12 C 40 5 40 1 44 0 C 48 2 49 8 44 12 Z" />
         <path d="M 44 36 C 40 43 40 47 44 48 C 48 46 49 40 44 36 Z" />
         <path d="M 66 10 C 62 4 63 0 67 0 C 71 2 71 8 66 10 Z" />
@@ -76,13 +75,13 @@ function Ornament({ transform }: { transform: string }) {
       <path d="M 78 16 C 86 8 96 8 100 14" />
       <path d="M 78 32 C 86 40 96 40 100 34" />
       {/* Small dots */}
-      <g fill="#111827" stroke="none">
+      <g style={{ fill: 'var(--reader-ink)' }} stroke="none">
         <circle cx="34" cy="24" r="2" />
         <circle cx="60" cy="24" r="2" />
         <circle cx="90" cy="24" r="1.6" />
       </g>
       {/* Empty white circle near the inner edge */}
-      <circle cx="112" cy="24" r="15" fill="#FFFFFF" stroke="#111827" strokeWidth="1.75" />
+      <circle cx="112" cy="24" r="15" style={{ fill: 'var(--reader-card)', stroke: 'var(--reader-ink)' }} strokeWidth="1.75" />
     </g>
   );
 }

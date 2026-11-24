@@ -155,6 +155,18 @@ button {
   --t-chip-bg: #F3F4F6;
   --t-radius: 16px;
 
+  /* Reader chrome (Phase 7): the step-by-step reader stack paints
+     its backgrounds and ink from these variables (var(--reader-*))
+     instead of literals, so the Light / Dark toggle restyles it.
+     The [data-theme="dark"] block below redefines them. */
+  --reader-bg: #F7F7F5;
+  --reader-card: #FFFFFF;
+  --reader-ink: #111827;
+  --reader-muted: #6B7280;
+  --reader-hairline: #E5E7EB;
+  --reader-mint: #F0FDF4;
+  --reader-chip: #E9E9E9;
+
   /* Legacy aliases kept for existing pages */
   --green-dark: #102E26;
   --green-mid: #1FA36B;
@@ -475,6 +487,15 @@ body {
   --t-chip-bg: #24352c;
   --bg-page: #0a0f0d;
   --paper: #0a0f0d;
+  /* Reader chrome (Phase 7): the same dark values as --t-*, under
+     the --reader-* names the reader stack uses. */
+  --reader-bg: #0a0f0d;
+  --reader-card: #122019;
+  --reader-ink: #e8f5ee;
+  --reader-muted: #9db3a5;
+  --reader-hairline: #24402f;
+  --reader-mint: #16382a;
+  --reader-chip: #24352c;
 }
 [data-theme="dark"] body {
   background: #0a0f0d;
@@ -520,6 +541,31 @@ body {
 /* Keep dark text on bright-green / gold buttons (see note above). */
 [data-theme="dark"] .bg-\[\#57D798\] { color: #102e26; }
 [data-theme="dark"] .bg-\[\#FFB800\] { color: #102e26; }
+/* Phase 7 — reader-stack classes the dark block did not cover yet.
+   Same pattern as above: override the hardcoded Tailwind palette
+   utilities the reader overlays actually render with, so the
+   Light / Dark toggle restyles the reader, dashboard and sheets. */
+[data-theme="dark"] .bg-\[\#F8F8F8\] { background-color: #0a0f0d; }
+[data-theme="dark"] .bg-\[\#F7F7F5\] { background-color: #0a0f0d; }
+[data-theme="dark"] .bg-\[\#F3F4F6\] { background-color: #24352c; }
+[data-theme="dark"] .bg-\[\#E9FFF3\] { background-color: #16382a; }
+[data-theme="dark"] .bg-\[\#F0FDF4\] { background-color: #16382a; }
+[data-theme="dark"] .bg-\[\#FFEDF9\] { background-color: #3d2436; }
+[data-theme="dark"] .bg-\[\#C3DEF3\] { background-color: #1e3a52; }
+[data-theme="dark"] .bg-\[\#111827\] { background-color: #e8f5ee; }
+[data-theme="dark"] .text-\[\#9CA3AF\] { color: #9db3a5; }
+[data-theme="dark"] .text-\[\#374151\] { color: #d7e5db; }
+[data-theme="dark"] .text-\[\#4B5563\] { color: #b8c9bd; }
+[data-theme="dark"] .text-\[\#64748B\] { color: #9db3a5; }
+[data-theme="dark"] .text-\[\#1F2937\] { color: #e8f5ee; }
+[data-theme="dark"] .border-\[\#D1D5DB\] { border-color: #24402f; }
+[data-theme="dark"] .border-\[\#1F2937\] { border-color: #3a5c48; }
+[data-theme="dark"] .border-\[\#EFEFEF\] { border-color: #24402f; }
+[data-theme="dark"] .border-\[\#A7E8C8\] { border-color: #2c5a44; }
+[data-theme="dark"] .border-\[\#E8E8E4\] { border-color: #24402f; }
+[data-theme="dark"] .border-\[\#EDEDEA\] { border-color: #24402f; }
+[data-theme="dark"] .border-\[\#111827\]\/20 { border-color: rgba(232, 245, 238, 0.2); }
+[data-theme="dark"] .placeholder\:text-\[\#9CA3AF\]::placeholder { color: #9db3a5; }
 /* Tarteel-clean utilities in dark: the --t-* tokens above already restyle
    .t-card/.t-row/.t-chip/.t-section-title; these keep the bright buttons
    readable (white text on #57D798 is kept per the rebuild spec). */

@@ -22,8 +22,8 @@ import { useT } from '../lib/i18n';
 type Tab = 'chapters' | 'parts' | 'bookmarks';
 type SortDir = 'asc' | 'desc';
 
-const INK = '#111827';
-const MUTED = '#6B7280';
+const INK = 'var(--reader-ink)';
+const MUTED = 'var(--reader-muted)';
 
 function IconChevronRight() {
   return (
@@ -257,7 +257,7 @@ export default function ChapterSheet({
                     {ordered.map((s) => (
                       <li
                         key={s.id}
-                        style={{ backgroundColor: s.id === currentSurahId ? '#E9E9E9' : '#FFFFFF' }}
+                        style={{ backgroundColor: s.id === currentSurahId ? 'var(--reader-chip)' : 'var(--reader-card)' }}
                       >
                         <button
                           type="button"

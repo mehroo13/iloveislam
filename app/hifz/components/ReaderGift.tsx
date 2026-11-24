@@ -20,8 +20,8 @@
 
 import { useEffect, useState } from 'react';
 
-const INK = '#111827';
-const MUTED = '#6B7280';
+const INK = 'var(--reader-ink)';
+const MUTED = 'var(--reader-muted)';
 
 /* ---------------------------------------------------------------- */
 /*  Icons (inline SVG, our own).                                     */
@@ -185,7 +185,7 @@ export default function ReaderGift({ open, onClose }: { open: boolean; onClose: 
       role="dialog"
       aria-label="Welcome — everything is free"
       className="absolute inset-0 z-[70] flex flex-col transition-opacity duration-200"
-      style={{ backgroundColor: '#F8F8F8', opacity: shown ? 1 : 0 }}
+      style={{ backgroundColor: 'var(--reader-bg)', opacity: shown ? 1 : 0 }}
     >
       {/* Scrollable content: header, hero, feature card. */}
       <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-[150px]">
@@ -267,13 +267,13 @@ export default function ReaderGift({ open, onClose }: { open: boolean; onClose: 
       {/* Bottom action area: fixed to the bottom. */}
       <div
         className="fixed inset-x-0 bottom-0 z-[70] px-5"
-        style={{ backgroundColor: '#F8F8F8', paddingBottom: 'calc(14px + env(safe-area-inset-bottom))' }}
+        style={{ backgroundColor: 'var(--reader-bg)', paddingBottom: 'calc(14px + env(safe-area-inset-bottom))' }}
       >
         <button
           type="button"
           onClick={onClose}
           className="h-[52px] w-full rounded-full bg-[#F6C45B] text-[16px] font-bold tracking-wide shadow-sm"
-          style={{ color: INK }}
+          style={{ color: '#111827' }}
         >
           START LEARNING NOW
         </button>

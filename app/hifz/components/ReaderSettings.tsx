@@ -6,17 +6,31 @@
 // (pink Testing Mode card + blue Get Started card), then grouped
 // white cards — Experiences, Quran Appearance, Appearance,
 // Notifications, Sounds & Haptics, Downloads, Privacy — each row with
-// a small black icon, a label, and a light grey chevron. Chevrons are
-// visual only in this step; no row navigates anywhere yet. The page
+// a small black icon, a label, and a light grey chevron. The page
 // scrolls vertically; the header stays fixed. No "Tarteel" /
 // "Premium" wording anywhere.
+//
+// Phase 7 (live wiring): the rows that can work, work — TEST
+// YOURSELF opens the reader in Testing Mode (Hide Verses on), the
+// Mushaf Layout row opens the layout sheet, Theme is a real Light /
+// Dark toggle (same `ili_hifz_settings_v1.theme` the old settings
+// page uses, so it persists across reloads), and Delete All Audio
+// Data clears the on-device data (two-tap confirm) and reloads.
+// The remaining rows stay visual-only (see the phase reminder list).
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import {
+  applyReaderTheme,
+  getReaderTheme,
+  READER_THEME_EVENT,
+  type ReaderTheme,
+} from '../lib/reader-theme';
+import { deleteAllLocalData } from '../lib/store';
 
-const INK = '#111827';
-const MUTED = '#6B7280';
+const INK = 'var(--reader-ink)';
+const MUTED = 'var(--reader-muted)';
 
 /* ---------------------------------------------------------------- */
 /*  Icons (inline SVG, our own).                                     */
@@ -24,7 +38,7 @@ const MUTED = '#6B7280';
 
 function IconChevronLeft() {
   return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke={INK} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" style={{ stroke: INK }} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M15 5l-7 7 7 7" />
     </svg>
   );
@@ -39,22 +53,22 @@ function IconChevronRight() {
 function IconMic() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
-      <rect x="9" y="2.5" width="6" height="11.5" rx="3" fill={INK} />
-      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" fill="none" stroke={INK} strokeWidth="2" strokeLinecap="round" />
-      <path d="M12 18v3.5" stroke={INK} strokeWidth="2" strokeLinecap="round" />
+      <rect x="9" y="2.5" width="6" height="11.5" rx="3" style={{ fill: INK }} />
+      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" fill="none" style={{ stroke: INK }} strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 18v3.5" style={{ stroke: INK }} strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
 function IconPlay() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
-      <path d="M8 5.5v13l11-6.5-11-6.5Z" fill={INK} />
+      <path d="M8 5.5v13l11-6.5-11-6.5Z" style={{ fill: INK }} />
     </svg>
   );
 }
 function IconBookOpen() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke={INK} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 6.5C10.5 5 8 4.5 5 5c-1 .2-2 .6-2 1.4v11.2c0 .8 1 1.2 2 1 3-.5 5.5 0 7 1.5 1.5-1.5 4-2 7-1.5 1 .2 2-.2 2-1V6.4c0-.8-1-1.2-2-1.4-3-.5-5.5 0-7 1.5Z" />
       <path d="M12 6.5v12.6" />
     </svg>
@@ -62,16 +76,16 @@ function IconBookOpen() {
 }
 function IconEyeOff() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke={INK} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M2.5 12C5 7.5 8.5 5.5 12 5.5c3.5 0 7 2 9.5 6.5-2.5 4.5-6 6.5-9.5 6.5-3.5 0-7-2-9.5-6.5Z" />
-      <circle cx="12" cy="12" r="2.6" fill={INK} stroke="none" />
+      <circle cx="12" cy="12" r="2.6" style={{ fill: INK }} stroke="none" />
       <path d="M4.5 4.5l15 15" />
     </svg>
   );
 }
 function IconPen() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke={INK} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M17 3.5a2.83 2.83 0 1 1 4 4L7.5 21 2.5 22 3.5 17 17 3.5Z" />
       <path d="M14.5 6l3.5 3.5" />
     </svg>
@@ -79,7 +93,7 @@ function IconPen() {
 }
 function IconGlobe() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke={INK} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="9" />
       <path d="M3 12h18" />
       <path d="M12 3c2.5 2.6 3.8 5.7 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.7-3.8-9S9.5 5.6 12 3Z" />
@@ -88,7 +102,7 @@ function IconGlobe() {
 }
 function IconSun() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke={INK} strokeWidth="1.9" strokeLinecap="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" aria-hidden="true">
       <circle cx="12" cy="12" r="4" />
       <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.4 1.4M17.6 17.6L19 19M19 5l-1.4 1.4M6.4 17.6L5 19" />
     </svg>
@@ -96,7 +110,7 @@ function IconSun() {
 }
 function IconBell() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke={INK} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M18 9a6 6 0 1 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 15 18 9" />
       <path d="M10.3 20.5a2 2 0 0 0 3.4 0" />
     </svg>
@@ -105,7 +119,7 @@ function IconBell() {
 function IconAlertCircle() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" fill={INK} />
+      <circle cx="12" cy="12" r="10" style={{ fill: INK }} />
       <path d="M12 7.5v5.5" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" />
       <circle cx="12" cy="16.8" r="1.2" fill="#FFFFFF" />
     </svg>
@@ -113,18 +127,18 @@ function IconAlertCircle() {
 }
 function IconWifi() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke={INK} strokeWidth="1.9" strokeLinecap="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" aria-hidden="true">
       <path d="M2 9a15 15 0 0 1 20 0" />
       <path d="M5.5 12.5a10.5 10.5 0 0 1 13 0" />
       <path d="M8.8 16a6 6 0 0 1 6.4 0" />
-      <circle cx="12" cy="19.4" r="1.1" fill={INK} stroke="none" />
+      <circle cx="12" cy="19.4" r="1.1" style={{ fill: INK }} stroke="none" />
     </svg>
   );
 }
 function IconRadio() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke={INK} strokeWidth="1.9" strokeLinecap="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="2" fill={INK} stroke="none" />
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="2" style={{ fill: INK }} stroke="none" />
       <path d="M7.6 7.6a6.4 6.4 0 0 0 0 8.8" />
       <path d="M16.4 7.6a6.4 6.4 0 0 1 0 8.8" />
       <path d="M4.7 4.7a10.4 10.4 0 0 0 0 14.6" />
@@ -134,7 +148,7 @@ function IconRadio() {
 }
 function IconLanguages() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke={INK} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M4.5 5h9" />
       <path d="M8.5 3v2c0 3.5-2 6.5-4.5 8" />
       <path d="M5.5 8.5c.8 1.8 2.2 3.4 4 4.5" />
@@ -145,7 +159,7 @@ function IconLanguages() {
 }
 function IconLock() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke={INK} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="4" y="10.5" width="16" height="10" rx="2" />
       <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
     </svg>
@@ -154,7 +168,7 @@ function IconLock() {
 function IconMinusCircle() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" fill={INK} />
+      <circle cx="12" cy="12" r="10" style={{ fill: INK }} />
       <path d="M8 12h8" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" />
     </svg>
   );
@@ -269,9 +283,73 @@ function BannerDecoration() {
 /*  Overlay                                                            */
 /* ---------------------------------------------------------------- */
 
-export default function ReaderSettings({ open, onClose }: { open: boolean; onClose: () => void }) {
+export default function ReaderSettings({
+  open,
+  onClose,
+  onTestYourself,
+  onOpenLayout,
+}: {
+  open: boolean;
+  onClose: () => void;
+  /** Phase 7: TEST YOURSELF opens the reader in Testing Mode. */
+  onTestYourself?: () => void;
+  /** Phase 7: the Mushaf Layout row opens the layout sheet. */
+  onOpenLayout?: () => void;
+}) {
   const [rendered, setRendered] = useState(open);
   const [shown, setShown] = useState(false);
+  /** Phase 7 — Theme: the stored Light / Dark choice, kept in sync
+   *  with the shared settings document (another surface may change
+   *  it; the event re-renders this toggle). */
+  const [theme, setTheme] = useState<ReaderTheme>('light');
+  useEffect(() => {
+    const sync = () => setTheme(getReaderTheme());
+    sync();
+    window.addEventListener(READER_THEME_EVENT, sync);
+    return () => window.removeEventListener(READER_THEME_EVENT, sync);
+  }, []);
+  const chooseTheme = (t: ReaderTheme) => {
+    applyReaderTheme(t);
+    setTheme(t);
+  };
+  /** Phase 7 — Delete All Audio Data: two-tap confirm. The first
+   *  tap arms the row ("Tap again to delete"); the second clears
+   *  the on-device audio + ALL of localStorage and reloads. The arm
+   *  expires after 4 s so an accidental first tap cannot delete
+   *  anything later. */
+  const [deleteArmed, setDeleteArmed] = useState(false);
+  const deleteTimerRef = useRef<number | null>(null);
+  useEffect(() => {
+    return () => {
+      if (deleteTimerRef.current !== null) window.clearTimeout(deleteTimerRef.current);
+    };
+  }, []);
+  const handleDeleteTap = async () => {
+    if (!deleteArmed) {
+      setDeleteArmed(true);
+      deleteTimerRef.current = window.setTimeout(() => setDeleteArmed(false), 4000);
+      return;
+    }
+    if (deleteTimerRef.current !== null) window.clearTimeout(deleteTimerRef.current);
+    setDeleteArmed(false);
+    // IndexedDB first (session recordings + the localStorage mirror
+    // in the kv store), then ALL of localStorage, then reload.
+    // FLAG: clearing all of localStorage wipes every locally stored
+    // record — goals, sessions, bookmarks, settings — not just
+    // audio. That is what the spec asks for; narrow it to audio-only
+    // on request (see the Phase 7 report).
+    try {
+      await deleteAllLocalData();
+    } catch {
+      /* delete failure is never fatal — still clear + reload */
+    }
+    try {
+      window.localStorage.clear();
+    } catch {
+      /* storage unavailable */
+    }
+    window.location.reload();
+  };
 
   // Mount / fade lifecycle: mount, then fade in; on close, fade out
   // and unmount after the transition.
@@ -293,7 +371,7 @@ export default function ReaderSettings({ open, onClose }: { open: boolean; onClo
       role="dialog"
       aria-label="Settings"
       className="absolute inset-0 z-[70] flex flex-col transition-opacity duration-200"
-      style={{ backgroundColor: '#F8F8F8', opacity: shown ? 1 : 0 }}
+      style={{ backgroundColor: 'var(--reader-bg)', opacity: shown ? 1 : 0 }}
     >
       {/* Header: back button left, title right. Stays fixed while the
           content below scrolls. */}
@@ -316,7 +394,7 @@ export default function ReaderSettings({ open, onClose }: { open: boolean; onClo
         {/* Top horizontal scroll banner. */}
         <div className="mt-3 flex gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {/* Card 1 — Testing Mode (pink). */}
-          <article className="relative flex h-[162px] w-[290px] min-w-[290px] shrink-0 flex-col overflow-hidden rounded-2xl p-4" style={{ backgroundColor: '#FFEDF9' }}>
+          <article className="relative flex h-[162px] w-[290px] min-w-[290px] shrink-0 flex-col overflow-hidden rounded-2xl bg-[#FFEDF9] p-4">
             <BannerDecoration />
             {/* Text runs full width, as in the reference — the
                 decoration overlaps the last words of the longer lines. */}
@@ -324,26 +402,28 @@ export default function ReaderSettings({ open, onClose }: { open: boolean; onClo
               <h2 className="text-[15px] font-bold leading-snug" style={{ color: INK }}>
                 New Feature: Testing Mode
               </h2>
-              <p className="mt-1 w-[94%] text-[12.5px] leading-snug" style={{ color: '#4B5563' }}>
+              <p className="mt-1 w-[94%] text-[12.5px] leading-snug text-[#4B5563]">
                 Test yourself randomly and build confidence reciting from anywhere in the Quran.
               </p>
             </div>
             <button
               type="button"
+              onClick={onTestYourself}
+              data-testid="settings-test-yourself"
               className="relative z-10 mt-auto h-[34px] self-start rounded-full bg-[#F6C45B] px-5 text-[12px] font-bold tracking-wide shadow-sm"
-              style={{ color: INK }}
+              style={{ color: '#111827' }}
             >
               TEST YOURSELF
             </button>
           </article>
 
           {/* Card 2 — Get Started (blue, partially visible). */}
-          <article className="relative flex h-[162px] w-[290px] min-w-[290px] shrink-0 flex-col overflow-hidden rounded-2xl p-4" style={{ backgroundColor: '#C3DEF3' }}>
+          <article className="relative flex h-[162px] w-[290px] min-w-[290px] shrink-0 flex-col overflow-hidden rounded-2xl bg-[#C3DEF3] p-4">
             <div>
               <h2 className="text-[15px] font-bold leading-snug" style={{ color: INK }}>
                 Get Started
               </h2>
-              <p className="mt-1 text-[12.5px] leading-snug" style={{ color: '#4B5563' }}>
+              <p className="mt-1 text-[12.5px] leading-snug text-[#4B5563]">
                 Start learning how to use it with our quick guide.
               </p>
             </div>
@@ -369,15 +449,77 @@ export default function ReaderSettings({ open, onClose }: { open: boolean; onClo
                 return (
                   <div key={row.label}>
                     {ri > 0 && <div className="ml-12 mr-4 border-t border-[#EFEFEF]" />}
-                    <button type="button" className="flex w-full items-center gap-3 px-4 py-[14px] text-left">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center">
-                        <RowIcon />
-                      </span>
-                      <span className="min-w-0 flex-1 truncate text-[15px]" style={{ color: INK }}>
-                        {row.label}
-                      </span>
-                      <IconChevronRight />
-                    </button>
+                    {row.label === 'Theme' ? (
+                      /* Phase 7 — Theme: a real Light / Dark toggle.
+                         The choice is the shared settings document's
+                         theme, so it persists across reloads. */
+                      <div className="flex w-full items-center gap-3 px-4 py-[14px]">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                          <RowIcon />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-[15px]" style={{ color: INK }}>
+                          {row.label}
+                        </span>
+                        <span className="flex shrink-0 items-center rounded-full border border-[#D1D5DB] p-0.5" role="group" aria-label="Theme">
+                          {(['light', 'dark'] as const).map((t) => (
+                            <button
+                              key={t}
+                              type="button"
+                              aria-pressed={theme === t}
+                              data-testid={`settings-theme-${t}`}
+                              onClick={() => chooseTheme(t)}
+                              className="rounded-full px-3 py-1 text-[12px] font-bold capitalize"
+                              style={
+                                theme === t
+                                  ? { backgroundColor: 'var(--reader-ink)', color: 'var(--reader-bg)' }
+                                  : { color: MUTED }
+                              }
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </span>
+                      </div>
+                    ) : row.label === 'Delete All Audio Data' ? (
+                      /* Phase 7 — Delete All Audio Data: two-tap
+                         confirm; the second tap clears the on-device
+                         audio + ALL of localStorage and reloads. */
+                      <button
+                        type="button"
+                        onClick={() => void handleDeleteTap()}
+                        data-testid="settings-delete-audio"
+                        aria-label={deleteArmed ? 'Tap again to delete all audio data' : 'Delete All Audio Data'}
+                        className="flex w-full items-center gap-3 px-4 py-[14px] text-left"
+                      >
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                          <RowIcon />
+                        </span>
+                        <span className="min-w-0 flex-1 text-[15px]" style={{ color: deleteArmed ? '#DC2626' : INK }}>
+                          {deleteArmed ? 'Tap again to delete everything' : row.label}
+                        </span>
+                        {deleteArmed ? (
+                          <span className="shrink-0 text-[12px] font-bold" style={{ color: '#DC2626' }}>
+                            Confirm
+                          </span>
+                        ) : (
+                          <IconChevronRight />
+                        )}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={row.label === 'Mushaf Layout' ? onOpenLayout : undefined}
+                        className="flex w-full items-center gap-3 px-4 py-[14px] text-left"
+                      >
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                          <RowIcon />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-[15px]" style={{ color: INK }}>
+                          {row.label}
+                        </span>
+                        <IconChevronRight />
+                      </button>
+                    )}
                   </div>
                 );
               })}

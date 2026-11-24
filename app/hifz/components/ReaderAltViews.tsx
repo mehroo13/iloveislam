@@ -27,8 +27,8 @@ import {
 import ReaderSurahHeader from './ReaderSurahHeader';
 import { ReaderRosette } from './ReaderPage';
 
-const INK = '#111827';
-const MUTED = '#6B7280';
+const INK = 'var(--reader-ink)';
+const MUTED = 'var(--reader-muted)';
 
 /**
  * One ayah rendered as individually identified word spans (Phase 3):

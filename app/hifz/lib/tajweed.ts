@@ -56,7 +56,13 @@ export const TAJWEED_CODE_COLORS: Record<string, string | null> = {
 /** Steel blue for tafkhim (heavy) letters. */
 export const TAFKHIM_COLOR = '#0F5E7F';
 /** Default text colour. */
-export const TAJWEED_BLACK = '#111827';
+/** Default letter colour — the reader ink, as a CSS variable so the
+ *  Light / Dark toggle restyles uncoloured letters too (Phase 7).
+ *  --reader-ink is defined on :root in light mode (#111827, the old
+ *  value) and redefined under [data-theme="dark"], so every existing
+ *  use (inline style colours in ReaderPage + the old mushaf renderer)
+ *  keeps working in both themes. */
+export const TAJWEED_BLACK = 'var(--reader-ink)';
 
 /** Heavy (tafkhim) letters — always pronounced heavy. */
 const HEAVY_LETTERS = new Set(['خ', 'ص', 'ض', 'غ', 'ط', 'ق', 'ظ']);
