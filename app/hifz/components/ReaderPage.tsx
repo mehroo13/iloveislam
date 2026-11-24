@@ -31,6 +31,10 @@ import {
   displayEntriesForLine,
   type ReaderDisplayEntry,
 } from '../lib/reader-words';
+import {
+  mistakeForKeys,
+  type ReaderMistake,
+} from '../lib/reader-mistakes';
 import ReaderSurahHeader from './ReaderSurahHeader';
 import { useTapGuard } from './ReaderAltViews';
 
@@ -100,9 +104,18 @@ interface ReaderPageProps {
    *  green; the set is owned by the parent (cleared on page change /
    *  new take). */
   highlightedWords?: ReadonlySet<string>;
+  /** Words the checker flagged this take (Phase 5): engine key →
+   *  mistake. Those words light up red and are tappable — the tap
+   *  opens the tooltip (see onMistakeWordClick). Owned by the
+   *  parent, same lifetime as highlightedWords. */
+  mistakes?: ReadonlyMap<string, ReaderMistake>;
+  /** A red word was tapped (a real tap, not a swipe — the tap guard
+   *  filters drags). `rect` is the word's viewport rect, for the
+   *  tooltip position. Not fired while the line is hidden. */
+  onMistakeWordClick?: (mistake: ReaderMistake, rect: DOMRect) => void;
 }
 
-export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasure, zoom, hideVerses, revealedLines, onRevealLine, highlightedWords }: ReaderPageProps) {
+export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasure, zoom, hideVerses, revealedLines, onRevealLine, highlightedWords, mistakes, onMistakeWordClick }: ReaderPageProps) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const measureRef = useRef<HTMLDivElement | null>(null);
   const onMeasureRef = useRef(onMeasure);
@@ -222,6 +235,11 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
     const display: ReaderDisplayEntry[] = displayEntriesForLine(words, engineCursors);
     if (display.length === 0) continue;
 
+    // A hidden line (Hide Verses mode, not yet peeked) blurs until
+    // tapped; a red word inside it cannot be tapped for its tooltip
+    // until the line is revealed (the tap reveals it instead).
+    const hidden = !!hideVerses && !revealedLines?.has(lineNo);
+
     const shortLine = display.filter((w) => !w.isEnd).length < 5;
     const lineClass = `font-quran-madani text-[2.1rem] leading-[2.35] text-[#111827] ${
       shortLine ? 'text-center' : 'mushaf-line'
@@ -260,13 +278,29 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
         // green while any of its engine keys is highlighted. The class
         // sits on the outer span so the tajweed colour runs inside keep
         // their colours — the green is a soft background wash.
+        // Phase 5: a word the checker flagged lights up red instead
+        // (red wins over green) and is tappable for its tooltip.
         const highlighted = g.keys.some((k) => highlightedWords?.has(k));
+        const mistake = mistakes ? mistakeForKeys(g.keys, mistakes) : undefined;
         const wordId = g.keys[0] ? `word-${g.keys[0].replace(/:/g, '-')}` : undefined;
-        const wordClass = `reader-word${highlighted ? ' highlight-green' : ''}`;
+        const wordClass = `reader-word${mistake ? ' highlight-red mistake-word' : highlighted ? ' highlight-green' : ''}`;
+        // A red word opens its tooltip on a real tap (the guard keeps
+        // a swipe from firing it); hidden lines reveal instead.
+        const wordTap =
+          mistake && !hidden
+            ? {
+                onPointerDown: tapGuard.down,
+                onClick: (e: React.MouseEvent) => {
+                  if (tapGuard.ok(e)) {
+                    onMistakeWordClick?.(mistake, (e.currentTarget as HTMLElement).getBoundingClientRect());
+                  }
+                },
+              }
+            : {};
         if (tj && off >= 0) {
           const runs = colorizeWord(g.text, tj.plain, tj.segments, off);
           lineContent.push(
-            <span key={`${g.verseKey}-${wi}`} id={wordId} className={wordClass}>
+            <span key={`${g.verseKey}-${wi}`} id={wordId} className={wordClass} {...wordTap}>
               {runs.map((r, ri) => (
                 <span key={ri} style={{ color: r.color }}>
                   {r.text}
@@ -276,7 +310,7 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
           );
         } else {
           lineContent.push(
-            <span key={`${g.verseKey}-${wi}`} id={wordId} className={wordClass} style={{ color: TAJWEED_BLACK }}>
+            <span key={`${g.verseKey}-${wi}`} id={wordId} className={wordClass} style={{ color: TAJWEED_BLACK }} {...wordTap}>
               {g.text}
             </span>,
           );
@@ -289,7 +323,7 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
 
     // A hidden line (Hide Verses mode, not yet peeked) blurs until
     // tapped; the tap guard keeps a swipe from revealing it.
-    const hidden = !!hideVerses && !revealedLines?.has(lineNo);
+    // (`hidden` is computed above, before the word loop.)
     blocks.push(
       <p
         key={`l-${lineNo}`}

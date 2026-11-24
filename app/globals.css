@@ -227,6 +227,21 @@ body {
   -webkit-box-decoration-break: clone;
 }
 
+/* Phase 5 — mistake highlight. A soft red wash over the word (same
+ * shape as the green one, defined after it so red wins if a word
+ * somehow carries both classes). A red word is tappable: it opens
+ * the tooltip showing what was expected. NO padding, for the same
+ * no-layout-shift reason as the green wash. */
+.reader-word.highlight-red {
+  background-color: rgba(220, 38, 38, 0.3);
+  border-radius: 0.25em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.reader-word.mistake-word {
+  cursor: pointer;
+}
+
 /* Brand selection + focus */
 ::selection {
   background: #FFB800;

@@ -19,6 +19,10 @@ import { getSurahById } from '../surahs';
 import { BISMILLAH } from '../../quran/lib';
 import { type MushafVerse } from '../lib/fetch';
 import { verseDisplayWords } from '../lib/reader-words';
+import {
+  mistakeForKeys,
+  type ReaderMistake,
+} from '../lib/reader-mistakes';
 import ReaderSurahHeader from './ReaderSurahHeader';
 import { ReaderRosette } from './ReaderPage';
 
@@ -33,17 +37,49 @@ const MUTED = '#6B7280';
  * unchanged. A word that covers two engine tokens (base word + an
  * attached pause mark) highlights when either is spoken.
  */
-function AyahWords({ verse, highlightedWords }: { verse: MushafVerse; highlightedWords?: ReadonlySet<string> }) {
+function AyahWords({
+  verse,
+  highlightedWords,
+  mistakes,
+  onMistakeWordClick,
+  clickable,
+}: {
+  verse: MushafVerse;
+  highlightedWords?: ReadonlySet<string>;
+  /** Words the checker flagged this take (Phase 5): engine key →
+   *  mistake. Those words light up red and are tappable. */
+  mistakes?: ReadonlyMap<string, ReaderMistake>;
+  onMistakeWordClick?: (mistake: ReaderMistake, rect: DOMRect) => void;
+  /** False while the verse is hidden (blurred) — a red word cannot
+   *  be tapped for its tooltip until the verse is revealed. */
+  clickable?: boolean;
+}) {
+  const guard = useTapGuard();
   const words = verseDisplayWords(verse);
   return (
     <>
       {words.map((w, i) => {
         const highlighted = w.keys.some((k) => highlightedWords?.has(k));
+        const mistake = mistakes ? mistakeForKeys(w.keys, mistakes) : undefined;
+        // A red word opens its tooltip on a real tap (the guard keeps
+        // a swipe from firing it); hidden verses reveal instead.
+        const wordTap =
+          mistake && clickable !== false
+            ? {
+                onPointerDown: guard.down,
+                onClick: (e: React.MouseEvent) => {
+                  if (guard.ok(e)) {
+                    onMistakeWordClick?.(mistake, (e.currentTarget as HTMLElement).getBoundingClientRect());
+                  }
+                },
+              }
+            : {};
         return (
           <span key={i}>
             <span
               id={w.keys[0] ? `word-${w.keys[0].replace(/:/g, '-')}` : undefined}
-              className={`reader-word${highlighted ? ' highlight-green' : ''}`}
+              className={`reader-word${mistake ? ' highlight-red mistake-word' : highlighted ? ' highlight-green' : ''}`}
+              {...wordTap}
             >
               {w.text}
             </span>
@@ -117,6 +153,8 @@ export function ReaderTextMode({
   textSize,
   onTextSizeChange,
   highlightedWords,
+  mistakes,
+  onMistakeWordClick,
 }: {
   verses: MushafVerse[];
   hideVerses: boolean;
@@ -129,6 +167,9 @@ export function ReaderTextMode({
   /** Words spoken correctly this take (Phase 3): engine keys
    *  `surah:ayah:word` (1-based). */
   highlightedWords?: ReadonlySet<string>;
+  /** Words the checker flagged this take (Phase 5). */
+  mistakes?: ReadonlyMap<string, ReaderMistake>;
+  onMistakeWordClick?: (mistake: ReaderMistake, rect: DOMRect) => void;
 }) {
   const guard = useTapGuard();
   const groups = groupBySurah(verses);
@@ -195,7 +236,13 @@ export function ReaderTextMode({
                   className="font-quran-madani text-justify leading-[2.1]"
                   style={{ fontSize: `${textSize}rem`, color: INK }}
                 >
-                  <AyahWords verse={v} highlightedWords={highlightedWords} />{' '}
+                  <AyahWords
+                    verse={v}
+                    highlightedWords={highlightedWords}
+                    mistakes={mistakes}
+                    onMistakeWordClick={onMistakeWordClick}
+                    clickable={!hidden}
+                  />{' '}
                   <ReaderRosette ayah={ayahNum} />
                 </p>
               </div>
@@ -217,6 +264,8 @@ export function ReaderTranslationMode({
   revealed,
   onReveal,
   highlightedWords,
+  mistakes,
+  onMistakeWordClick,
 }: {
   verses: MushafVerse[];
   hideVerses: boolean;
@@ -225,6 +274,9 @@ export function ReaderTranslationMode({
   /** Words spoken correctly this take (Phase 3): engine keys
    *  `surah:ayah:word` (1-based). */
   highlightedWords?: ReadonlySet<string>;
+  /** Words the checker flagged this take (Phase 5). */
+  mistakes?: ReadonlyMap<string, ReaderMistake>;
+  onMistakeWordClick?: (mistake: ReaderMistake, rect: DOMRect) => void;
 }) {
   const guard = useTapGuard();
   const [translations, setTranslations] = useState<Record<number, Record<number, string>>>({});
@@ -294,7 +346,13 @@ export function ReaderTranslationMode({
                     className="font-quran-madani text-right leading-[2]"
                     style={{ fontSize: '1.5rem', color: INK }}
                   >
-                    <AyahWords verse={v} highlightedWords={highlightedWords} />{' '}
+                    <AyahWords
+                      verse={v}
+                      highlightedWords={highlightedWords}
+                      mistakes={mistakes}
+                      onMistakeWordClick={onMistakeWordClick}
+                      clickable={!hidden}
+                    />{' '}
                     <ReaderRosette ayah={ayahNum} />
                   </p>
                 </div>

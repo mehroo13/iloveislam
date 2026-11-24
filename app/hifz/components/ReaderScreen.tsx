@@ -39,7 +39,8 @@ import ReaderMistakes from './ReaderMistakes';
 import { ReaderTextMode, ReaderTranslationMode } from './ReaderAltViews';
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { readerWordKey } from '../lib/reader-words';
-import { saveReaderSession } from '../lib/reader-sessions';
+import { saveReaderSession, surahName } from '../lib/reader-sessions';
+import { type ReaderMistake } from '../lib/reader-mistakes';
 import {
   loadEngine,
   engineSupport,
@@ -327,6 +328,20 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     return out;
   }, [revealed, page]);
 
+  /** A red word was tapped: open its tooltip next to the word.
+   *  Above the word when there is room, else below it; clamped
+   *  inside the viewport. The tooltip is fixed-position (the rect
+   *  is already viewport coords, zoom included). */
+  const openMistakeTooltip = useCallback((mistake: ReaderMistake, rect: DOMRect) => {
+    const W = 264;
+    const left = Math.max(8, Math.min(window.innerWidth - W - 8, rect.left + rect.width / 2 - W / 2));
+    if (rect.top > 180) {
+      setMistakeTooltip({ mistake, bottom: window.innerHeight - rect.top + 8, left });
+    } else {
+      setMistakeTooltip({ mistake, top: rect.bottom + 8, left });
+    }
+  }, []);
+
   /* Phase 2 — reader mic (Tilawa on-device engine, same as the coach).
    * `spokenText` is the final transcript so far (the expected words
    * the tracker locked onto, in passage order). Phase 3 highlights
@@ -344,6 +359,30 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
    *  on page change; kept after stop so the reciter can review what
    *  was said. */
   const [highlightedWords, setHighlightedWords] = useState<ReadonlySet<string>>(new Set());
+  /** Words the checker flagged this take (Phase 5): engine key →
+   *  mistake. The word's span lights up red; the Mistakes button
+   *  shows the live count; the modal lists them. Live checker
+   *  events add to it; stop() replaces it with the authoritative
+   *  final list from the result (words the reciter demonstrably
+   *  went past count too, even when the checker never confirmed
+   *  them live). Cleared on a new take and on page change; kept
+   *  after stop for review, like the green highlights. */
+  const [mistakeMap, setMistakeMap] = useState<ReadonlyMap<string, ReaderMistake>>(new Map());
+  /** True once a take has started this visit — the Mistakes modal
+   *  shows "recite first" before any take, and "no mistakes" after
+   *  a clean one. */
+  const [hasRecited, setHasRecited] = useState(false);
+  /** The red-word tooltip: the tapped mistake + its fixed position
+   *  (`top` when below the word, `bottom` when above it). */
+  const [mistakeTooltip, setMistakeTooltip] = useState<{
+    mistake: ReaderMistake;
+    top?: number;
+    bottom?: number;
+    left: number;
+  } | null>(null);
+  /** The current take's mistakes in passage order, for the modal. */
+  const mistakesList = useMemo(() => [...mistakeMap.values()], [mistakeMap]);
+  const mistakeCount = mistakeMap.size;
   const [micToast, setMicToast] = useState<string | null>(null);
   const engineRef = useRef<RecitationEngine | null>(null);
   const engineStateRef = useRef<'idle' | 'loading' | 'ready' | 'failed' | 'unsupported'>('idle');
@@ -474,6 +513,34 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           micHeardAudio: result.micHeardAudio,
           durationMs: result.durationMs,
         });
+        // Phase 5: the authoritative mistake list for this take — the
+        // final per-word result, not just the live checker events.
+        // Words the reciter demonstrably went past (later words were
+        // observed) count as missed even when the checker never
+        // confirmed them live; graced words (tracker blind spots)
+        // do not. The red highlights persist after stop for review.
+        const finalMistakes = new Map<string, ReaderMistake>();
+        for (const w of result.words) {
+          if (w.status === 'wrong' || w.status === 'missed') {
+            const k = readerWordKey(w.surah, w.ayah, w.word);
+            finalMistakes.set(k, {
+              key: k,
+              surah: w.surah,
+              ayah: w.ayah,
+              word: w.word,
+              display: w.display,
+              type: w.status,
+            });
+          }
+        }
+        setMistakeMap(finalMistakes);
+        setMistakeTooltip(null);
+        if (finalMistakes.size > 0) {
+          console.log(
+            '[reader-mic] mistakes:',
+            [...finalMistakes.values()].map((m) => `${m.key} ${m.display} (${m.type})`),
+          );
+        }
       }
       if (why === 'dead') {
         // Capture never delivered a frame (e.g. a suspended
@@ -601,6 +668,8 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     setSpokenText('');
     setInterimText('');
     setHighlightedWords(new Set());
+    setMistakeMap(new Map());
+    setMistakeTooltip(null);
     const session = engine.startSession({
       surah: expected.surah,
       fromAyah: expected.fromAyah,
@@ -617,6 +686,14 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
             next.add(key);
             return next;
           });
+          // A self-correction: the checker resolved its flag, so the
+          // word is no longer a mistake (Phase 5).
+          setMistakeMap((prev) => {
+            if (!prev.has(key)) return prev;
+            const next = new Map(prev);
+            next.delete(key);
+            return next;
+          });
           const seen = micWordsRef.current;
           if (seen.has(key)) return;
           seen.set(key, e.display);
@@ -626,12 +703,29 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           setSpokenText(text);
           setInterimText(text);
         } else if (e.status === 'wrong' || e.status === 'missed') {
+          // Narrowed to 'wrong' | 'missed' by the branch — captured
+          // here, because property narrowing does not survive into
+          // the setState closure below.
+          const mistakeType: 'wrong' | 'missed' = e.status;
           // The checker flagged this word — it was not said correctly,
-          // so drop any green it had. (Phase 5 will paint it red.)
+          // so drop any green it had and paint it red (Phase 5). The
+          // Mistakes button count updates live from this map.
           setHighlightedWords((prev) => {
             if (!prev.has(key)) return prev;
             const next = new Set(prev);
             next.delete(key);
+            return next;
+          });
+          setMistakeMap((prev) => {
+            const next = new Map(prev);
+            next.set(key, {
+              key,
+              surah: e.surah,
+              ayah: e.ayah,
+              word: e.word,
+              display: e.display,
+              type: mistakeType,
+            });
             return next;
           });
         }
@@ -667,6 +761,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     }
     setMic('recording');
     setMicToast('Listening... Recite now.');
+    setHasRecited(true);
     // Capture-health watchdog: if no audio frames reach the engine
     // within a few seconds, the capture is dead (e.g. a suspended
     // AudioContext from an out-of-gesture prepare on first use) —
@@ -693,6 +788,8 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   useEffect(() => {
     if (sessionRef.current) void stopMic('user');
     setHighlightedWords(new Set()); // the new page starts unhighlighted
+    setMistakeMap(new Map()); // and with no red words
+    setMistakeTooltip(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
@@ -1016,6 +1113,8 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                   revealedLines={revealedLines}
                   onRevealLine={(ln) => reveal(`L${page}:${ln}`)}
                   highlightedWords={highlightedWords}
+                  mistakes={mistakeMap}
+                  onMistakeWordClick={openMistakeTooltip}
                 />
               </div>
             ) : layoutMode === 'text' ? (
@@ -1028,6 +1127,8 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                 textSize={textSize}
                 onTextSizeChange={changeTextSize}
                 highlightedWords={highlightedWords}
+                mistakes={mistakeMap}
+                onMistakeWordClick={openMistakeTooltip}
               />
             ) : (
               <ReaderTranslationMode
@@ -1037,6 +1138,8 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                 revealed={revealed}
                 onReveal={reveal}
                 highlightedWords={highlightedWords}
+                mistakes={mistakeMap}
+                onMistakeWordClick={openMistakeTooltip}
               />
             )}
             {/* Page number, bottom-right (whole-page reference). */}
@@ -1055,14 +1158,28 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         style={{ backgroundColor: PAGE_BG, height: 76 }}
       >
         <div className="flex h-full items-center gap-2.5 px-4">
+          {/* Mistakes (Phase 5): the live count for this take — "2
+              Mistakes" once the checker flags words, "Mistakes"
+              when there are none. Red while the count is above 0. */}
           <button
             type="button"
-            aria-label="Recent mistakes"
-            onClick={() => setOpenModal('mistakes')}
-            className="flex h-11 items-center rounded-full border-[1.5px] border-[#111827] bg-white px-5 text-[15px] font-bold shadow-sm"
-            style={{ color: INK }}
+            aria-label={
+              mistakeCount > 0
+                ? `${mistakeCount} mistake${mistakeCount === 1 ? '' : 's'} this session`
+                : 'Recent mistakes'
+            }
+            data-testid="mistakes-button"
+            onClick={() => {
+              setMistakeTooltip(null);
+              setOpenModal('mistakes');
+            }}
+            className="flex h-11 items-center rounded-full border-[1.5px] bg-white px-5 text-[15px] font-bold shadow-sm"
+            style={{
+              borderColor: mistakeCount > 0 ? '#DC2626' : '#111827',
+              color: mistakeCount > 0 ? '#DC2626' : INK,
+            }}
           >
-            Mistakes
+            {mistakeCount > 0 ? `${mistakeCount} Mistake${mistakeCount === 1 ? '' : 's'}` : 'Mistakes'}
           </button>
           <button
             type="button"
@@ -1149,6 +1266,49 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         </div>
       </footer>
 
+      {/* Red-word tooltip (Phase 5): a tap anywhere else closes it;
+          it also closes on a new take, a page change, or when the
+          take ends. The checker cannot supply the spoken word —
+          Tilawa tracks, it does not transcribe — so a wrong word
+          honestly says "something else", never an invented quote.
+          Tashkeel (diacritic) mistakes are NOT shown here: the
+          FastConformer pass that could supply spoken words is not
+          wired up (see the Phase 5 report). */}
+      {mistakeTooltip && (
+        <>
+          <button
+            type="button"
+            aria-label="Close mistake detail"
+            data-testid="mistake-tooltip-backdrop"
+            onClick={() => setMistakeTooltip(null)}
+            className="fixed inset-0 z-50 cursor-default"
+            style={{ backgroundColor: 'transparent' }}
+          />
+          <div
+            role="dialog"
+            aria-label="Mistake detail"
+            data-testid="mistake-tooltip"
+            className="fixed z-50 w-[264px] rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-left shadow-xl"
+            style={{ left: mistakeTooltip.left, top: mistakeTooltip.top, bottom: mistakeTooltip.bottom }}
+          >
+            <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: '#DC2626' }}>
+              {mistakeTooltip.mistake.type === 'wrong' ? 'Wrong word' : 'Skipped word'}
+            </p>
+            <p dir="rtl" lang="ar" className="font-quran-madani pt-1 text-right text-[22px] leading-snug" style={{ color: INK }}>
+              {mistakeTooltip.mistake.display}
+            </p>
+            <p className="pt-1 text-[13px] leading-snug" style={{ color: MUTED }}>
+              {mistakeTooltip.mistake.type === 'wrong'
+                ? 'You said something else here — the checker could not tell exactly what was said.'
+                : 'You skipped this word.'}
+            </p>
+            <p className="pt-1 text-[13px] leading-snug" style={{ color: INK }}>
+              {surahName(mistakeTooltip.mistake.surah)} · Ayah {mistakeTooltip.mistake.ayah}
+            </p>
+          </div>
+        </>
+      )}
+
       {/* Dashboard (Step 6): full-screen overlay from the hamburger;
           the back button returns to the reader. Its gear opens
           Settings; the Dashboard closes first. */}
@@ -1196,9 +1356,15 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         onSelect={selectLayoutMode}
       />
 
-      {/* Mistakes modal (Phase 1): mock entries for now — real
-          mistakes come from the recitation coach. */}
-      <ReaderMistakes open={openModal === 'mistakes'} onClose={() => setOpenModal(null)} />
+      {/* Mistakes modal (Phase 5): the current take's real mistakes
+          — no mock data. */}
+      <ReaderMistakes
+        open={openModal === 'mistakes'}
+        onClose={() => setOpenModal(null)}
+        mistakes={mistakesList}
+        hasRecited={hasRecited}
+        recording={micState === 'recording'}
+      />
     </div>
   );
 }

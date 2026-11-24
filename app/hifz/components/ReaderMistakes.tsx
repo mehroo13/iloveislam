@@ -1,31 +1,31 @@
 // app/hifz/components/ReaderMistakes.tsx — the "Mistakes" modal
-// (Phase 1). Opens from the Mistakes pill in the reader's bottom bar.
+// (Phase 5). Opens from the Mistakes pill in the reader's bottom bar.
 //
-// MOCK DATA — the entries below are SAMPLES ONLY, written here so the
-// list UI can be verified. Real mistakes come from the recitation
-// coach (Tilawa): wrong_word, omitted_word, added_word,
-// skipped_passage — and will replace this list when the coach writes
-// its mistake events. The modal says so in plain text at the bottom.
+// REAL DATA ONLY: the list is the current take's mistakes, as
+// confirmed by the Tilawa checker (wrong_word / omitted_word /
+// skipped_passage) or by the final per-word result (words the
+// reciter demonstrably went past). The Phase 1 mock entries are
+// gone — there is no sample data anywhere in this file.
+//
+// The modal shows the CURRENT session only (this take on this
+// page). Mistakes from finished takes live in the saved session
+// record (coach store `ili_coach_sessions_v1`, Phase 4) and in the
+// Activity tab's session history — this modal is the live review,
+// not the archive.
+//
+// Tashkeel (diacritic) mistakes are NOT listed here: the
+// FastConformer pass that could detect them is not wired up (see
+// the Phase 5 report). No "tajweed" wording anywhere — this is
+// word accuracy only.
 
 'use client';
 
 import { useEffect, useState } from 'react';
+import { surahName } from '../lib/reader-sessions';
+import { mistakeTypeLabel, type ReaderMistake } from '../lib/reader-mistakes';
 
 const INK = '#111827';
 const MUTED = '#9CA3AF';
-
-/** Sample mistakes (MOCK — see the header comment). */
-const MOCK_MISTAKES: {
-  ref: string;
-  word: string;
-  type: string;
-  date: string;
-}[] = [
-  { ref: 'Al-Fatihah · Ayah 4', word: 'مَـٰلِكِ', type: 'Wrong word', date: 'Nov 23' },
-  { ref: "Al-Baqarah · Ayah 255", word: 'ٱلْحَىُّ', type: 'Missed word', date: 'Nov 22' },
-  { ref: "Al-Baqarah · Ayah 2", word: 'هُدًى', type: 'Extra word', date: 'Nov 21' },
-  { ref: 'Al-Fatihah · Ayah 7', word: '—', type: 'Skipped passage', date: 'Nov 20' },
-];
 
 function IconClose() {
   return (
@@ -38,9 +38,18 @@ function IconClose() {
 export default function ReaderMistakes({
   open,
   onClose,
+  mistakes,
+  hasRecited,
+  recording,
 }: {
   open: boolean;
   onClose: () => void;
+  /** The current take's mistakes, in passage order. */
+  mistakes: ReaderMistake[];
+  /** True once a take has started this visit. */
+  hasRecited: boolean;
+  /** True while a take is recording (live mistakes may still arrive). */
+  recording: boolean;
 }) {
   const [rendered, setRendered] = useState(open);
   const [shown, setShown] = useState(false);
@@ -91,35 +100,47 @@ export default function ReaderMistakes({
           </button>
         </div>
         <p className="px-5 pt-1 text-[14px] leading-snug" style={{ color: MUTED }}>
-          Recent mistakes from your recitation sessions.
+          Mistakes from this recitation session.
         </p>
 
-        <ul className="mt-4 px-5 pb-2">
-          {MOCK_MISTAKES.map((m) => (
-            <li
-              key={`${m.ref}-${m.type}`}
-              className="flex items-center gap-3 border-t border-[#F0F0F0] py-3.5"
-            >
-              <span className="min-w-0 flex-1">
-                <span dir="rtl" lang="ar" className="font-quran-madani block text-right text-[20px] leading-snug" style={{ color: INK }}>
-                  {m.word}
+        {mistakes.length === 0 ? (
+          <p data-testid="mistakes-empty" className="px-5 pb-8 pt-6 text-center text-[14px] leading-snug" style={{ color: MUTED }}>
+            {!hasRecited
+              ? 'Tap the mic and recite — any mistakes will appear here.'
+              : recording
+                ? 'No mistakes so far — keep reciting.'
+                : 'No mistakes in this session — well done.'}
+          </p>
+        ) : (
+          <ul className="mt-4 px-5 pb-2">
+            {mistakes.map((m) => (
+              <li
+                key={m.key}
+                data-testid={`mistake-row-${m.key.replace(/:/g, '-')}`}
+                className="flex items-center gap-3 border-t border-[#F0F0F0] py-3.5"
+              >
+                <span className="min-w-0 flex-1">
+                  <span dir="rtl" lang="ar" className="font-quran-madani block text-right text-[20px] leading-snug" style={{ color: INK }}>
+                    {m.display}
+                  </span>
+                  <span className="block pt-0.5 text-[12.5px] leading-tight" style={{ color: MUTED }}>
+                    {surahName(m.surah)} · Ayah {m.ayah}
+                  </span>
                 </span>
-                <span className="block pt-0.5 text-[12.5px] leading-tight" style={{ color: MUTED }}>
-                  {m.ref}
+                <span className="shrink-0 rounded-full bg-[#FEF2F2] px-2.5 py-1 text-[12px] font-semibold text-[#DC2626]">
+                  {mistakeTypeLabel(m.type)}
                 </span>
-              </span>
-              <span className="shrink-0 rounded-full bg-[#FEF2F2] px-2.5 py-1 text-[12px] font-semibold text-[#DC2626]">
-                {m.type}
-              </span>
-              <span className="w-14 shrink-0 text-right text-[12.5px]" style={{ color: MUTED }}>
-                {m.date}
-              </span>
-            </li>
-          ))}
-        </ul>
+                <span className="w-14 shrink-0 text-right text-[12.5px]" style={{ color: MUTED }}>
+                  Today
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
 
         <p className="px-5 pb-8 pt-1 text-center text-[12.5px] leading-snug" style={{ color: MUTED }}>
-          Sample data — your real mistakes will appear here after recitation sessions.
+          Detected on your device as you recite. Word accuracy only — tap a red word on the page to see what was
+          expected.
         </p>
       </div>
     </div>
