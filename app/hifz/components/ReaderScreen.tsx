@@ -268,12 +268,15 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       // which over-shrinks dense pages to a narrow column.
       const h = frame.getBoundingClientRect().height;
       if (h <= 0 || avail <= 0) return;
-      if (h > avail) {
-        const next = Math.max(0.3, Math.min(1, shrinkRef.current * (avail / h)));
-        if (Math.abs(next - shrinkRef.current) > 0.005) {
-          shrinkRef.current = next;
-          setShrink(next);
-        }
+      // Derive the shrink from the unshrunk height instead of
+      // multiplying down: the old multiply-only version never grew
+      // back, so a shrink taken while the fallback font was still
+      // loaded (narrow measure, wide frame) stuck forever.
+      const unshrunk = h / shrinkRef.current;
+      const next = Math.max(0.3, Math.min(1, avail / unshrunk));
+      if (Math.abs(next - shrinkRef.current) > 0.005) {
+        shrinkRef.current = next;
+        setShrink(next);
       }
     };
     check();
