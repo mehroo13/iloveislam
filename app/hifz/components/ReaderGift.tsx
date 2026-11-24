@@ -48,7 +48,7 @@ function IconClose() {
 // 3D-style green and blue gift box — our own drawing.
 function IconGiftLarge() {
   return (
-    <svg viewBox="0 0 180 140" className="h-[124px] w-[164px]" aria-hidden="true">
+    <svg viewBox="0 0 180 140" className="h-[112px] w-[148px]" aria-hidden="true">
       <defs>
         <linearGradient id="giftBody" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#4ADE80" />
@@ -98,25 +98,23 @@ function IconBadge() {
 function PhoneMistake() {
   return (
     <div
-      className="relative flex h-[150px] items-center justify-center overflow-hidden"
+      className="relative flex h-[120px] items-center justify-center overflow-hidden"
       style={{ background: 'linear-gradient(135deg, #F97316 0%, #EA580C 48%, #DC2626 100%)' }}
     >
-      <div className="relative h-[126px] w-[92px] rounded-[10px] border-2 border-[#1F2937] bg-white shadow-lg">
+      <div className="relative h-[102px] w-[80px] rounded-[10px] border-2 border-[#1F2937] bg-white shadow-lg">
         <div className="border-b border-[#E5E7EB] px-1.5 py-1 text-center text-[6px] font-bold tracking-wide text-[#6B7280]">
           CHAPTER 1 · VERSE 1
         </div>
-        <div dir="rtl" lang="ar" className="font-quran px-1.5 pt-1.5 text-center text-[9px] leading-[2] text-[#111827]">
+        <div dir="rtl" lang="ar" className="font-quran px-1.5 pt-1 text-center text-[8px] leading-[1.9] text-[#111827]">
           بِسْمِ اللَّهِ <span className="text-[#DC2626]">الرَّحْمَٰنِ</span>
           <br />
           الرَّحِيمِ الْحَمْدُ <span className="text-[#16A34A]">لِلَّهِ</span>
           <br />
           رَبِّ الْعَالَمِينَ
-          <br />
-          الرَّحْمَٰنِ الرَّحِيمِ
         </div>
         <div className="mt-1 flex justify-center gap-2">
-          <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-[#9CA3AF] text-[7px] text-[#6B7280]">١</span>
-          <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-[#9CA3AF] text-[7px] text-[#6B7280]">٢</span>
+          <span className="flex h-3 w-3 items-center justify-center rounded-full border border-[#9CA3AF] text-[6px] text-[#6B7280]">١</span>
+          <span className="flex h-3 w-3 items-center justify-center rounded-full border border-[#9CA3AF] text-[6px] text-[#6B7280]">٢</span>
         </div>
       </div>
     </div>
@@ -133,14 +131,14 @@ function PhonePlan() {
   ];
   return (
     <div
-      className="relative flex h-[150px] items-center justify-center overflow-hidden"
+      className="relative flex h-[120px] items-center justify-center overflow-hidden"
       style={{ background: 'linear-gradient(135deg, #FB923C 0%, #F97316 52%, #EA580C 100%)' }}
     >
-      <div className="relative h-[126px] w-[92px] rounded-[10px] border-2 border-[#1F2937] bg-white shadow-lg">
+      <div className="relative h-[102px] w-[80px] rounded-[10px] border-2 border-[#1F2937] bg-white shadow-lg">
         <div className="border-b border-[#E5E7EB] px-2 py-1 text-[6px] font-bold tracking-wide text-[#6B7280]">
           MEMORIZATION
         </div>
-        <div className="space-y-2 px-2 pt-2">
+        <div className="space-y-1.5 px-2 pt-1.5">
           {rows.map((r) => (
             <div key={r.label}>
               <div className="flex items-center gap-1">
@@ -205,24 +203,24 @@ export default function ReaderGift({ open, onClose }: { open: boolean; onClose: 
         </header>
 
         {/* Hero: gift, title, subtitle, signature. */}
-        <div className="mt-4 flex justify-center">
+        <div className="mt-2 flex justify-center">
           <IconGiftLarge />
         </div>
-        <h1 className="mt-3 text-center text-[21px] font-bold leading-snug" style={{ color: INK }}>
+        <h1 className="mt-2 text-center text-[21px] font-bold leading-snug" style={{ color: INK }}>
           Everything is 100% Free, Forever!
         </h1>
-        <p className="mt-3 px-1 text-center text-[15px] leading-relaxed" style={{ color: MUTED }}>
+        <p className="mt-2 px-1 text-center text-[14.5px] leading-[1.55]" style={{ color: MUTED }}>
           Take advantage of our completely free tools to discover why this is the best way to memorize &amp; recite
           the Quran. We hope it benefits you greatly inshaAllah.
         </p>
-        <p className="mt-3 text-[15px]" style={{ color: MUTED }}>
+        <p className="mt-2 text-[15px]" style={{ color: MUTED }}>
           Sincerely, The I Love Islam Team 💖
         </p>
 
         {/* Feature showcase card. */}
-        <section className="mt-5 overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-          <div className="flex items-center justify-between px-4 pt-4">
-            <p className="text-[19px] font-medium leading-tight text-[#9CA3AF]">
+        <section className="mt-4 overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+          <div className="flex items-center justify-between px-4 pt-3">
+            <p className="text-[18px] font-medium leading-tight text-[#9CA3AF]">
               Experience
               <span className="block">All Features</span>
             </p>
@@ -230,7 +228,7 @@ export default function ReaderGift({ open, onClose }: { open: boolean; onClose: 
           </div>
 
           {/* Horizontal scroll: two feature cards, swipeable. */}
-          <div className="mt-3 flex snap-x gap-3 overflow-x-auto px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="mt-2 flex snap-x gap-3 overflow-x-auto px-4 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <article className="flex w-[228px] min-w-[228px] snap-start flex-col overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
               <p className="px-3 pt-3 text-[16px] font-bold" style={{ color: INK }}>
                 Mistake Detection
@@ -258,7 +256,7 @@ export default function ReaderGift({ open, onClose }: { open: boolean; onClose: 
 
           <button
             type="button"
-            className="w-full border-t border-[#E5E7EB] py-3 text-center text-[14px]"
+            className="w-full border-t border-[#E5E7EB] py-2.5 text-center text-[14px]"
             style={{ color: '#64748B' }}
           >
             View full feature list
