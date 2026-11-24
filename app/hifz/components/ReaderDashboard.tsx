@@ -468,11 +468,13 @@ function GoalsTab() {
               className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-3 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
             >
               <IconCheckGrey />
-              <span className="min-w-0 flex-1 truncate text-[15px] line-through" style={{ color: MUTED }}>
-                {g.name}
-              </span>
-              <span className="shrink-0 text-[12px]" style={{ color: MUTED }}>
-                {g.date}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[15px] line-through" style={{ color: MUTED }}>
+                  {g.name}
+                </span>
+                <span className="block text-[12px]" style={{ color: MUTED }}>
+                  {g.date}
+                </span>
               </span>
             </div>
           ))}
@@ -578,7 +580,7 @@ function MemorizationTab() {
                   style={{ width: `${s.pct}%`, backgroundColor: '#22C55E' }}
                 />
               </span>
-              <span className="w-[76px] shrink-0 text-right text-[12px]" style={{ color: MUTED }}>
+              <span className="w-[86px] shrink-0 whitespace-nowrap text-right text-[12px]" style={{ color: MUTED }}>
                 {s.verses}
               </span>
             </div>
@@ -853,23 +855,25 @@ function CommunityTab() {
         {/* Table. */}
         <div className="mt-3">
           <div className="flex items-center border-b border-[#E5E7EB] pb-1.5 text-[12px]" style={{ color: MUTED }}>
-            <span className="w-9 shrink-0 text-center">Pos</span>
+            <span className="w-8 shrink-0 text-center">Pos</span>
             <span className="min-w-0 flex-1">Name</span>
-            <span className="w-[86px] shrink-0 text-right">Activity</span>
+            <span className="w-[80px] shrink-0 text-right">Activity</span>
           </div>
           {rows.map((r) => (
             <div
               key={r.pos + r.name}
               className="flex items-center border-b border-[#F3F4F6] py-2.5"
             >
-              <span className="w-9 shrink-0 text-center text-[15px]" style={{ color: INK }}>
+              <span className="w-8 shrink-0 text-center text-[15px]" style={{ color: INK }}>
                 {r.pos}
               </span>
-              <span className="min-w-0 flex-1 truncate text-[14px]" style={{ color: INK }} dir="auto">
+              {/* dir="ltr" keeps Arabic names left-aligned at the
+                  start of the Name column, as in the reference. */}
+              <span className="min-w-0 flex-1 truncate text-[13px]" style={{ color: INK }} dir="ltr">
                 {r.icon ? `${r.icon} ` : ''}
                 {r.name}
               </span>
-              <span className="w-[86px] shrink-0 text-right text-[14px]" style={{ color: INK }}>
+              <span className="w-[80px] shrink-0 text-right text-[14px]" style={{ color: INK }}>
                 {r.hrs} <span className="text-[10px]" style={{ color: MUTED }}>HRS</span>
               </span>
             </div>
