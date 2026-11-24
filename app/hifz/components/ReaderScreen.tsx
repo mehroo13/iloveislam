@@ -17,6 +17,7 @@ import type { ReaderPageData } from '../lib/reader-page';
 import ReaderPage from './ReaderPage';
 import SurahList from './SurahList';
 import ChapterSheet from './ChapterSheet';
+import ReaderSearch from './ReaderSearch';
 
 const PAGE_BG = '#F7F7F5';
 const INK = '#111827';
@@ -122,6 +123,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const [animating, setAnimating] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [contentWidth, setContentWidth] = useState(390);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const busyRef = useRef(false);
@@ -348,7 +350,16 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           </span>
         </button>
         <div className="flex shrink-0 items-center">
-          <button type="button" aria-label="Search" className="flex h-9 w-9 items-center justify-center">
+          <button
+            type="button"
+            aria-label="Search"
+            onClick={() => {
+              setDrawerOpen(false);
+              setSheetOpen(false);
+              setSearchOpen(true);
+            }}
+            className="flex h-9 w-9 items-center justify-center"
+          >
             <IconSearch />
           </button>
           <button type="button" aria-label="Gifts" className="flex h-9 w-9 items-center justify-center">
@@ -463,6 +474,9 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           </div>
         </div>
       )}
+
+      {/* Search screen (Step 3): full-screen overlay. */}
+      <ReaderSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       {/* Chapter / Juz selection bottom sheet (Step 2) */}
       <ChapterSheet
