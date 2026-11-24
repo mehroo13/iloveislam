@@ -18,6 +18,7 @@ import ReaderPage from './ReaderPage';
 import SurahList from './SurahList';
 import ChapterSheet from './ChapterSheet';
 import ReaderSearch from './ReaderSearch';
+import ReaderGift from './ReaderGift';
 
 const PAGE_BG = '#F7F7F5';
 const INK = '#111827';
@@ -124,6 +125,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [giftOpen, setGiftOpen] = useState(false);
   const [contentWidth, setContentWidth] = useState(390);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const busyRef = useRef(false);
@@ -362,7 +364,17 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           >
             <IconSearch />
           </button>
-          <button type="button" aria-label="Gifts" className="flex h-9 w-9 items-center justify-center">
+          <button
+            type="button"
+            aria-label="Gifts"
+            onClick={() => {
+              setDrawerOpen(false);
+              setSheetOpen(false);
+              setSearchOpen(false);
+              setGiftOpen(true);
+            }}
+            className="flex h-9 w-9 items-center justify-center"
+          >
             <IconGift />
           </button>
           <button type="button" aria-label="Settings" className="flex h-9 w-9 items-center justify-center">
@@ -477,6 +489,16 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
 
       {/* Search screen (Step 3): full-screen overlay. */}
       <ReaderSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+
+      {/* Welcome / gift overlay (Step 4): closing returns to the
+          reader on Page 1, Al-Fatihah. Never auto-shows on load. */}
+      <ReaderGift
+        open={giftOpen}
+        onClose={() => {
+          setGiftOpen(false);
+          if (page !== 1) jumpToPage(1);
+        }}
+      />
 
       {/* Chapter / Juz selection bottom sheet (Step 2) */}
       <ChapterSheet
