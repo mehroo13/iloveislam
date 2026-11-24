@@ -56,7 +56,18 @@
 
 export const TATWEEL = 'ـ'; // U+0640 ARABIC TATWEEL (kashida)
 export const MAX_PER_POINT = 3;
-export const MAX_SHORTFALL_FRACTION = 0.45;
+/** A line is only stretched when its shortfall is at most 30% of the
+ *  line width. Shorter lines are centred instead — that is what
+ *  Tarteel does: on page 1 the Bismillah and 1:2/1:6 sit centred at
+ *  ~55–65% of the width (Mehran's Step-1 screenshot, verified
+ *  2026-11-25 side-by-side), while dense pages fill. Stretching a
+ *  35–40%-short line to full width needs long tatweels at few
+ *  points and reads as artificial. The 30% cut sits between the
+ *  dense pages' worst natural shortfall (~25%, page 4) and the
+ *  short page-1 lines (35–40%). (Was 45% until 2026-11-25; the
+ *  45% rule stretched the Bismillah and 1:2 to 0.99 and they looked
+ *  wrong next to the reference.) */
+export const MAX_SHORTFALL_FRACTION = 0.3;
 /** Safety margin (px) left unfilled so a filled line can never overflow
  *  its box and trip the wrap-guard (see the fill loop). */
 export const FILL_SLACK_PX = 2;

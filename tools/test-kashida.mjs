@@ -40,7 +40,7 @@ const {
 const T = '\u0640'; // tatweel, for readable expectations
 assert.equal(TATWEEL, T);
 assert.equal(MAX_PER_POINT, 3);
-assert.equal(MAX_SHORTFALL_FRACTION, 0.45);
+assert.equal(MAX_SHORTFALL_FRACTION, 0.3);
 assert.equal(FILL_SLACK_PX, 2);
 
 const cases = [
@@ -330,25 +330,30 @@ assert.notEqual(
 // no width estimate can say upfront whether the points cover the
 // shortfall — the old canvas-based capacity check false-centred
 // fillable lines (page 1, 1:2: 168 < 170 by 2px). fillDecision now
-// gates only on the 45% stretch; the DOM filler measures after every
-// insertion and centres only if it genuinely cannot reach nearly-full
-// (verified live, not here).
+// gates only on the 30% stretch (was 45%: the 45% rule stretched
+// the Bismillah and 1:2 to 0.99 and they looked wrong next to
+// Tarteel's centred short lines); the DOM filler measures after
+// every insertion and centres only if it genuinely cannot reach
+// nearly-full (verified live, not here).
 // ------------------------------------------------------------------
 
 // fillDecision(shortfall, avail): 'full' | 'fill' | 'centre'.
 assert.equal(fillDecision(0, 650), 'full');
 assert.equal(fillDecision(2, 650), 'full');
 assert.equal(fillDecision(3, 650), 'fill');
-assert.equal(fillDecision(300, 650), 'centre'); // >45% of avail
-assert.equal(fillDecision(292, 650), 'fill'); // 44.9% <= 45%
-assert.equal(fillDecision(293, 650), 'centre'); // 45.08% > 45%
-// Page-1 lines (HarfBuzz-shaped Amiri, 33.6px, 650px frame): the
-// decision is now fraction-only — lines 4–5 (shortfalls 242/284,
-// 37%/44%) are ATTEMPTED live; whether they fill is decided by the
-// measurement-driven loop, not by an estimated capacity.
-assert.equal(fillDecision(242, 650), 'fill');
-assert.equal(fillDecision(284, 650), 'fill');
-assert.equal(fillDecision(219, 650), 'fill');
+assert.equal(fillDecision(195, 650), 'fill'); // 30.0% <= 30%
+assert.equal(fillDecision(196, 650), 'centre'); // 30.15% > 30%
+assert.equal(fillDecision(300, 650), 'centre'); // 46% > 30%
+// Page-1 lines (HarfBuzz-shaped Amiri, 33.6px, 650px frame): short
+// lines (shortfalls 242/284, 37%/44% — Bismillah, 1:2, 1:6) are NOT
+// attempted any more — Tarteel centres them (Step-1 screenshot) and
+// stretching them to full width reads as artificial. Dense-page
+// lines (shortfall <= 30%) are attempted; whether they fill is
+// decided by the measurement-driven loop.
+assert.equal(fillDecision(242, 650), 'centre');
+assert.equal(fillDecision(284, 650), 'centre');
+assert.equal(fillDecision(219, 650), 'centre');
+assert.equal(fillDecision(162, 650), 'fill'); // 24.9% — dense page, attempted
 
 // isNearlyFull: a shortfall of at most one tatweel + slack is full.
 assert.equal(isNearlyFull(2, 6.2), true);
