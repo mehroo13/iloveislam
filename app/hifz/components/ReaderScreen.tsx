@@ -316,7 +316,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
 
   const handleMeasure = useCallback((p: number) => {
     return (maxNatural: number) => {
-      const dw = Math.max(480, Math.min(970, Math.round(maxNatural * 1.04) + 48));
+      // Snap to 4px: the measurer's sub-pixel readings otherwise
+      // wobble dw by ±1px, scale/zoom follow, the measure effect
+      // re-runs on the zoom change, and React hits max update depth.
+      const dw = Math.max(480, Math.min(970, Math.round((maxNatural * 1.04 + 48) / 4) * 4));
       setDesignWidths((d) => (d[p] === dw ? d : { ...d, [p]: dw }));
     };
   }, []);
