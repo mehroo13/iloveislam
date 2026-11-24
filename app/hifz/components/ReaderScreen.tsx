@@ -19,6 +19,7 @@ import SurahList from './SurahList';
 import ChapterSheet from './ChapterSheet';
 import ReaderSearch from './ReaderSearch';
 import ReaderGift from './ReaderGift';
+import ReaderSettings from './ReaderSettings';
 
 const PAGE_BG = '#F7F7F5';
 const INK = '#111827';
@@ -126,6 +127,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [contentWidth, setContentWidth] = useState(390);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const busyRef = useRef(false);
@@ -377,7 +379,18 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           >
             <IconGift />
           </button>
-          <button type="button" aria-label="Settings" className="flex h-9 w-9 items-center justify-center">
+          <button
+            type="button"
+            aria-label="Settings"
+            onClick={() => {
+              setDrawerOpen(false);
+              setSheetOpen(false);
+              setSearchOpen(false);
+              setGiftOpen(false);
+              setSettingsOpen(true);
+            }}
+            className="flex h-9 w-9 items-center justify-center"
+          >
             <IconGear />
           </button>
         </div>
@@ -499,6 +512,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           if (page !== 1) jumpToPage(1);
         }}
       />
+
+      {/* Settings page (Step 5): full-screen overlay; the back
+          button returns to the reader. */}
+      <ReaderSettings open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       {/* Chapter / Juz selection bottom sheet (Step 2) */}
       <ChapterSheet
