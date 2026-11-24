@@ -244,10 +244,16 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
     // until the line is revealed (the tap reveals it instead).
     const hidden = !!hideVerses && !revealedLines?.has(lineNo);
 
-    const shortLine = display.filter((w) => !w.isEnd).length < 5;
-    const lineClass = `font-quran-madani text-[2.1rem] leading-[2.35] text-[#111827] ${
-      shortLine ? 'text-center' : 'mushaf-line'
-    }`;
+    // Every line gets the mushaf-line class and the kashida filler
+    // decides: fill it when the stretch is sane, centre it when it
+    // is not (shortfall > 45% or capacity short — e.g. a page's last
+    // line). The old "< 5 words → text-center" bypass skipped the
+    // filler entirely, so fillable short lines (page 1's Bismillah,
+    // 1:2, 1:6 — 34–39% shortfall, ample capacity) rendered centred
+    // at ~60% width while the printed mushaf stretches them
+    // edge-to-edge (2026-11-25 final pass).
+    const lineClass =
+      'font-quran-madani text-[2.1rem] leading-[2.35] text-[#111827] mushaf-line';
 
     // Colour each word from its ayah's tajweed segments (aligned by
     // normalised text). Words without a match render black.

@@ -46,6 +46,7 @@ import ReaderMushafLayout, { type ReaderLayoutMode } from './ReaderMushafLayout'
 import ReaderMistakes from './ReaderMistakes';
 import { ReaderTextMode, ReaderTranslationMode } from './ReaderAltViews';
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
+import { migrateToIdb } from '../lib/store';
 import { readerWordKey } from '../lib/reader-words';
 import { MIN_READER_SESSION_MS, saveReaderSession, surahName } from '../lib/reader-sessions';
 import { type PeekInfo, type ReaderMistake } from '../lib/reader-mistakes';
@@ -297,6 +298,16 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
    * Read after mount to avoid a server/client hydration mismatch. */
   const [layoutMode, setLayoutMode] = useState<ReaderLayoutMode>('book');
   const [textSize, setTextSize] = useState(1.6);
+  /* IndexedDB mirror (2026-11-25 final pass): migrateToIdb() used to
+   * run only in the /hifz/* AppShell, so the landing page `/` never
+   * created the `ili-hifz` database until the first write — a reader
+   * session saved from `/` would have had no mirror yet. The landing
+   * page is the reader, so it migrates on mount too. Idempotent
+   * (openDb is cached, put() overwrites the same keys), and the
+   * AppShell call stays for /hifz/* visits. */
+  useEffect(() => {
+    void migrateToIdb();
+  }, []);
   useEffect(() => {
     try {
       const v = window.localStorage.getItem('ili_reader_layout_v1');
@@ -1483,8 +1494,14 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         onPointerCancel={onPointerUp}
       >
         <div className="mx-auto flex min-h-full w-full max-w-[520px] flex-col justify-start pb-4 pt-3">
+          {/* The slide wrapper is a full-height flex column so the
+              page number (mt-auto below) sits at the bottom-right of
+              the reading area — the screen's bottom-right corner —
+              instead of right after the text block (2026-11-25 final
+              pass). When the page overflows, the wrapper grows with
+              the content and the number follows the text. */}
           <div
-            className="w-full"
+            className="flex min-h-full w-full flex-1 flex-col"
             style={{
               transform: `translateX(${offset}px)`,
               transition: animating ? 'transform 280ms ease' : 'none',
@@ -1589,8 +1606,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                 onMistakeWordClick={openMistakeTooltip}
               />
             )}
-            {/* Page number, bottom-right (whole-page reference). */}
-            <div ref={pageFootRef} className="flex justify-end px-2 pt-2">
+            {/* Page number, bottom-right (whole-page reference):
+                mt-auto pins it to the bottom of the reading area
+                when the page fits, instead of right after the text. */}
+            <div ref={pageFootRef} className="mt-auto flex justify-end px-2 pt-2">
               <span className="text-[15px]" style={{ color: INK }}>
                 {page}
               </span>

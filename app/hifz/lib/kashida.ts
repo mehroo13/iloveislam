@@ -343,16 +343,55 @@ type FillPoint = { node: Text; offset: number; cap: number };
 
 /** Eligible kashida points across a line's text nodes, with the
  *  remaining per-point capacity (MAX_PER_POINT minus tatweel already
- *  at that spot). */
+ *  at that spot).
+ *
+ *  The points are computed over the line's CONCATENATED text, not
+ *  per text node (2026-11-25 fix). The tajweed renderer fragments
+ *  every word into many small text nodes (one per colour run), and
+ *  eligibleOffsets() needs a real letter on BOTH sides of a point
+ *  inside the same string: a run that starts or ends mid-word has
+ *  no neighbour letter in its own node, so the per-node count found
+ *  almost nothing — live on page 1, line 3 ("الرَّحْمَٰنِ الرَّحِيمِ
+ *  ③ مَـٰلِكِ يَوْمِ الدِّينِ", 26 nodes, 6% shortfall) had ONE
+ *  eligible point, so the filler centred a line that only needed
+ *  ~2 tatweels. Over the concatenated text the same line has 9
+ *  points. Rosette digits and the spaces between words are inert:
+ *  they are not letters, so no point can sit next to one. A point
+ *  that falls exactly on a node boundary is assigned to the end of
+ *  the earlier node (inserting there renders the same tatweel
+ *  between the two letters). */
 function gatherPoints(line: HTMLElement): { points: FillPoint[]; totalCap: number } {
+  const nodes = textNodesOf(line);
+  if (nodes.length === 0) return { points: [], totalCap: 0 };
+  // Concatenated text + each node's start offset in it.
+  const starts: number[] = [];
+  let full = '';
+  for (const node of nodes) {
+    starts.push(full.length);
+    full += node.data;
+  }
   const points: FillPoint[] = [];
-  for (const node of textNodesOf(line)) {
-    for (const off of eligibleOffsets(node.data)) {
-      let existing = 0;
-      for (let i = off - 1; i >= 0 && node.data[i] === TATWEEL; i--) existing++;
-      const cap = MAX_PER_POINT - existing;
-      if (cap > 0) points.push({ node, offset: off, cap });
+  for (const off of eligibleOffsets(full)) {
+    // Which node holds this offset (boundary → the earlier node).
+    let idx = -1;
+    for (let i = 0; i < nodes.length; i++) {
+      const start = starts[i];
+      const end = start + nodes[i].data.length;
+      if (off >= start && off <= end) {
+        idx = i;
+        // A boundary shared by two nodes belongs to the earlier one.
+        if (off === end && i + 1 < nodes.length && starts[i + 1] === end) idx = i;
+        break;
+      }
     }
+    if (idx === -1) continue;
+    // Tatweel already at this spot (counted in the full string, so a
+    // run split does not hide it): the point is full at MAX_PER_POINT.
+    let existing = 0;
+    for (let t = off - 1; t >= 0 && full[t] === TATWEEL; t--) existing++;
+    const cap = MAX_PER_POINT - existing;
+    if (cap <= 0) continue;
+    points.push({ node: nodes[idx], offset: off - starts[idx], cap });
   }
   return { points, totalCap: points.reduce((a, p) => a + p.cap, 0) };
 }

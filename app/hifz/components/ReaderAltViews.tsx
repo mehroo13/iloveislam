@@ -135,14 +135,20 @@ function groupBySurah(verses: MushafVerse[]): { sid: number; verses: MushafVerse
   return groups;
 }
 
-function SurahIntro({ sid }: { sid: number }) {
+function SurahIntro({ sid, arabicSize }: { sid: number; arabicSize?: number }) {
   const surah = getSurahById(sid);
   const name = surah ? `سُورَةُ ${surah.arabic}` : '';
   return (
     <div className="mb-3">
       <ReaderSurahHeader name={name} />
       {sid !== 1 && sid !== 9 && (
-        <p dir="rtl" lang="ar" translate="no" className="font-quran-madani mt-3 text-center text-[1.6rem] leading-snug text-[#111827]">
+        <p
+          dir="rtl"
+          lang="ar"
+          translate="no"
+          className="font-quran-madani mt-3 text-center leading-snug text-[#111827]"
+          style={{ fontSize: `${arabicSize ?? 1.6}rem` }}
+        >
           {BISMILLAH}
         </p>
       )}
@@ -222,7 +228,7 @@ export function ReaderTextMode({
 
       {groups.map((g) => (
         <div key={`s-${g.sid}`}>
-          <SurahIntro sid={g.sid} />
+          <SurahIntro sid={g.sid} arabicSize={textSize} />
           {g.verses.map((v) => {
             const key = `V${v.verse_key}`;
             const hidden = hideVerses && !revealed.has(key);
@@ -334,7 +340,9 @@ export function ReaderTranslationMode({
     <div className="w-full px-1 pb-4">
       {groups.map((g) => (
         <div key={`s-${g.sid}`}>
-          <SurahIntro sid={g.sid} />
+          {/* Bismillah at the ayah text size (1.5rem) so the intro
+              matches the verses below it. */}
+          <SurahIntro sid={g.sid} arabicSize={1.5} />
           {g.verses.map((v) => {
             const key = `V${v.verse_key}`;
             const hidden = hideVerses && !revealed.has(key);
