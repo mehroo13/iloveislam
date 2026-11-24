@@ -9,10 +9,17 @@
 // screen; the profile icon is visual only. No "Tarteel" / "Premium"
 // wording anywhere — the promo button says "Discover All Free
 // Features".
+//
+// Greeting (correction 2026-11-24): NEVER a hardcoded name. A
+// signed-in user sees "Salam {profile display_name}!" (email local
+// part when no display name is set); a guest sees "Salam!" or their
+// stored guest display name from the local settings store.
 
 'use client';
 
 import { useEffect, useState } from 'react';
+import { loadSettings } from '../progress';
+import { getSupabase } from '../lib/supabase';
 
 const INK = '#111827';
 const MUTED = '#6B7280';
@@ -242,6 +249,8 @@ export default function ReaderDashboard({
 }) {
   const [rendered, setRendered] = useState(open);
   const [shown, setShown] = useState(false);
+  // Greeting name: null = guest with no name stored ("Salam!").
+  const [displayName, setDisplayName] = useState<string | null>(null);
 
   // Mount / fade lifecycle: mount, then fade in; on close, fade out
   // and unmount after the transition.
@@ -254,6 +263,49 @@ export default function ReaderDashboard({
     setShown(false);
     const timer = window.setTimeout(() => setRendered(false), 200);
     return () => window.clearTimeout(timer);
+  }, [open ]);
+
+  // Greeting name, resolved whenever the Dashboard opens. Signed-in:
+  // the Supabase profile display_name, else the email's local part.
+  // Guest: the stored guest display name from the local settings
+  // store, else null ("Salam!"). Never a hardcoded name.
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    let guestName: string | null = null;
+    try {
+      guestName = loadSettings().displayName?.trim() || null;
+    } catch {
+      /* no stored settings — plain "Salam!" */
+    }
+    const sb = getSupabase();
+    if (!sb) {
+      setDisplayName(guestName);
+      return;
+    }
+    void sb.auth.getSession().then(async ({ data: { session } }) => {
+      if (!alive) return;
+      const user = session?.user;
+      if (!user) {
+        setDisplayName(guestName);
+        return;
+      }
+      const fallback = user.email?.split('@')[0]?.trim() || guestName;
+      try {
+        const { data } = await sb
+          .from('profiles')
+          .select('display_name')
+          .eq('id', user.id)
+          .maybeSingle();
+        const profileName = (data as { display_name?: string | null } | null)?.display_name?.trim();
+        if (alive) setDisplayName(profileName || fallback);
+      } catch {
+        if (alive) setDisplayName(fallback);
+      }
+    });
+    return () => {
+      alive = false;
+    };
   }, [open ]);
 
   if (!rendered) return null;
@@ -310,9 +362,9 @@ export default function ReaderDashboard({
 
       {/* Scrollable content. */}
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8">
-        {/* Greeting. */}
+        {/* Greeting — dynamic name, never hardcoded. */}
         <h1 className="mt-4 text-[20px] font-bold leading-tight" style={{ color: INK }}>
-          Salam mehran13!
+          {displayName ? `Salam ${displayName}!` : 'Salam!'}
         </h1>
 
         {/* Streak card. */}
