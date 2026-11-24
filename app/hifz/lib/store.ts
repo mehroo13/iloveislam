@@ -37,6 +37,9 @@ const KEYS = [
   'ili_hifz_recent_surahs_v1',
   'ili_goals_v1',
   'ili_sessions_v1',
+  // Phase 4: coach + reader session records — the Activity tab reads
+  // these, so the mirror covers them too.
+  'ili_coach_sessions_v1',
   'ili_hifz_test_sessions_v1',
   'ili_hifz_test_in_progress_v1',
   'ili_test_ranges_v1',

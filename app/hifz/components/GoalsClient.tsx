@@ -20,45 +20,9 @@ import { ALL_SURAHS } from '../surahs';
 import { getJuz } from '../juz';
 import { loadProgress, ayahsPractisedOn, localDateString, type HifzProgress } from '../progress';
 import { useT } from '../lib/i18n';
-
-type GoalAction = 'Review' | 'Memorize' | 'Recite';
-
-interface Goal {
-  id: string;
-  name: string;
-  action: GoalAction;
-  range: string;
-  portion: string;
-  schedule: string;
-  shape: 'flexible' | 'portion';
-  reverse: boolean;
-  recurring: boolean;
-  createdAt: string;
-  /** 0..1 per session day, for the session bars (legacy — Stage 6 computes
-   *  the bars from real practice instead; kept so old saves still load). */
-  sessions: number[];
-  /** Stage 6 (§17): opt-in in-app reminder for this goal. */
-  remind?: boolean;
-  /** "HH:MM" local time the reminder becomes due. */
-  remindTime?: string;
-  /** Optional deadline (YYYY-MM-DD) for flexible goals. */
-  deadline?: string;
-  /** Archived goals hide from Active / Today's / Upcoming; they live in Archived. */
-  archived?: boolean;
-}
-
-const GOALS_KEY = 'ili_goals_v1';
-
-function loadGoals(): Goal[] {
-  try {
-    const raw = localStorage.getItem(GOALS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Goal[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
+// The goal store lives in lib/goals.ts (Phase 4) so the reader
+// dashboard writes the same shape to the same key.
+import { loadGoals, saveGoals, newGoalId, type Goal, type GoalAction } from '../lib/goals';
 
 /**
  * The ayahs a goal's range covers, as "surah:ayah" keys — from the real
@@ -100,11 +64,6 @@ function lastSevenDays(): string[] {
     out.push(localDateString(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)));
   }
   return out;
-}
-
-/** A unique id for a new goal (module-level: id generation is impure). */
-function newGoalId(): string {
-  return `${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
 }
 
 /** YYYY-MM-DD of the last day of the current month (module-level helper). */
@@ -180,11 +139,7 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
 
   const persist = (next: Goal[]) => {
     setGoals(next);
-    try {
-      localStorage.setItem(GOALS_KEY, JSON.stringify(next));
-    } catch {
-      /* ignore */
-    }
+    saveGoals(next);
   };
 
   const createGoal = (s?: (typeof SUGGESTIONS)[number] | (typeof TEMPLATES)[number]) => {

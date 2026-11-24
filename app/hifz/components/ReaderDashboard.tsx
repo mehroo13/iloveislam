@@ -11,6 +11,14 @@
 // anywhere — the promo button says "Discover All Free Features" and
 // the Activity Tracker is a free blank chart box, never a paywall.
 //
+// Phase 4 (live wiring): the streak ring, the goals and the session
+// history are REAL, read from localStorage — sessions from
+// `ili_coach_sessions_v1` (coach + reader takes), goals from
+// `ili_goals_v1` (shared with the old hub), streak from session
+// dates. "Start a New Goal" opens a modal that saves a goal. No
+// sessions yet → an honest empty state, never mock rows. The Goals
+// tab's Archived rows are still the Step 7 mock display data.
+//
 // Greeting (correction 2026-11-24): NEVER a hardcoded name. A
 // signed-in user sees "Salam {profile display_name}!" (email local
 // part when no display name is set); a guest sees "Salam!" or their
@@ -22,9 +30,27 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { loadSettings } from '../progress';
 import { getSupabase } from '../lib/supabase';
+// Phase 4: sessions + streak + goals, all from localStorage.
+import {
+  formatSessionDuration,
+  formatSessionWhen,
+  listReaderSessions,
+  streakFromSessions,
+  type CoachSessionRecord,
+  type StreakInfo,
+} from '../lib/reader-sessions';
+import {
+  GOALS_KEY,
+  activeGoals,
+  createSimpleGoal,
+  loadGoals,
+  saveGoals,
+  type Goal,
+} from '../lib/goals';
+import { mirrorKeyToIdb } from '../lib/store';
 
 const INK = '#111827';
 const MUTED = '#6B7280';
@@ -196,8 +222,11 @@ function IconLantern() {
   );
 }
 
-/* Streak ring: grey track + an orange arc at the top, flame centre. */
-function StreakRing() {
+/* Streak ring: grey track + an orange arc at the top, flame centre.
+ * `fraction` is how much of this week has a session (0..1) — the arc
+ * grows as the week fills in. */
+function StreakRing({ fraction }: { fraction: number }) {
+  const arc = Math.max(0, Math.min(1, fraction)) * 163.36;
   return (
     <svg viewBox="0 0 64 64" className="h-[72px] w-[72px]" aria-hidden="true">
       <defs>
@@ -215,7 +244,7 @@ function StreakRing() {
         stroke="#FB923C"
         strokeWidth="5.5"
         strokeLinecap="round"
-        strokeDasharray="41 122.3"
+        strokeDasharray={`${arc.toFixed(1)} 163.36`}
         transform="rotate(-90 32 32)"
       />
       {/* Flame (Material "whatshot" shape). */}
@@ -259,21 +288,19 @@ function HighlightsGraphic() {
 
 /* ---------------------------------------------------------------- */
 /*  Streak week (shared by the Dashboard and Activity tabs)          */
+/*  Phase 4: live — a day is checked when a session was saved on     */
+/*  that local date; the count is the consecutive-day streak.        */
 /* ---------------------------------------------------------------- */
 
-const WEEK = ['Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
-const ACTIVE_DAY = 'Mon';
-
-function DayPill({ day }: { day: string }) {
-  const active = day === ACTIVE_DAY;
+function DayPill({ day, done }: { day: string; done: boolean }) {
   return (
     <div
-      className={`flex flex-1 flex-col items-center gap-2 rounded-xl px-0.5 py-2.5 ${active ? 'bg-[#DBFFF4]' : ''}`}
+      className={`flex flex-1 flex-col items-center gap-2 rounded-xl px-0.5 py-2.5 ${done ? 'bg-[#DBFFF4]' : ''}`}
     >
-      <span className={`text-[11px] leading-none ${active ? 'font-bold' : ''}`} style={{ color: active ? GREEN : MUTED }}>
+      <span className={`text-[11px] leading-none ${done ? 'font-bold' : ''}`} style={{ color: done ? GREEN : MUTED }}>
         {day}
       </span>
-      {active ? (
+      {done ? (
         <span className="flex h-[22px] w-[22px] rotate-45 items-center justify-center rounded-[4px] bg-[#22C55E]">
           <span className="-rotate-45">
             <IconCheck />
@@ -287,25 +314,28 @@ function DayPill({ day }: { day: string }) {
 }
 
 /* The streak card, identical on the Dashboard and Activity tabs. */
-function StreakCard() {
+function StreakCard({ streak }: { streak: StreakInfo }) {
+  const doneCount = streak.week.filter((d) => d.done).length;
+  const dayWord = streak.count === 1 ? 'Day' : 'Days';
+  const longestWord = streak.longest === 1 ? 'Day' : 'Days';
   return (
     <section className="mt-3 flex items-stretch gap-2 rounded-2xl border border-[#E5E7EB] bg-white p-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
       {/* Ring + count. */}
       <div className="flex w-[76px] shrink-0 flex-col items-center justify-center gap-1">
-        <StreakRing />
+        <StreakRing fraction={doneCount / 7} />
         <p className="text-[15px] font-bold leading-none" style={{ color: '#F97316' }}>
-          1 Day
+          {streak.count} {dayWord}
         </p>
       </div>
       {/* Week panel. */}
       <div className="flex min-w-0 flex-1 flex-col justify-center rounded-xl px-2 py-3" style={{ backgroundColor: '#E9FFF3' }}>
         <div className="flex gap-0.5">
-          {WEEK.map((d) => (
-            <DayPill key={d} day={d} />
+          {streak.week.map((d) => (
+            <DayPill key={d.label} day={d.label} done={d.done} />
           ))}
         </div>
         <p className="mt-1.5 pl-1 text-[12px] leading-none" style={{ color: GREEN }}>
-          Longest Streak <span className="font-bold">1 Day</span>
+          Longest Streak <span className="font-bold">{streak.longest} {longestWord}</span>
         </p>
       </div>
       {/* Bell + add, stacked at the far right edge. */}
@@ -318,11 +348,13 @@ function StreakCard() {
 }
 
 /* Full-width white "START A NEW GOAL" button, as on the Dashboard's
- * Today's Goals section and at the top of the Goals tab. */
-function StartGoalButton() {
+ * Today's Goals section and at the top of the Goals tab. Phase 4:
+ * opens the new-goal modal. */
+function StartGoalButton({ onNewGoal }: { onNewGoal: () => void }) {
   return (
     <button
       type="button"
+      onClick={onNewGoal}
       className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#E5E7EB] bg-white text-[13px] font-bold tracking-wide shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
       style={{ color: INK }}
     >
@@ -332,12 +364,110 @@ function StartGoalButton() {
   );
 }
 
+/* A saved goal as a white card — used in the Dashboard's Today's
+ * Goals and the Goals tab's Active section (Phase 4). */
+function GoalCard({ goal }: { goal: Goal }) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-3 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[15px] font-semibold" style={{ color: INK }}>
+          {goal.name}
+        </span>
+        <span className="block text-[12px]" style={{ color: MUTED }}>
+          {goal.action} · {goal.portion} · {goal.schedule}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+/* "Start a New Goal" modal (Phase 4): one input for the goal name.
+ * Saving creates a goal in the shared `ili_goals_v1` store. */
+function GoalModal({
+  open,
+  onClose,
+  onSave,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSave: (name: string) => void;
+}) {
+  const [name, setName] = useState('');
+  // A fresh, empty input every time the modal opens.
+  useEffect(() => {
+    if (open) setName('');
+  }, [open ]);
+  if (!open) return null;
+  const trimmed = name.trim();
+  return (
+    <div
+      className="absolute inset-0 z-[80] flex items-end justify-center bg-black/40"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="w-full rounded-t-3xl bg-white p-5 pb-8 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-label="Start a new goal"
+      >
+        <h2 className="text-[18px] font-bold" style={{ color: INK }}>
+          Start a New Goal
+        </h2>
+        <p className="mt-1 text-[13px] leading-snug" style={{ color: MUTED }}>
+          Give your goal a name — for example, “Memorize Surah Al-Mulk”.
+        </p>
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && trimmed) onSave(trimmed);
+          }}
+          placeholder="Goal name"
+          aria-label="Goal name"
+          className="mt-4 h-12 w-full rounded-xl border border-[#D1D5DB] px-4 text-[15px] outline-none focus:border-[#16A34A]"
+        />
+        <div className="mt-4 flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-11 flex-1 rounded-full border border-[#D1D5DB] text-[15px] font-semibold"
+            style={{ color: INK }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={!trimmed}
+            onClick={() => onSave(trimmed)}
+            className="h-11 flex-1 rounded-full text-[15px] font-bold text-white disabled:opacity-40"
+            style={{ backgroundColor: '#16A34A' }}
+          >
+            Save Goal
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ---------------------------------------------------------------- */
 /*  Tab views                                                          */
 /* ---------------------------------------------------------------- */
 
 /* Dashboard tab — the Step 6 content, unchanged. */
-function DashboardTab({ displayName }: { displayName: string | null }) {
+function DashboardTab({
+  displayName,
+  goals,
+  streak,
+  onNewGoal,
+}: {
+  displayName: string | null;
+  goals: Goal[];
+  streak: StreakInfo;
+  onNewGoal: () => void;
+}) {
   return (
     <>
       {/* Greeting — dynamic name, never hardcoded. */}
@@ -345,7 +475,7 @@ function DashboardTab({ displayName }: { displayName: string | null }) {
         {displayName ? `Salam ${displayName}!` : 'Salam!'}
       </h1>
 
-      <StreakCard />
+      <StreakCard streak={streak} />
 
       {/* Promo card. The button spans the full card width, as in
           the reference — so the card has no side padding; the icon
@@ -392,7 +522,7 @@ function DashboardTab({ displayName }: { displayName: string | null }) {
         </div>
       </section>
 
-      {/* Today's Goals. */}
+      {/* Today's Goals — Phase 4: the saved goals, from localStorage. */}
       <section className="mt-5">
         <div className="flex items-baseline justify-between">
           <h2 className="text-[17px] font-bold" style={{ color: INK }}>
@@ -402,23 +532,30 @@ function DashboardTab({ displayName }: { displayName: string | null }) {
             See All
           </button>
         </div>
-        <StartGoalButton />
+        <StartGoalButton onNewGoal={onNewGoal} />
+        {goals.length > 0 && (
+          <div className="mt-3 flex flex-col gap-2">
+            {goals.map((g) => (
+              <GoalCard key={g.id} goal={g} />
+            ))}
+          </div>
+        )}
       </section>
     </>
   );
 }
 
 /* Goals tab. */
-function GoalsTab() {
+function GoalsTab({ goals, onNewGoal }: { goals: Goal[]; onNewGoal: () => void }) {
   const archived = [
     { name: 'Memorize Surah Al-Mulk', date: 'Completed on Nov 20' },
     { name: 'Memorize Surah Al-Kahf', date: 'Completed on Nov 12' },
   ];
   return (
     <>
-      <StartGoalButton />
+      <StartGoalButton onNewGoal={onNewGoal} />
 
-      {/* Active. */}
+      {/* Active — Phase 4: the saved goals as white cards. */}
       <section className="mt-5">
         <h2 className="text-[17px] font-bold" style={{ color: INK }}>
           Active
@@ -427,6 +564,13 @@ function GoalsTab() {
           Goals you are trying to complete. Swipe right on goal to modify.
         </p>
         <div className="mt-3 border-t border-[#E5E7EB]" />
+        {goals.length > 0 && (
+          <div className="mt-3 flex flex-col gap-2">
+            {goals.map((g) => (
+              <GoalCard key={g.id} goal={g} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Today's goals. */}
@@ -434,9 +578,23 @@ function GoalsTab() {
         <h3 className="text-[11px] font-bold tracking-wide" style={{ color: INK }}>
           TODAY&apos;S GOALS
         </h3>
-        <div className="mt-2 flex h-11 items-center justify-center rounded-xl border border-[#E5E7EB] bg-white text-[15px] shadow-[0_1px_3px_rgba(0,0,0,0.05)]" style={{ color: INK }}>
-          None
-        </div>
+        {goals.length === 0 ? (
+          <div className="mt-2 flex h-11 items-center justify-center rounded-xl border border-[#E5E7EB] bg-white text-[15px] shadow-[0_1px_3px_rgba(0,0,0,0.05)]" style={{ color: INK }}>
+            None
+          </div>
+        ) : (
+          <div className="mt-2 flex flex-col gap-2">
+            {goals.map((g) => (
+              <div
+                key={g.id}
+                className="flex min-h-11 items-center rounded-xl border border-[#E5E7EB] bg-white px-4 py-2.5 text-[15px] shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
+                style={{ color: INK }}
+              >
+                {g.name}
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Upcoming goals. */}
@@ -591,18 +749,15 @@ function MemorizationTab() {
   );
 }
 
-/* Activity tab. */
-function ActivityTab() {
+/* Activity tab — Phase 4: Session History + Recent Sessions read the
+ * saved sessions from localStorage (coach + reader takes, newest
+ * first). No sessions yet → an honest empty state, never mock rows. */
+function ActivityTab({ sessions, streak }: { sessions: CoachSessionRecord[]; streak: StreakInfo }) {
   const [range, setRange] = useState('Engagement');
-  const sessions = [
-    { when: 'Today, 4:06 PM', surah: 'Al-Fatihah', mins: '5 mins', acc: '98% Accuracy' },
-    { when: 'Yesterday, 9:12 PM', surah: 'Al-Baqarah', mins: '12 mins', acc: '94% Accuracy' },
-    { when: 'Nov 22, 7:45 PM', surah: 'Al-Mulk', mins: '8 mins', acc: '96% Accuracy' },
-    { when: 'Nov 21, 6:30 PM', surah: 'Al-Fatihah', mins: '4 mins', acc: '99% Accuracy' },
-  ];
+  const recent = [...sessions].reverse();
   return (
     <>
-      <StreakCard />
+      <StreakCard streak={streak} />
 
       {/* Session History. */}
       <button
@@ -614,7 +769,7 @@ function ActivityTab() {
             Session History
           </span>
           <span className="block text-[18px] leading-snug" style={{ color: '#34D399' }}>
-            1
+            {sessions.length}
           </span>
         </span>
         <IconChevronRight className="h-6 w-6" />
@@ -727,31 +882,37 @@ function ActivityTab() {
         </div>
       </section>
 
-      {/* Recent Sessions. */}
+      {/* Recent Sessions — Phase 4: the saved sessions, newest first. */}
       <section className="mt-5">
         <h2 className="text-[17px] font-bold" style={{ color: INK }}>
           Recent Sessions
         </h2>
-        <div className="mt-2 flex flex-col gap-2">
-          {sessions.map((s) => (
-            <div
-              key={s.when}
-              className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
-            >
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="text-[14px] font-semibold" style={{ color: INK }}>
-                  {s.when}
-                </span>
-                <span className="text-[13px] font-semibold" style={{ color: '#16A34A' }}>
-                  {s.acc}
-                </span>
+        {recent.length === 0 ? (
+          <p className="mt-2 text-[14px] leading-snug" style={{ color: MUTED }}>
+            No sessions yet. Tap the mic in the reader and recite to record your first session.
+          </p>
+        ) : (
+          <div className="mt-2 flex flex-col gap-2">
+            {recent.map((s) => (
+              <div
+                key={s.id}
+                className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-[14px] font-semibold" style={{ color: INK }}>
+                    {formatSessionWhen(s.date)}
+                  </span>
+                  <span className="text-[13px] font-semibold" style={{ color: '#16A34A' }}>
+                    {Math.round(s.accuracy)}% Accuracy
+                  </span>
+                </div>
+                <p className="mt-0.5 text-[13px]" style={{ color: MUTED }}>
+                  {s.surah ?? s.range} · {formatSessionDuration(s.durationSec)}
+                </p>
               </div>
-              <p className="mt-0.5 text-[13px]" style={{ color: MUTED }}>
-                {s.surah} · {s.mins}
-              </p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
     </>
   );
@@ -913,6 +1074,35 @@ export default function ReaderDashboard({
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   // Greeting name: null = guest with no name stored ("Salam!").
   const [displayName, setDisplayName] = useState<string | null>(null);
+  // Phase 4: sessions + goals + streak, read from localStorage.
+  const [sessions, setSessions] = useState<CoachSessionRecord[]>(() => listReaderSessions());
+  const [goals, setGoals] = useState<Goal[]>(() => loadGoals());
+  const [streak, setStreak] = useState<StreakInfo>(() => streakFromSessions(listReaderSessions()));
+  const [goalModalOpen, setGoalModalOpen] = useState(false);
+
+  // Phase 4: reload sessions/goals/streak whenever the Dashboard
+  // opens, so a session or goal saved since the last visit shows up
+  // (the reader saves sessions while the Dashboard is closed).
+  useEffect(() => {
+    if (!open) return;
+    const s = listReaderSessions();
+    setSessions(s);
+    setGoals(loadGoals());
+    setStreak(streakFromSessions(s));
+  }, [open ]);
+
+  // Phase 4: save a goal from the modal into the shared store.
+  const saveNewGoal = useCallback(
+    (name: string) => {
+      const goal = createSimpleGoal(name);
+      const next = [goal, ...goals];
+      saveGoals(next);
+      setGoals(next);
+      setGoalModalOpen(false);
+      mirrorKeyToIdb(GOALS_KEY);
+    },
+    [goals],
+  );
 
   // Mount / fade lifecycle: mount, then fade in; on close, fade out
   // and unmount after the transition.
@@ -1033,12 +1223,22 @@ export default function ReaderDashboard({
 
       {/* Scrollable content — the active tab's view. */}
       <div ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto px-4 pb-8">
-        {tab === 'Dashboard' && <DashboardTab displayName={displayName} />}
-        {tab === 'Goals' && <GoalsTab />}
+        {tab === 'Dashboard' && (
+          <DashboardTab
+            displayName={displayName}
+            goals={activeGoals(goals)}
+            streak={streak}
+            onNewGoal={() => setGoalModalOpen(true)}
+          />
+        )}
+        {tab === 'Goals' && <GoalsTab goals={activeGoals(goals)} onNewGoal={() => setGoalModalOpen(true)} />}
         {tab === 'Memorization' && <MemorizationTab />}
-        {tab === 'Activity' && <ActivityTab />}
+        {tab === 'Activity' && <ActivityTab sessions={sessions} streak={streak} />}
         {tab === 'Community' && <CommunityTab />}
       </div>
+
+      {/* New-goal modal (Phase 4). */}
+      <GoalModal open={goalModalOpen} onClose={() => setGoalModalOpen(false)} onSave={saveNewGoal} />
     </div>
   );
 }

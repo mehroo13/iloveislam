@@ -26,14 +26,23 @@ export interface CoachSessionRecord {
   id: string;
   /** ISO timestamp of the session end. */
   date: string;
-  /** Human range label, e.g. "67:1–5". */
+  /** Human range label, e.g. "67:1–5". The reader writes the surah
+   *  name in front, e.g. "Al-Fatihah 1:1–7". */
   range: string;
+  /** Surah name, e.g. "Al-Fatihah" — the reader's session label
+   *  (Phase 4). Absent on older coach records, which only have `range`. */
+  surah?: string;
   /** Session length in seconds (excludes any paused time). */
   durationSec: number;
   /** REAL measured accuracy, percent 0–100: correct / reached words. */
   accuracy: number;
   /** Number of missed/wrong words in the session. */
   mistakes: number;
+  /** Display text of the missed/wrong words, in passage order — the
+   *  session's mistake list (Phase 4). Real said-vs-correct detail
+   *  arrives in Phase 5; until then this is the engine's missed/wrong
+   *  words. Empty when nothing was missed. */
+  mistakeWords?: string[];
   /** Id of the stored recording in the `session-audio` store, when one
    * was saved for this session. Absent when `saveAudio` is off, the
    * recording failed to save, or the session had no mic audio
@@ -41,7 +50,22 @@ export interface CoachSessionRecord {
   audioId?: string;
 }
 
-const KEY = 'ili_coach_sessions_v1';
+export const COACH_SESSIONS_KEY = 'ili_coach_sessions_v1';
+
+const KEY = COACH_SESSIONS_KEY;
+
+/** Id for a coach session — crypto.randomUUID with a timestamp
+ *  fallback (same shape as RecitationCoach's local helper). */
+export function newCoachSessionId(): string {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+  } catch {
+    /* fall through to the timestamp fallback */
+  }
+  return `session-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 function isRecord(value: unknown): value is CoachSessionRecord {
   if (!value || typeof value !== 'object') return false;

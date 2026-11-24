@@ -39,6 +39,7 @@ import ReaderMistakes from './ReaderMistakes';
 import { ReaderTextMode, ReaderTranslationMode } from './ReaderAltViews';
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { readerWordKey } from '../lib/reader-words';
+import { saveReaderSession } from '../lib/reader-sessions';
 import {
   loadEngine,
   engineSupport,
@@ -353,6 +354,9 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
    * tracker re-emits a word on every locked position event, so the
    * transcript must dedupe by key. */
   const micWordsRef = useRef(new Map<string, string>());
+  /** The take's passage (first surah on the page + ayah range), for
+   *  the Phase 4 session record saved when the take ends. */
+  const micSessionMetaRef = useRef<{ surah: number; fromAyah: number; toAyah: number } | null>(null);
   /** onLevel callbacks this take (capture-health watchdog). */
   const micLevelRef = useRef(0);
   const micTimerRef = useRef<number | null>(null);
@@ -481,6 +485,39 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         micTimerRef.current = window.setTimeout(() => setMicToast(null), 4000);
         return;
       }
+      // Phase 4: a finished take is a practice session — save it
+      // (date, surah, duration, real accuracy, mistake list) to the
+      // coach session store. A dead capture saves nothing; a take
+      // too short or with no audio heard does not count either.
+      if (result && micSessionMetaRef.current) {
+        const meta = micSessionMetaRef.current;
+        micSessionMetaRef.current = null;
+        const mistakeWords = result.words
+          .filter((w) => w.status === 'wrong' || w.status === 'missed')
+          .map((w) => w.display);
+        const saved = saveReaderSession({
+          surah: meta.surah,
+          fromAyah: meta.fromAyah,
+          toAyah: meta.toAyah,
+          durationMs: result.durationMs,
+          correct: result.correctCount,
+          reached: result.reachedCount,
+          missed: result.missedCount,
+          mistakeWords,
+          micHeardAudio: result.micHeardAudio,
+        });
+        if (saved) {
+          console.log('[reader-mic] session saved:', {
+            surah: saved.surah,
+            range: saved.range,
+            durationSec: saved.durationSec,
+            accuracy: Math.round(saved.accuracy),
+            mistakes: saved.mistakes,
+          });
+        } else {
+          console.log('[reader-mic] session not saved: take too short or no audio heard');
+        }
+      }
       micTimerRef.current = window.setTimeout(() => {
         setMic('idle');
         setMicToast(null);
@@ -556,6 +593,11 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     }
     micWordsRef.current = new Map();
     micLevelRef.current = 0;
+    micSessionMetaRef.current = {
+      surah: expected.surah,
+      fromAyah: expected.fromAyah,
+      toAyah: expected.toAyah,
+    };
     setSpokenText('');
     setInterimText('');
     setHighlightedWords(new Set());
