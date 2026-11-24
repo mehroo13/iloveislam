@@ -129,12 +129,14 @@ export interface MushafWord {
 export interface MushafVerse {
   verse_key: string;
   juz_number: number;
+  /** Hizb (1–60) the verse falls in — for the reader top bar. */
+  hizb_number?: number;
   words: MushafWord[];
 }
 
 export async function fetchMushafPage(page: number): Promise<MushafVerse[]> {
   const data = await fetchJson(
-    `${UPSTREAM_API}/verses/by_page/${page}?words=true&word_fields=text_uthmani,text_indopak,line_number,page_number,position,char_type_name&fields=text_uthmani`,
+    `${UPSTREAM_API}/verses/by_page/${page}?words=true&word_fields=text_uthmani,text_indopak,line_number,page_number,position,char_type_name&fields=text_uthmani,hizb_number`,
   );
   const verses = (data as { verses?: MushafVerse[] } | null)?.verses;
   return Array.isArray(verses) ? verses : [];
