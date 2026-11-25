@@ -2071,14 +2071,22 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
 
   /* Prepending a page above the viewport must not move the text
    * the user is reading: once the new page's verses render, shift
-   * the scroll position down by exactly the height they added. */
+   * the scroll position down by exactly the height they added.
+   * The ref is consumed ONLY when a prepend actually landed
+   * (delta > 0): the range change itself re-renders textPages with
+   * the new page still unfetched, and consuming the ref on that
+   * no-op run lost the shift — the viewport then stayed at the top
+   * and showed the prepended page instead of the one the user was
+   * on (seen 2026-11-26 in Translation mode, where a tall page
+   * makes the upward branch fire first on a ChapterSheet jump). */
   useEffect(() => {
     const mainEl = containerRef.current;
     const before = pendingPrependRef.current;
     if (!mainEl || before === null) return;
-    pendingPrependRef.current = null;
     const delta = mainEl.scrollHeight - before;
-    if (delta > 0) mainEl.scrollTop += delta;
+    if (delta <= 0) return;
+    pendingPrependRef.current = null;
+    mainEl.scrollTop += delta;
   }, [textPages]);
 
   /* Follow the lit word in continuous modes: during Listen the
