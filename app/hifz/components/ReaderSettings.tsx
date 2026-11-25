@@ -671,7 +671,7 @@ export default function ReaderSettings({
       ) : current === 'mushafLayout' ? (
         <MushafLayoutScreen
           onBack={backFromCurrent}
-          layoutMode={layoutMode ?? 'book'}
+          layoutMode={layoutMode ?? 'text'}
           onSelectLayout={(m) => onSelectLayout?.(m)}
           editionLabel={editionLabel ?? 'Madani Mushaf (1405)'}
           onOpenMushafType={() => push('mushafType')}

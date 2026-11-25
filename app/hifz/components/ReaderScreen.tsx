@@ -320,8 +320,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
    * all others. */
   const [openModal, setOpenModal] = useState<ReaderModal | null>(null);
   /* Reading layout (Mushaf Layout sheet), persisted across visits.
-   * Read after mount to avoid a server/client hydration mismatch. */
-  const [layoutMode, setLayoutMode] = useState<ReaderLayoutMode>('book');
+   * Read after mount to avoid a server/client hydration mismatch.
+   * Default is Quran Text (2026-11-26, Part 3): a fresh user lands
+   * on the resizable flowing text; a stored choice still wins. */
+  const [layoutMode, setLayoutMode] = useState<ReaderLayoutMode>('text');
   /** Book swipes page by page; Text and Translation both scroll as
    *  one continuous vertical flow over the loaded page range
    *  (2026-11-26, Part 2: Translation joins Text here). Every
@@ -648,7 +650,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   useEffect(() => {
     try {
       const v = window.localStorage.getItem('ili_reader_layout_v1');
-      if (v === 'text' || v === 'translation') setLayoutMode(v);
+      if (v === 'book' || v === 'text' || v === 'translation') setLayoutMode(v);
       const s = Number(window.localStorage.getItem('ili_reader_text_size_v1'));
       if (Number.isFinite(s) && s >= 1.2 && s <= 2.2) setTextSize(s);
     } catch {
@@ -1955,7 +1957,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
    * lands on the page actually being read — but never interrupts a
    * live take or playback. Also resets any in-flight slide offset
    * so a mode switch can never leave the page shifted. */
-  const prevLayoutModeRef = useRef<ReaderLayoutMode>('book');
+  const prevLayoutModeRef = useRef<ReaderLayoutMode>('text');
   useEffect(() => {
     const prev = prevLayoutModeRef.current;
     prevLayoutModeRef.current = layoutMode;
