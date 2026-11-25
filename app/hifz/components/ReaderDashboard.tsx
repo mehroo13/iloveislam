@@ -7,32 +7,42 @@
 // Community) that dynamically swap the content below, and the tab
 // views. Step 6 built the Dashboard tab; Step 7 made all four other
 // tabs functional. The gear opens the Step 5 Settings screen; the
-// profile icon is visual only. No "Tarteel" / "Premium" wording
-// anywhere — the promo button says "Discover All Free Features" and
-// the Activity Tracker is a free blank chart box, never a paywall.
+// profile icon opens the account card (real sign-in state + sign out).
+// No "Tarteel" / "Premium" wording anywhere — the promo button says
+// "Discover All Free Features" and opens the real feature list.
 //
 // Phase 4 (live wiring): the streak ring, the goals and the session
 // history are REAL, read from localStorage — sessions from
 // `ili_coach_sessions_v1` (coach + reader takes), goals from
 // `ili_goals_v1` (shared with the old hub), streak from session
 // dates. "Start a New Goal" opens a modal that saves a goal. No
-// sessions yet → an honest empty state, never mock rows. The Goals
-// tab's Archived rows are still the Step 7 mock display data.
+// sessions yet → an honest empty state, never mock rows.
+//
+// Alive pass (2026-11-25, Mehran's order: "it should be ours not
+// the tarteel"): every tab is driven by the user's OWN data and every
+// visible control works. The Community leaderboard reads the real
+// `global_leaderboard` RPC (opted-in members only; empty until
+// someone opts in — never the screenshot's names). Archived goals
+// are only goals the user actually archived. Surah Progress reads
+// the real memorised store. The Activity charts plot the user's real
+// sessions (Pages = distinct mushaf pages per day, from sessions
+// that recorded a page; Engagement = minutes per day), with a real
+// 3/7/30-day range. The Activity Tracker heatmap is the real session
+// days. Achievements are the real badge results. My Groups are the
+// real local groups (create / join / leave work). Dead controls are
+// gone; nothing here is copied from a screenshot or invented.
 //
 // Greeting (correction 2026-11-24): NEVER a hardcoded name. A
 // signed-in user sees "Salam {profile display_name}!" (email local
 // part when no display name is set); a guest sees "Salam!" or their
 // stored guest display name from the local settings store.
-//
-// The Community leaderboard rows 1–6 are the reference screenshot's
-// rows, displayed as given (static, not wired to any live data
-// source); rows 7–10 are mock rows, as instructed.
 
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { loadSettings } from '../progress';
-import { getSupabase } from '../lib/supabase';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { loadProgress, loadSettings, localDateString, surahStrength } from '../progress';
+import { ALL_SURAHS } from '../surahs';
+import { getSupabase, signOut } from '../lib/supabase';
 // Phase 4: sessions + streak + goals, all from localStorage.
 import {
   formatSessionDuration,
@@ -49,8 +59,20 @@ import {
   loadGoals,
   saveGoals,
   type Goal,
+  type GoalAction,
 } from '../lib/goals';
 import { mirrorKeyToIdb } from '../lib/store';
+// Alive pass: real badges, real groups, real global leaderboard.
+import { TOTAL_AYAHS, buildBadgeSnapshot, evaluateBadges, loadBestTestPct } from '../badges';
+import {
+  createChallenge,
+  daysLeft,
+  groupProgress,
+  loadChallenges,
+  saveChallenges,
+  shareLink,
+  type GroupChallenge,
+} from '../lib/challenges';
 
 const INK = 'var(--reader-ink)';
 const MUTED = 'var(--reader-muted)';
@@ -107,14 +129,6 @@ function IconProfile() {
       <circle cx="12" cy="12" r="10.5" style={{ fill: INK }} />
       <circle cx="12" cy="9" r="3.4" fill="#FFFFFF" />
       <path d="M5.4 19.5c1.2-3.2 3.6-4.8 6.6-4.8s5.4 1.6 6.6 4.8" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-function IconBell() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: MUTED }} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M18 9a6 6 0 1 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 15 18 9" />
-      <path d="M10.3 20.5a2 2 0 0 0 3.4 0" />
     </svg>
   );
 }
@@ -314,7 +328,7 @@ function DayPill({ day, done }: { day: string; done: boolean }) {
 }
 
 /* The streak card, identical on the Dashboard and Activity tabs. */
-function StreakCard({ streak }: { streak: StreakInfo }) {
+function StreakCard({ streak, onNewGoal }: { streak: StreakInfo; onNewGoal: () => void }) {
   const doneCount = streak.week.filter((d) => d.done).length;
   const dayWord = streak.count === 1 ? 'Day' : 'Days';
   const longestWord = streak.longest === 1 ? 'Day' : 'Days';
@@ -338,10 +352,18 @@ function StreakCard({ streak }: { streak: StreakInfo }) {
           Longest Streak <span className="font-bold">{streak.longest} {longestWord}</span>
         </p>
       </div>
-      {/* Bell + add, stacked at the far right edge. */}
-      <div className="flex w-6 shrink-0 flex-col items-center justify-between py-1">
-        <IconBell />
-        <IconPlusCircle />
+      {/* Add: a real button — opens the new-goal modal. The bell
+          is gone: it had no reminders screen behind it, so it was
+          a dead control. */}
+      <div className="flex w-6 shrink-0 flex-col items-center justify-end py-1">
+        <button
+          type="button"
+          aria-label="Start a new goal"
+          onClick={onNewGoal}
+          className="flex h-6 w-6 items-center justify-center"
+        >
+          <IconPlusCircle />
+        </button>
       </div>
     </section>
   );
@@ -365,38 +387,84 @@ function StartGoalButton({ onNewGoal }: { onNewGoal: () => void }) {
 }
 
 /* A saved goal as a white card — used in the Dashboard's Today's
- * Goals and the Goals tab's Active section (Phase 4). */
-function GoalCard({ goal }: { goal: Goal }) {
+ * Goals and the Goals tab's Active section (Phase 4). When the
+ * Goals tab passes `onArchive` / `onDelete`, the card shows the two
+ * real actions: Archive moves the goal to Archived (the model has
+ * `archived`), Delete removes it for good. */
+function GoalCard({
+  goal,
+  onArchive,
+  onDelete,
+}: {
+  goal: Goal;
+  onArchive?: () => void;
+  onDelete?: () => void;
+}) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-3 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[15px] font-semibold" style={{ color: INK }}>
-          {goal.name}
+    <div className="rounded-xl border border-[#E5E7EB] bg-white px-3 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+      <div className="flex items-center gap-3">
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[15px] font-semibold" style={{ color: INK }}>
+            {goal.name}
+          </span>
+          <span className="block text-[12px]" style={{ color: MUTED }}>
+            {goal.action} · {goal.portion} · {goal.schedule}
+          </span>
         </span>
-        <span className="block text-[12px]" style={{ color: MUTED }}>
-          {goal.action} · {goal.portion} · {goal.schedule}
-        </span>
-      </span>
+      </div>
+      {(onArchive || onDelete) && (
+        <div className="mt-2 flex gap-2 border-t border-[#F3F4F6] pt-2">
+          {onArchive && (
+            <button
+              type="button"
+              onClick={onArchive}
+              className="rounded-full border border-[#D1D5DB] px-3 py-1 text-[12px] font-semibold"
+              style={{ color: INK }}
+            >
+              Archive
+            </button>
+          )}
+          {onDelete && (
+            <button
+              type="button"
+              onClick={onDelete}
+              className="rounded-full border border-[#FECACA] px-3 py-1 text-[12px] font-semibold"
+              style={{ color: '#DC2626' }}
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-/* "Start a New Goal" modal (Phase 4): one input for the goal name.
- * Saving creates a goal in the shared `ili_goals_v1` store. */
+/* "Start a New Goal" modal (Phase 4): a name + an action
+ * (Memorize / Review). Saving creates a goal in the shared
+ * `ili_goals_v1` store. Alive pass: the action choice, so the
+ * Memorization tab's Review Goal row can open it as a Review goal. */
 function GoalModal({
   open,
   onClose,
   onSave,
+  initialAction = 'Memorize',
 }: {
   open: boolean;
   onClose: () => void;
-  onSave: (name: string) => void;
+  onSave: (name: string, action: GoalAction) => void;
+  initialAction?: GoalAction;
 }) {
   const [name, setName] = useState('');
-  // A fresh, empty input every time the modal opens.
+  const [action, setAction] = useState<GoalAction>('Memorize');
+  // A fresh, empty input (and the preset action) every time the
+  // modal opens.
   useEffect(() => {
-    if (open) setName('');
-  }, [open ]);
+    if (open) {
+      setName('');
+      setAction(initialAction);
+    }
+  }, [open, initialAction ]);
   if (!open) return null;
   const trimmed = name.trim();
   return (
@@ -422,12 +490,30 @@ function GoalModal({
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && trimmed) onSave(trimmed);
+            if (e.key === 'Enter' && trimmed) onSave(trimmed, action);
           }}
           placeholder="Goal name"
           aria-label="Goal name"
           className="mt-4 h-12 w-full rounded-xl border border-[#D1D5DB] px-4 text-[15px] outline-none focus:border-[#16A34A]"
         />
+        <div className="mt-3 flex gap-2" role="group" aria-label="Goal action">
+          {(['Memorize', 'Review'] as const).map((a) => (
+            <button
+              key={a}
+              type="button"
+              aria-pressed={action === a}
+              onClick={() => setAction(a)}
+              className="h-9 flex-1 rounded-full border text-[14px] font-semibold"
+              style={
+                action === a
+                  ? { backgroundColor: '#16A34A', borderColor: '#16A34A', color: '#FFFFFF' }
+                  : { borderColor: '#D1D5DB', color: INK }
+              }
+            >
+              {a}
+            </button>
+          ))}
+        </div>
         <div className="mt-4 flex gap-2">
           <button
             type="button"
@@ -440,7 +526,7 @@ function GoalModal({
           <button
             type="button"
             disabled={!trimmed}
-            onClick={() => onSave(trimmed)}
+            onClick={() => onSave(trimmed, action)}
             className="h-11 flex-1 rounded-full text-[15px] font-bold text-white disabled:opacity-40"
             style={{ backgroundColor: '#16A34A' }}
           >
@@ -456,17 +542,25 @@ function GoalModal({
 /*  Tab views                                                          */
 /* ---------------------------------------------------------------- */
 
-/* Dashboard tab — the Step 6 content, unchanged. */
+/* Dashboard tab — the Step 6 content. Alive pass: the promo opens
+ * the real Gift / feature list, the Highlights card opens Testing
+ * Mode, and "See All" jumps to the Goals tab. */
 function DashboardTab({
   displayName,
   goals,
   streak,
   onNewGoal,
+  onOpenGift,
+  onTestYourself,
+  onGoToTab,
 }: {
   displayName: string | null;
   goals: Goal[];
   streak: StreakInfo;
   onNewGoal: () => void;
+  onOpenGift: () => void;
+  onTestYourself: () => void;
+  onGoToTab: (tab: string) => void;
 }) {
   return (
     <>
@@ -475,7 +569,7 @@ function DashboardTab({
         {displayName ? `Salam ${displayName}!` : 'Salam!'}
       </h1>
 
-      <StreakCard streak={streak} />
+      <StreakCard streak={streak} onNewGoal={onNewGoal} />
 
       {/* Promo card. The button spans the full card width, as in
           the reference — so the card has no side padding; the icon
@@ -489,6 +583,8 @@ function DashboardTab({
         </div>
         <button
           type="button"
+          onClick={onOpenGift}
+          aria-label="Discover all free features"
           className="mt-4 h-10 w-full rounded-full text-[17px] font-bold shadow-sm"
           style={{
             color: INK,
@@ -505,7 +601,12 @@ function DashboardTab({
           Highlights
         </h2>
         <div className="mt-2 flex gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <article className="flex h-[228px] w-[220px] shrink-0 flex-col overflow-hidden rounded-2xl bg-black p-3">
+          <button
+            type="button"
+            onClick={onTestYourself}
+            aria-label="Testing Mode — test your memorization"
+            className="flex h-[228px] w-[220px] shrink-0 flex-col overflow-hidden rounded-2xl bg-black p-3 text-left"
+          >
             <p className="text-[13px] font-semibold leading-snug text-white">Product 📱 - Testing Mode</p>
             <div className="mt-2 flex-1">
               <HighlightsGraphic />
@@ -518,7 +619,7 @@ function DashboardTab({
               <p className="text-[11px] font-semibold tracking-wide text-white">TEST YOURSELF NOW!</p>
               <IconArrowUpRight />
             </div>
-          </article>
+          </button>
         </div>
       </section>
 
@@ -528,7 +629,7 @@ function DashboardTab({
           <h2 className="text-[17px] font-bold" style={{ color: INK }}>
             Today&apos;s Goals
           </h2>
-          <button type="button" className="text-[13px]" style={{ color: MUTED }}>
+          <button type="button" onClick={() => onGoToTab('Goals')} className="text-[13px]" style={{ color: MUTED }}>
             See All
           </button>
         </div>
@@ -545,12 +646,26 @@ function DashboardTab({
   );
 }
 
-/* Goals tab. */
-function GoalsTab({ goals, onNewGoal }: { goals: Goal[]; onNewGoal: () => void }) {
-  const archived = [
-    { name: 'Memorize Surah Al-Mulk', date: 'Completed on Nov 20' },
-    { name: 'Memorize Surah Al-Kahf', date: 'Completed on Nov 12' },
-  ];
+/* Goals tab — alive pass: Archived is ONLY goals the user actually
+ * archived (the `archived` flag on the goal model); an empty state
+ * when there are none. Active goal cards carry real Archive /
+ * Delete actions; archived rows carry Restore / Delete. */
+function GoalsTab({
+  goals,
+  onNewGoal,
+  onArchiveGoal,
+  onDeleteGoal,
+  onRestoreGoal,
+}: {
+  /** ALL goals (active + archived) — the tab splits them. */
+  goals: Goal[];
+  onNewGoal: () => void;
+  onArchiveGoal: (id: string) => void;
+  onDeleteGoal: (id: string) => void;
+  onRestoreGoal: (id: string) => void;
+}) {
+  const active = activeGoals(goals);
+  const archived = goals.filter((g) => g.archived);
   return (
     <>
       <StartGoalButton onNewGoal={onNewGoal} />
@@ -561,13 +676,18 @@ function GoalsTab({ goals, onNewGoal }: { goals: Goal[]; onNewGoal: () => void }
           Active
         </h2>
         <p className="mt-1 text-[13px] leading-snug" style={{ color: MUTED }}>
-          Goals you are trying to complete. Swipe right on goal to modify.
+          Goals you are trying to complete. Tap Archive on a goal to move it here, or Delete to remove it.
         </p>
         <div className="mt-3 border-t border-[#E5E7EB]" />
-        {goals.length > 0 && (
+        {active.length > 0 && (
           <div className="mt-3 flex flex-col gap-2">
-            {goals.map((g) => (
-              <GoalCard key={g.id} goal={g} />
+            {active.map((g) => (
+              <GoalCard
+                key={g.id}
+                goal={g}
+                onArchive={() => onArchiveGoal(g.id)}
+                onDelete={() => onDeleteGoal(g.id)}
+              />
             ))}
           </div>
         )}
@@ -578,13 +698,13 @@ function GoalsTab({ goals, onNewGoal }: { goals: Goal[]; onNewGoal: () => void }
         <h3 className="text-[11px] font-bold tracking-wide" style={{ color: INK }}>
           TODAY&apos;S GOALS
         </h3>
-        {goals.length === 0 ? (
+        {active.length === 0 ? (
           <div className="mt-2 flex h-11 items-center justify-center rounded-xl border border-[#E5E7EB] bg-white text-[15px] shadow-[0_1px_3px_rgba(0,0,0,0.05)]" style={{ color: INK }}>
             None
           </div>
         ) : (
           <div className="mt-2 flex flex-col gap-2">
-            {goals.map((g) => (
+            {active.map((g) => (
               <div
                 key={g.id}
                 className="flex min-h-11 items-center rounded-xl border border-[#E5E7EB] bg-white px-4 py-2.5 text-[15px] shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
@@ -597,7 +717,8 @@ function GoalsTab({ goals, onNewGoal }: { goals: Goal[]; onNewGoal: () => void }
         )}
       </section>
 
-      {/* Upcoming goals. */}
+      {/* Upcoming goals — the goal model has no scheduled/future
+          goals, so this is honestly empty until that exists. */}
       <section className="mt-4">
         <h3 className="text-[11px] font-bold tracking-wide" style={{ color: INK }}>
           UPCOMING GOALS
@@ -607,7 +728,7 @@ function GoalsTab({ goals, onNewGoal }: { goals: Goal[]; onNewGoal: () => void }
         </div>
       </section>
 
-      {/* Archived. */}
+      {/* Archived — only goals the user actually archived. */}
       <section className="mt-5">
         <div className="flex items-center justify-between">
           <h2 className="text-[17px] font-bold" style={{ color: INK }}>
@@ -619,53 +740,91 @@ function GoalsTab({ goals, onNewGoal }: { goals: Goal[]; onNewGoal: () => void }
           Goals you completed or are no longer working towards.
         </p>
         <div className="mt-3 border-t border-[#E5E7EB]" />
-        <div className="mt-3 flex flex-col gap-2">
-          {archived.map((g) => (
-            <div
-              key={g.name}
-              className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-3 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
-            >
-              <IconCheckGrey />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[15px] line-through" style={{ color: MUTED }}>
-                  {g.name}
-                </span>
-                <span className="block text-[12px]" style={{ color: MUTED }}>
-                  {g.date}
-                </span>
-              </span>
-            </div>
-          ))}
-        </div>
+        {archived.length === 0 ? (
+          <p className="mt-3 text-[14px] leading-snug" style={{ color: MUTED }}>
+            No archived goals yet. Archive a goal above to move it here.
+          </p>
+        ) : (
+          <div className="mt-3 flex flex-col gap-2">
+            {archived.map((g) => (
+              <div
+                key={g.id}
+                className="rounded-xl border border-[#E5E7EB] bg-white px-3 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
+              >
+                <div className="flex items-center gap-3">
+                  <IconCheckGrey />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[15px] line-through" style={{ color: MUTED }}>
+                      {g.name}
+                    </span>
+                    <span className="block text-[12px]" style={{ color: MUTED }}>
+                      {g.action} · {g.portion} · {g.schedule}
+                    </span>
+                  </span>
+                </div>
+                <div className="mt-2 flex gap-2 border-t border-[#F3F4F6] pt-2">
+                  <button
+                    type="button"
+                    onClick={() => onRestoreGoal(g.id)}
+                    className="rounded-full border border-[#D1D5DB] px-3 py-1 text-[12px] font-semibold"
+                    style={{ color: INK }}
+                  >
+                    Restore
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDeleteGoal(g.id)}
+                    className="rounded-full border border-[#FECACA] px-3 py-1 text-[12px] font-semibold"
+                    style={{ color: '#DC2626' }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </>
   );
 }
 
-/* Memorization tab. */
-function MemorizationTab() {
-  const progress = [
-    { name: 'Al-Fatihah', pct: 100, verses: '7/7 Verses' },
-    { name: 'Al-Baqarah', pct: 0, verses: '0/286 Verses' },
-    { name: "Ali 'Imran", pct: 0, verses: '0/200 Verses' },
-  ];
+/* Memorization tab — alive pass: everything here reads the REAL
+ * memorised store (`ili_hifz_v1`). Surah Progress lists every surah
+ * with any practice (memorised + learning), sorted by strength;
+ * Completion is the real share of the Quran's 6,236 ayahs memorised;
+ * the two goal rows show the newest active goal of that action, or
+ * "Not Set" — tapping one opens the new-goal modal preset to that
+ * action. Nothing practised yet → an honest empty state. */
+function MemorizationTab({
+  goals,
+  onNewGoal,
+}: {
+  goals: Goal[];
+  onNewGoal: (action: GoalAction) => void;
+}) {
+  const strengths = surahStrength(loadProgress(), ALL_SURAHS);
+  const memorisedTotal = strengths.reduce((sum, s) => sum + s.memorised, 0);
+  const completionPct = Math.round((memorisedTotal / TOTAL_AYAHS) * 100);
+  const memGoal = goals.find((g) => g.action === 'Memorize') ?? null;
+  const revGoal = goals.find((g) => g.action === 'Review') ?? null;
   return (
     <>
-      {/* Memorization Completion card. */}
-      <button
-        type="button"
-        className="mt-3 flex w-full items-center justify-between rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-left shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
-      >
+      {/* Memorization Completion — a display card, not a button: it
+          has no destination of its own. */}
+      <div className="mt-3 flex w-full items-center justify-between rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
         <span>
           <span className="block text-[16px] leading-snug" style={{ color: INK }}>
             Memorization Completion
           </span>
           <span className="block text-[22px] font-semibold leading-snug" style={{ color: '#34D399' }}>
-            0%
+            {completionPct}%
+          </span>
+          <span className="block text-[12px] leading-snug" style={{ color: MUTED }}>
+            {memorisedTotal.toLocaleString()} of {TOTAL_AYAHS.toLocaleString()} ayahs memorised
           </span>
         </span>
-        <IconChevronRight className="h-6 w-6" />
-      </button>
+      </div>
 
       <div className="mt-5 border-t border-[#E5E7EB]" />
 
@@ -683,14 +842,15 @@ function MemorizationTab() {
         </div>
         <button
           type="button"
+          onClick={() => onNewGoal('Memorize')}
           className="mt-2 flex w-full items-center justify-between rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-left shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
         >
           <span>
             <span className="block text-[16px] leading-snug" style={{ color: INK }}>
               Memorization Goal
             </span>
-            <span className="block text-[18px] leading-snug" style={{ color: '#34D399' }}>
-              Not Set
+            <span className="block truncate text-[18px] leading-snug" style={{ color: '#34D399' }}>
+              {memGoal ? memGoal.name : 'Not Set'}
             </span>
           </span>
           <IconChevronRight className="h-6 w-6" />
@@ -704,64 +864,208 @@ function MemorizationTab() {
         </div>
         <button
           type="button"
+          onClick={() => onNewGoal('Review')}
           className="mt-2 flex w-full items-center justify-between rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-left shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
         >
           <span>
             <span className="block text-[16px] leading-snug" style={{ color: INK }}>
               Review Goal
             </span>
-            <span className="block text-[18px] leading-snug" style={{ color: '#34D399' }}>
-              Not Set
+            <span className="block truncate text-[18px] leading-snug" style={{ color: '#34D399' }}>
+              {revGoal ? revGoal.name : 'Not Set'}
             </span>
           </span>
           <IconChevronRight className="h-6 w-6" />
         </button>
       </section>
 
-      {/* Surah Progress. */}
+      {/* Surah Progress — real, from the memorised store. */}
       <section className="mt-6">
         <h2 className="text-[20px] font-bold" style={{ color: INK }}>
           Surah Progress
         </h2>
-        <div className="mt-3 flex flex-col gap-3">
-          {progress.map((s) => (
-            <div
-              key={s.name}
-              className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
-            >
-              <span className="w-[86px] shrink-0 truncate text-[15px] font-semibold" style={{ color: INK }}>
-                {s.name}
-              </span>
-              <span className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-[#E5E7EB]">
-                <span
-                  className="block h-full rounded-full"
-                  style={{ width: `${s.pct}%`, backgroundColor: '#22C55E' }}
-                />
-              </span>
-              <span className="w-[86px] shrink-0 whitespace-nowrap text-right text-[12px]" style={{ color: MUTED }}>
-                {s.verses}
-              </span>
-            </div>
-          ))}
-        </div>
+        {strengths.length === 0 ? (
+          <p className="mt-2 text-[14px] leading-snug" style={{ color: MUTED }}>
+            No surahs practised yet. Recite with the mic in the reader, or mark ayahs memorised, and your
+            progress will show here.
+          </p>
+        ) : (
+          <div className="mt-3 flex flex-col gap-3">
+            {strengths.map((s) => (
+              <div
+                key={s.surah}
+                className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
+              >
+                <span className="w-[86px] shrink-0 truncate text-[15px] font-semibold" style={{ color: INK }}>
+                  {s.name}
+                </span>
+                <span className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-[#E5E7EB]">
+                  <span
+                    className="block h-full rounded-full"
+                    style={{ width: `${s.strengthPct}%`, backgroundColor: '#22C55E' }}
+                  />
+                </span>
+                <span className="w-[86px] shrink-0 whitespace-nowrap text-right text-[12px]" style={{ color: MUTED }}>
+                  {s.memorised}/{s.ayahCount} Verses
+                  {s.learning > 0 ? ` · ${s.learning} learning` : ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </>
   );
 }
 
+/* A small bar chart from real per-day values. `values` are the
+ * counts, `labels` the short day labels shown under every Nth bar.
+ * When every value is zero the caller shows an honest empty state
+ * instead of this chart. */
+function BarChart({ values, labels, unit }: { values: number[]; labels: string[]; unit: string }) {
+  const max = Math.max(1, ...values);
+  const W = 340;
+  const H = 150;
+  const left = 30;
+  const bottom = 122;
+  const top = 10;
+  const slot = (W - left - 6) / values.length;
+  const barW = Math.min(28, slot * 0.55);
+  const labelEvery = values.length > 10 ? 5 : values.length > 7 ? 2 : 1;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" aria-label={`${unit} per day`}>
+      <line x1={left} y1={top} x2={W - 4} y2={top} stroke="#D1D5DB" strokeWidth="1" strokeDasharray="4 4" />
+      <line x1={left} y1={top} x2={left} y2={bottom} stroke="#34D399" strokeWidth="1.5" />
+      <line x1={left} y1={bottom} x2={W - 4} y2={bottom} stroke="#34D399" strokeWidth="1.5" />
+      <text x={left - 8} y={top + 4} textAnchor="end" fontSize="11" fill="#34D399">
+        {max}
+      </text>
+      <text x={left - 8} y={bottom + 4} textAnchor="end" fontSize="11" fill="#34D399">
+        0
+      </text>
+      {values.map((v, i) => {
+        const h = (v / max) * (bottom - top);
+        const x = left + i * slot + (slot - barW) / 2;
+        return (
+          <rect
+            key={i}
+            x={x}
+            y={bottom - h}
+            width={barW}
+            height={v > 0 ? Math.max(h, 2) : 0}
+            rx="3"
+            fill="#34D399"
+          />
+        );
+      })}
+      {labels.map((d, i) =>
+        i % labelEvery === 0 ? (
+          <text key={d} x={left + i * slot + slot / 2} y={bottom + 18} textAnchor="middle" fontSize="10" fill="#34D399">
+            {d}
+          </text>
+        ) : null,
+      )}
+    </svg>
+  );
+}
+
 /* Activity tab — Phase 4: Session History + Recent Sessions read the
  * saved sessions from localStorage (coach + reader takes, newest
- * first). No sessions yet → an honest empty state, never mock rows. */
-function ActivityTab({ sessions, streak }: { sessions: CoachSessionRecord[]; streak: StreakInfo }) {
-  const [range, setRange] = useState('Engagement');
+ * first). Alive pass: the charts plot the user's REAL sessions
+ * (Pages = distinct mushaf pages per day, from takes that recorded
+ * a page; Engagement = minutes per day), the range selector really
+ * filters (Last 3 / 7 / 30 Days), the Activity Tracker is a real
+ * 12-week heatmap of session days, and Achievements are the real
+ * badge results. No sessions yet → an honest empty state, never
+ * mock rows. */
+function ActivityTab({
+  sessions,
+  streak,
+  onNewGoal,
+}: {
+  sessions: CoachSessionRecord[];
+  streak: StreakInfo;
+  onNewGoal: () => void;
+}) {
+  const [rangeDays, setRangeDays] = useState<3 | 7 | 30>(3);
+  const [showAllBadges, setShowAllBadges] = useState(false);
+  const recentRef = useRef<HTMLElement | null>(null);
   const recent = [...sessions].reverse();
+
+  // The days in the selected range (local dates, oldest first).
+  const days = useMemo(() => {
+    const out: string[] = [];
+    const now = new Date();
+    for (let i = rangeDays - 1; i >= 0; i--) {
+      out.push(localDateString(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)));
+    }
+    return out;
+  }, [rangeDays]);
+  const dayLabels = useMemo(
+    () =>
+      days.map((d) => {
+        const [y, m, day] = d.split('-').map(Number);
+        return new Date(y, m - 1, day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      }),
+    [days],
+  );
+
+  // Per-day aggregates from the real sessions: minutes, distinct
+  // mushaf pages (only takes that recorded a page), session count.
+  const byDay = useMemo(() => {
+    const map = new Map<string, { minutes: number; pages: Set<number> }>();
+    for (const s of sessions) {
+      const day = localDateString(new Date(s.date));
+      const e = map.get(day) ?? { minutes: 0, pages: new Set<number>() };
+      e.minutes += s.durationSec / 60;
+      if (typeof s.page === 'number') e.pages.add(s.page);
+      map.set(day, e);
+    }
+    return map;
+  }, [sessions]);
+  const pagesData = days.map((d) => byDay.get(d)?.pages.size ?? 0);
+  const minutesData = days.map((d) => Math.round(byDay.get(d)?.minutes ?? 0));
+  const hasPagesData = pagesData.some((v) => v > 0);
+  const hasMinutesData = minutesData.some((v) => v > 0);
+
+  // Heatmap: the last 12 weeks, weeks running Fri–Thu like the
+  // streak. A cell is green on a day a session was saved.
+  const sessionDays = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of sessions) set.add(localDateString(new Date(s.date)));
+    return set;
+  }, [sessions]);
+  const heatWeeks = useMemo(() => {
+    const today = new Date();
+    const todayStr = localDateString(today);
+    // Friday = 5; step back to this week's Friday.
+    const offsetToFriday = (today.getDay() - 5 + 7) % 7;
+    const thisFriday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - offsetToFriday);
+    const weeks: string[][] = [];
+    for (let w = 11; w >= 0; w--) {
+      const fri = new Date(thisFriday.getFullYear(), thisFriday.getMonth(), thisFriday.getDate() - w * 7);
+      const ds: string[] = [];
+      for (let i = 0; i < 7; i++) ds.push(localDateString(new Date(fri.getFullYear(), fri.getMonth(), fri.getDate() + i)));
+      weeks.push(ds);
+    }
+    return { weeks, todayStr };
+  }, []);
+
+  // Achievements — the real badge results from the progress store.
+  const badgeResults = useMemo(
+    () => evaluateBadges(buildBadgeSnapshot(loadProgress(), { bestTestPct: loadBestTestPct() })),
+    [],
+  );
+  const earnedBadges = badgeResults.filter((r) => r.earned);
+
   return (
     <>
-      <StreakCard streak={streak} />
+      <StreakCard streak={streak} onNewGoal={onNewGoal} />
 
-      {/* Session History. */}
+      {/* Session History — jumps to the Recent Sessions list below. */}
       <button
         type="button"
+        onClick={() => recentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
         className="mt-3 flex w-full items-center justify-between rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-left shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
       >
         <span>
@@ -775,115 +1079,167 @@ function ActivityTab({ sessions, streak }: { sessions: CoachSessionRecord[]; str
         <IconChevronRight className="h-6 w-6" />
       </button>
 
-      {/* Achievements. */}
+      {/* Achievements — the real badge results from the progress
+          store. "See All" expands the full list of 20 badges with
+          their progress; earned ones are marked. */}
       <section className="mt-5">
         <div className="flex items-baseline justify-between">
           <h2 className="text-[17px] font-bold" style={{ color: INK }}>
             Achievements
           </h2>
-          <button type="button" className="text-[13px]" style={{ color: MUTED }}>
-            See All
+          <button
+            type="button"
+            onClick={() => setShowAllBadges((v) => !v)}
+            aria-expanded={showAllBadges}
+            className="text-[13px]"
+            style={{ color: MUTED }}
+          >
+            {showAllBadges ? 'See Less' : 'See All'}
           </button>
         </div>
         <p className="mt-1 text-[14px]" style={{ color: MUTED }}>
-          No badges have been earned yet.
+          {earnedBadges.length === 0
+            ? 'No badges have been earned yet.'
+            : `${earnedBadges.length} of ${badgeResults.length} badges earned: ${earnedBadges.map((r) => r.badge.name).join(', ')}.`}
         </p>
+        {showAllBadges && (
+          <div className="mt-2 flex flex-col gap-2">
+            {badgeResults.map((r) => (
+              <div
+                key={r.badge.id}
+                className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
+              >
+                <span
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[15px] font-bold"
+                  style={{
+                    backgroundColor: r.earned ? '#DCFCE7' : '#F3F4F6',
+                    color: r.earned ? '#16A34A' : '#9CA3AF',
+                  }}
+                  aria-hidden="true"
+                >
+                  {r.earned ? '✓' : '○'}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] font-semibold" style={{ color: INK }}>
+                    {r.badge.name}
+                  </span>
+                  <span className="block text-[12px] leading-snug" style={{ color: MUTED }}>
+                    {r.badge.description}
+                  </span>
+                  {!r.earned && (
+                    <span className="block text-[12px]" style={{ color: MUTED }}>
+                      {r.current} / {r.target}
+                    </span>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* Activity Tracker — free: a blank white box with a light
-          grey grid, never a paywall message. */}
+      {/* Activity Tracker — a real 12-week heatmap: one cell per
+          day (weeks run Fri–Thu, like the streak); a green cell is
+          a day a session was saved. Free, never a paywall. */}
       <section className="mt-4">
         <h2 className="text-[17px] font-bold" style={{ color: INK }}>
           Activity Tracker
         </h2>
-        <div
-          className="mt-2 h-[180px] rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
-          style={{
-            backgroundImage:
-              'linear-gradient(#EDEFF1 1px, transparent 1px), linear-gradient(90deg, #EDEFF1 1px, transparent 1px)',
-            backgroundSize: '26px 26px',
-          }}
-          aria-label="Activity chart"
-        />
+        <div className="mt-2 rounded-2xl border border-[#E5E7EB] bg-white p-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+          <div className="flex gap-[3px]" role="img" aria-label={`Activity in the last 12 weeks: ${sessionDays.size} session days`}>
+            {heatWeeks.weeks.map((week, wi) => (
+              <div key={wi} className="flex flex-1 flex-col gap-[3px]">
+                {week.map((d) => {
+                  const future = d > heatWeeks.todayStr;
+                  const done = sessionDays.has(d);
+                  return (
+                    <span
+                      key={d}
+                      title={d}
+                      className="aspect-square w-full rounded-[3px]"
+                      style={{
+                        backgroundColor: done ? '#22C55E' : future ? 'transparent' : '#EDEFF1',
+                        border: future ? '1px solid #F3F4F6' : 'none',
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-[12px]" style={{ color: MUTED }}>
+            {sessionDays.size === 0
+              ? 'No sessions in the last 12 weeks yet.'
+              : `${sessionDays.size} session ${sessionDays.size === 1 ? 'day' : 'days'} in the last 12 weeks.`}
+          </p>
+        </div>
       </section>
 
-      {/* Pages chart. */}
+      {/* Pages chart — real: distinct mushaf pages practised per
+          day, from takes that recorded a page. Takes saved before
+          the page was recorded (or coach sessions) carry no page
+          and are honestly left out. */}
       <section className="mt-5">
         <div className="flex items-baseline justify-between">
           <h2 className="text-[17px] font-bold" style={{ color: INK }}>
             Pages
           </h2>
-          <button type="button" className="flex items-center gap-1 text-[14px]" style={{ color: INK }}>
-            Last 3 Days
-            <IconChevronDown className="h-4 w-4" />
-          </button>
+          <select
+            value={rangeDays}
+            onChange={(e) => setRangeDays(Number(e.target.value) as 3 | 7 | 30)}
+            aria-label="Pages chart range"
+            className="rounded-lg border border-[#E5E7EB] bg-white px-2 py-1 text-[14px] outline-none"
+            style={{ color: INK }}
+          >
+            <option value={3}>Last 3 Days</option>
+            <option value={7}>Last 7 Days</option>
+            <option value={30}>Last 30 Days</option>
+          </select>
         </div>
         <div className="mt-2 rounded-2xl border border-[#E5E7EB] bg-white p-2 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-          <svg viewBox="0 0 340 150" className="h-auto w-full" aria-label="Pages read in the last 3 days">
-            {/* Shaded region over the last date, as in the reference. */}
-            <rect x="252" y="10" width="84" height="112" fill="#D1FAE5" opacity="0.55" />
-            {/* Dashed gridline at the top (value 1). */}
-            <line x1="30" y1="10" x2="336" y2="10" stroke="#D1D5DB" strokeWidth="1" strokeDasharray="4 4" />
-            {/* Axes. */}
-            <line x1="30" y1="10" x2="30" y2="122" stroke="#34D399" strokeWidth="1.5" />
-            <line x1="30" y1="122" x2="336" y2="122" stroke="#34D399" strokeWidth="1.5" />
-            {/* Y labels. */}
-            <text x="22" y="14" textAnchor="end" fontSize="11" fill="#34D399">1</text>
-            <text x="22" y="126" textAnchor="end" fontSize="11" fill="#34D399">0</text>
-            {/* X labels. */}
-            {['2026-11-20', '2026-11-21', '2026-11-22', '2026-11-23'].map((d, i) => (
-              <text key={d} x={58 + i * 76} y="140" textAnchor="middle" fontSize="10" fill="#34D399">
-                {d}
-              </text>
-            ))}
-          </svg>
+          {hasPagesData ? (
+            <BarChart values={pagesData} labels={dayLabels} unit="Pages" />
+          ) : (
+            <p className="px-2 py-6 text-[14px] leading-snug" style={{ color: MUTED }}>
+              No pages recorded yet in this range. Recite with the mic in the reader — each take records its
+              mushaf page here.
+            </p>
+          )}
         </div>
       </section>
 
-      {/* Engagement chart. */}
+      {/* Engagement chart — real: minutes practised per day. */}
       <section className="mt-5">
         <div className="flex items-baseline justify-between">
           <h2 className="text-[17px] font-bold" style={{ color: INK }}>
             Engagement
           </h2>
-          <button type="button" className="flex items-center gap-1 text-[14px]" style={{ color: INK }}>
-            Last 3 Days
-            <IconChevronDown className="h-4 w-4" />
-          </button>
+          <select
+            value={rangeDays}
+            onChange={(e) => setRangeDays(Number(e.target.value) as 3 | 7 | 30)}
+            aria-label="Engagement chart range"
+            className="rounded-lg border border-[#E5E7EB] bg-white px-2 py-1 text-[14px] outline-none"
+            style={{ color: INK }}
+          >
+            <option value={3}>Last 3 Days</option>
+            <option value={7}>Last 7 Days</option>
+            <option value={30}>Last 30 Days</option>
+          </select>
         </div>
         <div className="mt-2 rounded-2xl border border-[#E5E7EB] bg-white p-2 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-          <svg viewBox="0 0 340 150" className="h-auto w-full" aria-label="Minutes spent in the last 3 days">
-            <line x1="30" y1="10" x2="336" y2="10" stroke="#D1D5DB" strokeWidth="1" strokeDasharray="4 4" />
-            <line x1="30" y1="10" x2="30" y2="122" stroke="#34D399" strokeWidth="1.5" />
-            <line x1="30" y1="122" x2="336" y2="122" stroke="#34D399" strokeWidth="1.5" />
-            <text x="22" y="14" textAnchor="end" fontSize="11" fill="#34D399">30</text>
-            <text x="22" y="126" textAnchor="end" fontSize="11" fill="#34D399">0</text>
-            {/* Bars: minutes per day (0, 0, 5, 22 of 30 max). */}
-            {[0, 0, 5, 22].map((mins, i) => {
-              const h = (mins / 30) * 112;
-              return (
-                <rect
-                  key={i}
-                  x={44 + i * 76}
-                  y={122 - h}
-                  width="28"
-                  height={h}
-                  rx="3"
-                  fill="#34D399"
-                />
-              );
-            })}
-            {['2026-11-20', '2026-11-21', '2026-11-22', '2026-11-23'].map((d, i) => (
-              <text key={d} x={58 + i * 76} y="140" textAnchor="middle" fontSize="10" fill="#34D399">
-                {d}
-              </text>
-            ))}
-          </svg>
+          {hasMinutesData ? (
+            <BarChart values={minutesData} labels={dayLabels} unit="Minutes" />
+          ) : (
+            <p className="px-2 py-6 text-[14px] leading-snug" style={{ color: MUTED }}>
+              No minutes recorded yet in this range. Recite with the mic in the reader to record practice time.
+            </p>
+          )}
         </div>
       </section>
 
-      {/* Recent Sessions — Phase 4: the saved sessions, newest first. */}
-      <section className="mt-5">
+      {/* Recent Sessions — Phase 4: the saved sessions, newest first.
+          The Session History button above scrolls here. */}
+      <section ref={recentRef} className="mt-5 scroll-mt-2">
         <h2 className="text-[17px] font-bold" style={{ color: INK }}>
           Recent Sessions
         </h2>
@@ -918,29 +1274,238 @@ function ActivityTab({ sessions, streak }: { sessions: CoachSessionRecord[]; str
   );
 }
 
-/* Community tab. */
+/* Community tab — alive pass: the Global Group Leaderboard reads
+ * the REAL `global_leaderboard` RPC (migration 0002, applied live
+ * 2026-11-25): only members who opted in appear, with their display
+ * name, memorised ayahs and streaks. Until anyone opts in the board
+ * is honestly empty — never the screenshot's names, never invented
+ * rows. The month buttons are gone (the RPC has no month dimension —
+ * monthly data is not faked). Engagement sorts by current streak,
+ * Completions by memorised ayahs. "View Full Leaderboard" shows all
+ * 50 rows the RPC returns. My Groups are the real local groups
+ * (same store as /hifz/challenges): CREATE makes a group that
+ * appears here with its code + share link; JOIN takes a pasted code
+ * and stores the membership on this device, with a clear note that
+ * groups are device-local. */
+type GlobalRow = {
+  displayName: string;
+  memorisedAyahs: number;
+  currentStreak: number;
+  longestStreak: number;
+};
+
+/* Create / Join group modal — a small bottom sheet over the
+ * dashboard. Create: a name + your name (Al-Fatihah, 10 ayahs, 7
+ * days — the same defaults as the challenges page). Join: a pasted
+ * code + your name. */
+function GroupModal({
+  mode,
+  onClose,
+  onCreate,
+  onJoin,
+}: {
+  mode: 'create' | 'join';
+  onClose: () => void;
+  onCreate: (name: string, myName: string) => void;
+  onJoin: (code: string, myName: string) => void;
+}) {
+  const [name, setName] = useState('');
+  const [code, setCode] = useState('');
+  const [myName, setMyName] = useState('');
+  const primary = mode === 'create' ? name.trim() : code.trim();
+  const save = () => {
+    if (!primary) return;
+    if (mode === 'create') onCreate(name.trim(), myName.trim());
+    else onJoin(code.trim(), myName.trim());
+  };
+  return (
+    <div
+      className="absolute inset-0 z-[85] flex items-end justify-center bg-black/40"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="w-full rounded-t-3xl bg-white p-5 pb-8 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-label={mode === 'create' ? 'Create a group' : 'Join a group'}
+      >
+        <h2 className="text-[18px] font-bold" style={{ color: INK }}>
+          {mode === 'create' ? 'Create a Group' : 'Join a Group'}
+        </h2>
+        <p className="mt-1 text-[13px] leading-snug" style={{ color: MUTED }}>
+          {mode === 'create'
+            ? 'A group for Al-Fatihah — 10 ayahs in 7 days. Share its code and your family and friends can join from their own devices.'
+            : 'Paste the group code you were given. The group is stored on this device only.'}
+        </p>
+        {mode === 'create' ? (
+          <input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') save();
+            }}
+            placeholder="Group name"
+            aria-label="Group name"
+            className="mt-4 h-12 w-full rounded-xl border border-[#D1D5DB] px-4 text-[15px] outline-none focus:border-[#16A34A]"
+          />
+        ) : (
+          <input
+            autoFocus
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') save();
+            }}
+            placeholder="Group code, e.g. HIFZ-7K2Q"
+            aria-label="Group code"
+            className="mt-4 h-12 w-full rounded-xl border border-[#D1D5DB] px-4 text-[15px] outline-none focus:border-[#16A34A]"
+          />
+        )}
+        <input
+          value={myName}
+          onChange={(e) => setMyName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') save();
+          }}
+          placeholder="Your name in the group"
+          aria-label="Your name in the group"
+          className="mt-2 h-12 w-full rounded-xl border border-[#D1D5DB] px-4 text-[15px] outline-none focus:border-[#16A34A]"
+        />
+        <div className="mt-4 flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-11 flex-1 rounded-full border border-[#D1D5DB] text-[15px] font-semibold"
+            style={{ color: INK }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={!primary}
+            onClick={save}
+            className="h-11 flex-1 rounded-full text-[15px] font-bold text-white disabled:opacity-40"
+            style={{ backgroundColor: '#16A34A' }}
+          >
+            {mode === 'create' ? 'Create Group' : 'Join Group'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CommunityTab() {
   const [mode, setMode] = useState<'Engagement' | 'Completions'>('Engagement');
-  // Rows 1–6 are the reference screenshot's rows, shown as given
-  // (static, no live data source). Rows 7–10 are mock rows.
-  const rows = [
-    { pos: '🥇', icon: '', name: 'مجتمع فارس', hrs: '13,880' },
-    { pos: '🥈', icon: '', name: 'Hifdhstatus', hrs: '6,047' },
-    { pos: '🥉', icon: '', name: 'صُحبة مُؤمن', hrs: '5,162' },
-    { pos: '4', icon: '👊', name: '(IG: omier.elsawaf) متبطلش محاولات', hrs: '2,345' },
-    { pos: '5', icon: '🌙', name: 'www.discord.gg/islam | Salam Talk', hrs: '1,878' },
-    { pos: '6', icon: '🌸', name: 'البُشرى', hrs: '1,833' },
-    { pos: '7', icon: '⭐', name: 'Quran Lovers', hrs: '1,500' },
-    { pos: '8', icon: '📖', name: 'Daily Reciters', hrs: '1,200' },
-    { pos: '9', icon: '🕌', name: 'Masjid Group', hrs: '950' },
-    { pos: '10', icon: '🌟', name: 'Sisters in Islam', hrs: '800' },
-  ];
+  const [rows, setRows] = useState<GlobalRow[]>([]);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const [groups, setGroups] = useState<GroupChallenge[]>(() => loadChallenges());
+  const [groupModal, setGroupModal] = useState<'create' | 'join' | null>(null);
+  const [groupMsg, setGroupMsg] = useState<string | null>(null);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  // The real global board, fetched when the tab renders.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const sb = getSupabase();
+        if (!sb) return;
+        const { data, error } = await sb.rpc('global_leaderboard', { p_limit: 50 });
+        if (!alive || error || !Array.isArray(data)) return;
+        const parsed: GlobalRow[] = [];
+        for (const r of data as unknown[]) {
+          if (typeof r !== 'object' || r === null) continue;
+          const rec = r as Record<string, unknown>;
+          if (typeof rec.display_name !== 'string' || !rec.display_name.trim()) continue;
+          parsed.push({
+            displayName: rec.display_name.trim().slice(0, 40),
+            memorisedAyahs: typeof rec.memorised_ayahs === 'number' ? rec.memorised_ayahs : 0,
+            currentStreak: typeof rec.current_streak === 'number' ? rec.current_streak : 0,
+            longestStreak: typeof rec.longest_streak === 'number' ? rec.longest_streak : 0,
+          });
+        }
+        setRows(parsed);
+        setUpdatedAt(new Date());
+      } catch {
+        /* offline — the board stays empty, never fake */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Engagement = current streak; Completions = memorised ayahs.
+  const sorted = [...rows].sort((a, b) =>
+    mode === 'Engagement' ? b.currentStreak - a.currentStreak : b.memorisedAyahs - a.memorisedAyahs,
+  );
+  const shown = showAll ? sorted : sorted.slice(0, 10);
+
+  const persistGroups = (next: GroupChallenge[]) => {
+    saveChallenges(next);
+    setGroups(next);
+  };
+  const createGroup = (name: string, myName: string) => {
+    const c = createChallenge({ name, surah: ALL_SURAHS[0], targetAyahs: 10, days: 7, myName });
+    persistGroups([c, ...groups]);
+    setGroupModal(null);
+    setGroupMsg(`Group created — share the code ${c.code} with your family and friends.`);
+  };
+  const joinGroup = (code: string, myName: string) => {
+    const clean = code.trim().toUpperCase();
+    if (!clean) return;
+    if (groups.some((g) => g.code === clean)) {
+      setGroupMsg(`${clean} is already on this device.`);
+      setGroupModal(null);
+      return;
+    }
+    const now = new Date();
+    const c: GroupChallenge = {
+      id: `${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`,
+      code: clean,
+      name: `${ALL_SURAHS[0].name} challenge`,
+      surahId: ALL_SURAHS[0].id,
+      surahName: ALL_SURAHS[0].name,
+      targetAyahs: 10,
+      days: 7,
+      createdAt: now.toISOString(),
+      endsAt: new Date(now.getTime() + 7 * 86400000).toISOString(),
+      members: [{ name: myName.trim() || 'Me', ayahs: 0, updatedAt: now.toISOString(), mine: true }],
+    };
+    persistGroups([c, ...groups]);
+    setGroupModal(null);
+    setGroupMsg(`Joined ${clean}. Groups live only on this device.`);
+  };
+  const leaveGroup = (id: string) => {
+    persistGroups(groups.filter((g) => g.id !== id));
+    setGroupMsg('You left the group. Your copy on this device is removed; the group continues without you.');
+  };
+  const copyShareLink = async (c: GroupChallenge) => {
+    const link = shareLink(c, window.location.origin);
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiedCode(c.code);
+      window.setTimeout(() => setCopiedCode((v) => (v === c.code ? null : v)), 2000);
+    } catch {
+      setGroupMsg(`Share link: ${link}`);
+    }
+  };
+
   return (
     <>
-      {/* My Groups. */}
+      {/* My Groups — the real local groups. */}
       <h2 className="mt-4 text-[20px] font-bold" style={{ color: INK }}>
         My Groups
       </h2>
+      {groupMsg && (
+        <p role="status" className="mt-2 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1FA36B]">
+          {groupMsg}
+        </p>
+      )}
       <section className="mt-2 flex flex-col items-center rounded-2xl border border-[#E5E7EB] bg-white px-5 py-5 text-center shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
         <IconNetwork />
         <p dir="rtl" lang="ar" className="font-quran mt-3 text-[16px] leading-relaxed" style={{ color: INK }}>
@@ -951,10 +1516,12 @@ function CommunityTab() {
         </p>
         <p className="mt-3 text-[13px] leading-relaxed" style={{ color: MUTED }}>
           Join or start a group and compete with your family and friends to see who reads the most on the
-          leaderboard. Enjoy the motivation and rewards of reading together!
+          leaderboard. Enjoy the motivation and rewards of reading together! Your groups live only on this
+          device.
         </p>
         <button
           type="button"
+          onClick={() => setGroupModal('join')}
           className="mt-4 h-11 w-[220px] rounded-full border border-[#111827] text-[14px] font-semibold tracking-wide"
           style={{ color: INK }}
         >
@@ -962,6 +1529,7 @@ function CommunityTab() {
         </button>
         <button
           type="button"
+          onClick={() => setGroupModal('create')}
           className="mt-2.5 h-11 w-[220px] rounded-full border border-[#111827] text-[14px] font-semibold tracking-wide"
           style={{ color: INK }}
         >
@@ -969,32 +1537,67 @@ function CommunityTab() {
         </button>
       </section>
 
-      {/* Global Group Leaderboard. */}
+      {groups.length > 0 && (
+        <div className="mt-3 flex flex-col gap-2">
+          {groups.map((g) => {
+            const p = groupProgress(g);
+            return (
+              <div
+                key={g.id}
+                className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="min-w-0 flex-1 truncate text-[15px] font-semibold" style={{ color: INK }}>
+                    {g.name}
+                  </span>
+                  <span className="shrink-0 text-[12px] font-bold" style={{ color: GREEN }}>
+                    {g.code}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-[12px]" style={{ color: MUTED }}>
+                  {g.surahName} · {g.targetAyahs} ayahs · {daysLeft(g)} days left · {g.members.length}{' '}
+                  {g.members.length === 1 ? 'member' : 'members'} · {p.done}/{p.goal} ayahs ({p.pct}%)
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void copyShareLink(g)}
+                    className="rounded-full border border-[#D1D5DB] px-3 py-1 text-[12px] font-semibold"
+                    style={{ color: INK }}
+                  >
+                    {copiedCode === g.code ? 'Link copied!' : 'Copy share link'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => leaveGroup(g.id)}
+                    className="rounded-full border border-[#FECACA] px-3 py-1 text-[12px] font-semibold"
+                    style={{ color: '#DC2626' }}
+                  >
+                    Leave
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Global Group Leaderboard — the real opted-in members. */}
       <section className="mt-5">
         <h2 className="text-[20px] font-bold" style={{ color: INK }}>
           Global Group Leaderboard
         </h2>
-        <div className="mt-2 flex items-center justify-between">
-          <button type="button" aria-label="Previous month" className="flex h-8 w-8 items-center justify-center">
-            <IconChevronLeft />
-          </button>
-          <p className="text-center text-[15px] leading-tight" style={{ color: MUTED }}>
-            Jumada al-Thani
-            <span className="block">1448</span>
-          </p>
-          <button type="button" aria-label="Next month" className="flex h-8 w-8 items-center justify-center">
-            <IconChevronRight className="h-5 w-5" />
-          </button>
-        </div>
         <p className="mt-1 text-[11px]" style={{ color: MUTED }}>
           <span className="font-bold" style={{ color: INK }}>
             Last updated:
           </span>{' '}
-          Monday, November 23, 4:06 PM <span style={{ color: '#9CA3AF' }}>(local time)</span>
+          {updatedAt
+            ? `${updatedAt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}, ${updatedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} (local time)`
+            : 'Not loaded yet'}
         </p>
 
-        {/* Engagement / Completions toggle — switches the active
-            pill only in this step. */}
+        {/* Engagement / Completions toggle — a real sort: streak
+            vs memorised ayahs. */}
         <div className="mt-3 flex gap-2" role="tablist" aria-label="Leaderboard metric">
           {(['Engagement', 'Completions'] as const).map((m) => (
             <button
@@ -1013,42 +1616,62 @@ function CommunityTab() {
           ))}
         </div>
 
-        {/* Table. */}
-        <div className="mt-3">
-          <div className="flex items-center border-b border-[#E5E7EB] pb-1.5 text-[12px]" style={{ color: MUTED }}>
-            <span className="w-8 shrink-0 text-center">Pos</span>
-            <span className="min-w-0 flex-1">Name</span>
-            <span className="w-[80px] shrink-0 text-right">Activity</span>
-          </div>
-          {rows.map((r) => (
-            <div
-              key={r.pos + r.name}
-              className="flex items-center border-b border-[#F3F4F6] py-2.5"
-            >
-              <span className="w-8 shrink-0 text-center text-[15px]" style={{ color: INK }}>
-                {r.pos}
-              </span>
-              {/* dir="ltr" keeps Arabic names left-aligned at the
-                  start of the Name column, as in the reference. */}
-              <span className="min-w-0 flex-1 truncate text-[13px]" style={{ color: INK }} dir="ltr">
-                {r.icon ? `${r.icon} ` : ''}
-                {r.name}
-              </span>
-              <span className="w-[80px] shrink-0 text-right text-[14px]" style={{ color: INK }}>
-                {r.hrs} <span className="text-[10px]" style={{ color: MUTED }}>HRS</span>
-              </span>
+        {rows.length === 0 ? (
+          <p className="mt-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-4 text-[14px] leading-snug shadow-[0_1px_3px_rgba(0,0,0,0.05)]" style={{ color: MUTED }}>
+            No one on the board yet — members appear here when they choose to appear in Settings → Privacy.
+          </p>
+        ) : (
+          <>
+            <div className="mt-3">
+              <div className="flex items-center border-b border-[#E5E7EB] pb-1.5 text-[12px]" style={{ color: MUTED }}>
+                <span className="w-8 shrink-0 text-center">Pos</span>
+                <span className="min-w-0 flex-1">Name</span>
+                <span className="w-[80px] shrink-0 text-right">
+                  {mode === 'Engagement' ? 'Streak' : 'Memorised'}
+                </span>
+              </div>
+              {shown.map((r, i) => (
+                <div key={r.displayName} className="flex items-center border-b border-[#F3F4F6] py-2.5">
+                  <span className="w-8 shrink-0 text-center text-[15px]" style={{ color: INK }}>
+                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : String(i + 1)}
+                  </span>
+                  {/* dir="ltr" keeps Arabic names left-aligned at the
+                      start of the Name column. */}
+                  <span className="min-w-0 flex-1 truncate text-[13px]" style={{ color: INK }} dir="ltr">
+                    {r.displayName}
+                  </span>
+                  <span className="w-[80px] shrink-0 text-right text-[14px]" style={{ color: INK }}>
+                    {mode === 'Engagement' ? r.currentStreak : r.memorisedAyahs}{' '}
+                    <span className="text-[10px]" style={{ color: MUTED }}>
+                      {mode === 'Engagement' ? 'DAYS' : 'AYAHS'}
+                    </span>
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        <button
-          type="button"
-          className="mt-4 flex h-11 w-full items-center justify-center rounded-xl border border-[#E5E7EB] bg-white text-[13px] font-bold tracking-wide shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
-          style={{ color: INK }}
-        >
-          View Full Leaderboard
-        </button>
+            {sorted.length > 10 && (
+              <button
+                type="button"
+                onClick={() => setShowAll((v) => !v)}
+                className="mt-4 flex h-11 w-full items-center justify-center rounded-xl border border-[#E5E7EB] bg-white text-[13px] font-bold tracking-wide shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
+                style={{ color: INK }}
+              >
+                {showAll ? 'Show Less' : `View Full Leaderboard (${sorted.length})`}
+              </button>
+            )}
+          </>
+        )}
       </section>
+
+      {groupModal && (
+        <GroupModal
+          mode={groupModal}
+          onClose={() => setGroupModal(null)}
+          onCreate={createGroup}
+          onJoin={joinGroup}
+        />
+      )}
     </>
   );
 }
@@ -1063,10 +1686,16 @@ export default function ReaderDashboard({
   open,
   onClose,
   onOpenSettings,
+  onOpenGift,
+  onTestYourself,
 }: {
   open: boolean;
   onClose: () => void;
   onOpenSettings: () => void;
+  /** Alive pass: the promo opens the Gift / feature list. */
+  onOpenGift: () => void;
+  /** Alive pass: the Highlights card opens Testing Mode. */
+  onTestYourself: () => void;
 }) {
   const [rendered, setRendered] = useState(open);
   const [shown, setShown] = useState(false);
@@ -1074,11 +1703,15 @@ export default function ReaderDashboard({
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   // Greeting name: null = guest with no name stored ("Salam!").
   const [displayName, setDisplayName] = useState<string | null>(null);
+  // Alive pass: the profile icon opens a real account card.
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
   // Phase 4: sessions + goals + streak, read from localStorage.
   const [sessions, setSessions] = useState<CoachSessionRecord[]>(() => listReaderSessions());
   const [goals, setGoals] = useState<Goal[]>(() => loadGoals());
   const [streak, setStreak] = useState<StreakInfo>(() => streakFromSessions(listReaderSessions()));
   const [goalModalOpen, setGoalModalOpen] = useState(false);
+  const [goalModalAction, setGoalModalAction] = useState<GoalAction>('Memorize');
 
   // Phase 4: reload sessions/goals/streak whenever the Dashboard
   // opens, so a session or goal saved since the last visit shows up
@@ -1092,16 +1725,35 @@ export default function ReaderDashboard({
   }, [open ]);
 
   // Phase 4: save a goal from the modal into the shared store.
+  // Alive pass: archive / restore / delete, and the modal's action.
+  const updateGoals = useCallback((next: Goal[]) => {
+    saveGoals(next);
+    setGoals(next);
+    mirrorKeyToIdb(GOALS_KEY);
+  }, []);
   const saveNewGoal = useCallback(
-    (name: string) => {
-      const goal = createSimpleGoal(name);
-      const next = [goal, ...goals];
-      saveGoals(next);
-      setGoals(next);
+    (name: string, action: GoalAction) => {
+      const goal = createSimpleGoal(name, action);
+      updateGoals([goal, ...goals]);
       setGoalModalOpen(false);
-      mirrorKeyToIdb(GOALS_KEY);
     },
-    [goals],
+    [goals, updateGoals],
+  );
+  const openGoalModal = useCallback((action: GoalAction = 'Memorize') => {
+    setGoalModalAction(action);
+    setGoalModalOpen(true);
+  }, []);
+  const archiveGoal = useCallback(
+    (id: string) => updateGoals(goals.map((g) => (g.id === id ? { ...g, archived: true } : g))),
+    [goals, updateGoals],
+  );
+  const restoreGoal = useCallback(
+    (id: string) => updateGoals(goals.map((g) => (g.id === id ? { ...g, archived: false } : g))),
+    [goals, updateGoals],
+  );
+  const deleteGoal = useCallback(
+    (id: string) => updateGoals(goals.filter((g) => g.id !== id)),
+    [goals, updateGoals],
   );
 
   // Mount / fade lifecycle: mount, then fade in; on close, fade out
@@ -1139,6 +1791,7 @@ export default function ReaderDashboard({
     const sb = getSupabase();
     if (!sb) {
       setDisplayName(guestName);
+      setSignedIn(false);
       return;
     }
     void sb.auth.getSession().then(async ({ data: { session } }) => {
@@ -1146,8 +1799,10 @@ export default function ReaderDashboard({
       const user = session?.user;
       if (!user) {
         setDisplayName(guestName);
+        setSignedIn(false);
         return;
       }
+      setSignedIn(true);
       const fallback = user.email?.split('@')[0]?.trim() || guestName;
       try {
         const { data } = await sb
@@ -1188,7 +1843,13 @@ export default function ReaderDashboard({
         </button>
         <LogoDiamonds className="h-6 w-10" />
         <div className="flex items-center gap-3">
-          <button type="button" aria-label="Profile" className="flex h-7 w-7 items-center justify-center">
+          <button
+            type="button"
+            aria-label="Account"
+            aria-expanded={accountOpen}
+            onClick={() => setAccountOpen((v) => !v)}
+            className="flex h-7 w-7 items-center justify-center"
+          >
             <IconProfile />
           </button>
           <button type="button" aria-label="Settings" onClick={onOpenSettings} className="flex h-7 w-7 items-center justify-center">
@@ -1196,6 +1857,47 @@ export default function ReaderDashboard({
           </button>
         </div>
       </header>
+
+      {/* Account card — the profile icon's real destination: the
+          signed-in state (or guest), a link to Account & backup,
+          and sign out when signed in. */}
+      {accountOpen && (
+        <div className="shrink-0 border-b border-[#E5E7EB] bg-white px-4 py-3">
+          <p className="text-[15px] font-semibold" style={{ color: INK }}>
+            {signedIn ? `Signed in as ${displayName ?? 'your account'}` : 'Guest'}
+          </p>
+          <p className="mt-0.5 text-[13px] leading-snug" style={{ color: MUTED }}>
+            {signedIn
+              ? 'Your progress backs up to your account.'
+              : 'Your progress is stored on this device. Sign in to back it up across devices.'}
+          </p>
+          <div className="mt-2 flex gap-2">
+            <a
+              href="/hifz/settings/account"
+              className="rounded-full border border-[#D1D5DB] px-4 py-1.5 text-[13px] font-semibold"
+              style={{ color: INK }}
+            >
+              Account &amp; backup
+            </a>
+            {signedIn && (
+              <button
+                type="button"
+                onClick={() => {
+                  void signOut().then(() => {
+                    setSignedIn(false);
+                    setDisplayName(null);
+                    setAccountOpen(false);
+                  });
+                }}
+                className="rounded-full border border-[#FECACA] px-4 py-1.5 text-[13px] font-semibold"
+                style={{ color: '#DC2626' }}
+              >
+                Sign out
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Tabs: the active one is bold black with a black underline,
           the rest grey. Horizontal scroll if they overflow. Tapping
@@ -1228,17 +1930,35 @@ export default function ReaderDashboard({
             displayName={displayName}
             goals={activeGoals(goals)}
             streak={streak}
-            onNewGoal={() => setGoalModalOpen(true)}
+            onNewGoal={() => openGoalModal('Memorize')}
+            onOpenGift={onOpenGift}
+            onTestYourself={onTestYourself}
+            onGoToTab={setTab}
           />
         )}
-        {tab === 'Goals' && <GoalsTab goals={activeGoals(goals)} onNewGoal={() => setGoalModalOpen(true)} />}
-        {tab === 'Memorization' && <MemorizationTab />}
-        {tab === 'Activity' && <ActivityTab sessions={sessions} streak={streak} />}
+        {tab === 'Goals' && (
+          <GoalsTab
+            goals={goals}
+            onNewGoal={() => openGoalModal('Memorize')}
+            onArchiveGoal={archiveGoal}
+            onDeleteGoal={deleteGoal}
+            onRestoreGoal={restoreGoal}
+          />
+        )}
+        {tab === 'Memorization' && <MemorizationTab goals={activeGoals(goals)} onNewGoal={openGoalModal} />}
+        {tab === 'Activity' && (
+          <ActivityTab sessions={sessions} streak={streak} onNewGoal={() => openGoalModal('Memorize')} />
+        )}
         {tab === 'Community' && <CommunityTab />}
       </div>
 
       {/* New-goal modal (Phase 4). */}
-      <GoalModal open={goalModalOpen} onClose={() => setGoalModalOpen(false)} onSave={saveNewGoal} />
+      <GoalModal
+        open={goalModalOpen}
+        onClose={() => setGoalModalOpen(false)}
+        onSave={saveNewGoal}
+        initialAction={goalModalAction}
+      />
     </div>
   );
 }

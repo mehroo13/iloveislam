@@ -66,6 +66,9 @@ export interface ReaderSessionInput {
   peeks?: number;
   /** One label per peek, e.g. "Peek: Ayah 4". */
   peekLabels?: string[];
+  /** Mushaf page (1–604) the take was on — recorded so the Activity
+   *  tab's Pages chart can count real pages per day. */
+  page?: number;
 }
 
 /** Surah number → display name, e.g. 1 → "Al-Fatihah". */
@@ -96,6 +99,9 @@ export function saveReaderSession(input: ReaderSessionInput): CoachSessionRecord
       // Same convention as the coach: 0 when the tracker reached no
       // word (nothing was confirmed correct).
       accuracy: input.reached > 0 ? (input.correct / input.reached) * 100 : 0,
+      // The mushaf page the take was on (the Activity tab's Pages
+      // chart counts distinct pages per day from this).
+      ...(typeof input.page === 'number' ? { page: input.page } : {}),
       // Peeks count as mistakes (Phase 6 decision), so they join the
       // count and the word list.
       mistakes: input.missed + (input.peeks ?? 0),

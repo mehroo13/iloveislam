@@ -70,12 +70,14 @@ export function newGoalId(): string {
  * A goal from just a name — the reader's simple "Start a New Goal"
  * modal (Phase 4). Defaults match the hub's most common goal: memorize
  * the whole Quran, a page a day, every day, flexible, recurring.
+ * Alive pass: the action can be preset (the Memorization tab's
+ * "Review Goal" row opens the modal as a Review goal).
  */
-export function createSimpleGoal(name: string): Goal {
+export function createSimpleGoal(name: string, action: GoalAction = 'Memorize'): Goal {
   return {
     id: newGoalId(),
     name: name.trim(),
-    action: 'Memorize',
+    action,
     range: 'Whole Quran (114 surahs)',
     portion: '1 page a day',
     schedule: 'Every day',

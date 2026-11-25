@@ -157,6 +157,20 @@ function PhonePlan() {
   );
 }
 
+/* The app's real features, in our own words — shown by "View full
+ * feature list". Every item is a feature that actually works. */
+const FEATURES: { name: string; desc: string }[] = [
+  { name: 'Recitation Coach', desc: 'on-device AI listens as you recite and lights each word green as you say it.' },
+  { name: 'Mistake Detection', desc: 'skipped or wrong words turn red, with what was missed.' },
+  { name: 'Testing Mode', desc: 'recite from memory with the text hidden — peeks are counted.' },
+  { name: 'Listen & Follow', desc: 'play the recitation with word-by-word highlighting, in 12 reciters.' },
+  { name: 'Goals & Streaks', desc: 'set Memorize or Review goals and keep your daily streak.' },
+  { name: 'Memorization Progress', desc: 'per-surah progress, completion, and badges from your own practice.' },
+  { name: 'Global Leaderboard', desc: 'opt in from Settings → Privacy to appear on the board.' },
+  { name: 'Groups & Challenges', desc: 'create or join a group and compete with family and friends.' },
+  { name: 'Mushaf, Text & Translation', desc: 'Book, Quran Text and Translation layouts, with themes and offline use.' },
+];
+
 /* ---------------------------------------------------------------- */
 /*  Overlay                                                            */
 /* ---------------------------------------------------------------- */
@@ -164,6 +178,9 @@ function PhonePlan() {
 export default function ReaderGift({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [rendered, setRendered] = useState(open);
   const [shown, setShown] = useState(false);
+  // Alive pass: "View full feature list" expands the real feature
+  // list below (the app's actual features, in our own words).
+  const [showFullList, setShowFullList] = useState(false);
 
   // Mount / fade lifecycle: mount, then fade in; on close, fade out
   // and unmount after the transition.
@@ -256,11 +273,30 @@ export default function ReaderGift({ open, onClose }: { open: boolean; onClose: 
 
           <button
             type="button"
+            onClick={() => setShowFullList((v) => !v)}
+            aria-expanded={showFullList}
             className="w-full border-t border-[#E5E7EB] py-2.5 text-center text-[14px]"
             style={{ color: '#64748B' }}
           >
-            View full feature list
+            {showFullList ? 'Hide feature list' : 'View full feature list'}
           </button>
+          {showFullList && (
+            <ul className="border-t border-[#E5E7EB] px-4 py-3">
+              {FEATURES.map((f) => (
+                <li key={f.name} className="flex gap-2 py-1.5 text-[13.5px] leading-snug">
+                  <span aria-hidden="true" style={{ color: '#16A34A' }}>
+                    ✓
+                  </span>
+                  <span>
+                    <span className="font-bold" style={{ color: INK }}>
+                      {f.name}
+                    </span>{' '}
+                    <span style={{ color: MUTED }}>— {f.desc}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </div>
 

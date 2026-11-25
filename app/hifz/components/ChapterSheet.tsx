@@ -17,6 +17,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { ALL_SURAHS, getSurahById, type HifzSurah } from '../surahs';
 import { SURAH_FIRST_PAGE } from '../mushaf';
+import { loadBookmarks, type BookmarkEntry } from '../lib/bookmarks';
 import { useT } from '../lib/i18n';
 
 type Tab = 'chapters' | 'parts' | 'bookmarks';
@@ -63,12 +64,15 @@ export default function ChapterSheet({
   currentSurahId,
   currentJuz,
   onSelectSurah,
+  onSelectPage,
 }: {
   open: boolean;
   onClose: () => void;
   currentSurahId: number;
   currentJuz: number;
   onSelectSurah: (surahId: number) => void;
+  /** A bookmark tap jumps the reader to this mushaf page. */
+  onSelectPage: (page: number) => void;
 }) {
   const t = useT();
   const [rendered, setRendered] = useState(open);
@@ -76,6 +80,8 @@ export default function ChapterSheet({
   const [tab, setTab] = useState<Tab>('chapters');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [lastRead, setLastRead] = useState<HifzSurah | null>(null);
+  // Alive pass: the real bookmarks, read when the sheet opens.
+  const [bookmarks, setBookmarks] = useState<BookmarkEntry[]>([]);
   const listRef = useRef<HTMLDivElement | null>(null);
 
   // Mount / slide-up lifecycle: mount, then animate in; on close,
@@ -92,7 +98,9 @@ export default function ChapterSheet({
   }, [open ]);
 
   // Recently Read: the persisted last-read surah, else the surah open in
-  // the reader, else Al-Fatihah (the reference default).
+  // the reader, else Al-Fatihah (the reference default). Bookmarks are
+  // re-read every time the sheet opens, so a bookmark saved since the
+  // last visit shows up.
   useEffect(() => {
     if (!open) return;
     try {
@@ -105,6 +113,7 @@ export default function ChapterSheet({
     } catch {
       /* storage unavailable — fall back below */
     }
+    setBookmarks(loadBookmarks());
   }, [open ]);
 
   const recentlyRead: HifzSurah = lastRead ?? getSurahById(currentSurahId) ?? getSurahById(1)!;
@@ -182,9 +191,10 @@ export default function ChapterSheet({
           {t('rb.list.chapterJuzLists')}
         </p>
 
-        {/* Tabs: Chapters / Parts / Bookmarks — switching the active
-            state is visual in this step; the list stays the Chapters
-            list for now. */}
+        {/* Tabs: Chapters / Parts / Bookmarks — each shows its own
+            real list. Chapters: the 114 surahs grouped by Juz.
+            Parts: the 30 Juz, each jumping to the surah that starts
+            it. Bookmarks: the reader's saved bookmarks. */}
         <div className="mt-3 flex shrink-0 gap-2 px-5" role="tablist" aria-label={t('rb.list.chapterJuzLists')}>
           {(
             [
@@ -211,7 +221,10 @@ export default function ChapterSheet({
           ))}
         </div>
 
-        {/* Sort + shown-progress row */}
+        {/* Sort + shown-progress row — hidden on the Bookmarks tab,
+            where sorting does not apply. The sort also reverses the
+            Parts list. */}
+        {tab !== 'bookmarks' && (
         <div className="mt-4 flex shrink-0 items-start gap-8 px-5">
           <button
             type="button"
@@ -237,10 +250,90 @@ export default function ChapterSheet({
             </span>
           </div>
         </div>
+        )}
 
-        {/* List + sticky right rail */}
+        {/* List + sticky right rail (the rail only applies to the
+            Chapters list, which is grouped by Juz). */}
         <div className="relative mt-3 min-h-0 flex-1">
           <div ref={listRef} className="h-full overflow-y-auto overscroll-contain">
+            {tab === 'parts' ? (
+              /* Parts: the 30 Juz. Tapping one jumps to the surah
+                 that starts the Juz — its first page. */
+              <ul>
+                {juzOrder.map((j) => {
+                  const first = ALL_SURAHS.find((s) => s.juz === j);
+                  if (!first) return null;
+                  return (
+                    <li key={j} style={{ backgroundColor: 'var(--reader-card)' }}>
+                      <button
+                        type="button"
+                        onClick={() => onSelectSurah(first.id)}
+                        className="flex w-full items-center gap-3 px-5 py-2 text-left"
+                      >
+                        <span className="w-8 shrink-0 self-start pt-[3px] text-center text-sm font-semibold" style={{ color: INK }}>
+                          {j}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[14px] font-bold leading-tight" style={{ color: INK }}>
+                            Juz {j}
+                          </span>
+                          <span className="block text-[11px] leading-[1.2]" style={{ color: MUTED }}>
+                            Starts with {first.name} · PG. {SURAH_FIRST_PAGE[first.id] ?? 1}
+                          </span>
+                        </span>
+                        <span dir="rtl" lang="ar" className="font-quran shrink-0 self-center text-[20px] leading-none" style={{ color: INK }}>
+                          {first.arabic}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : tab === 'bookmarks' ? (
+              /* Bookmarks: the reader's saved bookmarks. A page
+                 bookmark jumps to its page; an ayah bookmark jumps
+                 to its surah's first page. */
+              bookmarks.length === 0 ? (
+                <p className="px-5 py-6 text-[14px] leading-snug" style={{ color: MUTED }}>
+                  No bookmarks yet — tap the bookmark icon in the reader to save a page.
+                </p>
+              ) : (
+                <ul>
+                  {bookmarks.map((b, i) => {
+                    const isPage = b.kind === 'page';
+                    const surah = getSurahById(b.surahNumber ?? 1);
+                    const page = isPage ? b.page ?? 1 : SURAH_FIRST_PAGE[b.surahNumber ?? 1] ?? 1;
+                    const label = isPage
+                      ? `Page ${b.page}`
+                      : `${b.surahName ?? surah?.name ?? 'Surah'} ${b.verseNumber}`;
+                    const sub = isPage
+                      ? b.note ?? 'Mushaf page'
+                      : `Opens at the start of ${b.surahName ?? surah?.name ?? 'the surah'} · Page ${page}`;
+                    return (
+                      <li key={`${b.kind}-${i}`} style={{ backgroundColor: 'var(--reader-card)' }}>
+                        <button
+                          type="button"
+                          onClick={() => onSelectPage(page)}
+                          className="flex w-full items-center gap-3 px-5 py-2 text-left"
+                        >
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#E8EAED]" style={{ color: INK }}>
+                            <IconBookmarkSmall />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[14px] font-bold leading-tight" style={{ color: INK }}>
+                              {label}
+                            </span>
+                            <span className="block text-[11px] leading-[1.2]" style={{ color: MUTED }}>
+                              {sub}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )
+            ) : (
             <ul>
               {juzOrder.map((j) => {
                 const rows = ALL_SURAHS.filter((s) => s.juz === j);
@@ -286,10 +379,13 @@ export default function ChapterSheet({
                 );
               })}
             </ul>
+            )}
           </div>
 
           {/* Right-edge Juz rail: 1–30, fixed while the list scrolls.
-              The current Juz is bold/dark, the rest light grey. */}
+              The current Juz is bold/dark, the rest light grey.
+              Only on the Chapters list. */}
+          {tab === 'chapters' && (
           <nav
             aria-label="Jump to Juz"
             className="absolute bottom-0 right-1 top-0 z-10 flex w-5 flex-col"
@@ -308,6 +404,7 @@ export default function ChapterSheet({
               </button>
             ))}
           </nav>
+          )}
         </div>
       </div>
     </div>

@@ -20,7 +20,17 @@
 // leaderboard" is a real opt-in switch writing
 // `profiles.show_on_leaderboard` (migration 0002, applied live);
 // guests see it disabled — an account is needed.
-// The remaining rows stay visual-only (see the phase reminder list).
+//
+// Alive pass (2026-11-25): every remaining row works. Hidden
+// Verses is a real switch on the reader's state; Language is a real
+// picker over the 8 locales; Reciters is a real picker over the 12
+// recitations (the reader's Listen uses the picked one); Testing
+// Mode opens the reader in Testing Mode; Data Usage shows the real
+// on-device storage numbers. The rows with no real destination in
+// the reader — Recitation, Listening, Marking, Reminders, Mistake
+// Feedback, Session Start & Stop, Dropped Connection, Translations,
+// Tafsir — are REMOVED, not left dead; and the "Get Started" card
+// is gone (there is no tutorial to view).
 
 'use client';
 
@@ -28,9 +38,19 @@ import { useEffect, useRef, useState } from 'react';
 import { applyReaderTheme, getReaderTheme, READER_THEME_EVENT, type ReaderTheme } from '../lib/reader-theme';
 import { deleteAllLocalData } from '../lib/store';
 import { getSupabase } from '../lib/supabase';
+import { SUPPORTED_LOCALES, setUiLocale, useUiLocale } from '../lib/i18n';
+import { DEFAULT_RECITER_ID, loadSettings, saveSettings } from '../progress';
+import { RECITERS, reciterName } from '../../quran/lib';
 
 const INK = 'var(--reader-ink)';
 const MUTED = 'var(--reader-muted)';
+
+/** Human-readable byte count for the Data Usage dialog. */
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 /* ---------------------------------------------------------------- */
 /*  Icons (inline SVG, our own).                                     */
@@ -50,22 +70,6 @@ function IconChevronRight() {
     </svg>
   );
 }
-function IconMic() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
-      <rect x="9" y="2.5" width="6" height="11.5" rx="3" style={{ fill: INK }} />
-      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" fill="none" style={{ stroke: INK }} strokeWidth="2" strokeLinecap="round" />
-      <path d="M12 18v3.5" style={{ stroke: INK }} strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-function IconPlay() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
-      <path d="M8 5.5v13l11-6.5-11-6.5Z" style={{ fill: INK }} />
-    </svg>
-  );
-}
 function IconBookOpen() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -80,14 +84,6 @@ function IconEyeOff() {
       <path d="M2.5 12C5 7.5 8.5 5.5 12 5.5c3.5 0 7 2 9.5 6.5-2.5 4.5-6 6.5-9.5 6.5-3.5 0-7-2-9.5-6.5Z" />
       <circle cx="12" cy="12" r="2.6" style={{ fill: INK }} stroke="none" />
       <path d="M4.5 4.5l15 15" />
-    </svg>
-  );
-}
-function IconPen() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M17 3.5a2.83 2.83 0 1 1 4 4L7.5 21 2.5 22 3.5 17 17 3.5Z" />
-      <path d="M14.5 6l3.5 3.5" />
     </svg>
   );
 }
@@ -116,25 +112,6 @@ function IconBell() {
     </svg>
   );
 }
-function IconAlertCircle() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" style={{ fill: INK }} />
-      <path d="M12 7.5v5.5" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" />
-      <circle cx="12" cy="16.8" r="1.2" fill="#FFFFFF" />
-    </svg>
-  );
-}
-function IconWifi() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" aria-hidden="true">
-      <path d="M2 9a15 15 0 0 1 20 0" />
-      <path d="M5.5 12.5a10.5 10.5 0 0 1 13 0" />
-      <path d="M8.8 16a6 6 0 0 1 6.4 0" />
-      <circle cx="12" cy="19.4" r="1.1" style={{ fill: INK }} stroke="none" />
-    </svg>
-  );
-}
 function IconRadio() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" aria-hidden="true">
@@ -143,17 +120,6 @@ function IconRadio() {
       <path d="M16.4 7.6a6.4 6.4 0 0 1 0 8.8" />
       <path d="M4.7 4.7a10.4 10.4 0 0 0 0 14.6" />
       <path d="M19.3 4.7a10.4 10.4 0 0 1 0 14.6" />
-    </svg>
-  );
-}
-function IconLanguages() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4.5 5h9" />
-      <path d="M8.5 3v2c0 3.5-2 6.5-4.5 8" />
-      <path d="M5.5 8.5c.8 1.8 2.2 3.4 4 4.5" />
-      <path d="M13 21l4.5-10L22 21" />
-      <path d="M14.8 17h5.4" />
     </svg>
   );
 }
@@ -194,7 +160,7 @@ function IconSparkle({ className }: { className?: string }) {
 }
 
 /* ---------------------------------------------------------------- */
-/*  Sections (order + rows match the two reference screenshots).     */
+/*  Sections — only rows with a real destination in the reader.    */
 /* ---------------------------------------------------------------- */
 
 type RowDef = { icon: () => React.JSX.Element; label: string };
@@ -202,18 +168,10 @@ type SectionDef = { title: string; rows: RowDef[] };
 
 const SECTIONS: SectionDef[] = [
   {
-    title: 'Experiences',
-    rows: [
-      { icon: IconMic, label: 'Recitation' },
-      { icon: IconPlay, label: 'Listening' },
-    ],
-  },
-  {
     title: 'Quran Appearance',
     rows: [
       { icon: IconBookOpen, label: 'Mushaf Layout' },
       { icon: IconEyeOff, label: 'Hidden Verses' },
-      { icon: IconPen, label: 'Marking' },
     ],
   },
   {
@@ -224,25 +182,12 @@ const SECTIONS: SectionDef[] = [
     ],
   },
   {
-    title: 'Notifications',
-    rows: [{ icon: IconBell, label: 'Reminders' }],
+    title: 'Listening',
+    rows: [{ icon: IconRadio, label: 'Reciters' }],
   },
   {
-    title: 'Sounds & Haptics',
-    rows: [
-      { icon: IconAlertCircle, label: 'Mistake Feedback' },
-      { icon: IconMic, label: 'Session Start & Stop' },
-      { icon: IconWifi, label: 'Dropped Connection' },
-      { icon: IconBell, label: 'Testing Mode' },
-    ],
-  },
-  {
-    title: 'Downloads',
-    rows: [
-      { icon: IconRadio, label: 'Reciters' },
-      { icon: IconLanguages, label: 'Translations' },
-      { icon: IconBookOpen, label: 'Tafsir' },
-    ],
+    title: 'Practice',
+    rows: [{ icon: IconBell, label: 'Testing Mode' }],
   },
   {
     title: 'Privacy',
@@ -299,6 +244,8 @@ export default function ReaderSettings({
   onClose,
   onTestYourself,
   onOpenLayout,
+  hideVerses,
+  onToggleHideVerses,
 }: {
   open: boolean;
   onClose: () => void;
@@ -306,6 +253,9 @@ export default function ReaderSettings({
   onTestYourself?: () => void;
   /** Phase 7: the Mushaf Layout row opens the layout sheet. */
   onOpenLayout?: () => void;
+  /** Alive pass: the Hidden Verses row toggles the reader's state. */
+  hideVerses?: boolean;
+  onToggleHideVerses?: () => void;
 }) {
   const [rendered, setRendered] = useState(open);
   const [shown, setShown] = useState(false);
@@ -322,6 +272,58 @@ export default function ReaderSettings({
   const chooseTheme = (t: ReaderTheme) => {
     applyReaderTheme(t);
     setTheme(t);
+  };
+  /** Alive pass — Language: the live UI locale (reactive hook),
+   *  changed through setUiLocale (persists to the settings doc and
+   *  re-renders every translated string at once). */
+  const locale = useUiLocale();
+  /** Alive pass — Reciters: the picked recitation for Listen
+   *  (settings doc `reciterId`, default 7 Alafasy). The reader's
+   *  playback reads it when a take starts. */
+  const [reciterId, setReciterId] = useState<number>(() => {
+    try {
+      return loadSettings().reciterId ?? DEFAULT_RECITER_ID;
+    } catch {
+      return DEFAULT_RECITER_ID;
+    }
+  });
+  const chooseReciter = (id: number) => {
+    setReciterId(id);
+    try {
+      const settings = loadSettings();
+      saveSettings({ ...settings, reciterId: id });
+    } catch {
+      /* storage unavailable — the choice still applies this session */
+    }
+  };
+  /** Alive pass — Data Usage: the real on-device storage numbers,
+   *  measured when the dialog opens (never estimated or invented). */
+  const [dataUsage, setDataUsage] = useState<null | { usage: number; quota: number; lsBytes: number }>(null);
+  const [dataUsageLoading, setDataUsageLoading] = useState(false);
+  const openDataUsage = async () => {
+    setDataUsage(null);
+    setDataUsageLoading(true);
+    let usage = 0;
+    let quota = 0;
+    try {
+      const est = await navigator.storage.estimate();
+      usage = est.usage ?? 0;
+      quota = est.quota ?? 0;
+    } catch {
+      /* estimate unavailable — the dialog says so */
+    }
+    let lsBytes = 0;
+    try {
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const k = window.localStorage.key(i);
+        if (!k) continue;
+        lsBytes += k.length + (window.localStorage.getItem(k)?.length ?? 0);
+      }
+    } catch {
+      /* storage unavailable */
+    }
+    setDataUsage({ usage, quota, lsBytes });
+    setDataUsageLoading(false);
   };
   /** Phase 7 — Delete All Audio Data: two-tap confirm. The first
    *  tap arms the row ("Tap again to delete"); the second clears
@@ -469,7 +471,9 @@ export default function ReaderSettings({
 
       {/* Scrollable content: banner + grouped sections. */}
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8">
-        {/* Top horizontal scroll banner. */}
+        {/* Top banner — the Testing Mode card only. The "Get
+            Started" card is gone: there is no tutorial to view, so
+            a button for one would be a dead control. */}
         <div className="mt-3 flex gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {/* Card 1 — Testing Mode (pink). */}
           <article className="relative flex h-[162px] w-[290px] min-w-[290px] shrink-0 flex-col overflow-hidden rounded-2xl bg-[#FFEDF9] p-4">
@@ -492,25 +496,6 @@ export default function ReaderSettings({
               style={{ color: '#111827' }}
             >
               TEST YOURSELF
-            </button>
-          </article>
-
-          {/* Card 2 — Get Started (blue, partially visible). */}
-          <article className="relative flex h-[162px] w-[290px] min-w-[290px] shrink-0 flex-col overflow-hidden rounded-2xl bg-[#C3DEF3] p-4">
-            <div>
-              <h2 className="text-[15px] font-bold leading-snug" style={{ color: INK }}>
-                Get Started
-              </h2>
-              <p className="mt-1 text-[12.5px] leading-snug text-[#4B5563]">
-                Start learning how to use it with our quick guide.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="relative z-10 mt-auto h-[34px] self-start rounded-full bg-white px-5 text-[12px] font-bold tracking-wide shadow-sm"
-              style={{ color: INK }}
-            >
-              VIEW TUTORIAL
             </button>
           </article>
         </div>
@@ -589,6 +574,96 @@ export default function ReaderSettings({
                           ))}
                         </span>
                       </div>
+                    ) : row.label === 'Hidden Verses' ? (
+                      /* Alive pass — a real switch on the reader's
+                         hide-verses state. */
+                      <div className="flex w-full items-center gap-3 px-4 py-[14px]">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                          <RowIcon />
+                        </span>
+                        <span className="min-w-0 flex-1 text-[15px]" style={{ color: INK }}>
+                          {row.label}
+                        </span>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={hideVerses === true}
+                          aria-label="Hidden Verses"
+                          onClick={onToggleHideVerses}
+                          className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
+                          style={{ backgroundColor: hideVerses ? '#16A34A' : '#D1D5DB' }}
+                        >
+                          <span
+                            className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all"
+                            style={{ left: hideVerses ? '22px' : '2px' }}
+                          />
+                        </button>
+                      </div>
+                    ) : row.label === 'Language' ? (
+                      /* Alive pass — a real picker over the 8
+                         locales; the whole UI re-renders at once. */
+                      <div className="flex w-full items-center gap-3 px-4 py-[14px]">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                          <RowIcon />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-[15px]" style={{ color: INK }}>
+                          {row.label}
+                        </span>
+                        <select
+                          value={locale}
+                          onChange={(e) => setUiLocale(e.target.value)}
+                          aria-label="Interface language"
+                          className="max-w-[150px] shrink-0 rounded-lg border border-[#D1D5DB] bg-white px-2 py-1.5 text-[14px] outline-none"
+                          style={{ color: INK }}
+                        >
+                          {SUPPORTED_LOCALES.map((l) => (
+                            <option key={l.code} value={l.code}>
+                              {l.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : row.label === 'Reciters' ? (
+                      /* Alive pass — a real picker over the 12
+                         recitations; the reader's Listen uses the
+                         picked one. */
+                      <div className="flex w-full items-center gap-3 px-4 py-[14px]">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                          <RowIcon />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-[15px]" style={{ color: INK }}>
+                          {row.label}
+                        </span>
+                        <select
+                          value={reciterId}
+                          onChange={(e) => chooseReciter(Number(e.target.value))}
+                          aria-label="Reciter for Listen"
+                          className="max-w-[170px] shrink-0 rounded-lg border border-[#D1D5DB] bg-white px-2 py-1.5 text-[14px] outline-none"
+                          style={{ color: INK }}
+                        >
+                          {RECITERS.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {r.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : row.label === 'Data Usage' ? (
+                      /* Alive pass — opens the dialog with the real
+                         on-device storage numbers. */
+                      <button
+                        type="button"
+                        onClick={() => void openDataUsage()}
+                        className="flex w-full items-center gap-3 px-4 py-[14px] text-left"
+                      >
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                          <RowIcon />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-[15px]" style={{ color: INK }}>
+                          {row.label}
+                        </span>
+                        <IconChevronRight />
+                      </button>
                     ) : row.label === 'Delete All Audio Data' ? (
                       /* Phase 7 — Delete All Audio Data: two-tap
                          confirm; the second tap clears the on-device
@@ -617,7 +692,13 @@ export default function ReaderSettings({
                     ) : (
                       <button
                         type="button"
-                        onClick={row.label === 'Mushaf Layout' ? onOpenLayout : undefined}
+                        onClick={
+                          row.label === 'Mushaf Layout'
+                            ? onOpenLayout
+                            : row.label === 'Testing Mode'
+                              ? onTestYourself
+                              : undefined
+                        }
                         className="flex w-full items-center gap-3 px-4 py-[14px] text-left"
                       >
                         <span className="flex h-5 w-5 shrink-0 items-center justify-center">
@@ -647,6 +728,68 @@ export default function ReaderSettings({
             )}
           </section>
         ))}
+
+        {/* Data Usage dialog — the real on-device numbers. */}
+        {(dataUsageLoading || dataUsage !== null) && (
+          <div
+            className="absolute inset-0 z-[80] flex items-end justify-center bg-black/40"
+            onClick={() => {
+              setDataUsage(null);
+              setDataUsageLoading(false);
+            }}
+            role="presentation"
+          >
+            <div
+              className="w-full rounded-t-3xl bg-white p-5 pb-8 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-label="Data usage"
+            >
+              <h2 className="text-[18px] font-bold" style={{ color: INK }}>
+                Data Usage
+              </h2>
+              <p className="mt-1 text-[13px] leading-snug" style={{ color: MUTED }}>
+                Everything is stored on this device only — nothing is uploaded.
+              </p>
+              {dataUsage === null ? (
+                <p className="mt-4 text-[14px]" style={{ color: MUTED }}>
+                  Measuring…
+                </p>
+              ) : (
+                <div className="mt-4 flex flex-col gap-2">
+                  <div className="flex items-center justify-between rounded-xl border border-[#E5E7EB] px-4 py-3">
+                    <span className="text-[14px]" style={{ color: INK }}>
+                      Browser storage used
+                    </span>
+                    <span className="text-[14px] font-semibold" style={{ color: INK }}>
+                      {formatBytes(dataUsage.usage)}
+                      {dataUsage.quota > 0 ? ` of ${formatBytes(dataUsage.quota)}` : ''}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-xl border border-[#E5E7EB] px-4 py-3">
+                    <span className="text-[14px]" style={{ color: INK }}>
+                      Saved settings, goals &amp; sessions
+                    </span>
+                    <span className="text-[14px] font-semibold" style={{ color: INK }}>
+                      {formatBytes(dataUsage.lsBytes)}
+                    </span>
+                  </div>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setDataUsage(null);
+                  setDataUsageLoading(false);
+                }}
+                className="mt-4 h-11 w-full rounded-full text-[15px] font-bold text-white"
+                style={{ backgroundColor: '#16A34A' }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

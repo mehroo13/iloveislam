@@ -49,6 +49,7 @@ import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { migrateToIdb } from '../lib/store';
 import { readerWordKey } from '../lib/reader-words';
 import { MIN_READER_SESSION_MS, saveReaderSession, surahName } from '../lib/reader-sessions';
+import { DEFAULT_RECITER_ID, loadSettings } from '../progress';
 import { type PeekInfo, type ReaderMistake } from '../lib/reader-mistakes';
 import {
   loadEngine,
@@ -789,6 +790,9 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           micHeardAudio: result.micHeardAudio,
           peeks: peekMapRef.current.size,
           peekLabels,
+          // The mushaf page the take was on — the Activity tab's
+          // Pages chart counts distinct pages per day from this.
+          page,
         });
         if (saved) {
           console.log('[reader-mic] session saved:', {
@@ -1052,12 +1056,13 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
 
   /* ---------------- Phase 7 — Listen (audio playback) -------------
      Reuses the Mushaf Listen infrastructure (MushafReader.tsx): the
-     same-origin proxy `/api/quran/verses/by_page/{n}?…&audio=7`
+     same-origin proxy `/api/quran/verses/by_page/{n}?…&audio={reciter}`
      returns each verse's `audio.url` plus `audio.segments` — the
      per-word [index, position, startMs, endMs] timings inside the
-     reciter's own audio (Mishary Alafasy, reciter 7 — the old
-     reader's default, and the same voice as the spec's AlQuran
-     Cloud `ar.alafasy` example). AlQuran Cloud's ayah audio carries
+     reciter's own audio. The reciter is the one picked in Settings →
+     Reciters (default Mishary Alafasy, id 7 — the old reader's
+     default, and the same voice as the spec's AlQuran Cloud
+     `ar.alafasy` example). AlQuran Cloud's ayah audio carries
      NO word timings, so it cannot drive the word-by-word highlight;
      the Quran.com segments are the only source that can — which is
      why this reuses Listen instead of building a second audio system.
@@ -1188,8 +1193,11 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     }
     let items: PlayItem[] = [];
     try {
+      // The reciter is the one picked in Settings → Reciters
+      // (settings doc `reciterId`, default 7 Alafasy).
+      const reciterId = loadSettings().reciterId ?? DEFAULT_RECITER_ID;
       const res = await fetch(
-        `/api/quran/verses/by_page/${visiblePage}?words=true&word_fields=text_uthmani,text_indopak,line_number,page_number,position,char_type_name&fields=text_uthmani&audio=7`,
+        `/api/quran/verses/by_page/${visiblePage}?words=true&word_fields=text_uthmani,text_indopak,line_number,page_number,position,char_type_name&fields=text_uthmani&audio=${reciterId}`,
       );
       if (!res.ok) throw new Error(`by_page ${visiblePage}: ${res.status}`);
       const d = (await res.json()) as {
@@ -2272,10 +2280,23 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         open={openModal === 'dashboard'}
         onClose={() => setOpenModal(null)}
         onOpenSettings={() => setOpenModal('settings')}
+        onOpenGift={() => setOpenModal('gift')}
+        onTestYourself={() => {
+          setOpenModal(null);
+          setHideVerses(true);
+        }}
       />
 
-      {/* Search screen (Step 3): full-screen overlay. */}
-      <ReaderSearch open={openModal === 'search'} onClose={() => setOpenModal(null)} />
+      {/* Search screen (Step 3): full-screen overlay. A result jumps
+          the reader straight to its page. */}
+      <ReaderSearch
+        open={openModal === 'search'}
+        onClose={() => setOpenModal(null)}
+        onSelectPage={(p) => {
+          setOpenModal(null);
+          jumpToPage(p);
+        }}
+      />
 
       {/* Welcome / gift overlay (Step 4): closing returns to the
           reader on Page 1, Al-Fatihah. Never auto-shows on load. */}
@@ -2299,6 +2320,8 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           setHideVerses(true);
         }}
         onOpenLayout={() => setOpenModal('layout')}
+        hideVerses={hideVerses}
+        onToggleHideVerses={() => setHideVerses((v) => !v)}
       />
 
       {/* Chapter / Juz selection bottom sheet (Step 2) */}
@@ -2310,6 +2333,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         onSelectSurah={(id) => {
           setOpenModal(null);
           jumpToPage(SURAH_FIRST_PAGE[id] ?? 1);
+        }}
+        onSelectPage={(p) => {
+          setOpenModal(null);
+          jumpToPage(p);
         }}
       />
 

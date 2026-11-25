@@ -32,6 +32,11 @@ export interface CoachSessionRecord {
   /** Surah name, e.g. "Al-Fatihah" — the reader's session label
    *  (Phase 4). Absent on older coach records, which only have `range`. */
   surah?: string;
+  /** Mushaf page the take was on (1–604), recorded by the reader
+   *  from 2026-11-25 — the Activity tab's Pages chart counts distinct
+   *  pages per day from this. Absent on older sessions, which the
+   *  chart honestly leaves out instead of guessing. */
+  page?: number;
   /** Session length in seconds (excludes any paused time). */
   durationSec: number;
   /** REAL measured accuracy, percent 0–100: correct / reached words. */
