@@ -140,9 +140,12 @@ interface ReaderPageProps {
   mistakeMarkingOn?: boolean;
   /** The "Color similar phrases" setting (Settings → Marking). */
   similarOn?: boolean;
+  /** An ayah-end rosette was tapped (Settings → Tafsir): open that
+   *  verse's tafsir sheet. Absent = rosettes are not tappable. */
+  onRosetteClick?: (verseKey: string) => void;
 }
 
-export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasure, zoom, hideVerses, revealedLines, onRevealLine, highlightedWords, mistakes, onMistakeWordClick, script = 'uthmani', tajweedOn = true, hideMarkers = false, frequentMistakes, mistakeMarkingOn = true, similarOn = false }: ReaderPageProps) {
+export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasure, zoom, hideVerses, revealedLines, onRevealLine, highlightedWords, mistakes, onMistakeWordClick, script = 'uthmani', tajweedOn = true, hideMarkers = false, frequentMistakes, mistakeMarkingOn = true, similarOn = false, onRosetteClick }: ReaderPageProps) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const measureRef = useRef<HTMLDivElement | null>(null);
   const onMeasureRef = useRef(onMeasure);
@@ -352,7 +355,26 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
         if (g.isEnd) {
           // "Hide verse markers": no rosette is rendered at all.
           if (!hideMarkers) {
-            lineContent.push(<ReaderRosette key={`${g.verseKey}-end-${key++}`} ayah={ayahNum} />);
+            // A rosette tap opens that verse's tafsir sheet (the tap
+            // guard keeps a swipe from firing it).
+            lineContent.push(
+              onRosetteClick ? (
+                <button
+                  key={`${g.verseKey}-end-${key++}`}
+                  type="button"
+                  aria-label={`Tafsir for ${g.verseKey}`}
+                  onPointerDown={tapGuard.down}
+                  onClick={(e) => {
+                    if (tapGuard.ok(e)) onRosetteClick(g.verseKey);
+                  }}
+                  className="m-0 inline-flex items-center justify-center border-0 bg-transparent p-0 align-middle"
+                >
+                  <ReaderRosette ayah={ayahNum} />
+                </button>
+              ) : (
+                <ReaderRosette key={`${g.verseKey}-end-${key++}`} ayah={ayahNum} />
+              ),
+            );
           }
           continue;
         }

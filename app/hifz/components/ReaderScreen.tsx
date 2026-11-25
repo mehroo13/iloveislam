@@ -57,9 +57,11 @@ import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { migrateToIdb } from '../lib/store';
 import { readerWordKey } from '../lib/reader-words';
 import { MIN_READER_SESSION_MS, saveReaderSession, surahName } from '../lib/reader-sessions';
-import { DEFAULT_RECITER_ID, loadSettings, saveSettings } from '../progress';
+import { DEFAULT_RECITER_ID, DEFAULT_TRANSLATION_ID, loadSettings, saveSettings } from '../progress';
 import { type PeekInfo, type ReaderMistake, loadFrequentMistakeKeys } from '../lib/reader-mistakes';
 import { playDroppedFeedback, playMistakeFeedback, playSessionFeedback } from '../lib/sounds';
+import TafsirBlock from './TafsirBlock';
+import { TAFSIR_KEY } from './AyahClient';
 import {
   loadEngine,
   engineSupport,
@@ -71,7 +73,7 @@ import {
   type WordEvent,
 } from '../lib/tilawa';
 import type { MushafVerse } from '../lib/fetch';
-import { AUDIO_BASE } from '../../quran/lib';
+import { API, AUDIO_BASE, KHATTAB_TRANSLATION_ID, TAFSIR_ID, tafsirName } from '../../quran/lib';
 
 /* ---------------------------------------------------------------- */
 /*  Reader mic (Phase 2): Tilawa on-device engine. The same engine   */
@@ -328,8 +330,51 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       const s = loadSettings();
       setEdition(editionFromSettings(s, getScriptPref()));
       setTajweedOn(s.tajweedColors ?? true);
+      setTranslationId(s.translationId ?? DEFAULT_TRANSLATION_ID);
+      setTafsirId(s.tafsirId ?? TAFSIR_ID);
     } catch {
       /* defaults stand */
+    }
+  }, []);
+  /* Settings subtree: the reader's translation + tafsir (Settings →
+   * Translations / Tafsir). Defaults equal the reader's behaviour
+   * before the screens existed (Khattab; Ibn Kathir Abridged). */
+  const [translationId, setTranslationId] = useState(DEFAULT_TRANSLATION_ID);
+  const [tafsirId, setTafsirId] = useState(TAFSIR_ID);
+  /** The verse whose tafsir sheet is open (tapped ayah number), or null. */
+  const [tafsirSheet, setTafsirSheet] = useState<string | null>(null);
+  const selectTranslation = useCallback((id: number) => {
+    setTranslationId(id);
+    try {
+      saveSettings({ ...loadSettings(), translationId: id });
+    } catch {
+      /* storage unavailable — the choice applies this session */
+    }
+    // Prime the offline cache for the surah on screen: the service
+    // worker caches /api/quran responses for 7 days, so the first
+    // open of a surah with this translation saves it for offline
+    // reading. Khattab comes from its own route, not the proxy.
+    // (`page` is the anchor page — visiblePage is derived later in
+    // this component, so the prime uses the anchor's surah.)
+    try {
+      const surah = surahsOnMushafPage(page)[0];
+      if (surah) {
+        if (id === KHATTAB_TRANSLATION_ID) void fetch(`/api/quran/khattab/${surah}`);
+        else void fetch(`${API}/verses/by_chapter/${surah}?fields=text_uthmani&translations=${id}&per_page=all`);
+      }
+    } catch {
+      /* cache priming must never break the selection */
+    }
+  }, [page]);
+  const selectTafsir = useCallback((id: number) => {
+    setTafsirId(id);
+    try {
+      saveSettings({ ...loadSettings(), tafsirId: id });
+      // The surah pages keep their own copy of the choice (AyahClient
+      // reads `TAFSIR_KEY`); write it too so both agree.
+      window.localStorage.setItem(TAFSIR_KEY, String(id));
+    } catch {
+      /* storage unavailable — the choice applies this session */
     }
   }, []);
   const selectEdition = useCallback((id: MushafEditionId) => {
@@ -2076,6 +2121,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
               frequentMistakes={frequentMistakes}
               mistakeMarkingOn={mistakeMarkingOn}
               similarOn={similarOn}
+              onRosetteClick={(verseKey) => setTafsirSheet(verseKey)}
             />
           </div>
         ) : (
@@ -2088,6 +2134,8 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
             highlightedWords={displayHighlightedWords}
             mistakes={mistakeMap}
             onMistakeWordClick={openMistakeTooltip}
+            translationId={translationId}
+            onRosetteClick={(verseKey) => setTafsirSheet(verseKey)}
           />
         )}
         <div className="mt-auto flex justify-end px-2 pt-1">
@@ -2515,6 +2563,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         onToggleTajweed={toggleTajweed}
         playSpeed={playSpeed}
         onPlaySpeedChange={changePlaySpeed}
+        translationId={translationId}
+        onSelectTranslation={selectTranslation}
+        tafsirId={tafsirId}
+        onSelectTafsir={selectTafsir}
       />
 
       {/* Chapter / Juz selection bottom sheet (Step 2) */}
@@ -2556,6 +2608,50 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         tajweedOn={tajweedOn}
         onToggleTajweed={toggleTajweed}
       />
+
+      {/* Tafsir sheet (Settings subtree): tapping an ayah number in
+          the reader opens this bottom sheet with that verse's tafsir
+          from the selected tafsir (Settings → Tafsir). TafsirBlock
+          is mounted here for one verse at a time, on a tap — not as
+          a per-ayah list in another view, which is what its header
+          note warns against. */}
+      {tafsirSheet && (
+        <div
+          className="absolute inset-0 z-[80] flex items-end justify-center bg-black/40"
+          role="presentation"
+          onClick={() => setTafsirSheet(null)}
+        >
+          <div
+            className="max-h-[75%] w-full overflow-y-auto rounded-t-3xl bg-white p-5 pb-8 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-label={`Tafsir for ${tafsirSheet}`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-[18px] font-bold" style={{ color: INK }}>
+                  Tafsir — {tafsirSheet}
+                </h2>
+                <p className="mt-0.5 text-[13px]" style={{ color: MUTED }}>
+                  {tafsirName(tafsirId)} — change it in Settings → Tafsir.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close tafsir"
+                onClick={() => setTafsirSheet(null)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#D1D5DB] bg-white text-[16px] font-bold"
+                style={{ color: INK }}
+              >
+                ×
+              </button>
+            </div>
+            <div className="mt-4">
+              <TafsirBlock key={`${tafsirSheet}:${tafsirId}`} verseKey={tafsirSheet} tafsirId={tafsirId} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mistakes modal (Phase 5): the current take's real mistakes
           — no mock data. */}

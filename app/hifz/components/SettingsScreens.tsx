@@ -13,13 +13,13 @@
 // Screens in this file: Recitation, Listening, Reciters, Hidden
 // Verses, Marking, Language, Theme, Reminders, and the Sounds &
 // Haptics screens (Mistake Feedback, Session Start & Stop, Dropped
-// Connection, Testing Mode). Downloads (Translations, Tafsir) and
-// the Mushaf Layout / Data Usage / Delete screens live in their
-// own commits.
+// Connection, Testing Mode). Downloads (Translations, Tafsir) live
+// here too. The Mushaf Layout / Data Usage / Delete screens live in
+// their own commits.
 
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   SUPPORTED_LOCALES,
   getStoredTheme,
@@ -28,7 +28,7 @@ import {
 } from '../lib/i18n';
 import { applyReaderTheme, READER_THEME_EVENT, getReaderTheme, type StoredTheme } from '../lib/reader-theme';
 import { loadSettings, saveSettings } from '../progress';
-import { RECITERS } from '../../quran/lib';
+import { RECITERS, TAFSIRS, TRANSLATIONS, groupByLanguage, reciterName, tafsirName, translationName } from '../../quran/lib';
 import { SOUND_EFFECTS, playSoundEffect, type SoundEffectId } from '../lib/sounds';
 
 const INK = 'var(--reader-ink)';
@@ -947,6 +947,209 @@ export function TestingModeScreen({ onBack }: { onBack: () => void }) {
         <Note>
           Start a test from the Testing Mode card at the top of Settings, or the Practice tab in
           the dashboard.
+        </Note>
+      </div>
+    </SubScreen>
+  );
+}
+
+/* ---------------------------------------------------------------- */
+/*  Downloads — Translations & Tafsir                                */
+/* ---------------------------------------------------------------- */
+
+/** One expandable language group of catalogue entries. */
+function CatalogueGroup({
+  lang,
+  count,
+  noun,
+  expanded,
+  onToggle,
+  children,
+}: {
+  lang: string;
+  count: number;
+  noun: 'translation' | 'tafsir';
+  expanded: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        className="flex w-full items-center gap-3 px-4 py-[14px] text-left"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px]" style={{ color: INK }}>
+            {lang}
+          </span>
+          <span className="mt-0.5 block text-[12.5px] leading-snug" style={{ color: MUTED }}>
+            {count} {count === 1 ? noun : `${noun}s`}
+          </span>
+        </span>
+        <span
+          className="text-[18px] font-bold transition-transform"
+          style={{ color: MUTED, transform: expanded ? 'rotate(45deg)' : 'none' }}
+          aria-hidden="true"
+        >
+          +
+        </span>
+      </button>
+      {expanded && <div className="border-t border-[#EFEFEF]">{children}</div>}
+    </div>
+  );
+}
+
+export function TranslationsScreen({
+  onBack,
+  translationId,
+  onSelectTranslation,
+}: {
+  onBack: () => void;
+  translationId: number;
+  onSelectTranslation: (id: number) => void;
+}) {
+  const groups = useMemo(() => groupByLanguage(TRANSLATIONS), []);
+  const langCount = useMemo(() => new Set(TRANSLATIONS.map((t) => t.lang)).size, []);
+  const currentLang = TRANSLATIONS.find((t) => t.id === translationId)?.lang ?? 'English';
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set([currentLang]));
+  const toggleGroup = (lang: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(lang)) next.delete(lang);
+      else next.add(lang);
+      return next;
+    });
+  };
+  return (
+    <SubScreen title="Translations" onBack={onBack}>
+      <p className="mt-2 px-1.5 text-[13px] font-bold" style={{ color: INK }}>
+        Downloaded
+      </p>
+      <div className="mt-2">
+        <Card>
+          <RadioRow
+            label={translationName(translationId)}
+            sub="The translation the reader shows in Translation mode."
+            selected
+            onSelect={() => {}}
+            testId={`settings-translation-${translationId}`}
+          />
+        </Card>
+      </div>
+      <p className="mt-4 px-1.5 text-[13px] font-bold" style={{ color: INK }}>
+        Available Downloads
+      </p>
+      <div className="mt-2">
+        <Card>
+          {groups.map((g, gi) => (
+            <div key={g.lang}>
+              {gi > 0 && <div className="ml-12 mr-4 border-t border-[#EFEFEF]" />}
+              <CatalogueGroup
+                lang={g.lang}
+                count={g.items.length}
+                noun="translation"
+                expanded={expanded.has(g.lang)}
+                onToggle={() => toggleGroup(g.lang)}
+              >
+                {g.items.map((t) => (
+                  <div key={t.id} className="pl-4">
+                    <RadioRow
+                      label={t.name}
+                      selected={translationId === t.id}
+                      onSelect={() => onSelectTranslation(t.id)}
+                      testId={`settings-translation-${t.id}`}
+                    />
+                  </div>
+                ))}
+              </CatalogueGroup>
+            </div>
+          ))}
+        </Card>
+        <Note>
+          {TRANSLATIONS.length} translations in {langCount} languages — every translation
+          Quran.com offers for this app, plus Dr. Mustafa Khattab (The Clear Quran), which comes
+          from the open quran-api dataset. Tapping one makes it the reader’s translation at once;
+          the first time you open a surah with it, the text is saved on the device for a week, so
+          it still reads offline.
+        </Note>
+      </div>
+    </SubScreen>
+  );
+}
+
+export function TafsirScreen({
+  onBack,
+  tafsirId,
+  onSelectTafsir,
+}: {
+  onBack: () => void;
+  tafsirId: number;
+  onSelectTafsir: (id: number) => void;
+}) {
+  const groups = useMemo(() => groupByLanguage(TAFSIRS), []);
+  const langCount = useMemo(() => new Set(TAFSIRS.map((t) => t.lang)).size, []);
+  const currentLang = TAFSIRS.find((t) => t.id === tafsirId)?.lang ?? 'English';
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set([currentLang]));
+  const toggleGroup = (lang: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(lang)) next.delete(lang);
+      else next.add(lang);
+      return next;
+    });
+  };
+  return (
+    <SubScreen title="Tafsir" onBack={onBack}>
+      <p className="mt-2 px-1.5 text-[13px] font-bold" style={{ color: INK }}>
+        Downloaded
+      </p>
+      <div className="mt-2">
+        <Card>
+          <RadioRow
+            label={tafsirName(tafsirId)}
+            sub="The tafsir the reader shows for a verse."
+            selected
+            onSelect={() => {}}
+            testId={`settings-tafsir-${tafsirId}`}
+          />
+        </Card>
+      </div>
+      <p className="mt-4 px-1.5 text-[13px] font-bold" style={{ color: INK }}>
+        Available Downloads
+      </p>
+      <div className="mt-2">
+        <Card>
+          {groups.map((g, gi) => (
+            <div key={g.lang}>
+              {gi > 0 && <div className="ml-12 mr-4 border-t border-[#EFEFEF]" />}
+              <CatalogueGroup
+                lang={g.lang}
+                count={g.items.length}
+                noun="tafsir"
+                expanded={expanded.has(g.lang)}
+                onToggle={() => toggleGroup(g.lang)}
+              >
+                {g.items.map((t) => (
+                  <div key={t.id} className="pl-4">
+                    <RadioRow
+                      label={t.name}
+                      selected={tafsirId === t.id}
+                      onSelect={() => onSelectTafsir(t.id)}
+                      testId={`settings-tafsir-${t.id}`}
+                    />
+                  </div>
+                ))}
+              </CatalogueGroup>
+            </div>
+          ))}
+        </Card>
+        <Note>
+          {TAFSIRS.length} tafsirs in {langCount} languages — every tafsir Quran.com offers for
+          this app. Tapping one makes it the reader’s tafsir: tap any ayah number in the reader
+          to read its tafsir, or open Tafsir view on a surah page.
         </Note>
       </div>
     </SubScreen>

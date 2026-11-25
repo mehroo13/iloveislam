@@ -17,7 +17,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { getSurahById } from '../surahs';
-import { BISMILLAH } from '../../quran/lib';
+import { API, BISMILLAH, KHATTAB_TRANSLATION_ID, translationName } from '../../quran/lib';
 import { type MushafVerse } from '../lib/fetch';
 import { type ReaderPageData } from '../lib/reader-page';
 import { verseDisplayWords } from '../lib/reader-words';
@@ -336,7 +336,7 @@ export function ReaderContinuousText({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Translation mode — Arabic + Khattab English translation.           */
+/*  Translation mode — Arabic + the selected translation.              */
 /* ------------------------------------------------------------------ */
 
 export function ReaderTranslationMode({
@@ -347,6 +347,8 @@ export function ReaderTranslationMode({
   highlightedWords,
   mistakes,
   onMistakeWordClick,
+  translationId = KHATTAB_TRANSLATION_ID,
+  onRosetteClick,
 }: {
   verses: MushafVerse[];
   hideVerses: boolean;
@@ -361,39 +363,70 @@ export function ReaderTranslationMode({
   /** Words the checker flagged this take (Phase 5). */
   mistakes?: ReadonlyMap<string, ReaderMistake>;
   onMistakeWordClick?: (mistake: ReaderMistake, rect: DOMRect) => void;
+  /** The selected translation (Settings → Translations). Khattab
+   *  (131) is the default — the mode showed Khattab before the
+   *  picker existed. Any other id comes from Quran.com v4 through
+   *  the same-origin proxy (cached a week by the service worker). */
+  translationId?: number;
+  /** An ayah-end rosette was tapped: open that verse's tafsir sheet. */
+  onRosetteClick?: (verseKey: string) => void;
 }) {
   const guard = useTapGuard();
-  const [translations, setTranslations] = useState<Record<number, Record<number, string>>>({});
+  // Keyed by `${surah}:${translationId}` so switching translations
+  // never shows the previous translation's text.
+  const [translations, setTranslations] = useState<Record<string, Record<number, string>>>({});
   const [loading, setLoading] = useState<Record<number, boolean>>({});
   const [failed, setFailed] = useState<Record<number, boolean>>({});
-  const loadedRef = useRef<Record<number, boolean>>({});
+  const loadedRef = useRef<Record<string, boolean>>({});
 
   const groups = groupBySurah(verses);
 
-  // Fetch Khattab for each surah on the page, once per surah.
+  // Fetch the selected translation for each surah on the page, once
+  // per surah per translation. Khattab (131) is not a v4 resource —
+  // it comes from its own route; every other id comes from v4.
   useEffect(() => {
     for (const g of groups) {
       const sid = g.sid;
-      if (loadedRef.current[sid] || loading[sid] || translations[sid]) continue;
-      loadedRef.current[sid] = true;
+      const loadKey = `${sid}:${translationId}`;
+      if (loadedRef.current[loadKey] || loading[sid] || translations[loadKey]) continue;
+      loadedRef.current[loadKey] = true;
       setLoading((l) => ({ ...l, [sid]: true }));
-      fetch(`/api/quran/khattab/${sid}`)
+      const url =
+        translationId === KHATTAB_TRANSLATION_ID
+          ? `/api/quran/khattab/${sid}`
+          : `${API}/verses/by_chapter/${sid}?fields=text_uthmani&translations=${translationId}&per_page=all`;
+      fetch(url)
         .then((r) => {
-          if (!r.ok) throw new Error(`khattab ${sid}: ${r.status}`);
+          if (!r.ok) throw new Error(`translation ${sid}: ${r.status}`);
           return r.json();
         })
-        .then((d: { translations?: Record<number, string> }) => {
-          setTranslations((t) => ({ ...t, [sid]: d.translations ?? {} }));
+        .then((d: { translations?: Record<number, string>; verses?: { verse_number?: number; translations?: { text?: string }[] }[] }) => {
+          if (d.translations) {
+            setTranslations((t) => ({ ...t, [loadKey]: d.translations ?? {} }));
+          } else if (Array.isArray(d.verses)) {
+            const map: Record<number, string> = {};
+            for (const v of d.verses) {
+              if (typeof v?.verse_number === 'number' && v.translations?.[0]?.text) {
+                map[v.verse_number] = v.translations[0].text;
+              }
+            }
+            setTranslations((t) => ({ ...t, [loadKey]: map }));
+          } else {
+            throw new Error(`translation ${sid}: unexpected payload`);
+          }
           setFailed((f) => ({ ...f, [sid]: false }));
         })
         .catch(() => {
-          loadedRef.current[sid] = false;
+          loadedRef.current[loadKey] = false;
           setFailed((f) => ({ ...f, [sid]: true }));
         })
         .finally(() => setLoading((l) => ({ ...l, [sid]: false })));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [verses]);
+    // `loading` is a dep on purpose: if the user switches translation
+    // while a surah is still loading, the first fetch is skipped and
+    // this re-runs when it finishes, so the new translation loads.
+  }, [verses, translationId, loading]);
 
   return (
     <div className="w-full px-1 pb-4">
@@ -406,7 +439,7 @@ export function ReaderTranslationMode({
             const key = `V${v.verse_key}`;
             const hidden = hideVerses && !revealed.has(key);
             const ayahNum = Number(v.verse_key.split(':')[1]);
-            const tr = translations[g.sid]?.[ayahNum];
+            const tr = translations[`${g.sid}:${translationId}`]?.[ayahNum];
             return (
               <div key={v.verse_key} className="mb-5 border-b border-[#F0F0F0] pb-4">
                 {/* Arabic — blurs in Hide Verses mode; tap reveals. */}
@@ -439,7 +472,21 @@ export function ReaderTranslationMode({
                       onMistakeWordClick={onMistakeWordClick}
                       clickable={!hidden}
                     />{' '}
-                    <ReaderRosette ayah={ayahNum} />
+                    {onRosetteClick ? (
+                      <button
+                        type="button"
+                        aria-label={`Tafsir for ${v.verse_key}`}
+                        onPointerDown={guard.down}
+                        onClick={(e) => {
+                          if (guard.ok(e)) onRosetteClick(v.verse_key);
+                        }}
+                        className="m-0 inline-flex items-center justify-center border-0 bg-transparent p-0 align-middle"
+                      >
+                        <ReaderRosette ayah={ayahNum} />
+                      </button>
+                    ) : (
+                      <ReaderRosette ayah={ayahNum} />
+                    )}
                   </p>
                 </div>
                 {/* English translation — stays visible as the prompt. */}
@@ -465,7 +512,7 @@ export function ReaderTranslationMode({
         </div>
       ))}
       <p dir="ltr" className="pt-1 text-center text-[12px] leading-snug" style={{ color: MUTED }}>
-        Translation: Dr. Mustafa Khattab, The Clear Quran.
+        Translation: {translationName(translationId)}.
       </p>
     </div>
   );

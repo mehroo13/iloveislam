@@ -26,7 +26,7 @@ export const HIFZ_MISTAKES_KEY = 'ili_hifz_mistakes_v1';
 export const HIFZ_SETTINGS_KEY = 'ili_hifz_settings_v1';
 
 import { JUZ_PAGES } from './juz';
-import { TAFSIR_ID } from '../quran/lib';
+import { KHATTAB_TRANSLATION_ID, TAFSIR_ID } from '../quran/lib';
 
 /** Consecutive correct recitations that mark an ayah memorised. */
 export const CORRECT_STREAK_FOR_MEMORISED = 3;
@@ -36,9 +36,15 @@ export const AYAHS_FOR_DAILY_GOAL = 5;
 export const DAILY_GOAL_OPTIONS = [5, 10, 15, 30] as const;
 export type DailyGoalMinutes = (typeof DAILY_GOAL_OPTIONS)[number];
 export const DEFAULT_DAILY_GOAL_MINUTES: DailyGoalMinutes = 10;
-/** Reciter / translation defaults match app/quran/lib.ts (Alafasy 7, Saheeh International 20). */
+/** Reciter / translation defaults match app/quran/lib.ts (Alafasy 7).
+ *  The translation default is Khattab (131): the reader's Translation
+ *  mode has always shown Dr. Mustafa Khattab, so the Translations
+ *  screen and the mode agree for a fresh user. The surah / ayah pages
+ *  keep their own Saheeh International default — fetchSurahVerses /
+ *  fetchVerseByKey default to 20 and AyahClient initialises to 20 —
+ *  so this change does not touch them. */
 export const DEFAULT_RECITER_ID = 7;
-export const DEFAULT_TRANSLATION_ID = 20;
+export const DEFAULT_TRANSLATION_ID = KHATTAB_TRANSLATION_ID;
 
 export type AyahStatus = 'new' | 'learning' | 'memorised';
 export type AttemptResult = 'correct' | 'miss' | 'peek';

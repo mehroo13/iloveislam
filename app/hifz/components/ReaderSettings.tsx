@@ -35,7 +35,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { deleteAllLocalData } from '../lib/store';
 import { getSupabase } from '../lib/supabase';
-import { DEFAULT_RECITER_ID, loadSettings, saveSettings } from '../progress';
+import { DEFAULT_RECITER_ID, DEFAULT_TRANSLATION_ID, loadSettings, saveSettings } from '../progress';
+import { TAFSIR_ID } from '../../quran/lib';
 import {
   DroppedConnectionScreen,
   HiddenVersesScreen,
@@ -47,8 +48,10 @@ import {
   RecitersScreen,
   RemindersScreen,
   SessionStartStopScreen,
+  TafsirScreen,
   TestingModeScreen,
   ThemeScreen,
+  TranslationsScreen,
 } from './SettingsScreens';
 
 const INK = 'var(--reader-ink)';
@@ -228,8 +231,7 @@ function IconSparkle({ className }: { className?: string }) {
 
 /* ---------------------------------------------------------------- */
 /*  Sections — the reference's sections; each row has a real        */
-/*  destination. Translations / Tafsir rows arrive in a later       */
-/*  commit; they are added here, not left as dead rows.             */
+/*  destination.                                                     */
 /* ---------------------------------------------------------------- */
 
 type ScreenId =
@@ -244,7 +246,9 @@ type ScreenId =
   | 'mistakeFeedback'
   | 'sessionStartStop'
   | 'droppedConnection'
-  | 'testingMode';
+  | 'testingMode'
+  | 'translations'
+  | 'tafsir';
 
 const SCREEN_TITLES: Record<ScreenId, string> = {
   recitation: 'Recitation',
@@ -259,6 +263,8 @@ const SCREEN_TITLES: Record<ScreenId, string> = {
   sessionStartStop: 'Session Start & Stop',
   droppedConnection: 'Dropped Connection',
   testingMode: 'Testing Mode',
+  translations: 'Translations',
+  tafsir: 'Tafsir',
 };
 
 type RowAction =
@@ -309,7 +315,11 @@ const SECTIONS: SectionDef[] = [
   },
   {
     title: 'Downloads',
-    rows: [{ icon: IconDownload, label: 'Reciters', action: { kind: 'screen', screen: 'reciters' } }],
+    rows: [
+      { icon: IconDownload, label: 'Reciters', action: { kind: 'screen', screen: 'reciters' } },
+      { icon: IconBookOpen, label: 'Translations', action: { kind: 'screen', screen: 'translations' } },
+      { icon: IconBookOpen, label: 'Tafsir', action: { kind: 'screen', screen: 'tafsir' } },
+    ],
   },
   {
     title: 'Privacy',
@@ -380,6 +390,10 @@ export default function ReaderSettings({
   onToggleTajweed,
   playSpeed,
   onPlaySpeedChange,
+  translationId,
+  onSelectTranslation,
+  tafsirId,
+  onSelectTafsir,
 }: {
   open: boolean;
   onClose: () => void;
@@ -409,6 +423,12 @@ export default function ReaderSettings({
   /** Settings subtree: Listening screen — Listen play speed. */
   playSpeed?: number;
   onPlaySpeedChange?: (v: number) => void;
+  /** Settings subtree: Translations screen — the reader's translation. */
+  translationId?: number;
+  onSelectTranslation?: (id: number) => void;
+  /** Settings subtree: Tafsir screen — the reader's tafsir. */
+  tafsirId?: number;
+  onSelectTafsir?: (id: number) => void;
 }) {
   const [rendered, setRendered] = useState(open);
   const [shown, setShown] = useState(false);
@@ -674,6 +694,18 @@ export default function ReaderSettings({
         <DroppedConnectionScreen onBack={pop} />
       ) : current === 'testingMode' ? (
         <TestingModeScreen onBack={pop} />
+      ) : current === 'translations' ? (
+        <TranslationsScreen
+          onBack={pop}
+          translationId={translationId ?? DEFAULT_TRANSLATION_ID}
+          onSelectTranslation={(id) => onSelectTranslation?.(id)}
+        />
+      ) : current === 'tafsir' ? (
+        <TafsirScreen
+          onBack={pop}
+          tafsirId={tafsirId ?? TAFSIR_ID}
+          onSelectTafsir={(id) => onSelectTafsir?.(id)}
+        />
       ) : (
         /* Scrollable main screen: banner + grouped sections. */
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8">

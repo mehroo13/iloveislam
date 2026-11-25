@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {
-  API, AUDIO_BASE, TRANSLATIONS, RECITERS, TAFSIRS, TAFSIR_ID, groupByLanguage, stripHtml, cleanIndopak, verseText,
+  API, AUDIO_BASE, TRANSLATIONS, RECITERS, TAFSIRS, TAFSIR_ID, KHATTAB_TRANSLATION_ID, groupByLanguage, stripHtml, cleanIndopak, verseText,
   type Verse,
 } from '../../quran/lib';
 import type { HifzSurah } from '../surahs';
@@ -28,6 +28,8 @@ import { MODE_EVENT, saveMode, type HifzMode } from '../lib/mode';
 const RecitationCoach = dynamic(() => import('./RecitationCoach'), { ssr: false });
 
 const TAFSIR_KEY = 'ili_hifz_tafsir_v1';
+/** Exported so the Tafsir screen writes the same key AyahClient reads. */
+export { TAFSIR_KEY };
 
 type ViewMode = 'arabic' | 'translation' | 'tafsir';
 
@@ -163,12 +165,15 @@ export default function AyahClient({
       const p = loadProgress();
       setMemorised(p.ayahs[key]?.status === 'memorised');
       const storedTafsir = Number(localStorage.getItem(TAFSIR_KEY) ?? '');
-      if (TAFSIRS.some((t) => t.id === storedTafsir)) setTafsirId(storedTafsir);
       // Stage 8 (§26): the ayah page used to reset to Saheeh
       // International on every load, ignoring the translation picked
       // on the surah page. Read the same saved settings SurahClient
       // writes, so the choice survives surah/ayah navigation.
       const st = loadSettings();
+      // The Tafsir screen writes the settings document (and the legacy
+      // key); the document wins, the key is the fallback.
+      if (TAFSIRS.some((t) => t.id === st.tafsirId)) setTafsirId(st.tafsirId as number);
+      else if (TAFSIRS.some((t) => t.id === storedTafsir)) setTafsirId(storedTafsir);
       if (TRANSLATIONS.some((x) => x.id === st.translationId)) setTranslationId(st.translationId);
       if (RECITERS.some((r) => r.id === st.reciterId)) setReciterId(st.reciterId);
     } catch {
@@ -179,6 +184,10 @@ export default function AyahClient({
   useEffect(() => {
     try {
       localStorage.setItem(TAFSIR_KEY, String(tafsirId));
+      // The Tafsir screen reads the settings document — keep it in
+      // step when this page's own picker changes the tafsir.
+      const st = loadSettings();
+      if (st.tafsirId !== tafsirId) saveSettings({ ...st, tafsirId });
     } catch {
       /* ignore */
     }
@@ -187,12 +196,29 @@ export default function AyahClient({
   const refetch = useCallback(
     async (tId: number, rId: number) => {
       try {
+        // Khattab (131) is not a v4 resource: fetch the verse with
+        // the default translation for its shape + audio, then
+        // substitute the Khattab text from its own route.
         const res = await fetch(
-          `${API}/verses/by_key/${key}?fields=text_indopak,text_uthmani&translations=${tId}&audio=${rId}`,
+          `${API}/verses/by_key/${key}?fields=text_indopak,text_uthmani&translations=${tId === KHATTAB_TRANSLATION_ID ? 20 : tId}&audio=${rId}`,
         );
         if (!res.ok) return;
         const data = await res.json();
-        if (data.verse) setVerse(data.verse as Verse);
+        if (!data.verse) return;
+        const verse = data.verse as Verse;
+        if (tId === KHATTAB_TRANSLATION_ID) {
+          try {
+            const kRes = await fetch(`/api/quran/khattab/${key.split(':')[0]}`);
+            if (kRes.ok) {
+              const kData = (await kRes.json()) as { translations?: Record<number, string> };
+              const text = kData.translations?.[verse.verse_number];
+              if (typeof text === 'string' && text.length > 0) verse.translations = [{ text }];
+            }
+          } catch {
+            /* keep the default translation as the fallback */
+          }
+        }
+        setVerse(verse);
       } catch {
         /* keep the server-rendered verse */
       }
