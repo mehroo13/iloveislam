@@ -59,7 +59,7 @@ import { readerWordKey } from '../lib/reader-words';
 import { MIN_READER_SESSION_MS, saveReaderSession, surahName } from '../lib/reader-sessions';
 import { DEFAULT_RECITER_ID, loadSettings, saveSettings } from '../progress';
 import { type PeekInfo, type ReaderMistake, loadFrequentMistakeKeys } from '../lib/reader-mistakes';
-import { playSessionFeedback } from '../lib/sounds';
+import { playDroppedFeedback, playMistakeFeedback, playSessionFeedback } from '../lib/sounds';
 import {
   loadEngine,
   engineSupport,
@@ -725,6 +725,20 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const enginePromiseRef = useRef<Promise<RecitationEngine | null> | null>(null);
   const sessionRef = useRef<RecitationSession | null>(null);
   const micStateRef = useRef<MicState>('idle');
+  /** Words the mistake sound already played for this take (the
+   *  checker can re-emit a word — one sound per newly flagged word). */
+  const mistakeSoundKeysRef = useRef(new Set<string>());
+  /* Dropped Connection feedback (Settings → Dropped Connection):
+   * when the network goes away mid-take, a sound + vibration, if
+   * enabled. The coach has its own identical listener. */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onOffline = () => {
+      if (micStateRef.current === 'recording') playDroppedFeedback();
+    };
+    window.addEventListener('offline', onOffline);
+    return () => window.removeEventListener('offline', onOffline);
+  }, []);
   /** Words recognised so far this take, keyed "surah:ayah:word" — the
    * tracker re-emits a word on every locked position event, so the
    * transcript must dedupe by key. */
@@ -1068,6 +1082,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     setInterimText('');
     setHighlightedWords(new Set());
     setMistakeMap(new Map());
+    mistakeSoundKeysRef.current.clear();
     setMistakeTooltip(null);
     // Phase 6: a take that starts with the text hidden is a
     // memorisation test. Re-hide anything peeked in an earlier take
@@ -1140,6 +1155,15 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
             });
             return next;
           });
+          // Mistake Feedback (Settings → Mistake Feedback): one sound
+          // + vibration per newly flagged word, not per re-emitted
+          // event — the checker can re-emit a word, so the per-take
+          // set dedupes. (The helper honours the sound/vibrate
+          // toggles; detection-off never reaches this branch.)
+          if (!mistakeSoundKeysRef.current.has(key)) {
+            mistakeSoundKeysRef.current.add(key);
+            playMistakeFeedback();
+          }
         }
         // 'not-reached' is never emitted live — ignore.
       },

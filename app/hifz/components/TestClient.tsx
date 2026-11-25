@@ -24,6 +24,7 @@ import { saveBestTestPct } from '../badges';
 import { loadTestSessions, saveTestSession, loadInProgressTest, saveInProgressTest, clearInProgressTest, type TestSessionRecord, type InProgressTest } from '../lib/mode';
 import { RangeWheel, type RangeSelection } from './SharedSheets';
 import { useT } from '../lib/i18n';
+import { playTestFeedback } from '../lib/sounds';
 
 type Scope = 'memorised' | 'practised' | 'any' | 'weakest';
 type Phase = 'setup' | 'testing' | 'done';
@@ -590,6 +591,9 @@ export default function TestClient() {
       if (!ok) setMistakesTotal((m) => m + 1);
       setResults((r) => [...r, ok]);
       setStreak((s) => (ok ? s + 1 : 0));
+      // Testing Mode feedback (Settings → Testing Mode): a sound +
+      // vibration when a question is finished, if enabled.
+      playTestFeedback();
       // Flash the card green (correct) or red (missed) for a beat so the
       // user actually sees it, then move on. The old code advanced
       // instantly, which is why the colour promise could never be seen.

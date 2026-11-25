@@ -50,6 +50,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { AUDIO_BASE, API, RECITERS } from '../../quran/lib';
+import { playDroppedFeedback, playMistakeFeedback } from '../lib/sounds';
 import {
   addMistake,
   ayahsPractisedOn,
@@ -285,6 +286,20 @@ export default function RecitationCoach({
   // Mode + feedback.
   const [mode, setMode] = useState<CoachMode>('mic');
   const [liveWords, setLiveWords] = useState<Record<string, 'correct' | 'wrong' | 'missed'>>({});
+  /** Words the mistake sound already played for this take (the
+   *  checker can re-emit a word — one sound per newly flagged word). */
+  const mistakeSoundKeysRef = useRef(new Set<string>());
+  /* Dropped Connection feedback (Settings → Dropped Connection):
+   * when the network goes away mid-take, a sound + vibration, if
+   * enabled. A live session (sessionRef non-null) is a live take. */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onOffline = () => {
+      if (sessionRef.current) playDroppedFeedback();
+    };
+    window.addEventListener('offline', onOffline);
+    return () => window.removeEventListener('offline', onOffline);
+  }, []);
   const [result, setResult] = useState<SessionResult | null>(null);
   const [feedbackWords, setFeedbackWords] = useState<FeedbackWord[]>([]);
   const [selfMarks, setSelfMarks] = useState<Record<string, boolean | null>>({});
@@ -537,6 +552,7 @@ export default function RecitationCoach({
     pausedTotalRef.current = 0;
     pauseStartRef.current = 0;
     setLiveWords({});
+    mistakeSoundKeysRef.current.clear();
     setSelfMarks({});
     if (mode === 'mic' || mode === 'follow') void loadEngineNow();
   }, [loadEngineNow, mode]);
@@ -752,6 +768,15 @@ export default function RecitationCoach({
         const liveStatus: 'correct' | 'wrong' | 'missed' =
           e.status === 'correct' ? 'correct' : e.status === 'wrong' ? 'wrong' : 'missed';
         setLiveWords((prev) => ({ ...prev, [wordKey(e.surah, e.ayah, e.word)]: liveStatus }));
+        // Mistake Feedback (Settings → Mistake Feedback): one sound +
+        // vibration per newly flagged word, not per re-emitted event.
+        if (e.status !== 'correct') {
+          const k = wordKey(e.surah, e.ayah, e.word);
+          if (!mistakeSoundKeysRef.current.has(k)) {
+            mistakeSoundKeysRef.current.add(k);
+            playMistakeFeedback();
+          }
+        }
       },
       onLevel: (db: number) => {
         // Meter scale: -60 dBFS (room noise) → 0, -10 dBFS (loud, close

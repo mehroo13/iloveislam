@@ -11,10 +11,10 @@
 // fine. No Tarteel name, logo or artwork anywhere.
 //
 // Screens in this file: Recitation, Listening, Reciters, Hidden
-// Verses, Marking, Language, Theme, Reminders. The Sounds & Haptics
-// screens (Mistake Feedback, Session Start & Stop, Dropped
-// Connection, Testing Mode) and Downloads (Translations, Tafsir)
-// and the Mushaf Layout / Data Usage / Delete screens live in their
+// Verses, Marking, Language, Theme, Reminders, and the Sounds &
+// Haptics screens (Mistake Feedback, Session Start & Stop, Dropped
+// Connection, Testing Mode). Downloads (Translations, Tafsir) and
+// the Mushaf Layout / Data Usage / Delete screens live in their
 // own commits.
 
 'use client';
@@ -29,6 +29,7 @@ import {
 import { applyReaderTheme, READER_THEME_EVENT, getReaderTheme, type StoredTheme } from '../lib/reader-theme';
 import { loadSettings, saveSettings } from '../progress';
 import { RECITERS } from '../../quran/lib';
+import { SOUND_EFFECTS, playSoundEffect, type SoundEffectId } from '../lib/sounds';
 
 const INK = 'var(--reader-ink)';
 const MUTED = 'var(--reader-muted)';
@@ -615,6 +616,337 @@ export function ThemeScreen({ onBack }: { onBack: () => void }) {
           {getReaderTheme() === 'dark'
             ? 'The reader is showing the dark theme right now.'
             : 'The reader is showing the light theme right now.'}
+        </Note>
+      </div>
+    </SubScreen>
+  );
+}
+
+/* ---------------------------------------------------------------- */
+/*  Sounds & Haptics                                                 */
+/* ---------------------------------------------------------------- */
+
+/** The sound-effect picker: ONLY the app's own synthesised effects
+ *  (see lib/sounds.ts) — every row plays for real, and each row has
+ *  a Preview button so the user can hear it before picking it. */
+export function SoundEffectPicker({
+  value,
+  onChange,
+  testIdPrefix,
+}: {
+  value: SoundEffectId;
+  onChange: (id: SoundEffectId) => void;
+  testIdPrefix: string;
+}) {
+  return (
+    <div className="px-4 py-[14px]">
+      <p className="text-[15px]" style={{ color: INK }}>
+        Sound effect
+      </p>
+      <div className="mt-2 flex flex-col">
+        {SOUND_EFFECTS.map((s, i) => (
+          <div key={s.id}>
+            {i > 0 && <div className="ml-0 mr-0 border-t border-[#EFEFEF]" />}
+            <div className="flex items-center gap-3 py-2">
+              <button
+                type="button"
+                onClick={() => onChange(s.id)}
+                aria-pressed={value === s.id}
+                data-testid={`${testIdPrefix}-${s.id}`}
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px]" style={{ color: INK }}>
+                    {s.name}
+                  </span>
+                  <span className="mt-0.5 block text-[12.5px] leading-snug" style={{ color: MUTED }}>
+                    {s.blurb}
+                  </span>
+                </span>
+                {value === s.id && <IconCheck />}
+              </button>
+              <button
+                type="button"
+                onClick={() => playSoundEffect(s.id)}
+                aria-label={`Preview ${s.name}`}
+                data-testid={`${testIdPrefix}-preview-${s.id}`}
+                className="shrink-0 rounded-full border border-[#D1D5DB] px-3 py-1.5 text-[12px] font-bold"
+                style={{ color: INK }}
+              >
+                Preview
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function loadSoundPrefs(): {
+  mistakeSound: boolean;
+  mistakeSoundEffect: SoundEffectId;
+  mistakeVibrate: boolean;
+  sessionSound: boolean;
+  sessionVibrate: boolean;
+  droppedSound: boolean;
+  droppedVibrate: boolean;
+  testSound: boolean;
+  testSoundEffect: SoundEffectId;
+  testVibrate: boolean;
+} {
+  try {
+    const s = loadSettings();
+    return {
+      mistakeSound: s.mistakeSound !== false,
+      mistakeSoundEffect: s.mistakeSoundEffect ?? 'chime',
+      mistakeVibrate: s.mistakeVibrate !== false,
+      sessionSound: s.sessionSound !== false,
+      sessionVibrate: s.sessionVibrate !== false,
+      droppedSound: s.droppedSound !== false,
+      droppedVibrate: s.droppedVibrate !== false,
+      testSound: s.testSound !== false,
+      testSoundEffect: s.testSoundEffect ?? 'chime',
+      testVibrate: s.testVibrate !== false,
+    };
+  } catch {
+    return {
+      mistakeSound: true,
+      mistakeSoundEffect: 'chime',
+      mistakeVibrate: true,
+      sessionSound: true,
+      sessionVibrate: true,
+      droppedSound: true,
+      droppedVibrate: true,
+      testSound: true,
+      testSoundEffect: 'chime',
+      testVibrate: true,
+    };
+  }
+}
+
+function saveSoundPrefs(patch: Partial<ReturnType<typeof loadSoundPrefs>>): void {
+  try {
+    saveSettings({ ...loadSettings(), ...patch });
+  } catch {
+    /* storage unavailable — the choice still applies this session */
+  }
+}
+
+export function MistakeFeedbackScreen({
+  onBack,
+  onOpenRecitation,
+}: {
+  onBack: () => void;
+  onOpenRecitation: () => void;
+}) {
+  const [prefs, setPrefs] = useState(loadSoundPrefs);
+  const [detectMistakes, setDetectMistakes] = useState(() => {
+    try {
+      return loadSettings().detectMistakes !== false;
+    } catch {
+      return true;
+    }
+  });
+  // Re-read when returning from the Recitation screen (the screen
+  // remounts on every push, so this runs on each visit).
+  useEffect(() => {
+    setDetectMistakes(() => {
+      try {
+        return loadSettings().detectMistakes !== false;
+      } catch {
+        return true;
+      }
+    });
+  }, []);
+  const patch = (p: Partial<typeof prefs>) => {
+    setPrefs((prev) => ({ ...prev, ...p }));
+    saveSoundPrefs(p);
+  };
+  return (
+    <SubScreen title="Mistake Feedback" onBack={onBack}>
+      {!detectMistakes && (
+        <div className="mt-2 rounded-[12px] border border-[#FDE68A] bg-[#FFFBEB] px-4 py-3">
+          <p className="text-[14px] font-bold" style={{ color: '#92400E' }}>
+            Mistake Detection Is Disabled
+          </p>
+          <p className="mt-1 text-[13px] leading-snug" style={{ color: '#92400E' }}>
+            Turn mistake detection back on to get sound and vibration when the coach flags a word.
+          </p>
+          <button
+            type="button"
+            onClick={onOpenRecitation}
+            data-testid="settings-mistake-feedback-open-recitation"
+            className="mt-3 h-10 rounded-full bg-[#16A34A] px-5 text-[13px] font-bold text-white"
+          >
+            Open Recitation Settings
+          </button>
+        </div>
+      )}
+      <div className="mt-4">
+        <p className="px-1.5 text-[13px] font-bold" style={{ color: INK }}>
+          Sound
+        </p>
+        <div className="mt-2">
+          <Card>
+            <ToggleRow
+              label="Play a sound"
+              sub="A short sound each time the coach flags a word you miss or say differently."
+              value={prefs.mistakeSound}
+              onChange={(v) => patch({ mistakeSound: v })}
+              testId="settings-mistake-sound"
+            />
+            {prefs.mistakeSound && (
+              <>
+                <Divider />
+                <SoundEffectPicker
+                  value={prefs.mistakeSoundEffect}
+                  onChange={(id) => patch({ mistakeSoundEffect: id })}
+                  testIdPrefix="settings-mistake-effect"
+                />
+              </>
+            )}
+          </Card>
+        </div>
+        <p className="mt-4 px-1.5 text-[13px] font-bold" style={{ color: INK }}>
+          Haptic
+        </p>
+        <div className="mt-2">
+          <Card>
+            <ToggleRow
+              label="Vibrate my device"
+              sub="A short vibration with the sound when a mistake is flagged. (Android only — iPhones ignore vibration from a web page.)"
+              value={prefs.mistakeVibrate}
+              onChange={(v) => patch({ mistakeVibrate: v })}
+              testId="settings-mistake-vibrate"
+            />
+          </Card>
+        </div>
+      </div>
+    </SubScreen>
+  );
+}
+
+export function SessionStartStopScreen({ onBack }: { onBack: () => void }) {
+  const [prefs, setPrefs] = useState(loadSoundPrefs);
+  const patch = (p: Partial<typeof prefs>) => {
+    setPrefs((prev) => ({ ...prev, ...p }));
+    saveSoundPrefs(p);
+  };
+  return (
+    <SubScreen title="Session Start & Stop" onBack={onBack}>
+      <div className="mt-2">
+        <Card>
+          <ToggleRow
+            label="Play a sound"
+            sub="A short sound when a recitation session starts and when it stops."
+            value={prefs.sessionSound}
+            onChange={(v) => patch({ sessionSound: v })}
+            testId="settings-session-sound"
+          />
+          <Divider />
+          <ToggleRow
+            label="Vibrate my device"
+            sub="A short vibration with the sound at the start and the end of a session. (Android only — iPhones ignore vibration from a web page.)"
+            value={prefs.sessionVibrate}
+            onChange={(v) => patch({ sessionVibrate: v })}
+            testId="settings-session-vibrate"
+          />
+        </Card>
+        <Note>
+          A session is one mic take in the reader or the coach — from the moment you tap the mic
+          until you stop it.
+        </Note>
+      </div>
+    </SubScreen>
+  );
+}
+
+export function DroppedConnectionScreen({ onBack }: { onBack: () => void }) {
+  const [prefs, setPrefs] = useState(loadSoundPrefs);
+  const patch = (p: Partial<typeof prefs>) => {
+    setPrefs((prev) => ({ ...prev, ...p }));
+    saveSoundPrefs(p);
+  };
+  return (
+    <SubScreen title="Dropped Connection" onBack={onBack}>
+      <div className="mt-2">
+        <Card>
+          <ToggleRow
+            label="Play a sound"
+            sub="A low buzz when the connection drops while you’re reciting, so you know the coach may have lost its place."
+            value={prefs.droppedSound}
+            onChange={(v) => patch({ droppedSound: v })}
+            testId="settings-dropped-sound"
+          />
+          <Divider />
+          <ToggleRow
+            label="Vibrate my device"
+            sub="A double vibration with the sound when the connection drops. (Android only — iPhones ignore vibration from a web page.)"
+            value={prefs.droppedVibrate}
+            onChange={(v) => patch({ droppedVibrate: v })}
+            testId="settings-dropped-vibrate"
+          />
+        </Card>
+        <Note>
+          The recitation coach runs on the device, so a dropped connection doesn’t stop the
+          listening itself — this is only a heads-up that the network went away mid-take.
+        </Note>
+      </div>
+    </SubScreen>
+  );
+}
+
+export function TestingModeScreen({ onBack }: { onBack: () => void }) {
+  const [prefs, setPrefs] = useState(loadSoundPrefs);
+  const patch = (p: Partial<typeof prefs>) => {
+    setPrefs((prev) => ({ ...prev, ...p }));
+    saveSoundPrefs(p);
+  };
+  return (
+    <SubScreen title="Testing Mode" onBack={onBack}>
+      <div className="mt-2">
+        <p className="px-1.5 text-[13px] font-bold" style={{ color: INK }}>
+          Sound
+        </p>
+        <div className="mt-2">
+          <Card>
+            <ToggleRow
+              label="Play a sound"
+              sub="A short sound each time you finish a question in a test."
+              value={prefs.testSound}
+              onChange={(v) => patch({ testSound: v })}
+              testId="settings-test-sound"
+            />
+            {prefs.testSound && (
+              <>
+                <Divider />
+                <SoundEffectPicker
+                  value={prefs.testSoundEffect}
+                  onChange={(id) => patch({ testSoundEffect: id })}
+                  testIdPrefix="settings-test-effect"
+                />
+              </>
+            )}
+          </Card>
+        </div>
+        <p className="mt-4 px-1.5 text-[13px] font-bold" style={{ color: INK }}>
+          Haptic
+        </p>
+        <div className="mt-2">
+          <Card>
+            <ToggleRow
+              label="Vibrate my device"
+              sub="A short vibration with the sound when a question is finished. (Android only — iPhones ignore vibration from a web page.)"
+              value={prefs.testVibrate}
+              onChange={(v) => patch({ testVibrate: v })}
+              testId="settings-test-vibrate"
+            />
+          </Card>
+        </div>
+        <Note>
+          Start a test from the Testing Mode card at the top of Settings, or the Practice tab in
+          the dashboard.
         </Note>
       </div>
     </SubScreen>

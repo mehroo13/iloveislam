@@ -37,13 +37,17 @@ import { deleteAllLocalData } from '../lib/store';
 import { getSupabase } from '../lib/supabase';
 import { DEFAULT_RECITER_ID, loadSettings, saveSettings } from '../progress';
 import {
+  DroppedConnectionScreen,
   HiddenVersesScreen,
   LanguageScreen,
   ListeningScreen,
   MarkingScreen,
+  MistakeFeedbackScreen,
   RecitationScreen,
   RecitersScreen,
   RemindersScreen,
+  SessionStartStopScreen,
+  TestingModeScreen,
   ThemeScreen,
 } from './SettingsScreens';
 
@@ -152,6 +156,40 @@ function IconDownload() {
     </svg>
   );
 }
+function IconSpeaker() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 9.5v5h3.5L12 19.5v-15L7.5 9.5H4Z" />
+      <path d="M15.5 9a4.2 4.2 0 0 1 0 6" />
+      <path d="M18 6.5a8 8 0 0 1 0 11" />
+    </svg>
+  );
+}
+function IconPlayCircle() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M10 8.5l5.5 3.5L10 15.5v-7Z" style={{ fill: INK }} stroke="none" />
+    </svg>
+  );
+}
+function IconWifiOff() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2.5 9a15 15 0 0 1 5-3.3M12 5.5c2.9 0 5.7 1 8 2.8M5.5 12.5a10 10 0 0 1 3.5-2.3M12 12.5c1.9 0 3.7.7 5 1.8" />
+      <circle cx="12" cy="18.5" r="1.4" style={{ fill: INK }} stroke="none" />
+      <path d="M4 4l16 16" />
+    </svg>
+  );
+}
+function IconCheckCircle() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8 12.5l2.8 2.8L16.5 9" />
+    </svg>
+  );
+}
 function IconLock() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -190,9 +228,8 @@ function IconSparkle({ className }: { className?: string }) {
 
 /* ---------------------------------------------------------------- */
 /*  Sections — the reference's sections; each row has a real        */
-/*  destination. Sounds & Haptics rows and Translations / Tafsir    */
-/*  rows arrive in later commits; they are added here, not left     */
-/*  as dead rows.                                                   */
+/*  destination. Translations / Tafsir rows arrive in a later       */
+/*  commit; they are added here, not left as dead rows.             */
 /* ---------------------------------------------------------------- */
 
 type ScreenId =
@@ -203,7 +240,11 @@ type ScreenId =
   | 'marking'
   | 'language'
   | 'theme'
-  | 'reminders';
+  | 'reminders'
+  | 'mistakeFeedback'
+  | 'sessionStartStop'
+  | 'droppedConnection'
+  | 'testingMode';
 
 const SCREEN_TITLES: Record<ScreenId, string> = {
   recitation: 'Recitation',
@@ -214,12 +255,15 @@ const SCREEN_TITLES: Record<ScreenId, string> = {
   language: 'Language',
   theme: 'Theme',
   reminders: 'Reminders',
+  mistakeFeedback: 'Mistake Feedback',
+  sessionStartStop: 'Session Start & Stop',
+  droppedConnection: 'Dropped Connection',
+  testingMode: 'Testing Mode',
 };
 
 type RowAction =
   | { kind: 'screen'; screen: ScreenId }
   | { kind: 'layout' }
-  | { kind: 'testing' }
   | { kind: 'dataUsage' }
   | { kind: 'delete' }
   | { kind: 'leaderboard' };
@@ -255,12 +299,17 @@ const SECTIONS: SectionDef[] = [
     rows: [{ icon: IconBell, label: 'Reminders', action: { kind: 'screen', screen: 'reminders' } }],
   },
   {
-    title: 'Downloads',
-    rows: [{ icon: IconDownload, label: 'Reciters', action: { kind: 'screen', screen: 'reciters' } }],
+    title: 'Sounds & Haptics',
+    rows: [
+      { icon: IconSpeaker, label: 'Mistake Feedback', action: { kind: 'screen', screen: 'mistakeFeedback' } },
+      { icon: IconPlayCircle, label: 'Session Start & Stop', action: { kind: 'screen', screen: 'sessionStartStop' } },
+      { icon: IconWifiOff, label: 'Dropped Connection', action: { kind: 'screen', screen: 'droppedConnection' } },
+      { icon: IconCheckCircle, label: 'Testing Mode', action: { kind: 'screen', screen: 'testingMode' } },
+    ],
   },
   {
-    title: 'Practice',
-    rows: [{ icon: IconBell, label: 'Testing Mode', action: { kind: 'testing' } }],
+    title: 'Downloads',
+    rows: [{ icon: IconDownload, label: 'Reciters', action: { kind: 'screen', screen: 'reciters' } }],
   },
   {
     title: 'Privacy',
@@ -548,7 +597,6 @@ export default function ReaderSettings({
   const onRowAction = (action: RowAction) => {
     if (action.kind === 'screen') push(action.screen);
     else if (action.kind === 'layout') onOpenLayout?.();
-    else if (action.kind === 'testing') onTestYourself?.();
     else if (action.kind === 'dataUsage') void openDataUsage();
     else if (action.kind === 'delete') void handleDeleteTap();
   };
@@ -618,6 +666,14 @@ export default function ReaderSettings({
         <ThemeScreen onBack={pop} />
       ) : current === 'reminders' ? (
         <RemindersScreen onBack={pop} />
+      ) : current === 'mistakeFeedback' ? (
+        <MistakeFeedbackScreen onBack={pop} onOpenRecitation={() => push('recitation')} />
+      ) : current === 'sessionStartStop' ? (
+        <SessionStartStopScreen onBack={pop} />
+      ) : current === 'droppedConnection' ? (
+        <DroppedConnectionScreen onBack={pop} />
+      ) : current === 'testingMode' ? (
+        <TestingModeScreen onBack={pop} />
       ) : (
         /* Scrollable main screen: banner + grouped sections. */
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8">
