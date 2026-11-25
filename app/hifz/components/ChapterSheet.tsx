@@ -16,7 +16,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { ALL_SURAHS, getSurahById, type HifzSurah } from '../surahs';
-import { SURAH_FIRST_PAGE } from '../mushaf';
+import { JUZ_FIRST_PAGE, SURAH_FIRST_PAGE, surahsOnMushafPage } from '../mushaf';
 import { loadBookmarks, type BookmarkEntry } from '../lib/bookmarks';
 import { useT } from '../lib/i18n';
 
@@ -193,8 +193,8 @@ export default function ChapterSheet({
 
         {/* Tabs: Chapters / Parts / Bookmarks — each shows its own
             real list. Chapters: the 114 surahs grouped by Juz.
-            Parts: the 30 Juz, each jumping to the surah that starts
-            it. Bookmarks: the reader's saved bookmarks. */}
+            Parts: the 30 Juz, each jumping to its first page.
+            Bookmarks: the reader's saved bookmarks. */}
         <div className="mt-3 flex shrink-0 gap-2 px-5" role="tablist" aria-label={t('rb.list.chapterJuzLists')}>
           {(
             [
@@ -257,17 +257,18 @@ export default function ChapterSheet({
         <div className="relative mt-3 min-h-0 flex-1">
           <div ref={listRef} className="h-full overflow-y-auto overscroll-contain">
             {tab === 'parts' ? (
-              /* Parts: the 30 Juz. Tapping one jumps to the surah
-                 that starts the Juz — its first page. */
+              /* Parts: the 30 Juz. Tapping one jumps to its first
+                 page (JUZ_FIRST_PAGE) — a Juz is tappable even when
+                 no surah starts in it (Juz 2 is Al-Baqarah alone). */
               <ul>
                 {juzOrder.map((j) => {
-                  const first = ALL_SURAHS.find((s) => s.juz === j);
-                  if (!first) return null;
+                  const page = JUZ_FIRST_PAGE[j] ?? 1;
+                  const first = getSurahById(surahsOnMushafPage(page)[0] ?? 1);
                   return (
                     <li key={j} style={{ backgroundColor: 'var(--reader-card)' }}>
                       <button
                         type="button"
-                        onClick={() => onSelectSurah(first.id)}
+                        onClick={() => onSelectPage(page)}
                         className="flex w-full items-center gap-3 px-5 py-2 text-left"
                       >
                         <span className="w-8 shrink-0 self-start pt-[3px] text-center text-sm font-semibold" style={{ color: INK }}>
@@ -278,12 +279,15 @@ export default function ChapterSheet({
                             Juz {j}
                           </span>
                           <span className="block text-[11px] leading-[1.2]" style={{ color: MUTED }}>
-                            Starts with {first.name} · PG. {SURAH_FIRST_PAGE[first.id] ?? 1}
+                            Starts on page {page}
+                            {first ? ` · ${first.name}` : ''}
                           </span>
                         </span>
-                        <span dir="rtl" lang="ar" className="font-quran shrink-0 self-center text-[20px] leading-none" style={{ color: INK }}>
-                          {first.arabic}
-                        </span>
+                        {first && (
+                          <span dir="rtl" lang="ar" className="font-quran shrink-0 self-center text-[20px] leading-none" style={{ color: INK }}>
+                            {first.arabic}
+                          </span>
+                        )}
                       </button>
                     </li>
                   );
