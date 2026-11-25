@@ -593,6 +593,30 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
    * text/translation views. */
   const [hideVerses, setHideVerses] = useState(false);
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
+  // Settings subtree (commit F): Hide Verses is a persisted setting
+  // — restore the saved choice on mount. Test flows still flip it
+  // in-session only (TEST YOURSELF turns it on; leaving a take
+  // turns it off); only the Settings toggle writes the document.
+  useEffect(() => {
+    try {
+      setHideVerses(loadSettings().hideVerses ?? false);
+    } catch {
+      /* default stands */
+    }
+  }, []);
+  /** The Settings toggle for Hide Verses: flips the reader state
+   *  and persists the choice. */
+  const toggleHideVerses = useCallback(() => {
+    setHideVerses((v) => {
+      const next = !v;
+      try {
+        saveSettings({ ...loadSettings(), hideVerses: next });
+      } catch {
+        /* storage unavailable — the choice applies this session */
+      }
+      return next;
+    });
+  }, []);
   /* Phase 6 (Testing Mode): refs the mic callbacks read without
    * stale closures. `hideVersesRef` mirrors the toggle; `testTakeRef`
    * is true while the live take started with the text hidden (a
@@ -2586,7 +2610,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         }}
         initialScreen={settingsSeed}
         hideVerses={hideVerses}
-        onToggleHideVerses={() => setHideVerses((v) => !v)}
+        onToggleHideVerses={toggleHideVerses}
         detectMistakes={detectMistakes}
         onToggleDetectMistakes={toggleDetectMistakes}
         hideMarkers={hideMarkers}

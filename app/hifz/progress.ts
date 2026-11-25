@@ -184,6 +184,10 @@ export interface HifzSettings {
   tajweedColors?: boolean;
   /** Hide ayah-end markers (rosettes) for a true memory test. */
   hideAyahMarkers?: boolean;
+  /** Hide verses (blur each ayah until tapped) — the Hidden Verses
+   *  toggle (Settings subtree, commit F: persisted so the choice
+   *  survives a reload, like the other toggles). */
+  hideVerses?: boolean;
   /** Save session audio data (on-device only) so recordings can play back. */
   saveAudio?: boolean;
   /** Sound + vibration on test-question completion. */
@@ -332,6 +336,7 @@ export function createDefaultSettings(now: Date = new Date()): HifzSettings {
     showForHidden: false,
     tajweedColors: true,
     hideAyahMarkers: false,
+    hideVerses: false,
     saveAudio: true,
     testSound: true,
     tafsirId: TAFSIR_ID,

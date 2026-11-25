@@ -450,7 +450,8 @@ export function HiddenVersesScreen({
         </Card>
         <Note>
           Hidden verses still count for the mic: the coach follows what you recite and reveals
-          the words as you say them.
+          the words as you say them. Your choice is saved — hidden verses stay hidden when you
+          come back.
         </Note>
       </div>
     </SubScreen>
