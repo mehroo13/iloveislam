@@ -3,10 +3,16 @@
 // No breadcrumb, no big heading + description. Client component only so
 // the title follows the interface language; the pages stay server
 // components (metadata lives there).
+//
+// Back is always a FIXED destination, never router.back(): the browser
+// history back looped Settings -> Account -> Settings (the user came
+// from the Account page, so "back" returned there instead of Home).
+// The main Settings page goes Home (the reader, "/"); detail screens
+// pass backHref="/hifz/settings".
+
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useT } from '../lib/i18n';
 
 const BTN =
@@ -31,19 +37,14 @@ function BackChevron() {
 
 export default function SettingsHeader({ title, backHref }: { title?: string; backHref?: string }) {
   const t = useT();
-  const router = useRouter();
   const label = title ?? t('set.title');
+  // No backHref = the main Settings page: back goes Home (the reader).
+  const href = backHref ?? '/';
   return (
     <div className="flex items-center justify-between">
-      {backHref ? (
-        <Link href={backHref} aria-label={t('rb.search.goBack')} className={BTN}>
-          <BackChevron />
-        </Link>
-      ) : (
-        <button type="button" onClick={() => router.back()} aria-label={t('rb.search.goBack')} className={BTN}>
-          <BackChevron />
-        </button>
-      )}
+      <Link href={href} aria-label={t('rb.search.goBack')} className={BTN}>
+        <BackChevron />
+      </Link>
       <h1 className="text-xl font-bold text-[#111827]">{label}</h1>
     </div>
   );

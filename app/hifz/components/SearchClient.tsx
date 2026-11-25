@@ -12,7 +12,6 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { ALL_SURAHS, getSurahById } from '../surahs';
 import { SURAH_FIRST_PAGE } from '../mushaf';
 import { JUZ_PAGES } from '../juz';
@@ -84,7 +83,6 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
   const [activeQuery, setActiveQuery] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const t = useT();
-  const router = useRouter();
 
   // Jump-to controls
   const [jumpSurah, setJumpSurah] = useState(2);
@@ -195,18 +193,20 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
           just above the keyboard (100dvh) when typing. No bottom nav or
           floating mode pill is rendered here — those are removed globally. */}
       <div className="flex min-h-[100dvh] flex-col px-3 py-4 sm:px-5 sm:py-5">
-        {/* Header: back arrow top-left + "Search" title top-right */}
+        {/* Header: back arrow top-left + "Search" title top-right.
+            Back is a fixed destination (Home, the reader) — never
+            router.back(), which returns to whatever page the user came
+            from and can loop or leave the app. */}
         <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => router.back()}
+          <Link
+            href="/"
             aria-label={t('rb.search.goBack')}
             className="flex h-11 w-11 items-center justify-center rounded-full border border-[#111827]/25 bg-transparent text-[#111827] hover:bg-white"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
               <path d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
-          </button>
+          </Link>
           <h2 className="text-xl font-bold text-[#111827]">{t('common.search')}</h2>
         </div>
 
