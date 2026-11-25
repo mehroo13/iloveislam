@@ -6,7 +6,7 @@
 // Indo-Pak text, split by whitespace, paired with the words payload by
 // position for translation + transliteration.
 
-import { UPSTREAM_API, TAFSIR_ID, TAFSIR_NAME, TRANSLATIONS, TAFSIRS, type Verse } from '../../quran/lib';
+import { UPSTREAM_API, TAFSIR_ID, TAFSIR_NAME, TRANSLATIONS, TAFSIRS, KHATTAB_TRANSLATION_ID, type Verse } from '../../quran/lib';
 import { cleanIndopak } from '../../quran/lib';
 import type { HifzSurah } from '../surahs';
 
@@ -49,30 +49,77 @@ async function fetchJson(url: string): Promise<unknown | null> {
   }
 }
 
-/** All verses of a surah: Indo-Pak text + Saheeh International + reciter audio. */
+/** All verses of a surah: Indo-Pak text + Saheeh International + reciter audio.
+ *  When translationId is Khattab (131 — not a v4 resource), the Arabic +
+ *  audio still come from v4 (fetched with the default translation so the
+ *  Verse shape stays complete) and the translation text is substituted
+ *  from the open quran-api dataset (same source as /api/quran/khattab).
+ *  A missing Khattab file leaves the default translation in place
+ *  rather than failing the whole surah. */
 export async function fetchSurahVerses(
   surahId: number,
   translationId = 20,
   reciterId = 7,
 ): Promise<Verse[]> {
   const data = await fetchJson(
-    `${UPSTREAM_API}/verses/by_chapter/${surahId}?fields=text_indopak,text_uthmani&translations=${translationId}&audio=${reciterId}&per_page=all`,
+    `${UPSTREAM_API}/verses/by_chapter/${surahId}?fields=text_indopak,text_uthmani&translations=${translationId === KHATTAB_TRANSLATION_ID ? 20 : translationId}&audio=${reciterId}&per_page=all`,
   );
   const verses = (data as { verses?: Verse[] } | null)?.verses;
-  return Array.isArray(verses) ? verses : [];
+  if (!Array.isArray(verses)) return [];
+  if (translationId === KHATTAB_TRANSLATION_ID) {
+    const khattab = await fetchKhattabSurah(surahId);
+    if (khattab) {
+      for (const v of verses) {
+        const text = khattab[v.verse_number];
+        if (typeof text === 'string' && text.length > 0) {
+          v.translations = [{ text }];
+        }
+      }
+    }
+  }
+  return verses;
 }
 
-/** One verse by canonical key, e.g. "67:1". */
+/** Khattab text for one surah, keyed by verse number, from the open
+ *  quran-api dataset (eng-mustafakhattaba) via jsDelivr. Null on any
+ *  failure — callers fall back to the v4 translation already fetched. */
+async function fetchKhattabSurah(surahId: number): Promise<Record<number, string> | null> {
+  try {
+    const res = await fetch(
+      `https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/eng-mustafakhattaba/${surahId}.json`,
+      { next: { revalidate: 86400 }, signal: AbortSignal.timeout(12000) },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { chapter?: { verse?: number; text?: string }[] };
+    const out: Record<number, string> = {};
+    for (const v of Array.isArray(data?.chapter) ? data.chapter : []) {
+      if (typeof v?.verse === 'number' && typeof v?.text === 'string') out[v.verse] = v.text;
+    }
+    return out;
+  } catch {
+    return null;
+  }
+}
+
+/** One verse by canonical key, e.g. "67:1". Khattab (131) substitutes
+ *  the same way as fetchSurahVerses. */
 export async function fetchVerseByKey(
   key: string,
   translationId = 20,
   reciterId = 7,
 ): Promise<Verse | null> {
   const data = await fetchJson(
-    `${UPSTREAM_API}/verses/by_key/${key}?fields=text_indopak,text_uthmani&translations=${translationId}&audio=${reciterId}`,
+    `${UPSTREAM_API}/verses/by_key/${key}?fields=text_indopak,text_uthmani&translations=${translationId === KHATTAB_TRANSLATION_ID ? 20 : translationId}&audio=${reciterId}`,
   );
   const verse = (data as { verse?: Verse } | null)?.verse;
-  return verse ?? null;
+  if (!verse) return null;
+  if (translationId === KHATTAB_TRANSLATION_ID) {
+    const surah = Number(key.split(':')[0]);
+    const khattab = await fetchKhattabSurah(surah);
+    const text = khattab?.[verse.verse_number];
+    if (typeof text === 'string' && text.length > 0) verse.translations = [{ text }];
+  }
+  return verse;
 }
 
 /** Word-by-word data for one verse, paired with the verse's Indo-Pak words by position. */

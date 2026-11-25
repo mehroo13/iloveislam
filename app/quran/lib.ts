@@ -25,9 +25,20 @@ export const AUDIO_BASE = 'https://verses.quran.com/';
    app/hifz/lib/fetch.ts); nothing is pasted into the repo. Tarteel's
    published 152 is NOT reproducible from Quran.com v4 — do not claim it.
    `lang` drives the <optgroup> grouping in the pickers. */
+/** Dr. Mustafa Khattab, The Clear Quran — not a v4 resource (see note
+ *  on its TRANSLATIONS entry); served via /api/quran/khattab. */
+export const KHATTAB_TRANSLATION_ID = 131;
+
 export const TRANSLATIONS: { id: number; name: string; lang: string }[] = [
   // English
   { id: 20, name: 'Saheeh International', lang: 'English' },
+  // Khattab (id 131) is NOT a Quran.com v4 resource — verified
+  // 2026-11-24, v4 has no 131. It is served from the open quran-api
+  // dataset (eng-mustafakhattaba) via /api/quran/khattab, and fetch.ts
+  // substitutes its text whenever translationId is 131, so pickers
+  // can offer it like any other translation. The catalogue now holds
+  // 105 entries (104 v4 + Khattab).
+  { id: KHATTAB_TRANSLATION_ID, name: 'Dr. Mustafa Khattab, The Clear Quran', lang: 'English' },
   { id: 22, name: 'Yusuf Ali', lang: 'English' },
   { id: 19, name: 'Pickthall', lang: 'English' },
   { id: 85, name: 'Abdel Haleem', lang: 'English' },

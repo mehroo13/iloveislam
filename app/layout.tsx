@@ -87,7 +87,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             site (next.config.ts sets no Content-Security-Policy). */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var s=JSON.parse(localStorage.getItem('ili_hifz_settings_v1')||'null');if(!s)return;var th=s.theme;if(th==='dark'||th==='sepia'){document.documentElement.setAttribute('data-theme',th)}var lang=s.language;if(lang){document.documentElement.lang=lang;document.documentElement.dir=(lang==='ar'||lang==='ur')?'rtl':'ltr'}}catch(e){}})();`,
+            __html: `(function(){try{var s=JSON.parse(localStorage.getItem('ili_hifz_settings_v1')||'null');if(!s)return;var th=s.theme;if(th==='auto'){try{th=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}catch(e){th='light'}}if(th==='dark'||th==='sepia'){document.documentElement.setAttribute('data-theme',th)}var lang=s.language;if(lang){document.documentElement.lang=lang;document.documentElement.dir=(lang==='ar'||lang==='ur')?'rtl':'ltr'}}catch(e){}})();`,
           }}
         />
 

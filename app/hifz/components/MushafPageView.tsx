@@ -15,17 +15,15 @@ import { getSurahById, type HifzSurah } from '../surahs';
 import { JUZ_FIRST_PAGE, MUSHAF_TOTAL_PAGES } from '../mushaf';
 import { type MushafVerse } from '../lib/fetch';
 import { SCRIPT_LABELS, useScriptPref } from '../lib/script';
-import { loadMistakes, loadProgress, saveProgress, markAttempt, loadSettings, saveSettings } from '../progress';
+import { loadProgress, saveProgress, markAttempt, loadSettings, saveSettings } from '../progress';
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
-import { normalizeArabic } from '../lib/alignment';
+import { loadFrequentMistakeKeys } from '../lib/reader-mistakes';
 import { MODE_EVENT, ayahKeyForRevealedWord, lastReadSlug, requestMode, saveMode, type HifzMode } from '../lib/mode';
 import MushafPageFrame, { MUSHAF_PAGE_WIDTH } from './MushafPageFrame';
 import { MushafTopBar, MushafBottomBar, ReaderSheet } from './MushafReader';
 import SurahList from './SurahList';
 import { useT } from '../lib/i18n';
 
-/** Missed this many times in total before a word counts as a weak word. */
-const FREQUENT_MISTAKE_MIN_ATTEMPTS = 2;
 /** Zoom limits for the scaled page (multiplier on top of the fit scale). */
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 3;
@@ -134,18 +132,8 @@ export default function MushafPageView({
           return;
         }
       }
-      const counts = new Map<string, number>();
-      for (const m of loadMistakes()) {
-        const word = normalizeArabic(m.expected || m.word || '');
-        if (!word || typeof m.surah !== 'number' || typeof m.ayah !== 'number') continue;
-        const key = `${m.surah}:${m.ayah}:${word}`;
-        counts.set(key, (counts.get(key) ?? 0) + Math.max(1, m.attempts || 1));
-      }
-      const frequent = new Set<string>();
-      for (const [key, total] of counts) {
-        if (total >= FREQUENT_MISTAKE_MIN_ATTEMPTS) frequent.add(key);
-      }
-      setFrequentMistakes(frequent);
+      const counts = loadFrequentMistakeKeys();
+      setFrequentMistakes(counts);
     } catch {
       // Storage unreadable: no marking, the page still renders.
     }

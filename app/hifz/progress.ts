@@ -26,6 +26,7 @@ export const HIFZ_MISTAKES_KEY = 'ili_hifz_mistakes_v1';
 export const HIFZ_SETTINGS_KEY = 'ili_hifz_settings_v1';
 
 import { JUZ_PAGES } from './juz';
+import { TAFSIR_ID } from '../quran/lib';
 
 /** Consecutive correct recitations that mark an ayah memorised. */
 export const CORRECT_STREAK_FOR_MEMORISED = 3;
@@ -191,10 +192,33 @@ export interface HifzSettings {
    *  exists (see lib/mushaf-edition.ts) — the choice is still real
    *  and persisted; only the layout falls back. */
   mushafEdition?: import('./lib/mushaf-edition').MushafEditionId;
+  /** Selected tafsir (Settings → Tafsir); default Ibn Kathir (Abridged). */
+  tafsirId?: number;
   /** Colour-code the mushaf by ayah topic (study aid, §23). */
   topicColors?: boolean;
-  /** Theme: light / dark / sepia. */
-  theme?: 'light' | 'dark' | 'sepia';
+  /** Listen playback speed (0.5–1.75), persisted. */
+  playSpeed?: number;
+  /** Mistake feedback (Settings → Mistake Feedback): sound + effect + vibration. */
+  mistakeSound?: boolean;
+  mistakeSoundEffect?: import('./lib/sounds').SoundEffectId;
+  mistakeVibrate?: boolean;
+  /** Session start/stop feedback (Settings → Session Start & Stop). */
+  sessionSound?: boolean;
+  sessionVibrate?: boolean;
+  /** Dropped-connection feedback (Settings → Dropped Connection). */
+  droppedSound?: boolean;
+  droppedVibrate?: boolean;
+  /** Testing Mode feedback: sound effect + vibration (testSound bool already exists). */
+  testSoundEffect?: import('./lib/sounds').SoundEffectId;
+  testVibrate?: boolean;
+  /** Streak reminder (Settings → Reminders): daily reminder at streakReminderTime. */
+  streakReminder?: boolean;
+  /** HH:MM local time for the streak reminder. */
+  streakReminderTime?: string;
+  /** Colour words shared with similar verses (Mutashabihat data). */
+  colorSimilarPhrases?: boolean;
+  /** Theme: light / dark / sepia. 'auto' follows the system (prefers-color-scheme). */
+  theme?: 'light' | 'dark' | 'sepia' | 'auto';
   /** UI language (EN/AR/FR/ID/MS/RU/HI/UR). AR + UR render full RTL. */
   language?: string;
   /**
@@ -304,6 +328,20 @@ export function createDefaultSettings(now: Date = new Date()): HifzSettings {
     hideAyahMarkers: false,
     saveAudio: true,
     testSound: true,
+    tafsirId: TAFSIR_ID,
+    playSpeed: 1,
+    mistakeSound: true,
+    mistakeSoundEffect: 'chime',
+    mistakeVibrate: true,
+    sessionSound: true,
+    sessionVibrate: true,
+    droppedSound: true,
+    droppedVibrate: true,
+    testSoundEffect: 'chime',
+    testVibrate: true,
+    streakReminder: false,
+    streakReminderTime: '19:00',
+    colorSimilarPhrases: false,
     mushafLines: 15,
     mushafEdition: 'madani-1405',
     topicColors: true,

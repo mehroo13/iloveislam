@@ -61,6 +61,32 @@ export function mistakeTypeLabel(type: ReaderMistakeType): string {
   return type === 'wrong' ? 'Wrong word' : 'Skipped word';
 }
 
+import { loadMistakes } from '../progress';
+import { normalizeArabic } from './alignment';
+
+/** Words the user has missed 2+ times (same rule MushafPageView's
+ *  frequent marking uses): key `surah:ayah:normalisedWord`. A word
+ *  missed once does not count — the threshold keeps one-off slips
+ *  from painting the page. */
+export function loadFrequentMistakeKeys(): ReadonlySet<string> {
+  const counts = new Map<string, number>();
+  try {
+    for (const m of loadMistakes()) {
+      const word = normalizeArabic(m.expected || m.word || '');
+      if (!word || typeof m.surah !== 'number' || typeof m.ayah !== 'number') continue;
+      const key = `${m.surah}:${m.ayah}:${word}`;
+      counts.set(key, (counts.get(key) ?? 0) + Math.max(1, m.attempts || 1));
+    }
+  } catch {
+    return new Set();
+  }
+  const frequent = new Set<string>();
+  for (const [key, total] of counts) {
+    if (total >= 2) frequent.add(key);
+  }
+  return frequent;
+}
+
 /** The mistake covering a display word, if any. A display word can
  *  cover two engine keys (base word + an attached pause mark, e.g.
  *  2:2 'رَيْبَ ۛ') — a mistake on either key marks the word. */

@@ -13662,14 +13662,49 @@ export function applyLocaleToDocument(code: string): void {
   document.documentElement.dir = isRtlLocale(code) ? 'rtl' : 'ltr';
 }
 
-/** Apply a theme to <html data-theme> ('light' = attribute removed). */
+/** Apply a theme to <html data-theme> ('light' = attribute removed).
+ *  'auto' resolves through prefers-color-scheme. */
 export function applyThemeToDocument(theme: string): void {
   if (typeof document === 'undefined') return;
-  if (theme === 'dark' || theme === 'sepia') {
-    document.documentElement.setAttribute('data-theme', theme);
+  let resolved = theme;
+  if (theme === 'auto') {
+    try {
+      resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } catch {
+      resolved = 'light';
+    }
+  }
+  if (resolved === 'dark' || resolved === 'sepia') {
+    document.documentElement.setAttribute('data-theme', resolved);
   } else {
     document.documentElement.removeAttribute('data-theme');
   }
+}
+
+/** Resolve a stored theme ('auto' included) to the UiTheme the UI paints. */
+export function resolveUiTheme(stored: string | undefined): UiTheme {
+  if (stored === 'dark' || stored === 'sepia') return stored;
+  if (stored === 'auto') {
+    try {
+      if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark';
+      }
+    } catch {
+      /* matchMedia unavailable — light */
+    }
+  }
+  return 'light';
+}
+
+/** The theme as stored in the settings document ('auto' included). */
+export function getStoredTheme(): 'light' | 'dark' | 'sepia' | 'auto' {
+  try {
+    const th = loadSettings().theme;
+    if (th === 'dark' || th === 'sepia' || th === 'auto') return th;
+  } catch {
+    /* storage unavailable */
+  }
+  return 'light';
 }
 
 function applyPrefsToDocument(locale: UiLocale, theme: UiTheme): void {
@@ -13689,8 +13724,7 @@ export function syncPrefsFromStorage(): void {
     return;
   }
   const locale = isSupportedLocale(settings.language) ? settings.language : 'en';
-  const theme: UiTheme =
-    settings.theme === 'dark' || settings.theme === 'sepia' ? settings.theme : 'light';
+  const theme: UiTheme = resolveUiTheme(settings.theme);
   const changed = locale !== currentLocale || theme !== currentTheme;
   currentLocale = locale;
   currentTheme = theme;
@@ -13712,16 +13746,17 @@ export function setUiLocale(code: string): void {
   emit();
 }
 
-/** Save a new theme AND apply it immediately everywhere. */
+/** Save a new theme AND apply it immediately everywhere.
+ *  'auto' is stored as-is and resolves to the system preference. */
 export function setUiTheme(theme: string): void {
-  if (theme !== 'light' && theme !== 'dark' && theme !== 'sepia') return;
+  if (theme !== 'light' && theme !== 'dark' && theme !== 'sepia' && theme !== 'auto') return;
   try {
     const settings = loadSettings();
-    saveSettings({ ...settings, theme });
+    saveSettings({ ...settings, theme: theme as HifzSettings['theme'] });
   } catch {
     /* storage unavailable — still apply in-memory for this session */
   }
-  currentTheme = theme as UiTheme;
+  currentTheme = resolveUiTheme(theme);
   applyThemeToDocument(theme);
   emit();
 }
