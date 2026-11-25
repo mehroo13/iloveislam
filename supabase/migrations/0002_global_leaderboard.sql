@@ -1,12 +1,13 @@
--- supabase/migrations/0002_global_leaderboard.sql — Global leaderboard (DRAFT)
+-- supabase/migrations/0002_global_leaderboard.sql — Global leaderboard
 --
--- *** DRAFT ONLY — DO NOT APPLY TO THE LIVE DATABASE YET. ***
--- This file is committed for review only. Nothing in it runs until the
--- site owner reviews it and applies it by hand in the Supabase SQL
--- editor (Dashboard → SQL Editor → New query), exactly like 0001.
--- The challenges page already ships a Global section, but until this
--- migration is applied the RPC below does not exist and the UI shows
--- its honest empty state ("No one on the global board yet").
+-- *** APPLIED LIVE 2026-11-25 *** — run by hand in the Supabase SQL
+-- editor (Dashboard → SQL Editor → New query), exactly like 0001:
+-- "Success. No rows returned". Do NOT re-apply it blindly; the
+-- statements are idempotent (add column if not exists, create or
+-- replace function), but the live database is the record of what ran.
+-- The challenges page already ships a Global section; the board
+-- stays empty until a member opts in via Settings → Privacy (its
+-- honest empty state, "No one on the global board yet").
 --
 -- WHAT IT ENABLES
 -- A single read-only aggregate for the Global leaderboard on
@@ -67,7 +68,8 @@
 -- Idempotent: safe to re-run.
 
 -- Opt-in flag on profiles. Default false: nobody is listed unless
--- they choose to be. No UI sets this yet (follow-up).
+-- they choose to be. The opt-in toggle lives in Settings → Privacy
+-- (ReaderSettings), added 2026-11-25.
 alter table public.profiles
   add column if not exists show_on_leaderboard boolean not null default false;
 

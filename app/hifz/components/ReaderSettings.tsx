@@ -16,18 +16,18 @@
 // Dark toggle (same `ili_hifz_settings_v1.theme` the old settings
 // page uses, so it persists across reloads), and Delete All Audio
 // Data clears the on-device data (two-tap confirm) and reloads.
+// Leaderboard follow-up: the Privacy row "Show me on the global
+// leaderboard" is a real opt-in switch writing
+// `profiles.show_on_leaderboard` (migration 0002, applied live);
+// guests see it disabled — an account is needed.
 // The remaining rows stay visual-only (see the phase reminder list).
 
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import {
-  applyReaderTheme,
-  getReaderTheme,
-  READER_THEME_EVENT,
-  type ReaderTheme,
-} from '../lib/reader-theme';
+import { applyReaderTheme, getReaderTheme, READER_THEME_EVENT, type ReaderTheme } from '../lib/reader-theme';
 import { deleteAllLocalData } from '../lib/store';
+import { getSupabase } from '../lib/supabase';
 
 const INK = 'var(--reader-ink)';
 const MUTED = 'var(--reader-muted)';
@@ -173,6 +173,16 @@ function IconMinusCircle() {
     </svg>
   );
 }
+function IconTrophy() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" style={{ stroke: INK }} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" />
+      <path d="M7 5.5H4.5a2.75 2.75 0 0 0 2.75 4.5M17 5.5h2.5a2.75 2.75 0 0 1-2.75 4.5" />
+      <path d="M12 14v3.5" />
+      <path d="M8.5 20.5h7" />
+    </svg>
+  );
+}
 
 // Gold 4-point sparkle, as in the pink banner's decoration.
 function IconSparkle({ className }: { className?: string }) {
@@ -237,6 +247,7 @@ const SECTIONS: SectionDef[] = [
   {
     title: 'Privacy',
     rows: [
+      { icon: IconTrophy, label: 'Show me on the global leaderboard' },
       { icon: IconLock, label: 'Data Usage' },
       { icon: IconMinusCircle, label: 'Delete All Audio Data' },
     ],
@@ -350,6 +361,73 @@ export default function ReaderSettings({
     }
     window.location.reload();
   };
+  /** Leaderboard opt-in (migration 0002, applied live 2026-11-25):
+   *  writes `profiles.show_on_leaderboard` for the signed-in user
+   *  (RLS "own profile" allows a user to update only their own row).
+   *  Guests see the row disabled — an account is needed. Turning it
+   *  off is the "remove me" path: the member vanishes from the board
+   *  at once. */
+  const [lbState, setLbState] = useState<'loading' | 'guest' | 'ready'>('loading');
+  const [lbOptedIn, setLbOptedIn] = useState(false);
+  const [lbSaving, setLbSaving] = useState(false);
+  const [lbError, setLbError] = useState<string | null>(null);
+  const lbUserIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    setLbState('loading');
+    setLbError(null);
+    lbUserIdRef.current = null;
+    const sb = getSupabase();
+    if (!sb) {
+      setLbState('guest');
+      return;
+    }
+    void sb.auth.getSession().then(async ({ data: { session } }) => {
+      if (!alive) return;
+      const user = session?.user;
+      if (!user) {
+        setLbState('guest');
+        return;
+      }
+      lbUserIdRef.current = user.id;
+      try {
+        const { data } = await sb
+          .from('profiles')
+          .select('show_on_leaderboard')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (!alive) return;
+        setLbOptedIn((data as { show_on_leaderboard?: boolean | null } | null)?.show_on_leaderboard === true);
+        setLbState('ready');
+      } catch {
+        if (!alive) return;
+        setLbOptedIn(false);
+        setLbState('ready');
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, [open ]);
+  const handleLeaderboardToggle = async () => {
+    if (lbState !== 'ready' || lbSaving || !lbUserIdRef.current) return;
+    const sb = getSupabase();
+    if (!sb) return;
+    const next = !lbOptedIn;
+    setLbOptedIn(next);
+    setLbSaving(true);
+    setLbError(null);
+    const { error } = await sb
+      .from('profiles')
+      .update({ show_on_leaderboard: next })
+      .eq('id', lbUserIdRef.current);
+    setLbSaving(false);
+    if (error) {
+      setLbOptedIn(!next);
+      setLbError('Could not save that — check your connection and try again.');
+    }
+  };
 
   // Mount / fade lifecycle: mount, then fade in; on close, fade out
   // and unmount after the transition.
@@ -449,7 +527,38 @@ export default function ReaderSettings({
                 return (
                   <div key={row.label}>
                     {ri > 0 && <div className="ml-12 mr-4 border-t border-[#EFEFEF]" />}
-                    {row.label === 'Theme' ? (
+                    {row.label === 'Show me on the global leaderboard' ? (
+                      /* Leaderboard opt-in: a real switch for signed-in
+                         users; disabled for guests (an account is
+                         needed) and while the profile is loading. */
+                      <div className="flex w-full items-center gap-3 px-4 py-[14px]">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                          <RowIcon />
+                        </span>
+                        <span
+                          className="min-w-0 flex-1 text-[15px]"
+                          style={{ color: INK, opacity: lbState === 'ready' ? 1 : 0.55 }}
+                        >
+                          {row.label}
+                        </span>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={lbOptedIn}
+                          aria-label="Show me on the global leaderboard"
+                          data-testid="settings-leaderboard-toggle"
+                          disabled={lbState !== 'ready' || lbSaving}
+                          onClick={() => void handleLeaderboardToggle()}
+                          className="relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-60"
+                          style={{ backgroundColor: lbOptedIn ? '#16A34A' : '#D1D5DB' }}
+                        >
+                          <span
+                            className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all"
+                            style={{ left: lbOptedIn ? '22px' : '2px' }}
+                          />
+                        </button>
+                      </div>
+                    ) : row.label === 'Theme' ? (
                       /* Phase 7 — Theme: a real Light / Dark toggle.
                          The choice is the shared settings document's
                          theme, so it persists across reloads. */
@@ -524,6 +633,18 @@ export default function ReaderSettings({
                 );
               })}
             </div>
+            {section.title === 'Privacy' && (
+              <p className="mt-2 px-1.5 text-[12px] leading-snug" style={{ color: MUTED }}>
+                {lbState === 'guest'
+                  ? 'You need an account to appear on the board — sign in from Account & backup. Only your display name, memorised ayahs, current streak and longest streak would be shown.'
+                  : 'Only your display name, memorised ayahs, current streak and longest streak are shown. Off by default — turning it off removes you at once.'}
+              </p>
+            )}
+            {section.title === 'Privacy' && lbError && (
+              <p className="mt-1 px-1.5 text-[12px] font-semibold leading-snug" style={{ color: '#DC2626' }}>
+                {lbError}
+              </p>
+            )}
           </section>
         ))}
       </div>

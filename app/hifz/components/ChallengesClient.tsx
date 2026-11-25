@@ -47,11 +47,10 @@ export default function ChallengesClient() {
   const [joinDays, setJoinDays] = useState<number>(7);
   const [joinName, setJoinName] = useState('');
 
-  // Global leaderboard (DRAFT): reads the public aggregate via the
-  // `global_leaderboard` RPC (migration 0002 — NOT applied yet). Until
-  // the migration is applied the RPC does not exist and every failure
-  // lands here: the board simply stays empty. No error is ever shown,
-  // and no names are invented or seeded.
+  // Global leaderboard: reads the public aggregate via the
+  // `global_leaderboard` RPC (migration 0002, applied live
+  // 2026-11-25). Until a member opts in the board stays empty — no
+  // error is ever shown, and no names are invented or seeded.
   const [globalRows, setGlobalRows] = useState<GlobalRow[]>([]);
   useEffect(() => {
     let alive = true;
@@ -527,11 +526,9 @@ export default function ChallengesClient() {
         </div>
       </section>
 
-      {/* Global leaderboard — DRAFT, launches empty. The RPC behind it
-          (migration 0002) is not applied yet, so until it is reviewed
-          and applied this always shows the empty state below. No names
-          are invented or seeded; rows appear only for members who
-          choose to appear, once the opt-in exists. */}
+      {/* Global leaderboard — live since migration 0002 was applied
+          (2026-11-25). No names are invented or seeded; rows appear
+          only for members who opted in via Settings → Privacy. */}
       <section aria-labelledby="global-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <h2 id="global-heading" className="text-xl font-bold text-[#102E26]">{t('chal.globalLeaderboard')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">{t('chal.globalNote')}</p>
