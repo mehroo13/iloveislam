@@ -1,14 +1,12 @@
 import type { Metadata } from 'next';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — I Love Islam | No Data Collection',
   description:
-    'We do not collect any personal data. All Islamic tools work locally in your browser. No tracking, no cookies, no registration required. Your privacy is protected.',
+    'We do not collect any personal data. The Hifz app works locally in your browser. No tracking, no registration required. Your privacy is protected.',
   openGraph: {
     title: 'Privacy Policy — I Love Islam',
-    description: 'Your privacy is protected. No registration, no data collection. All tools work locally.',
+    description: 'Your privacy is protected. No registration, no data collection. The Hifz app works locally.',
     type: 'website',
     url: 'https://www.iloveislam.life/privacy',
     siteName: 'I Love Islam',
@@ -18,7 +16,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary',
     title: 'Privacy Policy — I Love Islam',
-    description: 'No data collection. All tools work locally in your browser.',
+    description: 'No data collection. The Hifz app works locally in your browser.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/privacy' },
   robots: {
@@ -43,9 +41,7 @@ export default function PrivacyLayout({ children }: { children: React.ReactNode 
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Header />
-      <div className="flex-1">{children}</div>
-      <Footer />
+      {children}
     </>
   );
 }

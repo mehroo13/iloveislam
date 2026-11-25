@@ -1,7 +1,12 @@
+// app/contact/page.tsx — Contact (rebuilt 2026-11-25 in the new app
+// design: light grey, white cards, back button to Home). The form
+// itself is unchanged (Formspree POST). The "How Can We Help You?"
+// and "Common Reasons" sections used to live in the layout — they
+// are now in the page, below the form.
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import TrustShell from '../components/TrustShell';
 
 const SUBJECTS = [
   'General Question',
@@ -12,6 +17,9 @@ const SUBJECTS = [
   'AdSense / Business',
   'Other',
 ];
+
+const INPUT =
+  'w-full rounded-xl border border-[#E5E7EB] bg-[#F8F8F8] px-4 py-3 text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#1FA36B]/30';
 
 export default function Contact() {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
@@ -45,120 +53,145 @@ export default function Contact() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50/30 to-white font-serif">
-      {/* Compact Header */}
-      <header className="bg-gradient-to-r from-emerald-900 to-emerald-700 text-white px-5 py-4 shadow-md">
-        <div className="max-w-xl mx-auto flex items-center justify-between">
-          <Link href="/" className="text-white/70 hover:text-white text-sm flex items-center gap-1">
-            <span>←</span> Back
-          </Link>
-          <h1 className="text-lg font-bold tracking-wide">Contact Us</h1>
-          <div className="w-6" />
-        </div>
-        <p className="text-center text-white/60 text-xs mt-2">
-          We reply within 48 hours inshaAllah
-        </p>
-      </header>
+    <TrustShell title="Contact Us">
+      <div className="space-y-4">
+        <p className="text-center text-xs text-[#6B7280]">We reply within 48 hours inshaAllah</p>
 
-      <main className="max-w-xl mx-auto px-4 py-8 pb-16">
-        {/* The Form – instantly visible */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        {/* The form — instantly visible */}
+        <div className="rounded-[12px] border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
           {status === 'sent' ? (
-            <div className="text-center py-12">
-              <div className="text-5xl mb-4"></div>
-              <p className="font-bold text-gray-800 text-lg mb-2">JazakAllah Khair!</p>
-              <p className="text-gray-500 text-sm mb-4">We'll reply within 48 hours inshaAllah.</p>
+            <div className="py-12 text-center">
+              <p className="text-lg font-bold">JazakAllah Khair!</p>
+              <p className="mt-2 text-sm text-[#6B7280]">We&apos;ll reply within 48 hours inshaAllah.</p>
               <button
+                type="button"
                 onClick={() => setStatus('idle')}
-                className="px-5 py-2 bg-emerald-800 text-white rounded-xl text-sm font-medium"
+                className="mt-4 rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
               >
                 Send Another Message
               </button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="text-xs font-medium text-gray-500 block mb-1.5">Your Name *</label>
+                  <label className="mb-1.5 block text-xs font-medium text-[#6B7280]">Your Name *</label>
                   <input
                     type="text"
                     required
                     value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                     placeholder="Ahmed / Fatima..."
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 bg-gray-50"
+                    className={INPUT}
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-500 block mb-1.5">Your Email *</label>
+                  <label className="mb-1.5 block text-xs font-medium text-[#6B7280]">Your Email *</label>
                   <input
                     type="email"
                     required
                     value={form.email}
-                    onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                     placeholder="your@email.com"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 bg-gray-50"
+                    className={INPUT}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-medium text-gray-500 block mb-1.5">Subject</label>
+                <label className="mb-1.5 block text-xs font-medium text-[#6B7280]">Subject</label>
                 <select
                   value={form.subject}
-                  onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-200 bg-gray-50"
+                  onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
+                  className={INPUT}
                 >
                   <option value="">Select a subject...</option>
-                  {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                  {SUBJECTS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label className="text-xs font-medium text-gray-500 block mb-1.5">Message *</label>
+                <label className="mb-1.5 block text-xs font-medium text-[#6B7280]">Message *</label>
                 <textarea
                   required
                   value={form.message}
-                  onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
                   placeholder="Write your message here..."
                   rows={5}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-200 bg-gray-50 resize-none"
+                  className={`${INPUT} resize-none`}
                 />
               </div>
 
               {status === 'error' && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-600">
+                <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
                   Something went wrong. Please try again or email us at{' '}
-                  <a href="mailto:contact@iloveislam.life" className="underline">contact@iloveislam.life</a>
+                  <a href="mailto:contact@iloveislam.life" className="underline">
+                    contact@iloveislam.life
+                  </a>
                 </div>
               )}
 
               <button
                 type="submit"
                 disabled={status === 'sending'}
-                className="w-full py-3.5 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-semibold text-sm transition disabled:opacity-60 shadow-sm"
+                className="w-full rounded-full bg-[#102E26] py-3.5 text-sm font-semibold text-white transition hover:bg-[#1FA36B] disabled:opacity-60"
               >
-                {status === 'sending' ? 'Sending...' : 'Send Message '}
+                {status === 'sending' ? 'Sending...' : 'Send Message'}
               </button>
 
-              <p className="text-center text-gray-300 text-xs">
-                Your email is never shown publicly.
-              </p>
+              <p className="text-center text-xs text-[#9CA3AF]">Your email is never shown publicly.</p>
             </form>
           )}
         </div>
 
-        {/* Short footer */}
-        <div className="text-center mt-10">
-          <p className="font-arabic text-emerald-800 text-lg mb-1">بسم الله الرحمن الرحيم</p>
-          <p className="text-xs text-gray-400">Made with love for the Ummah · Always Free</p>
-          <div className="flex justify-center gap-4 mt-3">
-            <Link href="/" className="text-xs text-gray-400 hover:text-gray-600">Home</Link>
-            <Link href="/about" className="text-xs text-gray-400 hover:text-gray-600">About</Link>
-            <Link href="/privacy" className="text-xs text-gray-400 hover:text-gray-600">Privacy</Link>
+        {/* How can we help — moved in from the old layout. */}
+        <div className="rounded-[12px] border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+          <h2 className="text-lg font-bold">How Can We Help You?</h2>
+          <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
+            We welcome all feedback, questions, and suggestions from our community. Whether you have found a bug in
+            the app, want to suggest a new feature, have a question about how the coach works, or simply want to share
+            your experience — we would love to hear from you. Our team reads every message personally and strives to
+            respond within 48 hours.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-[#6B7280]">
+            I Love Islam is built for the Ummah. Many features and improvements have come directly from user
+            suggestions. Your feedback helps us make this app better for Muslims worldwide. Do not hesitate to reach
+            out — no question is too small, and every suggestion is valued.
+          </p>
+        </div>
+
+        <div className="rounded-[12px] border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+          <h3 className="text-base font-bold">Common Reasons to Contact Us</h3>
+          <div className="mt-3 space-y-2 text-sm leading-relaxed text-[#6B7280]">
+            <p>
+              <strong className="text-[#111827]">Bug Reports:</strong> If the app is not working correctly, please
+              describe what happened, which device and browser you are using, and any error messages you see.
+              Screenshots are very helpful.
+            </p>
+            <p>
+              <strong className="text-[#111827]">Feature Suggestions:</strong> Have an idea for a new feature? We are
+              always looking to improve the app based on community needs.
+            </p>
+            <p>
+              <strong className="text-[#111827]">Content Corrections:</strong> If you notice any Quranic text,
+              translation or reference that needs correction, please let us know with the correct source.
+            </p>
+            <p>
+              <strong className="text-[#111827]">Partnership Inquiries:</strong> If you represent an Islamic
+              organization, mosque, or educational institution and would like to collaborate, we are open to
+              discussions.
+            </p>
           </div>
         </div>
-      </main>
-    </div>
+
+        <div className="rounded-[12px] border border-[#E5E7EB] bg-white p-6 text-center shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+          <p className="font-quran text-xl text-[#111827]">بسم الله الرحمن الرحيم</p>
+        </div>
+      </div>
+    </TrustShell>
   );
 }

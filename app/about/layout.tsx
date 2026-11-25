@@ -1,6 +1,4 @@
 import type { Metadata } from 'next';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
 
 export const metadata: Metadata = {
   title: 'About Us — I Love Islam | Free AI Quran Memorisation App',
@@ -63,9 +61,7 @@ export default function AboutLayout({ children }: { children: React.ReactNode })
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Header />
-      <div className="flex-1">{children}</div>
-      <Footer />
+      {children}
     </>
   );
 }

@@ -1,14 +1,12 @@
 import type { Metadata } from 'next';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service — I Love Islam | Free Islamic Tools',
+  title: 'Terms of Service — I Love Islam | Free Quran Memorisation App',
   description:
-    'Read the terms of service for I Love Islam. All tools are free forever, provided as-is for educational and personal use.',
+    'Read the terms of service for I Love Islam — a free AI Quran memorisation app, provided as-is for educational and personal use.',
   openGraph: {
     title: 'Terms of Service — I Love Islam',
-    description: 'Free Islamic tools terms of service. All tools are provided as-is for educational use.',
+    description: 'Free Quran memorisation app terms of service. All features are provided as-is for educational use.',
     type: 'website',
     url: 'https://www.iloveislam.life/terms',
     siteName: 'I Love Islam',
@@ -18,7 +16,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary',
     title: 'Terms of Service — I Love Islam',
-    description: 'Free Islamic tools terms of service.',
+    description: 'Free Quran memorisation app terms of service.',
   },
   alternates: { canonical: 'https://www.iloveislam.life/terms' },
   robots: {
@@ -43,9 +41,7 @@ export default function TermsLayout({ children }: { children: React.ReactNode })
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Header />
-      <div className="flex-1">{children}</div>
-      <Footer />
+      {children}
     </>
   );
 }
