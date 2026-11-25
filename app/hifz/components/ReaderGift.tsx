@@ -162,7 +162,11 @@ function PhonePlan() {
 const FEATURES: { name: string; desc: string }[] = [
   { name: 'Recitation Coach', desc: 'on-device AI listens as you recite and lights each word green as you say it.' },
   { name: 'Mistake Detection', desc: 'skipped or wrong words turn red, with what was missed.' },
+  { name: 'Hide Verses', desc: 'hide the verses and recite from memory — tap a hidden verse to peek.' },
   { name: 'Testing Mode', desc: 'recite from memory with the text hidden — peeks are counted.' },
+  { name: 'Mistake History', desc: 'mistakes from every session are saved in your history.' },
+  { name: 'Mistake Frequency', desc: 'the words you miss most often are highlighted in the reader, so revision goes where it is needed.' },
+  { name: 'Memorization Planning', desc: '7-day and 30-day plans for every surah, plus goals and a spaced revision queue.' },
   { name: 'Listen & Follow', desc: 'play the recitation with word-by-word highlighting, in 12 reciters.' },
   { name: 'Goals & Streaks', desc: 'set Memorize or Review goals and keep your daily streak.' },
   { name: 'Memorization Progress', desc: 'per-surah progress, completion, and badges from your own practice.' },
