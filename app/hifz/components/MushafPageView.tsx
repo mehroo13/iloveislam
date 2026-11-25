@@ -18,6 +18,7 @@ import { SCRIPT_LABELS, useScriptPref } from '../lib/script';
 import { loadProgress, saveProgress, markAttempt, loadSettings, saveSettings } from '../progress';
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { loadFrequentMistakeKeys } from '../lib/reader-mistakes';
+import { loadSimilarWordSet } from '../lib/similar-phrases';
 import { MODE_EVENT, ayahKeyForRevealedWord, lastReadSlug, requestMode, saveMode, type HifzMode } from '../lib/mode';
 import MushafPageFrame, { MUSHAF_PAGE_WIDTH } from './MushafPageFrame';
 import { MushafTopBar, MushafBottomBar, ReaderSheet } from './MushafReader';
@@ -122,15 +123,19 @@ export default function MushafPageView({
     () => new Set(),
   );
   const [mistakeMarkingOn, setMistakeMarkingOn] = useState(true);
+  const [hideMarkers, setHideMarkers] = useState(false);
+  const [similarOn, setSimilarOn] = useState(false);
+  const [similarWords, setSimilarWords] = useState<ReadonlyMap<string, ReadonlySet<string>>>(new Map());
   useEffect(() => {
     try {
       const raw = localStorage.getItem('ili_hifz_settings_v1');
       if (raw) {
-        const parsed = JSON.parse(raw) as { highlightMistakes?: boolean };
+        const parsed = JSON.parse(raw) as { highlightMistakes?: boolean; hideAyahMarkers?: boolean; colorSimilarPhrases?: boolean };
         if (parsed.highlightMistakes === false) {
           setMistakeMarkingOn(false);
-          return;
         }
+        if (parsed.hideAyahMarkers === true) setHideMarkers(true);
+        if (parsed.colorSimilarPhrases === true) setSimilarOn(true);
       }
       const counts = loadFrequentMistakeKeys();
       setFrequentMistakes(counts);
@@ -138,6 +143,27 @@ export default function MushafPageView({
       // Storage unreadable: no marking, the page still renders.
     }
   }, []);
+  /* "Color similar phrases" (Settings → Marking): the normalised
+   * words this page's ayahs share with a similar verse, loaded
+   * lazily per ayah from /mutashabihat.json. */
+  useEffect(() => {
+    if (!similarOn) {
+      setSimilarWords(new Map());
+      return;
+    }
+    let cancelled = false;
+    const keys = [...new Set(verses.map((v) => v.verse_key))];
+    void Promise.all(keys.map(async (k) => {
+      const [s, a] = k.split(':').map(Number);
+      return [k, await loadSimilarWordSet(s, a)] as const;
+    })).then((pairs) => {
+      if (cancelled) return;
+      setSimilarWords(new Map(pairs));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [similarOn, verses]);
 
   const [weakOnPage, setWeakOnPage] = useState(0);
   const [compactText, setCompactText] = useState(false);
@@ -585,6 +611,8 @@ export default function MushafPageView({
               revealed={revealedCount}
               frequentMistakes={frequentMistakes}
               mistakeMarkingOn={mistakeMarkingOn}
+              hideMarkers={hideMarkers}
+              similarWords={similarWords}
               tajweedOn={tajweedOn}
               onWeakCount={setWeakOnPage}
             />

@@ -739,6 +739,16 @@ export default function RecitationCoach({
       expected,
       onWord: (e: WordEvent) => {
         if (e.status === 'not-reached') return; // live events are only correct/wrong/missed
+        // Detection off (Settings → Recitation): follow-along only —
+        // the live red/orange flags never appear; only confirmed
+        // correct words light up green.
+        if (e.status !== 'correct') {
+          try {
+            if (loadSettings().detectMistakes === false) return;
+          } catch {
+            /* settings unreadable — flag as usual */
+          }
+        }
         const liveStatus: 'correct' | 'wrong' | 'missed' =
           e.status === 'correct' ? 'correct' : e.status === 'wrong' ? 'wrong' : 'missed';
         setLiveWords((prev) => ({ ...prev, [wordKey(e.surah, e.ayah, e.word)]: liveStatus }));
@@ -1035,9 +1045,19 @@ export default function RecitationCoach({
       !peeked && !res.unclear && missedWords.length === 0 && res.reachedCount > 0 &&
       words.every((w) => w.status === 'correct' || w.status === 'not-reached');
     const minutes = Math.max(res.durationMs / 60000, 0.1);
-    if (mode === 'follow') {
+    // Mistake detection, read fresh (Settings → Recitation): off means
+    // the take is follow-along only, whatever the engine flagged.
+    let detectMistakes = true;
+    try {
+      detectMistakes = loadSettings().detectMistakes !== false;
+    } catch {
+      /* settings unreadable — judge as usual */
+    }
+    if (mode === 'follow' || !detectMistakes) {
       // Follow-along: highlight only, no judgement — count the minutes, never
-      // log a mistake or touch the streak.
+      // log a mistake or touch the streak. A mic take with mistake
+      // detection off (Settings → Recitation) is the same: the words
+      // were followed, not judged.
       let p = loadProgress();
       p = recordMinutes(p, minutes);
       saveProgress(p);
@@ -2130,7 +2150,12 @@ export default function RecitationCoach({
                     const key = wordKey(a.surah, a.ayah, w.index + 1);
                     const fw = feedbackWords.find((f) => f.key === key);
                     const status = fw?.status ?? 'not-reached';
-                    const showColour = !result.unclear && !result.noSpeech && !result.trackedElsewhere && !tooShort;
+                    // Detection off: flagged words show no colour (plain
+                    // text) — the take was follow-along only, so no
+                    // red/orange judgement is shown for them.
+                    const showColour =
+                      !result.unclear && !result.noSpeech && !result.trackedElsewhere && !tooShort &&
+                      (settings?.detectMistakes !== false || status === 'correct' || status === 'not-reached');
                     const removed = removedMistakes.has(key);
                     const cls = !showColour || removed
                       ? 'text-[#1C2420]'

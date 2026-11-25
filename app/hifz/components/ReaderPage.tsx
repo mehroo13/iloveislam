@@ -12,7 +12,7 @@
 
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getSurahById } from '../surahs';
 import { BISMILLAH } from '../../quran/lib';
 import {
@@ -38,6 +38,8 @@ import {
   type PeekInfo,
   type ReaderMistake,
 } from '../lib/reader-mistakes';
+import { normalizeArabic } from '../lib/alignment';
+import { loadSimilarWordSet } from '../lib/similar-phrases';
 import ReaderSurahHeader from './ReaderSurahHeader';
 import { useTapGuard } from './ReaderAltViews';
 
@@ -128,9 +130,19 @@ interface ReaderPageProps {
    *  every word renders black. Default true — colours were always
    *  on in this reader before the toggle was wired here. */
   tajweedOn?: boolean;
+  /** Hide ayah-end markers (Settings → Hidden Verses → "Hide verse
+   *  markers"): when on, no rosette is rendered. Default false. */
+  hideMarkers?: boolean;
+  /** Words missed 2+ times, keyed "surah:ayah:normalised-word"
+   *  (Settings → Marking → "Highlight mistake history"). */
+  frequentMistakes?: ReadonlySet<string>;
+  /** The "Highlight mistake history" setting itself. */
+  mistakeMarkingOn?: boolean;
+  /** The "Color similar phrases" setting (Settings → Marking). */
+  similarOn?: boolean;
 }
 
-export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasure, zoom, hideVerses, revealedLines, onRevealLine, highlightedWords, mistakes, onMistakeWordClick, script = 'uthmani', tajweedOn = true }: ReaderPageProps) {
+export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasure, zoom, hideVerses, revealedLines, onRevealLine, highlightedWords, mistakes, onMistakeWordClick, script = 'uthmani', tajweedOn = true, hideMarkers = false, frequentMistakes, mistakeMarkingOn = true, similarOn = false }: ReaderPageProps) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const measureRef = useRef<HTMLDivElement | null>(null);
   const onMeasureRef = useRef(onMeasure);
@@ -138,6 +150,31 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
   const tapGuard = useTapGuard();
 
   const cleanWord = script === 'indopak' ? cleanMushafIndopak : cleanMushafUthmani;
+  /* "Color similar phrases" (Settings → Marking): the normalised
+   * words this page's ayahs share with a similar verse, loaded lazily
+   * per ayah from /mutashabihat.json. A background wash only — no
+   * padding, no bold — so the justified line's width never moves. */
+  const [similarSets, setSimilarSets] = useState<Record<string, ReadonlySet<string>>>({});
+  useEffect(() => {
+    if (!similarOn) {
+      setSimilarSets({});
+      return;
+    }
+    let cancelled = false;
+    const keys = [...new Set(verses.map((v) => v.verse_key))];
+    void Promise.all(keys.map(async (k) => {
+      const [s, a] = k.split(':').map(Number);
+      return [k, await loadSimilarWordSet(s, a)] as const;
+    })).then((pairs) => {
+      if (cancelled) return;
+      const next: Record<string, ReadonlySet<string>> = {};
+      for (const [k, set] of pairs) next[k] = set;
+      setSimilarSets(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [similarOn, verses]);
   // Measure the longest line's natural width (from the data, with the
   // real font — independent of the filler's tatweel). Runs when the
   // verses change and again once the fonts load.
@@ -190,7 +227,9 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
       cancelled = true;
       cancelAnimationFrame(raf);
     };
-  }, [page, verses, tajweed, designWidth, script]);
+    // Marking changes re-render words (rosettes appear/vanish, washes
+    // come and go), so the fill must re-measure after them too.
+  }, [page, verses, tajweed, designWidth, script, hideMarkers, frequentMistakes, mistakeMarkingOn, similarSets, similarOn]);
 
   // Group words by mushaf line, in verse order (positions restart
   // per verse — do not re-sort by position). `text` is the display
@@ -311,7 +350,10 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
       let wi = 0;
       for (const g of group) {
         if (g.isEnd) {
-          lineContent.push(<ReaderRosette key={`${g.verseKey}-end-${key++}`} ayah={ayahNum} />);
+          // "Hide verse markers": no rosette is rendered at all.
+          if (!hideMarkers) {
+            lineContent.push(<ReaderRosette key={`${g.verseKey}-end-${key++}`} ayah={ayahNum} />);
+          }
           continue;
         }
         const off = offsets[wi];
@@ -326,7 +368,19 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
         const highlighted = g.keys.some((k) => highlightedWords?.has(k));
         const mistake = mistakes ? mistakeForKeys(g.keys, mistakes) : undefined;
         const wordId = g.keys[0] ? `word-${g.keys[0].replace(/:/g, '-')}` : undefined;
-        const wordClass = `reader-word${mistake ? ' highlight-red mistake-word' : highlighted ? ' highlight-green' : ''}`;
+        // Marking (Settings → Marking): a word missed 2+ times keeps
+        // the red dotted underline from the mistake history (live
+        // red/green wins over it), and a word this ayah shares with
+        // a similar verse gets an amber wash. Neither applies while
+        // the line is hidden — the blur hides the text anyway. The
+        // merged pause marks normalise away, so a merged word still
+        // matches its mistake-log / similar-phrase entry.
+        const norm = normalizeArabic(g.text);
+        const frequent =
+          mistakeMarkingOn && !mistake && !hidden && norm !== '' && (frequentMistakes?.has(`${sid}:${ayahNum}:${norm}`) ?? false);
+        const similar =
+          similarOn && !mistake && !hidden && norm !== '' && (similarSets[g.verseKey]?.has(norm) ?? false);
+        const wordClass = `reader-word${mistake ? ' highlight-red mistake-word' : highlighted ? ' highlight-green' : ''}${frequent ? ' live-word-wrong' : ''}${similar ? ' rounded bg-[#FFB800]/40' : ''}`;
         // A red word opens its tooltip on a real tap (the guard keeps
         // a swipe from firing it); hidden lines reveal instead.
         const wordTap =

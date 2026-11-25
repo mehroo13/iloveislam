@@ -139,6 +139,37 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
           fired[g.id] = today;
           changed = true;
         }
+        /* Streak reminder (Settings → Reminders): one a day at the
+         * chosen time, only on days not yet practised (the practised
+         * check above already returned early). Same fired-once-a-day
+         * map, key 'streak'. Fires while the app (or its tab) is open,
+         * like the per-goal reminders — the service worker cannot
+         * wake itself at a future time. */
+        try {
+          const sRaw = localStorage.getItem('ili_hifz_settings_v1');
+          const s = sRaw ? (JSON.parse(sRaw) as { streakReminder?: boolean; streakReminderTime?: string }) : null;
+          if (s?.streakReminder && typeof s.streakReminderTime === 'string') {
+            const [h, m] = s.streakReminderTime.split(':').map(Number);
+            if (
+              Number.isFinite(h) &&
+              Number.isFinite(m) &&
+              h * 60 + m <= nowMin &&
+              fired.streak !== today
+            ) {
+              navigator.serviceWorker.controller.postMessage({
+                type: 'SHOW_REMINDER',
+                goalId: 'streak',
+                title: 'Time to practise your Hifz',
+                body: 'Keep your streak going — open the app and recite a little today.',
+                url: '/hifz',
+              });
+              fired.streak = today;
+              changed = true;
+            }
+          }
+        } catch {
+          /* streak reminder must never break the goal reminders */
+        }
         if (changed) localStorage.setItem(FIRED_KEY, JSON.stringify(fired));
       } catch {
         /* reminders must never break the app */

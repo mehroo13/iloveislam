@@ -58,7 +58,8 @@ import { migrateToIdb } from '../lib/store';
 import { readerWordKey } from '../lib/reader-words';
 import { MIN_READER_SESSION_MS, saveReaderSession, surahName } from '../lib/reader-sessions';
 import { DEFAULT_RECITER_ID, loadSettings, saveSettings } from '../progress';
-import { type PeekInfo, type ReaderMistake } from '../lib/reader-mistakes';
+import { type PeekInfo, type ReaderMistake, loadFrequentMistakeKeys } from '../lib/reader-mistakes';
+import { playSessionFeedback } from '../lib/sounds';
 import {
   loadEngine,
   engineSupport,
@@ -346,6 +347,93 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       saveSettings({ ...loadSettings(), tajweedColors: v });
     } catch {
       /* storage unavailable — the choice applies this session */
+    }
+  }, []);
+  /* Settings subtree (2026-11-25): the Marking / Hidden Verses /
+   * Listening choices the Settings screens own, kept as reader state
+   * so they apply at once (the settings document is the persisted
+   * copy — each handler writes it too). Defaults equal the reader's
+   * behaviour before the screens existed. */
+  const [detectMistakes, setDetectMistakes] = useState(true);
+  const detectMistakesRef = useRef(true);
+  const [hideMarkers, setHideMarkers] = useState(false);
+  const [mistakeMarkingOn, setMistakeMarkingOn] = useState(true);
+  const [similarOn, setSimilarOn] = useState(false);
+  const [playSpeed, setPlaySpeed] = useState(1);
+  const playSpeedRef = useRef(1);
+  const [frequentMistakes, setFrequentMistakes] = useState<ReadonlySet<string>>(new Set());
+  useEffect(() => {
+    try {
+      const s = loadSettings();
+      setDetectMistakes(s.detectMistakes !== false);
+      detectMistakesRef.current = s.detectMistakes !== false;
+      setHideMarkers(s.hideAyahMarkers === true);
+      setMistakeMarkingOn(s.highlightMistakes !== false);
+      setSimilarOn(s.colorSimilarPhrases === true);
+      const sp = typeof s.playSpeed === 'number' && s.playSpeed >= 0.5 && s.playSpeed <= 1.75 ? s.playSpeed : 1;
+      setPlaySpeed(sp);
+      playSpeedRef.current = sp;
+    } catch {
+      /* defaults stand */
+    }
+    setFrequentMistakes(loadFrequentMistakeKeys());
+  }, []);
+  /* The word-level mistake history is written by the coach and the
+   *  test page, not by the reader — the reader's own takes keep
+   *  their mistakes in session state only. The set is therefore
+   *  loaded once per mount above (a return from the coach remounts
+   *  the reader), and the Marking toggle flips `mistakeMarkingOn`
+   *  live without re-reading the store. */
+  const toggleDetectMistakes = useCallback((v: boolean) => {
+    setDetectMistakes(v);
+    detectMistakesRef.current = v;
+    try {
+      saveSettings({ ...loadSettings(), detectMistakes: v });
+    } catch {
+      /* storage unavailable — the choice applies this session */
+    }
+    // Switched off mid-take: the live red words go away at once —
+    // detection off means no flags, not stale ones.
+    if (!v) setMistakeMap(new Map());
+  }, []);
+  const toggleHideMarkers = useCallback((v: boolean) => {
+    setHideMarkers(v);
+    try {
+      saveSettings({ ...loadSettings(), hideAyahMarkers: v });
+    } catch {
+      /* storage unavailable — the choice applies this session */
+    }
+  }, []);
+  const toggleMistakeMarking = useCallback((v: boolean) => {
+    setMistakeMarkingOn(v);
+    try {
+      saveSettings({ ...loadSettings(), highlightMistakes: v });
+    } catch {
+      /* storage unavailable — the choice applies this session */
+    }
+  }, []);
+  const toggleSimilar = useCallback((v: boolean) => {
+    setSimilarOn(v);
+    try {
+      saveSettings({ ...loadSettings(), colorSimilarPhrases: v });
+    } catch {
+      /* storage unavailable — the choice applies this session */
+    }
+  }, []);
+  const changePlaySpeed = useCallback((v: number) => {
+    setPlaySpeed(v);
+    playSpeedRef.current = v;
+    try {
+      saveSettings({ ...loadSettings(), playSpeed: v });
+    } catch {
+      /* storage unavailable — the choice applies this session */
+    }
+    // Apply to a playing clip at once; playNext applies it to the
+    // next clip.
+    try {
+      if (playAudioRef.current) playAudioRef.current.playbackRate = v;
+    } catch {
+      /* no audio element yet */
     }
   }, []);
   const [textSize, setTextSize] = useState(1.6);
@@ -773,8 +861,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         // line/verse).
         const finalMistakes = new Map<string, ReaderMistake>();
         for (const [k, m] of peekMapRef.current) finalMistakes.set(k, m);
+        // Detection off: only peeks survive — the engine's word flags
+        // are not recorded (same gate as the live branch above).
         for (const w of result.words) {
-          if (w.status === 'wrong' || w.status === 'missed') {
+          if ((w.status === 'wrong' || w.status === 'missed') && detectMistakesRef.current) {
             const k = readerWordKey(w.surah, w.ayah, w.word);
             finalMistakes.set(k, {
               key: k,
@@ -863,7 +953,11 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         result.micHeardAudio &&
         result.durationMs >= MIN_READER_SESSION_MS
       ) {
-        const wordMistakes = result.words.filter((w) => w.status === 'wrong' || w.status === 'missed').length;
+        // Detection off: the score counts peeks only — the engine's
+        // word flags were never shown, so they must not count either.
+        const wordMistakes = detectMistakesRef.current
+          ? result.words.filter((w) => w.status === 'wrong' || w.status === 'missed').length
+          : 0;
         const peekCount = peekMapRef.current.size;
         const accuracy = result.reachedCount > 0 ? (result.correctCount / result.reachedCount) * 100 : 0;
         setHideVerses(false);
@@ -880,6 +974,9 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         });
       }
       testTakeRef.current = false;
+      // Session Start & Stop feedback: the same sound + vibration
+      // when the take ends, if enabled.
+      playSessionFeedback();
       micTimerRef.current = window.setTimeout(() => {
         setMic('idle');
         setMicToast(null);
@@ -1014,10 +1111,13 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           console.log('[reader-mic] recognised:', e.display);
           setSpokenText(text);
           setInterimText(text);
-        } else if (e.status === 'wrong' || e.status === 'missed') {
+        } else if ((e.status === 'wrong' || e.status === 'missed') && detectMistakesRef.current) {
           // Narrowed to 'wrong' | 'missed' by the branch — captured
           // here, because property narrowing does not survive into
           // the setState closure below.
+          // Settings → Recitation → "Detect mistakes" off: this whole
+          // branch is skipped — the word keeps whatever green it had
+          // (follow-along only), no red flag, no mistake entry.
           const mistakeType: 'wrong' | 'missed' = e.status;
           // The checker flagged this word — it was not said correctly,
           // so drop any green it had and paint it red (Phase 5). The
@@ -1074,6 +1174,9 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     setMic('recording');
     setMicToast('Listening... Recite now.');
     setHasRecited(true);
+    // Session Start & Stop feedback (Settings → Session Start & Stop):
+    // a sound + a short vibration when the take starts, if enabled.
+    playSessionFeedback();
     // Capture-health watchdog: if no audio frames reach the engine
     // within a few seconds, the capture is dead (e.g. a suspended
     // AudioContext from an out-of-gesture prepare on first use) —
@@ -1169,6 +1272,13 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     playingWordKeyRef.current = null;
     setPlayingWordKey(null);
     audio.src = `${AUDIO_BASE}${item.url}`;
+    // Listen play speed (Settings → Listening): the picked speed,
+    // applied to every clip as it loads.
+    try {
+      audio.playbackRate = playSpeedRef.current;
+    } catch {
+      /* playbackRate unsupported — the clip still plays at 1x */
+    }
     // One play attempt for this clip. Two rejections are NOT "unplayable":
     // AbortError means the play was cut short by a pause (the user paused
     // while this clip was still loading) or by a superseding skip — never
@@ -1938,6 +2048,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
               highlightedWords={displayHighlightedWords}
               mistakes={mistakeMap}
               onMistakeWordClick={openMistakeTooltip}
+              hideMarkers={hideMarkers}
+              frequentMistakes={frequentMistakes}
+              mistakeMarkingOn={mistakeMarkingOn}
+              similarOn={similarOn}
             />
           </div>
         ) : (
@@ -2365,6 +2479,18 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         onOpenLayout={() => setOpenModal('layout')}
         hideVerses={hideVerses}
         onToggleHideVerses={() => setHideVerses((v) => !v)}
+        detectMistakes={detectMistakes}
+        onToggleDetectMistakes={toggleDetectMistakes}
+        hideMarkers={hideMarkers}
+        onToggleHideMarkers={toggleHideMarkers}
+        mistakeMarkingOn={mistakeMarkingOn}
+        onToggleMistakeMarking={toggleMistakeMarking}
+        similarOn={similarOn}
+        onToggleSimilar={toggleSimilar}
+        tajweedOn={tajweedOn}
+        onToggleTajweed={toggleTajweed}
+        playSpeed={playSpeed}
+        onPlaySpeedChange={changePlaySpeed}
       />
 
       {/* Chapter / Juz selection bottom sheet (Step 2) */}

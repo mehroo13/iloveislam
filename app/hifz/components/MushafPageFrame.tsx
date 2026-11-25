@@ -146,6 +146,11 @@ export interface MushafPageFrameProps {
   frequentMistakes: ReadonlySet<string>;
   /** The "Highlight mistake history" setting. */
   mistakeMarkingOn: boolean;
+  /** The "Hide verse markers" setting (Settings → Hidden Verses). */
+  hideMarkers?: boolean;
+  /** Words this page's ayahs share with a similar verse (Settings →
+   *  Marking → "Color similar phrases"), keyed by verse key. */
+  similarWords?: ReadonlyMap<string, ReadonlySet<string>>;
   /** The "Show Tajweed colours" setting (display only — the heuristic
    *  in SharedSheets.tajweedClass, never detection). Off by default. */
   tajweedOn?: boolean;
@@ -175,6 +180,8 @@ export default function MushafPageFrame({
   revealed,
   frequentMistakes,
   mistakeMarkingOn,
+  hideMarkers = false,
+  similarWords,
   tajweedOn = false,
   activeWord = null,
   onLineTap,
@@ -190,6 +197,14 @@ export default function MushafPageFrame({
     const norm = normalizeArabic(text);
     if (!norm) return false;
     return frequentMistakes.has(`${verseKey}:${norm}`);
+  };
+
+  /** A word this ayah shares with a similar verse (amber wash). */
+  const isSimilarWord = (verseKey: string, text: string): boolean => {
+    if (!similarWords || similarWords.size === 0) return false;
+    const norm = normalizeArabic(text);
+    if (!norm) return false;
+    return similarWords.get(verseKey)?.has(norm) ?? false;
   };
 
   // Measured kashida justification (see lib/kashida.ts). Runs after
@@ -220,7 +235,8 @@ export default function MushafPageFrame({
     // activeWord re-runs the fill: highlighting swaps one word between a
     // plain text node and a span, and the fill must re-measure the line.
     // The highlight span has no padding, so the fill lands identically.
-  }, [page, verses, script, compactText, hidden, revealed, frequentMistakes, mistakeMarkingOn, tajweedOn, activeWord]);
+    // Marking changes (rosettes, washes) re-render words too.
+  }, [page, verses, script, compactText, hidden, revealed, frequentMistakes, mistakeMarkingOn, hideMarkers, similarWords, tajweedOn, activeWord]);
 
   // Group words by mushaf line, in verse order. Do NOT re-sort by
   // `position`: positions restart at 1 for every verse, so sorting by
@@ -269,7 +285,7 @@ export default function MushafPageFrame({
 
     // Clean the display text for the chosen script, merging mark-only
     // words into the previous word.
-    const display: { text: string; isEnd: boolean; verseKey: string; globalIdx: number; weak: boolean; verseWordIdx: number }[] = [];
+    const display: { text: string; isEnd: boolean; verseKey: string; globalIdx: number; weak: boolean; similar: boolean; verseWordIdx: number }[] = [];
     for (const w of words) {
       const raw = script === 'uthmani' ? w.text_uthmani : w.text_indopak ?? w.text_uthmani;
       const text =
@@ -296,6 +312,8 @@ export default function MushafPageFrame({
         // checked on the bare word: merged pause marks normalise away,
         // so a merged word still matches its mistake-log entry.
         weak: w.char_type_name === 'end' ? false : isFrequentMistake(w.verseKey, text),
+        // Similar-phrase wash: same normalisation rule as the weak flag.
+        similar: w.char_type_name === 'end' ? false : isSimilarWord(w.verseKey, text),
         verseWordIdx,
       });
     }
@@ -327,6 +345,8 @@ export default function MushafPageFrame({
       lineContent = display.map((w, i) => {
         if (w.isEnd) {
           const ayahNum = Number(w.verseKey.split(':')[1]);
+          // "Hide verse markers": no rosette is rendered at all.
+          if (hideMarkers) return null;
           return <AyahRosette key={`${w.verseKey}-${i}`} ayah={ayahNum} muted />;
         }
         // Memorisation mode: unrevealed words are thin grey rules — except
@@ -359,6 +379,10 @@ export default function MushafPageFrame({
           <span key={`${w.verseKey}-${i}`} className="live-word-wrong">
             {w.text}{' '}
           </span>
+        ) : w.similar ? (
+          <span key={`${w.verseKey}-${i}`} className="rounded bg-[#FFB800]/40">
+            {w.text}{' '}
+          </span>
         ) : tajweedOn && tajweedClass(w.text) ? (
           <span key={`${w.verseKey}-${i}`} className={tajweedClass(w.text)}>
             {w.text}{' '}
@@ -381,9 +405,9 @@ export default function MushafPageFrame({
       // .live-word-wrong), never a topic tint and never a tajweed colour,
       // so the markings cannot be confused even where a weak word sits
       // on a wash. Tajweed colours split the same way when the setting
-      // is on.
+      // is on. A similar-phrase word gets an amber wash (weak wins).
       const nodes: React.ReactNode[] = [];
-      let runSegs: { text: string; weak: boolean; tj: string; active: boolean }[] = [];
+      let runSegs: { text: string; weak: boolean; similar: boolean; tj: string; active: boolean }[] = [];
       let runKey = '';
       const flush = () => {
         if (runSegs.length === 0) return;
@@ -394,6 +418,7 @@ export default function MushafPageFrame({
         let content: React.ReactNode;
         const useSpans =
           runSegs.some((s) => s.weak) ||
+          runSegs.some((s) => s.similar) ||
           (tajweedOn && runSegs.some((s) => s.tj)) ||
           runSegs.some((s) => s.active);
         if (!useSpans) {
@@ -409,6 +434,10 @@ export default function MushafPageFrame({
                   className="live-word-wrong"
                   style={s.active ? { background: '#D9FBE8', borderRadius: '0.2em' } : undefined}
                 >
+                  {s.text}
+                </span>
+              ) : s.similar ? (
+                <span key={`${runKey}-w${si}`} className="rounded bg-[#FFB800]/40">
                   {s.text}
                 </span>
               ) : s.active ? (
@@ -438,12 +467,14 @@ export default function MushafPageFrame({
         if (w.isEnd) {
           flush();
           const [, ea] = w.verseKey.split(':').map(Number);
-          nodes.push(<AyahRosette key={`${w.verseKey}-${i}`} ayah={ea} />);
+          // "Hide verse markers": no rosette is rendered at all.
+          if (!hideMarkers) nodes.push(<AyahRosette key={`${w.verseKey}-${i}`} ayah={ea} />);
         } else {
           if (runSegs.length === 0) runKey = w.verseKey;
           runSegs.push({
             text: w.text,
             weak: w.weak,
+            similar: w.similar,
             tj: w.weak ? '' : tajweedOn ? tajweedClass(w.text) : '',
             active:
               activeWord !== null &&
