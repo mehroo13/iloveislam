@@ -301,9 +301,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
   const [designWidths, setDesignWidths] = useState<Record<number, number>>({});
-  /* Page-turn track (2026-11-25 second refinement): Book and
-   * Translation modes render THREE page columns in a horizontal
-   * track — left→right [page+1, page, page-1] — inside a
+  /* Page-turn track (2026-11-25 second refinement; Book-only since
+   * 2026-11-26, Part 2 — Translation left the track for the
+   * continuous scroll): Book renders THREE page columns in a
+   * horizontal track — left→right [page+1, page, page-1] — inside a
    * content-width window. `offset` is the track's displacement
    * from its settled position (0 = the current page centred); the
    * transform is translateX(-contentWidth + offset). During a drag
@@ -321,6 +322,13 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   /* Reading layout (Mushaf Layout sheet), persisted across visits.
    * Read after mount to avoid a server/client hydration mismatch. */
   const [layoutMode, setLayoutMode] = useState<ReaderLayoutMode>('book');
+  /** Book swipes page by page; Text and Translation both scroll as
+   *  one continuous vertical flow over the loaded page range
+   *  (2026-11-26, Part 2: Translation joins Text here). Every
+   *  `layoutMode === 'text'` gate below goes through this flag, so
+   *  the two continuous modes share range-loading, visible-page
+   *  tracking, the pill/bookmark/mic scope and the no-swipe rule. */
+  const isContinuous = layoutMode === 'text' || layoutMode === 'translation';
   /* Mushaf Type picker (fourth refinement, 2026-11-25): the print
    * edition + the Show Tajweed Colors switch, both persisted in
    * `ili_hifz_settings_v1` and applied to the reader at once.
@@ -433,10 +441,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           if (target !== page) setPage(target);
           setPages((p) => ({ [target]: p[target] }));
           setDesignWidths({});
-          /* Text mode: restart the continuous list at the new
-           * edition's page — the range's other pages belong to the
-           * old edition and are no longer cached. */
-          if (layoutMode === 'text') {
+          /* Continuous mode: restart the list at the new edition's
+           * page — the range's other pages belong to the old
+           * edition and are no longer cached. */
+          if (isContinuous) {
             setTextRange({ start: target, end: target });
             setVisibleText(null);
           }
@@ -562,25 +570,25 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const [textSize, setTextSize] = useState(1.6);
   const data = pages[page] ?? initial;
 
-  /* Continuous Quran Text (2026-11-25 refinement pass): the loaded
-   * page range in text mode. The anchor is `page`; the range grows
-   * downward as the user scrolls (fetchPage fills the pages cache)
-   * and upward when they scroll back. `page` itself never changes
-   * while scrolling, so a scroll can never interrupt a live mic
-   * take or playback — the take's reference text is the anchor
-   * page's ayahs. */
+  /* Continuous modes (2026-11-25 refinement pass; Translation
+   * joined 2026-11-26, Part 2): the loaded page range. The anchor
+   * is `page`; the range grows downward as the user scrolls
+   * (fetchPage fills the pages cache) and upward when they scroll
+   * back. `page` itself never changes while scrolling, so a scroll
+   * can never interrupt a live mic take or playback — the take's
+   * reference text is the anchor page's ayahs. */
   const [textRange, setTextRange] = useState<{ start: number; end: number } | null>(null);
   const textRangeRef = useRef<{ start: number; end: number } | null>(null);
   textRangeRef.current = textRange;
-  /* The position the user is actually looking at in text mode —
-   * drives the pill, the header row, the bookmark and the
+  /* The position the user is actually looking at in a continuous
+   * mode — drives the pill, the header row, the bookmark and the
    * mic/playback scope. */
   const [visibleText, setVisibleText] = useState<{ surah: number; page: number; juz: number; hizb: number } | null>(null);
   const visibleTextRef = useRef(visibleText);
   visibleTextRef.current = visibleText;
-  /* The page the reader is effectively on: the visible page in
-   * text mode, the anchor page otherwise. */
-  const visiblePage = layoutMode === 'text' && visibleText ? visibleText.page : page;
+  /* The page the reader is effectively on: the visible page in a
+   * continuous mode, the anchor page otherwise. */
+  const visiblePage = isContinuous && visibleText ? visibleText.page : page;
   /* Prepending a page above the viewport: the scrollHeight before
    * the new page's verses arrive, so the scroll position can be
    * preserved once they render. */
@@ -597,7 +605,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   /* The most recently lit word (mic correct event or Listen's
    * sounding word) — the follow-the-word scroll reads this. */
   const latestLitKeyRef = useRef<string | null>(null);
-  /* The loaded pages in text mode, in order, with their verses. */
+  /* The loaded pages in a continuous mode, in order, with their verses. */
   const textPages = useMemo(() => {
     if (!textRange) return [];
     const out: { page: number; verses: MushafVerse[]; meta: ReaderPageData['meta'] }[] = [];
@@ -607,11 +615,11 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     }
     return out;
   }, [textRange, pages]);
-  /* The passage the mic / Listen should use: in text mode the
-   * surah the user is actually looking at (from the loaded pages);
-   * otherwise the current page's first surah. */
+  /* The passage the mic / Listen should use: in a continuous mode
+   * the surah the user is actually looking at (from the loaded
+   * pages); otherwise the current page's first surah. */
   const activeExpected = useMemo(() => {
-    if (layoutMode === 'text') {
+    if (isContinuous) {
       const surah =
         visibleText?.surah ??
         (textPages.length > 0 ? pageExpected(textPages[0].verses)?.surah : undefined);
@@ -1209,7 +1217,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       /* already gone */
     }
     // Reference text: the passage the reader is on — the visible
-    // surah in continuous text mode, else the current page's ayahs
+    // surah in a continuous mode, else the current page's ayahs
     // (first surah on the page — a session covers one surah).
     const expected = activeExpected;
     if (!expected) {
@@ -1505,7 +1513,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     const run = playRunRef.current + 1;
     playRunRef.current = run;
     // The passage the reader is on — the visible surah in
-    // continuous text mode, else the page's ayahs, first surah only
+    // a continuous mode, else the page's ayahs, first surah only
     // (same scope as a mic take).
     const expected = activeExpected;
     if (!expected) {
@@ -1834,8 +1842,8 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   );
 
   /* Swipe: pointer events (touch + mouse). Vertical gestures are
-   * left to native scrolling (touch-action: pan-y). In continuous
-   * text mode there is no page turn — the content scrolls.
+   * left to native scrolling (touch-action: pan-y). In the
+   * continuous modes there is no page turn — the content scrolls.
    * Direction (Mehran, 2026-11-25): a left-to-right swipe turns
    * FORWARD (page 2, 3, …) and right-to-left comes BACK. The next
    * page sits to the left in this RTL book, so dragging rightward
@@ -1843,7 +1851,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
    * 1:1 (see onPointerMove) — the next page is already sliding
    * into view under the touch. */
   const onPointerDown = (e: React.PointerEvent) => {
-    if (layoutMode === 'text') return;
+    if (isContinuous) return;
     if (busyRef.current) return;
     // A mouse drag over the page selects text (brand-yellow
     // ::selection) and the track keeps its DOM nodes alive across
@@ -1929,10 +1937,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const meta = data.meta;
 
   /* The pill / header row follow what the user is actually looking
-   * at: the visible surah and page in continuous text mode, the
+   * at: the visible surah and page in a continuous mode, the
    * anchor page otherwise. */
   const pillMeta =
-    layoutMode === 'text' && visibleText
+    isContinuous && visibleText
       ? {
           surahName: surahName(visibleText.surah),
           page: visibleText.page,
@@ -1941,8 +1949,9 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         }
       : { surahName: meta.surahName, page, juz: meta.juz, hizb: meta.hizb };
 
-  /* Layout-mode change (2026-11-25 refinement pass): entering
-   * continuous text starts the list at the anchor page; leaving it
+  /* Layout-mode change (2026-11-25 refinement pass; Translation
+   * joined the continuous modes 2026-11-26, Part 2): entering a
+   * continuous mode starts the list at the anchor page; leaving one
    * lands on the page actually being read — but never interrupts a
    * live take or playback. Also resets any in-flight slide offset
    * so a mode switch can never leave the page shifted. */
@@ -1953,11 +1962,11 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     if (prev !== layoutMode) {
       setOffset(0);
       setAnimating(false);
-      if (layoutMode === 'text') {
+      if (isContinuous) {
         setTextRange({ start: page, end: page });
         setVisibleText(null);
         window.setTimeout(() => containerRef.current?.scrollTo({ top: 0 }), 0);
-      } else if (prev === 'text') {
+      } else if (prev === 'text' || prev === 'translation') {
         const vt = visibleTextRef.current;
         if (vt && vt.page !== page && micStateRef.current === 'idle' && playStateRef.current === 'idle') {
           jumpToPage(vt.page);
@@ -1966,22 +1975,24 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       return;
     }
     // Same mode, but the anchor page changed — a ChapterSheet jump
-    // (or the gift's return to Page 1) while in text mode: restart
-    // the continuous list at the new page.
-    if (layoutMode === 'text') {
+    // (or the gift's return to Page 1) while in a continuous mode:
+    // restart the list at the new page.
+    if (isContinuous) {
       setTextRange({ start: page, end: page });
       setVisibleText(null);
       window.setTimeout(() => containerRef.current?.scrollTo({ top: 0 }), 0);
     }
   }, [layoutMode, page, jumpToPage]);
 
-  /* Continuous-text scroll tracking: the topmost visible ayah sets
-   * the visible position (pill / header / bookmark / mic scope),
-   * and approaching either end of the loaded range extends it by
-   * one page (one fetch at a time, so the check cannot
-   * cascade-load pages while data is still arriving). */
+  /* Continuous-mode scroll tracking (text + translation): the
+   * topmost visible ayah sets the visible position (pill / header /
+   * bookmark / mic scope), and approaching either end of the loaded
+   * range extends it by one page (one fetch at a time, so the check
+   * cannot cascade-load pages while data is still arriving). The
+   * text ayahs carry [data-text-ayah], the translation ayah blocks
+   * [data-translation-ayah]; both expose the same dataset. */
   useEffect(() => {
-    if (layoutMode !== 'text') return;
+    if (!isContinuous) return;
     const mainEl = containerRef.current;
     if (!mainEl) return;
     let rafId = 0;
@@ -2016,7 +2027,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       const range = textRangeRef.current;
       if (!range) return;
       const top = mainEl.getBoundingClientRect().top;
-      const els = mainEl.querySelectorAll('[data-text-ayah]');
+      const els = mainEl.querySelectorAll('[data-text-ayah], [data-translation-ayah]');
       for (const el of els) {
         const r = (el as HTMLElement).getBoundingClientRect();
         if (r.bottom > top + 90) {
@@ -2070,13 +2081,13 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     if (delta > 0) mainEl.scrollTop += delta;
   }, [textPages]);
 
-  /* Follow the lit word in continuous text mode: during Listen the
+  /* Follow the lit word in continuous modes: during Listen the
    * view follows the recitation; during a mic take it follows only
    * while the user has not scrolled themselves in the last 2 s, so
    * it never fights a deliberate scroll. Book mode needs none of
    * this — the whole page is always in view. */
   useEffect(() => {
-    if (layoutMode !== 'text') return;
+    if (!isContinuous) return;
     const key = latestLitKeyRef.current;
     if (!key) return;
     const isPlayback = playStateRef.current === 'playing' || playStateRef.current === 'paused';
@@ -2100,7 +2111,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
 
   /* Page header row (whole-page reference): surah name left, Play +
    * Juz / Hizb right. Shared by the track columns (each column shows
-   * its own page's meta) and by continuous text mode (pillMeta).
+   * its own page's meta) and by the continuous modes (pillMeta).
    * Only the current column carries the fit-check ref and the Play
    * button's testid — the side columns are inert. */
   const renderHeaderRow = (
@@ -2159,10 +2170,12 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   );
 
   /* One column of the page-turn track (2026-11-25 second
-   * refinement): the header row for that page's meta, the page
-   * content (Book or Translation), and the page number pinned to
-   * the bottom-right by mt-auto. The column's own design width and
-   * scale are computed per page, so an adjacent page is already
+   * refinement): the header row for that page's meta, the Book page
+   * content, and the page number pinned to the bottom-right by
+   * mt-auto. The track is Book-only since 2026-11-26 (Part 2):
+   * Translation left the track for the continuous scroll, so this
+   * column always renders ReaderPage. The column's own design width
+   * and scale are computed per page, so an adjacent page is already
    * laid out at full size before the drag reveals it — and its own
    * fit shrink is already final too (third refinement), so the
    * commit changes nothing. Off-screen columns are inert (their
@@ -2177,10 +2190,9 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     // Only 12px of the content width is held back (6px each side):
     // the text must occupy the full available space (2026-11-25
     // second refinement — the old 32px left a wide empty margin
-    // around every page). The shrink is this page's own fit (book
-    // mode only; Translation renders unshrunk, as before).
+    // around every page). The shrink is this page's own fit.
     const colScale = Math.max(0.3, Math.min(1, (contentWidth - 12) / dw));
-    const zoom = colScale * (layoutMode === 'book' ? (shrinks[n] ?? 1) : 1);
+    const zoom = colScale * (shrinks[n] ?? 1);
     const verses = pd?.verses ?? [];
     const tajweed = pd?.tajweed ?? {};
     return (
@@ -2191,46 +2203,30 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         style={{ width: contentWidth }}
       >
         {renderHeaderRow(colMeta, isCurrent)}
-        {layoutMode === 'book' ? (
-          <div data-frame-page={n} className="w-full" style={{ zoom }}>
-            <ReaderPage
-              key={n}
-              page={n}
-              verses={verses}
-              tajweed={tajweed}
-              script={scriptForEdition(edition)}
-              tajweedOn={tajweedOn}
-              designWidth={dw}
-              onMeasure={handleMeasure(n)}
-              zoom={zoom}
-              hideVerses={hideVerses}
-              revealedLines={revealedLinesFor(n)}
-              onRevealLine={(ln, info) => reveal(`L${n}:${ln}`, info)}
-              highlightedWords={displayHighlightedWords}
-              mistakes={mistakeMap}
-              onMistakeWordClick={openMistakeTooltip}
-              hideMarkers={hideMarkers}
-              frequentMistakes={frequentMistakes}
-              mistakeMarkingOn={mistakeMarkingOn}
-              similarOn={similarOn}
-              onRosetteClick={(verseKey) => setTafsirSheet(verseKey)}
-            />
-          </div>
-        ) : (
-          <ReaderTranslationMode
+        <div data-frame-page={n} className="w-full" style={{ zoom }}>
+          <ReaderPage
             key={n}
+            page={n}
             verses={verses}
+            tajweed={tajweed}
+            script={scriptForEdition(edition)}
+            tajweedOn={tajweedOn}
+            designWidth={dw}
+            onMeasure={handleMeasure(n)}
+            zoom={zoom}
             hideVerses={hideVerses}
-            revealed={revealed}
-            onReveal={reveal}
+            revealedLines={revealedLinesFor(n)}
+            onRevealLine={(ln, info) => reveal(`L${n}:${ln}`, info)}
             highlightedWords={displayHighlightedWords}
             mistakes={mistakeMap}
             onMistakeWordClick={openMistakeTooltip}
-            translationId={translationId}
+            hideMarkers={hideMarkers}
+            frequentMistakes={frequentMistakes}
+            mistakeMarkingOn={mistakeMarkingOn}
+            similarOn={similarOn}
             onRosetteClick={(verseKey) => setTafsirSheet(verseKey)}
-            script={scriptForEdition(edition)}
           />
-        )}
+        </div>
         <div className="mt-auto flex justify-end px-2 pt-1">
           <span className="text-[15px]" style={{ color: INK }}>
             {n}
@@ -2322,15 +2318,16 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         onPointerCancel={onPointerUp}
       >
         <div className="mx-auto flex min-h-full w-full max-w-[520px] flex-col justify-start overflow-x-clip pb-2 pt-2">
-          {/* Book / Translation: a three-column track [page+1, page,
-              page-1] in a content-width window. The track is
-              translated by -contentWidth + offset, so the current
-              page is centred at rest; during a drag it follows the
-              finger 1:1, and on release it settles the short way to
-              the snap point (see goToPage). The wrapper clips the
-              off-screen columns (overflow-x-clip above). Continuous
-              text mode has no track — it scrolls natively. */}
-          {layoutMode === 'text' ? (
+          {/* Book: a three-column track [page+1, page, page-1] in a
+              content-width window. The track is translated by
+              -contentWidth + offset, so the current page is centred
+              at rest; during a drag it follows the finger 1:1, and
+              on release it settles the short way to the snap point
+              (see goToPage). The wrapper clips the off-screen
+              columns (overflow-x-clip above). The continuous modes
+              (Text, Translation) have no track — they scroll
+              natively, one flow over the loaded page range. */}
+          {isContinuous ? (
             <>
               {renderHeaderRow(pillMeta, true)}
               {playError && (
@@ -2338,18 +2335,33 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                   {playError}
                 </p>
               )}
-              <ReaderContinuousText
-                pages={textPages}
-                textSize={textSize}
-                onTextSizeChange={changeTextSize}
-                highlightedWords={displayHighlightedWords}
-                mistakes={mistakeMap}
-                onMistakeWordClick={openMistakeTooltip}
-                hideVerses={hideVerses}
-                revealed={revealed}
-                onReveal={reveal}
-                script={scriptForEdition(edition)}
-              />
+              {layoutMode === 'text' ? (
+                <ReaderContinuousText
+                  pages={textPages}
+                  textSize={textSize}
+                  onTextSizeChange={changeTextSize}
+                  highlightedWords={displayHighlightedWords}
+                  mistakes={mistakeMap}
+                  onMistakeWordClick={openMistakeTooltip}
+                  hideVerses={hideVerses}
+                  revealed={revealed}
+                  onReveal={reveal}
+                  script={scriptForEdition(edition)}
+                />
+              ) : (
+                <ReaderTranslationMode
+                  pages={textPages}
+                  hideVerses={hideVerses}
+                  revealed={revealed}
+                  onReveal={reveal}
+                  highlightedWords={displayHighlightedWords}
+                  mistakes={mistakeMap}
+                  onMistakeWordClick={openMistakeTooltip}
+                  translationId={translationId}
+                  onRosetteClick={(verseKey) => setTafsirSheet(verseKey)}
+                  script={scriptForEdition(edition)}
+                />
+              )}
             </>
           ) : (
             <>

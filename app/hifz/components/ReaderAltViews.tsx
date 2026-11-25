@@ -6,6 +6,9 @@
 //   (The Clear Quran) translation, fetched per surah from the
 //   /api/quran/khattab route (the open quran-api dataset — neither
 //   Quran.com v4 nor AlQuran Cloud serves Khattab; verified 2026-11-24).
+//   Since 2026-11-26 (Part 2) it scrolls as one continuous vertical
+//   flow over the loaded page range, like ReaderContinuousText —
+//   no swipe track, no per-page columns.
 // Transliteration is NOT shown: the mode's content is translation, per
 // the brief (a transliteration line would need per-word data).
 //
@@ -17,7 +20,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { getSurahById } from '../surahs';
-import { API, BISMILLAH, KHATTAB_TRANSLATION_ID, translationName, type QuranScript } from '../../quran/lib';
+import { API, BISMILLAH, KHATTAB_TRANSLATION_ID, cleanTranslationText, translationName, type QuranScript } from '../../quran/lib';
 import { type MushafVerse } from '../lib/fetch';
 import { type ReaderPageData } from '../lib/reader-page';
 import { verseDisplayWords } from '../lib/reader-words';
@@ -354,11 +357,155 @@ export function ReaderContinuousText({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Translation mode — Arabic + the selected translation.              */
+/*  Translation mode — Arabic + the selected translation, as ONE      */
+/*  continuous vertical scroll (2026-11-26, Part 2). Like the Quran   */
+/*  Text mode, the parent (ReaderScreen) owns the loaded page range   */
+/*  and grows it as the user approaches either end; this component    */
+/*  just renders the pages it is given, in order — no swipe track,    */
+/*  no per-page columns. A surah split across two mushaf pages gets   */
+/*  ONE header ornament (on its first appearance), and a subtle       */
+/*  centred page number marks each page boundary.                     */
 /* ------------------------------------------------------------------ */
 
+/** One ayah in translation mode: the Arabic (blurs in Hide Verses
+ *  mode; tap reveals), the rosette (opens the tafsir sheet), the
+ *  cleaned translation (Part 1: footnote markers stripped) and the
+ *  verse reference. The wrapper carries the data attributes the
+ *  parent's scroll tracking reads — data-translation-ayah /
+ *  data-surah / data-page / data-juz / data-hizb / data-verse-key —
+ *  so the top pill, the bookmark and the mic/playback scope follow
+ *  the scrolled position, the same contract ReaderContinuousText's
+ *  ayah spans keep. */
+function TranslationAyahBlock({
+  verse,
+  page,
+  meta,
+  translation,
+  translationFailed,
+  hideVerses,
+  revealed,
+  onReveal,
+  highlightedWords,
+  mistakes,
+  onMistakeWordClick,
+  onRosetteClick,
+  script = 'uthmani',
+}: {
+  verse: MushafVerse;
+  page: number;
+  meta: ReaderPageData['meta'];
+  /** The cleaned translation text for this ayah (undefined while
+   *  it is still loading). */
+  translation?: string;
+  translationFailed: boolean;
+  hideVerses: boolean;
+  revealed: ReadonlySet<string>;
+  /** Tap handler for a hidden verse (tap-to-peek). The second arg
+   *  is the peek info (verse + its first words) so the reader can
+   *  log the peek in a test take (Phase 6). */
+  onReveal: (key: string, info?: PeekInfo) => void;
+  /** Words spoken correctly this take (Phase 3): engine keys
+   *  `surah:ayah:word` (1-based). */
+  highlightedWords?: ReadonlySet<string>;
+  /** Words the checker flagged this take (Phase 5). */
+  mistakes?: ReadonlyMap<string, ReaderMistake>;
+  onMistakeWordClick?: (mistake: ReaderMistake, rect: DOMRect) => void;
+  /** An ayah-end rosette was tapped: open that verse's tafsir sheet. */
+  onRosetteClick?: (verseKey: string) => void;
+  /** Display script (Mushaf Type picker): the Arabic renders in the
+   *  selected edition's script, like the Book reader. */
+  script?: QuranScript;
+}) {
+  const guard = useTapGuard();
+  const key = `V${verse.verse_key}`;
+  const hidden = hideVerses && !revealed.has(key);
+  const ayahNum = Number(verse.verse_key.split(':')[1]);
+  const sid = Number(verse.verse_key.split(':')[0]);
+  return (
+    <div
+      data-translation-ayah
+      data-surah={sid}
+      data-page={page}
+      data-juz={verse.juz_number}
+      data-hizb={verse.hizb_number ?? meta.hizb}
+      data-verse-key={verse.verse_key}
+      className="mb-5 border-b border-[#F0F0F0] pb-4"
+    >
+      {/* Arabic — blurs in Hide Verses mode; tap reveals. */}
+      <div
+        onPointerDown={hidden ? guard.down : undefined}
+        onClick={
+          hidden
+            ? (e) => {
+                if (guard.ok(e)) onReveal(key, versePeekInfo(verse, script));
+              }
+            : undefined
+        }
+        style={
+          hidden
+            ? { filter: 'blur(7px)', cursor: 'pointer', userSelect: 'none' }
+            : undefined
+        }
+      >
+        <p
+          dir="rtl"
+          lang="ar"
+          translate="no"
+          className={`${scriptFontClass(script)} text-right leading-[2]`}
+          style={{ fontSize: '1.5rem', color: INK }}
+        >
+          <AyahWords
+            verse={verse}
+            highlightedWords={highlightedWords}
+            mistakes={mistakes}
+            onMistakeWordClick={onMistakeWordClick}
+            clickable={!hidden}
+            script={script}
+          />{' '}
+          {onRosetteClick ? (
+            <button
+              type="button"
+              aria-label={`Tafsir for ${verse.verse_key}`}
+              onPointerDown={guard.down}
+              onClick={(e) => {
+                if (guard.ok(e)) onRosetteClick(verse.verse_key);
+              }}
+              className="m-0 inline-flex items-center justify-center border-0 bg-transparent p-0 align-middle"
+            >
+              <ReaderRosette ayah={ayahNum} />
+            </button>
+          ) : (
+            <ReaderRosette ayah={ayahNum} />
+          )}
+        </p>
+      </div>
+      {/* English translation — stays visible as the prompt. The v4
+          text carries footnote markers as HTML
+          (`<sup foot_note=…>1</sup>`, rendered literally before
+          the Part 1 fix); cleanTranslationText strips the whole
+          marker — tag and number — and nothing else. */}
+      {translationFailed ? (
+        <p dir="ltr" className="pt-2 text-[14px] leading-relaxed text-[#DC2626]">
+          Could not load the translation for this surah.
+        </p>
+      ) : translation ? (
+        <p dir="ltr" className="pt-2 text-[15px] leading-relaxed text-[#374151]">
+          {cleanTranslationText(translation)}
+        </p>
+      ) : (
+        <p dir="ltr" className="pt-2 text-[14px] leading-relaxed" style={{ color: MUTED }}>
+          Loading translation…
+        </p>
+      )}
+      <p dir="ltr" className="pt-1 text-[12px]" style={{ color: MUTED }}>
+        {verse.verse_key}
+      </p>
+    </div>
+  );
+}
+
 export function ReaderTranslationMode({
-  verses,
+  pages,
   hideVerses,
   revealed,
   onReveal,
@@ -369,7 +516,9 @@ export function ReaderTranslationMode({
   onRosetteClick,
   script = 'uthmani',
 }: {
-  verses: MushafVerse[];
+  /** The loaded page range, in order — the parent grows it as the
+   *  user scrolls (same shape ReaderContinuousText takes). */
+  pages: { page: number; verses: MushafVerse[]; meta: ReaderPageData['meta'] }[];
   hideVerses: boolean;
   revealed: ReadonlySet<string>;
   /** Tap handler for a hidden verse (tap-to-peek). The second arg
@@ -393,7 +542,6 @@ export function ReaderTranslationMode({
    *  selected edition's script, like the Book reader. */
   script?: QuranScript;
 }) {
-  const guard = useTapGuard();
   // Keyed by `${surah}:${translationId}` so switching translations
   // never shows the previous translation's text.
   const [translations, setTranslations] = useState<Record<string, Record<number, string>>>({});
@@ -401,139 +549,112 @@ export function ReaderTranslationMode({
   const [failed, setFailed] = useState<Record<number, boolean>>({});
   const loadedRef = useRef<Record<string, boolean>>({});
 
-  const groups = groupBySurah(verses);
-
-  // Fetch the selected translation for each surah on the page, once
-  // per surah per translation. Khattab (131) is not a v4 resource —
-  // it comes from its own route; every other id comes from v4.
+  // Fetch the selected translation for each surah in the loaded
+  // range, once per surah per translation. Khattab (131) is not a
+  // v4 resource — it comes from its own route; every other id comes
+  // from v4.
   useEffect(() => {
-    for (const g of groups) {
-      const sid = g.sid;
-      const loadKey = `${sid}:${translationId}`;
-      if (loadedRef.current[loadKey] || loading[sid] || translations[loadKey]) continue;
-      loadedRef.current[loadKey] = true;
-      setLoading((l) => ({ ...l, [sid]: true }));
-      const url =
-        translationId === KHATTAB_TRANSLATION_ID
-          ? `/api/quran/khattab/${sid}`
-          : `${API}/verses/by_chapter/${sid}?fields=text_uthmani&translations=${translationId}&per_page=all`;
-      fetch(url)
-        .then((r) => {
-          if (!r.ok) throw new Error(`translation ${sid}: ${r.status}`);
-          return r.json();
-        })
-        .then((d: { translations?: Record<number, string>; verses?: { verse_number?: number; translations?: { text?: string }[] }[] }) => {
-          if (d.translations) {
-            setTranslations((t) => ({ ...t, [loadKey]: d.translations ?? {} }));
-          } else if (Array.isArray(d.verses)) {
-            const map: Record<number, string> = {};
-            for (const v of d.verses) {
-              if (typeof v?.verse_number === 'number' && v.translations?.[0]?.text) {
-                map[v.verse_number] = v.translations[0].text;
+    for (const { verses } of pages) {
+      for (const g of groupBySurah(verses)) {
+        const sid = g.sid;
+        const loadKey = `${sid}:${translationId}`;
+        if (loadedRef.current[loadKey] || loading[sid] || translations[loadKey]) continue;
+        loadedRef.current[loadKey] = true;
+        setLoading((l) => ({ ...l, [sid]: true }));
+        const url =
+          translationId === KHATTAB_TRANSLATION_ID
+            ? `/api/quran/khattab/${sid}`
+            : `${API}/verses/by_chapter/${sid}?fields=text_uthmani&translations=${translationId}&per_page=all`;
+        fetch(url)
+          .then((r) => {
+            if (!r.ok) throw new Error(`translation ${sid}: ${r.status}`);
+            return r.json();
+          })
+          .then((d: { translations?: Record<number, string>; verses?: { verse_number?: number; translations?: { text?: string }[] }[] }) => {
+            if (d.translations) {
+              setTranslations((t) => ({ ...t, [loadKey]: d.translations ?? {} }));
+            } else if (Array.isArray(d.verses)) {
+              const map: Record<number, string> = {};
+              for (const v of d.verses) {
+                if (typeof v?.verse_number === 'number' && v.translations?.[0]?.text) {
+                  map[v.verse_number] = v.translations[0].text;
+                }
               }
+              setTranslations((t) => ({ ...t, [loadKey]: map }));
+            } else {
+              throw new Error(`translation ${sid}: unexpected payload`);
             }
-            setTranslations((t) => ({ ...t, [loadKey]: map }));
-          } else {
-            throw new Error(`translation ${sid}: unexpected payload`);
-          }
-          setFailed((f) => ({ ...f, [sid]: false }));
-        })
-        .catch(() => {
-          loadedRef.current[loadKey] = false;
-          setFailed((f) => ({ ...f, [sid]: true }));
-        })
-        .finally(() => setLoading((l) => ({ ...l, [sid]: false })));
+            setFailed((f) => ({ ...f, [sid]: false }));
+          })
+          .catch(() => {
+            loadedRef.current[loadKey] = false;
+            setFailed((f) => ({ ...f, [sid]: true }));
+          })
+          .finally(() => setLoading((l) => ({ ...l, [sid]: false })));
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     // `loading` is a dep on purpose: if the user switches translation
     // while a surah is still loading, the first fetch is skipped and
     // this re-runs when it finishes, so the new translation loads.
-  }, [verses, translationId, loading]);
+  }, [pages, translationId, loading]);
 
+  // A surah split across two mushaf pages gets ONE header ornament
+  // (on its first appearance) — same as ReaderContinuousText.
+  const seenSurahs = new Set<number>();
   return (
     <div className="w-full px-1 pb-4">
-      {groups.map((g) => (
-        <div key={`s-${g.sid}`}>
-          {/* Bismillah at the ayah text size (1.5rem) so the intro
-              matches the verses below it. */}
-          <SurahIntro sid={g.sid} arabicSize={1.5} script={script} />
-          {g.verses.map((v) => {
-            const key = `V${v.verse_key}`;
-            const hidden = hideVerses && !revealed.has(key);
-            const ayahNum = Number(v.verse_key.split(':')[1]);
-            const tr = translations[`${g.sid}:${translationId}`]?.[ayahNum];
-            return (
-              <div key={v.verse_key} className="mb-5 border-b border-[#F0F0F0] pb-4">
-                {/* Arabic — blurs in Hide Verses mode; tap reveals. */}
-                <div
-                  onPointerDown={hidden ? guard.down : undefined}
-                  onClick={
-                    hidden
-                      ? (e) => {
-                          if (guard.ok(e)) onReveal(key, versePeekInfo(v, script));
-                        }
-                      : undefined
-                  }
-                  style={
-                    hidden
-                      ? { filter: 'blur(7px)', cursor: 'pointer', userSelect: 'none' }
-                      : undefined
-                  }
-                >
-                  <p
-                    dir="rtl"
-                    lang="ar"
-                    translate="no"
-                    className={`${scriptFontClass(script)} text-right leading-[2]`}
-                    style={{ fontSize: '1.5rem', color: INK }}
-                  >
-                    <AyahWords
-                      verse={v}
-                      highlightedWords={highlightedWords}
-                      mistakes={mistakes}
-                      onMistakeWordClick={onMistakeWordClick}
-                      clickable={!hidden}
-                      script={script}
-                    />{' '}
-                    {onRosetteClick ? (
-                      <button
-                        type="button"
-                        aria-label={`Tafsir for ${v.verse_key}`}
-                        onPointerDown={guard.down}
-                        onClick={(e) => {
-                          if (guard.ok(e)) onRosetteClick(v.verse_key);
-                        }}
-                        className="m-0 inline-flex items-center justify-center border-0 bg-transparent p-0 align-middle"
-                      >
-                        <ReaderRosette ayah={ayahNum} />
-                      </button>
-                    ) : (
-                      <ReaderRosette ayah={ayahNum} />
-                    )}
-                  </p>
+      {pages.map(({ page, verses, meta }, pageIdx) => {
+        const groups = groupBySurah(verses);
+        return (
+          <div key={page}>
+            {groups.map((g) => {
+              const first = !seenSurahs.has(g.sid);
+              if (first) seenSurahs.add(g.sid);
+              return (
+                <div key={`${page}-${g.sid}`}>
+                  {/* Bismillah at the ayah text size (1.5rem) so the intro
+                      matches the verses below it. */}
+                  {first && <SurahIntro sid={g.sid} arabicSize={1.5} script={script} />}
+                  {g.verses.map((v) => {
+                    const ayahNum = Number(v.verse_key.split(':')[1]);
+                    return (
+                      <TranslationAyahBlock
+                        key={v.verse_key}
+                        verse={v}
+                        page={page}
+                        meta={meta}
+                        translation={translations[`${g.sid}:${translationId}`]?.[ayahNum]}
+                        translationFailed={failed[g.sid] === true}
+                        hideVerses={hideVerses}
+                        revealed={revealed}
+                        onReveal={onReveal}
+                        highlightedWords={highlightedWords}
+                        mistakes={mistakes}
+                        onMistakeWordClick={onMistakeWordClick}
+                        onRosetteClick={onRosetteClick}
+                        script={script}
+                      />
+                    );
+                  })}
                 </div>
-                {/* English translation — stays visible as the prompt. */}
-                {failed[g.sid] ? (
-                  <p dir="ltr" className="pt-2 text-[14px] leading-relaxed text-[#DC2626]">
-                    Could not load the translation for this surah.
-                  </p>
-                ) : tr ? (
-                  <p dir="ltr" className="pt-2 text-[15px] leading-relaxed text-[#374151]">
-                    {tr}
-                  </p>
-                ) : (
-                  <p dir="ltr" className="pt-2 text-[14px] leading-relaxed" style={{ color: MUTED }}>
-                    Loading translation…
-                  </p>
-                )}
-                <p dir="ltr" className="pt-1 text-[12px]" style={{ color: MUTED }}>
-                  {v.verse_key}
-                </p>
+              );
+            })}
+            {/* Page boundary marker (not after the last loaded page):
+                the number of the page that just ended, centred
+                between hairlines — same as ReaderContinuousText. */}
+            {pageIdx < pages.length - 1 && (
+              <div aria-hidden="true" className="flex items-center gap-3 py-3">
+                <div className="h-px flex-1" style={{ backgroundColor: '#E5E7EB' }} />
+                <span className="text-[12px] font-semibold" style={{ color: MUTED }}>
+                  {page}
+                </span>
+                <div className="h-px flex-1" style={{ backgroundColor: '#E5E7EB' }} />
               </div>
-            );
-          })}
-        </div>
-      ))}
+            )}
+          </div>
+        );
+      })}
       <p dir="ltr" className="pt-1 text-center text-[12px] leading-snug" style={{ color: MUTED }}>
         Translation: {translationName(translationId)}.
       </p>
