@@ -61,6 +61,24 @@ export default function ScrollRestorer() {
     // reader would then save page 1 over the real position.
     if (pathname === '/hifz/mushaf' && hasSavedMushafPos()) return;
 
+    // Anchor links (e.g. /about#support from the Donate button) win
+    // over both the saved position and the fresh-page top: without
+    // this, the scrollTo(0) below yanked the page to the top and the
+    // anchor target was never shown. scrollRestoration is 'manual',
+    // so the browser does not do this for us.
+    const hash = window.location.hash;
+    if (hash) {
+      const el = document.getElementById(hash.slice(1));
+      if (el) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            el.scrollIntoView({ behavior: 'instant', block: 'start' });
+          });
+        });
+        return;
+      }
+    }
+
     const key = getKey(pathname);
     const saved = sessionStorage.getItem(key);
     const y = saved ? parseInt(saved, 10) : 0;
