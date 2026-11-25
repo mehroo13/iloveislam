@@ -14,6 +14,7 @@
 // Attribution: "Translation: Dr. Mustafa Khattab, The Clear Quran."
 
 import { NextResponse } from 'next/server';
+import { cleanTranslationText } from '../../../../quran/lib';
 
 const UPSTREAM =
   'https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/eng-mustafakhattaba';
@@ -47,7 +48,12 @@ export async function GET(
     const translations: Record<number, string> = {};
     for (const v of Array.isArray(data?.chapter) ? data.chapter : []) {
       if (typeof v?.verse === 'number' && typeof v?.text === 'string') {
-        translations[v.verse] = v.text;
+        // The upstream text is clean today (verified all 114 surahs,
+        // 2026-11-26), but the route is the single choke point for
+        // Khattab text — strip any footnote-marker HTML here too, so
+        // a future upstream change can never leak markers into the
+        // reader (the render layer strips as well).
+        translations[v.verse] = cleanTranslationText(v.text);
       }
     }
     return NextResponse.json(

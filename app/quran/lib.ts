@@ -337,6 +337,29 @@ export function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '').replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').trim();
 }
 
+/* Translation text as served by Quran.com v4 carries footnote
+ * markers as HTML — `<sup foot_note=195932>1</sup>` — and the plain
+ * stripHtml above leaves the footnote NUMBER behind ("Allāh,1 the
+ * Entirely Merciful…"). The markers (tag + number) are references
+ * to notes the reader never sees, so the whole `<sup>…</sup>`
+ * element goes, then any other tag, then the entities. Verified
+ * 2026-11-26 across 7 v4 translations × 708 ayahs + all 114 Khattab
+ * surahs (6,236 ayahs, clean already): `<sup foot_note>` is the
+ * only tag in the wild, and the "=" Mehran reported lives inside
+ * `foot_note=…`, so it goes with the tag. Nothing else is touched:
+ * the translator's own brackets (Khattab "[Herd us!]") and
+ * punctuation stay. */
+export function cleanTranslationText(text: string): string {
+  return text
+    .replace(/<sup\b[^>]*>[\s\S]*?<\/sup>/gi, '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/[\s\u00a0]+/g, ' ')
+    .trim();
+}
+
 /* Quran.com's Indo-Pak text carries Private Use Area markers (U+E01A–
    U+E022) — proprietary stop-mark annotations with no glyph in any
    available font, so browsers render them as empty boxes. The Quranic
