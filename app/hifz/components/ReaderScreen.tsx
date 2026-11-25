@@ -40,10 +40,9 @@ import ReaderPage from './ReaderPage';
 import ChapterSheet from './ChapterSheet';
 import ReaderSearch from './ReaderSearch';
 import ReaderGift from './ReaderGift';
-import ReaderSettings from './ReaderSettings';
+import ReaderSettings, { type SettingsScreenId } from './ReaderSettings';
 import ReaderDashboard from './ReaderDashboard';
-import ReaderMushafLayout, { type ReaderLayoutMode } from './ReaderMushafLayout';
-import MushafTypeScreen from './MushafTypeScreen';
+import type { ReaderLayoutMode } from '../lib/layout-mode';
 import {
   editionFromSettings,
   mushafEditionById,
@@ -160,7 +159,7 @@ function IconSpinner() {
 }
 
 /** The one modal open at a time (Phase 1). */
-type ReaderModal = 'dashboard' | 'sheet' | 'search' | 'gift' | 'settings' | 'layout' | 'mushafType' | 'mistakes';
+type ReaderModal = 'dashboard' | 'sheet' | 'search' | 'gift' | 'settings' | 'mistakes';
 
 /* Reader chrome colours (Phase 7): CSS variables, defined in :root
  * and redefined under [data-theme="dark"] in globals.css — so the
@@ -325,11 +324,20 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
    * (Madani 1405, colours on), so nothing changes on first load. */
   const [edition, setEdition] = useState<MushafEditionId>('madani-1405');
   const [tajweedOn, setTajweedOn] = useState(true);
+  /** Whether the coach saves session recordings on this device
+   *  (Settings → Data Usage → "Save audio data"). The coach reads
+   *  the settings document when a session ends; the state here only
+   *  feeds the toggle's displayed value. */
+  const [saveAudio, setSaveAudio] = useState(true);
+  /** Which screen Settings opens on: the gear opens main (null);
+   *  the book button seeds the Mushaf Layout screen. */
+  const [settingsSeed, setSettingsSeed] = useState<SettingsScreenId | null>(null);
   useEffect(() => {
     try {
       const s = loadSettings();
       setEdition(editionFromSettings(s, getScriptPref()));
       setTajweedOn(s.tajweedColors ?? true);
+      setSaveAudio(s.saveAudio ?? true);
       setTranslationId(s.translationId ?? DEFAULT_TRANSLATION_ID);
       setTafsirId(s.tafsirId ?? TAFSIR_ID);
     } catch {
@@ -390,6 +398,17 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     setTajweedOn(v);
     try {
       saveSettings({ ...loadSettings(), tajweedColors: v });
+    } catch {
+      /* storage unavailable — the choice applies this session */
+    }
+  }, []);
+  /** Settings subtree (commit E): Data Usage — whether the coach
+   *  saves session recordings. The coach reads the document when a
+   *  session ends, so persisting is the whole job here. */
+  const toggleSaveAudio = useCallback((v: boolean) => {
+    setSaveAudio(v);
+    try {
+      saveSettings({ ...loadSettings(), saveAudio: v });
     } catch {
       /* storage unavailable — the choice applies this session */
     }
@@ -2207,7 +2226,11 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           <button
             type="button"
             aria-label="Settings"
-            onClick={() => setOpenModal('settings')}
+            onClick={() => {
+              // The gear opens Settings at the main screen (no seed).
+              setSettingsSeed(null);
+              setOpenModal('settings');
+            }}
             className="flex h-9 w-9 items-center justify-center"
           >
             <IconGear />
@@ -2309,7 +2332,13 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           <button
             type="button"
             aria-label="Mushaf Layout"
-            onClick={() => setOpenModal('layout')}
+            onClick={() => {
+              // The book button opens the full Mushaf Layout screen
+              // (Settings subtree, commit E) — the Phase 1 bottom
+              // sheet is retired. Back returns to the reader.
+              setSettingsSeed('mushafLayout');
+              setOpenModal('settings');
+            }}
             className="flex h-11 w-11 items-center justify-center rounded-full border border-[#D1D5DB] bg-white shadow-sm"
           >
             <IconBook />
@@ -2508,7 +2537,11 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       <ReaderDashboard
         open={openModal === 'dashboard'}
         onClose={() => setOpenModal(null)}
-        onOpenSettings={() => setOpenModal('settings')}
+        onOpenSettings={() => {
+          // Dashboard → Settings always starts at main (no seed).
+          setSettingsSeed(null);
+          setOpenModal('settings');
+        }}
         onOpenGift={() => setOpenModal('gift')}
         onTestYourself={() => {
           setOpenModal(null);
@@ -2543,12 +2576,15 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           Layout row opens the layout sheet. */}
       <ReaderSettings
         open={openModal === 'settings'}
-        onClose={() => setOpenModal(null)}
+        onClose={() => {
+          setOpenModal(null);
+          setSettingsSeed(null);
+        }}
         onTestYourself={() => {
           setOpenModal(null);
           setHideVerses(true);
         }}
-        onOpenLayout={() => setOpenModal('layout')}
+        initialScreen={settingsSeed}
         hideVerses={hideVerses}
         onToggleHideVerses={() => setHideVerses((v) => !v)}
         detectMistakes={detectMistakes}
@@ -2567,6 +2603,16 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         onSelectTranslation={selectTranslation}
         tafsirId={tafsirId}
         onSelectTafsir={selectTafsir}
+        layoutMode={layoutMode}
+        onSelectLayout={selectLayoutMode}
+        editionLabel={mushafEditionById(edition).name}
+        edition={edition}
+        onSelectEdition={selectEdition}
+        page={visiblePage}
+        pageVerses={pages[visiblePage]?.verses ?? null}
+        script={scriptForEdition(edition)}
+        saveAudio={saveAudio}
+        onToggleSaveAudio={toggleSaveAudio}
       />
 
       {/* Chapter / Juz selection bottom sheet (Step 2) */}
@@ -2585,29 +2631,11 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         }}
       />
 
-      {/* Mushaf Layout bottom sheet (Phase 1): the radio selection
-          persists and switches the reader rendering. The "MUSHAF
-          LAYOUT AND FONT" row opens the Mushaf Type screen. */}
-      <ReaderMushafLayout
-        open={openModal === 'layout'}
-        onClose={() => setOpenModal(null)}
-        mode={layoutMode}
-        onSelect={selectLayoutMode}
-        onOpenMushafType={() => setOpenModal('mushafType')}
-        editionLabel={mushafEditionById(edition).name}
-      />
-
-      {/* Mushaf Type screen (fourth refinement): four editions with
-          real previews + the Show Tajweed Colors toggle. Back
-          returns to the Mushaf Layout sheet it came from. */}
-      <MushafTypeScreen
-        open={openModal === 'mushafType'}
-        onClose={() => setOpenModal('layout')}
-        edition={edition}
-        onSelect={selectEdition}
-        tajweedOn={tajweedOn}
-        onToggleTajweed={toggleTajweed}
-      />
+      {/* The Mushaf Layout bottom sheet (Phase 1) and the standalone
+          Mushaf Type overlay (fourth refinement) are retired in
+          commit E: both live in the Settings stack now — the book
+          button opens Settings seeded at the Mushaf Layout screen,
+          and the Mushaf Type screen is one stack push deeper. */}
 
       {/* Tafsir sheet (Settings subtree): tapping an ayah number in
           the reader opens this bottom sheet with that verse's tafsir

@@ -310,14 +310,18 @@ export async function deleteAllSessionAudio(): Promise<void> {
   }
 }
 
-/** Delete ALL on-device data (Phase 7: "Delete All Audio Data").
- * Clears both IndexedDB stores — the `kv` mirror of the localStorage
- * progress keys AND the `session-audio` recordings — so nothing
- * survives to be re-read later. Best-effort and never throws: the
- * caller still clears localStorage and reloads even if IndexedDB is
- * unavailable. NOTE: the `kv` store holds copies of the same keys
- * localStorage holds, so clearing it is part of "delete all data" —
- * leaving it would leave the user's progress on the device. */
+/** Delete ALL on-device data. NOTE (commit E, 2026-11-25): the Delete
+ * All Audio Data screen no longer calls this — it deletes AUDIO only
+ * (deleteAllSessionAudio), preserving goals, sessions, bookmarks and
+ * settings. This full wipe is kept for diagnostics / migration use;
+ * nothing in the UI reaches it. Clears both IndexedDB stores — the
+ * `kv` mirror of the localStorage progress keys AND the
+ * `session-audio` recordings — so nothing survives to be re-read
+ * later. Best-effort and never throws: the caller still clears
+ * localStorage and reloads even if IndexedDB is unavailable. NOTE:
+ * the `kv` store holds copies of the same keys localStorage holds,
+ * so clearing it is part of "delete all data" — leaving it would
+ * leave the user's progress on the device. */
 export async function deleteAllLocalData(): Promise<void> {
   try {
     const db = await openDb();

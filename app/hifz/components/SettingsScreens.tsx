@@ -14,8 +14,8 @@
 // Verses, Marking, Language, Theme, Reminders, and the Sounds &
 // Haptics screens (Mistake Feedback, Session Start & Stop, Dropped
 // Connection, Testing Mode). Downloads (Translations, Tafsir) live
-// here too. The Mushaf Layout / Data Usage / Delete screens live in
-// their own commits.
+// here too, as do the Mushaf Layout screen, Data Usage and Delete
+// All Audio Data (commit E, 2026-11-25).
 
 'use client';
 
@@ -30,6 +30,11 @@ import { applyReaderTheme, READER_THEME_EVENT, getReaderTheme, type StoredTheme 
 import { loadSettings, saveSettings } from '../progress';
 import { RECITERS, TAFSIRS, TRANSLATIONS, groupByLanguage, reciterName, tafsirName, translationName } from '../../quran/lib';
 import { SOUND_EFFECTS, playSoundEffect, type SoundEffectId } from '../lib/sounds';
+import { deleteAllSessionAudio, listSessionAudios } from '../lib/store';
+import type { ReaderLayoutMode } from '../lib/layout-mode';
+import type { MushafVerse } from '../lib/fetch';
+import type { QuranScript } from '../lib/script';
+import MushafPageFrame from './MushafPageFrame';
 
 const INK = 'var(--reader-ink)';
 const MUTED = 'var(--reader-muted)';
@@ -1257,6 +1262,472 @@ export function RemindersScreen({ onBack }: { onBack: () => void }) {
           </Note>
         )}
       </div>
+    </SubScreen>
+  );
+}
+
+/* ---------------------------------------------------------------- */
+/*  Mushaf Layout (full screen — replaces the Phase 1 sheet)        */
+/* ---------------------------------------------------------------- */
+
+function IconBookFilled() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-7 w-7 shrink-0" aria-hidden="true">
+      <path
+        d="M12 6.8C10.6 5.2 8.2 4.6 5.6 5.2 4.2 5.5 3.2 6 3.2 6.8v10.4c0 .8 1 1.3 2.4 1 2.6-.6 5-.6 6.4.7 1.4-1.3 3.8-1.3 6.4-.7 1.4.3 2.4-.2 2.4-1V6.8c0-.8-1-1.3-2.4-1.6-2.6-.6-5 0-6.4 1.6Z"
+        style={{ fill: INK }}
+      />
+      <path d="M12 6.8v11.1" stroke="#FFFFFF" strokeWidth="1.1" />
+    </svg>
+  );
+}
+function IconDocLines() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-7 w-7 shrink-0" aria-hidden="true">
+      <path d="M6 3.5h9.5L19.5 7.5v13H6V3.5Z" style={{ fill: INK }} />
+      <path d="M14.5 3.5v4.5h5" fill="#FFFFFF" opacity="0.85" />
+      <path d="M9 12h6M9 15h6" stroke="#FFFFFF" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+function IconTranslate() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-7 w-7 shrink-0" aria-hidden="true">
+      <path
+        d="M4 5.5h9l-1.2 2.6M6.6 8.1 9.5 14l.9-2M5.4 11.5h5.4M13.5 5.5h6M16.5 5.5v3.2c0 2.6-1.4 4.6-3.4 5.3M15 8.5c.8 1.8 2 3.6 3.6 4.9"
+        fill="none"
+        style={{ stroke: INK }}
+        strokeWidth="1.9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <text x="18.2" y="19.5" fontSize="8.5" fontWeight="700" style={{ fill: INK }} textAnchor="middle">
+        A
+      </text>
+    </svg>
+  );
+}
+
+/** No recordings yet — shared empty set so the preview frame never
+ *  allocates a new one per render. */
+const EMPTY_SET: ReadonlySet<string> = new Set<string>();
+
+export function MushafLayoutScreen({
+  onBack,
+  layoutMode,
+  onSelectLayout,
+  editionLabel,
+  onOpenMushafType,
+  page,
+  pageVerses,
+  script,
+  tajweedOn,
+}: {
+  onBack: () => void;
+  layoutMode: ReaderLayoutMode;
+  onSelectLayout: (m: ReaderLayoutMode) => void;
+  /** Current Mushaf Type name, shown under the Book card. */
+  editionLabel: string;
+  /** Opens the Mushaf Type screen (fourth refinement) on top of this
+   *  screen — back returns here, then to Settings. */
+  onOpenMushafType: () => void;
+  /** The mushaf page the reader is on — the preview shows this page. */
+  page: number;
+  pageVerses: MushafVerse[] | null;
+  script: QuranScript;
+  tajweedOn: boolean;
+}) {
+  const options: {
+    id: ReaderLayoutMode;
+    title: string;
+    sub: string;
+    icon: () => React.ReactNode;
+  }[] = [
+    { id: 'book', title: 'Book', sub: editionLabel, icon: IconBookFilled },
+    { id: 'text', title: 'Quran Text', sub: 'Resizable Quran Text', icon: IconDocLines },
+    {
+      id: 'translation',
+      title: 'Translation / Transliteration',
+      sub: 'Dr. Mustafa Khattab, The Clear Quran',
+      icon: IconTranslate,
+    },
+  ];
+  return (
+    <SubScreen title="Mushaf Layout" onBack={onBack}>
+      {/* "Switch Reading Layout" banner (our own words). */}
+      <div className="mt-2 rounded-[12px] border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+        <p className="text-[14px] font-bold" style={{ color: INK }}>
+          Switch Reading Layout
+        </p>
+        <p className="mt-1 text-[13px] leading-snug" style={{ color: MUTED }}>
+          Read the Quran as a printed mushaf page, as flowing text you can resize, or with the
+          translation under each verse. The choice applies to the reader at once.
+        </p>
+      </div>
+
+      <p className="mt-4 px-1 text-[13px] font-bold uppercase tracking-wide" style={{ color: INK }}>
+        Reading Layout
+      </p>
+      <div className="mt-2 space-y-3" role="radiogroup" aria-label="Reading layout">
+        {options.map((opt) => {
+          const selected = layoutMode === opt.id;
+          const Icon = opt.icon;
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              data-testid={`settings-layout-${opt.id}`}
+              onClick={() => onSelectLayout(opt.id)}
+              className="flex w-full items-center gap-3 rounded-[12px] bg-white px-4 py-3.5 text-left"
+              style={{
+                border: selected ? '2px solid var(--reader-ink)' : '1px solid var(--reader-hairline)',
+              }}
+            >
+              <Icon />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[17px] font-semibold leading-tight" style={{ color: INK }}>
+                  {opt.title}
+                </span>
+                <span className="block truncate text-[14px] leading-snug" style={{ color: MUTED }}>
+                  {opt.sub}
+                </span>
+              </span>
+              <span
+                aria-hidden="true"
+                className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full"
+                style={{ border: selected ? '2px solid var(--reader-ink)' : '2px solid var(--reader-hairline)' }}
+              >
+                {selected && <span className="h-[10px] w-[10px] rounded-full bg-[#111827]" />}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* MUSHAF LAYOUT AND FONT — opens the Mushaf Type screen. */}
+      <div className="mt-4">
+        <Card>
+          <ChevronRow
+            label="Mushaf Layout and Font"
+            sub="Choose the different Mushaf you wish to use."
+            onClick={onOpenMushafType}
+          />
+        </Card>
+      </div>
+
+      {/* Preview — the REAL page the reader is on, rendered by the
+          same MushafPageFrame the reader uses (same 15 lines,
+          medallions, tajweed colours). Not a picture of a page. */}
+      <p className="mt-4 px-1 text-[13px] font-bold uppercase tracking-wide" style={{ color: INK }}>
+        Preview
+      </p>
+      <p className="mt-1 px-1 text-[13px] leading-snug" style={{ color: MUTED }}>
+        Page {page}, as the reader shows it.
+      </p>
+      <div className="mt-2 overflow-hidden rounded-[12px] border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+        {pageVerses && pageVerses.length > 0 ? (
+          <div className="px-2 py-3">
+            <MushafPageFrame
+              page={page}
+              verses={pageVerses}
+              script={script}
+              compactText={false}
+              hidden={false}
+              revealed={0}
+              frequentMistakes={EMPTY_SET}
+              mistakeMarkingOn={false}
+              tajweedOn={tajweedOn}
+            />
+          </div>
+        ) : (
+          <p className="px-4 py-6 text-[14px]" style={{ color: MUTED }}>
+            Loading the page preview…
+          </p>
+        )}
+      </div>
+    </SubScreen>
+  );
+}
+
+/* ---------------------------------------------------------------- */
+/*  Data Usage                                                       */
+/* ---------------------------------------------------------------- */
+
+/** Human-readable byte count. */
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export function DataUsageScreen({
+  onBack,
+  saveAudio,
+  onToggleSaveAudio,
+}: {
+  onBack: () => void;
+  saveAudio: boolean;
+  onToggleSaveAudio: (v: boolean) => void;
+}) {
+  const [numbers, setNumbers] = useState<null | {
+    usage: number;
+    quota: number;
+    lsBytes: number;
+    audioCount: number;
+    audioBytes: number;
+  }>(null);
+  // Measure the real on-device numbers when the screen opens.
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      let usage = 0;
+      let quota = 0;
+      try {
+        const est = await navigator.storage.estimate();
+        usage = est.usage ?? 0;
+        quota = est.quota ?? 0;
+      } catch {
+        /* estimate unavailable — the screen says so */
+      }
+      let lsBytes = 0;
+      try {
+        for (let i = 0; i < window.localStorage.length; i++) {
+          const k = window.localStorage.key(i);
+          if (!k) continue;
+          lsBytes += k.length + (window.localStorage.getItem(k)?.length ?? 0);
+        }
+      } catch {
+        /* storage unavailable */
+      }
+      let audioCount = 0;
+      let audioBytes = 0;
+      try {
+        const entries = await listSessionAudios();
+        audioCount = entries.length;
+        audioBytes = entries.reduce((s, e) => s + e.blob.size, 0);
+      } catch {
+        /* audio store unavailable */
+      }
+      if (alive) setNumbers({ usage, quota, lsBytes, audioCount, audioBytes });
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return (
+    <SubScreen title="Data Usage" onBack={onBack}>
+      <div className="mt-2">
+        <Card>
+          <ToggleRow
+            label="Save audio data"
+            sub="Keep a recording of each recitation session on this device, so you can listen back to it later."
+            value={saveAudio}
+            onChange={onToggleSaveAudio}
+            testId="settings-save-audio"
+          />
+        </Card>
+        <Note>
+          Your recordings are kept on this device only — they are never uploaded anywhere. With
+          this off, the coach stops saving new recordings; the ones already saved stay until you
+          delete them.
+        </Note>
+        {/* No "Allow AI training" row: the coach runs entirely on this
+            device and we never upload audio or train on it, so a
+            toggle for it would be a fake control. */}
+        <p className="mt-4 px-1 text-[13px] font-bold uppercase tracking-wide" style={{ color: INK }}>
+          On this device
+        </p>
+        <div className="mt-2">
+          <Card>
+            {numbers === null ? (
+              <p className="px-4 py-4 text-[14px]" style={{ color: MUTED }}>
+                Measuring…
+              </p>
+            ) : (
+              <>
+                <div className="flex items-center justify-between gap-3 px-4 py-3">
+                  <span className="text-[14px]" style={{ color: INK }}>
+                    Browser storage used
+                  </span>
+                  <span className="shrink-0 text-[14px] font-semibold" style={{ color: INK }}>
+                    {formatBytes(numbers.usage)}
+                    {numbers.quota > 0 ? ` of ${formatBytes(numbers.quota)}` : ''}
+                  </span>
+                </div>
+                <Divider />
+                <div className="flex items-center justify-between gap-3 px-4 py-3">
+                  <span className="text-[14px]" style={{ color: INK }}>
+                    Saved settings, goals &amp; sessions
+                  </span>
+                  <span className="shrink-0 text-[14px] font-semibold" style={{ color: INK }}>
+                    {formatBytes(numbers.lsBytes)}
+                  </span>
+                </div>
+                <Divider />
+                <div className="flex items-center justify-between gap-3 px-4 py-3">
+                  <span className="text-[14px]" style={{ color: INK }}>
+                    Session recordings
+                  </span>
+                  <span className="shrink-0 text-[14px] font-semibold" style={{ color: INK }}>
+                    {numbers.audioCount === 0
+                      ? 'None saved'
+                      : `${numbers.audioCount} recording${numbers.audioCount === 1 ? '' : 's'} · ${formatBytes(numbers.audioBytes)}`}
+                  </span>
+                </div>
+              </>
+            )}
+          </Card>
+        </div>
+      </div>
+    </SubScreen>
+  );
+}
+
+/* ---------------------------------------------------------------- */
+/*  Delete All Audio Data                                            */
+/* ---------------------------------------------------------------- */
+
+export function DeleteAudioScreen({ onBack }: { onBack: () => void }) {
+  const [audioCount, setAudioCount] = useState<number | null>(null);
+  const [armed, setArmed] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleted, setDeleted] = useState(false);
+  // How many recordings the delete will remove (real count).
+  useEffect(() => {
+    let alive = true;
+    void listSessionAudios()
+      .then((entries) => {
+        if (alive) setAudioCount(entries.length);
+      })
+      .catch(() => {
+        if (alive) setAudioCount(0);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  // The arm expires after 4 s so an accidental first tap cannot
+  // delete anything later.
+  useEffect(() => {
+    if (!armed) return;
+    const t = window.setTimeout(() => setArmed(false), 4000);
+    return () => window.clearTimeout(t);
+  }, [armed]);
+  const handleContinue = async () => {
+    if (!armed) {
+      setArmed(true);
+      return;
+    }
+    setDeleting(true);
+    try {
+      // AUDIO ONLY: clears the session-audio store (the recordings).
+      // Goals, sessions, bookmarks, memorised ayahs and settings are
+      // not touched — this deliberately narrows the old Phase 7
+      // behaviour, which wiped all of localStorage as well.
+      await deleteAllSessionAudio();
+    } catch {
+      /* delete failure is never fatal — still show the result */
+    }
+    setDeleting(false);
+    setDeleted(true);
+  };
+  if (deleted) {
+    return (
+      <SubScreen title="Delete All Audio Data" onBack={onBack}>
+        <div className="mt-2 rounded-[12px] border border-[#E5E7EB] bg-white px-4 py-5 text-center shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+          <p className="text-[16px] font-bold" style={{ color: INK }}>
+            All session audio deleted
+          </p>
+          <p className="mx-auto mt-1 max-w-[280px] text-[13px] leading-snug" style={{ color: MUTED }}>
+            Your recordings are gone from this device. Your goals, sessions, bookmarks, memorised
+            ayahs and settings are untouched.
+          </p>
+          <button
+            type="button"
+            onClick={onBack}
+            className="mt-4 h-11 w-full rounded-full text-[15px] font-bold text-white"
+            style={{ backgroundColor: '#16A34A' }}
+          >
+            Done
+          </button>
+        </div>
+      </SubScreen>
+    );
+  }
+  return (
+    <SubScreen title="Delete All Audio Data" onBack={onBack}>
+      <div className="mt-2 rounded-[12px] border border-[#FECACA] bg-[#FEF2F2] px-4 py-4">
+        <p className="text-[15px] font-bold" style={{ color: '#991B1B' }}>
+          Delete all of your saved recitation audio?
+        </p>
+        <p className="mt-1 text-[13px] leading-snug" style={{ color: '#7F1D1D' }}>
+          {audioCount === null
+            ? 'This removes every recording the coach saved on this device.'
+            : audioCount === 0
+              ? 'There are no saved recordings right now, so there is nothing to delete.'
+              : `This removes all ${audioCount} saved recording${audioCount === 1 ? '' : 's'} from this device.`}{' '}
+          This cannot be undone.
+        </p>
+      </div>
+      <p className="mt-4 px-1 text-[13px] font-bold uppercase tracking-wide" style={{ color: INK }}>
+        What changes
+      </p>
+      <div className="mt-2">
+        <Card>
+          <div className="px-4 py-3">
+            <p className="text-[14px] font-semibold" style={{ color: INK }}>
+              Session History
+            </p>
+            <p className="mt-0.5 text-[13px] leading-snug" style={{ color: MUTED }}>
+              Your past sessions keep their dates and scores, but their recordings are gone, so
+              you cannot listen back to them.
+            </p>
+          </div>
+          <Divider />
+          <div className="px-4 py-3">
+            <p className="text-[14px] font-semibold" style={{ color: INK }}>
+              Audio Playback
+            </p>
+            <p className="mt-0.5 text-[13px] leading-snug" style={{ color: MUTED }}>
+              Every saved recitation recording is deleted from this device.
+            </p>
+          </div>
+          <Divider />
+          <div className="px-4 py-3">
+            <p className="text-[14px] font-semibold" style={{ color: INK }}>
+              Mistake History
+            </p>
+            <p className="mt-0.5 text-[13px] leading-snug" style={{ color: MUTED }}>
+              The words you missed stay saved, but the recordings of the sessions they came from
+              are gone.
+            </p>
+          </div>
+        </Card>
+        <Note>
+          Only the audio goes. Your goals, sessions, bookmarks, memorised ayahs and settings stay
+          exactly as they are.
+        </Note>
+      </div>
+      <button
+        type="button"
+        onClick={() => void handleContinue()}
+        disabled={deleting || audioCount === 0}
+        data-testid="settings-delete-audio-confirm"
+        className="mt-4 h-12 w-full rounded-full text-[15px] font-bold text-white disabled:opacity-50"
+        style={{ backgroundColor: armed ? '#DC2626' : '#16A34A' }}
+      >
+        {deleting ? 'Deleting…' : armed ? 'Tap again to delete' : 'Continue'}
+      </button>
+      <button
+        type="button"
+        onClick={onBack}
+        className="mt-2 h-12 w-full rounded-full border border-[#D1D5DB] bg-white text-[15px] font-bold"
+        style={{ color: INK }}
+      >
+        Not Now
+      </button>
     </SubScreen>
   );
 }

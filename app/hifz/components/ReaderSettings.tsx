@@ -14,11 +14,13 @@
 // every sub-screen has a back button that returns to the previous
 // screen — Settings → sub-screen → back → Settings. Nested jumps
 // push another screen on top, and back unwinds one step at a time.
-// The Mushaf Layout row still opens the layout sheet (the full
-// Mushaf Layout screen replaces it in a later commit); TEST YOURSELF
-// opens the reader in Testing Mode; Data Usage is still a dialog and
-// Delete All Audio Data a two-tap row (both become full screens in
-// a later commit).
+// The Mushaf Layout row opens the full Mushaf Layout screen (commit
+// E); TEST YOURSELF opens the reader in Testing Mode; Data Usage and
+// Delete All Audio Data are full screens too (commit E).
+//
+// The reader's book button opens Settings seeded at the Mushaf Layout
+// screen (initialScreen): back from that seeded screen returns to
+// the reader, not to Settings main.
 //
 // Alive pass (2026-11-25): every remaining row works. Hidden Verses
 // is a real switch on the reader's state; Language is a real picker
@@ -33,17 +35,23 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { deleteAllLocalData } from '../lib/store';
 import { getSupabase } from '../lib/supabase';
 import { DEFAULT_RECITER_ID, DEFAULT_TRANSLATION_ID, loadSettings, saveSettings } from '../progress';
 import { TAFSIR_ID } from '../../quran/lib';
+import type { ReaderLayoutMode } from '../lib/layout-mode';
+import type { MushafVerse } from '../lib/fetch';
+import type { QuranScript } from '../lib/script';
+import type { MushafEditionId } from '../lib/mushaf-edition';
 import {
+  DataUsageScreen,
+  DeleteAudioScreen,
   DroppedConnectionScreen,
   HiddenVersesScreen,
   LanguageScreen,
   ListeningScreen,
   MarkingScreen,
   MistakeFeedbackScreen,
+  MushafLayoutScreen,
   RecitationScreen,
   RecitersScreen,
   RemindersScreen,
@@ -53,16 +61,10 @@ import {
   ThemeScreen,
   TranslationsScreen,
 } from './SettingsScreens';
+import MushafTypeScreen from './MushafTypeScreen';
 
 const INK = 'var(--reader-ink)';
 const MUTED = 'var(--reader-muted)';
-
-/** Human-readable byte count for the Data Usage dialog. */
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 /* ---------------------------------------------------------------- */
 /*  Icons (inline SVG, our own).                                     */
@@ -234,7 +236,7 @@ function IconSparkle({ className }: { className?: string }) {
 /*  destination.                                                     */
 /* ---------------------------------------------------------------- */
 
-type ScreenId =
+export type SettingsScreenId =
   | 'recitation'
   | 'listening'
   | 'reciters'
@@ -248,31 +250,16 @@ type ScreenId =
   | 'droppedConnection'
   | 'testingMode'
   | 'translations'
-  | 'tafsir';
+  | 'tafsir'
+  | 'mushafLayout'
+  | 'mushafType'
+  | 'dataUsage'
+  | 'deleteAudio';
 
-const SCREEN_TITLES: Record<ScreenId, string> = {
-  recitation: 'Recitation',
-  listening: 'Listening',
-  reciters: 'Reciters',
-  hiddenVerses: 'Hidden Verses',
-  marking: 'Marking',
-  language: 'Language',
-  theme: 'Theme',
-  reminders: 'Reminders',
-  mistakeFeedback: 'Mistake Feedback',
-  sessionStartStop: 'Session Start & Stop',
-  droppedConnection: 'Dropped Connection',
-  testingMode: 'Testing Mode',
-  translations: 'Translations',
-  tafsir: 'Tafsir',
-};
+/* (Screen titles live in each SubScreen / MushafTypeScreen — the
+   shell header only ever says "Settings" now.) */
 
-type RowAction =
-  | { kind: 'screen'; screen: ScreenId }
-  | { kind: 'layout' }
-  | { kind: 'dataUsage' }
-  | { kind: 'delete' }
-  | { kind: 'leaderboard' };
+type RowAction = { kind: 'screen'; screen: SettingsScreenId } | { kind: 'leaderboard' };
 
 type RowDef = { icon: () => React.JSX.Element; label: string; action: RowAction };
 type SectionDef = { title: string; rows: RowDef[] };
@@ -288,7 +275,7 @@ const SECTIONS: SectionDef[] = [
   {
     title: 'Quran Appearance',
     rows: [
-      { icon: IconBookOpen, label: 'Mushaf Layout', action: { kind: 'layout' } },
+      { icon: IconBookOpen, label: 'Mushaf Layout', action: { kind: 'screen', screen: 'mushafLayout' } },
       { icon: IconEyeOff, label: 'Hidden Verses', action: { kind: 'screen', screen: 'hiddenVerses' } },
       { icon: IconMarker, label: 'Marking', action: { kind: 'screen', screen: 'marking' } },
     ],
@@ -325,8 +312,8 @@ const SECTIONS: SectionDef[] = [
     title: 'Privacy',
     rows: [
       { icon: IconTrophy, label: 'Show me on the global leaderboard', action: { kind: 'leaderboard' } },
-      { icon: IconLock, label: 'Data Usage', action: { kind: 'dataUsage' } },
-      { icon: IconMinusCircle, label: 'Delete All Audio Data', action: { kind: 'delete' } },
+      { icon: IconLock, label: 'Data Usage', action: { kind: 'screen', screen: 'dataUsage' } },
+      { icon: IconMinusCircle, label: 'Delete All Audio Data', action: { kind: 'screen', screen: 'deleteAudio' } },
     ],
   },
 ];
@@ -375,7 +362,7 @@ export default function ReaderSettings({
   open,
   onClose,
   onTestYourself,
-  onOpenLayout,
+  initialScreen,
   hideVerses,
   onToggleHideVerses,
   detectMistakes,
@@ -394,14 +381,25 @@ export default function ReaderSettings({
   onSelectTranslation,
   tafsirId,
   onSelectTafsir,
+  layoutMode,
+  onSelectLayout,
+  editionLabel,
+  edition,
+  onSelectEdition,
+  page,
+  pageVerses,
+  script,
+  saveAudio,
+  onToggleSaveAudio,
 }: {
   open: boolean;
   onClose: () => void;
   /** Phase 7: TEST YOURSELF opens the reader in Testing Mode. */
   onTestYourself?: () => void;
-  /** Phase 7: the Mushaf Layout row opens the layout sheet (until
-   *  the full Mushaf Layout screen replaces it). */
-  onOpenLayout?: () => void;
+  /** The reader's book button opens Settings seeded at the Mushaf
+   *  Layout screen: back from that seeded screen returns to the
+   *  reader, not to Settings main. Absent = start at main. */
+  initialScreen?: SettingsScreenId | null;
   /** Alive pass: the Hidden Verses row toggles the reader's state. */
   hideVerses?: boolean;
   onToggleHideVerses?: () => void;
@@ -429,19 +427,51 @@ export default function ReaderSettings({
   /** Settings subtree: Tafsir screen — the reader's tafsir. */
   tafsirId?: number;
   onSelectTafsir?: (id: number) => void;
+  /** Settings subtree (commit E): Mushaf Layout screen — the
+   *  reader's display layout. */
+  layoutMode?: ReaderLayoutMode;
+  onSelectLayout?: (m: ReaderLayoutMode) => void;
+  /** Current Mushaf Type name, shown under the Book card. */
+  editionLabel?: string;
+  /** Fourth refinement: Mushaf Type screen — the reader's edition. */
+  edition?: MushafEditionId;
+  onSelectEdition?: (id: MushafEditionId) => void;
+  /** The mushaf page the reader is on — the Layout screen previews
+   *  this page. */
+  page?: number;
+  pageVerses?: MushafVerse[] | null;
+  script?: QuranScript;
+  /** Settings subtree (commit E): Data Usage screen — whether the
+   *  coach saves session recordings on this device. */
+  saveAudio?: boolean;
+  onToggleSaveAudio?: (v: boolean) => void;
 }) {
   const [rendered, setRendered] = useState(open);
   const [shown, setShown] = useState(false);
   /** Navigation stack: [] is the Settings main screen; each push
    *  adds a sub-screen; back pops one. Reset on every open so a
-   *  reopened Settings always starts at the main screen. */
-  const [stack, setStack] = useState<ScreenId[]>([]);
+   *  reopened Settings always starts at the main screen — unless
+   *  `initialScreen` seeds it (the book button). */
+  const [stack, setStack] = useState<SettingsScreenId[]>([]);
+  const [seededScreen, setSeededScreen] = useState<SettingsScreenId | null>(null);
   useEffect(() => {
-    if (open) setStack([]);
-  }, [open ]);
-  const current: ScreenId | null = stack.length > 0 ? stack[stack.length - 1] : null;
-  const push = (screen: ScreenId) => setStack((s) => [...s, screen]);
+    if (open) {
+      setStack(initialScreen ? [initialScreen] : []);
+      setSeededScreen(initialScreen ?? null);
+    }
+  }, [open, initialScreen]);
+  const current: SettingsScreenId | null = stack.length > 0 ? stack[stack.length - 1] : null;
+  const push = (screen: SettingsScreenId) => setStack((s) => [...s, screen]);
   const pop = () => setStack((s) => (s.length === 0 ? s : s.slice(0, -1)));
+  /** Back from the current screen: pop one step — except when the
+   *  stack holds only the seeded screen (opened from the book
+   *  button), where back returns to the reader. Every sub-screen's
+   *  back button and the shell header use this one helper, so no
+   *  screen can strand the user. */
+  const backFromCurrent = () => {
+    if (current !== null && stack.length === 1 && current === seededScreen) onClose();
+    else pop();
+  };
   /** Reciters: the picked recitation for Listen (settings doc
    *  `reciterId`, default 7 Alafasy). The reader's playback reads it
    *  when a take starts. Owned here so the Listening and Reciters
@@ -461,75 +491,6 @@ export default function ReaderSettings({
     } catch {
       /* storage unavailable — the choice still applies this session */
     }
-  };
-  /** Alive pass — Data Usage: the real on-device storage numbers,
-   *  measured when the dialog opens (never estimated or invented). */
-  const [dataUsage, setDataUsage] = useState<null | { usage: number; quota: number; lsBytes: number }>(null);
-  const [dataUsageLoading, setDataUsageLoading] = useState(false);
-  const openDataUsage = async () => {
-    setDataUsage(null);
-    setDataUsageLoading(true);
-    let usage = 0;
-    let quota = 0;
-    try {
-      const est = await navigator.storage.estimate();
-      usage = est.usage ?? 0;
-      quota = est.quota ?? 0;
-    } catch {
-      /* estimate unavailable — the dialog says so */
-    }
-    let lsBytes = 0;
-    try {
-      for (let i = 0; i < window.localStorage.length; i++) {
-        const k = window.localStorage.key(i);
-        if (!k) continue;
-        lsBytes += k.length + (window.localStorage.getItem(k)?.length ?? 0);
-      }
-    } catch {
-      /* storage unavailable */
-    }
-    setDataUsage({ usage, quota, lsBytes });
-    setDataUsageLoading(false);
-  };
-  /** Phase 7 — Delete All Audio Data: two-tap confirm. The first
-   *  tap arms the row ("Tap again to delete"); the second clears
-   *  the on-device audio + ALL of localStorage and reloads. The arm
-   *  expires after 4 s so an accidental first tap cannot delete
-   *  anything later. NOTE: this still wipes all of localStorage
-   *  (Phase 7 behaviour) — the Delete screen narrows it to
-   *  audio-only in a later commit; see the Settings subtree report. */
-  const [deleteArmed, setDeleteArmed] = useState(false);
-  const deleteTimerRef = useRef<number | null>(null);
-  useEffect(() => {
-    return () => {
-      if (deleteTimerRef.current !== null) window.clearTimeout(deleteTimerRef.current);
-    };
-  }, []);
-  const handleDeleteTap = async () => {
-    if (!deleteArmed) {
-      setDeleteArmed(true);
-      deleteTimerRef.current = window.setTimeout(() => setDeleteArmed(false), 4000);
-      return;
-    }
-    if (deleteTimerRef.current !== null) window.clearTimeout(deleteTimerRef.current);
-    setDeleteArmed(false);
-    // IndexedDB first (session recordings + the localStorage mirror
-    // in the kv store), then ALL of localStorage, then reload.
-    // FLAG: clearing all of localStorage wipes every locally stored
-    // record — goals, sessions, bookmarks, settings — not just
-    // audio. That is what the spec asks for; narrow it to audio-only
-    // on request (see the Phase 7 report).
-    try {
-      await deleteAllLocalData();
-    } catch {
-      /* delete failure is never fatal — still clear + reload */
-    }
-    try {
-      window.localStorage.clear();
-    } catch {
-      /* storage unavailable */
-    }
-    window.location.reload();
   };
   /** Leaderboard opt-in (migration 0002, applied live 2026-11-25):
    *  writes `profiles.show_on_leaderboard` for the signed-in user
@@ -616,9 +577,6 @@ export default function ReaderSettings({
 
   const onRowAction = (action: RowAction) => {
     if (action.kind === 'screen') push(action.screen);
-    else if (action.kind === 'layout') onOpenLayout?.();
-    else if (action.kind === 'dataUsage') void openDataUsage();
-    else if (action.kind === 'delete') void handleDeleteTap();
   };
 
   return (
@@ -628,32 +586,36 @@ export default function ReaderSettings({
       className="absolute inset-0 z-[70] flex flex-col transition-opacity duration-200"
       style={{ backgroundColor: 'var(--reader-bg)', opacity: shown ? 1 : 0 }}
     >
-      {/* Header: back button left, title right. On the main screen
-          back returns to the reader; on a sub-screen it pops the
-          stack. Stays fixed while the content below scrolls. */}
-      <header className="flex shrink-0 items-center justify-between px-4 pb-3 pt-4">
-        <button
-          type="button"
-          aria-label={current ? 'Back to Settings' : 'Back to reader'}
-          onClick={current ? pop : onClose}
-          className="flex h-7 w-7 items-center justify-center rounded-full border border-[#D1D5DB] bg-white"
-        >
-          <IconChevronLeft />
-        </button>
-        <h1 className="text-[20px] font-bold leading-none" style={{ color: INK }}>
-          {current ? SCREEN_TITLES[current] : 'Settings'}
-        </h1>
-      </header>
+      {/* Header: back button left, title right. Shown ONLY on the
+          main screen — every sub-screen renders its own header via
+          SubScreen, and two headers stacked was a real defect (the
+          shell header used to render above every sub-screen). On the
+          main screen back returns to the reader. */}
+      {current === null && (
+        <header className="flex shrink-0 items-center justify-between px-4 pb-3 pt-4">
+          <button
+            type="button"
+            aria-label="Back to reader"
+            onClick={onClose}
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-[#D1D5DB] bg-white"
+          >
+            <IconChevronLeft />
+          </button>
+          <h1 className="text-[20px] font-bold leading-none" style={{ color: INK }}>
+            Settings
+          </h1>
+        </header>
+      )}
 
       {current === 'recitation' ? (
         <RecitationScreen
-          onBack={pop}
+          onBack={backFromCurrent}
           detectMistakes={detectMistakes ?? true}
           onToggleDetectMistakes={(v) => onToggleDetectMistakes?.(v)}
         />
       ) : current === 'listening' ? (
         <ListeningScreen
-          onBack={pop}
+          onBack={backFromCurrent}
           reciterId={reciterId}
           onChooseReciter={chooseReciter}
           playSpeed={playSpeed ?? 1}
@@ -661,10 +623,10 @@ export default function ReaderSettings({
           onOpenReciters={() => push('reciters')}
         />
       ) : current === 'reciters' ? (
-        <RecitersScreen onBack={pop} reciterId={reciterId} onChooseReciter={chooseReciter} />
+        <RecitersScreen onBack={backFromCurrent} reciterId={reciterId} onChooseReciter={chooseReciter} />
       ) : current === 'hiddenVerses' ? (
         <HiddenVersesScreen
-          onBack={pop}
+          onBack={backFromCurrent}
           hideVerses={hideVerses ?? false}
           onToggleHideVerses={() => onToggleHideVerses?.()}
           hideMarkers={hideMarkers ?? false}
@@ -672,7 +634,7 @@ export default function ReaderSettings({
         />
       ) : current === 'marking' ? (
         <MarkingScreen
-          onBack={pop}
+          onBack={backFromCurrent}
           tajweedOn={tajweedOn ?? true}
           onToggleTajweed={(v) => onToggleTajweed?.(v)}
           highlightMistakes={mistakeMarkingOn ?? true}
@@ -681,31 +643,62 @@ export default function ReaderSettings({
           onToggleColorSimilar={(v) => onToggleSimilar?.(v)}
         />
       ) : current === 'language' ? (
-        <LanguageScreen onBack={pop} />
+        <LanguageScreen onBack={backFromCurrent} />
       ) : current === 'theme' ? (
-        <ThemeScreen onBack={pop} />
+        <ThemeScreen onBack={backFromCurrent} />
       ) : current === 'reminders' ? (
-        <RemindersScreen onBack={pop} />
+        <RemindersScreen onBack={backFromCurrent} />
       ) : current === 'mistakeFeedback' ? (
-        <MistakeFeedbackScreen onBack={pop} onOpenRecitation={() => push('recitation')} />
+        <MistakeFeedbackScreen onBack={backFromCurrent} onOpenRecitation={() => push('recitation')} />
       ) : current === 'sessionStartStop' ? (
-        <SessionStartStopScreen onBack={pop} />
+        <SessionStartStopScreen onBack={backFromCurrent} />
       ) : current === 'droppedConnection' ? (
-        <DroppedConnectionScreen onBack={pop} />
+        <DroppedConnectionScreen onBack={backFromCurrent} />
       ) : current === 'testingMode' ? (
-        <TestingModeScreen onBack={pop} />
+        <TestingModeScreen onBack={backFromCurrent} />
       ) : current === 'translations' ? (
         <TranslationsScreen
-          onBack={pop}
+          onBack={backFromCurrent}
           translationId={translationId ?? DEFAULT_TRANSLATION_ID}
           onSelectTranslation={(id) => onSelectTranslation?.(id)}
         />
       ) : current === 'tafsir' ? (
         <TafsirScreen
-          onBack={pop}
+          onBack={backFromCurrent}
           tafsirId={tafsirId ?? TAFSIR_ID}
           onSelectTafsir={(id) => onSelectTafsir?.(id)}
         />
+      ) : current === 'mushafLayout' ? (
+        <MushafLayoutScreen
+          onBack={backFromCurrent}
+          layoutMode={layoutMode ?? 'book'}
+          onSelectLayout={(m) => onSelectLayout?.(m)}
+          editionLabel={editionLabel ?? 'Madani Mushaf (1405)'}
+          onOpenMushafType={() => push('mushafType')}
+          page={page ?? 1}
+          pageVerses={pageVerses ?? null}
+          script={script ?? 'uthmani'}
+          tajweedOn={tajweedOn ?? true}
+        />
+      ) : current === 'mushafType' ? (
+        /* The fourth-refinement screen, now inside the stack: back
+           returns to the Mushaf Layout screen it came from. */
+        <MushafTypeScreen
+          open
+          onClose={backFromCurrent}
+          edition={edition ?? 'madani-1405'}
+          onSelect={(id) => onSelectEdition?.(id)}
+          tajweedOn={tajweedOn ?? true}
+          onToggleTajweed={(v) => onToggleTajweed?.(v)}
+        />
+      ) : current === 'dataUsage' ? (
+        <DataUsageScreen
+          onBack={backFromCurrent}
+          saveAudio={saveAudio ?? true}
+          onToggleSaveAudio={(v) => onToggleSaveAudio?.(v)}
+        />
+      ) : current === 'deleteAudio' ? (
+        <DeleteAudioScreen onBack={backFromCurrent} />
       ) : (
         /* Scrollable main screen: banner + grouped sections. */
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8">
@@ -781,33 +774,6 @@ export default function ReaderSettings({
                             />
                           </button>
                         </div>
-                      ) : row.action.kind === 'delete' ? (
-                        /* Phase 7 — Delete All Audio Data: two-tap
-                           confirm; the second tap clears the on-device
-                           audio + ALL of localStorage and reloads
-                           (narrowed to audio-only by the Delete
-                           screen in a later commit). */
-                        <button
-                          type="button"
-                          onClick={() => onRowAction(row.action)}
-                          data-testid="settings-delete-audio"
-                          aria-label={deleteArmed ? 'Tap again to delete all audio data' : 'Delete All Audio Data'}
-                          className="flex w-full items-center gap-3 px-4 py-[14px] text-left"
-                        >
-                          <span className="flex h-5 w-5 shrink-0 items-center justify-center">
-                            <RowIcon />
-                          </span>
-                          <span className="min-w-0 flex-1 text-[15px]" style={{ color: deleteArmed ? '#DC2626' : INK }}>
-                            {deleteArmed ? 'Tap again to delete everything' : row.label}
-                          </span>
-                          {deleteArmed ? (
-                            <span className="shrink-0 text-[12px] font-bold" style={{ color: '#DC2626' }}>
-                              Confirm
-                            </span>
-                          ) : (
-                            <IconChevronRight />
-                          )}
-                        </button>
                       ) : (
                         <button
                           type="button"
@@ -842,67 +808,8 @@ export default function ReaderSettings({
             </section>
           ))}
 
-          {/* Data Usage dialog — the real on-device numbers. */}
-          {(dataUsageLoading || dataUsage !== null) && (
-            <div
-              className="absolute inset-0 z-[80] flex items-end justify-center bg-black/40"
-              onClick={() => {
-                setDataUsage(null);
-                setDataUsageLoading(false);
-              }}
-              role="presentation"
-            >
-              <div
-                className="w-full rounded-t-3xl bg-white p-5 pb-8 shadow-xl"
-                onClick={(e) => e.stopPropagation()}
-                role="dialog"
-                aria-label="Data usage"
-              >
-                <h2 className="text-[18px] font-bold" style={{ color: INK }}>
-                  Data Usage
-                </h2>
-                <p className="mt-1 text-[13px] leading-snug" style={{ color: MUTED }}>
-                  Everything is stored on this device only — nothing is uploaded.
-                </p>
-                {dataUsage === null ? (
-                  <p className="mt-4 text-[14px]" style={{ color: MUTED }}>
-                    Measuring…
-                  </p>
-                ) : (
-                  <div className="mt-4 flex flex-col gap-2">
-                    <div className="flex items-center justify-between rounded-xl border border-[#E5E7EB] px-4 py-3">
-                      <span className="text-[14px]" style={{ color: INK }}>
-                        Browser storage used
-                      </span>
-                      <span className="text-[14px] font-semibold" style={{ color: INK }}>
-                        {formatBytes(dataUsage.usage)}
-                        {dataUsage.quota > 0 ? ` of ${formatBytes(dataUsage.quota)}` : ''}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between rounded-xl border border-[#E5E7EB] px-4 py-3">
-                      <span className="text-[14px]" style={{ color: INK }}>
-                        Saved settings, goals &amp; sessions
-                      </span>
-                      <span className="text-[14px] font-semibold" style={{ color: INK }}>
-                        {formatBytes(dataUsage.lsBytes)}
-                      </span>
-                    </div>
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDataUsage(null);
-                    setDataUsageLoading(false);
-                  }}
-                  className="mt-4 h-11 w-full rounded-full text-[15px] font-bold text-white"
-                  style={{ backgroundColor: '#16A34A' }}
-                >
-                  Done
-                </button>
-              </div>
-            </div>
-          )}
+          {/* No Data Usage dialog any more: it is a full screen in
+              the stack (commit E). */}
         </div>
       )}
     </div>
