@@ -63,10 +63,18 @@ export interface ReaderDisplayEntry {
  * the joined text, since the join uses single spaces and the split
  * collapses whitespace). 'end' words pass through as rosette entries
  * with no keys and do not advance the cursor.
- */
+ *
+ * SCRIPT (fourth refinement, 2026-11-25): `text` is the raw word in
+ * the DISPLAY script; `keyText` (optional) is the same word in
+ * Uthmani, used ONLY for the engine token count. The coach engine's
+ * word list is built on Uthmani text, and Uthmani/Indo-Pak word
+ * breaks differ, so counting tokens on Indo-Pak text could shift
+ * every later highlight by one. Keys always count Uthmani tokens;
+ * `clean` (default Uthmani) cleans the display text. */
 export function displayEntriesForLine(
-  words: { text: string; isEnd: boolean; verseKey: string }[],
+  words: { text: string; keyText?: string; isEnd: boolean; verseKey: string }[],
   cursors: Map<string, number>,
+  clean: (text: string) => string = cleanMushafUthmani,
 ): ReaderDisplayEntry[] {
   const entries: ReaderDisplayEntry[] = [];
   for (const w of words) {
@@ -78,13 +86,13 @@ export function displayEntriesForLine(
     const sid = Number(sidStr);
     const ayahNum = Number(ayahStr);
     const cursor = cursors.get(w.verseKey) ?? 0;
-    const tokenCount = splitWords(w.text).length;
+    const tokenCount = splitWords(w.keyText ?? w.text).length;
     const keys: string[] = [];
     for (let i = 0; i < tokenCount; i++) {
       keys.push(readerWordKey(sid, ayahNum, cursor + i + 1));
     }
     cursors.set(w.verseKey, cursor + tokenCount);
-    const text = cleanMushafUthmani(w.text);
+    const text = clean(w.text);
     if (!text) continue;
     if (isPauseMarkOnly(text) && entries.length > 0) {
       entries[entries.length - 1].text += text;

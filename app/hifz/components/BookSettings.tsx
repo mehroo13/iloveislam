@@ -159,8 +159,10 @@ function PreviewLine({
  *  in the edition's own script, with tajweed colours and rosette ayah
  *  markers exactly as the reader shows them. While the page loads,
  *  skeleton bars; if the fetch fails, the Bismillah (real text)
- *  instead of a blank or invented preview. */
-function EditionPreview({
+ *  instead of a blank or invented preview. Exported for the Mushaf
+ *  Type screen (fourth refinement), which shows the same real
+ *  previews for its four options. */
+export function EditionPreview({
   script,
   verses,
   failed,

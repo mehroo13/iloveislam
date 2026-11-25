@@ -43,13 +43,21 @@ import ReaderGift from './ReaderGift';
 import ReaderSettings from './ReaderSettings';
 import ReaderDashboard from './ReaderDashboard';
 import ReaderMushafLayout, { type ReaderLayoutMode } from './ReaderMushafLayout';
+import MushafTypeScreen from './MushafTypeScreen';
+import {
+  editionFromSettings,
+  mushafEditionById,
+  scriptForEdition,
+  type MushafEditionId,
+} from '../lib/mushaf-edition';
+import { getScriptPref, setScriptPref } from '../lib/script';
 import ReaderMistakes from './ReaderMistakes';
 import { ReaderTranslationMode, ReaderContinuousText } from './ReaderAltViews';
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { migrateToIdb } from '../lib/store';
 import { readerWordKey } from '../lib/reader-words';
 import { MIN_READER_SESSION_MS, saveReaderSession, surahName } from '../lib/reader-sessions';
-import { DEFAULT_RECITER_ID, loadSettings } from '../progress';
+import { DEFAULT_RECITER_ID, loadSettings, saveSettings } from '../progress';
 import { type PeekInfo, type ReaderMistake } from '../lib/reader-mistakes';
 import {
   loadEngine,
@@ -149,7 +157,7 @@ function IconSpinner() {
 }
 
 /** The one modal open at a time (Phase 1). */
-type ReaderModal = 'dashboard' | 'sheet' | 'search' | 'gift' | 'settings' | 'layout' | 'mistakes';
+type ReaderModal = 'dashboard' | 'sheet' | 'search' | 'gift' | 'settings' | 'layout' | 'mushafType' | 'mistakes';
 
 /* Reader chrome colours (Phase 7): CSS variables, defined in :root
  * and redefined under [data-theme="dark"] in globals.css — so the
@@ -307,6 +315,39 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   /* Reading layout (Mushaf Layout sheet), persisted across visits.
    * Read after mount to avoid a server/client hydration mismatch. */
   const [layoutMode, setLayoutMode] = useState<ReaderLayoutMode>('book');
+  /* Mushaf Type picker (fourth refinement, 2026-11-25): the print
+   * edition + the Show Tajweed Colors switch, both persisted in
+   * `ili_hifz_settings_v1` and applied to the reader at once.
+   * Defaults equal the reader's behaviour before the picker existed
+   * (Madani 1405, colours on), so nothing changes on first load. */
+  const [edition, setEdition] = useState<MushafEditionId>('madani-1405');
+  const [tajweedOn, setTajweedOn] = useState(true);
+  useEffect(() => {
+    try {
+      const s = loadSettings();
+      setEdition(editionFromSettings(s, getScriptPref()));
+      setTajweedOn(s.tajweedColors ?? true);
+    } catch {
+      /* defaults stand */
+    }
+  }, []);
+  const selectEdition = useCallback((id: MushafEditionId) => {
+    setEdition(id);
+    try {
+      saveSettings({ ...loadSettings(), mushafEdition: id });
+      setScriptPref(scriptForEdition(id));
+    } catch {
+      /* storage unavailable — the choice applies this session */
+    }
+  }, []);
+  const toggleTajweed = useCallback((v: boolean) => {
+    setTajweedOn(v);
+    try {
+      saveSettings({ ...loadSettings(), tajweedColors: v });
+    } catch {
+      /* storage unavailable — the choice applies this session */
+    }
+  }, []);
   const [textSize, setTextSize] = useState(1.6);
   const data = pages[page] ?? initial;
 
@@ -1886,6 +1927,8 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
               page={n}
               verses={verses}
               tajweed={tajweed}
+              script={scriptForEdition(edition)}
+              tajweedOn={tajweedOn}
               designWidth={dw}
               onMeasure={handleMeasure(n)}
               zoom={zoom}
@@ -2341,12 +2384,27 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       />
 
       {/* Mushaf Layout bottom sheet (Phase 1): the radio selection
-          persists and switches the reader rendering. */}
+          persists and switches the reader rendering. The "MUSHAF
+          LAYOUT AND FONT" row opens the Mushaf Type screen. */}
       <ReaderMushafLayout
         open={openModal === 'layout'}
         onClose={() => setOpenModal(null)}
         mode={layoutMode}
         onSelect={selectLayoutMode}
+        onOpenMushafType={() => setOpenModal('mushafType')}
+        editionLabel={mushafEditionById(edition).name}
+      />
+
+      {/* Mushaf Type screen (fourth refinement): four editions with
+          real previews + the Show Tajweed Colors toggle. Back
+          returns to the Mushaf Layout sheet it came from. */}
+      <MushafTypeScreen
+        open={openModal === 'mushafType'}
+        onClose={() => setOpenModal('layout')}
+        edition={edition}
+        onSelect={selectEdition}
+        tajweedOn={tajweedOn}
+        onToggleTajweed={toggleTajweed}
       />
 
       {/* Mistakes modal (Phase 5): the current take's real mistakes

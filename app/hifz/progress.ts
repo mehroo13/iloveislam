@@ -185,6 +185,12 @@ export interface HifzSettings {
    *  for compatibility; both show the same 15-line Madani page — the value
    *  never changes the line breaks, only the type size. */
   mushafLines?: 15 | 16;
+  /** Mushaf Type picker (fourth refinement, 2026-11-25): the print
+   *  edition the reader shows. 'madani-1421' / 'madani-1441' keep the
+   *  Madani (1405) layout until verified line data for those prints
+   *  exists (see lib/mushaf-edition.ts) — the choice is still real
+   *  and persisted; only the layout falls back. */
+  mushafEdition?: import('./lib/mushaf-edition').MushafEditionId;
   /** Colour-code the mushaf by ayah topic (study aid, §23). */
   topicColors?: boolean;
   /** Theme: light / dark / sepia. */
@@ -299,6 +305,7 @@ export function createDefaultSettings(now: Date = new Date()): HifzSettings {
     saveAudio: true,
     testSound: true,
     mushafLines: 15,
+    mushafEdition: 'madani-1405',
     topicColors: true,
     theme: 'light',
     language: 'en',

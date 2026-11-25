@@ -4,9 +4,9 @@
 // reader behind, white sheet with rounded top corners, "Mushaf Layout"
 // header + X, "READING LAYOUT" subtitle, three radio cards (Book /
 // Quran Text / Translation-Transliteration), and the "MUSHAF LAYOUT
-// AND FONT" row with a chevron (visual only in this phase — its
-// destination is not specified yet; the font/mushaf picker is a later
-// phase).
+// AND FONT" row with a chevron — which opens the Mushaf Type screen
+// (fourth refinement, 2026-11-25; it was visual-only before that
+// screen existed).
 //
 // The radio selection is real: onSelect persists the choice (parent)
 // and switches the reader rendering. The sheet stays open after a
@@ -94,11 +94,18 @@ export default function ReaderMushafLayout({
   onClose,
   mode,
   onSelect,
+  onOpenMushafType,
+  editionLabel,
 }: {
   open: boolean;
   onClose: () => void;
   mode: ReaderLayoutMode;
   onSelect: (m: ReaderLayoutMode) => void;
+  /** Opens the Mushaf Type screen (fourth refinement): the row below
+   *  was dead until this screen existed. */
+  onOpenMushafType: () => void;
+  /** Current Mushaf Type name, shown under the Book card. */
+  editionLabel: string;
 }) {
   const [rendered, setRendered] = useState(open);
   const [shown, setShown] = useState(false);
@@ -167,6 +174,9 @@ export default function ReaderMushafLayout({
           {OPTIONS.map((opt) => {
             const selected = mode === opt.id;
             const Icon = opt.icon;
+            // The Book card names the current Mushaf Type, so the
+            // choice made in the Mushaf Type screen is visible here.
+            const sub = opt.id === 'book' ? editionLabel : opt.sub;
             return (
               <button
                 key={opt.id}
@@ -185,7 +195,7 @@ export default function ReaderMushafLayout({
                     {opt.title}
                   </span>
                   <span className="block truncate text-[14px] leading-snug" style={{ color: MUTED }}>
-                    {opt.sub}
+                    {sub}
                   </span>
                 </span>
                 {/* Radio circle: filled black dot when selected. */}
@@ -201,10 +211,13 @@ export default function ReaderMushafLayout({
           })}
         </div>
 
-        {/* Bottom section — visual only in this phase: the
-            font/mushaf picker it would open is not built yet. */}
+        {/* Bottom section — opens the Mushaf Type screen (fourth
+            refinement, 2026-11-25): four editions with real previews
+            plus the Show Tajweed Colors toggle. Was visual-only. */}
         <button
           type="button"
+          onClick={onOpenMushafType}
+          aria-label="Mushaf Layout and Font — choose Mushaf type"
           className="mt-6 flex w-full items-center justify-between px-5 pb-8 text-left"
         >
           <span className="min-w-0">

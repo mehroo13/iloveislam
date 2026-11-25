@@ -16,10 +16,12 @@ import { useEffect, useRef } from 'react';
 import { getSurahById } from '../surahs';
 import { BISMILLAH } from '../../quran/lib';
 import {
+  cleanMushafIndopak,
   cleanMushafUthmani,
   isPauseMarkOnly,
   type MushafVerse,
 } from '../lib/fetch';
+import type { QuranScript } from '../../quran/lib';
 import { fillMushafFrame } from '../lib/kashida';
 import {
   alignWords,
@@ -117,15 +119,25 @@ interface ReaderPageProps {
    *  filters drags). `rect` is the word's viewport rect, for the
    *  tooltip position. Not fired while the line is hidden. */
   onMistakeWordClick?: (mistake: ReaderMistake, rect: DOMRect) => void;
+  /** Script the page renders in (Mushaf Type picker, fourth
+   *  refinement): 'uthmani' is the Madani layout, 'indopak' the
+   *  Indo-Pak lettering on the same 604-page line breaks. Default
+   *  'uthmani' — the reader's behaviour before the picker existed. */
+  script?: QuranScript;
+  /** Show Tajweed Colors (the `tajweedColors` setting): when off,
+   *  every word renders black. Default true — colours were always
+   *  on in this reader before the toggle was wired here. */
+  tajweedOn?: boolean;
 }
 
-export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasure, zoom, hideVerses, revealedLines, onRevealLine, highlightedWords, mistakes, onMistakeWordClick }: ReaderPageProps) {
+export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasure, zoom, hideVerses, revealedLines, onRevealLine, highlightedWords, mistakes, onMistakeWordClick, script = 'uthmani', tajweedOn = true }: ReaderPageProps) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const measureRef = useRef<HTMLDivElement | null>(null);
   const onMeasureRef = useRef(onMeasure);
   onMeasureRef.current = onMeasure;
   const tapGuard = useTapGuard();
 
+  const cleanWord = script === 'indopak' ? cleanMushafIndopak : cleanMushafUthmani;
   // Measure the longest line's natural width (from the data, with the
   // real font — independent of the filler's tatweel). Runs when the
   // verses change and again once the fonts load.
@@ -141,7 +153,7 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
       const el = measureRef.current;
       if (!el || zoom <= 0) return;
       let max = 0;
-      const lineTexts = collectLineTexts(verses);
+      const lineTexts = collectLineTexts(verses, script);
       for (const { text, rosettes } of lineTexts) {
         el.textContent = text;
         const w = el.getBoundingClientRect().width / zoom + rosettes * 40;
@@ -159,7 +171,7 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
     return () => {
       cancelled = true;
     };
-  }, [verses, zoom]);
+  }, [verses, zoom, script]);
 
   // Kashida justification (fill or centre each line) after render,
   // after fonts load, and whenever the frame width changes.
@@ -178,15 +190,23 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
       cancelled = true;
       cancelAnimationFrame(raf);
     };
-  }, [page, verses, tajweed, designWidth]);
+  }, [page, verses, tajweed, designWidth, script]);
 
   // Group words by mushaf line, in verse order (positions restart
-  // per verse — do not re-sort by position).
-  const lines = new Map<number, { text: string; isEnd: boolean; verseKey: string }[]>();
+  // per verse — do not re-sort by position). `text` is the display
+  // script's raw word; `keyText` is always the Uthmani raw word, so
+  // the mic engine's word keys count Uthmani tokens even in
+  // Indo-Pak mode (see lib/reader-words.ts).
+  const lines = new Map<number, { text: string; keyText: string; isEnd: boolean; verseKey: string }[]>();
   for (const v of verses) {
     for (const w of v.words ?? []) {
       const arr = lines.get(w.line_number) ?? [];
-      arr.push({ text: w.text_uthmani ?? '', isEnd: w.char_type_name === 'end', verseKey: v.verse_key });
+      arr.push({
+        text: script === 'indopak' ? (w.text_indopak ?? w.text_uthmani ?? '') : (w.text_uthmani ?? ''),
+        keyText: w.text_uthmani ?? '',
+        isEnd: w.char_type_name === 'end',
+        verseKey: v.verse_key,
+      });
       lines.set(w.line_number, arr);
     }
   }
@@ -236,7 +256,7 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
     // highlighting): cleaned, mark-only words merged into the previous
     // word — exactly as before, plus the keys. The cursor map keeps an
     // ayah's indices continuous across its lines.
-    const display: ReaderDisplayEntry[] = displayEntriesForLine(words, engineCursors);
+    const display: ReaderDisplayEntry[] = displayEntriesForLine(words, engineCursors, cleanWord);
     if (display.length === 0) continue;
 
     // A hidden line (Hide Verses mode, not yet peeked) blurs until
@@ -260,8 +280,13 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
     // fits at full width (shrink 1) on a phone viewport; the fit
     // check stays as the safety net for shorter screens. The
     // measurer below uses the same leading.
+    // Indo-Pak renders in Scheherazade New (font-quran), Madani in
+    // Amiri (font-quran-madani) — the same fonts the single-page
+    // reader uses for the two scripts.
     const lineClass =
-      'font-quran-madani text-[2.1rem] leading-[2.05] text-[#111827] mushaf-line';
+      script === 'indopak'
+        ? 'font-quran text-[2.1rem] leading-[2.05] text-[#111827] mushaf-line'
+        : 'font-quran-madani text-[2.1rem] leading-[2.05] text-[#111827] mushaf-line';
 
     // Colour each word from its ayah's tajweed segments (aligned by
     // normalised text). Words without a match render black.
@@ -315,7 +340,15 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
                 },
               }
             : {};
-        if (tj && off >= 0) {
+        // Show Tajweed Colors off: every word renders black, like a
+        // word with no tajweed match. The toggle lives in the Mushaf
+        // Type screen (and Settings); this reader ignored the setting
+        // until the fourth refinement — colours were always on here.
+        // (In Indo-Pak mode the alignment below is against Uthmani
+        // tajweed text, so some words fall back to black even with
+        // colours on; the per-word heuristic in the single-page
+        // reader colours those.)
+        if (tajweedOn && tj && off >= 0) {
           const runs = colorizeWord(g.text, tj.plain, tj.segments, off);
           lineContent.push(
             <span key={`${g.verseKey}-${wi}`} id={wordId} className={wordClass} {...wordTap}>
@@ -390,7 +423,7 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
       <div
         ref={measureRef}
         aria-hidden="true"
-        className="font-quran-madani pointer-events-none fixed left-[-99999px] top-0 text-[2.1rem] leading-[2.05]"
+        className={`${script === 'indopak' ? 'font-quran' : 'font-quran-madani'} pointer-events-none fixed left-[-99999px] top-0 text-[2.1rem] leading-[2.05]`}
         style={{ width: 'max-content', visibility: 'hidden' }}
       />
     </div>
@@ -400,12 +433,17 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
 /** Plain text of every rendered line (words joined by spaces) plus
  *  its rosette count, for the natural-width measurement. Mirrors the
  *  renderer's grouping/cleaning so the measure matches the render. */
-function collectLineTexts(verses: MushafVerse[]): { text: string; rosettes: number }[] {
+function collectLineTexts(verses: MushafVerse[], script: QuranScript = 'uthmani'): { text: string; rosettes: number }[] {
+  const cleanWord = script === 'indopak' ? cleanMushafIndopak : cleanMushafUthmani;
   const lines = new Map<number, { text: string; isEnd: boolean; verseKey: string }[]>();
   for (const v of verses) {
     for (const w of v.words ?? []) {
       const arr = lines.get(w.line_number) ?? [];
-      arr.push({ text: w.text_uthmani ?? '', isEnd: w.char_type_name === 'end', verseKey: v.verse_key });
+      arr.push({
+        text: script === 'indopak' ? (w.text_indopak ?? w.text_uthmani ?? '') : (w.text_uthmani ?? ''),
+        isEnd: w.char_type_name === 'end',
+        verseKey: v.verse_key,
+      });
       lines.set(w.line_number, arr);
     }
   }
@@ -424,7 +462,7 @@ function collectLineTexts(verses: MushafVerse[]): { text: string; rosettes: numb
     }
     const display: { text: string; isEnd: boolean }[] = [];
     for (const w of words) {
-      const text = cleanMushafUthmani(w.text);
+      const text = cleanWord(w.text);
       if (!text) continue;
       if (!w.isEnd && isPauseMarkOnly(text) && display.length > 0) {
         display[display.length - 1].text += text;
