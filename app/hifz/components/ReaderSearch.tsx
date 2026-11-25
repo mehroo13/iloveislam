@@ -22,7 +22,12 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ALL_SURAHS, getSurahById } from '../surahs';
-import { JUZ_FIRST_PAGE, MUSHAF_TOTAL_PAGES, SURAH_FIRST_PAGE, surahsOnMushafPage } from '../mushaf';
+import {
+  juzFirstPageForEdition,
+  surahFirstPageForEdition,
+  surahsOnMushafPageForEdition,
+} from '../lib/mushaf-surah-pages';
+import { totalPagesForEdition, type MushafEditionId } from '../lib/mushaf-edition';
 
 const INK = 'var(--reader-ink)';
 const MUTED = 'var(--reader-muted)';
@@ -50,11 +55,16 @@ type SearchResult = {
   page: number;
 };
 
-/** Real lookup over the local Quran data — no network, no guessing. */
-function searchResults(raw: string): SearchResult[] {
+/** Real lookup over the local Quran data — no network, no guessing.
+ *  Page numbers are in the SELECTED edition's layout (a surah's
+ *  first page and a Juz's first page differ per edition). */
+function searchResults(raw: string, edition: MushafEditionId): SearchResult[] {
   const query = raw.trim();
   if (!query) return [];
   const lower = query.toLowerCase();
+  const surahFirstPage = surahFirstPageForEdition(edition);
+  const juzFirstPage = juzFirstPageForEdition(edition);
+  const totalPages = totalPagesForEdition(edition);
 
   // Reference "S:A" — opens the surah's first page (the reader has
   // no ayah-to-page map; the result says so honestly).
@@ -62,7 +72,7 @@ function searchResults(raw: string): SearchResult[] {
   if (ref) {
     const s = getSurahById(Number(ref[1]));
     if (s) {
-      const page = SURAH_FIRST_PAGE[s.id] ?? 1;
+      const page = surahFirstPage[s.id] ?? 1;
       return [
         {
           key: `ref-${s.id}:${ref[2]}`,
@@ -79,8 +89,8 @@ function searchResults(raw: string): SearchResult[] {
   const pg = lower.match(/^(?:pg|page)\s*(\d{1,3})$/);
   if (pg) {
     const n = Number(pg[1]);
-    if (n >= 1 && n <= MUSHAF_TOTAL_PAGES) {
-      const names = surahsOnMushafPage(n)
+    if (n >= 1 && n <= totalPages) {
+      const names = surahsOnMushafPageForEdition(n, edition)
         .map((id) => getSurahById(id)?.name)
         .filter(Boolean)
         .join(', ');
@@ -94,7 +104,7 @@ function searchResults(raw: string): SearchResult[] {
   if (juz) {
     const n = Number(juz[1]);
     if (n >= 1 && n <= 30) {
-      const page = JUZ_FIRST_PAGE[n] ?? 1;
+      const page = juzFirstPage[n] ?? 1;
       return [{ key: `juz-${n}`, label: `Juz ${n}`, sub: `Starts on page ${page}`, page }];
     }
     return [];
@@ -110,13 +120,13 @@ function searchResults(raw: string): SearchResult[] {
           {
             key: `surah-${s.id}`,
             label: s.name,
-            sub: `${s.ayahCount} verses · Page ${SURAH_FIRST_PAGE[s.id] ?? 1}`,
-            page: SURAH_FIRST_PAGE[s.id] ?? 1,
+            sub: `${s.ayahCount} verses · Page ${surahFirstPage[s.id] ?? 1}`,
+            page: surahFirstPage[s.id] ?? 1,
           },
         ];
       }
     }
-    if (n >= 1 && n <= MUSHAF_TOTAL_PAGES) {
+    if (n >= 1 && n <= totalPages) {
       return [{ key: `pg-${n}`, label: `Page ${n}`, sub: 'Mushaf page', page: n }];
     }
     return [];
@@ -129,8 +139,8 @@ function searchResults(raw: string): SearchResult[] {
   return matches.map((s) => ({
     key: `surah-${s.id}`,
     label: s.name,
-    sub: `${s.ayahCount} verses · Page ${SURAH_FIRST_PAGE[s.id] ?? 1}`,
-    page: SURAH_FIRST_PAGE[s.id] ?? 1,
+    sub: `${s.ayahCount} verses · Page ${surahFirstPage[s.id] ?? 1}`,
+    page: surahFirstPage[s.id] ?? 1,
   }));
 }
 
@@ -138,11 +148,14 @@ export default function ReaderSearch({
   open,
   onClose,
   onSelectPage,
+  edition,
 }: {
   open: boolean;
   onClose: () => void;
   /** A result tap jumps the reader to this mushaf page. */
   onSelectPage: (page: number) => void;
+  /** The print edition: surah/Juz first pages differ per edition. */
+  edition: MushafEditionId;
 }) {
   const [rendered, setRendered] = useState(open);
   const [shown, setShown] = useState(false);
@@ -169,7 +182,7 @@ export default function ReaderSearch({
     if (shown) inputRef.current?.focus();
   }, [shown]);
 
-  const results = useMemo(() => searchResults(query), [query]);
+  const results = useMemo(() => searchResults(query, edition), [query, edition]);
 
   if (!rendered) return null;
 

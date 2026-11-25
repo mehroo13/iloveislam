@@ -17,7 +17,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { getSurahById } from '../surahs';
-import { API, BISMILLAH, KHATTAB_TRANSLATION_ID, translationName } from '../../quran/lib';
+import { API, BISMILLAH, KHATTAB_TRANSLATION_ID, translationName, type QuranScript } from '../../quran/lib';
 import { type MushafVerse } from '../lib/fetch';
 import { type ReaderPageData } from '../lib/reader-page';
 import { verseDisplayWords } from '../lib/reader-words';
@@ -31,6 +31,13 @@ import { ReaderRosette } from './ReaderPage';
 
 const INK = 'var(--reader-ink)';
 const MUTED = 'var(--reader-muted)';
+
+/** Font class for the display script: Indo-Pak renders in
+ *  Scheherazade New, Madani (Uthmani) in Amiri — the same pairing
+ *  the Book reader (MushafPageFrame) uses. */
+function scriptFontClass(script: QuranScript): string {
+  return script === 'indopak' ? 'font-quran' : 'font-quran-madani';
+}
 
 /**
  * One ayah rendered as individually identified word spans (Phase 3):
@@ -46,6 +53,7 @@ function AyahWords({
   mistakes,
   onMistakeWordClick,
   clickable,
+  script = 'uthmani',
 }: {
   verse: MushafVerse;
   highlightedWords?: ReadonlySet<string>;
@@ -56,9 +64,13 @@ function AyahWords({
   /** False while the verse is hidden (blurred) — a red word cannot
    *  be tapped for its tooltip until the verse is revealed. */
   clickable?: boolean;
+  /** Display script (Mushaf Type picker): 'indopak' renders the
+   *  Indo-Pak word forms; the engine keys still count Uthmani
+   *  tokens, so highlighting lands on the right word either way. */
+  script?: QuranScript;
 }) {
   const guard = useTapGuard();
-  const words = verseDisplayWords(verse);
+  const words = verseDisplayWords(verse, script);
   return (
     <>
       {words.map((w, i) => {
@@ -99,13 +111,14 @@ function AyahWords({
  *  Record the pointer-down position, then only accept clicks that
  *  moved less than ~12px. */
 /** Peek info for one verse (Phase 6): the verse + its first three
- *  spoken words, for the test-mode mistake row. */
-function versePeekInfo(v: MushafVerse): PeekInfo {
+ *  spoken words, for the test-mode mistake row — in the display
+ *  script, so the row matches what is on screen. */
+function versePeekInfo(v: MushafVerse, script: QuranScript = 'uthmani'): PeekInfo {
   const [sidStr, ayahStr] = v.verse_key.split(':');
   const snippet = v.words
     .filter((w) => w.char_type_name !== 'end')
     .slice(0, 3)
-    .map((w) => w.text_uthmani ?? '')
+    .map((w) => (script === 'indopak' ? (w.text_indopak ?? w.text_uthmani ?? '') : (w.text_uthmani ?? '')))
     .join(' ');
   return { surah: Number(sidStr), ayah: Number(ayahStr), display: snippet };
 }
@@ -137,7 +150,7 @@ function groupBySurah(verses: MushafVerse[]): { sid: number; verses: MushafVerse
   return groups;
 }
 
-function SurahIntro({ sid, arabicSize }: { sid: number; arabicSize?: number }) {
+function SurahIntro({ sid, arabicSize, script = 'uthmani' }: { sid: number; arabicSize?: number; script?: QuranScript }) {
   const surah = getSurahById(sid);
   const name = surah ? `سُورَةُ ${surah.arabic}` : '';
   return (
@@ -148,7 +161,7 @@ function SurahIntro({ sid, arabicSize }: { sid: number; arabicSize?: number }) {
           dir="rtl"
           lang="ar"
           translate="no"
-          className="font-quran-madani mt-3 text-center leading-snug text-[#111827]"
+          className={`${scriptFontClass(script)} mt-3 text-center leading-snug text-[#111827]`}
           style={{ fontSize: `${arabicSize ?? 1.6}rem` }}
         >
           {BISMILLAH}
@@ -206,6 +219,7 @@ export function ReaderContinuousText({
   hideVerses,
   revealed,
   onReveal,
+  script = 'uthmani',
 }: {
   pages: { page: number; verses: MushafVerse[]; meta: ReaderPageData['meta'] }[];
   textSize: number;
@@ -216,6 +230,9 @@ export function ReaderContinuousText({
   hideVerses: boolean;
   revealed: ReadonlySet<string>;
   onReveal: (key: string, info?: PeekInfo) => void;
+  /** Display script (Mushaf Type picker): the flowing text renders
+   *  in the selected edition's script, like the Book reader. */
+  script?: QuranScript;
 }) {
   const guard = useTapGuard();
   const seenSurahs = new Set<number>();
@@ -259,7 +276,7 @@ export function ReaderContinuousText({
               if (first) seenSurahs.add(g.sid);
               return (
                 <div key={`${page}-${g.sid}`}>
-                  {first && <SurahIntro sid={g.sid} arabicSize={textSize} />}
+                  {first && <SurahIntro sid={g.sid} arabicSize={textSize} script={script} />}
                   {/* One flowing paragraph per surah: the ayahs run
                       together and wrap naturally — several ayahs on
                       the same visual line, rosette inline at each
@@ -270,7 +287,7 @@ export function ReaderContinuousText({
                     dir="rtl"
                     lang="ar"
                     translate="no"
-                    className="font-quran-madani text-justify leading-[2.1]"
+                    className={`${scriptFontClass(script)} text-justify leading-[2.1]`}
                     style={{ fontSize: `${textSize}rem`, color: INK }}
                   >
                     {g.verses.map((v) => {
@@ -290,7 +307,7 @@ export function ReaderContinuousText({
                           onClick={
                             hidden
                               ? (e) => {
-                                  if (guard.ok(e)) onReveal(key, versePeekInfo(v));
+                                  if (guard.ok(e)) onReveal(key, versePeekInfo(v, script));
                                 }
                               : undefined
                           }
@@ -306,6 +323,7 @@ export function ReaderContinuousText({
                             mistakes={mistakes}
                             onMistakeWordClick={onMistakeWordClick}
                             clickable={!hidden}
+                            script={script}
                           />{' '}
                           <ReaderRosette ayah={ayahNum} />
                         </span>
@@ -349,6 +367,7 @@ export function ReaderTranslationMode({
   onMistakeWordClick,
   translationId = KHATTAB_TRANSLATION_ID,
   onRosetteClick,
+  script = 'uthmani',
 }: {
   verses: MushafVerse[];
   hideVerses: boolean;
@@ -370,6 +389,9 @@ export function ReaderTranslationMode({
   translationId?: number;
   /** An ayah-end rosette was tapped: open that verse's tafsir sheet. */
   onRosetteClick?: (verseKey: string) => void;
+  /** Display script (Mushaf Type picker): the Arabic renders in the
+   *  selected edition's script, like the Book reader. */
+  script?: QuranScript;
 }) {
   const guard = useTapGuard();
   // Keyed by `${surah}:${translationId}` so switching translations
@@ -434,7 +456,7 @@ export function ReaderTranslationMode({
         <div key={`s-${g.sid}`}>
           {/* Bismillah at the ayah text size (1.5rem) so the intro
               matches the verses below it. */}
-          <SurahIntro sid={g.sid} arabicSize={1.5} />
+          <SurahIntro sid={g.sid} arabicSize={1.5} script={script} />
           {g.verses.map((v) => {
             const key = `V${v.verse_key}`;
             const hidden = hideVerses && !revealed.has(key);
@@ -448,7 +470,7 @@ export function ReaderTranslationMode({
                   onClick={
                     hidden
                       ? (e) => {
-                          if (guard.ok(e)) onReveal(key, versePeekInfo(v));
+                          if (guard.ok(e)) onReveal(key, versePeekInfo(v, script));
                         }
                       : undefined
                   }
@@ -462,7 +484,7 @@ export function ReaderTranslationMode({
                     dir="rtl"
                     lang="ar"
                     translate="no"
-                    className="font-quran-madani text-right leading-[2]"
+                    className={`${scriptFontClass(script)} text-right leading-[2]`}
                     style={{ fontSize: '1.5rem', color: INK }}
                   >
                     <AyahWords
@@ -471,6 +493,7 @@ export function ReaderTranslationMode({
                       mistakes={mistakes}
                       onMistakeWordClick={onMistakeWordClick}
                       clickable={!hidden}
+                      script={script}
                     />{' '}
                     {onRosetteClick ? (
                       <button

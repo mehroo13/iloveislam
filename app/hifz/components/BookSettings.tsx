@@ -3,10 +3,12 @@
 // reference screenshots, our own wording and branding — no copied logo,
 // name or text).
 //
-// HONEST EDITIONS ONLY: we ship one 604-page Madani line dataset, so
-// there are exactly two honest choices — the same Madani layout in
-// Uthmani script ("Madani Mushaf") or in Indo-Pak lettering
-// ("Indo-Pak Script"). No 1405/1421/1441 relabelling, no 610 pages.
+// THE TWO CHOICES: the same Quran in Uthmani script (the 604-page
+// Madani layout, "Madani Mushaf") or in Indo-Pak lettering (the
+// 610-page Indo-Pak print layout, "Indo-Pak Script"). The four
+// editions (1405/1421/1441/Indo-Pak) live in the Mushaf Type screen
+// (lib/mushaf-edition.ts); this picker only chooses the script, and
+// the edition is derived from it (see editionFromSettings).
 //
 // The preview on each card is a real mini mushaf page: the first lines
 // of mushaf page 1 (Al-Fatihah) fetched from Quran.com, grouped by
@@ -174,22 +176,33 @@ export function EditionPreview({
   tajweedOn: boolean;
 }) {
   const lines = useMemo(() => (verses ? previewLines(verses, script) : []), [verses, script]);
-  const surah = getSurahById(1);
+  /* The surah header shows only when the previewed page STARTS a
+   * surah (its first verse is ayah 1) — a mid-surah page has no
+   * header on the printed page. The old code always showed
+   * Al-Fatihah, which was only right for the page-1 preview. */
+  const firstVerse = verses?.[0];
+  const headerSurah =
+    firstVerse && firstVerse.verse_key.endsWith(':1')
+      ? getSurahById(Number(firstVerse.verse_key.split(':')[0]))
+      : null;
   const fontClass = script === 'uthmani' ? 'font-quran-madani' : 'font-quran';
   return (
     <div dir="rtl" lang="ar" translate="no" className="bg-white px-1 py-2">
-      {/* Plain black double-ruled surah header, as on a printed page */}
-      <div className="relative border-2 border-[#111827] px-1.5 py-1 text-center">
-        <span aria-hidden="true" className="absolute -left-1 -top-1 h-2 w-2 rotate-45 border border-[#111827] bg-white" />
-        <span aria-hidden="true" className="absolute -right-1 -top-1 h-2 w-2 rotate-45 border border-[#111827] bg-white" />
-        <span aria-hidden="true" className="absolute -bottom-1 -left-1 h-2 w-2 rotate-45 border border-[#111827] bg-white" />
-        <span aria-hidden="true" className="absolute -bottom-1 -right-1 h-2 w-2 rotate-45 border border-[#111827] bg-white" />
-        <div className="border border-[#111827]/50 px-2 py-1">
-          <p className={`${fontClass} text-lg leading-snug text-[#111827]`}>
-            {surah?.arabic ?? 'الْفَاتِحَة'}
-          </p>
+      {/* Plain black double-ruled surah header, as on a printed page
+          — only when this page starts a surah. */}
+      {headerSurah && (
+        <div className="relative border-2 border-[#111827] px-1.5 py-1 text-center">
+          <span aria-hidden="true" className="absolute -left-1 -top-1 h-2 w-2 rotate-45 border border-[#111827] bg-white" />
+          <span aria-hidden="true" className="absolute -right-1 -top-1 h-2 w-2 rotate-45 border border-[#111827] bg-white" />
+          <span aria-hidden="true" className="absolute -bottom-1 -left-1 h-2 w-2 rotate-45 border border-[#111827] bg-white" />
+          <span aria-hidden="true" className="absolute -bottom-1 -right-1 h-2 w-2 rotate-45 border border-[#111827] bg-white" />
+          <div className="border border-[#111827]/50 px-2 py-1">
+            <p className={`${fontClass} text-lg leading-snug text-[#111827]`}>
+              {headerSurah.arabic}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
       {verses === null && !failed ? (
         <div className="mt-3 space-y-2" aria-hidden="true">
           {[0, 1, 2, 3, 4, 5].map((i) => (

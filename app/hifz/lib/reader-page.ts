@@ -7,6 +7,13 @@
 import { fetchMushafPage, type MushafVerse } from './fetch';
 import { getSurahById } from '../surahs';
 import { fetchTajweedSurah, type TajweedSurah } from './tajweed';
+import {
+  layoutForEdition,
+  regroupEditionPage,
+  v1PagesForEditionPage,
+} from './mushaf-layouts';
+import type { MushafEditionId } from './mushaf-edition';
+import { mushafEditionById } from './mushaf-edition';
 
 export interface ReaderPageMeta {
   surahId: number;
@@ -25,8 +32,35 @@ export interface ReaderPageData {
   meta: ReaderPageMeta;
 }
 
-export async function fetchReaderPage(n: number): Promise<ReaderPageData> {
-  const verses = await fetchMushafPage(n);
+/** One mushaf page for the reader (Book or Quran Text mode). `edition`
+ *  selects the print: 'madani-1405' reads the Quran.com page as-is
+ *  (it IS the 1405 layout); every other edition re-places the words
+ *  from its own real page/line map (lib/mushaf-layouts.ts), fetching
+ *  the 1–2 V1 pages that supply the edition page. The returned verses
+ *  carry the EDITION's page/line numbers, so the renderers
+ *  (MushafPageFrame, EditionPreview) need no edition logic — and the
+ *  meta (first surah, juz, hizb) comes from the edition page's first
+ *  verse. Tajweed colours are fetched per surah as before, for the
+ *  surahs on this edition page. An out-of-range page returns an
+ *  empty page (verses []) rather than throwing. */
+export async function fetchReaderPage(
+  n: number,
+  edition: MushafEditionId = 'madani-1405',
+): Promise<ReaderPageData> {
+  const ed = mushafEditionById(edition);
+  let verses: MushafVerse[];
+  if (n < 1 || n > ed.totalPages) {
+    verses = [];
+  } else {
+    const layout = layoutForEdition(edition);
+    if (!layout) {
+      verses = await fetchMushafPage(n);
+    } else {
+      const v1Pages = v1PagesForEditionPage(layout, n);
+      const fetched = await Promise.all(v1Pages.map((p) => fetchMushafPage(p)));
+      verses = regroupEditionPage(layout, n, fetched);
+    }
+  }
   const surahIds = [...new Set(verses.map((v) => Number(v.verse_key.split(':')[0])))];
   const tajweed: Record<number, TajweedSurah> = {};
   await Promise.all(

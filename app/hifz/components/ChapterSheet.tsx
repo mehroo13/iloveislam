@@ -16,7 +16,12 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { ALL_SURAHS, getSurahById, type HifzSurah } from '../surahs';
-import { JUZ_FIRST_PAGE, SURAH_FIRST_PAGE, surahsOnMushafPage } from '../mushaf';
+import {
+  juzFirstPageForEdition,
+  surahFirstPageForEdition,
+  surahsOnMushafPageForEdition,
+} from '../lib/mushaf-surah-pages';
+import type { MushafEditionId } from '../lib/mushaf-edition';
 import { loadBookmarks, type BookmarkEntry } from '../lib/bookmarks';
 import { useT } from '../lib/i18n';
 
@@ -65,6 +70,7 @@ export default function ChapterSheet({
   currentJuz,
   onSelectSurah,
   onSelectPage,
+  edition,
 }: {
   open: boolean;
   onClose: () => void;
@@ -73,6 +79,8 @@ export default function ChapterSheet({
   onSelectSurah: (surahId: number) => void;
   /** A bookmark tap jumps the reader to this mushaf page. */
   onSelectPage: (page: number) => void;
+  /** The print edition: Juz/surah first pages differ per edition. */
+  edition: MushafEditionId;
 }) {
   const t = useT();
   const [rendered, setRendered] = useState(open);
@@ -176,7 +184,7 @@ export default function ChapterSheet({
                   {recentlyRead.name}
                 </span>
                 <span className="block text-[10px] leading-tight" style={{ color: MUTED }}>
-                  PG. {SURAH_FIRST_PAGE[recentlyRead.id] ?? 1}
+                  PG. {surahFirstPageForEdition(edition)[recentlyRead.id] ?? 1}
                 </span>
               </span>
             </span>
@@ -258,12 +266,12 @@ export default function ChapterSheet({
           <div ref={listRef} className="h-full overflow-y-auto overscroll-contain">
             {tab === 'parts' ? (
               /* Parts: the 30 Juz. Tapping one jumps to its first
-                 page (JUZ_FIRST_PAGE) — a Juz is tappable even when
+                 page (juzFirstPageForEdition) — a Juz is tappable even when
                  no surah starts in it (Juz 2 is Al-Baqarah alone). */
               <ul>
                 {juzOrder.map((j) => {
-                  const page = JUZ_FIRST_PAGE[j] ?? 1;
-                  const first = getSurahById(surahsOnMushafPage(page)[0] ?? 1);
+                  const page = juzFirstPageForEdition(edition)[j] ?? 1;
+                  const first = getSurahById(surahsOnMushafPageForEdition(page, edition)[0] ?? 1);
                   return (
                     <li key={j} style={{ backgroundColor: 'var(--reader-card)' }}>
                       <button
@@ -306,7 +314,7 @@ export default function ChapterSheet({
                   {bookmarks.map((b, i) => {
                     const isPage = b.kind === 'page';
                     const surah = getSurahById(b.surahNumber ?? 1);
-                    const page = isPage ? b.page ?? 1 : SURAH_FIRST_PAGE[b.surahNumber ?? 1] ?? 1;
+                    const page = isPage ? b.page ?? 1 : surahFirstPageForEdition(edition)[b.surahNumber ?? 1] ?? 1;
                     const label = isPage
                       ? `Page ${b.page}`
                       : `${b.surahName ?? surah?.name ?? 'Surah'} ${b.verseNumber}`;

@@ -122,9 +122,10 @@ interface ReaderPageProps {
    *  tooltip position. Not fired while the line is hidden. */
   onMistakeWordClick?: (mistake: ReaderMistake, rect: DOMRect) => void;
   /** Script the page renders in (Mushaf Type picker, fourth
-   *  refinement): 'uthmani' is the Madani layout, 'indopak' the
-   *  Indo-Pak lettering on the same 604-page line breaks. Default
-   *  'uthmani' — the reader's behaviour before the picker existed. */
+   *  refinement): 'uthmani' is a Madani layout, 'indopak' the
+   *  Indo-Pak lettering on the 610-page Indo-Pak line breaks.
+   *  Default 'uthmani' — the reader's behaviour before the picker
+   *  existed. */
   script?: QuranScript;
   /** Show Tajweed Colors (the `tajweedColors` setting): when off,
    *  every word renders black. Default true — colours were always

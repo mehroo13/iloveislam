@@ -193,14 +193,13 @@ export interface HifzSettings {
   /** Sound + vibration on test-question completion. */
   testSound?: boolean;
   /** Mushaf text size: 15 = large type, 16 = compact type. Stored as 15|16
-   *  for compatibility; both show the same 15-line Madani page — the value
+   *  for compatibility; both show the same 15-line page — the value
    *  never changes the line breaks, only the type size. */
   mushafLines?: 15 | 16;
-  /** Mushaf Type picker (fourth refinement, 2026-11-25): the print
-   *  edition the reader shows. 'madani-1421' / 'madani-1441' keep the
-   *  Madani (1405) layout until verified line data for those prints
-   *  exists (see lib/mushaf-edition.ts) — the choice is still real
-   *  and persisted; only the layout falls back. */
+  /** Mushaf Type picker (fourth refinement, 2026-11-25; made real,
+   *  2026-11-25): the print edition the reader shows — each edition
+   *  renders its own real page/line map (see lib/mushaf-edition.ts
+   *  and lib/mushaf-layouts.ts). */
   mushafEdition?: import('./lib/mushaf-edition').MushafEditionId;
   /** Selected tafsir (Settings → Tafsir); default Ibn Kathir (Abridged). */
   tafsirId?: number;

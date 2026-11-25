@@ -1,21 +1,28 @@
 // app/hifz/components/MushafTypeScreen.tsx — the "Mushaf Type"
-// full-screen screen (fourth refinement, 2026-11-25). Opens from the
-// "MUSHAF LAYOUT AND FONT" row in the Mushaf Layout sheet. Layout
-// follows Mehran's Tarteel reference screenshot (image-46c661cd):
-// circular back button + "Mushaf Type" title, "BOOK SETTINGS" +
-// info icon, a description line, horizontally swipeable cards each
-// with title, preview, description and "15 Lines / 604 pages", and
-// a "Show Tajweed Colors" toggle row at the bottom. Our own wording
-// and branding throughout — no Tarteel logo, name, artwork or exact
-// text; the edition names are factual.
+// full-screen screen (fourth refinement, 2026-11-25; made real,
+// 2026-11-25). Opens from the "MUSHAF LAYOUT AND FONT" row in the
+// Mushaf Layout sheet. Layout follows Mehran's Tarteel reference
+// screenshot (image-46c661cd): circular back button + "Mushaf Type"
+// title, "BOOK SETTINGS" + info icon, a description line,
+// horizontally swipeable cards each with title, preview, description
+// and "15 Lines / N pages", and a "Show Tajweed Colors" toggle row
+// at the bottom. Our own wording and branding throughout — no
+// Tarteel logo, name, artwork or exact text; the edition names are
+// factual.
 //
-// The previews are REAL: the first lines of mushaf page 1 fetched
-// from Quran.com and rendered in the edition's own script (the
-// shared EditionPreview from BookSettings) — never placeholder art.
-// The 1421/1441 cards preview the Madani (1405) page 1 because that
-// is the layout the reader will show for them (see
-// lib/mushaf-edition.ts — no distinct 1421/1441 line data exists in
-// any public source); the honest note on the card says so.
+// The previews are REAL and DISTINCT: each card previews ITS OWN
+// edition's data on a page where the editions DIFFER (page 208,
+// the start of Surah Yunus — 1405's second text line ends at
+// 10:2:14, 1421's at 10:2:13, 1441's first text line already holds
+// 10:2:4 where 1421 holds only up to 10:2:3, and Indo-Pak's first
+// line holds up to 10:2:5 in the Indo-Pak script; verified
+// 2026-11-25 from the layout maps + the live API), fetched from
+// the edition-aware reader-page API route and rendered in the
+// edition's own script (the shared EditionPreview from
+// BookSettings) — never placeholder art, and never page 1, which
+// is identical in every Madani edition. There are no notes or
+// disclaimers on the cards: every edition renders its own real
+// layout (see lib/mushaf-edition.ts).
 //
 // Selection is real and persisted (the `mushafEdition` setting); the
 // parent applies it to the reader at once. The Tajweed toggle writes
@@ -24,8 +31,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { fetchMushafPage, type MushafVerse } from '../lib/fetch';
-import { MUSHAF_EDITIONS, type MushafEditionId } from '../lib/mushaf-edition';
+import type { MushafVerse } from '../lib/fetch';
+import type { ReaderPageData } from '../lib/reader-page';
+import { MUSHAF_EDITIONS, type MushafEdition, type MushafEditionId } from '../lib/mushaf-edition';
 import { useT } from '../lib/i18n';
 import { EditionPreview } from './BookSettings';
 
@@ -64,8 +72,13 @@ export default function MushafTypeScreen({
   const t = useT();
   const [rendered, setRendered] = useState(open);
   const [shown, setShown] = useState(false);
-  const [verses, setVerses] = useState<MushafVerse[] | null>(null);
-  const [loadFailed, setLoadFailed] = useState(false);
+  /* One preview per edition: the edition's own page data on its
+   * preview page (a page where the editions differ), fetched from
+   * the edition-aware reader-page route. `failed` marks the
+   * editions whose preview could not load (the card then shows the
+   * Bismillah fallback instead of a blank). */
+  const [previews, setPreviews] = useState<Partial<Record<MushafEditionId, MushafVerse[]>>>({});
+  const [failed, setFailed] = useState<Partial<Record<MushafEditionId, boolean>>>({});
   const carouselRef = useRef<HTMLDivElement | null>(null);
 
   // Mount / fade lifecycle, like the Settings screen.
@@ -80,19 +93,28 @@ export default function MushafTypeScreen({
     return () => window.clearTimeout(timer);
   }, [open ]);
 
-  // One fetch of page 1 (Al-Fatihah) feeds every card's preview.
+  // One fetch per edition, in parallel, of its own preview page.
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    void fetchMushafPage(1)
-      .then((v) => {
-        if (cancelled) return;
-        if (v.length > 0) setVerses(v);
-        else setLoadFailed(true);
-      })
-      .catch(() => {
-        if (!cancelled) setLoadFailed(true);
-      });
+    for (const ed of MUSHAF_EDITIONS) {
+      void fetch(`/api/quran/reader-page/${ed.previewPage}?edition=${ed.id}`)
+        .then((res) => {
+          if (!res.ok) throw new Error(`preview ${ed.id}: ${res.status}`);
+          return res.json() as Promise<ReaderPageData>;
+        })
+        .then((d) => {
+          if (cancelled) return;
+          if (d.verses.length > 0) {
+            setPreviews((p) => ({ ...p, [ed.id]: d.verses }));
+          } else {
+            setFailed((f) => ({ ...f, [ed.id]: true }));
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setFailed((f) => ({ ...f, [ed.id]: true }));
+        });
+    }
     return () => {
       cancelled = true;
     };
@@ -147,7 +169,7 @@ export default function MushafTypeScreen({
           role="group"
           aria-label={t('rb.mushafType.edition')}
         >
-          {MUSHAF_EDITIONS.map((ed) => {
+          {MUSHAF_EDITIONS.map((ed: MushafEdition) => {
             const selected = edition === ed.id;
             return (
               <article
@@ -172,7 +194,12 @@ export default function MushafTypeScreen({
                     selected ? 'border-[#57D798]' : 'border-[#E8EAED]'
                   }`}
                 >
-                  <EditionPreview script={ed.script} verses={verses} failed={loadFailed} tajweedOn={tajweedOn} />
+                  <EditionPreview
+                    script={ed.script}
+                    verses={previews[ed.id] ?? null}
+                    failed={failed[ed.id] ?? false}
+                    tajweedOn={tajweedOn}
+                  />
                   {selected && (
                     <span
                       aria-hidden="true"
@@ -193,13 +220,9 @@ export default function MushafTypeScreen({
                   )}
                 </div>
                 <p className="mt-3 text-sm leading-relaxed text-[#6B7280]">{t(ed.descKey)}</p>
-                {ed.honestNoteKey && (
-                  <p className="mt-1.5 rounded-lg bg-[#FFF7E6] px-2.5 py-2 text-[13px] leading-snug text-[#7A5A00]">
-                    {t(ed.honestNoteKey)}
-                  </p>
-                )}
                 <p className="mt-1.5 text-sm text-[#111827]">
-                  <span className="font-bold">{t('rb.mushafType.lines15')}</span> {t('rb.mushafType.ofPages').replace('{n}', '604')}
+                  <span className="font-bold">{t('rb.mushafType.lines15')}</span>{' '}
+                  {t('rb.mushafType.ofPages').replace('{n}', String(ed.totalPages))}
                 </p>
               </article>
             );

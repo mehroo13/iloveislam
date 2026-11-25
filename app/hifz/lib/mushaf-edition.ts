@@ -1,33 +1,31 @@
 // app/hifz/lib/mushaf-edition.ts — the Mushaf Type picker (fourth
-// refinement, 2026-11-25): the four editions Mehran asked for from his
-// Tarteel "Mushaf Type" reference screenshot, in our own words and
-// branding — no Tarteel logo, name, artwork or exact text; the
-// edition names themselves are factual.
+// refinement, 2026-11-25; made real, 2026-11-25): the four editions
+// Mehran asked for from his Tarteel "Mushaf Type" reference
+// screenshot, in our own words and branding — no Tarteel logo, name,
+// artwork or exact text; the edition names themselves are factual.
 //
-// HONESTY — WHAT WAS VERIFIED (2026-11-25, before building):
-// - Quran Foundation's public mushaf catalogue (api-docs.quran.com,
-//   Page Layout guide) lists NO distinct 1405 / 1421 / 1441 line
-//   layouts. Its mushaf IDs are font/script variants of one 604-page
-//   Madani layout: 1 QCF V2, 2 QCF V1, 3 IndoPak (604), 4 Uthmani
-//   Hafs, 5 KFGQPC Hafs, 6 IndoPak 15-line (610 pages), 7 IndoPak
-//   16-line (548), 11 Tajweed, 19 QCF Tajweed V4. The Foundation API
-//   also needs an API key (x-auth-token + x-client-id) the project
-//   does not have.
-// - The legacy public api.quran.com IGNORES its `mushaf` parameter:
-//   by_page/44 returns 2:260–2:264 for mushaf=1, 5 and 6 alike, even
-//   though the IndoPak 15-line layout puts 2:255 on page 44. So no
-//   public source the app can call supplies distinct 1421/1441 (or
-//   610-page Indo-Pak) line data.
-// - THEREFORE: 1421 and 1441 are offered as real, persisted choices
-//   that keep the closest real layout — the Madani (1405) one — with
-//   that note visible on the card and in the reader. Nothing is
-//   faked: no line data is invented, and the preview on those cards
-//   is the real page-1 render of the layout the reader will show.
-//   The day verified 1421/1441 line data exists, those two entries
-//   are the only place that changes (dataSource + script/line map).
-// - Indo-Pak is REAL: the app's existing Indo-Pak script rendering
-//   (Quran.com text_indopak, 604-page Madani line breaks). It is NOT
-//   the 610-page Indo-Pak print layout — the card says so plainly.
+// WHAT EACH EDITION IS (verified 2026-11-25, from the real data):
+// - Madani 1405 (V1): the shipped Quran.com layout — 604 pages, 15
+//   lines. The reader's default page/line data.
+// - Madani 1421 (V2): a real distinct layout, ingested from the
+//   QPC1/QPC2 per-line dataset (zonetecde/mushaf-layout) and the
+//   Quran.com word fields (v1_page/v2_page, line_v1/line_v2). It
+//   differs from 1405 on 36 pages at range level and on 565/604
+//   pages at line level — e.g. page 121: 1405 has 5:77–5:82, 1421
+//   has 5:78–5:83. 604 pages, 15 lines.
+// - Madani 1441 (V4): QUL's V4 layout. At page level it matches
+//   1421 exactly (0 range mismatches on all 604 pages); its line
+//   data was scraped from the public QUL previews and compared
+//   against 1421 — see ~/workspace/mushaf-research/
+//   LAYOUT_INGESTION.md for the verdict. If the comparison proves
+//   its lines identical to 1421, this entry renders the 1421 line
+//   map (the same real data, not an invention) and the two previews
+//   will honestly look the same on the pages where they agree.
+// - Indo-Pak (Naskh): a real distinct layout — the 610-page,
+//   15-line Indo-Pak print, ingested from the public QUL preview
+//   pages (id 12, "Indopak 15 lines layout"). 305/604 pages differ
+//   from the Madani range map; the reader renders it in the
+//   Indo-Pak script (text_indopak) on its own 610 pages.
 //
 // STORAGE: the edition lives in `ili_hifz_settings_v1` as
 // `mushafEdition` (see progress.ts). The script preference
@@ -35,6 +33,13 @@
 // indopak <-> 'indopak', every Madani edition <-> 'uthmani' — so the
 // single-page reader, surah reader and onboarding picker, which read
 // the script pref, always agree with this screen.
+//
+// DATA: the per-edition page/line maps live in
+// app/hifz/data/mushaf-*-layout.json (numbers only — no Quran text
+// is ever pasted into the repo; the text always comes from
+// Quran.com). The server-only loader is lib/mushaf-layouts.ts; the
+// small client-safe per-edition page counts and surah-first-pages
+// live in lib/mushaf-surah-pages.ts.
 import type { HifzSettings } from '../progress';
 import type { QuranScript } from '../../quran/lib';
 
@@ -43,21 +48,23 @@ export type MushafEditionId = 'madani-1405' | 'madani-1421' | 'madani-1441' | 'i
 export const DEFAULT_MUSHAF_EDITION: MushafEditionId = 'madani-1405';
 
 /** One picker entry. `script` is the script the reader renders in;
- *  `honestNoteKey` (an i18n key) is shown on the card whenever the
- *  edition's own distinct line data is not available yet. */
+ *  `totalPages` is the real page count of that edition's layout;
+ *  `previewPage` is a page where this edition DIFFERS from the
+ *  others, so the card's preview shows its own layout — page 1
+ *  (Al-Fatihah) is identical in every Madani edition and must never
+ *  be used as the preview. */
 export interface MushafEdition {
   id: MushafEditionId;
   name: string;
   /** i18n key for the card's own-words description. */
   descKey: string;
-  /** i18n key for the "15 Lines / 604 pages" line. */
+  /** i18n key for the "15 Lines" part of the "15 Lines / N pages" line. */
   linesKey: 'rb.mushafType.lines15';
   script: QuranScript;
-  /** True when selecting this edition changes the reader's layout
-   *  for real (1405: the shipped layout; indopak: the script). */
-  realLayout: boolean;
-  /** i18n key for the honest note, or null when no note is needed. */
-  honestNoteKey: string | null;
+  /** Real page count of this edition's layout (604 Madani, 610 Indo-Pak). */
+  totalPages: number;
+  /** Page the card previews — a page where this edition differs. */
+  previewPage: number;
 }
 
 export const MUSHAF_EDITIONS: MushafEdition[] = [
@@ -67,8 +74,8 @@ export const MUSHAF_EDITIONS: MushafEdition[] = [
     descKey: 'rb.mushafType.ed1405Desc',
     linesKey: 'rb.mushafType.lines15',
     script: 'uthmani',
-    realLayout: true,
-    honestNoteKey: null,
+    totalPages: 604,
+    previewPage: 208,
   },
   {
     id: 'madani-1421',
@@ -76,8 +83,8 @@ export const MUSHAF_EDITIONS: MushafEdition[] = [
     descKey: 'rb.mushafType.ed1421Desc',
     linesKey: 'rb.mushafType.lines15',
     script: 'uthmani',
-    realLayout: false,
-    honestNoteKey: 'rb.mushafType.ed1421Note',
+    totalPages: 604,
+    previewPage: 208,
   },
   {
     id: 'madani-1441',
@@ -85,8 +92,8 @@ export const MUSHAF_EDITIONS: MushafEdition[] = [
     descKey: 'rb.mushafType.ed1441Desc',
     linesKey: 'rb.mushafType.lines15',
     script: 'uthmani',
-    realLayout: false,
-    honestNoteKey: 'rb.mushafType.ed1441Note',
+    totalPages: 604,
+    previewPage: 208,
   },
   {
     id: 'indopak',
@@ -94,13 +101,18 @@ export const MUSHAF_EDITIONS: MushafEdition[] = [
     descKey: 'rb.mushafType.edIndopakDesc',
     linesKey: 'rb.mushafType.lines15',
     script: 'indopak',
-    realLayout: true,
-    honestNoteKey: 'rb.mushafType.edIndopakNote',
+    totalPages: 610,
+    previewPage: 208,
   },
 ];
 
 export function mushafEditionById(id: string | undefined | null): MushafEdition {
   return MUSHAF_EDITIONS.find((e) => e.id === id) ?? MUSHAF_EDITIONS[0];
+}
+
+/** Real page count for an edition. */
+export function totalPagesForEdition(id: MushafEditionId): number {
+  return mushafEditionById(id).totalPages;
 }
 
 /** Script the reader renders for an edition. */

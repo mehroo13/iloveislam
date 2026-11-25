@@ -23,11 +23,13 @@
 
 import { splitWords } from './alignment';
 import {
+  cleanMushafIndopak,
   cleanMushafUthmani,
   isPauseMarkOnly,
   type MushafVerse,
   type MushafWord,
 } from './fetch';
+import type { QuranScript } from '../../quran/lib';
 
 /** Key for one engine word: `surah:ayah:word`, word 1-based inside the
  *  ayah — the same scheme as the coach's liveWords and the adapter's
@@ -107,17 +109,30 @@ export function displayEntriesForLine(
 /** Display words of one whole verse (flowing views): the same pipeline
  *  over the verse's words, so the merge scope is the ayah — exactly
  *  what versePlainText() did. 'end' words are skipped (no rosette
- *  here; the caller renders it separately). */
-export function verseDisplayWords(verse: MushafVerse): { text: string; keys: string[] }[] {
+ *  here; the caller renders it separately).
+ *
+ *  SCRIPT: `script` selects the display text — 'indopak' renders the
+ *  Indo-Pak word forms (cleaned with cleanMushafIndopak) while the
+ *  engine keys still count Uthmani tokens (keyText), exactly as the
+ *  Book reader does (displayEntriesForLine). So the mic's green
+ *  highlighting and the red mistake marks land on the right word in
+ *  either script. */
+export function verseDisplayWords(
+  verse: MushafVerse,
+  script: QuranScript = 'uthmani',
+): { text: string; keys: string[] }[] {
+  const indopak = script === 'indopak';
   const entries = displayEntriesForLine(
     (verse.words ?? [])
       .filter((w) => w.char_type_name !== 'end')
       .map((w: MushafWord) => ({
-        text: w.text_uthmani ?? '',
+        text: indopak ? (w.text_indopak ?? w.text_uthmani ?? '') : (w.text_uthmani ?? ''),
+        keyText: w.text_uthmani ?? '',
         isEnd: false,
         verseKey: verse.verse_key,
       })),
     new Map(),
+    indopak ? cleanMushafIndopak : cleanMushafUthmani,
   );
   return entries.map((e) => ({ text: e.text, keys: e.keys }));
 }

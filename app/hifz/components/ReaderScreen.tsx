@@ -34,7 +34,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SURAH_FIRST_PAGE, MUSHAF_TOTAL_PAGES, surahsOnMushafPage } from '../mushaf';
+import {
+  surahFirstPageForEdition,
+  surahsOnMushafPageForEdition,
+} from '../lib/mushaf-surah-pages';
 import type { ReaderPageData } from '../lib/reader-page';
 import ReaderPage from './ReaderPage';
 import ChapterSheet from './ChapterSheet';
@@ -47,6 +50,7 @@ import {
   editionFromSettings,
   mushafEditionById,
   scriptForEdition,
+  totalPagesForEdition,
   type MushafEditionId,
 } from '../lib/mushaf-edition';
 import { getScriptPref, setScriptPref } from '../lib/script';
@@ -323,6 +327,31 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
    * Defaults equal the reader's behaviour before the picker existed
    * (Madani 1405, colours on), so nothing changes on first load. */
   const [edition, setEdition] = useState<MushafEditionId>('madani-1405');
+  /** Real page count of the selected edition's layout (604 Madani,
+   *  610 Indo-Pak) — every page bound in this file uses it. */
+  const totalPages = totalPagesForEdition(edition);
+
+  /* One reader page, in the given edition (default: the selected
+   *  one). Declared up here (not with the swipe code below) because
+   *  selectEdition calls it. The cache is per page number and is
+   *  dropped on an edition switch (see selectEdition), so a cached
+   *  entry always belongs to the current edition. */
+  const fetchPage = useCallback(
+    async (n: number, ed: MushafEditionId = edition): Promise<ReaderPageData> => {
+      /* The cache belongs to the current edition: a fetch for a
+       * DIFFERENT edition (the selectEdition pre-fetch) must never
+       * hit it — the entry for this page number is the old edition's
+       * page. */
+      const cached = ed === edition ? pagesRef.current[n] : undefined;
+      if (cached) return cached;
+      const res = await fetch(`/api/quran/reader-page/${n}?edition=${ed}`);
+      if (!res.ok) throw new Error(`reader page ${n}: ${res.status}`);
+      const d = (await res.json()) as ReaderPageData;
+      setPages((p) => ({ ...p, [n]: d }));
+      return d;
+    },
+    [edition],
+  );
   const [tajweedOn, setTajweedOn] = useState(true);
   /** Whether the coach saves session recordings on this device
    *  (Settings → Data Usage → "Save audio data"). The coach reads
@@ -365,7 +394,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     // (`page` is the anchor page — visiblePage is derived later in
     // this component, so the prime uses the anchor's surah.)
     try {
-      const surah = surahsOnMushafPage(page)[0];
+      const surah = surahsOnMushafPageForEdition(page, edition)[0];
       if (surah) {
         if (id === KHATTAB_TRANSLATION_ID) void fetch(`/api/quran/khattab/${surah}`);
         else void fetch(`${API}/verses/by_chapter/${surah}?fields=text_uthmani&translations=${id}&per_page=all`);
@@ -385,15 +414,45 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       /* storage unavailable — the choice applies this session */
     }
   }, []);
-  const selectEdition = useCallback((id: MushafEditionId) => {
-    setEdition(id);
-    try {
-      saveSettings({ ...loadSettings(), mushafEdition: id });
-      setScriptPref(scriptForEdition(id));
-    } catch {
-      /* storage unavailable — the choice applies this session */
-    }
-  }, []);
+  /* Mushaf Type picker: switching editions re-renders the reader in
+   *  the new print's own layout AND script — the page data is
+   *  per-edition, so the current page is fetched in the new edition
+   *  FIRST and the state only swaps once it lands (a failed fetch
+   *  keeps the old edition). The page number is kept (the Madani
+   *  editions differ by at most a page; Indo-Pak drifts by up to
+   *  six) and clamped to the new edition's total. The old edition's
+   *  cached pages and measured design widths are dropped with the
+   *  swap — they belong to a different layout. */
+  const selectEdition = useCallback(
+    (id: MushafEditionId) => {
+      if (id === edition) return;
+      const target = Math.min(page, totalPagesForEdition(id));
+      void fetchPage(target, id)
+        .then(() => {
+          setEdition(id);
+          if (target !== page) setPage(target);
+          setPages((p) => ({ [target]: p[target] }));
+          setDesignWidths({});
+          /* Text mode: restart the continuous list at the new
+           * edition's page — the range's other pages belong to the
+           * old edition and are no longer cached. */
+          if (layoutMode === 'text') {
+            setTextRange({ start: target, end: target });
+            setVisibleText(null);
+          }
+          try {
+            saveSettings({ ...loadSettings(), mushafEdition: id });
+            setScriptPref(scriptForEdition(id));
+          } catch {
+            /* storage unavailable — the choice applies this session */
+          }
+        })
+        .catch(() => {
+          /* new edition's page failed to load — stay on the old one */
+        });
+    },
+    [edition, page, fetchPage, layoutMode],
+  );
   const toggleTajweed = useCallback((v: boolean) => {
     setTajweedOn(v);
     try {
@@ -1690,20 +1749,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     return () => ro.disconnect();
   }, []);
 
-  const fetchPage = useCallback(async (n: number): Promise<ReaderPageData> => {
-    const cached = pagesRef.current[n];
-    if (cached) return cached;
-    const res = await fetch(`/api/quran/reader-page/${n}`);
-    if (!res.ok) throw new Error(`reader page ${n}: ${res.status}`);
-    const d = (await res.json()) as ReaderPageData;
-    setPages((p) => ({ ...p, [n]: d }));
-    return d;
-  }, []);
-
   // Pre-fetch the neighbouring pages so swipes are instant.
   useEffect(() => {
     for (const n of [page - 1, page + 1]) {
-      if (n >= 1 && n <= MUSHAF_TOTAL_PAGES && !pagesRef.current[n]) {
+      if (n >= 1 && n <= totalPages && !pagesRef.current[n]) {
         fetchPage(n).catch(() => {});
       }
     }
@@ -1767,7 +1816,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
 
   const jumpToPage = useCallback(
     (target: number) => {
-      if (target < 1 || target > MUSHAF_TOTAL_PAGES || target === page) return;
+      if (target < 1 || target > totalPages || target === page) return;
       if (busyRef.current) return;
       busyRef.current = true;
       fetchPage(target)
@@ -1805,7 +1854,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     // Pre-fetch the neighbouring pages so their track columns are
     // populated before the drag reveals them.
     for (const n of [page - 1, page + 1]) {
-      if (n >= 1 && n <= MUSHAF_TOTAL_PAGES && !pagesRef.current[n]) {
+      if (n >= 1 && n <= totalPages && !pagesRef.current[n]) {
         fetchPage(n).catch(() => {});
       }
     }
@@ -1848,7 +1897,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     // no previous page on page 1 when dragging left, no next page
     // on the last page when dragging right).
     let o = dx;
-    if ((page === 1 && dx < 0) || (page === MUSHAF_TOTAL_PAGES && dx > 0)) o = dx * 0.35;
+    if ((page === 1 && dx < 0) || (page === totalPages && dx > 0)) o = dx * 0.35;
     setOffset(o);
   };
   const onPointerUp = (e: React.PointerEvent) => {
@@ -1863,7 +1912,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       // right-to-left comes BACK to the previous one.
       const dir = dx > 0 ? 1 : -1;
       const target = page + dir;
-      if (target < 1 || target > MUSHAF_TOTAL_PAGES) {
+      if (target < 1 || target > totalPages) {
         snapBack();
         return;
       }
@@ -1941,7 +1990,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       if (textExtendingRef.current) return;
       const range = textRangeRef.current;
       if (!range) return;
-      if (target === range.end + 1 && target <= MUSHAF_TOTAL_PAGES) {
+      if (target === range.end + 1 && target <= totalPages) {
         textExtendingRef.current = true;
         textRangeRef.current = { start: range.start, end: target };
         setTextRange(textRangeRef.current);
@@ -2179,6 +2228,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
             onMistakeWordClick={openMistakeTooltip}
             translationId={translationId}
             onRosetteClick={(verseKey) => setTafsirSheet(verseKey)}
+            script={scriptForEdition(edition)}
           />
         )}
         <div className="mt-auto flex justify-end px-2 pt-1">
@@ -2298,6 +2348,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                 hideVerses={hideVerses}
                 revealed={revealed}
                 onReveal={reveal}
+                script={scriptForEdition(edition)}
               />
             </>
           ) : (
@@ -2582,6 +2633,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           setOpenModal(null);
           jumpToPage(p);
         }}
+        edition={edition}
       />
 
       {/* Welcome / gift overlay (Step 4): closing returns to the
@@ -2643,16 +2695,17 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       <ChapterSheet
         open={openModal === 'sheet'}
         onClose={() => setOpenModal(null)}
-        currentSurahId={surahsOnMushafPage(visiblePage)[0] ?? 1}
+        currentSurahId={surahsOnMushafPageForEdition(visiblePage, edition)[0] ?? 1}
         currentJuz={pillMeta.juz}
         onSelectSurah={(id) => {
           setOpenModal(null);
-          jumpToPage(SURAH_FIRST_PAGE[id] ?? 1);
+          jumpToPage(surahFirstPageForEdition(edition)[id] ?? 1);
         }}
         onSelectPage={(p) => {
           setOpenModal(null);
           jumpToPage(p);
         }}
+        edition={edition}
       />
 
       {/* The Mushaf Layout bottom sheet (Phase 1) and the standalone
