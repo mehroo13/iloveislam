@@ -1500,6 +1500,12 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const onPointerDown = (e: React.PointerEvent) => {
     if (layoutMode === 'text') return;
     if (busyRef.current) return;
+    // A mouse drag over the page selects text (brand-yellow
+    // ::selection) and the track keeps its DOM nodes alive across
+    // the turn, so the selection survives the page commit and sits
+    // on the new page's header. Clear any stale selection here;
+    // select-none on <main> stops new ones forming.
+    window.getSelection()?.removeAllRanges();
     // Pre-fetch the neighbouring pages so their track columns are
     // populated before the drag reveals them.
     for (const n of [page - 1, page + 1]) {
@@ -1943,7 +1949,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       {/* Mushaf page (swipe area) */}
       <main
         ref={containerRef}
-        className="relative min-h-0 flex-1 overflow-y-auto [touch-action:pan-y]"
+        className="relative min-h-0 flex-1 select-none overflow-y-auto [touch-action:pan-y]"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
