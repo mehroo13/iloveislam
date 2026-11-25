@@ -1170,7 +1170,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       const res = await fetch(
         `/api/quran/verses/by_page/${visiblePage}?words=true&word_fields=text_uthmani,text_indopak,line_number,page_number,position,char_type_name&fields=text_uthmani&audio=7`,
       );
-      if (!res.ok) throw new Error(`by_page ${page}: ${res.status}`);
+      if (!res.ok) throw new Error(`by_page ${visiblePage}: ${res.status}`);
       const d = (await res.json()) as {
         verses?: { verse_key: string; audio?: { url?: string; segments?: AudioSegment[] } }[];
       };
