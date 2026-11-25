@@ -172,7 +172,7 @@ const FEATURES: { name: string; desc: string }[] = [
   { name: 'Memorization Progress', desc: 'per-surah progress, completion, and badges from your own practice.' },
   { name: 'Global Leaderboard', desc: 'opt in from Settings → Privacy to appear on the board.' },
   { name: 'Groups & Challenges', desc: 'create or join a group and compete with family and friends.' },
-  { name: 'Mushaf, Text & Translation', desc: 'Book, Quran Text and Translation layouts, with themes and offline use.' },
+  { name: 'Mushaf, Text & Translation', desc: 'Quran Text, Book and Translation layouts, with themes and offline use.' },
 ];
 
 /* ---------------------------------------------------------------- */

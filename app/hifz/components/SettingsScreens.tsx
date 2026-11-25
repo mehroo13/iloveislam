@@ -1344,8 +1344,8 @@ export function MushafLayoutScreen({
     sub: string;
     icon: () => React.ReactNode;
   }[] = [
-    { id: 'book', title: 'Book', sub: editionLabel, icon: IconBookFilled },
     { id: 'text', title: 'Quran Text', sub: 'Resizable Quran Text', icon: IconDocLines },
+    { id: 'book', title: 'Book', sub: editionLabel, icon: IconBookFilled },
     {
       id: 'translation',
       title: 'Translation / Transliteration',
@@ -1361,7 +1361,7 @@ export function MushafLayoutScreen({
           Switch Reading Layout
         </p>
         <p className="mt-1 text-[13px] leading-snug" style={{ color: MUTED }}>
-          Read the Quran as a printed mushaf page, as flowing text you can resize, or with the
+          Read the Quran as flowing text you can resize, as a printed mushaf page, or with the
           translation under each verse. The choice applies to the reader at once.
         </p>
       </div>
