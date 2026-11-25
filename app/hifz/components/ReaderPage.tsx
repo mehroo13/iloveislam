@@ -375,7 +375,7 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
 
   return (
     <div className="w-full">
-      <div ref={frameRef} style={{ width: designWidth }} className="mx-auto px-6">
+      <div ref={frameRef} style={{ width: designWidth }} className="mx-auto px-2">
         {blocks}
       </div>
       {/* Hidden measurer: same font as a line, sized to content. */}

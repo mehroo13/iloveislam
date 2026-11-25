@@ -182,14 +182,20 @@ export const TEXT_SIZE_STEP = 0.2;
  *  (on its first appearance). A subtle centred page number marks
  *  each page boundary, as in the reader's whole-page reference.
  *
- *  Each ayah carries data-text-ayah / data-surah / data-page /
- *  data-juz / data-hizb so the parent can track which surah and
- *  page the user is actually looking at (the top pill, the header
- *  row, the bookmark and the mic/playback scope all follow it).
- *  The ayah rendering matches the old paginated text view —
- *  same word spans (so the Phase 3/5 green/red highlighting, the
- *  mic, the peek and the Play button all keep working here), same
- *  blur + tap-to-peek, same rosette. */
+ *  FLOWING TEXT (2026-11-25 second refinement): the ayahs of one
+ *  surah render as ONE flowing paragraph — words run together and
+ *  wrap naturally, several ayahs on the same visual line, the
+ *  rosette inline at the end of each ayah — exactly like the surah
+ *  text in the reference screenshot. NO per-ayah rows, NO gaps
+ *  between ayahs. Each ayah is an inline span (data-text-ayah /
+ *  data-surah / data-page / data-juz / data-hizb / data-verse-key)
+ *  so the parent can still track which surah and page the user is
+ *  looking at (the top pill, the header row, the bookmark and the
+ *  mic/playback scope all follow it), and so Hide Verses can blur
+ *  one ayah at a time (tap-to-peek). The ayah rendering matches
+ *  the old paginated text view — same word spans (so the Phase 3/5
+ *  green/red highlighting, the mic, the peek and the Play button
+ *  all keep working here), same blur + tap-to-peek, same rosette. */
 export function ReaderContinuousText({
   pages,
   textSize,
@@ -254,40 +260,45 @@ export function ReaderContinuousText({
               return (
                 <div key={`${page}-${g.sid}`}>
                   {first && <SurahIntro sid={g.sid} arabicSize={textSize} />}
-                  {g.verses.map((v) => {
-                    const key = `V${v.verse_key}`;
-                    const hidden = hideVerses && !revealed.has(key);
-                    const ayahNum = Number(v.verse_key.split(':')[1]);
-                    return (
-                      <div
-                        key={v.verse_key}
-                        data-text-ayah
-                        data-surah={g.sid}
-                        data-page={page}
-                        data-juz={v.juz_number}
-                        data-hizb={v.hizb_number ?? meta.hizb}
-                        data-verse-key={v.verse_key}
-                        onPointerDown={hidden ? guard.down : undefined}
-                        onClick={
-                          hidden
-                            ? (e) => {
-                                if (guard.ok(e)) onReveal(key, versePeekInfo(v));
-                              }
-                            : undefined
-                        }
-                        className="mb-4"
-                        style={
-                          hidden
-                            ? { filter: 'blur(7px)', cursor: 'pointer', userSelect: 'none' }
-                            : undefined
-                        }
-                      >
-                        <p
-                          dir="rtl"
-                          lang="ar"
-                          translate="no"
-                          className="font-quran-madani text-justify leading-[2.1]"
-                          style={{ fontSize: `${textSize}rem`, color: INK }}
+                  {/* One flowing paragraph per surah: the ayahs run
+                      together and wrap naturally — several ayahs on
+                      the same visual line, rosette inline at each
+                      ayah's end. Each ayah is an inline span so the
+                      parent can track it and Hide Verses can blur
+                      (tap-to-peek) one ayah at a time. */}
+                  <p
+                    dir="rtl"
+                    lang="ar"
+                    translate="no"
+                    className="font-quran-madani text-justify leading-[2.1]"
+                    style={{ fontSize: `${textSize}rem`, color: INK }}
+                  >
+                    {g.verses.map((v) => {
+                      const key = `V${v.verse_key}`;
+                      const hidden = hideVerses && !revealed.has(key);
+                      const ayahNum = Number(v.verse_key.split(':')[1]);
+                      return (
+                        <span
+                          key={v.verse_key}
+                          data-text-ayah
+                          data-surah={g.sid}
+                          data-page={page}
+                          data-juz={v.juz_number}
+                          data-hizb={v.hizb_number ?? meta.hizb}
+                          data-verse-key={v.verse_key}
+                          onPointerDown={hidden ? guard.down : undefined}
+                          onClick={
+                            hidden
+                              ? (e) => {
+                                  if (guard.ok(e)) onReveal(key, versePeekInfo(v));
+                                }
+                              : undefined
+                          }
+                          style={
+                            hidden
+                              ? { filter: 'blur(7px)', cursor: 'pointer', userSelect: 'none' }
+                              : undefined
+                          }
                         >
                           <AyahWords
                             verse={v}
@@ -297,18 +308,19 @@ export function ReaderContinuousText({
                             clickable={!hidden}
                           />{' '}
                           <ReaderRosette ayah={ayahNum} />
-                        </p>
-                      </div>
-                    );
-                  })}
+                        </span>
+                      );
+                    })}
+                  </p>
                 </div>
               );
             })}
             {/* Page boundary marker (not after the last loaded page):
                 the number of the page that just ended, centred
-                between hairlines. */}
+                between hairlines. Compact — the flow must not stall
+                on vertical whitespace between pages. */}
             {pageIdx < pages.length - 1 && (
-              <div aria-hidden="true" className="flex items-center gap-3 py-6">
+              <div aria-hidden="true" className="flex items-center gap-3 py-3">
                 <div className="h-px flex-1" style={{ backgroundColor: '#E5E7EB' }} />
                 <span className="text-[12px] font-semibold" style={{ color: MUTED }}>
                   {page}

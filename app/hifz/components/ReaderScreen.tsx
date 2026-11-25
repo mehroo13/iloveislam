@@ -165,9 +165,6 @@ const MUTED = 'var(--reader-muted)';
 function wait(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
-function raf(): Promise<void> {
-  return new Promise((r) => requestAnimationFrame(() => r()));
-}
 
 /* ---------------------------------------------------------------- */
 /*  Icons (inline SVG, our own).                                     */
@@ -289,6 +286,18 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
   const [designWidths, setDesignWidths] = useState<Record<number, number>>({});
+  /* Page-turn track (2026-11-25 second refinement): Book and
+   * Translation modes render THREE page columns in a horizontal
+   * track — left→right [page+1, page, page-1] — inside a
+   * content-width window. `offset` is the track's displacement
+   * from its settled position (0 = the current page centred); the
+   * transform is translateX(-contentWidth + offset). During a drag
+   * the track follows the finger 1:1, so the next page is already
+   * sliding into view under the touch; on release it settles the
+   * short way to the nearest snap point and the page commits.
+   * Direction (Mehran): left-to-right swipe goes to the NEXT page,
+   * right-to-left comes BACK — the next page sits to the left, so
+   * dragging rightward turns forward. */
   const [offset, setOffset] = useState(0);
   const [animating, setAnimating] = useState(false);
   /* One modal open at a time (Phase 1): opening any modal closes
@@ -428,7 +437,11 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const designWidth = designWidths[page] ?? 970;
   // Scale the design-width frame to the (phone-width) content area.
   // Capped at 1 so a short page never blows up on a wide screen.
-  const scale = Math.max(0.3, Math.min(1, (contentWidth - 32) / designWidth));
+  // Only 12px of the content width is held back (6px each side):
+  // the text must occupy the full available space (2026-11-25
+  // second refinement — the old 32px left a wide empty margin
+  // around every page).
+  const scale = Math.max(0.3, Math.min(1, (contentWidth - 12) / designWidth));
 
   /* Phase 1 helpers. */
   const selectLayoutMode = useCallback((m: ReaderLayoutMode) => {
@@ -492,17 +505,23 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       console.log('[reader-mic] peek:', peekKey, info.display);
     }
   }, []);
-  const revealedLines = useMemo(() => {
-    const out = new Set<number>();
-    const prefix = `L${page}:`;
-    for (const k of revealed) {
-      if (k.startsWith(prefix)) {
-        const n = Number(k.slice(prefix.length));
-        if (Number.isFinite(n)) out.add(n);
+  /* Which line indices of page n are currently revealed (peeks).
+   * The track renders three page columns, each with its own
+   * `L{n}:` prefix, so the revealed set is computed per page. */
+  const revealedLinesFor = useCallback(
+    (n: number) => {
+      const out = new Set<number>();
+      const prefix = `L${n}:`;
+      for (const k of revealed) {
+        if (k.startsWith(prefix)) {
+          const v = Number(k.slice(prefix.length));
+          if (Number.isFinite(v)) out.add(v);
+        }
       }
-    }
-    return out;
-  }, [revealed, page]);
+      return out;
+    },
+    [revealed],
+  );
 
   /** A red word was tapped: open its tooltip next to the word.
    *  Above the word when there is room, else below it; clamped
@@ -1399,7 +1418,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       // Snap to 4px: the measurer's sub-pixel readings otherwise
       // wobble dw by ±1px, scale/zoom follow, the measure effect
       // re-runs on the zoom change, and React hits max update depth.
-      const dw = Math.max(480, Math.min(970, Math.round((maxNatural * 1.04 + 48) / 4) * 4));
+      // The +16 is the frame's side padding (px-2, 8px each side):
+      // it must match ReaderPage's frame padding, or the frame is
+      // sized wider than its text and the filler over-stretches.
+      const dw = Math.max(480, Math.min(970, Math.round((maxNatural * 1.04 + 16) / 4) * 4));
       setDesignWidths((d) => (d[p] === dw ? d : { ...d, [p]: dw }));
     };
   }, []);
@@ -1407,7 +1429,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const snapBack = useCallback(() => {
     setAnimating(true);
     setOffset(0);
-    window.setTimeout(() => setAnimating(false), 300);
+    window.setTimeout(() => setAnimating(false), 200);
   }, []);
 
   const goToPage = useCallback(
@@ -1415,27 +1437,33 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       if (busyRef.current) return;
       busyRef.current = true;
       const w = contentWidth;
-      try {
-        await fetchPage(target);
-      } catch {
-        busyRef.current = false;
-        snapBack();
-        return;
+      // The target column is pre-rendered (pre-fetch on page change
+      // + on pointerdown), so its data is normally cached and this
+      // resolves at once — the settle never waits on the network.
+      // Only an uncached page waits for its fetch, and a failed
+      // fetch snaps back instead of turning.
+      if (!pagesRef.current[target]) {
+        try {
+          await fetchPage(target);
+        } catch {
+          busyRef.current = false;
+          snapBack();
+          return;
+        }
       }
-      // Single-phase slide-in (2026-11-25 refinement pass): swap to
-      // the new page off-screen (no transition), let it commit +
-      // measure, then slide it in. The old two-phase turn slid the
-      // current page out (280 ms) and then the new one in (280 ms) —
-      // a double flash that read as sluggish and broken.
+      // Settle (2026-11-25 second refinement): the track is already
+      // at the finger's release point (offset = dx). Animate it the
+      // short way to the snap point — next page = +w, previous = -w
+      // — with a short ease-out, then commit the page and re-centre
+      // the track in the same tick (no transition), so the reset is
+      // invisible: the newly centred column is the page just
+      // revealed. No teleport, no re-render wait, no double flash.
+      setAnimating(true);
+      setOffset(dir > 0 ? w : -w);
+      await wait(200);
       setAnimating(false);
       setPage(target);
-      setOffset(dir > 0 ? w : -w);
-      await raf();
-      await raf();
-      setAnimating(true);
       setOffset(0);
-      await wait(300);
-      setAnimating(false);
       busyRef.current = false;
     },
     [fetchPage, snapBack, contentWidth],
@@ -1462,10 +1490,23 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
 
   /* Swipe: pointer events (touch + mouse). Vertical gestures are
    * left to native scrolling (touch-action: pan-y). In continuous
-   * text mode there is no page turn — the content scrolls. */
+   * text mode there is no page turn — the content scrolls.
+   * Direction (Mehran, 2026-11-25): a left-to-right swipe turns
+   * FORWARD (page 2, 3, …) and right-to-left comes BACK. The next
+   * page sits to the left in this RTL book, so dragging rightward
+   * turns forward. During the drag the track follows the finger
+   * 1:1 (see onPointerMove) — the next page is already sliding
+   * into view under the touch. */
   const onPointerDown = (e: React.PointerEvent) => {
     if (layoutMode === 'text') return;
     if (busyRef.current) return;
+    // Pre-fetch the neighbouring pages so their track columns are
+    // populated before the drag reveals them.
+    for (const n of [page - 1, page + 1]) {
+      if (n >= 1 && n <= MUSHAF_TOTAL_PAGES && !pagesRef.current[n]) {
+        fetchPage(n).catch(() => {});
+      }
+    }
     dragRef.current = { startX: e.clientX, startY: e.clientY, active: true, pointerId: e.pointerId, captured: false };
     // NOTE: no setPointerCapture here. Capturing on pointerdown
     // retargets the click to <main>, so buttons and tap-to-peek inside
@@ -1501,9 +1542,11 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         /* already released */
       }
     }
-    // Resistance at the ends of the book.
+    // Resistance at the ends of the book (rightward = forward now:
+    // no previous page on page 1 when dragging left, no next page
+    // on the last page when dragging right).
     let o = dx;
-    if ((page === 1 && dx > 0) || (page === MUSHAF_TOTAL_PAGES && dx < 0)) o = dx * 0.35;
+    if ((page === 1 && dx < 0) || (page === MUSHAF_TOTAL_PAGES && dx > 0)) o = dx * 0.35;
     setOffset(o);
   };
   const onPointerUp = (e: React.PointerEvent) => {
@@ -1514,7 +1557,9 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     const w = contentWidth;
     const threshold = Math.max(70, w * 0.22);
     if (Math.abs(dx) > threshold) {
-      const dir = dx < 0 ? 1 : -1;
+      // Mehran (2026-11-25): left-to-right goes to the NEXT page,
+      // right-to-left comes BACK to the previous one.
+      const dir = dx > 0 ? 1 : -1;
       const target = page + dir;
       if (target < 1 || target > MUSHAF_TOTAL_PAGES) {
         snapBack();
@@ -1702,6 +1747,131 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     }
   }, [playingWordKey, highlightedWords, layoutMode]);
 
+  /* Page header row (whole-page reference): surah name left, Play +
+   * Juz / Hizb right. Shared by the track columns (each column shows
+   * its own page's meta) and by continuous text mode (pillMeta).
+   * Only the current column carries the fit-check ref and the Play
+   * button's testid — the side columns are inert. */
+  const renderHeaderRow = (
+    hm: { surahName: string; juz: number; hizb: number },
+    isCurrent: boolean,
+  ) => (
+    <div ref={isCurrent ? pageHeadRef : undefined} className="flex items-center justify-between px-2 pb-2">
+      <span className="text-[15px] font-medium" style={{ color: INK }}>
+        {hm.surahName}
+      </span>
+      <span className="flex items-center gap-2">
+        {/* Phase 7 — Listen: play this surah's recitation (Mishary
+            Alafasy); the words light up green as they sound. Tap
+            again to pause, tap once more to resume; a page turn
+            stops it. */}
+        <button
+          type="button"
+          aria-label={
+            playState === 'playing'
+              ? 'Pause recitation'
+              : playState === 'paused'
+                ? 'Resume recitation'
+                : playState === 'loading'
+                  ? 'Loading recitation audio'
+                  : `Play ${hm.surahName} recitation`
+          }
+          aria-pressed={playState === 'playing'}
+          data-testid={isCurrent ? 'reader-play-button' : undefined}
+          data-play-state={isCurrent ? playState : undefined}
+          onClick={togglePlayback}
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D1D5DB] bg-white shadow-sm"
+          style={
+            playState === 'playing'
+              ? { backgroundColor: '#16A34A', borderColor: '#16A34A' }
+              : undefined
+          }
+        >
+          {playState === 'playing' ? (
+            <IconPauseSmall />
+          ) : playState === 'loading' ? (
+            <IconPlaySpinner />
+          ) : (
+            <IconPlaySmall />
+          )}
+        </button>
+        <span className="flex items-center gap-2 text-[15px]" style={{ color: INK }}>
+          <span>Juz {hm.juz}</span>
+          <svg viewBox="0 0 12 12" className="h-3 w-3" aria-hidden="true">
+            <circle cx="6" cy="6" r="4.5" fill="none" style={{ stroke: INK }} strokeWidth="1.2" />
+            <circle cx="6" cy="6" r="1.4" style={{ fill: INK }} />
+          </svg>
+          <span>Hizb {hm.hizb}</span>
+        </span>
+      </span>
+    </div>
+  );
+
+  /* One column of the page-turn track (2026-11-25 second
+   * refinement): the header row for that page's meta, the page
+   * content (Book or Translation), and the page number pinned to
+   * the bottom-right by mt-auto. The column's own design width and
+   * scale are computed per page, so an adjacent page is already
+   * laid out at full size before the drag reveals it. Off-screen
+   * columns are inert (their buttons are not focusable or
+   * clickable) and carry data-track-page so a deploy can be proven
+   * live by the attribute's presence. The fit-check refs attach
+   * only to the current column. */
+  const renderPageColumn = (n: number, isCurrent: boolean) => {
+    const pd = pages[n];
+    const colMeta = pd?.meta ?? data.meta;
+    const dw = designWidths[n] ?? 970;
+    const colScale = Math.max(0.3, Math.min(1, (contentWidth - 12) / dw));
+    const zoom = colScale * shrink;
+    const verses = pd?.verses ?? [];
+    const tajweed = pd?.tajweed ?? {};
+    return (
+      <div
+        data-track-page={n}
+        inert={!isCurrent}
+        className="flex min-h-full shrink-0 flex-col"
+        style={{ width: contentWidth }}
+      >
+        {renderHeaderRow(colMeta, isCurrent)}
+        {layoutMode === 'book' ? (
+          <div ref={isCurrent ? frameWrapRef : undefined} className="w-full" style={{ zoom }}>
+            <ReaderPage
+              key={n}
+              page={n}
+              verses={verses}
+              tajweed={tajweed}
+              designWidth={dw}
+              onMeasure={handleMeasure(n)}
+              zoom={zoom}
+              hideVerses={hideVerses}
+              revealedLines={revealedLinesFor(n)}
+              onRevealLine={(ln, info) => reveal(`L${n}:${ln}`, info)}
+              highlightedWords={displayHighlightedWords}
+              mistakes={mistakeMap}
+              onMistakeWordClick={openMistakeTooltip}
+            />
+          </div>
+        ) : (
+          <ReaderTranslationMode
+            key={n}
+            verses={verses}
+            hideVerses={hideVerses}
+            revealed={revealed}
+            onReveal={reveal}
+            highlightedWords={displayHighlightedWords}
+            mistakes={mistakeMap}
+            onMistakeWordClick={openMistakeTooltip}
+          />
+        )}
+        <div ref={isCurrent ? pageFootRef : undefined} className="mt-auto flex justify-end px-2 pt-2">
+          <span className="text-[15px]" style={{ color: INK }}>
+            {n}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden" style={{ backgroundColor: PAGE_BG }}>
       {/* Top navigation bar — raised above the chapter-sheet overlay
@@ -1779,95 +1949,23 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
       >
-        <div className="mx-auto flex min-h-full w-full max-w-[520px] flex-col justify-start pb-4 pt-3">
-          {/* The slide wrapper is a full-height flex column so the
-              page number (mt-auto below) sits at the bottom-right of
-              the reading area — the screen's bottom-right corner —
-              instead of right after the text block (2026-11-25 final
-              pass). When the page overflows, the wrapper grows with
-              the content and the number follows the text. */}
-          <div
-            className="flex min-h-full w-full flex-1 flex-col"
-            style={{
-              transform: `translateX(${offset}px)`,
-              transition: animating ? 'transform 300ms ease' : 'none',
-            }}
-          >
-            {/* Page header row (whole-page reference): surah name
-                left, Play + Juz / Hizb right. */}
-            <div ref={pageHeadRef} className="flex items-center justify-between px-2 pb-2">
-              <span className="text-[15px] font-medium" style={{ color: INK }}>
-                {pillMeta.surahName}
-              </span>
-              <span className="flex items-center gap-2">
-                {/* Phase 7 — Listen: play this surah's recitation
-                    (Mishary Alafasy); the words light up green as
-                    they sound. Tap again to pause, tap once more to
-                    resume; a page turn stops it. */}
-                <button
-                  type="button"
-                  aria-label={
-                    playState === 'playing'
-                      ? 'Pause recitation'
-                      : playState === 'paused'
-                        ? 'Resume recitation'
-                        : playState === 'loading'
-                          ? 'Loading recitation audio'
-                          : `Play ${pillMeta.surahName} recitation`
-                  }
-                  aria-pressed={playState === 'playing'}
-                  data-testid="reader-play-button"
-                  data-play-state={playState}
-                  onClick={togglePlayback}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D1D5DB] bg-white shadow-sm"
-                  style={
-                    playState === 'playing'
-                      ? { backgroundColor: '#16A34A', borderColor: '#16A34A' }
-                      : undefined
-                  }
-                >
-                  {playState === 'playing' ? (
-                    <IconPauseSmall />
-                  ) : playState === 'loading' ? (
-                    <IconPlaySpinner />
-                  ) : (
-                    <IconPlaySmall />
-                  )}
-                </button>
-                <span className="flex items-center gap-2 text-[15px]" style={{ color: INK }}>
-                  <span>Juz {pillMeta.juz}</span>
-                  <svg viewBox="0 0 12 12" className="h-3 w-3" aria-hidden="true">
-                    <circle cx="6" cy="6" r="4.5" fill="none" style={{ stroke: INK }} strokeWidth="1.2" />
-                    <circle cx="6" cy="6" r="1.4" style={{ fill: INK }} />
-                  </svg>
-                  <span>Hizb {pillMeta.hizb}</span>
-                </span>
-              </span>
-            </div>
-            {playError && (
-              <p role="alert" data-testid="play-error" className="px-2 pb-1 text-center text-[13px] leading-snug" style={{ color: '#DC2626' }}>
-                {playError}
-              </p>
-            )}
-            {layoutMode === 'book' ? (
-              <div ref={frameWrapRef} className="w-full" style={{ zoom: scale * shrink }}>
-                <ReaderPage
-                  key={page}
-                  page={page}
-                  verses={data.verses}
-                  tajweed={data.tajweed}
-                  designWidth={designWidth}
-                  onMeasure={handleMeasure(page)}
-                  zoom={scale * shrink}
-                  hideVerses={hideVerses}
-                  revealedLines={revealedLines}
-                  onRevealLine={(ln, info) => reveal(`L${page}:${ln}`, info)}
-                  highlightedWords={displayHighlightedWords}
-                  mistakes={mistakeMap}
-                  onMistakeWordClick={openMistakeTooltip}
-                />
-              </div>
-            ) : layoutMode === 'text' ? (
+        <div className="mx-auto flex min-h-full w-full max-w-[520px] flex-col justify-start overflow-x-clip pb-4 pt-3">
+          {/* Book / Translation: a three-column track [page+1, page,
+              page-1] in a content-width window. The track is
+              translated by -contentWidth + offset, so the current
+              page is centred at rest; during a drag it follows the
+              finger 1:1, and on release it settles the short way to
+              the snap point (see goToPage). The wrapper clips the
+              off-screen columns (overflow-x-clip above). Continuous
+              text mode has no track — it scrolls natively. */}
+          {layoutMode === 'text' ? (
+            <>
+              {renderHeaderRow(pillMeta, true)}
+              {playError && (
+                <p role="alert" data-testid="play-error" className="px-2 pb-1 text-center text-[13px] leading-snug" style={{ color: '#DC2626' }}>
+                  {playError}
+                </p>
+              )}
               <ReaderContinuousText
                 pages={textPages}
                 textSize={textSize}
@@ -1879,31 +1977,28 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                 revealed={revealed}
                 onReveal={reveal}
               />
-            ) : (
-              <ReaderTranslationMode
-                key={page}
-                verses={data.verses}
-                hideVerses={hideVerses}
-                revealed={revealed}
-                onReveal={reveal}
-                highlightedWords={displayHighlightedWords}
-                mistakes={mistakeMap}
-                onMistakeWordClick={openMistakeTooltip}
-              />
-            )}
-            {/* Page number, bottom-right (whole-page reference):
-                mt-auto pins it to the bottom of the reading area
-                when the page fits, instead of right after the text.
-                Continuous text mode has no single page — its page
-                numbers are the boundary markers inside the flow. */}
-            {layoutMode !== 'text' && (
-              <div ref={pageFootRef} className="mt-auto flex justify-end px-2 pt-2">
-                <span className="text-[15px]" style={{ color: INK }}>
-                  {page}
-                </span>
+            </>
+          ) : (
+            <>
+              {playError && (
+                <p role="alert" data-testid="play-error" className="px-2 pb-1 text-center text-[13px] leading-snug" style={{ color: '#DC2626' }}>
+                  {playError}
+                </p>
+              )}
+              <div
+                className="flex min-h-full flex-1"
+                style={{
+                  width: `${3 * contentWidth}px`,
+                  transform: `translateX(${-contentWidth + offset}px)`,
+                  transition: animating ? 'transform 200ms ease-out' : 'none',
+                }}
+              >
+                {renderPageColumn(page + 1, false)}
+                {renderPageColumn(page, true)}
+                {renderPageColumn(page - 1, false)}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       </main>
 
