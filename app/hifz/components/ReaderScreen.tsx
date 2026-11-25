@@ -418,13 +418,24 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   }, [visiblePage]);
   const [contentWidth, setContentWidth] = useState(390);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const frameWrapRef = useRef<HTMLDivElement | null>(null);
-  const pageHeadRef = useRef<HTMLDivElement | null>(null);
-  const pageFootRef = useRef<HTMLDivElement | null>(null);
-  /* Fit-to-height shrink for the Madani page (whole-page reference):
-   * 1 normally; reduced only when the full page would overflow. */
-  const [shrink, setShrink] = useState(1);
-  const shrinkRef = useRef(1);
+  /* Fit-to-height shrink, PER PAGE (2026-11-25 third refinement):
+   * 1 normally; reduced only when that page would overflow the
+   * viewport. The old single shared shrink was fitted only to the
+   * current page and applied after the commit — so an incoming page
+   * rendered at the outgoing page's shrink during the drag (full
+   * width) and then suddenly narrowed when its own shrink landed:
+   * the "drop" Mehran saw, and the swipe felt un-smooth. Each
+   * column now carries its own shrink, computed from its own frame
+   * before any drag, so the zoom a page has mid-drag is exactly
+   * the zoom it keeps after the commit. */
+  const [shrinks, setShrinks] = useState<Record<number, number>>({});
+  const shrinksRef = useRef<Record<number, number>>({});
+  const designWidthsRef = useRef(designWidths);
+  designWidthsRef.current = designWidths;
+  const contentWidthRef = useRef(contentWidth);
+  contentWidthRef.current = contentWidth;
+  const layoutModeRef = useRef(layoutMode);
+  layoutModeRef.current = layoutMode;
   const busyRef = useRef(false);
   const dragRef = useRef<{ startX: number; startY: number; active: boolean; pointerId: number | null; captured: boolean }>({
     startX: 0,
@@ -433,15 +444,6 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     pointerId: null,
     captured: false,
   });
-
-  const designWidth = designWidths[page] ?? 970;
-  // Scale the design-width frame to the (phone-width) content area.
-  // Capped at 1 so a short page never blows up on a wide screen.
-  // Only 12px of the content width is held back (6px each side):
-  // the text must occupy the full available space (2026-11-25
-  // second refinement — the old 32px left a wide empty margin
-  // around every page).
-  const scale = Math.max(0.3, Math.min(1, (contentWidth - 12) / designWidth));
 
   /* Phase 1 helpers. */
   const selectLayoutMode = useCallback((m: ReaderLayoutMode) => {
@@ -1337,50 +1339,73 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, stopPlayback]);
 
-  /* A new page (or layout) starts unshrunk; the fit check below
-   * shrinks only when the whole page would overflow the viewport. */
-  useEffect(() => {
-    shrinkRef.current = 1;
-    setShrink(1);
-  }, [page, layoutMode]);
+  /* Per-column fit check (2026-11-25 third refinement): every track
+   * column's zoom wrapper carries data-frame-page; one
+   * ResizeObserver watches them (and the container, for resizes /
+   * rotations) and fits EACH page's shrink from its own frame. The
+   * shrink is derived from the frame's scrollHeight — the UNZOOMED
+   * layout height (scrollHeight ignores the CSS zoom) — times that
+   * page's own colScale, so the value never depends on the shrink
+   * currently applied: no division by a transient shrink, no
+   * oscillation, and a page's shrink is already final while it is
+   * still an off-screen column, before any drag. A column is
+   * skipped until its design width is measured (designWidths[n]
+   * set): an unmeasured column would fit from the 970 default and
+   * lock in a wrong shrink. Verified live 2026-11-25: scrollHeight
+   * is stable at 1184 for page 3 across shrink changes, and the
+   * formula gives the settled 0.854 — while the old check landed
+   * 0.729 right after the commit and drifted to 0.854 seconds
+   * later (the drop Mehran saw). */
+  const runShrinkCheck = useCallback((n: number) => {
+    if (layoutModeRef.current !== 'book') return;
+    const main = containerRef.current;
+    if (!main) return;
+    const el = main.querySelector<HTMLElement>(`[data-frame-page="${n}"]`);
+    if (!el) return;
+    const dw = designWidthsRef.current[n];
+    if (dw === undefined) return;
+    const layoutH = el.scrollHeight;
+    if (layoutH <= 0) return;
+    const colScale = Math.max(0.3, Math.min(1, (contentWidthRef.current - 12) / dw));
+    const col = el.closest('[data-track-page]');
+    const headH = col && col.children.length > 0 ? (col.children[0] as HTMLElement).offsetHeight : 0;
+    const footEl = col && col.children.length > 0 ? (col.children[col.children.length - 1] as HTMLElement) : null;
+    const footH = footEl ? footEl.offsetHeight : 0;
+    const chrome = headH + footH + 16; // pt-2 + pb-2 on the track wrapper
+    const avail = main.clientHeight - chrome;
+    if (avail <= 0) return;
+    const next = Math.max(0.3, Math.min(1, avail / (layoutH * colScale)));
+    const cur = shrinksRef.current[n] ?? 1;
+    if (Math.abs(next - cur) > 0.005) {
+      shrinksRef.current = { ...shrinksRef.current, [n]: next };
+      setShrinks(shrinksRef.current);
+    }
+  }, []);
 
-  /* Fit the whole Madani page in the viewport (whole-page reference:
-   * 15 lines + header row + page number, no vertical scroll). Runs
-   * whenever the frame resizes (fonts loading included). The zoom
-   * scales the frame linearly, so one or two passes converge. */
   useEffect(() => {
     if (layoutMode !== 'book') return;
     const main = containerRef.current;
-    const frame = frameWrapRef.current;
-    if (!main || !frame) return;
-    const check = () => {
-      const chrome =
-        (pageHeadRef.current?.offsetHeight ?? 0) +
-        (pageFootRef.current?.offsetHeight ?? 0) +
-        28; // pt-3 + pb-4 + gaps
-      const avail = main.clientHeight - chrome;
-      // getBoundingClientRect (not scrollHeight): scrollHeight ignores
-      // the CSS zoom on the frame and reports the unzoomed height,
-      // which over-shrinks dense pages to a narrow column.
-      const h = frame.getBoundingClientRect().height;
-      if (h <= 0 || avail <= 0) return;
-      // Derive the shrink from the unshrunk height instead of
-      // multiplying down: the old multiply-only version never grew
-      // back, so a shrink taken while the fallback font was still
-      // loaded (narrow measure, wide frame) stuck forever.
-      const unshrunk = h / shrinkRef.current;
-      const next = Math.max(0.3, Math.min(1, avail / unshrunk));
-      if (Math.abs(next - shrinkRef.current) > 0.005) {
-        shrinkRef.current = next;
-        setShrink(next);
+    if (!main) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const t = entry.target as HTMLElement;
+        const n = Number(t.dataset.framePage);
+        if (n) runShrinkCheck(n);
+        else {
+          // The container itself resized (rotation): re-fit all.
+          main.querySelectorAll<HTMLElement>('[data-frame-page]').forEach((el) => {
+            runShrinkCheck(Number(el.dataset.framePage));
+          });
+        }
       }
-    };
-    check();
-    const ro = new ResizeObserver(check);
-    ro.observe(frame);
+    });
+    main.querySelectorAll<HTMLElement>('[data-frame-page]').forEach((el) => {
+      ro.observe(el);
+      runShrinkCheck(Number(el.dataset.framePage));
+    });
     ro.observe(main);
     return () => ro.disconnect();
-  }, [page, layoutMode, designWidth, scale]);
+  }, [page, layoutMode, pages, runShrinkCheck]);
 
   // Track the content width (viewport, capped at phone width) so the
   // scale and the slide distance follow resizes / rotations.
@@ -1762,7 +1787,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     hm: { surahName: string; juz: number; hizb: number },
     isCurrent: boolean,
   ) => (
-    <div ref={isCurrent ? pageHeadRef : undefined} className="flex items-center justify-between px-2 pb-2">
+    <div className="flex items-center justify-between px-2 pb-1">
       <span className="text-[15px] font-medium" style={{ color: INK }}>
         {hm.surahName}
       </span>
@@ -1818,17 +1843,24 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
    * content (Book or Translation), and the page number pinned to
    * the bottom-right by mt-auto. The column's own design width and
    * scale are computed per page, so an adjacent page is already
-   * laid out at full size before the drag reveals it. Off-screen
-   * columns are inert (their buttons are not focusable or
-   * clickable) and carry data-track-page so a deploy can be proven
-   * live by the attribute's presence. The fit-check refs attach
-   * only to the current column. */
+   * laid out at full size before the drag reveals it — and its own
+   * fit shrink is already final too (third refinement), so the
+   * commit changes nothing. Off-screen columns are inert (their
+   * buttons are not focusable or clickable) and carry
+   * data-track-page so a deploy can be proven live by the
+   * attribute's presence. Each column's zoom wrapper carries
+   * data-frame-page so the per-page fit check can find it. */
   const renderPageColumn = (n: number, isCurrent: boolean) => {
     const pd = pages[n];
     const colMeta = pd?.meta ?? data.meta;
     const dw = designWidths[n] ?? 970;
+    // Only 12px of the content width is held back (6px each side):
+    // the text must occupy the full available space (2026-11-25
+    // second refinement — the old 32px left a wide empty margin
+    // around every page). The shrink is this page's own fit (book
+    // mode only; Translation renders unshrunk, as before).
     const colScale = Math.max(0.3, Math.min(1, (contentWidth - 12) / dw));
-    const zoom = colScale * shrink;
+    const zoom = colScale * (layoutMode === 'book' ? (shrinks[n] ?? 1) : 1);
     const verses = pd?.verses ?? [];
     const tajweed = pd?.tajweed ?? {};
     return (
@@ -1840,7 +1872,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       >
         {renderHeaderRow(colMeta, isCurrent)}
         {layoutMode === 'book' ? (
-          <div ref={isCurrent ? frameWrapRef : undefined} className="w-full" style={{ zoom }}>
+          <div data-frame-page={n} className="w-full" style={{ zoom }}>
             <ReaderPage
               key={n}
               page={n}
@@ -1869,7 +1901,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
             onMistakeWordClick={openMistakeTooltip}
           />
         )}
-        <div ref={isCurrent ? pageFootRef : undefined} className="mt-auto flex justify-end px-2 pt-2">
+        <div className="mt-auto flex justify-end px-2 pt-1">
           <span className="text-[15px]" style={{ color: INK }}>
             {n}
           </span>
@@ -1955,7 +1987,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
       >
-        <div className="mx-auto flex min-h-full w-full max-w-[520px] flex-col justify-start overflow-x-clip pb-4 pt-3">
+        <div className="mx-auto flex min-h-full w-full max-w-[520px] flex-col justify-start overflow-x-clip pb-2 pt-2">
           {/* Book / Translation: a three-column track [page+1, page,
               page-1] in a content-width window. The track is
               translated by -contentWidth + offset, so the current

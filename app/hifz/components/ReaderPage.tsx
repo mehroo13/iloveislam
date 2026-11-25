@@ -252,8 +252,16 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
     // 1:2, 1:6 — 34–39% shortfall, ample capacity) rendered centred
     // at ~60% width while the printed mushaf stretches them
     // edge-to-edge (2026-11-25 final pass).
+    //
+    // Leading 2.05 (was 2.35, 2026-11-25 third refinement): a dense
+    // 15-line page at full width is 15 × 2.1rem × leading × zoom
+    // tall, and at 2.35 it overflowed the viewport by ~100px, so
+    // the fit check shrank it to a narrow column. At 2.05 the page
+    // fits at full width (shrink 1) on a phone viewport; the fit
+    // check stays as the safety net for shorter screens. The
+    // measurer below uses the same leading.
     const lineClass =
-      'font-quran-madani text-[2.1rem] leading-[2.35] text-[#111827] mushaf-line';
+      'font-quran-madani text-[2.1rem] leading-[2.05] text-[#111827] mushaf-line';
 
     // Colour each word from its ayah's tajweed segments (aligned by
     // normalised text). Words without a match render black.
@@ -382,7 +390,7 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
       <div
         ref={measureRef}
         aria-hidden="true"
-        className="font-quran-madani pointer-events-none fixed left-[-99999px] top-0 text-[2.1rem] leading-[2.35]"
+        className="font-quran-madani pointer-events-none fixed left-[-99999px] top-0 text-[2.1rem] leading-[2.05]"
         style={{ width: 'max-content', visibility: 'hidden' }}
       />
     </div>
