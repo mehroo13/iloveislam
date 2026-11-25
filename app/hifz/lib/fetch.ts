@@ -6,7 +6,7 @@
 // Indo-Pak text, split by whitespace, paired with the words payload by
 // position for translation + transliteration.
 
-import { UPSTREAM_API, TAFSIR_ID, TAFSIR_NAME, TRANSLATIONS, TAFSIRS, KHATTAB_TRANSLATION_ID, type Verse } from '../../quran/lib';
+import { API, UPSTREAM_API, TAFSIR_ID, TAFSIR_NAME, TRANSLATIONS, TAFSIRS, KHATTAB_TRANSLATION_ID, type Verse } from '../../quran/lib';
 import { cleanIndopak } from '../../quran/lib';
 import type { HifzSurah } from '../surahs';
 
@@ -182,8 +182,16 @@ export interface MushafVerse {
 }
 
 export async function fetchMushafPage(page: number): Promise<MushafVerse[]> {
+  // This one runs in the BROWSER too (MushafTypeScreen fetches page 1
+  // for its edition previews), so it must not call api.quran.com
+  // directly: the direct host bypasses the same-origin proxy (and the
+  // service worker's 7-day cache of it) and fails on networks that
+  // block the direct host — the live verification caught two such
+  // failures. Browser calls go through /api/quran; server calls keep
+  // the direct host (a relative URL has no base on the server).
+  const base = typeof window === 'undefined' ? UPSTREAM_API : API;
   const data = await fetchJson(
-    `${UPSTREAM_API}/verses/by_page/${page}?words=true&word_fields=text_uthmani,text_indopak,line_number,page_number,position,char_type_name&fields=text_uthmani,hizb_number`,
+    `${base}/verses/by_page/${page}?words=true&word_fields=text_uthmani,text_indopak,line_number,page_number,position,char_type_name&fields=text_uthmani,hizb_number`,
   );
   const verses = (data as { verses?: MushafVerse[] } | null)?.verses;
   return Array.isArray(verses) ? verses : [];
