@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — I Love Islam | No Data Collection',
@@ -41,7 +43,9 @@ export default function PrivacyLayout({ children }: { children: React.ReactNode 
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      {children}
+      <Header />
+      <div className="flex-1">{children}</div>
+      <Footer />
     </>
   );
 }

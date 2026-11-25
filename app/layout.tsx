@@ -4,7 +4,6 @@ import { Geist } from 'next/font/google';
 import CMPConsent from './components/CMPConsent';
 import PWAProvider from './components/PWAProvider';
 import InstallPrompt from './components/InstallPrompt';
-import SiteChrome from './components/SiteChrome';
 import './globals.css';
 import ScrollRestorer from './ScrollRestorer';
 
@@ -164,7 +163,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ScrollRestorer />
         <CMPConsent />
         <PWAProvider>
-          <SiteChrome>{children}</SiteChrome>
+          {children}
           <InstallPrompt />
         </PWAProvider>
       </body>

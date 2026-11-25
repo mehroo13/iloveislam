@@ -1,6 +1,7 @@
 // app/hifz/components/ReaderAltViews.tsx — the reader's alternate
 // layouts (Phase 1, Mushaf Layout modal):
-//   ReaderTextMode — the surah as flowing, resizable plain Quran text.
+//   ReaderContinuousText — the Quran as flowing, resizable plain text,
+//     surah after surah with no pagination (2026-11-25 refinement pass).
 //   ReaderTranslationMode — each ayah with its Dr. Mustafa Khattab
 //   (The Clear Quran) translation, fetched per surah from the
 //   /api/quran/khattab route (the open quran-api dataset — neither
@@ -18,6 +19,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getSurahById } from '../surahs';
 import { BISMILLAH } from '../../quran/lib';
 import { type MushafVerse } from '../lib/fetch';
+import { type ReaderPageData } from '../lib/reader-page';
 import { verseDisplayWords } from '../lib/reader-words';
 import {
   mistakeForKeys,
@@ -164,40 +166,57 @@ export const TEXT_SIZE_MIN = 1.2;
 export const TEXT_SIZE_MAX = 2.2;
 export const TEXT_SIZE_STEP = 0.2;
 
-export function ReaderTextMode({
-  verses,
-  hideVerses,
-  revealed,
-  onReveal,
+
+/* ---------------------------------------------------------------- */
+/*  Continuous Quran Text (2026-11-25 refinement pass)               */
+/* ---------------------------------------------------------------- */
+
+/** Continuous Quran Text: the ayahs flow surah after surah as the
+ *  user scrolls — Al-Fatihah, then the Al-Baqarah header ornament +
+ *  Bismillah + Al-Baqarah, and so on — with NO pagination and NO
+ *  empty space. The parent (ReaderScreen) owns the loaded page
+ *  range and grows it as the user approaches either end; this
+ *  component just renders the pages it is given, in order.
+ *
+ *  A surah split across two mushaf pages gets ONE header ornament
+ *  (on its first appearance). A subtle centred page number marks
+ *  each page boundary, as in the reader's whole-page reference.
+ *
+ *  Each ayah carries data-text-ayah / data-surah / data-page /
+ *  data-juz / data-hizb so the parent can track which surah and
+ *  page the user is actually looking at (the top pill, the header
+ *  row, the bookmark and the mic/playback scope all follow it).
+ *  The ayah rendering matches the old paginated text view —
+ *  same word spans (so the Phase 3/5 green/red highlighting, the
+ *  mic, the peek and the Play button all keep working here), same
+ *  blur + tap-to-peek, same rosette. */
+export function ReaderContinuousText({
+  pages,
   textSize,
   onTextSizeChange,
   highlightedWords,
   mistakes,
   onMistakeWordClick,
+  hideVerses,
+  revealed,
+  onReveal,
 }: {
-  verses: MushafVerse[];
-  hideVerses: boolean;
-  /** Keys of revealed verses: `V${verse_key}`. */
-  revealed: ReadonlySet<string>;
-  /** Tap handler for a hidden verse (tap-to-peek). The second arg
-   *  is the peek info (verse + its first words) so the reader can
-   *  log the peek in a test take (Phase 6). */
-  onReveal: (key: string, info?: PeekInfo) => void;
-  /** Font size in rem. */
+  pages: { page: number; verses: MushafVerse[]; meta: ReaderPageData['meta'] }[];
   textSize: number;
   onTextSizeChange: (n: number) => void;
-  /** Words spoken correctly this take (Phase 3): engine keys
-   *  `surah:ayah:word` (1-based). */
   highlightedWords?: ReadonlySet<string>;
-  /** Words the checker flagged this take (Phase 5). */
   mistakes?: ReadonlyMap<string, ReaderMistake>;
   onMistakeWordClick?: (mistake: ReaderMistake, rect: DOMRect) => void;
+  hideVerses: boolean;
+  revealed: ReadonlySet<string>;
+  onReveal: (key: string, info?: PeekInfo) => void;
 }) {
   const guard = useTapGuard();
-  const groups = groupBySurah(verses);
+  const seenSurahs = new Set<number>();
   return (
-    <div className="w-full px-1 pb-4">
-      {/* Text-size control */}
+    <div className="w-full px-1 pb-10">
+      {/* Text size control — same as the paginated text view. It
+          sits at the top of the flow and scrolls away as you read. */}
       <div className="mb-3 flex items-center justify-between border-b border-[#EDEDEA] pb-3">
         <span className="text-[13px] font-semibold" style={{ color: MUTED }}>
           Text size
@@ -225,53 +244,81 @@ export function ReaderTextMode({
           </button>
         </span>
       </div>
-
-      {groups.map((g) => (
-        <div key={`s-${g.sid}`}>
-          <SurahIntro sid={g.sid} arabicSize={textSize} />
-          {g.verses.map((v) => {
-            const key = `V${v.verse_key}`;
-            const hidden = hideVerses && !revealed.has(key);
-            const ayahNum = Number(v.verse_key.split(':')[1]);
-            return (
-              <div
-                key={v.verse_key}
-                onPointerDown={hidden ? guard.down : undefined}
-                onClick={
-                  hidden
-                    ? (e) => {
-                        if (guard.ok(e)) onReveal(key, versePeekInfo(v));
-                      }
-                    : undefined
-                }
-                className="mb-4"
-                style={
-                  hidden
-                    ? { filter: 'blur(7px)', cursor: 'pointer', userSelect: 'none' }
-                    : undefined
-                }
-              >
-                <p
-                  dir="rtl"
-                  lang="ar"
-                  translate="no"
-                  className="font-quran-madani text-justify leading-[2.1]"
-                  style={{ fontSize: `${textSize}rem`, color: INK }}
-                >
-                  <AyahWords
-                    verse={v}
-                    highlightedWords={highlightedWords}
-                    mistakes={mistakes}
-                    onMistakeWordClick={onMistakeWordClick}
-                    clickable={!hidden}
-                  />{' '}
-                  <ReaderRosette ayah={ayahNum} />
-                </p>
+      {pages.map(({ page, verses, meta }, pageIdx) => {
+        const groups = groupBySurah(verses);
+        return (
+          <div key={page}>
+            {groups.map((g) => {
+              const first = !seenSurahs.has(g.sid);
+              if (first) seenSurahs.add(g.sid);
+              return (
+                <div key={`${page}-${g.sid}`}>
+                  {first && <SurahIntro sid={g.sid} arabicSize={textSize} />}
+                  {g.verses.map((v) => {
+                    const key = `V${v.verse_key}`;
+                    const hidden = hideVerses && !revealed.has(key);
+                    const ayahNum = Number(v.verse_key.split(':')[1]);
+                    return (
+                      <div
+                        key={v.verse_key}
+                        data-text-ayah
+                        data-surah={g.sid}
+                        data-page={page}
+                        data-juz={v.juz_number}
+                        data-hizb={v.hizb_number ?? meta.hizb}
+                        data-verse-key={v.verse_key}
+                        onPointerDown={hidden ? guard.down : undefined}
+                        onClick={
+                          hidden
+                            ? (e) => {
+                                if (guard.ok(e)) onReveal(key, versePeekInfo(v));
+                              }
+                            : undefined
+                        }
+                        className="mb-4"
+                        style={
+                          hidden
+                            ? { filter: 'blur(7px)', cursor: 'pointer', userSelect: 'none' }
+                            : undefined
+                        }
+                      >
+                        <p
+                          dir="rtl"
+                          lang="ar"
+                          translate="no"
+                          className="font-quran-madani text-justify leading-[2.1]"
+                          style={{ fontSize: `${textSize}rem`, color: INK }}
+                        >
+                          <AyahWords
+                            verse={v}
+                            highlightedWords={highlightedWords}
+                            mistakes={mistakes}
+                            onMistakeWordClick={onMistakeWordClick}
+                            clickable={!hidden}
+                          />{' '}
+                          <ReaderRosette ayah={ayahNum} />
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+            {/* Page boundary marker (not after the last loaded page):
+                the number of the page that just ended, centred
+                between hairlines. */}
+            {pageIdx < pages.length - 1 && (
+              <div aria-hidden="true" className="flex items-center gap-3 py-6">
+                <div className="h-px flex-1" style={{ backgroundColor: '#E5E7EB' }} />
+                <span className="text-[12px] font-semibold" style={{ color: MUTED }}>
+                  {page}
+                </span>
+                <div className="h-px flex-1" style={{ backgroundColor: '#E5E7EB' }} />
               </div>
-            );
-          })}
-        </div>
-      ))}
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
