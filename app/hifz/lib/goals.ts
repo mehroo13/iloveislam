@@ -36,6 +36,10 @@ export interface Goal {
   /** Archived goals hide from Active / Today's / Upcoming; they live
    *  in Archived. */
   archived?: boolean;
+  /** Explicitly completed via the "Mark complete" button (G2) —
+   *  completing also archives the goal; completed goals show a
+   *  "Completed" badge in Archived. */
+  completed?: boolean;
 }
 
 export const GOALS_KEY = 'ili_goals_v1';

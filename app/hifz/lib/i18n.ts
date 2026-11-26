@@ -1501,7 +1501,7 @@ const en: Dict = {
   'rb.dash.last14Days': 'Last 14 Days',
   'rb.dash.memGoal': 'Memorization Goal',
   'rb.dash.reviewGoal': 'Review Goal',
-  'rb.dash.activeDesc': 'Goals you are trying to complete. Swipe right on a goal to modify it.',
+  'rb.dash.activeDesc': 'Goals you are trying to complete. Tap Edit on a goal to change it, or Mark complete when it is done.',
   'rb.dash.archivedDesc': 'Goals you completed or are no longer working towards.',
   'rb.dash.groupsNoteShort': 'Your groups live only on this device. The global leaderboard below shows only members who chose to appear.',
   'rb.dash.backToHifz': 'Back to Hifz',

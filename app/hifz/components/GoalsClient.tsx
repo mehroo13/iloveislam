@@ -104,8 +104,21 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
   const [recurring, setRecurring] = useState(true);
   const [deadline, setDeadline] = useState('');
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
-  // Progress-hub tab: the create form (templates + new-goal form +
-  // suggestions) opens behind a START A NEW GOAL button.
+  // C3 (2026-11-26): deep-link presets — the Challenges page's
+  // League "Join with a goal" buttons and daily-reading suggestions
+  // land here with a goal prefilled, the way ?preset=kahf already
+  // worked. Any preset opens the create form with its fields set.
+  const PRESETS: Record<string, { name: string; action: GoalAction; range: string; portion: string; schedule: string }> = {
+    kahf: { name: t('rb.goals.presetKahfName'), action: 'Recite', range: 'Surah Al-Kahf', portion: 'Whole surah', schedule: 'Every Friday' },
+    'league-ramadan': { name: t('chal.tplRamadanName'), action: 'Memorize', range: 'Whole Quran (114 surahs)', portion: '1 page a day', schedule: 'Every day' },
+    'league-baqarah': { name: t('chal.tplBaqarahName'), action: 'Memorize', range: 'Surah Al-Baqarah', portion: '1 page a day', schedule: 'Every day' },
+    'league-imran': { name: t('chal.tplImranName'), action: 'Memorize', range: "Surah Ali 'Imran", portion: '1 page a day', schedule: 'Every day' },
+    'daily-time': { name: t('chal.dailyTime'), action: 'Recite', range: 'Whole Quran (114 surahs)', portion: '1 page a day', schedule: 'Every day' },
+    'daily-pages': { name: t('chal.dailyPages'), action: 'Recite', range: 'Whole Quran (114 surahs)', portion: '1 page a day', schedule: 'Every day' },
+  };
+  // G3: editing a goal reuses the create form, prefilled — a visible
+  // Edit button, not swipe-only.
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
 
@@ -115,19 +128,20 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
     // Deep-link only: the create form opens when a suggestion preset
     // asked for it. It stays closed otherwise — even with no goals yet,
     // so the Goals tab shows the START A NEW GOAL card like Tarteel.
-    if (preset === 'kahf') setShowCreate(true);
+    const p = preset ? PRESETS[preset] : undefined;
+    if (p) {
+      setShowCreate(true);
+      setName(p.name);
+      setAction(p.action);
+      setRange(p.range);
+      setPortion(p.portion);
+      setSchedule(p.schedule);
+      setRecurring(true);
+    }
     try {
       setProgress(loadProgress());
     } catch {
       setProgress(null);
-    }
-    if (preset === 'kahf') {
-      setName(t('rb.goals.presetKahfName'));
-      setAction('Recite');
-      setRange('Surah Al-Kahf');
-      setPortion('Whole surah');
-      setSchedule('Every Friday');
-      setRecurring(true);
     }
   }, [preset]);
 
@@ -150,6 +164,33 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
           : s.deadline
         : undefined;
     const resolvedDeadline = templateDeadline || deadline || undefined;
+    // G3: saving while editing updates that goal instead of creating
+    // a second one. Templates / suggestions always create a new goal.
+    if (editingId && !s) {
+      const updated = goals.map((g) => {
+        if (g.id !== editingId) return g;
+        const next: Goal = {
+          ...g,
+          name: name.trim() || g.name,
+          action,
+          range,
+          portion,
+          schedule,
+          shape,
+          reverse,
+          recurring,
+        };
+        if (resolvedDeadline) next.deadline = resolvedDeadline;
+        else delete next.deadline;
+        return next;
+      });
+      persist(updated);
+      setSavedMsg(`${t('goal.savedA')}${name.trim()}${t('goal.savedB')} ${portion}, ${schedule.toLowerCase()}.`);
+      setEditingId(null);
+      setName('');
+      setShowCreate(false);
+      return;
+    }
     const g: Goal = {
       id: newGoalId(),
       name: s?.label ?? name.trim() ?? t('goal.myGoal'),
@@ -171,6 +212,26 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
   };
 
   const deleteGoal = (id: string) => persist(goals.filter((g) => g.id !== id));
+
+  // G2: an explicit Complete control — marks the goal done and
+  // archives it; Archived shows a "Completed" badge for it.
+  const markComplete = (id: string) =>
+    persist(goals.map((g) => (g.id === id ? { ...g, completed: true, archived: true } : g)));
+
+  // G3: open the form prefilled with this goal's values.
+  const startEdit = (g: Goal) => {
+    setEditingId(g.id);
+    setName(g.name);
+    setAction(g.action);
+    setRange(g.range);
+    setPortion(g.portion);
+    setSchedule(g.schedule);
+    setShape(g.shape);
+    setReverse(g.reverse);
+    setRecurring(g.recurring);
+    setDeadline(g.deadline ?? '');
+    setShowCreate(true);
+  };
 
   const setArchived = (id: string, archived: boolean) =>
     persist(goals.map((g) => (g.id === id ? { ...g, archived } : g)));
@@ -314,7 +375,10 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
         <button
           type="button"
           aria-expanded={showCreate}
-          onClick={() => setShowCreate((v) => !v)}
+          onClick={() => {
+            if (showCreate) setEditingId(null);
+            setShowCreate((v) => !v);
+          }}
           className="flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl border border-[#E8EAED] bg-white px-4 py-3 text-sm font-bold text-[#111827] shadow-sm hover:border-[#1FA36B]"
         >
           {showCreate ? t('rb.dash.closeForm') : t('rb.dash.startNewGoal')}
@@ -414,6 +478,22 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
                   >
                     {t('goal.practiseNow')}
                   </Link>
+                  {/* G3: visible Edit button (was swipe-only). G2:
+                      explicit Mark complete control. */}
+                  <button
+                    type="button"
+                    onClick={() => startEdit(g)}
+                    className="min-h-11 rounded-full border border-[#E8EAED] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => markComplete(g.id)}
+                    className="min-h-11 rounded-full border border-[#1FA36B] px-4 py-2 text-sm font-semibold text-[#1FA36B] hover:bg-[#E4FFF2]"
+                  >
+                    Mark complete
+                  </button>
                   <button
                     type="button"
                     onClick={() => setArchived(g.id, true)}
@@ -491,6 +571,9 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
               {archivedGoals.map((g) => (
                 <li key={g.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-[#F4F5F7] px-3 py-2 text-sm">
                   <span className="font-semibold text-[#111827]">{g.name}</span>
+                  {g.completed && (
+                    <span className="rounded-full bg-[#E4FFF2] px-2 py-0.5 text-xs font-bold text-[#1FA36B]">Completed ✓</span>
+                  )}
                   <span className="text-[#6B7280]">{g.range} · {g.portion} · {g.schedule}</span>
                   <span className="ml-auto flex gap-3">
                     <button type="button" onClick={() => setArchived(g.id, false)} className="font-semibold text-[#1FA36B] underline">{t('rb.goals.unarchive')}</button>
@@ -504,9 +587,10 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
           ))}
       </section>
 
-      {showCreate && (
-        <>
-      {/* Stage 6 (§17): one-tap templates for the six goal kinds in the brief. */}
+      {/* G1 (2026-11-26): one-tap templates are ALWAYS visible — they
+          used to hide behind the START A NEW GOAL button, so a new
+          user on a fresh load could never discover them. The custom
+          new-goal form + suggestions stay behind the button. */}
       <section aria-labelledby="templates-heading">
         <h2 id="templates-heading" className="text-xl font-bold text-[#111827]">{t('rb.goals.fromTemplate')}</h2>
         <p className="text-sm text-[#6B7280]">{t('rb.goals.oneTap')}</p>
@@ -531,9 +615,11 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
         </div>
       </section>
 
+      {showCreate && (
+        <>
       {/* New goal */}
       <section aria-labelledby="new-heading" className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
-        <h2 id="new-heading" className="text-xl font-bold text-[#111827]">{t('hub.goalCta')}</h2>
+        <h2 id="new-heading" className="text-xl font-bold text-[#111827]">{editingId ? 'Edit goal' : t('hub.goalCta')}</h2>
         <p className="mt-1 text-sm text-[#6B7280]">{t('rb.goals.intentionNote')}</p>
         <div className="mt-4 space-y-4">
           <label className="block text-sm font-semibold">
@@ -651,7 +737,7 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
             disabled={!name.trim()}
             className="rounded-full bg-[#57D798] px-6 py-3 text-sm font-bold text-[#102E26] disabled:opacity-50"
           >
-            {t('goal.saveGoal')}
+            {editingId ? 'Save changes' : t('goal.saveGoal')}
           </button>
         </div>
       </section>
