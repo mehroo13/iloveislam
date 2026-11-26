@@ -29,6 +29,13 @@ import {
   type PeekInfo,
   type ReaderMistake,
 } from '../lib/reader-mistakes';
+import {
+  alignWords,
+  colorizeWord,
+  TAJWEED_BLACK,
+  type ParsedTajweedAyah,
+  type TajweedSurah,
+} from '../lib/tajweed';
 import ReaderSurahHeader from './ReaderSurahHeader';
 import { ReaderRosette } from './ReaderPage';
 
@@ -57,6 +64,8 @@ function AyahWords({
   onMistakeWordClick,
   clickable,
   script = 'uthmani',
+  tajweed,
+  tajweedOn = true,
 }: {
   verse: MushafVerse;
   highlightedWords?: ReadonlySet<string>;
@@ -71,9 +80,27 @@ function AyahWords({
    *  Indo-Pak word forms; the engine keys still count Uthmani
    *  tokens, so highlighting lands on the right word either way. */
   script?: QuranScript;
+  /** This ayah's parsed tajweed data (AlQuran Cloud tajweed
+   *  edition, via the page data — the same source the Book reader
+   *  colours from). Absent = this surah's tajweed failed to load,
+   *  so the ayah renders black. */
+  tajweed?: ParsedTajweedAyah | null;
+  /** Show Tajweed Colors (the `tajweedColors` setting): when off,
+   *  every word renders black. Default true — the Book reader's
+   *  default, and the reader's behaviour before the toggle was
+   *  wired here. The continuous modes ignored the setting entirely
+   *  until 2026-11-26: AyahWords had no tajweed prop at all, so the
+   *  default Quran Text mode (and Translation) never showed any
+   *  colours even with the toggle on. */
+  tajweedOn?: boolean;
 }) {
   const guard = useTapGuard();
   const words = verseDisplayWords(verse, script);
+  // Align this ayah's display words to the tajweed text once per
+  // render (same alignWords the Book reader uses, same caveat: in
+  // Indo-Pak mode the alignment is against Uthmani tajweed text, so
+  // some words fall back to black).
+  const offsets = tajweedOn && tajweed ? alignWords(words.map((w) => w.text), tajweed) : words.map(() => -1);
   return (
     <>
       {words.map((w, i) => {
@@ -92,14 +119,31 @@ function AyahWords({
                 },
               }
             : {};
+        const off = offsets[i] ?? -1;
+        // Tajweed colours (display only): coloured letter-runs inside
+        // the word span, exactly like the Book reader — the green/red
+        // highlight wash sits on the outer span, the tajweed colour
+        // on the inner runs, so they never fight. Off (or no match):
+        // plain black text, like a word with no tajweed match.
+        const content =
+          tajweedOn && tajweed && off >= 0 ? (
+            colorizeWord(w.text, tajweed.plain, tajweed.segments, off).map((r, ri) => (
+              <span key={ri} style={{ color: r.color }}>
+                {r.text}
+              </span>
+            ))
+          ) : (
+            w.text
+          );
         return (
           <span key={i}>
             <span
               id={w.keys[0] ? `word-${w.keys[0].replace(/:/g, '-')}` : undefined}
               className={`reader-word${mistake ? ' highlight-red mistake-word' : highlighted ? ' highlight-green' : ''}`}
+              style={tajweedOn ? undefined : { color: TAJWEED_BLACK }}
               {...wordTap}
             >
-              {w.text}
+              {content}
             </span>
             {i < words.length - 1 ? ' ' : ''}
           </span>
@@ -223,8 +267,9 @@ export function ReaderContinuousText({
   revealed,
   onReveal,
   script = 'uthmani',
+  tajweedOn = true,
 }: {
-  pages: { page: number; verses: MushafVerse[]; meta: ReaderPageData['meta'] }[];
+  pages: { page: number; verses: MushafVerse[]; meta: ReaderPageData['meta']; tajweed?: Record<number, TajweedSurah> }[];
   textSize: number;
   onTextSizeChange: (n: number) => void;
   highlightedWords?: ReadonlySet<string>;
@@ -236,6 +281,9 @@ export function ReaderContinuousText({
   /** Display script (Mushaf Type picker): the flowing text renders
    *  in the selected edition's script, like the Book reader. */
   script?: QuranScript;
+  /** Show Tajweed Colors (the `tajweedColors` setting), from the
+   *  parent — the continuous modes ignored it until 2026-11-26. */
+  tajweedOn?: boolean;
 }) {
   const guard = useTapGuard();
   const seenSurahs = new Set<number>();
@@ -270,7 +318,7 @@ export function ReaderContinuousText({
           </button>
         </span>
       </div>
-      {pages.map(({ page, verses, meta }, pageIdx) => {
+      {pages.map(({ page, verses, meta, tajweed }, pageIdx) => {
         const groups = groupBySurah(verses);
         return (
           <div key={page}>
@@ -327,6 +375,8 @@ export function ReaderContinuousText({
                             onMistakeWordClick={onMistakeWordClick}
                             clickable={!hidden}
                             script={script}
+                            tajweed={tajweed?.[g.sid]?.ayahs[ayahNum] ?? null}
+                            tajweedOn={tajweedOn}
                           />{' '}
                           <ReaderRosette ayah={ayahNum} />
                         </span>
@@ -390,6 +440,8 @@ function TranslationAyahBlock({
   onMistakeWordClick,
   onRosetteClick,
   script = 'uthmani',
+  tajweed,
+  tajweedOn = true,
 }: {
   verse: MushafVerse;
   page: number;
@@ -415,6 +467,12 @@ function TranslationAyahBlock({
   /** Display script (Mushaf Type picker): the Arabic renders in the
    *  selected edition's script, like the Book reader. */
   script?: QuranScript;
+  /** This ayah's parsed tajweed data — the Translation mode's
+   *  Arabic ignored the `tajweedColors` setting until 2026-11-26,
+   *  like Quran Text mode. */
+  tajweed?: ParsedTajweedAyah | null;
+  /** Show Tajweed Colors (the `tajweedColors` setting). */
+  tajweedOn?: boolean;
 }) {
   const guard = useTapGuard();
   const key = `V${verse.verse_key}`;
@@ -461,6 +519,8 @@ function TranslationAyahBlock({
             onMistakeWordClick={onMistakeWordClick}
             clickable={!hidden}
             script={script}
+            tajweed={tajweed}
+            tajweedOn={tajweedOn}
           />{' '}
           {onRosetteClick ? (
             <button
@@ -515,10 +575,11 @@ export function ReaderTranslationMode({
   translationId = KHATTAB_TRANSLATION_ID,
   onRosetteClick,
   script = 'uthmani',
+  tajweedOn = true,
 }: {
   /** The loaded page range, in order — the parent grows it as the
    *  user scrolls (same shape ReaderContinuousText takes). */
-  pages: { page: number; verses: MushafVerse[]; meta: ReaderPageData['meta'] }[];
+  pages: { page: number; verses: MushafVerse[]; meta: ReaderPageData['meta']; tajweed?: Record<number, TajweedSurah> }[];
   hideVerses: boolean;
   revealed: ReadonlySet<string>;
   /** Tap handler for a hidden verse (tap-to-peek). The second arg
@@ -541,6 +602,10 @@ export function ReaderTranslationMode({
   /** Display script (Mushaf Type picker): the Arabic renders in the
    *  selected edition's script, like the Book reader. */
   script?: QuranScript;
+  /** Show Tajweed Colors (the `tajweedColors` setting), from the
+   *  parent — the Translation mode's Arabic ignored it until
+   *  2026-11-26. */
+  tajweedOn?: boolean;
 }) {
   // Keyed by `${surah}:${translationId}` so switching translations
   // never shows the previous translation's text.
@@ -604,7 +669,7 @@ export function ReaderTranslationMode({
   const seenSurahs = new Set<number>();
   return (
     <div className="w-full px-1 pb-4">
-      {pages.map(({ page, verses, meta }, pageIdx) => {
+      {pages.map(({ page, verses, meta, tajweed }, pageIdx) => {
         const groups = groupBySurah(verses);
         return (
           <div key={page}>
@@ -634,6 +699,8 @@ export function ReaderTranslationMode({
                         onMistakeWordClick={onMistakeWordClick}
                         onRosetteClick={onRosetteClick}
                         script={script}
+                        tajweed={tajweed?.[g.sid]?.ayahs[ayahNum] ?? null}
+                        tajweedOn={tajweedOn}
                       />
                     );
                   })}
