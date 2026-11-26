@@ -30,6 +30,12 @@
 // debounced (350 ms) so it does not hammer the server per keystroke;
 // when it fails it says so honestly and the reference search keeps
 // working.
+//
+// Recent searches (2026-11-26, the "five" build): the shared store
+// (app/hifz/lib/recent-searches.ts, cap 25) records a query when the
+// user taps a result, and the empty-query view shows the list —
+// tapping a row re-runs that query. Shared with the Search hub page
+// and Voice Search, so it is one list everywhere.
 
 'use client';
 
@@ -41,6 +47,12 @@ import {
   surahsOnMushafPageForEdition,
 } from '../lib/mushaf-surah-pages';
 import { totalPagesForEdition, type MushafEditionId } from '../lib/mushaf-edition';
+import {
+  RECENT_SEARCHES_EVENT,
+  clearRecentSearches,
+  loadRecentSearches,
+  recordRecentSearch,
+} from '../lib/recent-searches';
 
 const INK = 'var(--reader-ink)';
 const MUTED = 'var(--reader-muted)';
@@ -221,6 +233,30 @@ export default function ReaderSearch({
   const [wordTotal, setWordTotal] = useState(0);
   const [wordState, setWordState] = useState<'idle' | 'loading' | 'error' | 'done'>('idle');
   const [refPage, setRefPage] = useState<number | null>(null);
+  /** Recent searches — the shared store (also used by the Search hub
+   *  page and Voice Search), most-recent-first, capped at 25. */
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+
+  // Load the recents on mount and whenever another search surface
+  // changes them (hub page, voice search) — no reload needed.
+  useEffect(() => {
+    setRecentSearches(loadRecentSearches());
+    const onChange = (e: Event) => {
+      const next = (e as CustomEvent<string[]>).detail;
+      if (Array.isArray(next)) setRecentSearches(next);
+    };
+    window.addEventListener(RECENT_SEARCHES_EVENT, onChange);
+    return () => window.removeEventListener(RECENT_SEARCHES_EVENT, onChange);
+  }, []);
+
+  /** A result tap is the honest record trigger: the user found what
+   *  they wanted and jumped to it. Typing, and the debounced
+   *  word-search fetches, are never recorded. */
+  const handleSelectPage = (page: number) => {
+    const q = query.trim();
+    if (q) setRecentSearches(recordRecentSearch(q));
+    onSelectPage(page);
+  };
 
   // Mount / fade lifecycle: mount, then fade in; on close, fade out
   // and unmount after the transition.
@@ -336,10 +372,48 @@ export default function ReaderSearch({
           Reference results first, then Part 5 word-search ayahs. */}
       <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-24 pt-4">
         {query.trim() === '' ? (
-          <p className="text-[14px] leading-relaxed" style={{ color: MUTED }}>
-            Try a word like الرحمن, a surah name, a reference like 1:4, a page like pg 62, or a Juz
-            like juz 5.
-          </p>
+          <>
+            <p className="text-[14px] leading-relaxed" style={{ color: MUTED }}>
+              Try a word like الرحمن, a surah name, a reference like 1:4, a page like pg 62, or a
+              Juz like juz 5.
+            </p>
+            {/* Recent searches — only queries the user actually ran and
+                tapped a result for. Nothing renders when there is no
+                history. Tapping a row re-runs that query. */}
+            {recentSearches.length > 0 && (
+              <section aria-label="Recent searches" className="mt-5">
+                <div className="flex items-center justify-between gap-2 px-1">
+                  <h2 className="text-[13px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>
+                    Recent searches
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => setRecentSearches(clearRecentSearches())}
+                    className="rounded-full px-3 py-1.5 text-[13px] font-semibold text-[#1FA36B]"
+                  >
+                    Clear all
+                  </button>
+                </div>
+                <ul className="mt-2 flex flex-col gap-2">
+                  {recentSearches.map((item) => (
+                    <li key={item}>
+                      <button
+                        type="button"
+                        dir="auto"
+                        onClick={() => setQuery(item)}
+                        className="flex w-full items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-left shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
+                      >
+                        <IconSearchSmall />
+                        <span className="min-w-0 flex-1 truncate text-[15px] font-semibold" style={{ color: INK }}>
+                          {item}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </>
         ) : results.length === 0 && wordResults.length === 0 && wordState !== 'loading' ? (
           wordState === 'error' ? (
             <p className="text-[14px] leading-relaxed" style={{ color: MUTED }}>
@@ -358,7 +432,7 @@ export default function ReaderSearch({
               <button
                 key={r.key}
                 type="button"
-                onClick={() => onSelectPage(r.page)}
+                onClick={() => handleSelectPage(r.page)}
                 className="flex w-full items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-left shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
               >
                 <IconSearchSmall />
@@ -386,7 +460,7 @@ export default function ReaderSearch({
               <button
                 key={`word-${w.verse_key}`}
                 type="button"
-                onClick={() => onSelectPage(w.page)}
+                onClick={() => handleSelectPage(w.page)}
                 className="flex w-full items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-left shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
               >
                 <IconSearchSmall />
