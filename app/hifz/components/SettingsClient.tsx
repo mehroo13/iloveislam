@@ -30,6 +30,15 @@ import {
   setUiTheme,
   useT,
 } from '../lib/i18n';
+import {
+  ayahsForLines,
+  loadTestSettings,
+  saveTestSettings,
+  TEST_QUESTION_COUNTS,
+  TEST_TIME_LIMITS,
+  type TestQuestionCount,
+  type TestTimeLimitMinutes,
+} from '../lib/test-settings';
 
 /* Listen prefs live in the same key the surah page reads
    ('ili_hifz_listen_v1', SurahClient): repeat / pause / speed /
@@ -241,11 +250,13 @@ function MiniSelect({
   value,
   onChange,
   options,
+  testId,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
+  testId?: string;
 }) {
   return (
     <label className="block text-sm font-semibold text-[#111827]">
@@ -253,6 +264,7 @@ function MiniSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        data-testid={testId}
         className="mt-1 block w-full max-w-xs rounded-lg border border-[#E8EAED] bg-white px-3 py-2.5 text-sm font-normal"
       >
         {options.map((o) => (
@@ -269,6 +281,14 @@ export default function SettingsClient() {
   const [open, setOpen] = useState<string | null>(null);
   const [listen, setListen] = useState<ListenPrefs>({ repeat: 1, pauseSec: 0, speed: 1, wordByWord: false });
   const [tafsirId, setTafsirId] = useState<number>(TAFSIR_ID);
+  // Test defaults (2026-11-26): the same three choices the test setup
+  // screen offers, read from / written to the shared store — a change
+  // here shows up in the next test, and vice versa (the reader-overlay
+  // Testing Mode screen reads the same store).
+  const [testSettings, setTestSettings] = useState(loadTestSettings);
+  const patchTestSettings = (p: Partial<typeof testSettings>) => {
+    setTestSettings(saveTestSettings(p));
+  };
   const t = useT();
 
   /* --- Reminders (opt-in local notifications, no push, no server) ---
@@ -909,12 +929,59 @@ export default function SettingsClient() {
           />
           {open === 'testSound' && (
             <Panel>
-              <Toggle
-                label={t('rb.set.testingMode')}
-                hint={t('rb.set.soundHint')}
-                checked={settings.testSound ?? true}
-                onChange={(v) => update({ testSound: v })}
-              />
+              <div className="space-y-4">
+                <MiniSelect
+                  label={t('rb.set.testQuestions')}
+                  value={String(testSettings.questionCount)}
+                  onChange={(v) => patchTestSettings({ questionCount: Number(v) as TestQuestionCount })}
+                  options={TEST_QUESTION_COUNTS.map((n) => ({
+                    value: String(n),
+                    label: t('test.questions').replace('{n}', String(n)),
+                  }))}
+                  testId="settings-route-test-questions"
+                />
+                <MiniSelect
+                  label={t('rb.set.testQuestionLength')}
+                  value={String(testSettings.questionLines)}
+                  onChange={(v) => patchTestSettings({ questionLines: Number(v) })}
+                  options={Array.from({ length: 15 }, (_, i) => i + 1).map((n) => ({
+                    value: String(n),
+                    label: `${n} ${n === 1 ? t('common.line') : t('common.lines')}`,
+                  }))}
+                  testId="settings-route-test-length"
+                />
+                <p className="-mt-2 text-xs leading-relaxed text-[#6B7280]">
+                  {t('test.aboutAyahsPerQ')
+                    .replace('{n}', String(ayahsForLines(testSettings.questionLines)))
+                    .replace(
+                      '{ayahs}',
+                      ayahsForLines(testSettings.questionLines) === 1
+                        ? t('common.ayah')
+                        : t('common.ayahs'),
+                    )}
+                </p>
+                <MiniSelect
+                  label={t('rb.set.testTimeLimit')}
+                  value={String(testSettings.timeLimitMinutes)}
+                  onChange={(v) =>
+                    patchTestSettings({ timeLimitMinutes: Number(v) as TestTimeLimitMinutes })
+                  }
+                  options={TEST_TIME_LIMITS.map((m) => ({
+                    value: String(m),
+                    label: m === 0 ? t('test.noTimeLimit') : t('test.minShort').replace('{n}', String(m)),
+                  }))}
+                  testId="settings-route-test-timelimit"
+                />
+                <p className="text-xs leading-relaxed text-[#6B7280]">{t('rb.set.testRemembered')}</p>
+              </div>
+              <div className="mt-4 border-t border-[#E8EAED] pt-4">
+                <Toggle
+                  label={t('rb.set.testingMode')}
+                  hint={t('rb.set.soundHint')}
+                  checked={settings.testSound ?? true}
+                  onChange={(v) => update({ testSound: v })}
+                />
+              </div>
             </Panel>
           )}
         </div>
