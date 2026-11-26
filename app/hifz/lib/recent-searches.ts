@@ -58,6 +58,17 @@ function readKey(key: string): string[] {
 
 export function loadRecentSearches(): string[] {
   const current = readKey(RECENT_SEARCHES_KEY);
+  // Self-heal: an over-long or dirty stored value (e.g. seeded by hand,
+  // or written by an older build) is trimmed back to the cap on read,
+  // so storage itself never keeps more than 25.
+  try {
+    const raw = localStorage.getItem(RECENT_SEARCHES_KEY);
+    if (raw && JSON.stringify(current) !== raw) {
+      localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(current));
+    }
+  } catch {
+    /* storage unavailable — the in-memory list still applies */
+  }
   if (current.length > 0) return current;
   // One-time import from the legacy key, so the hub / voice-search
   // history built before this store existed is not lost.
