@@ -892,7 +892,19 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         return 'text' as ReaderLayoutMode;
       })();
     const ayah = explicitPage === null ? saved?.ayah ?? null : null;
-    restoringRef.current = true;
+    // Book has no scroll to land: the page commit IS the restore,
+    // so there is no restoring window and saving stays live. (An
+    // earlier version set restoringRef here unconditionally and
+    // nothing ever cleared it in Book mode, which silently blocked
+    // every save for the session.) Continuous modes get the window:
+    // while it is true the scroll tracker below must not extend
+    // the range — on mount the list is still a single page, and a
+    // check() running in the same commit as the restore would
+    // otherwise extend the STALE {1,1} range to {1,2} AFTER the
+    // layout effect queued {300,300}, and the stale extend wins
+    // the batch (seen live 2026-11-26: the restore fetched page
+    // 300 but the reader stayed on pages 1–2).
+    restoringRef.current = layout !== 'book';
     pendingRestoreRef.current =
       layout === 'book' ? null : { page: target, ayah, since: Date.now() };
     // Apply the edition (persisted, so the settings effect's value
@@ -1008,9 +1020,80 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           (el as HTMLElement).getBoundingClientRect().top -
           mainEl.getBoundingClientRect().top +
           mainEl.scrollTop;
-        mainEl.scrollTop = Math.max(0, top - 90);
+        const desired = Math.max(0, top - 80);
+        // The list is still a single page at restore time, so the
+        // scroll clamps at scrollHeight - clientHeight — an ayah in
+        // the lower half of the page can never become topmost (its
+        // target scroll exceeds the clamp; seen 2026-11-26: 18:58
+        // needs 720, max is 574 on page 300). Grow the range one
+        // page down first — check() would load it a moment later
+        // anyway — and retry when it lands; pending stays set so
+        // this effect re-runs on the new textPages.
+        const maxScroll = mainEl.scrollHeight - mainEl.clientHeight;
+        const range = textRangeRef.current;
+        if (
+          desired > maxScroll &&
+          pending.page < totalPages &&
+          range &&
+          range.end < totalPages &&
+          !textExtendingRef.current
+        ) {
+          textExtendingRef.current = true;
+          textRangeRef.current = { start: range.start, end: range.end + 1 };
+          setTextRange(textRangeRef.current);
+          fetchPage(range.end + 1)
+            .catch(() => {})
+            .finally(() => {
+              textExtendingRef.current = false;
+            });
+          // If that fetch never lands, this effect never re-runs —
+          // give up on the restore rather than wedging saving for
+          // the session.
+          if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
+          restoreTimerRef.current = setTimeout(() => {
+            if (pendingRestoreRef.current === pending) cancelRestore();
+          }, 8000);
+          return;
+        }
+        // Land the saved ayah just ABOVE the scroll tracker's +90px
+        // line (not on it): the tracker names the first ayah whose
+        // bottom passes that line, so an ayah parked exactly on it
+        // leaves its predecessor — whose bottom sits on the line —
+        // as the topmost, and the reopen lands one ayah up.
+        mainEl.scrollTop = desired;
+        // Self-correct with the tracker's own rule: in flowing
+        // text two ayahs can share one line, and then no fixed
+        // offset separates them — the predecessor's bottom is the
+        // shared line's bottom, below the line whatever the offset.
+        // If the topmost ayah is still one before the saved ayah,
+        // nudge down just past its bottom and re-check (bounded —
+        // each nudge moves the saved ayah up by at most a line,
+        // and it stays in view).
+        for (let i = 0; i < 3; i++) {
+          const cTop = mainEl.getBoundingClientRect().top;
+          const els = mainEl.querySelectorAll('[data-text-ayah], [data-translation-ayah]');
+          let topmost: HTMLElement | null = null;
+          for (const e of els) {
+            const r = (e as HTMLElement).getBoundingClientRect();
+            if (r.bottom > cTop + 90) {
+              topmost = e as HTMLElement;
+              break;
+            }
+          }
+          if (!topmost || topmost.dataset.verseKey === pending.ayah) break;
+          const r = topmost.getBoundingClientRect();
+          mainEl.scrollTop += r.bottom - cTop - 90 + 2;
+        }
       }
       pendingRestoreRef.current = null;
+      // The tracker only re-derives the visible ayah on a scroll
+      // event or a range change — a page-top restore scrolls
+      // nowhere, so neither fires and the pill would keep naming
+      // the old page. Nudge it: a synthetic scroll event makes
+      // check() run once against the landed position (the save
+      // itself stays guarded by restoringRef until the window
+      // below ends).
+      mainEl.dispatchEvent(new Event('scroll'));
       if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
       restoreTimerRef.current = setTimeout(() => {
         restoringRef.current = false;
@@ -1018,7 +1101,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     };
     const t = window.setTimeout(doScroll, 100);
     return () => window.clearTimeout(t);
-  }, [textPages, isContinuous, cancelRestore]);
+  }, [textPages, isContinuous, cancelRestore, fetchPage, totalPages]);
   /* Hide Verses mode + per-line/verse reveals. Reveal keys:
    * `L{page}:{line}` for the Madani page, `V{verse_key}` for the
    * text/translation views. */
@@ -2532,10 +2615,24 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           break;
         }
       }
+      /* No range extension during a restore (see the restore
+       * effect): the list is still a single page, and a check()
+       * running in the same commit as the restore would extend
+       * the stale range and clobber the restored one. Extending
+       * resumes once the restore scroll has landed. */
       if (mainEl.scrollHeight - mainEl.scrollTop - mainEl.clientHeight < 1000) {
-        extend(range.end + 1);
-      } else if (mainEl.scrollTop < 400) {
-        extend(range.start - 1);
+        if (!restoringRef.current) extend(range.end + 1);
+      } else if (mainEl.scrollTop > 0 && mainEl.scrollTop < 400) {
+        /* No upward extend from exactly 0: a programmatic scroll
+         * to the top (layout switch, jump, restore) fires check()
+         * while the list is still in flux, and the prepend then
+         * captures a stale scrollHeight baseline — the compensation
+         * lands a page early (seen 2026-11-26: layout switch to
+         * Translation on pg 400 landed on 29:30 p399, scrollTop
+         * 1982). At 0 there is nowhere further up to go, so the
+         * preload simply waits for the first real scroll, when the
+         * list has settled and the compensation is exact. */
+        if (!restoringRef.current) extend(range.start - 1);
       }
     };
     const onScroll = () => {
