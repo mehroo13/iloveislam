@@ -6,7 +6,7 @@
 // subtext is the required negation from the brief, not a payment
 // requirement.)
 // Full-screen, very light grey background (#F8F8F8), 20px side
-// padding, flexbox column. Top: our own two-diamond logo left, dark
+// padding, flexbox column. Top: our own I Love Islam logo left, dark
 // circular close button right. Hero: our own green/blue SVG gift,
 // bold title, grey subtitle, signature. Feature card: white card with
 // a green+gold badge, two horizontally swipeable cards with our own
@@ -26,16 +26,6 @@ const MUTED = 'var(--reader-muted)';
 /* ---------------------------------------------------------------- */
 /*  Icons (inline SVG, our own).                                     */
 /* ---------------------------------------------------------------- */
-
-// Two overlapping mint-green diamonds — our own logo mark.
-function IconLogo() {
-  return (
-    <svg viewBox="0 0 44 32" className="h-7 w-10" aria-hidden="true">
-      <rect x="4" y="6" width="18" height="18" rx="2" transform="rotate(45 13 15)" fill="#34D399" />
-      <rect x="20" y="9" width="15" height="15" rx="2" transform="rotate(45 27.5 16.5)" fill="#6EE7B7" />
-    </svg>
-  );
-}
 
 function IconClose() {
   return (
@@ -212,7 +202,10 @@ export default function ReaderGift({ open, onClose }: { open: boolean; onClose: 
       <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-[150px]">
         {/* Header: logo left, close right. */}
         <header className="flex items-center justify-between pt-5">
-          <IconLogo />
+          {/* Our own mark (public/logo.svg). Never the reference's
+              two-diamond mark. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="I Love Islam" width={28} height={28} className="h-7 w-7" />
           <button
             type="button"
             aria-label="Close"

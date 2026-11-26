@@ -2,7 +2,7 @@
 // step-by-step Tarteel match: the "Dashboard" screen. Opens from the
 // hamburger in the reader's top bar (replacing the Step 1 chapter
 // drawer; chapter navigation stays available via the central top-bar
-// pill). Vertically scrollable: top bar (back, two-diamond logo,
+// pill). Vertically scrollable: top bar (back, I Love Islam logo,
 // profile, gear), tabs (Dashboard / Goals / Memorization / Activity /
 // Community) that dynamically swap the content below, and the tab
 // views. Step 6 built the Dashboard tab; Step 7 made all four other
@@ -195,17 +195,6 @@ function IconNetwork() {
       <circle cx="12" cy="34" r="5" fill="#D1D5DB" stroke="none" />
       <circle cx="36" cy="34" r="5" fill="#D1D5DB" stroke="none" />
       <path d="M24 17v6m0 0l-9 7m9-7l9 7" />
-    </svg>
-  );
-}
-
-/* Two overlapping diamonds — our own logo mark (teal + light green,
- * measured from the reference). */
-function LogoDiamonds({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 40 24" className={className} aria-hidden="true">
-      <rect x="2" y="4" width="16" height="16" rx="2" transform="rotate(45 10 12)" fill="#48F0BD" />
-      <rect x="18" y="6" width="14" height="14" rx="2" transform="rotate(45 25 13)" fill="#D3F2D3" />
     </svg>
   );
 }
@@ -1949,7 +1938,11 @@ export default function ReaderDashboard({
         >
           <IconChevronLeft />
         </button>
-        <LogoDiamonds className="h-6 w-10" />
+        {/* Our own mark (public/logo.svg — dark green rounded square,
+            gold starburst, white open book). Never the reference's
+            two-diamond mark. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.svg" alt="I Love Islam" width={24} height={24} className="h-6 w-6" />
         <div className="flex items-center gap-3">
           <button
             type="button"
