@@ -651,7 +651,7 @@ export function setDailyGoal(
 export type GoalType = 'memorisation' | 'revision' | 'reading';
 
 export const GOAL_TYPE_LABELS: Record<GoalType, string> = {
-  memorisation: 'Memorisation',
+  memorisation: 'Memorization',
   revision: 'Revision',
   reading: 'Reading',
 };
@@ -1139,6 +1139,30 @@ export function markMistakesCorrected(
   return changed ? next : mistakes;
 }
 
+/**
+ * Mark every UNCORRECTED mistake on one WORD corrected, wherever it was
+ * missed (any ayah). Pairs with mistakesByWord, which now groups by
+ * word: a word-level row corrects the whole word, not one ayah of it.
+ * History is kept — corrected rows stay in the log, flagged, and stop
+ * counting as weak spots. Pure; the caller saves the result.
+ */
+export function markWordMistakesCorrectedByWord(
+  mistakes: MistakeEntry[],
+  word: string,
+  now: Date = new Date(),
+): MistakeEntry[] {
+  const at = now.toISOString();
+  let changed = false;
+  const next = mistakes.map((m) => {
+    if (m.word === word && !m.corrected) {
+      changed = true;
+      return { ...m, corrected: true, correctedAt: at };
+    }
+    return m;
+  });
+  return changed ? next : mistakes;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Stage 6 (§18) — dashboard totals + summaries. All pure, all      */
 /*  derived from the stored ayah records and mistake log; nothing is  */
@@ -1299,13 +1323,17 @@ export function difficultAyahs(mistakes: MistakeEntry[], limit: number = 5): Dif
 /* ------------------------------------------------------------------ */
 
 export interface MistakesWordGroup {
+  /** Representative location: the surah/ayah where this word was missed
+   *  most (most attempts, then most recent). One word can be missed in
+   *  several ayahs — the group sums them all, and the practise link goes
+   *  to the worst ayah. */
   surah: number;
   ayah: number;
   /** Expected word as stored (Uthmani, as rendered). */
   word: string;
   /** First heard value seen, only when the engine returned one. */
   heard?: string;
-  /** Summed attempts across the group's entries. */
+  /** Summed attempts across the group's entries (all ayahs). */
   attempts: number;
   /** Summed attempts on entries not yet corrected. */
   uncorrectedAttempts: number;
@@ -1313,22 +1341,27 @@ export interface MistakesWordGroup {
   corrected: boolean;
   /** ISO date-time of the most recent mistake in the group. */
   lastMistake: string;
+  /** Distinct ayahs this word was missed in. */
+  ayahs: number;
 }
 
 /**
  * Most-missed words, ranked by attempts (most first). One group per
- * surah:ayah:word. A word missed once still ranks — unlike the
- * 2+ frequent-marking threshold, the overview shows the whole picture.
+ * WORD — a word missed in two ayahs is one row with its attempts
+ * summed, so the true most-missed word tops the list. A word missed
+ * once still ranks — unlike the 2+ frequent-marking threshold, the
+ * overview shows the whole picture.
  */
 export function mistakesByWord(
   mistakes: MistakeEntry[],
   opts?: { uncorrectedOnly?: boolean; limit?: number },
 ): MistakesWordGroup[] {
   const byWord = new Map<string, MistakesWordGroup>();
+  // Attempts per word-per-ayah, to pick the representative location.
+  const locAttempts = new Map<string, Map<string, { surah: number; ayah: number; attempts: number; last: string }>>();
   for (const m of mistakes) {
     if (opts?.uncorrectedOnly && m.corrected) continue;
-    const k = `${m.surah}:${m.ayah}:${m.word}`;
-    const prev = byWord.get(k);
+    const prev = byWord.get(m.word);
     if (prev) {
       prev.attempts += m.attempts;
       if (!m.corrected) prev.uncorrectedAttempts += m.attempts;
@@ -1336,7 +1369,7 @@ export function mistakesByWord(
       if (!prev.heard && m.heard) prev.heard = m.heard;
       if (m.date > prev.lastMistake) prev.lastMistake = m.date;
     } else {
-      byWord.set(k, {
+      byWord.set(m.word, {
         surah: m.surah,
         ayah: m.ayah,
         word: m.word,
@@ -1345,7 +1378,34 @@ export function mistakesByWord(
         uncorrectedAttempts: m.corrected ? 0 : m.attempts,
         corrected: !!m.corrected,
         lastMistake: m.date,
+        ayahs: 1,
       });
+    }
+    const locs = locAttempts.get(m.word) ?? new Map();
+    locAttempts.set(m.word, locs);
+    const lk = `${m.surah}:${m.ayah}`;
+    const loc = locs.get(lk);
+    if (loc) {
+      loc.attempts += m.attempts;
+      if (m.date > loc.last) loc.last = m.date;
+    } else {
+      locs.set(lk, { surah: m.surah, ayah: m.ayah, attempts: m.attempts, last: m.date });
+    }
+  }
+  for (const [word, group] of byWord) {
+    const locs = locAttempts.get(word);
+    if (!locs) continue;
+    group.ayahs = locs.size;
+    // Representative location: most attempts, then most recent.
+    let best: { surah: number; ayah: number; attempts: number; last: string } | null = null;
+    for (const loc of locs.values()) {
+      if (!best || loc.attempts > best.attempts || (loc.attempts === best.attempts && loc.last > best.last)) {
+        best = loc;
+      }
+    }
+    if (best) {
+      group.surah = best.surah;
+      group.ayah = best.ayah;
     }
   }
   return [...byWord.values()]
@@ -1374,12 +1434,12 @@ export function mistakesBySurah(
     const prev = bySurah.get(m.surah);
     if (prev) {
       prev.attempts += m.attempts;
-      prev.words.add(`${m.ayah}:${m.word}`);
+      prev.words.add(m.word);
       prev.ayahs.add(m.ayah);
     } else {
       bySurah.set(m.surah, {
         attempts: m.attempts,
-        words: new Set([`${m.ayah}:${m.word}`]),
+        words: new Set([m.word]),
         ayahs: new Set([m.ayah]),
       });
     }

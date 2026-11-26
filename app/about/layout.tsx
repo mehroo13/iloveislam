@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'About Us — I Love Islam | Free AI Quran Memorisation App',
+  title: 'About Us — I Love Islam | Free AI Quran Memorization App',
   description:
     'Learn about I Love Islam — a free AI recitation coach that helps you memorise the whole Quran: all 114 surahs and 30 juz, with hifz plans, Mushaf reading, Test Mode and Voice Search. No sign-up, no fees, private by design.',
   keywords: [
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     'memorise quran free', 'mushaf app', 'quran test mode',
   ],
   openGraph: {
-    title: 'About I Love Islam — Free AI Quran Memorisation App',
+    title: 'About I Love Islam — Free AI Quran Memorization App',
     description: 'A free AI recitation coach to help you memorise the Quran — the whole Quran, with plans, Mushaf reading and tests. No sign-up, no fees.',
     type: 'website',
     images: [{ url: '/optimized/og-image.webp', width: 1200, height: 630, alt: 'I Love Islam — Memorise the Quran with AI' }],

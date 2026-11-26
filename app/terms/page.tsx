@@ -22,7 +22,7 @@ const sections = [
   {
     title: '3. Islamic Content Disclaimer',
     content:
-      "The content provided on this website is for general informational and educational purposes only. It is not a fatwa (Islamic legal ruling) and should not be treated as such.\n\nSpecifically:\n• The recitation coach checks which words you recited — it does not check tajweed. A qualified teacher is still needed for tajweed, and the coach's feedback is never a substitute for one.\n• Quran text, translations and tafsir are sourced from Quran.com; translations and tafsir are scholarly works and may differ between sources.\n• Memorisation plans are study guides, not a guarantee of memorisation.\n\nFor binding religious rulings (fatwas), please consult a qualified Islamic scholar.",
+      "The content provided on this website is for general informational and educational purposes only. It is not a fatwa (Islamic legal ruling) and should not be treated as such.\n\nSpecifically:\n• The recitation coach checks which words you recited — it does not check tajweed. A qualified teacher is still needed for tajweed, and the coach's feedback is never a substitute for one.\n• Quran text, translations and tafsir are sourced from Quran.com; translations and tafsir are scholarly works and may differ between sources.\n• Memorization plans are study guides, not a guarantee of memorisation.\n\nFor binding religious rulings (fatwas), please consult a qualified Islamic scholar.",
   },
   {
     title: '4. Acceptable Use',

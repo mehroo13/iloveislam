@@ -47,7 +47,7 @@ export type BadgeCategory =
 
 export const CATEGORY_LABELS: Record<BadgeCategory, string> = {
   streak: 'Streak',
-  memorisation: 'Memorisation',
+  memorisation: 'Memorization',
   revision: 'Revision',
   accuracy: 'Accuracy',
   journey: 'Journey',

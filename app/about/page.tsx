@@ -13,11 +13,11 @@ import TrustShell from '../components/TrustShell';
 const SECTIONS: { title: string; body: string }[] = [
   {
     title: 'Our Mission',
-    body: 'Our mission is simple: help every Muslim memorise the Quran, wherever they are, whatever their level. Memorisation used to need a teacher beside you at all times; this app gives you a patient coach that is available any hour, for free, for everyone. We believe access to the Quran is a right, not a privilege — so the whole app is free, and it stays free.',
+    body: 'Our mission is simple: help every Muslim memorise the Quran, wherever they are, whatever their level. Memorization used to need a teacher beside you at all times; this app gives you a patient coach that is available any hour, for free, for everyone. We believe access to the Quran is a right, not a privilege — so the whole app is free, and it stays free.',
   },
   {
     title: 'What the app does',
-    body: 'The AI recitation coach listens while you recite and checks every word. Memorisation Mode hides the verse so you recite from memory. Test Mode quizzes you like an exam. Voice Search finds any ayah by reciting it. Hifz plans (7-day, 30-day and a 90-day Juz Amma plan) break every surah into daily portions. The Mushaf mode shows the Quran page by page, exactly like the printed Madani mushaf. You can read in Indo-Pak or Madani script, with translations, tafsir and word-by-word breakdowns, and listen to named reciters.',
+    body: 'The AI recitation coach listens while you recite and checks every word. Memorization Mode hides the verse so you recite from memory. Test Mode quizzes you like an exam. Voice Search finds any ayah by reciting it. Hifz plans (7-day, 30-day and a 90-day Juz Amma plan) break every surah into daily portions. The Mushaf mode shows the Quran page by page, exactly like the printed Madani mushaf. You can read in Indo-Pak or Madani script, with translations, tafsir and word-by-word breakdowns, and listen to named reciters.',
   },
   {
     title: 'How the coach works — and its limits',

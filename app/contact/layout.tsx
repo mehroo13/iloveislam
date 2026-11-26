@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Contact Us — I Love Islam | Free AI Quran Memorisation App',
+  title: 'Contact Us — I Love Islam | Free AI Quran Memorization App',
   description:
     'Get in touch with the I Love Islam team. Report bugs, suggest features, ask questions about the Hifz app, or discuss partnerships. We reply within 48 hours inshaAllah.',
   openGraph: {

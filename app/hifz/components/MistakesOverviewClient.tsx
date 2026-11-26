@@ -15,7 +15,7 @@ import { BackToReader } from './HifzShared';
 import {
   loadMistakes,
   saveMistakes,
-  markWordMistakesCorrected,
+  markWordMistakesCorrectedByWord,
   mistakesByWord,
   mistakesBySurah,
   mistakesPerDay,
@@ -60,7 +60,8 @@ export default function MistakesOverviewClient() {
     for (const m of mistakes) {
       total += m.attempts;
       if (!m.corrected) uncorrected += m.attempts;
-      words.add(`${m.surah}:${m.ayah}:${m.word}`);
+      // Distinct WORDS (M1): one word missed in two ayahs is one word.
+      words.add(m.word);
     }
     return { total, uncorrected, corrected: total - uncorrected, words: words.size };
   }, [mistakes]);
@@ -100,8 +101,10 @@ export default function MistakesOverviewClient() {
     setMistakes(next);
   };
 
-  const markWord = (surah: number, ayah: number, word: string) => {
-    persist(markWordMistakesCorrected(mistakes, surah, ayah, word));
+  // M1: the ranking is per word now, so marking a row corrects the
+  // whole word (every ayah it was missed in), not one ayah of it.
+  const markWord = (word: string) => {
+    persist(markWordMistakesCorrectedByWord(mistakes, word));
   };
 
   const markOne = (idx: number) => {
@@ -187,7 +190,7 @@ export default function MistakesOverviewClient() {
                   const maxAttempts = rankedWords[0].attempts;
                   return (
                     <div
-                      key={`${w.surah}:${w.ayah}:${w.word}`}
+                      key={w.word}
                       role="listitem"
                       className="rounded-xl bg-[#F4F5F7] px-3 py-2"
                     >
@@ -197,6 +200,7 @@ export default function MistakesOverviewClient() {
                           {' '}
                           <span className="text-[#6B7280]">
                             {surah ? surah.name : `Surah ${w.surah}`} {w.surah}:{w.ayah}
+                            {w.ayahs > 1 ? ` · ${w.ayahs} ${t('common.ayahs')}` : ''}
                           </span>
                         </span>
                         <span className="font-bold text-[#111827]">
@@ -217,7 +221,7 @@ export default function MistakesOverviewClient() {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => markWord(w.surah, w.ayah, w.word)}
+                            onClick={() => markWord(w.word)}
                             className="inline-flex min-h-9 items-center justify-center rounded-full border border-[#1FA36B] px-3 py-1 text-xs font-semibold text-[#1FA36B] hover:bg-[#E4FFF2]"
                           >
                             {t('mistakes.markCorrected')}
@@ -268,7 +272,11 @@ export default function MistakesOverviewClient() {
                           )}
                           {' '}
                           <span className="text-[#6B7280]">
-                            {t('mistakes.surahDetail').replace('{w}', String(s.words)).replace('{a}', String(s.ayahs))}
+                            {t('mistakes.surahDetail')
+                              .replace('{w}', String(s.words))
+                              .replace('{wordWord}', s.words === 1 ? t('common.word') : t('common.words'))
+                              .replace('{a}', String(s.ayahs))
+                              .replace('{ayahWord}', s.ayahs === 1 ? t('common.ayah') : t('common.ayahs'))}
                           </span>
                         </span>
                         <span className="font-bold text-[#111827]">

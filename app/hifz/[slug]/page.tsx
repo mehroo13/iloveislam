@@ -102,9 +102,9 @@ export default async function SurahPage({
 
       <VirtuesBlock slug={surah.slug} />
 
-      {/* Memorisation plans */}
+      {/* Memorization plans */}
       <section aria-labelledby="plans-heading" className="mt-8">
-        <h2 id="plans-heading" className="text-2xl font-bold text-[#102E26]">Memorisation plan</h2>
+        <h2 id="plans-heading" className="text-2xl font-bold text-[#102E26]">Memorization plan</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           {plan7 && <PlanCard plan={plan7} surahSlug={surah.slug} surahName={surah.name} />}
           {plan30 && <PlanCard plan={plan30} surahSlug={surah.slug} surahName={surah.name} />}

@@ -147,7 +147,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     price: '0',
                     priceCurrency: 'USD',
                   },
-                  featureList: 'AI Recitation Coach with live word-by-word mistake detection, Memorisation Mode with hidden verses and peeking, Test Mode, Voice Search, Hifz Plans, Streaks, Mistake Review, Activity Heatmaps, Per-Surah Strength, Juz Amma, Tafsir and Translations',
+                  featureList: 'AI Recitation Coach with live word-by-word mistake detection, Memorization Mode with hidden verses and peeking, Test Mode, Voice Search, Hifz Plans, Streaks, Mistake Review, Activity Heatmaps, Per-Surah Strength, Juz Amma, Tafsir and Translations',
                   screenshot: 'https://www.iloveislam.life/optimized/og-image.webp',
                   author: { '@id': '#organization' },
                   publisher: { '@id': '#organization' },

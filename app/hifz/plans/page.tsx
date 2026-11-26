@@ -14,7 +14,7 @@ import { SITE_URL } from '../lib/fetch';
 export const metadata: Metadata = {
   title: 'Hifz Plans — 7-Day, 30-Day & 90-Day | I Love Islam',
   description:
-    'Memorisation plans for every surah: 7-day plans, 30-day plans and the Juz Amma 90-day plan, each paired with the recitation coach.',
+    'Memorization plans for every surah: 7-day plans, 30-day plans and the Juz Amma 90-day plan, each paired with the recitation coach.',
   alternates: { canonical: `${SITE_URL}/hifz/plans` },
 };
 
@@ -30,7 +30,7 @@ export default function PlansPage() {
       />
       <BackToReader />
       <header className="mt-4">
-        <h1 className="text-3xl font-bold tracking-tight text-[#102E26] sm:text-4xl">Memorisation plans</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-[#102E26] sm:text-4xl">Memorization plans</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5b6b62] sm:text-base">
           Every plan pairs each day&apos;s ayahs with the recitation coach, so the plan knows
           whether you recited them correctly. A day is only complete when its ayahs reach
