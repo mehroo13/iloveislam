@@ -1290,6 +1290,169 @@ export function difficultAyahs(mistakes: MistakeEntry[], limit: number = 5): Dif
 }
 
 /* ------------------------------------------------------------------ */
+/*  Mistakes overview (2026-11-26): pure aggregations for the        */
+/*  dedicated /hifz/mistakes screen. All derived ONLY from the stored */
+/*  mistake log — summed `attempts`, never estimated. The               */
+/*  `uncorrectedOnly` option filters the entries BEFORE aggregating,  */
+/*  so the overview's "Uncorrected only" filter shows only mistakes   */
+/*  still to fix, with corrected ones excluded from every count.      */
+/* ------------------------------------------------------------------ */
+
+export interface MistakesWordGroup {
+  surah: number;
+  ayah: number;
+  /** Expected word as stored (Uthmani, as rendered). */
+  word: string;
+  /** First heard value seen, only when the engine returned one. */
+  heard?: string;
+  /** Summed attempts across the group's entries. */
+  attempts: number;
+  /** Summed attempts on entries not yet corrected. */
+  uncorrectedAttempts: number;
+  /** True when every entry in the group is corrected. */
+  corrected: boolean;
+  /** ISO date-time of the most recent mistake in the group. */
+  lastMistake: string;
+}
+
+/**
+ * Most-missed words, ranked by attempts (most first). One group per
+ * surah:ayah:word. A word missed once still ranks — unlike the
+ * 2+ frequent-marking threshold, the overview shows the whole picture.
+ */
+export function mistakesByWord(
+  mistakes: MistakeEntry[],
+  opts?: { uncorrectedOnly?: boolean; limit?: number },
+): MistakesWordGroup[] {
+  const byWord = new Map<string, MistakesWordGroup>();
+  for (const m of mistakes) {
+    if (opts?.uncorrectedOnly && m.corrected) continue;
+    const k = `${m.surah}:${m.ayah}:${m.word}`;
+    const prev = byWord.get(k);
+    if (prev) {
+      prev.attempts += m.attempts;
+      if (!m.corrected) prev.uncorrectedAttempts += m.attempts;
+      prev.corrected = prev.corrected && !!m.corrected;
+      if (!prev.heard && m.heard) prev.heard = m.heard;
+      if (m.date > prev.lastMistake) prev.lastMistake = m.date;
+    } else {
+      byWord.set(k, {
+        surah: m.surah,
+        ayah: m.ayah,
+        word: m.word,
+        ...(m.heard ? { heard: m.heard } : {}),
+        attempts: m.attempts,
+        uncorrectedAttempts: m.corrected ? 0 : m.attempts,
+        corrected: !!m.corrected,
+        lastMistake: m.date,
+      });
+    }
+  }
+  return [...byWord.values()]
+    .sort((a, b) => b.attempts - a.attempts || b.lastMistake.localeCompare(a.lastMistake))
+    .slice(0, opts?.limit ?? 10);
+}
+
+export interface MistakesSurahCount {
+  surah: number;
+  /** Summed attempts on this surah. */
+  attempts: number;
+  /** Distinct words missed on this surah. */
+  words: number;
+  /** Distinct ayahs with a mistake on this surah. */
+  ayahs: number;
+}
+
+/** Mistake counts by surah, most first. */
+export function mistakesBySurah(
+  mistakes: MistakeEntry[],
+  opts?: { uncorrectedOnly?: boolean },
+): MistakesSurahCount[] {
+  const bySurah = new Map<number, { attempts: number; words: Set<string>; ayahs: Set<number> }>();
+  for (const m of mistakes) {
+    if (opts?.uncorrectedOnly && m.corrected) continue;
+    const prev = bySurah.get(m.surah);
+    if (prev) {
+      prev.attempts += m.attempts;
+      prev.words.add(`${m.ayah}:${m.word}`);
+      prev.ayahs.add(m.ayah);
+    } else {
+      bySurah.set(m.surah, {
+        attempts: m.attempts,
+        words: new Set([`${m.ayah}:${m.word}`]),
+        ayahs: new Set([m.ayah]),
+      });
+    }
+  }
+  return [...bySurah.entries()]
+    .map(([surah, v]) => ({ surah, attempts: v.attempts, words: v.words.size, ayahs: v.ayahs.size }))
+    .sort((a, b) => b.attempts - a.attempts);
+}
+
+export interface MistakeDayPoint {
+  /** YYYY-MM-DD local date. */
+  date: string;
+  /** Short label, e.g. "12 Nov". */
+  label: string;
+  /** Summed mistake attempts that day (0 = a clean day). */
+  count: number;
+}
+
+/**
+ * Mistakes per day over the last `days` days (oldest first). Every day
+ * in the window is present — days with no mistakes are 0, never omitted
+ * or filled with an estimate. The window is anchored on local today.
+ */
+export function mistakesPerDay(
+  mistakes: MistakeEntry[],
+  days: number = 30,
+  opts?: { uncorrectedOnly?: boolean },
+  now: Date = new Date(),
+): MistakeDayPoint[] {
+  const out: MistakeDayPoint[] = [];
+  const byDay = new Map<string, number>();
+  for (const m of mistakes) {
+    if (opts?.uncorrectedOnly && m.corrected) continue;
+    const day = m.date.slice(0, 10);
+    byDay.set(day, (byDay.get(day) ?? 0) + m.attempts);
+  }
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const key = localDateString(d);
+    out.push({
+      date: key,
+      label: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      count: byDay.get(key) ?? 0,
+    });
+  }
+  return out;
+}
+
+/**
+ * Mark every UNCORRECTED mistake on one word (one ayah) corrected.
+ * History is kept — corrected rows stay in the log, flagged, and stop
+ * counting as weak spots. Pure; the caller saves the result.
+ */
+export function markWordMistakesCorrected(
+  mistakes: MistakeEntry[],
+  surah: number,
+  ayah: number,
+  word: string,
+  now: Date = new Date(),
+): MistakeEntry[] {
+  const at = now.toISOString();
+  let changed = false;
+  const next = mistakes.map((m) => {
+    if (m.surah === surah && m.ayah === ayah && m.word === word && !m.corrected) {
+      changed = true;
+      return { ...m, corrected: true, correctedAt: at };
+    }
+    return m;
+  });
+  return changed ? next : mistakes;
+}
+
+/* ------------------------------------------------------------------ */
 /*  BB — real analytics (no invented data). Every helper below is     */
 /*  pure and derives ONLY from stored records: test sessions           */
 /*  (score/total), coach sessions (measured accuracy percent) and the  */
