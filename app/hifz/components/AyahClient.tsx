@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {
-  API, AUDIO_BASE, TRANSLATIONS, RECITERS, TAFSIRS, TAFSIR_ID, KHATTAB_TRANSLATION_ID, groupByLanguage, stripHtml, cleanIndopak, verseText,
+  API, AUDIO_BASE, TRANSLATIONS, RECITERS, TAFSIRS, TAFSIR_ID, KHATTAB_TRANSLATION_ID, groupByLanguage, cleanTranslationText, cleanIndopak, verseText,
   type Verse,
 } from '../../quran/lib';
 import type { HifzSurah } from '../surahs';
@@ -146,7 +146,7 @@ export default function AyahClient({
   };
 
   const key = `${surah.id}:${ayah}`;
-  const translation = stripHtml(verse.translations?.[0]?.text ?? '');
+  const translation = cleanTranslationText(verse.translations?.[0]?.text ?? '');
   const translationName = TRANSLATIONS.find((t) => t.id === translationId)?.name ?? 'Saheeh International';
   const reciterName = RECITERS.find((r) => r.id === reciterId)?.name ?? 'Mishary Alafasy';
   const words = pairWords(verse.text_indopak, initialWords);

@@ -8,7 +8,7 @@ import { getVirtue } from '../virtues';
 import AyahClient from '../components/AyahClient';
 import VirtuesBlock from '../components/VirtuesBlock';
 import { Breadcrumb, Attribution} from '../components/HifzShared';
-import { stripHtml, cleanIndopak } from '../../quran/lib';
+import { cleanTranslationText, cleanIndopak } from '../../quran/lib';
 
 const KEY = AYAT_AL_KURSI.key; // "2:255"
 const BAQARAH = getSurahBySlug('al-baqarah')!;
@@ -119,7 +119,7 @@ export default async function AyatAlKursiPage() {
 
       {verse?.translations?.[0] && (
         <p className="mt-6 text-sm leading-relaxed text-[#5b6b62]">
-          “{stripHtml(verse.translations[0].text)}” — Saheeh International, 2:255.
+          “{cleanTranslationText(verse.translations[0].text)}” — Saheeh International, 2:255.
         </p>
       )}
 

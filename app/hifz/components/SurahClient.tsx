@@ -11,13 +11,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {
-  API, AUDIO_BASE, TRANSLATIONS, RECITERS, TAFSIRS, TAFSIR_ID, groupByLanguage, stripHtml, cleanIndopak, verseText,
+  API, AUDIO_BASE, TRANSLATIONS, RECITERS, TAFSIRS, TAFSIR_ID, KHATTAB_TRANSLATION_ID, groupByLanguage, cleanTranslationText, cleanIndopak, verseText,
   type Verse,
 } from '../../quran/lib';
 import { ALL_SURAHS, type HifzSurah } from '../surahs';
 import { getTopic } from '../topics';
 import { useScriptPref, SCRIPT_LABELS } from '../lib/script';
-import { attributionFor } from '../lib/fetch';
+import { attributionFor, pairWordRows } from '../lib/fetch';
 import {
   loadProgress, saveProgress, loadSettings, saveSettings, markAttempt,
   type HifzProgress,
@@ -51,19 +51,29 @@ interface ListenSettings {
   wordByWord: boolean;
 }
 
-function loadListenSettings(ayahCount: number): ListenSettings {
+function loadListenSettings(ayahCount: number, surahId?: number): ListenSettings {
   try {
     const raw = localStorage.getItem(LISTEN_KEY);
     if (raw) {
-      const p = JSON.parse(raw) as Partial<ListenSettings>;
+      const p = JSON.parse(raw) as Partial<ListenSettings> & { surahId?: number };
+      // Audit C3: the range end persisted across surahs and was only
+      // clamped to the new surah's count, never reset — after visiting
+      // Al-Ikhlas (4 ayahs) Al-Fatihah showed "Play ayahs 1–4" and
+      // silently played only part of the surah. When the saved range
+      // belongs to a different surah, reset it to that surah's full
+      // range (repeat / pause / speed / word-by-word carry over — only
+      // the ayah range is surah-specific). Same-surah loads keep the
+      // saved range, clamped to the count as before.
+      const surahChanged =
+        surahId !== undefined && p.surahId !== undefined && p.surahId !== surahId;
       return {
         repeat: Math.min(100, Math.max(1, Number(p.repeat ?? 1) || 1)),
         pauseSec: Math.min(10, Math.max(0, Number(p.pauseSec ?? 0) || 0)),
         speed: [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].includes(Number(p.speed))
           ? Number(p.speed)
           : 1,
-        fromAyah: Math.min(ayahCount, Math.max(1, Number(p.fromAyah ?? 1) || 1)),
-        toAyah: Math.min(ayahCount, Math.max(1, Number(p.toAyah ?? ayahCount) || ayahCount)),
+        fromAyah: surahChanged ? 1 : Math.min(ayahCount, Math.max(1, Number(p.fromAyah ?? 1) || 1)),
+        toAyah: surahChanged ? ayahCount : Math.min(ayahCount, Math.max(1, Number(p.toAyah ?? ayahCount) || ayahCount)),
         wordByWord: p.wordByWord === true,
       };
     }
@@ -180,9 +190,9 @@ export default function SurahClient({
   const [listen, setListen] = useState<ListenSettings>({ repeat: 1, pauseSec: 0, speed: 1, fromAyah: 1, toAyah: surah.ayahCount, wordByWord: false });
   const [listenHydrated, setListenHydrated] = useState(false);
   useEffect(() => {
-    setListen(loadListenSettings(surah.ayahCount));
+    setListen(loadListenSettings(surah.ayahCount, surah.id));
     setListenHydrated(true);
-  }, [surah.ayahCount]);
+  }, [surah.id, surah.ayahCount]);
   const [playingKey, setPlayingKey] = useState<string | null>(null);
   const [listenPlaying, setListenPlaying] = useState(false);
   // Listening as a real mode (Stage 4): true while the user is in Listen
@@ -244,11 +254,13 @@ export default function SurahClient({
     // defaults must never overwrite them on mount.
     if (!listenHydrated) return;
     try {
-      localStorage.setItem(LISTEN_KEY, JSON.stringify(listen));
+      // The surah id travels with the saved range so a later visit to
+      // a different surah can tell the range is stale (audit C3).
+      localStorage.setItem(LISTEN_KEY, JSON.stringify({ ...listen, surahId: surah.id }));
     } catch {
       /* ignore */
     }
-  }, [listen, listenHydrated]);
+  }, [listen, listenHydrated, surah.id]);
 
   useEffect(() => {
     try {
@@ -261,12 +273,35 @@ export default function SurahClient({
   /* ---------- refetch when translation / reciter changes ---------- */
   const refetchVerses = useCallback(async (tId: number, rId: number) => {
     try {
+      // Audit C1: the default translation is Khattab (131), which is
+      // NOT a Quran.com v4 resource — asking v4 for translations=131
+      // returns verses with NO translation text, so the Read view
+      // showed the "Translation: Dr. Mustafa Khattab…" label with no
+      // English under any ayah. Fetch the verse shape with the default
+      // translation (as AyahClient does) and substitute the Khattab
+      // text from its own route; a failed substitution keeps the
+      // default translation rather than blanking the view.
       const res = await fetch(
-        `${API}/verses/by_chapter/${surah.id}?fields=text_indopak,text_uthmani&translations=${tId}&audio=${rId}&per_page=all`,
+        `${API}/verses/by_chapter/${surah.id}?fields=text_indopak,text_uthmani&translations=${tId === KHATTAB_TRANSLATION_ID ? 20 : tId}&audio=${rId}&per_page=all`,
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setVerses((data.verses as Verse[]) ?? []);
+      const verses = (data.verses as Verse[]) ?? [];
+      if (tId === KHATTAB_TRANSLATION_ID) {
+        try {
+          const kRes = await fetch(`/api/quran/khattab/${surah.id}`);
+          if (kRes.ok) {
+            const kData = (await kRes.json()) as { translations?: Record<number, string> };
+            for (const v of verses) {
+              const text = kData.translations?.[v.verse_number];
+              if (typeof text === 'string' && text.length > 0) v.translations = [{ text }];
+            }
+          }
+        } catch {
+          /* keep the default translation as the fallback */
+        }
+      }
+      setVerses(verses);
       setVersesError('');
     } catch {
       setVersesError(tr('surah.reloadError', getUiLocale()));
@@ -296,7 +331,7 @@ export default function SurahClient({
         surah: surah.id,
         ayah: v.verse_number,
         text: cleanIndopak(v.text_indopak),
-        translation: stripHtml(v.translations?.[0]?.text ?? ''),
+        translation: cleanTranslationText(v.translations?.[0]?.text ?? ''),
         audioUrl: v.audio?.url,
       })),
     [verses, surah.id],
@@ -422,13 +457,11 @@ export default function SurahClient({
           ),
           audioUrl: typeof w.audio_url === 'string' ? w.audio_url : undefined,
         }));
-      const display = cleanIndopak(indopakText).split(/\s+/).filter(Boolean);
-      const words = display.map((arabic, i) => ({
-        arabic,
-        translation: infos[i]?.translation ?? '',
-        transliteration: infos[i]?.transliteration ?? '',
-        audioUrl: infos[i]?.audioUrl,
-      }));
+      // Shared pairing (lib/fetch pairWordRows, audit C4): standalone
+      // pause-mark tokens do not consume a payload slot, and a split
+      // "وَ" + word merges with the payload's one word — otherwise
+      // every following word shows the NEXT word's meaning (2:255).
+      const words = pairWordRows(indopakText, infos);
       wbwCacheRef.current.set(key, words);
       return words;
     } catch {
@@ -1451,7 +1484,7 @@ export default function SurahClient({
           <p className="mt-3 text-sm text-[#5b6b62]">{t('surah.loadingVerses')}</p>
         )}
         {pageVerses.map((v) => {
-          const translation = stripHtml(v.translations?.[0]?.text ?? '');
+          const translation = cleanTranslationText(v.translations?.[0]?.text ?? '');
           const status = ayahStatus(v.verse_number);
           const bookmarked = isBookmarked(v.verse_number);
           const isPlaying = playingKey === v.verse_key;

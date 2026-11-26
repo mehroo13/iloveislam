@@ -13,17 +13,19 @@ import type { HifzSurah } from '../surahs';
 export const SITE_URL = 'https://www.iloveislam.life';
 
 /** Visible attribution — spec §9.2, on every hifz page. The default
- *  (Saheeh International + Ibn Kathir Abridged); use attributionFor()
- *  below when the reader picked a different translation/tafsir. */
+ *  translation is Khattab, The Clear Quran (DEFAULT_TRANSLATION_ID in
+ *  progress.ts) — NOT Saheeh International (audit m5: the footer said
+ *  Saheeh while every page showed Khattab). Use attributionFor() below
+ *  when the reader picked a different translation/tafsir. */
 export const ATTRIBUTION =
-  'Quran text, translation (Saheeh International) and tafsir (Ibn Kathir Abridged) via Quran.com.';
+  'Quran text, translation (Dr. Mustafa Khattab, The Clear Quran) and tafsir (Ibn Kathir Abridged) via Quran.com.';
 
 /** Attribution naming the translation/tafsir actually selected, so the
  *  credit always matches what is on screen. Quran text, translations and
  *  tafsirs are served freely by Quran.com's public API with attribution;
  *  nothing is pasted into the repo. */
-export function attributionFor(translationId = 20, tafsirId: number = TAFSIR_ID): string {
-  const tName = TRANSLATIONS.find((t) => t.id === translationId)?.name ?? 'Saheeh International';
+export function attributionFor(translationId = KHATTAB_TRANSLATION_ID, tafsirId: number = TAFSIR_ID): string {
+  const tName = TRANSLATIONS.find((t) => t.id === translationId)?.name ?? 'Dr. Mustafa Khattab, The Clear Quran';
   const fName = TAFSIRS.find((t) => t.id === tafsirId)?.name ?? TAFSIR_NAME;
   return `Quran text, translation (${tName}) and tafsir (${fName}) via Quran.com.`;
 }
@@ -147,17 +149,93 @@ export async function fetchVerseWords(key: string): Promise<WordInfo[]> {
 /** Word-by-word data for a whole surah, keyed by verse number. Client code
  *  fetches this through the proxy instead; this server helper is for the
  *  single-ayah pages. Kept here so the pairing logic lives in one place. */
-export function pairWords(indopakText: string, words: WordInfo[]): { arabic: string; translation: string; transliteration: string; audioUrl?: string }[] {
+export interface PairedWord {
+  arabic: string;
+  translation: string;
+  transliteration: string;
+  audioUrl?: string;
+}
+
+/** A display token that carries no word identity: only small-high pause
+ *  marks (ۚ ؕ …), possibly with zero-width/format controls attached
+ *  (Quran.com ships "​ۚ" as its own token on 2:255). */
+function isPauseOnlyToken(token: string): boolean {
+  const bare = token.replace(/[\u200B\u200C\u200D\uFEFF\u200F]/g, '');
+  return isPauseMarkOnly(bare);
+}
+
+/** Pair the verse's own Indo-Pak words (display) with the words payload
+ *  (translation + transliteration + audio) by position — with two
+ *  corrections the naive 1:1 pairing gets wrong (audit C4, 2:255):
+ *  1. Standalone pause-mark tokens (ۚ, ​ۚ) exist in the verse text but
+ *     have NO entry in the words payload, so they used to consume a
+ *     slot and shift every following word's meaning by one. They now
+ *     pair with nothing: the row stays (same position in the list, so
+ *     word-by-word playback indices still match the Arabic line) but
+ *     carries no translation, transliteration or audio.
+ *  2. Indo-Pak splits a prefixed و off its word ("وَ" + "هُوَ") where
+ *     the payload has one word ("wahuwa"). When — and only when — the
+ *     display has exactly one more consumable word than the payload
+ *     after pause marks are skipped, a bare "وَ" token is merged with
+ *     the following word into the one payload word ("وَهُوَ"). The
+ *     count guard means the merge never fires when the lists already
+ *     agree (the common case: 1:1 is untouched), and a mismatch with
+ *     no bare و falls back to plain positional pairing (no worse than
+ *     before). */
+export function pairWordRows(
+  indopakText: string,
+  infos: { translation: string; transliteration: string; audioUrl?: string }[],
+): PairedWord[] {
   const display = cleanIndopak(indopakText).split(/\s+/).filter(Boolean);
-  return display.map((arabic, i) => {
-    const w = words[i];
-    return {
-      arabic,
-      translation: w?.translation ?? '',
-      transliteration: w?.transliteration ?? '',
-      audioUrl: w?.audioUrl,
-    };
+  // Consumable words: everything except standalone pause marks.
+  const consumableIdx: number[] = [];
+  display.forEach((tok, i) => {
+    if (!isPauseOnlyToken(tok)) consumableIdx.push(i);
   });
+  // Merge a bare و with the next word when that is exactly the
+  // discrepancy between the two lists (see doc comment above).
+  let mergeAt = -1; // display index of the bare و to merge
+  if (consumableIdx.length === infos.length + 1) {
+    for (let k = 0; k < consumableIdx.length - 1; k++) {
+      const tok = display[consumableIdx[k]];
+      // Strip diacritics: "وَ" -> "و".
+      const bare = tok.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '').replace(/[\u200B\u200C\u200D\uFEFF\u200F]/g, '');
+      if (bare === 'و') {
+        mergeAt = consumableIdx[k];
+        break;
+      }
+    }
+  }
+  const rows: PairedWord[] = [];
+  let infoPos = 0;
+  for (let i = 0; i < display.length; i++) {
+    const arabic = display[i];
+    if (isPauseOnlyToken(arabic)) {
+      rows.push({ arabic, translation: '', transliteration: '', audioUrl: undefined });
+      continue;
+    }
+    if (mergeAt === i) {
+      // Consume the next display token into this row and pair the
+      // joined word ("وَ" + "هُوَ" -> "وَهُوَ") with one payload word.
+      const next = display[i + 1] ?? '';
+      const info = infos[infoPos++];
+      rows.push({ arabic: arabic + next, translation: info?.translation ?? '', transliteration: info?.transliteration ?? '', audioUrl: info?.audioUrl });
+      i++; // skip the merged token (the loop's own i++ moves past it)
+      continue;
+    }
+    const info = infos[infoPos++];
+    rows.push({
+      arabic,
+      translation: info?.translation ?? '',
+      transliteration: info?.transliteration ?? '',
+      audioUrl: info?.audioUrl,
+    });
+  }
+  return rows;
+}
+
+export function pairWords(indopakText: string, words: WordInfo[]): PairedWord[] {
+  return pairWordRows(indopakText, words);
 }
 
 /** One Madani mushaf page (verses/by_page) with word positions — for the

@@ -14,7 +14,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { API, cleanIndopak, AUDIO_BASE } from '../../quran/lib';
+import { API, AUDIO_BASE } from '../../quran/lib';
+import { pairWordRows } from '../lib/fetch';
 import { useT } from '../lib/i18n';
 
 interface WordRow {
@@ -57,15 +58,11 @@ export default function WordByWord({
             ),
             audioUrl: typeof w.audio_url === 'string' ? w.audio_url : undefined,
           }));
-        const display = cleanIndopak(indopakText).split(/\s+/).filter(Boolean);
-        setWords(
-          display.map((arabic, i) => ({
-            arabic,
-            translation: infos[i]?.translation ?? '',
-            transliteration: infos[i]?.transliteration ?? '',
-            audioUrl: infos[i]?.audioUrl,
-          })),
-        );
+        // Shared pairing (lib/fetch pairWordRows, audit C4): standalone
+        // pause-mark tokens do not consume a payload slot, and a split
+        // "وَ" + word merges with the payload's one word — otherwise
+        // every following word shows the NEXT word's meaning (2:255).
+        setWords(pairWordRows(indopakText, infos));
       })
       .catch(() => {
         if (!cancelled) setFailed(true);
