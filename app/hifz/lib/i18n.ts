@@ -14482,8 +14482,8 @@ export function resetUiPrefsToDefaults(): void {
 /** Mount effect for the app shell: read the saved prefs once the client
  *  is live (avoids a hydration mismatch — the server renders 'en' /
  *  'light'), and re-sync if another tab changes the settings. Call from
- *  `BottomTabs` (which renders on `/` too, where the hifz layout does
- *  not run) and from `ThemeApplier`. */
+ *  `ReaderScreen` (the `/` landing page, where the hifz layout does
+ *  not run) and from `ThemeApplier` (the `/hifz/*` shell). */
 export function useSyncUiPrefs(): void {
   useEffect(() => {
     syncPrefsFromStorage();

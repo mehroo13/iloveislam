@@ -79,6 +79,12 @@ type SearchResult = {
   label: string;
   sub: string;
   page: number;
+  /** Surah-targeted result (surah name, or an ayah ref that opens
+   *  at its surah's start): the reader names this surah in the
+   *  sticky pill after the jump, even when the landing page opens
+   *  with the previous surah's last ayah (audit Bug 1). Page/Juz
+   *  results carry no surah — the pill follows the page. */
+  surahId?: number;
 };
 
 /** One ayah from /api/quran/word-search (Part 5). */
@@ -129,6 +135,7 @@ function searchResults(
             ? `Ayah ${s.id}:${jump.ayah} · Page ${page}`
             : `Opens at the start of ${s.name} · Page ${page}`,
         page,
+        surahId: s.id,
       },
     ];
   }
@@ -155,6 +162,7 @@ function searchResults(
     label: s.name,
     sub: `${s.ayahCount} verses · Page ${surahFirstPage[s.id] ?? 1}`,
     page: surahFirstPage[s.id] ?? 1,
+    surahId: s.id,
   }));
 }
 
@@ -177,8 +185,10 @@ export default function ReaderSearch({
 }: {
   open: boolean;
   onClose: () => void;
-  /** A result tap jumps the reader to this mushaf page. */
-  onSelectPage: (page: number) => void;
+  /** A result tap jumps the reader to this mushaf page. Surah
+   *  results also pass the surah id, so the reader's sticky pill
+   *  names the surah jumped to (audit Bug 1). */
+  onSelectPage: (page: number, surahId?: number) => void;
   /** The print edition: surah/Juz first pages differ per edition. */
   edition: MushafEditionId;
 }) {
@@ -210,10 +220,10 @@ export default function ReaderSearch({
   /** A result tap is the honest record trigger: the user found what
    *  they wanted and jumped to it. Typing, and the debounced
    *  word-search fetches, are never recorded. */
-  const handleSelectPage = (page: number) => {
+  const handleSelectPage = (page: number, surahId?: number) => {
     const q = query.trim();
     if (q) setRecentSearches(recordRecentSearch(q));
-    onSelectPage(page);
+    onSelectPage(page, surahId);
   };
 
   // Mount / fade lifecycle: mount, then fade in; on close, fade out
@@ -390,7 +400,7 @@ export default function ReaderSearch({
               <button
                 key={r.key}
                 type="button"
-                onClick={() => handleSelectPage(r.page)}
+                onClick={() => handleSelectPage(r.page, r.surahId)}
                 className="flex w-full items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-left shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
               >
                 <IconSearchSmall />

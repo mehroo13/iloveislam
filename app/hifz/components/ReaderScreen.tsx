@@ -61,6 +61,7 @@ import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { migrateToIdb } from '../lib/store';
 import { readerWordKey } from '../lib/reader-words';
 import { MIN_READER_SESSION_MS, saveReaderSession, surahName } from '../lib/reader-sessions';
+import { useSyncUiPrefs } from '../lib/i18n';
 import { DEFAULT_RECITER_ID, DEFAULT_TRANSLATION_ID, loadSettings, saveSettings } from '../progress';
 import { readListenSpeed, writeListenSpeed } from '../lib/listen-speed';
 import { type PeekInfo, type ReaderMistake, loadFrequentMistakeKeys } from '../lib/reader-mistakes';
@@ -299,6 +300,35 @@ function IconPlaySpinner() {
 
 export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const router = useRouter();
+  /* READER-ROUTE LOCALE SYNC GAP (2026-11-26): `/` renders this
+   * screen WITHOUT the /hifz/* layout, so ThemeApplier /
+   * useSyncUiPrefs never ran here — a saved non-English locale set
+   * lang/dir on <html> (root layout inline script) but the i18n
+   * store stayed 'en' and the whole reader rendered in English
+   * until the user visited a /hifz/* page first. Sync on mount so
+   * a fresh load of `/` renders the saved locale. */
+  useSyncUiPrefs();
+  /* Surah-targeted jump override (audit Bug 1, 2026-11-26): a
+   * ChapterSheet surah tap or a surah search result lands on the
+   * page where the surah STARTS — but that page usually opens with
+   * the previous surah's last ayah, so the sticky pill named the
+   * previous surah while the tapped surah's heading was on screen
+   * (Ya-Sin → "Fatir", Ar-Rahman → "Al-Qamar", An-Nas →
+   * "Al-Ikhlas"). Remember the tapped surah + its landing page;
+   * while the reader is still on that page the pill names the
+   * tapped surah. Any other navigation (swipe, plain page jump,
+   * edition switch) clears it and the pill follows the visible
+   * text again. Mirrored into a ref like visibleText, so jumpToPage
+   * can read it without changing its own identity (the layout-mode
+   * effect depends on jumpToPage — a new identity would restart
+   * the continuous list). Declared up here because selectEdition
+   * (below) also clears it. */
+  const [jumpSurah, setJumpSurahState] = useState<{ id: number; page: number } | null>(null);
+  const jumpSurahRef = useRef<{ id: number; page: number } | null>(null);
+  const setJumpSurah = useCallback((v: { id: number; page: number } | null) => {
+    jumpSurahRef.current = v;
+    setJumpSurahState(v);
+  }, []);
   const [page, setPage] = useState(initial.page);
   const [pages, setPages] = useState<Record<number, ReaderPageData>>({ [initial.page]: initial });
   const pagesRef = useRef(pages);
@@ -474,6 +504,9 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         .then(() => {
           setEdition(id);
           if (target !== page) setPage(target);
+          // The stored jump target belongs to the old edition's
+          // layout (surah first pages differ per edition).
+          setJumpSurah(null);
           setPages((p) => ({ [target]: p[target] }));
           setDesignWidths({});
           /* Continuous mode: restart the list at the new edition's
@@ -496,7 +529,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           /* new edition's page failed to load — stay on the old one */
         });
     },
-    [edition, page, fetchPage, layoutMode],
+    [edition, page, fetchPage, layoutMode, setJumpSurah],
   );
   const toggleTajweed = useCallback((v: boolean) => {
     setTajweedOn(v);
@@ -1869,13 +1902,27 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       setAnimating(false);
       setPage(target);
       setOffset(0);
+      // A swipe turn leaves the jump's landing page: the pill
+      // follows the visible text again (see jumpSurah).
+      setJumpSurah(null);
       busyRef.current = false;
     },
-    [fetchPage, snapBack, contentWidth],
+    [fetchPage, snapBack, contentWidth, setJumpSurah],
   );
 
   const jumpToPage = useCallback(
-    (target: number) => {
+    (target: number, surahId?: number) => {
+      /* A surah-targeted jump (ChapterSheet surah tap, surah search
+       * result) names its surah in the pill while the reader stays
+       * on the landing page — set it even when the reader is
+       * already on that page (the early return below must not
+       * swallow the override). Any other jump clears a stale
+       * override, unless it lands back on the override's own page. */
+      if (surahId != null) {
+        setJumpSurah({ id: surahId, page: target });
+      } else if (jumpSurahRef.current && jumpSurahRef.current.page !== target) {
+        setJumpSurah(null);
+      }
       if (target < 1 || target > totalPages || target === page) return;
       if (busyRef.current) return;
       busyRef.current = true;
@@ -1890,7 +1937,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           busyRef.current = false;
         });
     },
-    [page, fetchPage],
+    [page, fetchPage, setJumpSurah],
   );
 
   /* Swipe: pointer events (touch + mouse). Vertical gestures are
@@ -1990,16 +2037,27 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
 
   /* The pill / header row follow what the user is actually looking
    * at: the visible surah and page in a continuous mode, the
-   * anchor page otherwise. */
+   * anchor page otherwise — except right after a surah-targeted
+   * jump (see jumpSurah above): while the reader is still on the
+   * jump's landing page the pill names the surah jumped to, not
+   * the previous surah whose last ayah opens that page. */
   const pillMeta =
     isContinuous && visibleText
       ? {
-          surahName: surahName(visibleText.surah),
+          surahName:
+            jumpSurah && visibleText.page === jumpSurah.page
+              ? surahName(jumpSurah.id)
+              : surahName(visibleText.surah),
           page: visibleText.page,
           juz: visibleText.juz,
           hizb: visibleText.hizb,
         }
-      : { surahName: meta.surahName, page, juz: meta.juz, hizb: meta.hizb };
+      : {
+          surahName: jumpSurah && jumpSurah.page === page ? surahName(jumpSurah.id) : meta.surahName,
+          page,
+          juz: meta.juz,
+          hizb: meta.hizb,
+        };
 
   /* Layout-mode change (2026-11-25 refinement pass; Translation
    * joined the continuous modes 2026-11-26, Part 2): entering a
@@ -2729,9 +2787,9 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       <ReaderSearch
         open={openModal === 'search'}
         onClose={() => setOpenModal(null)}
-        onSelectPage={(p) => {
+        onSelectPage={(p, surahId) => {
           setOpenModal(null);
-          jumpToPage(p);
+          jumpToPage(p, surahId);
         }}
         edition={edition}
       />
@@ -2799,7 +2857,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         currentJuz={pillMeta.juz}
         onSelectSurah={(id) => {
           setOpenModal(null);
-          jumpToPage(surahFirstPageForEdition(edition)[id] ?? 1);
+          jumpToPage(surahFirstPageForEdition(edition)[id] ?? 1, id);
         }}
         onSelectPage={(p) => {
           setOpenModal(null);
