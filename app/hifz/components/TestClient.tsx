@@ -15,6 +15,7 @@ import Link from 'next/link';
 import {
   loadProgress, saveProgress, markAttempt, recordMinutes, recordTypeActivity,
   loadMistakes, saveMistakes, addMistake, markMistakesCorrected, pickTestPool, revisionDue,
+  ayahKey,
   type HifzProgress, type MistakeEntry,
 } from '../progress';
 import { buildTestInsights, type TestInsight } from '../lib/insights';
@@ -80,7 +81,7 @@ export default function TestClient() {
   const [timeLimitMinutes, setTimeLimitMinutes] = useState<TimeLimitMinutes>(
     () => loadTestSettings().timeLimitMinutes,
   );
-  const [extendToEnd, setExtendToEnd] = useState(true);
+  const [extendToEnd, setExtendToEnd] = useState(() => loadTestSettings().extendToEnd);
   const [temporary, setTemporary] = useState(false);
   const [ranges, setRanges] = useState<RangeSelection[]>([]);
   const [phase, setPhase] = useState<Phase>('setup');
@@ -143,8 +144,8 @@ export default function TestClient() {
   // remembers them — and the Settings → Testing Mode screen shows the
   // same values (both read/write the ili_test_settings_v1 store).
   useEffect(() => {
-    saveTestSettings({ questionCount: duration, questionLines: qLines, timeLimitMinutes });
-  }, [duration, qLines, timeLimitMinutes]);
+    saveTestSettings({ questionCount: duration, questionLines: qLines, timeLimitMinutes, extendToEnd });
+  }, [duration, qLines, timeLimitMinutes, extendToEnd]);
 
   // Stage 6 (§19): persist the in-progress test whenever its state
   // changes, so closing the tab mid-test leaves something resumable.
@@ -550,8 +551,16 @@ export default function TestClient() {
       const ok = correct && roundClean;
       if (!temporary) {
         let next = progress;
+        // Audit O-2: a test must NOT add memorisation (the setup screen
+        // promises "A test never adds new memorisation"). markAttempt on
+        // a 'new' ayah promotes it to 'learning', and a question's span
+        // reaches past its anchor ayah — so one test quietly added
+        // learning ayahs the user never marked. Only score ayahs the
+        // user already has progress for; unmarked ayahs stay unmarked.
         for (let k = 0; k < q.span; k++) {
-          next = markAttempt(next, q.surah, q.ayah + k, ok ? 'correct' : 'miss');
+          if (progress.ayahs[ayahKey(q.surah, q.ayah + k)]) {
+            next = markAttempt(next, q.surah, q.ayah + k, ok ? 'correct' : 'miss');
+          }
         }
         next = recordMinutes(next, 1);
         next = recordTypeActivity(next, 'revision', q.span);
@@ -642,8 +651,22 @@ export default function TestClient() {
     } catch {
       mistakes = [];
     }
+    // Audit T-4: the done screen counted one test too many. The
+    // done-effect below saves this session into `sessions` state, so
+    // prepending a synthetic copy here as well counted it twice once
+    // the save landed. Only prepend while the stored history does not
+    // already hold this session (same type/scope/score/total/mistakes).
+    const alreadySaved = sessions.some(
+      (s) =>
+        s.type === testType &&
+        s.scope === scope &&
+        s.score === results.filter(Boolean).length &&
+        s.total === results.length &&
+        s.mistakes === mistakesTotal &&
+        s.seconds === elapsed,
+    );
     const sessionList: TestSessionRecord[] =
-      phase === 'done' && results.length > 0
+      phase === 'done' && results.length > 0 && !alreadySaved
         ? [
             {
               at: new Date().toISOString(),
@@ -835,7 +858,12 @@ export default function TestClient() {
             </button>
             <button
               type="button"
-              onClick={() => setPhase('setup')}
+              // Audit T-5: ending early used to jump straight back to
+              // setup with no score at all, even though the session's
+              // mistakes were saved. End to the TEST COMPLETE summary
+              // like the stop button does — unless no question was
+              // answered yet, when there is nothing to summarise.
+              onClick={() => setPhase(results.length > 0 ? 'done' : 'setup')}
               aria-label={t('test.stopTest')}
               className="rounded-full border border-[#E5E7EB] px-3 py-1 text-sm font-semibold"
             >
@@ -1179,7 +1207,7 @@ export default function TestClient() {
               [
                 ['memorised', t('test.scopeMemorised')],
                 ['practised', t('test.scopePractised')],
-                ['weakest', t('test.scopeWeakest').replace('{n}', String(weakestCount))],
+                ['weakest', weakestCount === 1 ? t('test.scopeWeakestOne') : t('test.scopeWeakest').replace('{n}', String(weakestCount))],
                 ['any', t('test.scopeAny')],
               ] as [Scope, string][]
             ).map(([v, label]) => (

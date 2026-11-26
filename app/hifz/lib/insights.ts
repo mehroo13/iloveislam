@@ -82,6 +82,10 @@ export function buildTestInsights({ mistakes, sessions, surahs, t }: TestInsight
         .replace('{words}', agg.attempts === 1 ? t('ins.wordOne') : t('ins.wordMany'))
         .replace('{b}', String(agg.ayahs.size))
         .replace('{ayahs}', agg.ayahs.size === 1 ? t('ins.ayahOne') : t('ins.ayahMany'))
+        // Audit T-3: "1 missed word … are still uncorrected" — the verb
+        // agrees with the missed-word count. Only the English string
+        // carries {verb}; other locales keep their own wording.
+        .replace('{verb}', agg.attempts === 1 ? t('ins.verbIs') : t('ins.verbAre'))
         .replace('{name}', name),
       surah: id,
     });

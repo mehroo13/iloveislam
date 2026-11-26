@@ -29,12 +29,17 @@ export interface TestSettings {
   questionLines: number;
   /** Per-test time limit in minutes (0 = unlimited). */
   timeLimitMinutes: TestTimeLimitMinutes;
+  /** Extend each question to the end of its final ayah (on by default).
+   *  Audit T-1: this lived only in TestClient useState, so unchecking it
+   *  never survived a reload while every other setting did. */
+  extendToEnd: boolean;
 }
 
 export const DEFAULT_TEST_SETTINGS: TestSettings = {
   questionCount: 10,
   questionLines: 5,
   timeLimitMinutes: 0,
+  extendToEnd: true,
 };
 
 /** Preset line counts for the Short / Medium / Long buttons. */
@@ -74,6 +79,7 @@ function sanitize(value: unknown): TestSettings {
     questionCount: isQuestionCount(v.questionCount) ? v.questionCount : DEFAULT_TEST_SETTINGS.questionCount,
     questionLines,
     timeLimitMinutes: isTimeLimit(v.timeLimitMinutes) ? v.timeLimitMinutes : DEFAULT_TEST_SETTINGS.timeLimitMinutes,
+    extendToEnd: typeof v.extendToEnd === 'boolean' ? v.extendToEnd : DEFAULT_TEST_SETTINGS.extendToEnd,
   };
 }
 
