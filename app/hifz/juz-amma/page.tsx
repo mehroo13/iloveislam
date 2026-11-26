@@ -7,7 +7,7 @@ import { JUZ_AMMA_SURAHS } from '../surahs';
 import { JUZ_AMMA_90_DAY } from '../plans';
 import PlanCard from '../components/PlanCard';
 import { SurahProgressBar } from '../components/ProgressWidget';
-import { Breadcrumb, Attribution} from '../components/HifzShared';
+import { Breadcrumb, Attribution, BackToReader} from '../components/HifzShared';
 import { SITE_URL } from '../lib/fetch';
 
 export const metadata: Metadata = {
@@ -36,6 +36,7 @@ export default function JuzAmmaPage() {
           { label: 'Juz Amma' },
         ]}
       />
+      <BackToReader />
       <header className="mt-4 rounded-2xl bg-[#102E26] px-5 py-8 text-white shadow-sm sm:px-8 sm:py-10">
         <p dir="rtl" lang="ar" className="font-quran text-4xl text-[#FFB800] sm:text-5xl">جزء عمّ</p>
         <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Juz Amma — Juz 30</h1>

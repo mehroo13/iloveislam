@@ -11,6 +11,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { BackToReader } from './HifzShared';
 import {
   loadMistakes,
   saveMistakes,
@@ -120,9 +121,7 @@ export default function MistakesOverviewClient() {
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/hifz/my-progress" className="text-sm font-semibold text-[#1FA36B] underline">
-          ← {t('mistakes.backToProgress')}
-        </Link>
+        <BackToReader />
         <h1 className="mt-2 text-[22px] font-bold text-[#111827]">{t('mistakes.title')}</h1>
         <p className="mt-1 text-sm text-[#6B7280]">{t('mistakes.subtitle')}</p>
       </div>

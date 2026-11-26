@@ -40,6 +40,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { loadMistakes, loadProgress, loadSettings, localDateString, surahStrength } from '../progress';
 import { ALL_SURAHS } from '../surahs';
 import { getSupabase, signOut } from '../lib/supabase';
@@ -544,7 +545,28 @@ function GoalModal({
 
 /* Dashboard tab — the Step 6 content. Alive pass: the promo opens
  * the real Gift / feature list, the Highlights card opens Testing
- * Mode, and "See All" jumps to the Goals tab. */
+ * Mode, and "See All" jumps to the Goals tab.
+ *
+ * Features list (2026-11-26, Mehran: "list ALL the features in the
+ * Dashboard"): every user-facing feature, one tap to its own screen.
+ * Mushaf Reader is the reader underneath this overlay, so its row
+ * just closes the Dashboard instead of navigating. */
+const DASHBOARD_FEATURES: { label: string; href: string; icon: string }[] = [
+  { label: 'Recite with Coach', href: '/hifz/recite', icon: '🎙' },
+  { label: 'Test — Testing Mode', href: '/hifz/test', icon: '✎' },
+  { label: 'My Progress', href: '/hifz/my-progress', icon: '📊' },
+  { label: 'Mistakes overview', href: '/hifz/mistakes', icon: '⚠' },
+  { label: 'Search', href: '/hifz/search', icon: '🔍' },
+  { label: 'Voice Search', href: '/hifz/voice-search', icon: '🎤' },
+  { label: 'Memorize', href: '/hifz/memorize', icon: '📖' },
+  { label: 'Goals', href: '/hifz/goals', icon: '🎯' },
+  { label: 'Plans', href: '/hifz/plans', icon: '🗓' },
+  { label: 'Challenges', href: '/hifz/challenges', icon: '🏆' },
+  { label: 'Bookmarks', href: '/hifz/bookmarks', icon: '🔖' },
+  { label: 'Juz Amma', href: '/hifz/juz-amma', icon: '📘' },
+  { label: 'Settings', href: '/hifz/settings', icon: '⚙' },
+];
+
 function DashboardTab({
   displayName,
   goals,
@@ -554,6 +576,7 @@ function DashboardTab({
   onOpenGift,
   onTestYourself,
   onGoToTab,
+  onClose,
 }: {
   displayName: string | null;
   goals: Goal[];
@@ -564,6 +587,8 @@ function DashboardTab({
   onOpenGift: () => void;
   onTestYourself: () => void;
   onGoToTab: (tab: string) => void;
+  /** Closes the Dashboard overlay (the Mushaf Reader row). */
+  onClose: () => void;
 }) {
   return (
     <>
@@ -668,6 +693,41 @@ function DashboardTab({
             View mistakes overview →
           </span>
         </a>
+      </section>
+
+      {/* All features — every user-facing feature, one tap to its own
+          screen. Mushaf Reader is the reader underneath this overlay,
+          so its row closes the Dashboard instead of navigating. */}
+      <section className="mt-5">
+        <h2 className="text-[17px] font-bold" style={{ color: INK }}>
+          Features
+        </h2>
+        <div className="mt-2 overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+          {DASHBOARD_FEATURES.map((f) => (
+            <Link
+              key={f.href}
+              href={f.href}
+              className="flex items-center justify-between gap-3 border-b border-[#F3F4F6] px-4 py-3 last:border-b-0"
+            >
+              <span className="flex items-center gap-3">
+                <span aria-hidden="true" className="text-[17px] leading-none">{f.icon}</span>
+                <span className="text-[15px] font-semibold" style={{ color: INK }}>{f.label}</span>
+              </span>
+              <span aria-hidden="true" style={{ color: '#1FA36B' }}>→</span>
+            </Link>
+          ))}
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+          >
+            <span className="flex items-center gap-3">
+              <span aria-hidden="true" className="text-[17px] leading-none">🕌</span>
+              <span className="text-[15px] font-semibold" style={{ color: INK }}>Mushaf Reader</span>
+            </span>
+            <span aria-hidden="true" style={{ color: '#1FA36B' }}>→</span>
+          </button>
+        </div>
       </section>
     </>
   );
@@ -1970,6 +2030,7 @@ export default function ReaderDashboard({
             onOpenGift={onOpenGift}
             onTestYourself={onTestYourself}
             onGoToTab={setTab}
+            onClose={onClose}
           />
         )}
         {tab === 'Goals' && (

@@ -6,6 +6,7 @@
 'use client';
 
 import type { HifzSurah } from '../surahs';
+import Link from 'next/link';
 import { ATTRIBUTION } from '../lib/fetch';
 import { BISMILLAH } from '../../quran/lib';
 import { useT } from '../lib/i18n';
@@ -15,6 +16,23 @@ import { useT } from '../lib/i18n';
 export function Breadcrumb({ items }: { items: { label: string; href?: string }[] }) {
   void items;
   return null;
+}
+
+/** Back to the reader (the Dashboard home). A circular back-arrow
+ *  button, fixed destination "/" — never router.back() (the browser
+ *  history back looped Settings -> Account -> Settings). This is the
+ *  back button every feature screen shows; tapping it returns to the
+ *  reader, where the hamburger Dashboard lives. Same style as the
+ *  Search / Settings back arrows. */
+export function BackToReader() {
+  const t = useT();
+  return (
+    <Link href="/" aria-label={t('rb.search.goBack')} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#111827]/25 bg-transparent text-[#111827] hover:bg-white">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 rtl:-scale-x-100" aria-hidden="true">
+        <path d="M15.75 19.5 8.25 12l7.5-7.5" />
+      </svg>
+    </Link>
+  );
 }
 
 export function Attribution({ reciterName }: { reciterName?: string }) {

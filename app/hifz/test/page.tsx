@@ -1,7 +1,7 @@
 // app/hifz/test/page.tsx — Test Mode (spec §15.1).
 import type { Metadata } from 'next';
 import TestClient from '../components/TestClient';
-import { Breadcrumb, Attribution } from '../components/HifzShared';
+import { Breadcrumb, Attribution, BackToReader } from '../components/HifzShared';
 import { SITE_URL } from '../lib/fetch';
 
 export const metadata: Metadata = {
@@ -22,6 +22,7 @@ export default function TestPage() {
           { label: 'Test Mode' },
         ]}
       />
+      <BackToReader />
       <header className="mt-4">
         <h1 className="text-3xl font-bold tracking-tight text-[#102E26] sm:text-4xl">Test Mode</h1>
         <p className="mt-2 text-sm leading-relaxed text-[#5b6b62] sm:text-base">

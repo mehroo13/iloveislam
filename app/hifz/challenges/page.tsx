@@ -2,7 +2,7 @@
 // No accounts: challenges live in localStorage and sync via share links.
 import type { Metadata } from 'next';
 import ChallengesClient from '../components/ChallengesClient';
-import { Breadcrumb, Attribution } from '../components/HifzShared';
+import { Breadcrumb, Attribution, BackToReader } from '../components/HifzShared';
 import { SITE_URL } from '../lib/fetch';
 
 export const metadata: Metadata = {
@@ -22,6 +22,7 @@ export default function ChallengesPage() {
           { label: 'Challenges' },
         ]}
       />
+      <BackToReader />
       <header className="mt-4">
         <h1 className="text-3xl font-bold tracking-tight text-[#102E26] sm:text-4xl">
           Group challenges

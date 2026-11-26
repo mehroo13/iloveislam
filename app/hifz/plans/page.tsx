@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ALL_SURAHS } from '../surahs';
 import { getPlan, JUZ_AMMA_90_DAY } from '../plans';
 import PlanCard from '../components/PlanCard';
-import { Breadcrumb, Attribution} from '../components/HifzShared';
+import { Breadcrumb, Attribution, BackToReader} from '../components/HifzShared';
 import { SITE_URL } from '../lib/fetch';
 
 export const metadata: Metadata = {
@@ -27,6 +27,7 @@ export default function PlansPage() {
           { label: 'Plans' },
         ]}
       />
+      <BackToReader />
       <header className="mt-4">
         <h1 className="text-3xl font-bold tracking-tight text-[#102E26] sm:text-4xl">Memorisation plans</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5b6b62] sm:text-base">
