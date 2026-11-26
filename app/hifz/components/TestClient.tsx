@@ -25,6 +25,7 @@ import { loadTestSessions, saveTestSession, loadInProgressTest, saveInProgressTe
 import { RangeWheel, type RangeSelection } from './SharedSheets';
 import { useT } from '../lib/i18n';
 import { playTestFeedback } from '../lib/sounds';
+import { loadTestSettings, saveTestSettings } from '../lib/test-settings';
 
 type Scope = 'memorised' | 'practised' | 'any' | 'weakest';
 type Phase = 'setup' | 'testing' | 'done';
@@ -69,12 +70,16 @@ const WORDS_PER_LINE = 9;
 export default function TestClient() {
   const [progress, setProgress] = useState<HifzProgress | null>(null);
   const [scope, setScope] = useState<Scope>('memorised');
-  const [duration, setDuration] = useState<Duration>(10);
+  // Test setup choices, remembered from last time (see lib/test-settings):
+  // the Settings → Testing Mode screen reads and writes the same store.
+  const [duration, setDuration] = useState<Duration>(() => loadTestSettings().questionCount);
   /** Question length in mushaf lines, 1–15 (default 5). Wired into the
    *  question span by spanFor — this slider is live, not decorative. */
-  const [qLines, setQLines] = useState(5);
+  const [qLines, setQLines] = useState(() => loadTestSettings().questionLines);
   /** Per-test time limit in minutes (0 = unlimited, the default). */
-  const [timeLimitMinutes, setTimeLimitMinutes] = useState<TimeLimitMinutes>(0);
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState<TimeLimitMinutes>(
+    () => loadTestSettings().timeLimitMinutes,
+  );
   const [extendToEnd, setExtendToEnd] = useState(true);
   const [temporary, setTemporary] = useState(false);
   const [ranges, setRanges] = useState<RangeSelection[]>([]);
@@ -133,6 +138,13 @@ export default function TestClient() {
   useEffect(() => {
     elapsedRef.current = elapsed;
   }, [elapsed]);
+
+  // Persist the setup choices whenever they change, so the next test
+  // remembers them — and the Settings → Testing Mode screen shows the
+  // same values (both read/write the ili_test_settings_v1 store).
+  useEffect(() => {
+    saveTestSettings({ questionCount: duration, questionLines: qLines, timeLimitMinutes });
+  }, [duration, qLines, timeLimitMinutes]);
 
   // Stage 6 (§19): persist the in-progress test whenever its state
   // changes, so closing the tab mid-test leaves something resumable.
