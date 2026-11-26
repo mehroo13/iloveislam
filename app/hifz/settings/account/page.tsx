@@ -11,10 +11,15 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true },
 };
 
-export default function AccountSettingsPage() {
+export default async function AccountSettingsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ auth?: string }>;
+}) {
+  const auth = (await searchParams)?.auth;
   return (
     <DetailShell titleKey="rb.set.account">
-      <AccountSection />
+      <AccountSection authError={auth === 'link_expired' ? 'link_expired' : null} />
     </DetailShell>
   );
 }

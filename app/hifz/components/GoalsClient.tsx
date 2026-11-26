@@ -429,7 +429,9 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
                   <>
                     <div className="mt-3 flex flex-wrap items-baseline justify-between gap-2 text-sm">
                       <span className="font-semibold text-[#111827]">
-                        {t('rb.goals.memorisedOf').replace('{a}', String(p.memorised)).replace('{b}', String(p.total))}
+                        {p.total === 1
+                          ? t('rb.goals.memorisedOfOne').replace('{a}', String(p.memorised))
+                          : t('rb.goals.memorisedOf').replace('{a}', String(p.memorised)).replace('{b}', String(p.total))}
                         {p.learning > 0 ? ` · ${t('rb.list.nLearning').replace('{n}', String(p.learning))}` : ''}
                       </span>
                       <span className="font-bold text-[#1FA36B]">{pct}%</span>

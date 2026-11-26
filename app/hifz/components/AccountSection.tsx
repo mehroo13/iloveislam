@@ -40,11 +40,15 @@ import {
   pushDocs,
   SYNC_DOC_TYPES,
 } from '../lib/sync';
-import { resetUiPrefsToDefaults } from '../lib/i18n';
+import { resetUiPrefsToDefaults, useT } from '../lib/i18n';
 
 type View = 'intro' | 'signup' | 'login';
 
-export default function AccountSection() {
+// authError is set by the /auth/callback route when a confirmation or
+// magic-link code fails (expired / already used / invalid): the link
+// failed, so say so plainly and point at requesting a new one below.
+export default function AccountSection({ authError }: { authError?: string | null }) {
+  const t = useT();
   const configured = isCloudConfigured();
   const [email, setEmail] = useState<string | null>(null);
   const [view, setView] = useState<View>('intro');
@@ -244,6 +248,11 @@ export default function AccountSection() {
       {msg && (
         <p role="status" className="mt-3 rounded-xl border border-[#E5E7EB] bg-[#E4FFF2] px-4 py-3 text-sm font-semibold text-[#1FA36B]">
           {msg}
+        </p>
+      )}
+      {authError === 'link_expired' && !email && (
+        <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          {t('auth.linkExpired')}
         </p>
       )}
       {err && (

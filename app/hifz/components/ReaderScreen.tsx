@@ -1248,7 +1248,6 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       setMic('idle');
       if (reason === 'denied') {
         const msg = 'Please allow microphone access to use this feature.';
-        window.alert(msg);
         setMicToast(msg);
       } else if (reason === 'insecure-context') {
         setMicToast('Microphone needs a secure (https) connection.');
@@ -1395,7 +1394,6 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       setMic('idle');
       if (reason === 'denied') {
         const msg = 'Please allow microphone access to use this feature.';
-        window.alert(msg);
         setMicToast(msg);
       } else if (reason === 'insecure-context') {
         setMicToast('Microphone needs a secure (https) connection.');
