@@ -34,6 +34,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { getSurahById } from '../surahs';
 import { useT } from '../lib/i18n';
+import {
+  RECENT_SEARCHES_EVENT,
+  clearRecentSearches as clearRecentSearchesStore,
+  loadRecentSearches,
+  recordRecentSearch,
+} from '../lib/recent-searches';
 
 interface SearchResult {
   verseKey: string;
@@ -47,42 +53,11 @@ function stripHtml(s: string): string {
   return s.replace(/<[^>]*>/g, '').trim();
 }
 
-// Recent searches: only queries the user actually submitted (typed or
-// recited), newest first, capped at 15. Shared key with SearchClient so
-// a text search shows up here too (and vice versa). Empty state renders
-// nothing — history is never invented.
-const RECENT_SEARCHES_KEY = 'ili_hifz_recent_searches_v1';
-const MAX_RECENT_SEARCHES = 15;
-
-function loadRecentSearches(): string[] {
-  try {
-    const raw = localStorage.getItem(RECENT_SEARCHES_KEY);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
-      .slice(0, MAX_RECENT_SEARCHES);
-  } catch {
-    return [];
-  }
-}
-
-function recordRecentSearch(query: string): string[] {
-  const trimmed = query.trim();
-  if (!trimmed) return loadRecentSearches();
-  // Dedupe (case-insensitive): a repeat moves to the top, no duplicate.
-  const next = [
-    trimmed,
-    ...loadRecentSearches().filter((x) => x.toLowerCase() !== trimmed.toLowerCase()),
-  ].slice(0, MAX_RECENT_SEARCHES);
-  try {
-    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(next));
-  } catch {
-    /* storage unavailable — search still works */
-  }
-  return next;
-}
+// Recent searches — the shared store (app/hifz/lib/recent-searches.ts),
+// one list across the reader overlay, the Search hub page and this
+// screen. Cap 25, most-recent-first, deduped. Only queries the user
+// actually submitted (typed or recited). Empty state renders nothing —
+// history is never invented.
 
 type SpeechRecognitionCtor = new () => {
   lang: string;
@@ -116,6 +91,12 @@ export default function VoiceSearchClient() {
 
   useEffect(() => {
     setRecentSearches(loadRecentSearches());
+    const onChange = (e: Event) => {
+      const next = (e as CustomEvent<string[]>).detail;
+      if (Array.isArray(next)) setRecentSearches(next);
+    };
+    window.addEventListener(RECENT_SEARCHES_EVENT, onChange);
+    return () => window.removeEventListener(RECENT_SEARCHES_EVENT, onChange);
   }, []);
 
   useEffect(() => {
@@ -181,12 +162,7 @@ export default function VoiceSearchClient() {
   }, [t]);
 
   const clearRecentSearches = useCallback(() => {
-    try {
-      localStorage.removeItem(RECENT_SEARCHES_KEY);
-    } catch {
-      /* storage unavailable */
-    }
-    setRecentSearches([]);
+    setRecentSearches(clearRecentSearchesStore());
   }, []);
 
   const startListening = useCallback(() => {

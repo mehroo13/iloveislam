@@ -31,42 +31,16 @@ function stripHtml(s: string): string {
 // passed through by the /api/quran proxy).
 const PAGE_SIZE = 10;
 
-// Recent searches: only queries the user actually submitted, newest
-// first, capped at 15. Shared key with VoiceSearchClient so a voice
-// search shows up here too (and vice versa). Empty state renders
-// nothing — history is never invented.
-const RECENT_SEARCHES_KEY = 'ili_hifz_recent_searches_v1';
-const MAX_RECENT_SEARCHES = 15;
-
-function loadRecentSearches(): string[] {
-  try {
-    const raw = localStorage.getItem(RECENT_SEARCHES_KEY);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
-      .slice(0, MAX_RECENT_SEARCHES);
-  } catch {
-    return [];
-  }
-}
-
-function recordRecentSearch(query: string): string[] {
-  const trimmed = query.trim();
-  if (!trimmed) return loadRecentSearches();
-  // Dedupe (case-insensitive): a repeat moves to the top, no duplicate.
-  const next = [
-    trimmed,
-    ...loadRecentSearches().filter((x) => x.toLowerCase() !== trimmed.toLowerCase()),
-  ].slice(0, MAX_RECENT_SEARCHES);
-  try {
-    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(next));
-  } catch {
-    /* storage unavailable — search still works */
-  }
-  return next;
-}
+// Recent searches — the shared store (app/hifz/lib/recent-searches.ts),
+// one list across the reader overlay, this hub page and Voice Search.
+// Cap 25, most-recent-first, deduped. Empty state renders nothing —
+// history is never invented.
+import {
+  RECENT_SEARCHES_EVENT,
+  clearRecentSearches as clearRecentSearchesStore,
+  loadRecentSearches,
+  recordRecentSearch,
+} from '../lib/recent-searches';
 
 export default function SearchClient({ initialQuery }: { initialQuery?: string }) {
   const [q, setQ] = useState(initialQuery ?? '');
@@ -148,16 +122,17 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
   }, [activeQuery, loading, loadingMore, page, results.length, total]);
 
   const clearRecentSearches = useCallback(() => {
-    try {
-      localStorage.removeItem(RECENT_SEARCHES_KEY);
-    } catch {
-      /* storage unavailable */
-    }
-    setRecentSearches([]);
+    setRecentSearches(clearRecentSearchesStore());
   }, []);
 
   useEffect(() => {
     setRecentSearches(loadRecentSearches());
+    const onChange = (e: Event) => {
+      const next = (e as CustomEvent<string[]>).detail;
+      if (Array.isArray(next)) setRecentSearches(next);
+    };
+    window.addEventListener(RECENT_SEARCHES_EVENT, onChange);
+    return () => window.removeEventListener(RECENT_SEARCHES_EVENT, onChange);
   }, []);
 
   useEffect(() => {
