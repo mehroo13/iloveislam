@@ -4,8 +4,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ALL_SURAHS } from '../surahs';
-import { getPlan, JUZ_AMMA_90_DAY } from '../plans';
+import { JUZ_AMMA_90_DAY } from '../plans';
 import PlanCard from '../components/PlanCard';
+import KhatmPlanCard from '../components/KhatmPlanCard';
+import PlansListClient from '../components/PlansListClient';
 import { Breadcrumb, Attribution, BackToReader} from '../components/HifzShared';
 import { SITE_URL } from '../lib/fetch';
 
@@ -17,7 +19,6 @@ export const metadata: Metadata = {
 };
 
 export default function PlansPage() {
-  const named = ALL_SURAHS.filter((s) => s.juz !== 30);
   return (
     <main className="mx-auto max-w-6xl px-4 pb-16 pt-6 sm:pt-8">
       <Breadcrumb
@@ -37,6 +38,18 @@ export default function PlansPage() {
         </p>
       </header>
 
+      {/* Khatm — the whole-Quran plan (C2): the Challenges page links
+          here, so the plan it promises actually exists. */}
+      <section id="khatm" aria-labelledby="khatm-heading" className="mt-8">
+        <h2 id="khatm-heading" className="text-2xl font-bold text-[#102E26]">Complete the Quran (Khatm)</h2>
+        <p className="mt-1 text-sm text-[#5b6b62]">
+          Read the whole Quran in 1, 3, 6, 9 or 12 months — every day names its exact ayahs.
+        </p>
+        <div className="mt-4 max-w-3xl">
+          <KhatmPlanCard />
+        </div>
+      </section>
+
       <section aria-labelledby="juz-amma-heading" className="mt-8">
         <h2 id="juz-amma-heading" className="text-2xl font-bold text-[#102E26]">Juz Amma — 90 days</h2>
         <div className="mt-4 max-w-3xl">
@@ -47,33 +60,12 @@ export default function PlansPage() {
       <section aria-labelledby="surah-plans-heading" className="mt-10">
         <h2 id="surah-plans-heading" className="text-2xl font-bold text-[#102E26]">Per-surah plans</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
-          Every plan is free — 7-day, 30-day and the Juz Amma 90-day plan.
+          Every plan is free — 7-day and 30-day plans for all {ALL_SURAHS.length} surahs,
+          plus the Juz Amma 90-day plan above.
         </p>
-        <div className="mt-4 space-y-6">
-          {named.map((s) => {
-            const p7 = getPlan(s.slug, 7);
-            const p30 = getPlan(s.slug, 30);
-            if (!p7 && !p30) return null;
-            return (
-              <div key={s.slug}>
-                <h3 className="text-lg font-bold text-[#102E26]">
-                  <Link href={`/hifz/${s.slug}`} className="hover:underline">
-                    Surah {s.name} ({s.ayahCount} ayahs)
-                  </Link>
-                </h3>
-                <div className="mt-3 grid gap-4 md:grid-cols-2">
-                  {p7 && <PlanCard plan={p7} surahSlug={s.slug} surahName={s.name} />}
-                  {p30 && <PlanCard plan={p30} surahSlug={s.slug} surahName={s.name} />}
-                </div>
-              </div>
-            );
-          })}
+        <div className="mt-4">
+          <PlansListClient />
         </div>
-        <p className="mt-6 text-sm text-[#5b6b62]">
-          Juz Amma surahs each have their own 7-day and 30-day plans too — open any surah on the{' '}
-          <Link href="/hifz/juz-amma" className="font-semibold text-[#1FA36B] underline">Juz Amma page</Link>{' '}
-          to see them.
-        </p>
       </section>
 
       <Attribution reciterName="Mishary Alafasy" />

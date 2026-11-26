@@ -9,21 +9,24 @@
 // 43 launch surahs x both plan lengths (tools/verify_plans.mjs):
 //   - 7-day plans: days 1-6 learn, day 7 is review. Ayahs split into 6
 //     near-equal contiguous chunks (earlier chunks take the extra ayah);
-//     a chunk of 0 ayahs becomes a review day ("Review - ayahs learned
-//     so far"). Day 7: "Review - all N ayahs".
+//     a chunk of 0 ayahs becomes a review day. Day 7 is a review day.
 //   - 30-day plans: days 7, 14, 21, 30 are review-only. The other 26
 //     days learn, ayahs split into 26 near-equal contiguous chunks
-//     (same rule); empty chunks become review days. Review days 7/14/21
-//     are labelled "Review - ayahs 1-K" (K = last ayah learned so far);
-//     day 30 is "Review - ayahs 1-N".
-//   - Learning days cover the surah's ayahs exactly once, contiguously,
-//     never mid-ayah. Short surahs front-load their learning days and
-//     spend the remaining days reviewing - that is deliberate, not an error.
+//     (same rule); empty chunks become review days.
+//   - Review days (P3, 2026-11-26) each name real work — the range
+//     learned so far, one focus ayah cycling through the surah, and a
+//     rotating focus (from memory / twice each / without looking /
+//     with the coach / in reverse / to someone else / twice through) —
+//     so no two review days in a plan share a label. Short surahs
+//     front-load their learning days and spend the remaining days
+//     reviewing - that is deliberate, not an error. (10 focuses × N
+//     ayahs of combinations: even a 3-ayah surah's 27 review days in
+//     a 30-day plan are all distinct.)
 // All plans — 7-day, 30-day and the Juz Amma 90-day plan — are free, always.
 // The Juz Amma 90-day plan below is unchanged from v1 (static table,
 // hand-checked once 2026-11-21); do not hand-edit it either.
 
-import { getSurahBySlug } from './surahs';
+import { getSurahBySlug, ALL_SURAHS } from './surahs';
 
 export interface PlanDay {
   day: number;
@@ -55,6 +58,40 @@ export interface JuzAmmaPlan {
 }
 
 const REVIEW_DAYS_30 = new Set([7, 14, 21, 30]);
+
+/** Review-day focuses (P3, 2026-11-26): the old generator labelled
+ *  every spare day of a short surah's 30-day plan identically —
+ *  "Review — ayahs learned so far" 19× for Al-Fatihah. A review day
+ *  is real work, so each one names what to do: the range learned so
+ *  far, one focus ayah (cycling through the surah), and a rotating
+ *  focus — from memory, twice each, without looking, with the coach,
+ *  in reverse, to someone else, twice through. The (focus, focus-ayah)
+ *  pair makes every review day in a plan distinct: 7 focuses × N
+ *  ayahs of combinations, far more than any plan's review days. */
+const REVIEW_FOCUSES = [
+  'from memory',
+  'recite each ayah twice',
+  'without looking',
+  'with the coach',
+  'in reverse order',
+  'to someone else',
+  'twice through from memory',
+  'slowly, word by word',
+  'from memory, then check the page',
+  'with the translation in mind',
+] as const;
+
+function reviewLabel(learned: number, total: number, ordinal: number): string {
+  const focus = REVIEW_FOCUSES[ordinal % REVIEW_FOCUSES.length];
+  // The focus ayah advances one step per full focus cycle, NOT per
+  // day — otherwise focus and focus-ayah stay locked together and
+  // the labels repeat every 7 days (Fatihah had only 7 distinct
+  // review labels). 7 focuses × N ayahs of distinct combinations.
+  const focusAyah = total > 0 ? (Math.floor(ordinal / REVIEW_FOCUSES.length) % total) + 1 : 1;
+  const range = learned <= 1 ? 'ayah 1' : `ayahs 1–${learned}`;
+  if (total <= 1) return `Review — ${range} ${focus}`;
+  return `Review — ${range}, focus on ayah ${focusAyah} · ${focus}`;
+}
 
 function chunkLabel(start: number, end: number): string {
   return start === end ? `Ayah ${start}` : `Ayahs ${start}–${end}`;
@@ -93,6 +130,7 @@ export function buildSurahPlan(
 
   const days: PlanDay[] = [];
   let learned = 0; // last ayah learned by the learning days so far
+  let reviewOrdinal = 0; // counts review days, so each gets its own focus
   for (let day = 1; day <= totalDays; day++) {
     const isScheduledReview =
       planDays === 7 ? day === 7 : REVIEW_DAYS_30.has(day);
@@ -102,10 +140,7 @@ export function buildSurahPlan(
         day,
         startAyah: null,
         endAyah: null,
-        label:
-          planDays === 7
-            ? `Review — all ${ayahCount} ayahs`
-            : `Review — ayahs 1–${learned}`,
+        label: reviewLabel(Math.max(learned, 0), ayahCount, reviewOrdinal++),
         isReview: true,
       });
     } else if (chunk === null) {
@@ -113,7 +148,7 @@ export function buildSurahPlan(
         day,
         startAyah: null,
         endAyah: null,
-        label: 'Review — ayahs learned so far',
+        label: reviewLabel(Math.max(learned, 0), ayahCount, reviewOrdinal++),
         isReview: true,
       });
     } else {
@@ -151,6 +186,78 @@ export function getPlanDay(
   day: number,
 ): PlanDay | undefined {
   return plan.days.find((d) => d.day === day);
+}
+
+// ------------------------------------------------------------------
+// Khatm — the whole-Quran plan (C2, 2026-11-26). The Challenges page
+// promises "Complete the Quran (Khatm): read the whole Quran in 1, 3,
+// 6, 9 or 12 months", but no such plan existed anywhere. This one is
+// real: the Quran's 6,236 ayahs split into near-equal contiguous
+// daily chunks over months × 30 days, each day naming its exact
+// surah + ayah range (ranges may span a surah boundary). Pure
+// function of (months) — computed from the real surah table, so the
+// ranges always add up to the whole Quran exactly once.
+// ------------------------------------------------------------------
+
+export const KHATM_MONTHS = [1, 3, 6, 9, 12] as const;
+export type KhatmMonths = (typeof KHATM_MONTHS)[number];
+
+export interface KhatmDay {
+  day: number;
+  startSurahId: number;
+  startAyah: number;
+  endSurahId: number;
+  endAyah: number;
+  label: string;
+  isReview: false;
+}
+
+export interface KhatmPlan {
+  months: KhatmMonths;
+  totalDays: number;
+  totalAyahs: number;
+  ayahsPerDay: number;
+  days: KhatmDay[];
+}
+
+/** Global ayah index (1-based, whole Quran) → surah + ayah. */
+function ayahAtGlobalIndex(index: number): { surahId: number; ayah: number } {
+  let remaining = index;
+  for (const s of ALL_SURAHS) {
+    if (remaining <= s.ayahCount) return { surahId: s.id, ayah: remaining };
+    remaining -= s.ayahCount;
+  }
+  const last = ALL_SURAHS[ALL_SURAHS.length - 1];
+  return { surahId: last.id, ayah: last.ayahCount };
+}
+
+export function buildKhatmPlan(months: KhatmMonths): KhatmPlan {
+  const totalAyahs = ALL_SURAHS.reduce((sum, s) => sum + s.ayahCount, 0);
+  const totalDays = months * 30;
+  const base = Math.floor(totalAyahs / totalDays);
+  const extra = totalAyahs - base * totalDays;
+  const days: KhatmDay[] = [];
+  let next = 1;
+  for (let day = 1; day <= totalDays; day++) {
+    const size = base + (day <= extra ? 1 : 0);
+    const start = ayahAtGlobalIndex(next);
+    const end = ayahAtGlobalIndex(next + size - 1);
+    const startSurah = ALL_SURAHS[start.surahId - 1];
+    const endSurah = ALL_SURAHS[end.surahId - 1];
+    const label =
+      start.surahId === end.surahId
+        ? `${startSurah.name} ${start.ayah}–${end.ayah}`
+        : `${startSurah.name} ${start.ayah} … ${endSurah.name} ${end.ayah}`;
+    days.push({ day, startSurahId: start.surahId, startAyah: start.ayah, endSurahId: end.surahId, endAyah: end.ayah, label, isReview: false });
+    next += size;
+  }
+  return {
+    months,
+    totalDays,
+    totalAyahs,
+    ayahsPerDay: Math.round((totalAyahs / totalDays) * 10) / 10,
+    days,
+  };
 }
 
 

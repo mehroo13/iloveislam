@@ -9,29 +9,41 @@ import { loadProgress, saveProgress, getStorageNotice } from '../progress';
 import type { PlanDay, SurahPlan, JuzAmmaPlan } from '../plans';
 import { useT } from '../lib/i18n';
 
-function DayList({ days, surahSlug }: { days: PlanDay[]; surahSlug?: string }) {
+function DayList({ days, surahSlug }: { days: (PlanDay & { surahSlug?: string | null })[]; surahSlug?: string }) {
   const t = useT();
+  // P4 (2026-11-26): every day gets a Recite link. Juz Amma days
+  // carry their own surah (day.surahSlug); per-surah review days
+  // have no ayahs of their own, so they link to the plan's surah
+  // (or, for Juz Amma review days, the last surah learned so far).
+  let lastSurah = surahSlug;
   return (
     <ol className="mt-3 space-y-1.5">
-      {days.map((d) => (
-        <li key={d.day} className="flex items-baseline gap-2 text-sm">
-          <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E4FFF2] text-xs font-bold text-[#1FA36B]">
-            {d.day}
-          </span>
-          <span className={d.isReview ? 'font-semibold text-[#1FA36B]' : ''}>
-            {d.label}
-            {d.isReview ? ` · ${t('common.review')}` : ''}
-          </span>
-          {surahSlug && d.startAyah !== null && (
-            <Link
-              href={`/hifz/${surahSlug}?mode=recite`}
-              className="ml-auto inline-block shrink-0 py-1 text-xs font-semibold text-[#1FA36B] underline"
-            >
-              {t('common.recite')}
-            </Link>
-          )}
-        </li>
-      ))}
+      {days.map((d) => {
+        if (d.surahSlug) lastSurah = d.surahSlug;
+        const linkSlug = d.surahSlug ?? lastSurah;
+        const linkAyah = d.startAyah ?? undefined;
+        return (
+          <li key={d.day} className="flex items-baseline gap-2 text-sm">
+            <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E4FFF2] text-xs font-bold text-[#1FA36B]">
+              {d.day}
+            </span>
+            <span className={d.isReview ? 'font-semibold text-[#1FA36B]' : ''}>
+              {d.label}
+              {/* P5: the label already starts with "Review —", so the
+                  old " · Review" suffix just duplicated it. */}
+              {d.isReview && !/^review/i.test(d.label) ? ` · ${t('common.review')}` : ''}
+            </span>
+            {linkSlug && (
+              <Link
+                href={`/hifz/${linkSlug}?mode=recite${linkAyah ? `&ayah=${linkAyah}` : ''}`}
+                className="ml-auto inline-block shrink-0 py-1 text-xs font-semibold text-[#1FA36B] underline"
+              >
+                {t('common.recite')}
+              </Link>
+            )}
+          </li>
+        );
+      })}
     </ol>
   );
 }
