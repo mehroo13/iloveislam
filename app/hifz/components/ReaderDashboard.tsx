@@ -40,7 +40,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { loadProgress, loadSettings, localDateString, surahStrength } from '../progress';
+import { loadMistakes, loadProgress, loadSettings, localDateString, surahStrength } from '../progress';
 import { ALL_SURAHS } from '../surahs';
 import { getSupabase, signOut } from '../lib/supabase';
 // Phase 4: sessions + streak + goals, all from localStorage.
@@ -549,6 +549,7 @@ function DashboardTab({
   displayName,
   goals,
   streak,
+  mistakeSummary,
   onNewGoal,
   onOpenGift,
   onTestYourself,
@@ -557,6 +558,8 @@ function DashboardTab({
   displayName: string | null;
   goals: Goal[];
   streak: StreakInfo;
+  /** Live mistake counts from the on-device log (null before first read). */
+  mistakeSummary: { total: number; uncorrected: number } | null;
   onNewGoal: () => void;
   onOpenGift: () => void;
   onTestYourself: () => void;
@@ -641,6 +644,30 @@ function DashboardTab({
             ))}
           </div>
         )}
+      </section>
+
+      {/* Mistakes overview — live counts from the mistake log, linking
+          to the dedicated /hifz/mistakes screen. */}
+      <section className="mt-5">
+        <a
+          href="/hifz/mistakes"
+          className="block rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
+        >
+          <span className="flex items-center justify-between gap-3">
+            <span className="text-[17px] font-bold" style={{ color: INK }}>Mistakes overview</span>
+            <span aria-hidden="true" style={{ color: '#1FA36B' }}>→</span>
+          </span>
+          <span className="mt-1 block text-[13px] leading-snug" style={{ color: MUTED }}>
+            {mistakeSummary === null
+              ? 'Your most-missed words, mistakes by surah, and trends over time.'
+              : mistakeSummary.total === 0
+                ? 'No mistakes recorded yet — recite with the mic and your mistakes will appear here.'
+                : `${mistakeSummary.uncorrected} ${mistakeSummary.uncorrected === 1 ? 'mistake' : 'mistakes'} still to fix`}
+          </span>
+          <span className="mt-2 block text-[13px] font-semibold" style={{ color: '#1FA36B' }}>
+            View mistakes overview →
+          </span>
+        </a>
       </section>
     </>
   );
@@ -1710,6 +1737,9 @@ export default function ReaderDashboard({
   const [sessions, setSessions] = useState<CoachSessionRecord[]>(() => listReaderSessions());
   const [goals, setGoals] = useState<Goal[]>(() => loadGoals());
   const [streak, setStreak] = useState<StreakInfo>(() => streakFromSessions(listReaderSessions()));
+  // Mistakes overview card: live counts from the on-device mistake log
+  // (null until the Dashboard opens and reads it).
+  const [mistakeSummary, setMistakeSummary] = useState<{ total: number; uncorrected: number } | null>(null);
   const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [goalModalAction, setGoalModalAction] = useState<GoalAction>('Memorize');
 
@@ -1722,6 +1752,11 @@ export default function ReaderDashboard({
     setSessions(s);
     setGoals(loadGoals());
     setStreak(streakFromSessions(s));
+    const ms = loadMistakes();
+    setMistakeSummary({
+      total: ms.reduce((n, m) => n + m.attempts, 0),
+      uncorrected: ms.reduce((n, m) => n + (m.corrected ? 0 : m.attempts), 0),
+    });
   }, [open ]);
 
   // Phase 4: save a goal from the modal into the shared store.
@@ -1930,6 +1965,7 @@ export default function ReaderDashboard({
             displayName={displayName}
             goals={activeGoals(goals)}
             streak={streak}
+            mistakeSummary={mistakeSummary}
             onNewGoal={() => openGoalModal('Memorize')}
             onOpenGift={onOpenGift}
             onTestYourself={onTestYourself}
