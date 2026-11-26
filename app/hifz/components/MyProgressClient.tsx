@@ -317,8 +317,11 @@ function HubTopBar() {
   const t = useT();
   return (
     <div className="flex items-center justify-between">
+      {/* Back goes to the Features menu (the reader with the Dashboard
+          open), not the bare reader home — fixed destination, never
+          router.back(). */}
       <Link
-        href="/"
+        href="/?dashboard=1"
         aria-label={t('rb.search.goBack')}
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#111827] text-[#111827] hover:bg-white"
       >

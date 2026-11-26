@@ -7,8 +7,9 @@
 // Back is always a FIXED destination, never router.back(): the browser
 // history back looped Settings -> Account -> Settings (the user came
 // from the Account page, so "back" returned there instead of Home).
-// The main Settings page goes Home (the reader, "/"); detail screens
-// pass backHref="/hifz/settings".
+// The main Settings page goes to the Features menu (the reader with
+// the Dashboard open, "/?dashboard=1"); detail screens pass
+// backHref="/hifz/settings".
 
 'use client';
 
@@ -38,8 +39,8 @@ function BackChevron() {
 export default function SettingsHeader({ title, backHref }: { title?: string; backHref?: string }) {
   const t = useT();
   const label = title ?? t('set.title');
-  // No backHref = the main Settings page: back goes Home (the reader).
-  const href = backHref ?? '/';
+  // No backHref = the main Settings page: back goes to the Features menu.
+  const href = backHref ?? '/?dashboard=1';
   return (
     <div className="flex items-center justify-between">
       <Link href={href} aria-label={t('rb.search.goBack')} className={BTN}>

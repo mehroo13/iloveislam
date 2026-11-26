@@ -543,14 +543,17 @@ function GoalModal({
 /*  Tab views                                                          */
 /* ---------------------------------------------------------------- */
 
-/* Dashboard tab — the Step 6 content. Alive pass: the promo opens
- * the real Gift / feature list, the Highlights card opens Testing
- * Mode, and "See All" jumps to the Goals tab.
+/* Dashboard tab — the Step 6 content. Alive pass: the Highlights card
+ * opens Testing Mode, and "See All" jumps to the Goals tab.
  *
  * Features list (2026-11-26, Mehran: "list ALL the features in the
  * Dashboard"): every user-facing feature, one tap to its own screen.
- * Mushaf Reader is the reader underneath this overlay, so its row
- * just closes the Dashboard instead of navigating. */
+ * It lives inside the "Discover All Free Features" banner (the ONE
+ * features home — no separate Features section). The Gift overlay is
+ * not opened from here; it stays reachable from the gift icon in the
+ * reader's top bar. Mushaf Reader is the reader underneath this
+ * overlay, so its row just closes the Dashboard instead of
+ * navigating. */
 const DASHBOARD_FEATURES: { label: string; href: string; icon: string }[] = [
   { label: 'Recite with Coach', href: '/hifz/recite', icon: '🎙' },
   { label: 'Test — Testing Mode', href: '/hifz/test', icon: '✎' },
@@ -573,7 +576,6 @@ function DashboardTab({
   streak,
   mistakeSummary,
   onNewGoal,
-  onOpenGift,
   onTestYourself,
   onGoToTab,
   onClose,
@@ -584,12 +586,28 @@ function DashboardTab({
   /** Live mistake counts from the on-device log (null before first read). */
   mistakeSummary: { total: number; uncorrected: number } | null;
   onNewGoal: () => void;
-  onOpenGift: () => void;
   onTestYourself: () => void;
   onGoToTab: (tab: string) => void;
   /** Closes the Dashboard overlay (the Mushaf Reader row). */
   onClose: () => void;
 }) {
+  /* Recite with Coach goes DIRECTLY to the recite screen (2026-11-26,
+   * Mehran: too many taps — the picker + "Start reciting" round trip
+   * is gone). The surah is the last one the user opened
+   * (`ili_last_read_v1`, written by the surah page), or Al-Fatihah
+   * for a fresh user; the coach opens at ayah 1. The mic still needs
+   * its own tap ("Recite now") — a tap gesture is required to start
+   * the microphone — so this is 2 taps to reciting, the minimum. */
+  const [reciteHref] = useState(() => {
+    try {
+      const raw = localStorage.getItem('ili_last_read_v1');
+      const slug = raw ? (JSON.parse(raw) as { slug?: string }).slug : '';
+      const ok = slug && ALL_SURAHS.some((s) => s.slug === slug);
+      return ok ? `/hifz/${slug}?mode=recite&ayah=1` : '/hifz/al-fatihah?mode=recite&ayah=1';
+    } catch {
+      return '/hifz/al-fatihah?mode=recite&ayah=1';
+    }
+  });
   return (
     <>
       {/* Greeting — dynamic name, never hardcoded. */}
@@ -599,9 +617,13 @@ function DashboardTab({
 
       <StreakCard streak={streak} onNewGoal={onNewGoal} />
 
-      {/* Promo card. The button spans the full card width, as in
-          the reference — so the card has no side padding; the icon
-          and text carry their own. */}
+      {/* Discover All Free Features — the ONE features home (2026-11-26,
+          Mehran: "remove the features from the section and put it all
+          in the Discover All Free Features banner"). The full list of
+          every feature, one tap to its own screen, lives inside this
+          banner; there is no separate Features section anymore. The
+          Gift overlay is NOT opened from here — it stays reachable
+          from the gift icon in the reader's top bar. */}
       <section className="mt-4 flex flex-col items-center rounded-2xl border border-[#E5E7EB] bg-white pb-4 pt-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
         <div className="flex flex-col items-center px-5">
           <IconLantern />
@@ -609,18 +631,43 @@ function DashboardTab({
             Memorize the Quran better and faster than ever before!
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onOpenGift}
-          aria-label="Discover all free features"
-          className="mt-4 h-10 w-full rounded-full text-[17px] font-bold shadow-sm"
+        <p
+          className="mt-4 flex h-10 w-full items-center justify-center rounded-full text-[17px] font-bold shadow-sm"
           style={{
             color: INK,
             background: 'linear-gradient(90deg, #47BEFF 0%, #44FE9B 100%)',
           }}
         >
           Discover All Free Features
-        </button>
+        </p>
+        <div className="mt-3 w-full px-4">
+          <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
+            {DASHBOARD_FEATURES.map((f) => (
+              <Link
+                key={f.href}
+                href={f.href === '/hifz/recite' ? reciteHref : f.href}
+                className="flex items-center justify-between gap-3 border-b border-[#F3F4F6] px-4 py-3 last:border-b-0"
+              >
+                <span className="flex items-center gap-3">
+                  <span aria-hidden="true" className="text-[17px] leading-none">{f.icon}</span>
+                  <span className="text-[15px] font-semibold" style={{ color: INK }}>{f.label}</span>
+                </span>
+                <span aria-hidden="true" style={{ color: '#1FA36B' }}>→</span>
+              </Link>
+            ))}
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+            >
+              <span className="flex items-center gap-3">
+                <span aria-hidden="true" className="text-[17px] leading-none">🕌</span>
+                <span className="text-[15px] font-semibold" style={{ color: INK }}>Mushaf Reader</span>
+              </span>
+              <span aria-hidden="true" style={{ color: '#1FA36B' }}>→</span>
+            </button>
+          </div>
+        </div>
       </section>
 
       {/* Highlights. */}
@@ -698,37 +745,6 @@ function DashboardTab({
       {/* All features — every user-facing feature, one tap to its own
           screen. Mushaf Reader is the reader underneath this overlay,
           so its row closes the Dashboard instead of navigating. */}
-      <section className="mt-5">
-        <h2 className="text-[17px] font-bold" style={{ color: INK }}>
-          Features
-        </h2>
-        <div className="mt-2 overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-          {DASHBOARD_FEATURES.map((f) => (
-            <Link
-              key={f.href}
-              href={f.href}
-              className="flex items-center justify-between gap-3 border-b border-[#F3F4F6] px-4 py-3 last:border-b-0"
-            >
-              <span className="flex items-center gap-3">
-                <span aria-hidden="true" className="text-[17px] leading-none">{f.icon}</span>
-                <span className="text-[15px] font-semibold" style={{ color: INK }}>{f.label}</span>
-              </span>
-              <span aria-hidden="true" style={{ color: '#1FA36B' }}>→</span>
-            </Link>
-          ))}
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-          >
-            <span className="flex items-center gap-3">
-              <span aria-hidden="true" className="text-[17px] leading-none">🕌</span>
-              <span className="text-[15px] font-semibold" style={{ color: INK }}>Mushaf Reader</span>
-            </span>
-            <span aria-hidden="true" style={{ color: '#1FA36B' }}>→</span>
-          </button>
-        </div>
-      </section>
     </>
   );
 }
@@ -1773,14 +1789,11 @@ export default function ReaderDashboard({
   open,
   onClose,
   onOpenSettings,
-  onOpenGift,
   onTestYourself,
 }: {
   open: boolean;
   onClose: () => void;
   onOpenSettings: () => void;
-  /** Alive pass: the promo opens the Gift / feature list. */
-  onOpenGift: () => void;
   /** Alive pass: the Highlights card opens Testing Mode. */
   onTestYourself: () => void;
 }) {
@@ -2027,7 +2040,6 @@ export default function ReaderDashboard({
             streak={streak}
             mistakeSummary={mistakeSummary}
             onNewGoal={() => openGoalModal('Memorize')}
-            onOpenGift={onOpenGift}
             onTestYourself={onTestYourself}
             onGoToTab={setTab}
             onClose={onClose}

@@ -169,12 +169,13 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
           floating mode pill is rendered here — those are removed globally. */}
       <div className="flex min-h-[100dvh] flex-col px-3 py-4 sm:px-5 sm:py-5">
         {/* Header: back arrow top-left + "Search" title top-right.
-            Back is a fixed destination (Home, the reader) — never
-            router.back(), which returns to whatever page the user came
-            from and can loop or leave the app. */}
+            Back is a fixed destination (the Features menu — the reader
+            with the Dashboard open) — never router.back(), which returns
+            to whatever page the user came from and can loop or leave
+            the app. */}
         <div className="flex items-center justify-between">
           <Link
-            href="/"
+            href="/?dashboard=1"
             aria-label={t('rb.search.goBack')}
             className="flex h-11 w-11 items-center justify-center rounded-full border border-[#111827]/25 bg-transparent text-[#111827] hover:bg-white"
           >

@@ -385,6 +385,26 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       /* defaults stand */
     }
   }, []);
+  /* Back-to-Features-menu handoff (2026-11-26, Mehran: back from a
+   * feature must return to the Features menu, not the bare reader).
+   * Feature screens link back to "/?dashboard=1"; on mount the reader
+   * opens its hamburger Dashboard at once, then strips the param so
+   * a later refresh does not re-open it. Client-side only — the
+   * server page stays static. */
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search);
+      if (q.get('dashboard') === '1') {
+        setOpenModal('dashboard');
+        q.delete('dashboard');
+        const rest = q.toString();
+        window.history.replaceState(null, '', rest ? `/?${rest}` : '/');
+      }
+    } catch {
+      /* ignore — the reader opens normally */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   /* Settings subtree: the reader's translation + tafsir (Settings →
    * Translations / Tafsir). Defaults equal the reader's behaviour
    * before the screens existed (Khattab; Ibn Kathir Abridged). */
@@ -2683,7 +2703,6 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           setSettingsSeed(null);
           setOpenModal('settings');
         }}
-        onOpenGift={() => setOpenModal('gift')}
         onTestYourself={() => {
           setOpenModal(null);
           router.push('/hifz/test');

@@ -11,7 +11,7 @@ import { fetchSurahVerses, surahJsonLd, prevNextSurah, SITE_URL } from '../lib/f
 import SurahClient from '../components/SurahClient';
 import VirtuesBlock from '../components/VirtuesBlock';
 import PlanCard from '../components/PlanCard';
-import { Breadcrumb, Attribution, SurahHero } from '../components/HifzShared';
+import { Breadcrumb, Attribution, SurahHero, BackToReader } from '../components/HifzShared';
 
 export async function generateStaticParams() {
   return ALL_SURAHS.map((s) => ({ slug: s.slug }));
@@ -69,6 +69,9 @@ export default async function SurahPage({
           { label: `Surah ${surah.name}` },
         ]}
       />
+      {/* Back to the Features menu (the reader with the Dashboard open),
+          not the bare reader home. */}
+      <BackToReader />
       <div className="mt-4">
         <SurahHero surah={surah} planDays={plan30 ? 30 : 7} />
       </div>
