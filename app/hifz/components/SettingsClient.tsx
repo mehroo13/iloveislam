@@ -10,13 +10,21 @@
 // under /hifz/settings/* and are linked from here instead of inline.
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   loadSettings, saveSettings,
+  loadProgress, loadMistakes,
+  exportProgress, downloadProgressJson, localDateString,
   type HifzSettings,
 } from '../progress';
-import { mirrorAllToIdb, deleteAllSessionAudio } from '../lib/store';
+import { mirrorAllToIdb, deleteAllSessionAudio, listSessionAudios } from '../lib/store';
+import { loadBookmarks } from '../lib/bookmarks';
+import { loadChallenges } from '../lib/challenges';
+import { getSupabase } from '../lib/supabase';
+import { applyReaderTheme, type StoredTheme } from '../lib/reader-theme';
+import { writeListenSpeed, LISTEN_KEY, LISTEN_SPEEDS } from '../lib/listen-speed';
+import { SoundEffectPicker } from './SettingsScreens';
 import SearchablePicker from './SearchablePicker';
 import {
   RECITERS, TRANSLATIONS, TAFSIRS, TAFSIR_ID, groupByLanguage,
@@ -44,8 +52,10 @@ import {
    ('ili_hifz_listen_v1', SurahClient): repeat / pause / speed /
    word-by-word. The per-surah ayah range (fromAyah/toAyah) is NOT shown
    here — it belongs to the surah being listened to — and is preserved
-   untouched when these prefs are saved. */
-const LISTEN_KEY = 'ili_hifz_listen_v1';
+   untouched when these prefs are saved. Speed is also written to
+   `ili_hifz_settings_v1.playSpeed` (lib/listen-speed) so the reader's
+   own Play path honours it — the two stores drifted apart and the
+   speed was silently ignored (audit M1). */
 const TAFSIR_KEY = 'ili_hifz_tafsir_v1';
 
 type ListenPrefs = { repeat: number; pauseSec: number; speed: number; wordByWord: boolean };
@@ -58,7 +68,7 @@ function loadListenPrefs(): ListenPrefs {
       return {
         repeat: [1, 2, 3, 5, 10].includes(Number(p.repeat)) ? Number(p.repeat) : 1,
         pauseSec: [0, 1, 2, 3, 5, 10].includes(Number(p.pauseSec)) ? Number(p.pauseSec) : 0,
-        speed: [0.5, 0.75, 1, 1.25, 1.5, 2].includes(Number(p.speed)) ? Number(p.speed) : 1,
+        speed: LISTEN_SPEEDS.includes(Number(p.speed)) ? Number(p.speed) : 1,
         wordByWord: p.wordByWord === true,
       };
     }
@@ -108,6 +118,8 @@ function Icon({ name }: { name: string }) {
       return (<svg {...common}><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /></svg>);
     case 'target':
       return (<svg {...common}><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>);
+    case 'trophy':
+      return (<svg {...common}><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z" /><path d="M7 6H4a2 2 0 0 0 2 4h1M17 6h3a2 2 0 0 1-2 4h-1" /></svg>);
     case 'user':
       return (<svg {...common}><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6" /></svg>);
     default:
@@ -139,11 +151,17 @@ function Toggle({
   hint,
   checked,
   onChange,
+  ariaLabel,
+  disabled,
 }: {
   label: string;
   hint?: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  /** Screen-reader label when the visible label names the screen
+      instead of the control (e.g. the Testing Mode sound switch). */
+  ariaLabel?: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex items-start justify-between gap-4 py-3">
@@ -155,9 +173,10 @@ function Toggle({
         type="button"
         role="switch"
         aria-checked={checked}
-        aria-label={label}
+        aria-label={ariaLabel ?? label}
+        disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${checked ? 'bg-[#57D798]' : 'bg-[#E8EAED]'}`}
+        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-60 ${checked ? 'bg-[#57D798]' : 'bg-[#E8EAED]'}`}
       >
         {/* Logical `start-*` (not `left-*`) so the knob mirrors in RTL. */}
         <span
@@ -416,13 +435,132 @@ export default function SettingsClient() {
   /** TRUE audio-only delete: deleteAllSessionAudio() (audio blob store,
       ../lib/store) purges saved recording blobs only. Progress, mistakes,
       goals and settings are untouched — unlike clear-all below. */
+  const [deleteAudioNote, setDeleteAudioNote] = useState<string | null>(null);
   const deleteAudioOnly = async () => {
     if (!window.confirm(t('rb.set.deleteAudioConfirm'))) return;
     try {
       await deleteAllSessionAudio();
       setMsg(t('rb.set.deleteAudioDeleted'));
+      setDeleteAudioNote(t('rb.set.deleteAudioDeleted'));
+      void loadUsage();
     } catch {
       setMsg(t('rb.set.deleteAudioFailed'));
+    }
+  };
+
+  /** Export a backup from the Delete-all panel too (the panel's own
+      "Export first" advice had no Export control on it). Same
+      download the Your Data screen offers. */
+  const [deleteExportNote, setDeleteExportNote] = useState<string | null>(null);
+  const doExportFromDelete = () => {
+    try {
+      downloadProgressJson(
+        `hifz-${localDateString()}.json`,
+        exportProgress(loadProgress(), loadMistakes(), settings!, {
+          bookmarks: loadBookmarks(),
+          challenges: loadChallenges(),
+        }),
+      );
+      setDeleteExportNote(t('set.exportDone'));
+    } catch {
+      setDeleteExportNote(t('rb.set.exportFailed'));
+    }
+  };
+
+  /* --- Data usage numbers (audit m2/m3): real storage + recording
+     figures, loaded when the Data Usage or Delete-audio panel opens
+     (and refreshed after a delete). --- */
+  type Usage = { recordings: number; audioBytes: number; storageBytes: number | null };
+  const [usage, setUsage] = useState<Usage | null>(null);
+  const loadUsage = async () => {
+    try {
+      const audios = await listSessionAudios();
+      let storageBytes: number | null = null;
+      try {
+        if (typeof navigator !== 'undefined' && navigator.storage?.estimate) {
+          const est = await navigator.storage.estimate();
+          storageBytes = typeof est.usage === 'number' ? est.usage : null;
+        }
+      } catch {
+        /* estimate unavailable — recordings still show */
+      }
+      setUsage({
+        recordings: audios.length,
+        audioBytes: audios.reduce((sum, a) => sum + (a.blob?.size ?? 0), 0),
+        storageBytes,
+      });
+    } catch {
+      setUsage({ recordings: 0, audioBytes: 0, storageBytes: null });
+    }
+  };
+  useEffect(() => {
+    if (open === 'data' || open === 'deleteAudio') void loadUsage();
+  }, [open]);
+
+  /* --- Leaderboard opt-in (audit M4): the same switch the old
+     Settings → Privacy screen had — writes
+     `profiles.show_on_leaderboard` for the signed-in user (migration
+     0002). Guests see the row disabled — an account is needed.
+     Turning it off removes the member from the board at once. --- */
+  const [lbState, setLbState] = useState<'loading' | 'guest' | 'ready'>('loading');
+  const [lbOptedIn, setLbOptedIn] = useState(false);
+  const [lbSaving, setLbSaving] = useState(false);
+  const [lbError, setLbError] = useState<string | null>(null);
+  const lbUserIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (open !== 'leaderboard') return;
+    let alive = true;
+    setLbState('loading');
+    setLbError(null);
+    lbUserIdRef.current = null;
+    const sb = getSupabase();
+    if (!sb) {
+      setLbState('guest');
+      return;
+    }
+    void sb.auth.getSession().then(async ({ data: { session } }) => {
+      if (!alive) return;
+      const user = session?.user;
+      if (!user) {
+        setLbState('guest');
+        return;
+      }
+      lbUserIdRef.current = user.id;
+      try {
+        const { data } = await sb
+          .from('profiles')
+          .select('show_on_leaderboard')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (!alive) return;
+        setLbOptedIn((data as { show_on_leaderboard?: boolean | null } | null)?.show_on_leaderboard === true);
+        setLbState('ready');
+      } catch {
+        if (!alive) return;
+        setLbOptedIn(false);
+        setLbState('ready');
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, [open ]);
+  const handleLeaderboardToggle = async () => {
+    if (lbState !== 'ready' || lbSaving || !lbUserIdRef.current) return;
+    const sb = getSupabase();
+    if (!sb) return;
+    const next = !lbOptedIn;
+    setLbOptedIn(next);
+    setLbSaving(true);
+    setLbError(null);
+    const { error } = await sb
+      .from('profiles')
+      .update({ show_on_leaderboard: next })
+      .eq('id', lbUserIdRef.current);
+    setLbSaving(false);
+    if (error) {
+      setLbOptedIn(!next);
+      setLbError(t('set.leaderboardError'));
     }
   };
 
@@ -463,7 +601,13 @@ export default function SettingsClient() {
     // values, applies them to <html> (lang/dir/data-theme) and notifies
     // every subscriber (bottom tabs, onboarding) so the whole shell
     // re-renders in the new language/theme immediately — no reload.
-    if (patch.theme) setUiTheme(patch.theme);
+    if (patch.theme) {
+      setUiTheme(patch.theme);
+      // The reader theme path too: arms the system listener while
+      // 'auto' is stored, so Auto follows the system when it flips,
+      // and notifies mounted reader toggles (old ThemeScreen did both).
+      applyReaderTheme(patch.theme as StoredTheme, false);
+    }
     if (patch.language && isSupportedLocale(patch.language)) setUiLocale(patch.language);
   };
 
@@ -479,6 +623,10 @@ export default function SettingsClient() {
     } catch {
       /* storage unavailable — prefs stay in memory for this visit */
     }
+    // Keep the reader's own playSpeed in step (audit M1): the reader
+    // Play path reads settings.playSpeed, so a speed picked here must
+    // land there too — writeListenSpeed writes both stores.
+    if (patch.speed !== undefined) writeListenSpeed(patch.speed);
   };
 
   const updateTafsir = (id: number) => {
@@ -488,6 +636,10 @@ export default function SettingsClient() {
     } catch {
       /* storage unavailable */
     }
+    // The reader's rosette sheet reads settings.tafsirId (audit M9) —
+    // keep it in step with the picker key so the sheet shows the
+    // picked tafsir, not always Ibn Kathir.
+    update({ tafsirId: id });
   };
 
   const clearAll = () => {
@@ -522,7 +674,9 @@ export default function SettingsClient() {
       ? t('set.themeDark')
       : (settings.theme ?? 'light') === 'sepia'
         ? t('set.themeSepia')
-        : t('set.themeLight');
+        : (settings.theme ?? 'light') === 'auto'
+          ? t('set.themeAuto')
+          : t('set.themeLight');
   const listenValue =
     t('rb.set.repeatSpeed').replace('{r}', String(listen.repeat)).replace('{s}', String(listen.speed)) +
     (listen.wordByWord ? t('rb.set.wbwSuffix') : '');
@@ -639,6 +793,7 @@ export default function SettingsClient() {
                     { value: '1', label: t('rb.set.speedNormal') },
                     { value: '1.25', label: '1.25×' },
                     { value: '1.5', label: '1.5×' },
+                    { value: '1.75', label: '1.75×' },
                     { value: '2', label: '2×' },
                   ]}
                 />
@@ -704,6 +859,12 @@ export default function SettingsClient() {
               />
               <div className="divide-y divide-[#E8EAED]">
                 <Toggle
+                  label={t('set.hideVerses')}
+                  hint={t('set.hideVersesHint')}
+                  checked={settings.hideVerses ?? false}
+                  onChange={(v) => update({ hideVerses: v })}
+                />
+                <Toggle
                   label={t('set.showForHidden')}
                   hint={t('rb.set.weakWashHint')}
                   checked={settings.showForHidden ?? false}
@@ -744,6 +905,12 @@ export default function SettingsClient() {
                   hint={t('rb.set.tajweedHintLong')}
                   checked={settings.tajweedColors ?? false}
                   onChange={(v) => update({ tajweedColors: v })}
+                />
+                <Toggle
+                  label={t('set.colorSimilar')}
+                  hint={t('set.colorSimilarHint')}
+                  checked={settings.colorSimilarPhrases ?? false}
+                  onChange={(v) => update({ colorSimilarPhrases: v })}
                 />
               </div>
             </Panel>
@@ -786,6 +953,7 @@ export default function SettingsClient() {
               <div className="flex flex-wrap gap-2" role="group" aria-label={t('set.theme')}>
                 {(
                   [
+                    ['auto', t('set.themeAuto')],
                     ['light', t('set.themeLight')],
                     ['dark', t('set.themeDark')],
                     ['sepia', t('set.themeSepia')],
@@ -897,10 +1065,7 @@ export default function SettingsClient() {
       </Group>
 
       {/* Sounds & Haptics — chevron rows; the toggles live on the detail
-          panels. There is no "session start/stop" sound and no "dropped
-          connection" sound anywhere in the app (no such fields in
-          HifzSettings, no sound prefs in the codebase), so those two rows
-          are omitted rather than added as dead rows. */}
+          panels. */}
       <Group title={t('rb.set.sounds')}>
         <div>
           <Row
@@ -911,12 +1076,98 @@ export default function SettingsClient() {
           />
           {open === 'mistakeSound' && (
             <Panel>
-              <Toggle
-                label={t('rb.set.mistakeFeedback')}
-                hint={t('rb.set.mistakeFeedbackHint')}
-                checked={settings.detectMistakes ?? true}
-                onChange={(v) => update({ detectMistakes: v })}
-              />
+              <div className="divide-y divide-[#E8EAED]">
+                <Toggle
+                  label={t('rb.set.mistakeFeedback')}
+                  hint={t('rb.set.mistakeFeedbackHint')}
+                  checked={settings.detectMistakes ?? true}
+                  onChange={(v) => update({ detectMistakes: v })}
+                />
+                <Toggle
+                  label={t('set.playSound')}
+                  hint={t('set.mistakeSoundHint')}
+                  checked={settings.mistakeSound ?? true}
+                  onChange={(v) => update({ mistakeSound: v })}
+                />
+              </div>
+              {/* Sound-effect picker: ONLY the app's own synthesised
+                  effects (lib/sounds.ts) — every row plays for real,
+                  each with a Preview button. */}
+              {(settings.mistakeSound ?? true) && (
+                <div className="mt-2 overflow-hidden rounded-xl border border-[#E8EAED] bg-white">
+                  <SoundEffectPicker
+                    value={settings.mistakeSoundEffect ?? 'chime'}
+                    onChange={(id) => update({ mistakeSoundEffect: id })}
+                    testIdPrefix="settings-mistake-effect"
+                  />
+                </div>
+              )}
+              <div className="divide-y divide-[#E8EAED]">
+                <Toggle
+                  label={t('set.vibrateDevice')}
+                  hint={t('set.mistakeVibrateHint')}
+                  checked={settings.mistakeVibrate ?? true}
+                  onChange={(v) => update({ mistakeVibrate: v })}
+                />
+              </div>
+            </Panel>
+          )}
+        </div>
+        <div>
+          <Row
+            icon="volume"
+            label={t('set.sessionStartStop')}
+            expanded={open === 'sessionSound'}
+            onClick={() => toggleOpen('sessionSound')}
+          />
+          {open === 'sessionSound' && (
+            <Panel>
+              <div className="divide-y divide-[#E8EAED]">
+                <Toggle
+                  label={t('set.playSound')}
+                  hint={t('set.sessionSoundHint')}
+                  checked={settings.sessionSound ?? true}
+                  onChange={(v) => update({ sessionSound: v })}
+                />
+                <Toggle
+                  label={t('set.vibrateDevice')}
+                  hint={t('set.sessionVibrateHint')}
+                  checked={settings.sessionVibrate ?? true}
+                  onChange={(v) => update({ sessionVibrate: v })}
+                />
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-[#6B7280]">
+                A session is one mic take in the reader or the coach — from the moment you tap the mic until you stop it.
+              </p>
+            </Panel>
+          )}
+        </div>
+        <div>
+          <Row
+            icon="volume"
+            label={t('set.droppedConnection')}
+            expanded={open === 'droppedSound'}
+            onClick={() => toggleOpen('droppedSound')}
+          />
+          {open === 'droppedSound' && (
+            <Panel>
+              <div className="divide-y divide-[#E8EAED]">
+                <Toggle
+                  label={t('set.playSound')}
+                  hint={t('set.droppedSoundHint')}
+                  checked={settings.droppedSound ?? true}
+                  onChange={(v) => update({ droppedSound: v })}
+                />
+                <Toggle
+                  label={t('set.vibrateDevice')}
+                  hint={t('set.droppedVibrateHint')}
+                  checked={settings.droppedVibrate ?? true}
+                  onChange={(v) => update({ droppedVibrate: v })}
+                />
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-[#6B7280]">
+                The recitation coach runs on the device, so a dropped connection doesn’t stop the listening itself — this is only a heads-up that the network went away mid-take.
+              </p>
             </Panel>
           )}
         </div>
@@ -978,6 +1229,7 @@ export default function SettingsClient() {
                 <Toggle
                   label={t('rb.set.testingMode')}
                   hint={t('rb.set.soundHint')}
+                  ariaLabel={t('set.testSound')}
                   checked={settings.testSound ?? true}
                   onChange={(v) => update({ testSound: v })}
                 />
@@ -1078,6 +1330,33 @@ export default function SettingsClient() {
                   onChange={(v) => update({ saveAudio: v })}
                 />
               </div>
+              <div className="mt-3 space-y-1 text-sm text-[#111827]">
+                <p>
+                  {t('set.storageUsed')}:{' '}
+                  <span className="font-semibold">
+                    {usage === null
+                      ? t('set.usageLoading')
+                      : usage.storageBytes === null
+                        ? '—'
+                        : usage.storageBytes < 1048576
+                          ? `${Math.max(1, Math.round(usage.storageBytes / 1024))} KB`
+                          : `${(usage.storageBytes / 1048576).toFixed(1)} MB`}
+                  </span>
+                </p>
+                <p>
+                  {t('set.sessionRecordings')}:{' '}
+                  <span className="font-semibold">
+                    {usage === null
+                      ? t('set.usageLoading')
+                      : usage.recordings === 1
+                        ? t('set.oneRecording')
+                        : t('set.recordingsN').replace('{n}', String(usage.recordings))}
+                    {usage !== null &&
+                      usage.audioBytes > 0 &&
+                      ` (${(usage.audioBytes / 1048576).toFixed(1)} MB)`}
+                  </span>
+                </p>
+              </div>
               <p className="mt-3 text-sm leading-relaxed text-[#6B7280]">
                 {t('rb.set.indexedDbNoteA')}
                 <Link href="/hifz/settings/account" className="font-semibold text-[#111827] underline">
@@ -1103,6 +1382,13 @@ export default function SettingsClient() {
               <p className="text-sm leading-relaxed text-[#6B7280]">
                 {t('rb.set.deleteAudioOnlyNote')}
               </p>
+              <p className="mt-2 text-sm text-[#111827]">
+                {usage === null
+                  ? t('set.usageLoading')
+                  : usage.recordings === 1
+                    ? t('set.oneRecording')
+                    : t('set.recordingsN').replace('{n}', String(usage.recordings))}
+              </p>
               <button
                 type="button"
                 onClick={() => {
@@ -1112,6 +1398,11 @@ export default function SettingsClient() {
               >
                 {t('rb.set.deleteAudioRecordings')}
               </button>
+              {deleteAudioNote && (
+                <p role="status" className="mt-3 text-sm font-semibold leading-relaxed text-[#1FA36B]">
+                  {deleteAudioNote}
+                </p>
+              )}
             </Panel>
           )}
         </div>
@@ -1131,11 +1422,62 @@ export default function SettingsClient() {
               </p>
               <button
                 type="button"
+                onClick={doExportFromDelete}
+                className="mt-3 min-h-11 rounded-full border border-[#E8EAED] bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-[#E4FFF2]"
+              >
+                {t('set.export')}
+              </button>
+              {deleteExportNote && (
+                <p role="status" className="mt-2 text-sm leading-relaxed text-[#111827]">
+                  {deleteExportNote}
+                </p>
+              )}
+              <button
+                type="button"
                 onClick={clearAll}
-                className="mt-3 min-h-11 rounded-full bg-[#B91C1C] px-4 py-2 text-sm font-semibold text-white hover:bg-[#991B1B]"
+                className="mt-3 block min-h-11 rounded-full bg-[#B91C1C] px-4 py-2 text-sm font-semibold text-white hover:bg-[#991B1B]"
               >
                 {t('rb.set.deleteAllData')}
               </button>
+            </Panel>
+          )}
+        </div>
+        <div>
+          <Row
+            icon="trophy"
+            label={t('set.leaderboard')}
+            expanded={open === 'leaderboard'}
+            onClick={() => toggleOpen('leaderboard')}
+          />
+          {open === 'leaderboard' && (
+            <Panel>
+              {lbState === 'loading' ? (
+                <p className="text-sm text-[#6B7280]">{t('set.usageLoading')}</p>
+              ) : lbState === 'guest' ? (
+                <>
+                  <p className="text-sm leading-relaxed text-[#6B7280]">{t('set.leaderboardGuest')}</p>
+                  <PanelLink href="/hifz/settings/account">{t('rb.set.account')}</PanelLink>
+                </>
+              ) : (
+                <>
+                  <div className="divide-y divide-[#E8EAED]">
+                    <Toggle
+                      label={t('set.leaderboard')}
+                      hint={t('set.leaderboardOffNote')}
+                      checked={lbOptedIn}
+                      disabled={lbSaving}
+                      onChange={() => {
+                        void handleLeaderboardToggle();
+                      }}
+                    />
+                  </div>
+                  {lbError && (
+                    <p role="alert" className="mt-3 text-sm leading-relaxed text-[#B91C1C]">
+                      {lbError}
+                    </p>
+                  )}
+                </>
+              )}
             </Panel>
           )}
         </div>
