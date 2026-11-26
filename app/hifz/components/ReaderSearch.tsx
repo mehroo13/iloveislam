@@ -40,19 +40,20 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ALL_SURAHS, getSurahById } from '../surahs';
+import { getSurahById } from '../surahs';
 import {
   juzFirstPageForEdition,
   surahFirstPageForEdition,
   surahsOnMushafPageForEdition,
 } from '../lib/mushaf-surah-pages';
-import { totalPagesForEdition, type MushafEditionId } from '../lib/mushaf-edition';
+import { type MushafEditionId } from '../lib/mushaf-edition';
 import {
   RECENT_SEARCHES_EVENT,
   clearRecentSearches,
   loadRecentSearches,
   recordRecentSearch,
 } from '../lib/recent-searches';
+import { parseRef, parseSearchJump } from '../lib/search-jump';
 
 const INK = 'var(--reader-ink)';
 const MUTED = 'var(--reader-muted)';
@@ -90,13 +91,7 @@ type WordSearchResult = {
   text: string;
 };
 
-/** A "S:A" reference, or null. Shared by the sync lookup and the
- *  async ayah-page resolution. */
-function parseRef(query: string): { surah: number; ayah: number } | null {
-  const ref = query.trim().match(/^(\d{1,3})\s*:\s*(\d{1,3})$/);
-  if (!ref) return null;
-  return { surah: Number(ref[1]), ayah: Number(ref[2]) };
-}
+// (parseRef lives in lib/search-jump.ts, shared with the hub search.)
 
 /** True when the query holds Arabic letters — the word-search trigger. */
 const HAS_ARABIC = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/;
@@ -114,85 +109,48 @@ function searchResults(
 ): SearchResult[] {
   const query = raw.trim();
   if (!query) return [];
-  const lower = query.toLowerCase();
   const surahFirstPage = surahFirstPageForEdition(edition);
   const juzFirstPage = juzFirstPageForEdition(edition);
-  const totalPages = totalPagesForEdition(edition);
 
-  // Reference "S:A" — the ayah's own page once resolved (Part 5);
-  // until then, the surah's first page, and the result says so.
-  const ref = parseRef(query);
-  if (ref) {
-    const s = getSurahById(ref.surah);
-    if (s) {
-      const page = refPage ?? surahFirstPage[s.id] ?? 1;
-      return [
-        {
-          key: `ref-${s.id}:${ref.ayah}`,
-          label: `${s.name} ${ref.surah}:${ref.ayah}`,
-          sub:
-            refPage != null
-              ? `Ayah ${ref.surah}:${ref.ayah} · Page ${page}`
-              : `Opens at the start of ${s.name} · Page ${page}`,
-          page,
-        },
-      ];
-    }
-    return [];
+  // Jump parsing is shared with the hub search (lib/search-jump.ts):
+  // one parser, so a query means the same thing on both surfaces.
+  const jump = parseSearchJump(query);
+  if (!jump) return [];
+
+  if (jump.kind === 'ayah') {
+    const s = jump.surah;
+    const page = refPage ?? surahFirstPage[s.id] ?? 1;
+    return [
+      {
+        key: `ref-${s.id}:${jump.ayah}`,
+        label: `${s.name} ${s.id}:${jump.ayah}`,
+        sub:
+          refPage != null
+            ? `Ayah ${s.id}:${jump.ayah} · Page ${page}`
+            : `Opens at the start of ${s.name} · Page ${page}`,
+        page,
+      },
+    ];
   }
 
-  // Page: "pg 62" / "page 62".
-  const pg = lower.match(/^(?:pg|page)\s*(\d{1,3})$/);
-  if (pg) {
-    const n = Number(pg[1]);
-    if (n >= 1 && n <= totalPages) {
-      const names = surahsOnMushafPageForEdition(n, edition)
-        .map((id) => getSurahById(id)?.name)
-        .filter(Boolean)
-        .join(', ');
-      return [{ key: `pg-${n}`, label: `Page ${n}`, sub: names || 'Mushaf page', page: n }];
-    }
-    return [];
+  // Page: "pg 62" / "page 62" / bare number above 114.
+  if (jump.kind === 'page') {
+    const n = jump.page;
+    const names = surahsOnMushafPageForEdition(n, edition)
+      .map((id) => getSurahById(id)?.name)
+      .filter(Boolean)
+      .join(', ');
+    return [{ key: `pg-${n}`, label: `Page ${n}`, sub: names || 'Mushaf page', page: n }];
   }
 
   // Juz: "juz 5" / "part 5".
-  const juz = lower.match(/^(?:juz|part)\s*(\d{1,2})$/);
-  if (juz) {
-    const n = Number(juz[1]);
-    if (n >= 1 && n <= 30) {
-      const page = juzFirstPage[n] ?? 1;
-      return [{ key: `juz-${n}`, label: `Juz ${n}`, sub: `Starts on page ${page}`, page }];
-    }
-    return [];
-  }
-
-  // Bare number: a surah number (1–114), else a mushaf page.
-  if (/^\d{1,3}$/.test(query)) {
-    const n = Number(query);
-    if (n >= 1 && n <= 114) {
-      const s = getSurahById(n);
-      if (s) {
-        return [
-          {
-            key: `surah-${s.id}`,
-            label: s.name,
-            sub: `${s.ayahCount} verses · Page ${surahFirstPage[s.id] ?? 1}`,
-            page: surahFirstPage[s.id] ?? 1,
-          },
-        ];
-      }
-    }
-    if (n >= 1 && n <= totalPages) {
-      return [{ key: `pg-${n}`, label: `Page ${n}`, sub: 'Mushaf page', page: n }];
-    }
-    return [];
+  if (jump.kind === 'juz') {
+    const page = juzFirstPage[jump.juz] ?? 1;
+    return [{ key: `juz-${jump.juz}`, label: `Juz ${jump.juz}`, sub: `Starts on page ${page}`, page }];
   }
 
   // Surah name — English or Arabic, partial match, first 8.
-  const matches = ALL_SURAHS.filter(
-    (s) => s.name.toLowerCase().includes(lower) || s.arabic.includes(query),
-  ).slice(0, 8);
-  return matches.map((s) => ({
+  return jump.surahs.map((s) => ({
     key: `surah-${s.id}`,
     label: s.name,
     sub: `${s.ayahCount} verses · Page ${surahFirstPage[s.id] ?? 1}`,

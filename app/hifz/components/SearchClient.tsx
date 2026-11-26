@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { ALL_SURAHS, getSurahById } from '../surahs';
 import { SURAH_FIRST_PAGE } from '../mushaf';
 import { JUZ_PAGES } from '../juz';
+import { parseRef, parseSearchJump } from '../lib/search-jump';
 import { useT, t as tr, getUiLocale } from '../lib/i18n';
 
 interface SearchResult {
@@ -63,6 +64,13 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
   const [jumpJuz, setJumpJuz] = useState(1);
   const [jumpPage, setJumpPage] = useState(3);
 
+  // Jump result (S1–S4, 2026-11-26): when the query is a reference,
+  // a surah name, a page or a Juz — the syntaxes the placeholder
+  // advertises — the box jumps there instead of word-searching.
+  // One card per target: { label, sub, href }.
+  const [jumpTargets, setJumpTargets] = useState<{ label: string; sub: string; href: string }[] | null>(null);
+  const [jumpError, setJumpError] = useState<string | null>(null);
+
   // Fresh search (page 1): replaces results and records the query in
   // recent-search history.
   const runSearch = useCallback(async (query: string) => {
@@ -72,7 +80,92 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
     setError(null);
     setSearched(true);
     setActiveQuery(queryTrim);
+    setJumpTargets(null);
+    setJumpError(null);
+    setResults([]);
+    setTotal(0);
     setRecentSearches(recordRecentSearch(queryTrim));
+
+    // --- Jump queries first (S1–S4): a reference, surah name, page
+    // or Juz jumps straight there — never a word search. Shared
+    // parser with the reader overlay (lib/search-jump.ts).
+    const jump = parseSearchJump(queryTrim);
+    if (jump) {
+      try {
+        if (jump.kind === 'ayah') {
+          // Fetch the ayah's own text + translation so the jump card
+          // shows the ayah, not just a link. If the fetch fails the
+          // card still shows — the link is the result.
+          let text = '';
+          let translation = '';
+          try {
+            const vres = await fetch(
+              `/api/quran/verses/by_key/${jump.surah.id}:${jump.ayah}?fields=text_uthmani&translations=20&language=en`,
+            );
+            if (vres.ok) {
+              const vdata = await vres.json();
+              const verse = (vdata as { verse?: { text_uthmani?: string; translations?: { text?: string }[] } })?.verse;
+              text = typeof verse?.text_uthmani === 'string' ? verse.text_uthmani : '';
+              const tr0 = Array.isArray(verse?.translations) ? verse.translations[0]?.text : undefined;
+              translation = typeof tr0 === 'string' ? stripHtml(tr0) : '';
+            }
+          } catch {
+            /* card without text — the link still works */
+          }
+          setResults([
+            {
+              verse_key: `${jump.surah.id}:${jump.ayah}`,
+              text,
+              translations: translation ? [{ text: translation }] : [],
+            },
+          ]);
+          setTotal(1);
+          setPage(1);
+        } else if (jump.kind === 'surahs') {
+          setJumpTargets(
+            jump.surahs.map((s) => ({
+              label: `Surah ${s.name}`,
+              sub: `${s.ayahCount} ayahs · Starts on Mushaf page ${SURAH_FIRST_PAGE[s.id] ?? '?'}`,
+              href: `/hifz/${s.slug}`,
+            })),
+          );
+        } else if (jump.kind === 'page') {
+          setJumpTargets([
+            {
+              label: `Mushaf page ${jump.page}`,
+              sub: 'Open the Mushaf at this page',
+              href: `/hifz/mushaf/${jump.page}`,
+            },
+          ]);
+        } else {
+          const juzInfo = JUZ_PAGES[jump.juz - 1];
+          setJumpTargets([
+            {
+              label: `Juz ${jump.juz}`,
+              sub: juzInfo ? `${juzInfo.totalAyahs} ayahs` : 'Open this Juz',
+              href: `/hifz/juz/${jump.juz}`,
+            },
+          ]);
+        }
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    // A "S:A" shape that is NOT a real ayah (e.g. 1:8, 200:1) is an
+    // honest dead end — never a word search over the digits.
+    const badRef = parseRef(queryTrim);
+    if (badRef) {
+      const s = getSurahById(badRef.surah);
+      setJumpError(
+        s
+          ? `There is no ayah ${badRef.surah}:${badRef.ayah} — Surah ${s.name} has ${s.ayahCount} ayahs.`
+          : `There is no surah ${badRef.surah} — the Quran has 114 surahs.`,
+      );
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch(
         `/api/quran/search?q=${encodeURIComponent(queryTrim)}&size=${PAGE_SIZE}&page=1&language=en`,
@@ -228,12 +321,35 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
           {searched && (
             <section aria-label={t('search.resultsLabel')} className="rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm sm:p-6">
               <h2 className="text-xl font-bold text-[#111827]">{t('search.results')}</h2>
-              {q.trim() && (
+              {/* Jump result (S1–S4): a reference / surah / page / Juz
+                  lands here as a direct card, not a word-search list. */}
+              {jumpTargets !== null && (
+                <ul className="mt-4 space-y-2">
+                  {jumpTargets.map((jt) => (
+                    <li key={jt.href}>
+                      <Link
+                        href={jt.href}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-[#E8EAED] bg-[#F1F2F4] px-4 py-3 hover:border-[#1FA36B]"
+                      >
+                        <span>
+                          <span className="block font-bold text-[#111827]">{jt.label}</span>
+                          <span className="block text-sm text-[#6B7280]">{jt.sub}</span>
+                        </span>
+                        <span aria-hidden="true" className="shrink-0 font-bold text-[#1FA36B]">→</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {jumpError && (
+                <p className="mt-3 text-sm text-[#6B7280]">{jumpError}</p>
+              )}
+              {q.trim() && jumpTargets === null && !jumpError && (
                 <p dir="auto" className="mt-1 text-sm text-[#6B7280]">
                   {t('search.forQuery').replace('{q}', q.trim()).replace('{n}', String(total)).replace('{ayahWord}', total === 1 ? t('common.ayah') : t('common.ayahs'))}
                 </p>
               )}
-              {results.length === 0 && !loading ? (
+              {results.length === 0 && !loading && jumpTargets === null && !jumpError ? (
                 <p className="mt-3 text-sm text-[#6B7280]">
                   {t('search.nothingFound')}
                 </p>
