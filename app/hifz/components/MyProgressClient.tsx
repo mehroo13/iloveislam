@@ -224,6 +224,17 @@ function mistakeTypeLabelT(type: MistakeType | undefined, t: (key: string) => st
     default: return t('coach.missed');
   }
 }
+
+/** M2: the Incorrect / Missed filter classifies by the mistake's TYPE —
+ *  never by whether the engine returned a `heard` value. Entries with
+ *  no type (older saves) read as 'missed', like their row label does.
+ *  The other types (extra / repeated / sequence / skipped) appear under
+ *  All only — they are neither incorrect nor missed words. */
+function matchesMistakeFilter(m: MistakeEntry, f: 'all' | 'incorrect' | 'missed'): boolean {
+  if (f === 'all') return true;
+  if (f === 'incorrect') return m.type === 'incorrect';
+  return m.type === 'missed' || m.type === undefined;
+}
 function testSessionTypeLabel(type: string, t: (key: string) => string): string {
   switch (type) {
     case 'sequential': return t('test.typeSequential');
@@ -415,7 +426,7 @@ function StreakCard({ streak, longestStreak, activity, addHref, onBell }: {
           </span>
         </span>
         <p className="mt-1.5 whitespace-nowrap text-sm font-bold text-[#FF8A00]">
-          {streak} {t('rb.dash.dayWord')}
+          {streak} {streak === 1 ? t('common.day') : t('common.days')}
         </p>
       </div>
       {/* Middle: mint panel — day labels, diamonds, longest streak. */}
@@ -446,7 +457,7 @@ function StreakCard({ streak, longestStreak, activity, addHref, onBell }: {
         </div>
         <p className="mt-2 text-center text-xs">
           <span className="text-[#5b8a6e]">{t('rb.dash.longestStreak')} </span>
-          <span className="font-bold text-[#1FA36B]">{longestStreak} {t('rb.dash.dayWord')}</span>
+          <span className="font-bold text-[#1FA36B]">{longestStreak} {longestStreak === 1 ? t('common.day') : t('common.days')}</span>
         </p>
       </div>
       {/* Right: bell (reminders) + green plus (log a session). */}
@@ -499,7 +510,7 @@ function TypeGoalCard({ type, goal, onTargetChange, onLog }: {
           <p className="font-bold text-[#111827]">{goalTypeLabel(type, t)}</p>
           <p className="text-sm text-[#6B7280]">
             {goal.target > 0 ? (
-              <>{goal.done} / {goal.target} {t('common.ayahs')} {met ? t('prog.goalMetShort') : t('prog.today')}</>
+              <>{goal.done} / {goal.target} {goal.target === 1 ? t('common.ayah') : t('common.ayahs')} {met ? t('prog.goalMetShort') : t('prog.today')}</>
             ) : (
               t('rb.dash.notSet')
             )}
@@ -517,7 +528,7 @@ function TypeGoalCard({ type, goal, onTargetChange, onLog }: {
             aria-label={t('rb.dash.dailyTargetInAyahs').replace('{label}', goalTypeLabel(type, t))}
           >
             {TYPE_GOAL_OPTIONS.map((n) => (
-              <option key={n} value={n}>{t('prog.ayahsOption').replace('{n}', String(n))}</option>
+              <option key={n} value={n}>{n === 1 ? `1 ${t('common.ayah')}` : t('prog.ayahsOption').replace('{n}', String(n))}</option>
             ))}
           </select>
         </label>
@@ -555,7 +566,7 @@ function MemGoalRow({ label, goalLabel, type, goal, onTargetChange, onLog }: {
   const [open, setOpen] = useState(true);
   const [detailOpen, setDetailOpen] = useState(false);
   const t = useT();
-  const value = goal.target > 0 ? `${goal.done} / ${goal.target} ${t('common.ayahs')}` : t('rb.dash.notSet');
+  const value = goal.target > 0 ? `${goal.done} / ${goal.target} ${goal.target === 1 ? t('common.ayah') : t('common.ayahs')}` : t('rb.dash.notSet');
   return (
     <div>
       <button
@@ -692,6 +703,8 @@ export default function MyProgressClient() {
   // with the other hooks above the loading early-return — a useState below
   // it changes the hook count between renders (React error #310).
   const [confirmClearMistakes, setConfirmClearMistakes] = useState(false);
+  // m9: per-row Clear asks first (same two-step pattern as delete-all).
+  const [confirmClearIdx, setConfirmClearIdx] = useState<number | null>(null);
   // Last-read + favourites (bookmarks), spec §22.4.
   const [lastRead, setLastRead] = useState<{ surah: number; name: string; slug: string; at: number } | null>(null);
   const [bookmarks, setBookmarks] = useState<{ surahNumber: number; verseNumber: number; surahName?: string }[]>([]);
@@ -1087,6 +1100,7 @@ export default function MyProgressClient() {
     const next = mistakes.filter((_, i) => i !== idx);
     saveMistakes(next);
     setMistakes(next);
+    setConfirmClearIdx(null);
   };
 
   const markOneCorrected = (idx: number) => {
@@ -1122,8 +1136,10 @@ export default function MyProgressClient() {
         </p>
       )}
 
-      {/* 5-tab progress hub — Dashboard / Goals / Memorization / Activity / Community. */}
-      <div role="tablist" aria-label={t('rb.dash.progressSections')} className="flex gap-1 overflow-x-auto border-b border-[#E8EAED] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* 5-tab progress hub — Dashboard / Goals / Memorization / Activity / Community.
+          m6: the strip scrolls at 390px, so it fades at the right edge as a
+          scroll cue (and the tabs are a touch tighter). */}
+      <div role="tablist" aria-label={t('rb.dash.progressSections')} className="flex gap-1 overflow-x-auto border-b border-[#E8EAED] [-ms-overflow-style:none] [scrollbar-width:none] [mask-image:linear-gradient(to_right,black_88%,transparent_100%)] [&::-webkit-scrollbar]:hidden">
         {TABS.map((tb) => (
           <button
             key={tb.id}
@@ -1131,7 +1147,7 @@ export default function MyProgressClient() {
             role="tab"
             aria-selected={tab === tb.id}
             onClick={() => setTab(tb.id)}
-            className={`shrink-0 border-b-[3px] px-3 py-2 text-[15px] ${
+            className={`shrink-0 border-b-[3px] px-2.5 py-2 text-[15px] ${
               tab === tb.id
                 ? 'border-black font-bold text-black'
                 : 'border-transparent font-medium text-[#6B7280] hover:text-[#111827]'
@@ -1218,18 +1234,16 @@ export default function MyProgressClient() {
 
           {/* Free-features promo — our own simple mosque icon (never
               Tarteel's artwork) and our own line; nothing is upsold,
-              everything is free. BB: the button now goes to Settings,
-              where the unlocked features live — Mistake Detection is
-              in the Recitation detail there. SettingsClient has no
-              deep-link, so the link lands on Settings and the user
-              taps Recitation. */}
+              everything is free. BB: the button opens the Features menu
+              (the reader with the Dashboard open), where all 14 features
+              live — not Settings. */}
           <section aria-label={t('rb.dash.exploreFree')} className="rounded-2xl border border-[#E8EAED] bg-white p-5 text-center shadow-sm sm:p-6">
             <span className="mx-auto flex h-16 w-16 items-center justify-center" aria-hidden="true">
               <ToolIcon name="mosque" className="h-14 w-14 text-[#C9A227]" />
             </span>
             <p className="mt-3 text-lg font-bold leading-snug text-[#111827]">{t('rb.dash.memBetter')}</p>
             <Link
-              href="/hifz/settings"
+              href="/?dashboard=1"
               className="mt-4 flex min-h-12 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#38BDF8] to-[#34D399] px-5 py-3 text-base font-bold text-[#102E26] hover:brightness-105"
             >{t('rb.dash.exploreAllFree')}</Link>
             <p className="mt-2 text-xs text-[#6B7280]">{t('rb.dash.settingsPromoNote').replace('{feature}', t('set.detectMistakes')).replace('{settings}', t('set.title')).replace('{recitation}', t('set.recitation'))}</p>
@@ -1643,6 +1657,9 @@ export default function MyProgressClient() {
               const byWord = new Map<string, { word: string; surah: number; ayah: number; attempts: number; heard?: string }>();
               for (const m of mistakes) {
                 if (m.corrected) continue;
+                // M2: the Weak-spots chart respects the active filter —
+                // it shows the filtered words, not always all of them.
+                if (!matchesMistakeFilter(m, mistakeFilter)) continue;
                 const k = `${m.surah}:${m.ayah}:${m.word}`;
                 const prev = byWord.get(k);
                 byWord.set(k, {
@@ -1764,17 +1781,15 @@ export default function MyProgressClient() {
               ) : null;
             })()}
             <ul className="mt-4 space-y-2">
-              {[...mistakes]
-                .reverse()
-                .filter((m) => {
-                  if (mistakeFilter === 'all') return true;
-                  if (mistakeFilter === 'incorrect') return !!m.heard && m.heard !== m.expected;
-                  return !m.heard;
-                })
+              {mistakes
+                .map((m, idx) => ({ m, idx }))
+                // M2: classify by the word's type, not by `heard`.
+                .filter(({ m }) => matchesMistakeFilter(m, mistakeFilter))
+                // m10: most recent first by date (was reverse-insertion).
+                .sort((a, b) => b.m.date.localeCompare(a.m.date) || b.idx - a.idx)
                 .slice(0, 50)
-                .map((m, i) => {
+                .map(({ m, idx }) => {
                   const surah = getSurahById(m.surah);
-                  const idx = mistakes.length - 1 - i;
                   const when = new Date(m.date);
                   const whenLabel = Number.isNaN(when.getTime())
                     ? ''
@@ -1782,7 +1797,7 @@ export default function MyProgressClient() {
                       ' · ' +
                       when.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
                   return (
-                    <li key={`${m.surah}:${m.ayah}:${m.word}:${i}`} className="flex flex-wrap items-center gap-2 rounded-xl bg-[#F4F5F7] px-3 py-2 text-sm">
+                    <li key={`${m.surah}:${m.ayah}:${m.word}:${idx}`} className="flex flex-wrap items-center gap-2 rounded-xl bg-[#F4F5F7] px-3 py-2 text-sm">
                       <span dir="rtl" lang="ar" className="font-quran text-lg">{m.word}</span>
                       <span>
                         {surah ? surah.name : `Surah ${m.surah}`} {m.surah}:{m.ayah}
@@ -1807,7 +1822,7 @@ export default function MyProgressClient() {
                             recording" state. */}
                         <MistakeAudioButton sessionId={audioIdForMistake(m, coachSessions)} />
                         {surah && (
-                          <Link href={`/hifz/${surah.slug}?mode=recite`} className="font-semibold text-[#1FA36B] underline">
+                          <Link href={`/hifz/${surah.slug}?mode=recite&ayah=${m.ayah}`} className="font-semibold text-[#1FA36B] underline">
                             {t('common.retry')}
                           </Link>
                         )}
@@ -1818,13 +1833,33 @@ export default function MyProgressClient() {
                             className="font-semibold text-[#1FA36B] underline"
                           >{t('rb.dash.markCorrected')}</button>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => clearMistake(idx)}
-                          className="font-semibold text-red-700 underline"
-                        >
-                          {t('common.clear')}
-                        </button>
+                        {confirmClearIdx === idx ? (
+                          <span className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-semibold text-red-700">{t('prog.confirmClearOne')}</span>
+                            <button
+                              type="button"
+                              onClick={() => clearMistake(idx)}
+                              className="font-semibold text-red-700 underline"
+                            >
+                              {t('prog.yesClear')}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmClearIdx(null)}
+                              className="font-semibold text-[#6B7280] underline"
+                            >
+                              {t('rb.dash.keepThem')}
+                            </button>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmClearIdx(idx)}
+                            className="font-semibold text-red-700 underline"
+                          >
+                            {t('common.clear')}
+                          </button>
+                        )}
                       </span>
                     </li>
                   );
@@ -2068,10 +2103,10 @@ export default function MyProgressClient() {
                 className="text-sm font-medium text-[#6B7280] hover:text-[#111827]"
               >{t('rb.dash.seeAll')}</button>
             </div>
-            {earnedCount === 0 ? (
-              <p className="mt-2 text-sm text-[#6B7280]">{t('rb.dash.noBadgesYet')}</p>
-            ) : showBadges ? (
+            {showBadges ? (
               <div className="mt-3"><BadgesGrid snapshot={badgeSnapshot} /></div>
+            ) : earnedCount === 0 ? (
+              <p className="mt-2 text-sm text-[#6B7280]">{t('rb.dash.noBadgesYet')}</p>
             ) : (
               <p className="mt-2 text-sm text-[#6B7280]">
                 {t('rb.dash.badgesEarnedNote').replace('{n}', String(earnedCount)).replace('{seeAll}', t('rb.dash.seeAll'))}
@@ -2461,7 +2496,10 @@ export default function MyProgressClient() {
             />
           </label>
           <span className="pb-2 text-sm text-[#6B7280]">
-            {t('prog.ayahsCovered').replace('{n}', String(Math.max(1, addToAyah - addFromAyah + 1)))}
+            {(() => {
+              const n = Math.max(1, addToAyah - addFromAyah + 1);
+              return t('prog.ayahsCovered').replace('{n}', String(n)).replace('{ayahWord}', n === 1 ? t('common.ayah') : t('common.ayahs'));
+            })()}
           </span>
           <label className="text-xs font-semibold text-[#6B7280]">
             {t('prog.minutesLabel')}

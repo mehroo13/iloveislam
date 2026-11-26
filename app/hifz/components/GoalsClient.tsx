@@ -121,6 +121,8 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  // m9: Delete goal asks first (same two-step pattern as delete-all).
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     const loaded = loadGoals();
@@ -211,7 +213,10 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
     setName('');
   };
 
-  const deleteGoal = (id: string) => persist(goals.filter((g) => g.id !== id));
+  const deleteGoal = (id: string) => {
+    setConfirmDeleteId(null);
+    persist(goals.filter((g) => g.id !== id));
+  };
 
   // G2: an explicit Complete control — marks the goal done and
   // archives it; Archived shows a "Completed" badge for it.
@@ -499,13 +504,33 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
                     onClick={() => setArchived(g.id, true)}
                     className="text-sm font-semibold text-[#6B7280] underline"
                   >{t('rb.goals.archive')}</button>
-                  <button
-                    type="button"
-                    onClick={() => deleteGoal(g.id)}
-                    className="text-sm font-semibold text-red-700 underline"
-                  >
-                    {t('goal.deleteGoal')}
-                  </button>
+                  {confirmDeleteId === g.id ? (
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold text-red-700">{t('goal.confirmDelete')}</span>
+                      <button
+                        type="button"
+                        onClick={() => deleteGoal(g.id)}
+                        className="text-sm font-semibold text-red-700 underline"
+                      >
+                        {t('goal.yesDelete')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="text-sm font-semibold text-[#6B7280] underline"
+                      >
+                        {t('rb.dash.keepThem')}
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteId(g.id)}
+                      className="text-sm font-semibold text-red-700 underline"
+                    >
+                      {t('goal.deleteGoal')}
+                    </button>
+                  )}
                 </div>
               </article>
             );
@@ -577,9 +602,21 @@ export default function GoalsClient({ preset, createOpenSignal }: { preset?: str
                   <span className="text-[#6B7280]">{g.range} · {g.portion} · {g.schedule}</span>
                   <span className="ml-auto flex gap-3">
                     <button type="button" onClick={() => setArchived(g.id, false)} className="font-semibold text-[#1FA36B] underline">{t('rb.goals.unarchive')}</button>
-                    <button type="button" onClick={() => deleteGoal(g.id)} className="font-semibold text-red-700 underline">
-                      {t('goal.deleteGoal')}
-                    </button>
+                    {confirmDeleteId === g.id ? (
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold text-red-700">{t('goal.confirmDelete')}</span>
+                        <button type="button" onClick={() => deleteGoal(g.id)} className="font-semibold text-red-700 underline">
+                          {t('goal.yesDelete')}
+                        </button>
+                        <button type="button" onClick={() => setConfirmDeleteId(null)} className="font-semibold text-[#6B7280] underline">
+                          {t('rb.dash.keepThem')}
+                        </button>
+                      </span>
+                    ) : (
+                      <button type="button" onClick={() => setConfirmDeleteId(g.id)} className="font-semibold text-red-700 underline">
+                        {t('goal.deleteGoal')}
+                      </button>
+                    )}
                   </span>
                 </li>
               ))}
