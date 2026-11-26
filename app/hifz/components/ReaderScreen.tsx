@@ -65,6 +65,7 @@ import { useSyncUiPrefs, useT } from '../lib/i18n';
 import { MODE_EVENT, lastReadSlug, requestMode, saveMode, type HifzMode } from '../lib/mode';
 import { PracticeModeList, ReaderSheet } from './MushafReader';
 import { DEFAULT_RECITER_ID, DEFAULT_TRANSLATION_ID, loadSettings, saveSettings } from '../progress';
+import { READER_POS_KEY, readReaderSavedPos, writeReaderSavedPos, type ReaderSavedPos } from '../lib/reader-position';
 import { readListenSpeed, writeListenSpeed } from '../lib/listen-speed';
 import { type PeekInfo, type ReaderMistake, loadFrequentMistakeKeys } from '../lib/reader-mistakes';
 import { playDroppedFeedback, playMistakeFeedback, playSessionFeedback } from '../lib/sounds';
@@ -382,6 +383,16 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   /** Real page count of the selected edition's layout (604 Madani,
    *  610 Indo-Pak) — every page bound in this file uses it. */
   const totalPages = totalPagesForEdition(edition);
+  /* Render-time mirrors for the resume machinery below (same
+   * pattern as pagesRef / textRangeRef): savePosition reads the
+   * live position from refs, never from a stale closure. */
+  const pageRef = useRef(page);
+  pageRef.current = page;
+  /* layoutModeRef already exists below (line ~1080, beside the
+   * other render-time mirrors) — the resume machinery reads it;
+   * do not redeclare it here. */
+  const editionRef = useRef<MushafEditionId>('madani-1405');
+  editionRef.current = edition;
 
   /* One reader page, in the given edition (default: the selected
    *  one). Declared up here (not with the swipe code below) because
@@ -508,6 +519,8 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const selectEdition = useCallback(
     (id: MushafEditionId) => {
       if (id === edition) return;
+      // A deliberate edition switch wins over a pending restore.
+      cancelRestore();
       const target = Math.min(page, totalPagesForEdition(id));
       void fetchPage(target, id)
         .then(() => {
@@ -667,8 +680,13 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   textRangeRef.current = textRange;
   /* The position the user is actually looking at in a continuous
    * mode — drives the pill, the header row, the bookmark and the
-   * mic/playback scope. */
-  const [visibleText, setVisibleText] = useState<{ surah: number; page: number; juz: number; hizb: number } | null>(null);
+   * mic/playback scope. `ayah` is the verse_key of the topmost
+   * visible ayah (RESUME FIX 2026-11-26): the scroll tracker reads
+   * it from the ayah element's data-verse-key, and the position
+   * saver stores it, so a reopen lands on the exact ayah, not just
+   * the page top. Null in Book mode (the whole page is in view)
+   * and before the first scroll check. */
+  const [visibleText, setVisibleText] = useState<{ surah: number; page: number; juz: number; hizb: number; ayah: string | null } | null>(null);
   const visibleTextRef = useRef(visibleText);
   visibleTextRef.current = visibleText;
   /* The page the reader is effectively on: the visible page in a
@@ -751,6 +769,256 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       /* storage unavailable — defaults stand */
     }
   }, []);
+  /* ------------------- resume position (2026-11-26) -------------------
+   * Mehran: closing the tool must return to the same position.
+   * Until now this reader never saved or restored position at all
+   * — every fresh open was page 1 — while /hifz/mushaf persisted
+   * it under `ili_mushaf_reader_pos_v1`. This ports that mechanism
+   * here, on the SAME key (see lib/reader-position.ts), extended
+   * with the layout, the edition and the visible ayah, so a reopen
+   * lands on the exact ayah in the right layout and edition.
+   * Covers all three layouts: Book restores the page; Quran Text
+   * and Translation restore the page AND scroll the saved ayah to
+   * the top of the viewport. The server still renders page 1 for
+   * first paint (it cannot read localStorage); the client jump
+   * happens after hydration, so a brief flash of page 1 is
+   * unavoidable and accepted.
+   * Precedence: an explicit position in the URL beats the stored
+   * spot (`?page=` deep link; `?mode=` — e.g. a recite landing —
+   * skips the restore entirely). `?dashboard=1` is NOT a position:
+   * the dashboard still opens over the reader (its own mount
+   * effect above), and the reader underneath restores as usual, so
+   * closing the dashboard lands where the user was reading.
+   * In-session jumps (ChapterSheet, search result, gift) run after
+   * mount, so they naturally win over the one-shot restore — and
+   * each of them clears any pending restore scroll. */
+  const restoringRef = useRef(false);
+  const restoreSkippedRef = useRef(false);
+  const restoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRestoreRef = useRef<{ page: number; ayah: string | null; since: number } | null>(null);
+  const storedAtMountRef = useRef<string | null>(null);
+  const lastSavedRef = useRef<string | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Cancel a pending restore scroll (a deliberate jump wins). */
+  const cancelRestore = useCallback(() => {
+    pendingRestoreRef.current = null;
+    if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
+    restoreTimerRef.current = null;
+    restoringRef.current = false;
+  }, []);
+  /** Write the current visible position now. Book: the anchor page
+   * (the whole page is in view). Continuous: the visible page +
+   * the topmost visible ayah. The anchor `page` never moves while
+   * scrolling in a continuous mode, so it must NOT be written —
+   * visibleText is the position there. */
+  const savePosition = useCallback(() => {
+    // A session that skipped the restore (explicit ?mode= landing)
+    // owns no position — never let it overwrite the stored spot.
+    if (restoreSkippedRef.current) return;
+    try {
+      const layout = layoutModeRef.current;
+      const continuous = layout === 'text' || layout === 'translation';
+      const vt = visibleTextRef.current;
+      const page = continuous ? vt?.page ?? pageRef.current : pageRef.current;
+      const ed = editionRef.current;
+      const pos: ReaderSavedPos = {
+        page: Math.min(totalPagesForEdition(ed), Math.max(1, page)),
+        mode: layout === 'book' ? 'page' : 'continuous',
+        zoom: 1,
+        frac: 0,
+        layout,
+        edition: ed,
+        ayah: continuous ? vt?.ayah ?? null : null,
+      };
+      const raw = writeReaderSavedPos(pos);
+      if (raw) lastSavedRef.current = raw;
+    } catch {
+      /* storage unavailable */
+    }
+  }, []);
+  const scheduleSave = useCallback(() => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(savePosition, 800);
+  }, [savePosition]);
+  /* Restore on mount. Declared after the settings/layout mount
+   * effects above, so its state writes win over the stored layout
+   * and edition when a saved position exists. Runs once. */
+  useEffect(() => {
+    try {
+      storedAtMountRef.current = window.localStorage.getItem(READER_POS_KEY);
+    } catch {
+      storedAtMountRef.current = null;
+    }
+    let q: URLSearchParams | null = null;
+    try {
+      q = new URLSearchParams(window.location.search);
+    } catch {
+      q = null;
+    }
+    // An explicit mode in the URL (a recite/test landing) owns the
+    // position — do not restore over it, and do not save over the
+    // stored spot from this session (see savePosition).
+    if (q?.get('mode')) {
+      restoreSkippedRef.current = true;
+      return;
+    }
+    const qPage = Number(q?.get('page') ?? '');
+    const explicitPage =
+      Number.isInteger(qPage) && qPage >= 1 && qPage <= 610 ? qPage : null;
+    const saved = explicitPage === null ? readReaderSavedPos() : null;
+    // No stored spot and no deep link: a fresh user stays on
+    // Al-Fatihah / page 1, exactly as before.
+    if (explicitPage === null && !saved) return;
+    // Resolve the edition first: the saved one when present (the
+    // page number belongs to it), else the settings doc's.
+    let ed: MushafEditionId = 'madani-1405';
+    try {
+      ed = editionFromSettings(loadSettings(), getScriptPref());
+    } catch {
+      /* default stands */
+    }
+    if (saved?.edition) ed = saved.edition;
+    const total = totalPagesForEdition(ed);
+    const target = Math.min(total, Math.max(1, explicitPage ?? saved!.page));
+    const layout: ReaderLayoutMode =
+      saved?.layout ?? (saved?.mode === 'page' ? 'book' : null) ??
+      (() => {
+        try {
+          const v = window.localStorage.getItem('ili_reader_layout_v1');
+          if (v === 'book' || v === 'text' || v === 'translation') return v;
+        } catch {
+          /* default stands */
+        }
+        return 'text' as ReaderLayoutMode;
+      })();
+    const ayah = explicitPage === null ? saved?.ayah ?? null : null;
+    restoringRef.current = true;
+    pendingRestoreRef.current =
+      layout === 'book' ? null : { page: target, ayah, since: Date.now() };
+    // Apply the edition (persisted, so the settings effect's value
+    // does not win back on the next mount) and the layout (persisted
+    // the same way — the layout-load effect above already ran this
+    // commit, and this write wins because it runs after it).
+    if (ed !== editionRef.current) {
+      setEdition(ed);
+      try {
+        saveSettings({ ...loadSettings(), mushafEdition: ed });
+        setScriptPref(scriptForEdition(ed));
+      } catch {
+        /* storage unavailable — the choice applies this session */
+      }
+    }
+    if (layout !== layoutModeRef.current) {
+      setLayoutMode(layout);
+      try {
+        window.localStorage.setItem('ili_reader_layout_v1', layout);
+      } catch {
+        /* storage unavailable */
+      }
+    }
+    setJumpSurah(null);
+    // Move the anchor NOW (synchronously), then fetch the target
+    // page in its edition: the layout-mode effect restarts the
+    // continuous list at the new anchor page, and the
+    // pending-restore effect below scrolls the saved ayah into view
+    // once it renders. Setting the anchor first matters: if the
+    // user closes the tab while the fetch is still in flight, the
+    // pagehide save already sees the restored page instead of
+    // page 1 (which would clobber the stored spot). A failed fetch
+    // retries once, then falls back to page 1 rather than leaving
+    // the reader on an empty page.
+    setPage(target);
+    void fetchPage(target, ed)
+      .catch(() => fetchPage(target, ed))
+      .catch(() => {
+        cancelRestore();
+        setPage(1);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Save on page hide (the reliable moment before the tab goes
+  // away) and when the tab is backgrounded. Never clobber a stored
+  // spot this session doesn't own: if the stored value changed
+  // after mount to something this session never wrote (another tab,
+  // or an external write), it is fresher than this session's page
+  // — leave it alone. (Same guard as MushafReader.)
+  useEffect(() => {
+    const onHide = () => {
+      try {
+        const cur = window.localStorage.getItem(READER_POS_KEY);
+        if (cur !== null && cur !== storedAtMountRef.current && cur !== lastSavedRef.current) {
+          return;
+        }
+      } catch {
+        /* fall through and save */
+      }
+      savePosition();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') onHide();
+    };
+    window.addEventListener('pagehide', onHide);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('pagehide', onHide);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [savePosition]);
+  /* Persist deliberate navigation: a page jump, a Book swipe
+   * (both commit via setPage), an edition switch or a layout
+   * switch. Skips the mount run (nothing has moved yet) and the
+   * restore window (the stored spot is the source of the restore,
+   * not something to overwrite). Continuous scrolling is saved
+   * from check() instead — the anchor `page` never moves there. */
+  const saveEffectFirstRunRef = useRef(true);
+  useEffect(() => {
+    if (saveEffectFirstRunRef.current) {
+      saveEffectFirstRunRef.current = false;
+      return;
+    }
+    if (restoringRef.current) return;
+    scheduleSave();
+  }, [page, edition, layoutMode, scheduleSave]);
+  /* Land the pending restore scroll in a continuous mode: once the
+   * restored page's verses have rendered, scroll the saved ayah to
+   * the top of the viewport (the same +90px threshold the scroll
+   * tracker uses, so the ayah becomes the topmost visible one). If
+   * the ayah is not on the page (edition drift, or a spot saved by
+   * /hifz/mushaf with no ayah), the list already starts at the
+   * page top — just clear. Gives up after 8s so a failed fetch can
+   * never wedge saving for the session. The scroll runs on a short
+   * timeout so the layout-mode effect's own scrollTo(0) (same
+   * commit) lands first. */
+  useEffect(() => {
+    const pending = pendingRestoreRef.current;
+    if (!pending || !isContinuous) return;
+    const hasPage = textPages.some((p) => p.page === pending.page);
+    if (!hasPage) {
+      if (Date.now() - pending.since > 8000) cancelRestore();
+      return;
+    }
+    const mainEl = containerRef.current;
+    if (!mainEl) return;
+    const doScroll = () => {
+      const el = pending.ayah
+        ? mainEl.querySelector(`[data-verse-key="${pending.ayah}"]`)
+        : null;
+      if (el) {
+        const top =
+          (el as HTMLElement).getBoundingClientRect().top -
+          mainEl.getBoundingClientRect().top +
+          mainEl.scrollTop;
+        mainEl.scrollTop = Math.max(0, top - 90);
+      }
+      pendingRestoreRef.current = null;
+      if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
+      restoreTimerRef.current = setTimeout(() => {
+        restoringRef.current = false;
+      }, 1200);
+    };
+    const t = window.setTimeout(doScroll, 100);
+    return () => window.clearTimeout(t);
+  }, [textPages, isContinuous, cancelRestore]);
   /* Hide Verses mode + per-line/verse reveals. Reveal keys:
    * `L{page}:{line}` for the Madani page, `V{verse_key}` for the
    * text/translation views. */
@@ -1942,6 +2210,8 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
 
   const goToPage = useCallback(
     async (target: number, dir: 1 | -1) => {
+      // A deliberate swipe turn wins over a pending restore.
+      cancelRestore();
       if (busyRef.current) return;
       busyRef.current = true;
       const w = contentWidth;
@@ -1977,11 +2247,13 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       setJumpSurah(null);
       busyRef.current = false;
     },
-    [fetchPage, snapBack, contentWidth, setJumpSurah],
+    [fetchPage, snapBack, contentWidth, setJumpSurah, cancelRestore],
   );
 
   const jumpToPage = useCallback(
     (target: number, surahId?: number) => {
+      // A deliberate jump wins over a pending restore scroll.
+      cancelRestore();
       /* A surah-targeted jump (ChapterSheet surah tap, surah search
        * result) names its surah in the pill while the reader stays
        * on the landing page — set it even when the reader is
@@ -2007,7 +2279,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           busyRef.current = false;
         });
     },
-    [page, fetchPage, setJumpSurah],
+    [page, fetchPage, setJumpSurah, cancelRestore],
   );
 
   /* Swipe: pointer events (touch + mouse). Vertical gestures are
@@ -2244,11 +2516,19 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
             page: Number(ds.page),
             juz: Number(ds.juz),
             hizb: Number(ds.hizb ?? 1),
+            ayah: typeof ds.verseKey === 'string' && ds.verseKey ? ds.verseKey : null,
           };
-          if (visibleTextRef.current?.surah !== cur.surah || visibleTextRef.current?.page !== cur.page) {
+          if (
+            visibleTextRef.current?.surah !== cur.surah ||
+            visibleTextRef.current?.page !== cur.page ||
+            visibleTextRef.current?.ayah !== cur.ayah
+          ) {
             visibleTextRef.current = cur;
             setVisibleText(cur);
           }
+          // The visible position moved — persist it (debounced;
+          // skipped while a restore scroll is landing, below).
+          if (!restoringRef.current) scheduleSave();
           break;
         }
       }
@@ -2274,7 +2554,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       mainEl.removeEventListener('scroll', onScroll);
       cancelAnimationFrame(rafId);
     };
-  }, [layoutMode, textRange, fetchPage]);
+  }, [layoutMode, textRange, fetchPage, scheduleSave]);
 
   /* Prepending a page above the viewport must not move the text
    * the user is reading: once the new page's verses render, shift
