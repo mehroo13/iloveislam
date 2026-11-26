@@ -55,7 +55,10 @@
  *  - missed: checker `omitted_word` / `skipped_passage`, or a word the
  *    reciter never reached while later words were observed.
  *  - not-reached: words after the last observed word (partial recitation —
- *    research §5 step 2.6). Never shown as missed.
+ *    research §5 step 2.6). Never shown as missed. Words BEFORE the start
+ *    anchor (lib/recitation-anchor.ts) are also not-reached — the reciter
+ *    started after them, so they were never attempted, however the checker
+ *    flagged them (Mehran, 2026-11-26).
  *  - The adapter NEVER emits tajweed labels, scores or rule names. Tilawa's
  *    pronunciation error classes exist in the engine but are unsupported in
  *    v1 (`capabilities.unsupported`) and are never surfaced. Measured
@@ -85,6 +88,7 @@ import type {
 } from '@tilawa/core';
 import type { Microphone, PreparedMicrophone } from '@tilawa/core/web';
 import { splitWords } from './alignment';
+import { AnchorTracker } from './recitation-anchor';
 
 export type EngineTier = 'auto' | 'full' | 'lite';
 
@@ -490,6 +494,31 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
   let firstObservedIndex: number | null = null;
   /** Passage index of the first expected word observed while LOCKED, or null. */
   let firstLockedIndex: number | null = null;
+  /**
+   * START ANCHOR (Mehran, 2026-11-26 — mid-page starts marked from the
+   * top). The passage is always declared from its first ayah, so the
+   * tracker starts expecting word 1 even when the reciter starts
+   * mid-page. The anchor is where he ACTUALLY started: the first word
+   * of the first run of >= 3 consecutive LOCKED observations (see
+   * lib/recitation-anchor.ts). Words before it were never attempted:
+   * they are `not-reached`, never flagged live or at stop — the anchor
+   * grace BEATS checker flags (a deliberate change to the old grace (A)
+   * below, which a confirmed flag defeated). From-the-top start: the
+   * anchor is passage index 0, so nothing is suppressed.
+   *
+   * Until the anchor is known, checker events are BUFFERED (never
+   * emitted, never recorded): a flag fired while the tracker is still
+   * finding where he started may be about words he never attempted.
+   * Once the anchor is known the buffer is flushed — flags at/after it
+   * are applied, flags before it are dropped. At stop() the anchor is
+   * resolved with its fallback and any still-buffered events are
+   * flushed silently (recorded for buildResult, not re-emitted live).
+   */
+  const anchorTracker = new AnchorTracker();
+  /** Passage index of the anchor once known live, else null. */
+  let anchorIndex: number | null = null;
+  /** Checker events received before the anchor was known. */
+  const pendingCheckerEvents: CheckerEvent[] = [];
   /** True once any position event arrived with state 'locked'. */
   let everLocked = false;
   /** Position events received, any state (see AudioHealth). */
@@ -541,6 +570,46 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
     });
   };
 
+  /**
+   * Apply one checker event: a confirmed flag goes into `flagged` + a
+   * live onWord event; resolved/uncertain clears a flag the reciter
+   * fixed. A flag for a word BEFORE the anchor is dropped outright —
+   * the word was never attempted, so it is never a mistake, never red
+   * live, never in the mistake log, and never plays the mistake sound.
+   * `emitLive` false records the flag for buildResult() without
+   * re-emitting it (stop-time flush — the UI is already showing the
+   * final result by then).
+   */
+  const applyCheckerEvent = (ev: CheckerEvent, emitLive = true) => {
+    const key = wordKey(ev.location);
+    const idx = orderedIndex.get(key);
+    if (idx !== undefined && anchorIndex !== null && idx < anchorIndex) return;
+    if (ev.state === 'confirmed') {
+      flagged.set(key, ev);
+      if (emitLive) {
+        emitWord(
+          ev.location,
+          ev.errorClass === 'wrong_word' ? 'wrong' : 'missed',
+          ev.confidence,
+        );
+      }
+    } else if (ev.state === 'resolved' || ev.state === 'uncertain') {
+      // Self-correction: the reciter fixed it, or the audio was too unclear
+      // to judge. Never count it as a mistake.
+      if (flagged.get(key)?.id === ev.id) {
+        flagged.delete(key);
+        if (emitLive) emitWord(ev.location, 'correct', ev.confidence);
+      }
+    }
+  };
+
+  /** Flush buffered checker events now the anchor is known. */
+  const flushPendingCheckerEvents = (emitLive = true) => {
+    if (anchorIndex === null) return;
+    const pending = pendingCheckerEvents.splice(0);
+    for (const ev of pending) applyCheckerEvent(ev, emitLive);
+  };
+
   session.subscribe((event: EngineEvent) => {
     if (event.type === 'position') {
       const ev = event as PositionEvent;
@@ -552,47 +621,62 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       const best = ev.observed[0];
       if (!best) return;
       const key = wordKey(best.word);
+      const idx = orderedIndex.get(key);
+      // Feed the start anchor: locked observations only — an `ambiguous`
+      // observation never starts or breaks the run (see
+      // lib/recitation-anchor.ts). The moment the anchor is known,
+      // release the buffered checker events (flags at/after it only).
+      if (idx !== undefined) anchorTracker.observe(idx, ev.state);
+      if (anchorIndex === null && anchorTracker.anchor !== null) {
+        anchorIndex = anchorTracker.anchor;
+        flushPendingCheckerEvents();
+      }
       if (ev.state === 'locked') {
         everLocked = true;
-        if (firstLockedIndex === null) {
-          const idx = orderedIndex.get(key);
-          if (idx !== undefined) firstLockedIndex = idx;
-        }
+        if (firstLockedIndex === null && idx !== undefined) firstLockedIndex = idx;
       }
-      if (firstObservedIndex === null) {
-        const idx = orderedIndex.get(key);
-        if (idx !== undefined) firstObservedIndex = idx;
-      }
+      if (firstObservedIndex === null && idx !== undefined) firstObservedIndex = idx;
       if (!observed.has(key)) {
         observed.set(key, { confidence: best.confidence, timeMs: ev.timeMs, state: ev.state });
         orderOfKey.set(key, order++);
       }
       // A word the tracker is locked on, with no checker flag, is correct
       // so far. Live highlight only; the final result is decided at stop().
-      if (!flagged.has(key) && ev.state === 'locked') {
+      // Once the anchor is known, a locked word BEFORE it is never lit:
+      // the reciter never attempted it. (A locked observation before the
+      // anchor is known can still light — only a locked observation can
+      // emit 'correct', i.e. the tracker confidently heard that word, so
+      // it cannot be one of the un-recited head words; the final result
+      // still marks it not-reached via the anchor grace in buildResult.)
+      if (
+        !flagged.has(key) &&
+        ev.state === 'locked' &&
+        (anchorIndex === null || idx === undefined || idx >= anchorIndex)
+      ) {
         emitWord(best.word, 'correct', best.confidence);
       }
     } else if (event.type === 'checker') {
       const ev = event as CheckerEvent;
-      if (ev.state === 'confirmed') {
-        flagged.set(wordKey(ev.location), ev);
-        emitWord(
-          ev.location,
-          ev.errorClass === 'wrong_word' ? 'wrong' : 'missed',
-          ev.confidence,
-        );
-      } else if (ev.state === 'resolved' || ev.state === 'uncertain') {
-        // Self-correction: the reciter fixed it, or the audio was too unclear
-        // to judge. Never count it as a mistake.
-        if (flagged.get(wordKey(ev.location))?.id === ev.id) {
-          flagged.delete(wordKey(ev.location));
-          emitWord(ev.location, 'correct', ev.confidence);
-        }
+      if (anchorIndex === null) {
+        // Anchor not known yet — buffer. A flag fired now may be about
+        // words the reciter never attempted (the tracker is still
+        // finding where he started). Flushed once the anchor is known,
+        // or silently at stop() with the fallback anchor.
+        pendingCheckerEvents.push(ev);
+        return;
       }
+      applyCheckerEvent(ev);
     }
   });
 
   const buildResult = (): SessionResult => {
+    // Resolve the start anchor (3-run, else first-locked / first-observed
+    // fallback) and flush any checker events still buffered — silently:
+    // the take is over, the per-word result below is authoritative.
+    if (anchorIndex === null) {
+      anchorIndex = anchorTracker.resolveAtStop(firstLockedIndex, firstObservedIndex);
+    }
+    flushPendingCheckerEvents(false);
     // Words the reciter reached, in passage order — counting ONLY expected
     // words. (FIX 2026-11-21: the tracker can follow words outside the
     // declared passage, e.g. a different ayah; those keys are not in
@@ -613,19 +697,25 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
     // flag is a word the tracker never observed while later words were.
     // The tracker has three systematic blind spots, and a word in one of
     // them is "not reached yet" (neutral, never in the mistake log), not
-    // "missed". A checker-CONFIRMED flag still beats every grace below.
-    // (A) TAKE-START: the tracker spends the first ~1-3 s in `ambiguous`
-    //     state, emitting positions for WRONG passages (e.g. 7:54:29,
-    //     25:1:2) before it locks onto the declared passage. Words before
-    //     the first observed word were never listened to, not skipped.
-    //     The boundary is the first LOCKED observation when the take locks
-    //     at all (an `ambiguous` observation of an early word does not
-    //     prove the tracker was following — it may be a wrong-passage
-    //     guess, and using it as the boundary exposed 1:2:2 in testing);
-    //     on a single short ayah the tracker may NEVER lock at all (it
-    //     follows the words in `ambiguous` at conf ~0.5 for the whole
-    //     take), so there the boundary falls back to the first OBSERVED
-    //     word, or short takes could never use the grace.
+    // "missed". The ANCHOR grace (A) BEATS a checker flag — the word was
+    // never attempted (Mehran, 2026-11-26). Graces (B) and (C) are still
+    // beaten by a checker-CONFIRMED flag, as before.
+    // (A) TAKE-START / MID-PAGE START — the anchor (see
+    //     lib/recitation-anchor.ts): the tracker spends the first ~1-3 s
+    //     in `ambiguous` state, emitting positions for WRONG passages
+    //     (e.g. 7:54:29, 25:1:2) before it locks onto the declared
+    //     passage — at the word the reciter actually started on, which
+    //     on a mid-page start is NOT word 1. Words before the anchor
+    //     were never listened to, not skipped. The boundary is the
+    //     anchor when a 3-run was detected; the fallback is the first
+    //     LOCKED observation when the take locks at all (an `ambiguous`
+    //     observation of an early word does not prove the tracker was
+    //     following — it may be a wrong-passage guess, and using it as
+    //     the boundary exposed 1:2:2 in testing); on a single short
+    //     ayah the tracker may NEVER lock at all (it follows the words
+    //     in `ambiguous` at conf ~0.5 for the whole take), so there the
+    //     boundary falls back to the first OBSERVED word, or short takes
+    //     could never use the grace.
     // (B) AYAH-BOUNDARY JUMP: at an ayah boundary the tracker sometimes
     //     jumps from the previous ayah's penultimate word straight to the
     //     next ayah's first word, skipping the boundary word (e.g. 67:2:12
@@ -642,7 +732,9 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
     //     of such a word are the least important words to flag, and the
     //     checker can still confirm one.
     const graced = new Set<string>();
-    const lockBoundary = firstLockedIndex ?? firstObservedIndex;
+    // (A) boundary is the resolved start anchor (3-run, else the
+    // first-locked / first-observed fallback) — see buildResult() head.
+    const lockBoundary = anchorIndex;
     if (lockBoundary !== null) {
       for (let i = 0; i < lockBoundary; i++) graced.add(orderedKeys[i]);
     }
@@ -684,7 +776,11 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       const flag = flagged.get(key);
       const seen = observed.has(key);
       let status: CoachWordStatus;
-      if (flag) {
+      if (anchorIndex !== null && (orderedIndex.get(key) ?? 0) < anchorIndex) {
+        // Never attempted — the anchor grace BEATS a checker flag (and a
+        // stray observation): the reciter started after this word.
+        status = 'not-reached';
+      } else if (flag) {
         status = flag.errorClass === 'wrong_word' ? 'wrong' : 'missed';
       } else if (seen) {
         status = 'correct';
@@ -740,7 +836,14 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       micHeardAudio: audioHealth.everAudible,
       audioHealth,
       trackedElsewhere,
-      mistakes: session.mistakes(),
+      // Pre-anchor confirmed mistakes were never attempted: drop them
+      // from the log (the coach's by-type counts and confirmed flags
+      // read this array). Off-passage locations have no passage index
+      // and are kept — the anchor cannot judge them.
+      mistakes: session.mistakes().filter((m) => {
+        const idx = orderedIndex.get(wordKey(m.location));
+        return idx === undefined || anchorIndex === null || idx >= anchorIndex;
+      }),
       durationMs: session.now(),
     };
   };
