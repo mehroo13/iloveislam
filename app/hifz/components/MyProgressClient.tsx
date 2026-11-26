@@ -14,6 +14,7 @@ import {
   activityByDate, weekPracticeDays, surahStrength, revisionDue, daysSince,
   peekedDue, markMistakesCorrected,
   getTypeGoals, setTypeGoalTarget, recordTypeActivity, recordMinutes, previousLocalDate,
+  markManualPractice,
   TYPE_GOAL_OPTIONS,
   completedSurahs, completedJuz, activitySummary, strongestSurahThisWeek, difficultAyahs,
   accuracyTrend, mistakesByTypeOverTime, weekOverWeek, ayahMistakeTrend,
@@ -516,9 +517,13 @@ export default function MyProgressClient() {
   const [swReady, setSwReady] = useState<boolean | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   // Add Session (off-platform session / streak restore, screenshot 7).
+  // Surah + range: the ayahs covered are ALWAYS the chosen range
+  // (to - from + 1), never a separately typed number.
   const [addDate, setAddDate] = useState(() => previousLocalDate(localDateString()));
   const [addType, setAddType] = useState<GoalType>('reading');
-  const [addAyahs, setAddAyahs] = useState(5);
+  const [addSurah, setAddSurah] = useState(1);
+  const [addFromAyah, setAddFromAyah] = useState(1);
+  const [addToAyah, setAddToAyah] = useState(7);
   const [addMinutes, setAddMinutes] = useState(10);
   const [addMsg, setAddMsg] = useState<string | null>(null);
   const [sessions, setSessions] = useState<ExternalSession[]>(() => {
@@ -655,12 +660,23 @@ export default function MyProgressClient() {
   // listCoachSessions() (lib/session-records.ts, real measured accuracy).
   // Computed once here so the compact card and the expanded list share
   // the same rows and count.
-  const historyRows: { at: string; label: string; detail: string; href?: string }[] = [
-    ...sessions.map((s) => ({
-      at: s.date,
-      label: goalTypeLabel(s.type as GoalType, t) ?? s.type,
-      detail: t('rb.dash.sessionRow').replace('{a}', String(s.ayahs)).replace('{m}', String(s.minutes)),
-    })),
+  const historyRows: { at: string; label: string; detail: string; href?: string; badge?: string }[] = [
+    ...sessions.map((s) => {
+      // Every row in `sessions` was logged by hand outside the app, so
+      // it carries the Manual badge — including entries saved before the
+      // surah picker existed (those render without a surah, never crash).
+      const surah = typeof s.surah === 'number' ? getSurahById(s.surah) : undefined;
+      const range =
+        surah && typeof s.fromAyah === 'number' && typeof s.toAyah === 'number'
+          ? `${surah.name} ${s.fromAyah}–${s.toAyah} · `
+          : '';
+      return {
+        at: s.date,
+        label: goalTypeLabel(s.type as GoalType, t) ?? s.type,
+        detail: `${range}${t('rb.dash.sessionRow').replace('{a}', String(s.ayahs)).replace('{m}', String(s.minutes))}`,
+        badge: t('rb.dash.manualBadge'),
+      };
+    }),
     ...testSessions.map((s) => ({
       at: s.at.slice(0, 10),
       label: t('rb.dash.sessionTest').replace('{type}', s.type),
@@ -850,9 +866,20 @@ export default function MyProgressClient() {
         setAddMsg('Choose today or a past date — a future date can’t be logged.');
         return;
       }
+      // Surah + range: clamped to the surah, and the ayahs covered are
+      // the range itself (to - from + 1) — never a separately typed
+      // number, so the count can never disagree with the range.
+      const surah = getSurahById(addSurah) ?? ALL_SURAHS[0];
+      const from = Math.min(Math.max(1, addFromAyah), surah.ayahCount);
+      const to = Math.min(Math.max(from, addToAyah), surah.ayahCount);
+      const addAyahs = to - from + 1;
       let next = loadProgress();
       let msg: string;
       if (addDate === todayStr) {
+        // Manual ayahs first: recordMinutes' daily-goal check counts
+        // ayahs practised today (spec §5.1: goal minutes OR 5 ayahs),
+        // so a 5+-ayah manual session meets the goal like a mic one.
+        next = markManualPractice(next, surah.id, from, to, addType, addDate);
         next = recordMinutes(next, addMinutes);
         next = recordTypeActivity(next, addType, addAyahs);
         msg = t('rb.dash.sessionAddedToday').replace('{a}', String(addAyahs)).replace('{m}', String(addMinutes));
@@ -873,16 +900,20 @@ export default function MyProgressClient() {
           // Stage 6 (§18): a restored streak day can set a new longest streak.
           longestStreak: Math.max(next.longestStreak ?? next.streak.count, newCount),
         };
+        next = markManualPractice(next, surah.id, from, to, addType, addDate);
         msg = t('rb.dash.sessionAddedYesterday');
       } else {
         // Older than yesterday: history only. No streak change, no
         // minutes added to any daily total (minutesToday is today-only
-        // by design) — the minutes and ayahs live in the session record.
+        // by design) — the minutes and ayahs live in the session record,
+        // and the ayahs are recorded per-ayah on their own date
+        // (markManualPractice never moves practice backwards).
+        next = markManualPractice(next, surah.id, from, to, addType, addDate);
         msg = `Session added for ${addDate} — recorded in your history. Older days don’t change your streak; only yesterday can restore a missed day.`;
       }
       saveProgress(next);
       setProgress(next);
-      const entry: ExternalSession = { date: addDate, type: addType, ayahs: addAyahs, minutes: addMinutes };
+      const entry: ExternalSession = { date: addDate, type: addType, ayahs: addAyahs, minutes: addMinutes, surah: surah.id, fromAyah: from, toAyah: to, manual: true };
       // BB: no 30-entry cap — the whole history is kept and paginated
       // in the Session History list instead.
       const list = [entry, ...sessions];
@@ -1848,6 +1879,9 @@ export default function MyProgressClient() {
                         <li key={`${r.at}-${i}`} className="flex flex-wrap gap-2 rounded-lg bg-[#F4F5F7] px-3 py-2">
                           <span className="font-semibold">{r.at}</span>
                           <span>{r.label}</span>
+                          {r.badge && (
+                            <span className="rounded-full bg-[#E4FFF2] px-2 py-0.5 text-xs font-bold text-[#1FA36B]">{r.badge}</span>
+                          )}
                           <span className="text-[#6B7280]">{r.detail}</span>
                           {r.href && (
                             <Link href={r.href} className="ml-auto font-semibold text-[#1FA36B] underline">
@@ -2239,16 +2273,55 @@ export default function MyProgressClient() {
             </select>
           </label>
           <label className="text-xs font-semibold text-[#6B7280]">
-            {t('prog.ayahs')}
+            {t('prog.surah')}
+            <select
+              value={addSurah}
+              onChange={(e) => {
+                const s = getSurahById(Number(e.target.value)) ?? ALL_SURAHS[0];
+                setAddSurah(s.id);
+                setAddFromAyah(1);
+                setAddToAyah(Math.min(5, s.ayahCount));
+              }}
+              className="mt-1 block min-h-11 max-w-44 rounded-lg border border-[#E8EAED] bg-[#F4F5F7] px-2 py-1.5 text-sm"
+            >
+              {ALL_SURAHS.map((s) => (
+                <option key={s.id} value={s.id}>{s.id} · {s.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs font-semibold text-[#6B7280]">
+            {t('prog.fromAyah')}
             <input
               type="number"
               min={1}
-              max={6236}
-              value={addAyahs}
-              onChange={(e) => setAddAyahs(Number(e.target.value) || 1)}
+              max={(getSurahById(addSurah) ?? ALL_SURAHS[0]).ayahCount}
+              value={addFromAyah}
+              onChange={(e) => {
+                const s = getSurahById(addSurah) ?? ALL_SURAHS[0];
+                const from = Math.min(Math.max(1, Number(e.target.value) || 1), s.ayahCount);
+                setAddFromAyah(from);
+                if (addToAyah < from) setAddToAyah(from);
+              }}
               className="mt-1 block w-20 min-h-11 rounded-lg border border-[#E8EAED] bg-[#F4F5F7] px-2 py-1.5 text-sm"
             />
           </label>
+          <label className="text-xs font-semibold text-[#6B7280]">
+            {t('prog.toAyah')}
+            <input
+              type="number"
+              min={1}
+              max={(getSurahById(addSurah) ?? ALL_SURAHS[0]).ayahCount}
+              value={addToAyah}
+              onChange={(e) => {
+                const s = getSurahById(addSurah) ?? ALL_SURAHS[0];
+                setAddToAyah(Math.min(Math.max(addFromAyah, Number(e.target.value) || addFromAyah), s.ayahCount));
+              }}
+              className="mt-1 block w-20 min-h-11 rounded-lg border border-[#E8EAED] bg-[#F4F5F7] px-2 py-1.5 text-sm"
+            />
+          </label>
+          <span className="pb-2 text-sm text-[#6B7280]">
+            {t('prog.ayahsCovered').replace('{n}', String(Math.max(1, addToAyah - addFromAyah + 1)))}
+          </span>
           <label className="text-xs font-semibold text-[#6B7280]">
             {t('prog.minutesLabel')}
             <input
@@ -2273,13 +2346,21 @@ export default function MyProgressClient() {
         )}
         {sessions.length > 0 && (
           <ul className="mt-3 space-y-1 text-sm">
-            {sessions.slice(0, 5).map((sess, i) => (
-              <li key={i} className="flex flex-wrap gap-2 rounded-lg bg-[#F4F5F7] px-3 py-2">
-                <span className="font-semibold">{sess.date}</span>
-                <span>{goalTypeLabel(sess.type as GoalType, t)}</span>
-                <span className="text-[#6B7280]">{sess.ayahs} {sess.ayahs === 1 ? t('common.ayah') : t('common.ayahs')} · {t('test.minShort').replace('{n}', String(sess.minutes))}</span>
-              </li>
-            ))}
+            {sessions.slice(0, 5).map((sess, i) => {
+              const sSurah = typeof sess.surah === 'number' ? getSurahById(sess.surah) : undefined;
+              const sRange =
+                sSurah && typeof sess.fromAyah === 'number' && typeof sess.toAyah === 'number'
+                  ? `${sSurah.name} ${sess.fromAyah}–${sess.toAyah} · `
+                  : '';
+              return (
+                <li key={i} className="flex flex-wrap gap-2 rounded-lg bg-[#F4F5F7] px-3 py-2">
+                  <span className="font-semibold">{sess.date}</span>
+                  <span>{goalTypeLabel(sess.type as GoalType, t)}</span>
+                  <span className="rounded-full bg-[#E4FFF2] px-2 py-0.5 text-xs font-bold text-[#1FA36B]">{t('rb.dash.manualBadge')}</span>
+                  <span className="text-[#6B7280]">{sRange}{sess.ayahs} {sess.ayahs === 1 ? t('common.ayah') : t('common.ayahs')} · {t('test.minShort').replace('{n}', String(sess.minutes))}</span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
