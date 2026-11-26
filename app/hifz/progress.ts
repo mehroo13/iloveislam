@@ -503,6 +503,66 @@ export function ayahsPractisedOn(progress: HifzProgress, dateStr: string): numbe
   ).length;
 }
 
+/**
+ * Record a HAND-LOGGED (manual / outside-the-app) session's ayahs into
+ * per-ayah progress. Returns a NEW progress document. The caller clamps
+ * the range to the surah; this clamps defensively (from >= 1, to >= from).
+ *
+ * Honesty rules — a manual session is self-reported, never mic-verified:
+ *   - attempts + 1 and lastPractised = the SESSION date (not today) for
+ *     every ayah in the range, so the heatmap, week/month activity and
+ *     strongest-surah counts see them on the day they happened.
+ *   - lastPractised NEVER moves backwards: a later mic/coach practice
+ *     on the same ayah stays the record.
+ *   - status: memorisation / revision move a 'new' ayah to 'learning'
+ *     (the user worked on it); an already 'memorised' ayah stays
+ *     memorised. Reading leaves the status alone — reading an ayah is
+ *     practice, not memorisation, so it must not inflate surah strength.
+ *   - correctStreak is NEVER touched: a manual log is not a verified
+ *     correct recitation, so it can never mark an ayah 'memorised'.
+ *   - streak / minutes / daily goals are NOT touched here — the caller
+ *     (MyProgressClient doAddSession) owns the honest streak rules
+ *     (today counts, yesterday restores, older is history only).
+ */
+export function markManualPractice(
+  progress: HifzProgress,
+  surah: number,
+  fromAyah: number,
+  toAyah: number,
+  type: GoalType,
+  dateStr: string,
+): HifzProgress {
+  const from = Math.max(1, Math.floor(fromAyah));
+  const to = Math.max(from, Math.floor(toAyah));
+  // Noon UTC: slicing the first 10 chars gives exactly dateStr in every
+  // timezone, so activityByDate / ayahsPractisedOn read the session day.
+  const stamp = `${dateStr}T12:00:00.000Z`;
+  const nextAyahs = { ...progress.ayahs };
+  for (let a = from; a <= to; a++) {
+    const key = ayahKey(surah, a);
+    const prev: AyahProgress = nextAyahs[key] ?? {
+      status: 'new',
+      correctStreak: 0,
+      lastPractised: null,
+      attempts: 0,
+    };
+    const lastPractised =
+      !prev.lastPractised || prev.lastPractised.slice(0, 10) <= dateStr
+        ? stamp
+        : prev.lastPractised;
+    const status: AyahStatus =
+      type === 'reading' ? prev.status : prev.status === 'new' ? 'learning' : prev.status;
+    nextAyahs[key] = {
+      ...prev,
+      status,
+      correctStreak: prev.correctStreak,
+      lastPractised,
+      attempts: prev.attempts + 1,
+    };
+  }
+  return { ...progress, ayahs: nextAyahs };
+}
+
 /** True when the daily goal is met: goal minutes OR 5 ayahs practised, whichever first. */
 export function isDailyGoalMet(progress: HifzProgress, dateStr: string): boolean {
   const minutes =
@@ -1241,7 +1301,12 @@ export function difficultAyahs(mistakes: MistakeEntry[], limit: number = 5): Dif
 /* ------------------------------------------------------------------ */
 
 /** One hand-logged (external / off-platform) session. Stored uncapped
- *  in localStorage under 'ili_sessions_v1' — see MyProgressClient. */
+ *  in localStorage under 'ili_sessions_v1' — see MyProgressClient.
+ *  A session logged WITH a surah/range carries it (surah, fromAyah,
+ *  toAyah); entries saved before the surah picker existed have none
+ *  and must still render — never crash on a missing surah. `manual`
+ *  is always true for new entries: every row in this store was logged
+ *  by hand outside the app, so history can badge it honestly. */
 export interface ExternalSession {
   /** YYYY-MM-DD local date the session happened. */
   date: string;
@@ -1249,6 +1314,15 @@ export interface ExternalSession {
   type: string;
   ayahs: number;
   minutes: number;
+  /** Surah practised (1–114), when logged with one. Optional: older
+   *  entries lack it and render without a surah. */
+  surah?: number;
+  /** First ayah of the covered range (inclusive). */
+  fromAyah?: number;
+  /** Last ayah of the covered range (inclusive). */
+  toAyah?: number;
+  /** True when the session was logged by hand (outside the app). */
+  manual?: boolean;
 }
 
 export interface AccuracyPoint {
