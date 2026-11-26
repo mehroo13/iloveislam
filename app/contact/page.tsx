@@ -56,6 +56,14 @@ export default function Contact() {
     <TrustShell title="Contact Us">
       <div className="space-y-4">
         <p className="text-center text-xs text-[#6B7280]">We reply within 48 hours inshaAllah</p>
+        {/* Audit m9: the only published address lived in the Terms.
+            Show it here too — the form is not the only way to reach us. */}
+        <p className="text-center text-sm text-[#6B7280]">
+          Prefer email? Write to us at{' '}
+          <a href="mailto:contact@iloveislam.life" className="font-semibold text-[#1FA36B] underline">
+            contact@iloveislam.life
+          </a>
+        </p>
 
         {/* The form — instantly visible */}
         <div className="rounded-[12px] border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">

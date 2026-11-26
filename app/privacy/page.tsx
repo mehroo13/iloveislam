@@ -39,7 +39,7 @@ const sections = [
   {
     title: '7. Advertising',
     content:
-      "We may display advertisements through Google AdSense. Google may use cookies to serve ads based on your prior visits to this website or other websites. You can opt out of personalized advertising by visiting Google's Ad Settings.",
+      "No advertisements are currently shown on this website — our Google AdSense application is still outstanding. If it is approved, we may display advertisements through Google AdSense in the future. Google may use cookies to serve ads based on your prior visits to this website or other websites. You can opt out of personalized advertising by visiting Google's Ad Settings.",
   },
   {
     title: '8. Cookies',
@@ -89,7 +89,8 @@ export default function Privacy() {
 
         <div className="rounded-[12px] border border-[#E5E7EB] bg-white p-6 text-center shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
           <p className="font-quran text-xl text-[#111827]">بسم الله الرحمن الرحيم</p>
-          <p className="mt-1 text-xs text-[#9CA3AF]">Made with love for the Ummah · Always Free</p>
+          {/* Audit m7: the "Made with love…" tagline also lives in the
+              TrustShell site footer below — it was rendered twice. */}
         </div>
       </div>
     </TrustShell>

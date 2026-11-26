@@ -8,9 +8,9 @@ import { ALL_SURAHS, getSurahBySlug } from '../../surahs';
 import {
   fetchVerseByKey, fetchVerseWords, fetchTafsir, ayahJsonLd, SITE_URL,
 } from '../../lib/fetch';
-import { stripHtml, cleanIndopak } from '../../../quran/lib';
+import { cleanTranslationText, cleanIndopak } from '../../../quran/lib';
 import AyahClient from '../../components/AyahClient';
-import { Breadcrumb, Attribution} from '../../components/HifzShared';
+import { Breadcrumb, Attribution, BackToReader } from '../../components/HifzShared';
 
 export async function generateStaticParams() {
   const params: { slug: string; ref: string }[] = [];
@@ -115,6 +115,10 @@ export default async function AyahPage({
         ]}
       />
 
+      {/* Audit C2: ayah pages had no back button at all. Same fixed
+          destination as every other feature screen — the Features menu
+          (/?dashboard=1), never router.back(). */}
+      <BackToReader />
       <header className="mt-4 rounded-2xl bg-[#102E26] px-5 py-8 text-center text-white shadow-sm sm:px-8">
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#FFB800]">
           Surah {surah.name} · {key}
@@ -168,7 +172,7 @@ export default async function AyahPage({
         </ul>
         {verse.translations?.[0] && (
           <p className="mt-4 text-sm leading-relaxed text-[#5b6b62]">
-            “{stripHtml(verse.translations[0].text)}” — Saheeh International, {key}.
+            “{cleanTranslationText(verse.translations[0].text)}” — Saheeh International, {key}.
           </p>
         )}
       </section>

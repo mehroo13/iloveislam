@@ -52,7 +52,7 @@ const sections = [
   {
     title: '9. Advertisements',
     content:
-      'I Love Islam may display advertisements through Google AdSense or similar advertising networks to help cover hosting and development costs. These ads are served by third parties and their content is not controlled by us. We strive to ensure advertisements are appropriate for a Muslim audience, but we cannot guarantee the content of all third-party ads.',
+      'No advertisements are currently shown — our Google AdSense application is still outstanding. If it is approved, I Love Islam may display advertisements through Google AdSense or similar advertising networks in the future to help cover hosting and development costs. These ads are served by third parties and their content is not controlled by us. We strive to ensure advertisements are appropriate for a Muslim audience, but we cannot guarantee the content of all third-party ads.',
   },
   {
     title: '10. Limitation of Liability',
@@ -121,7 +121,8 @@ export default function Terms() {
 
         <div className="rounded-[12px] border border-[#E5E7EB] bg-white p-6 text-center shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
           <p className="font-quran text-xl text-[#111827]">بسم الله الرحمن الرحيم</p>
-          <p className="mt-1 text-xs text-[#9CA3AF]">Made with love for the Ummah · Always Free</p>
+          {/* Audit m7: the "Made with love…" tagline also lives in the
+              TrustShell site footer below — it was rendered twice. */}
         </div>
       </div>
     </TrustShell>

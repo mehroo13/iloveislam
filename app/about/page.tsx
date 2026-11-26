@@ -29,7 +29,7 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: 'Privacy',
-    body: 'We collect no personal data. There is no need for an account — everything works without one. An optional account only backs up your progress to your other devices. Your recitation audio is processed on your device and never uploaded. Your progress — streaks, memorised ayahs, mistakes — is stored only in your own browser, and you can export or delete it at any time. Advertising (Google AdSense) runs only if you accept cookies; the app works fully whether you accept or decline.',
+    body: 'We collect no personal data. There is no need for an account — everything works without one. An optional account only backs up your progress to your other devices. Your recitation audio is processed on your device and never uploaded. Your progress — streaks, memorised ayahs, mistakes — is stored only in your own browser, and you can export or delete it at any time. No ads are shown right now — our Google AdSense application is still outstanding. If ads are ever shown, they will run only if you accept cookies; the app works fully whether you accept or decline.',
   },
   {
     title: 'Who runs it',
@@ -91,7 +91,8 @@ export default function About() {
         >
           <h3 className="text-lg font-bold">Support this app</h3>
           <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
-            I Love Islam is free forever: no paid tier, no paywall, no ads. Donations are
+            I Love Islam is free forever: no paid tier, no paywall. No ads are shown right
+            now — our Google AdSense application is still outstanding. Donations are
             optional and never unlock anything — everything is already free. If it helps your
             hifz, the best support you can give is to share it with family and friends — that
             is what keeps it growing.
