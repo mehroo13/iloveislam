@@ -445,7 +445,9 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           setDesignWidths({});
           /* Continuous mode: restart the list at the new edition's
            * page — the range's other pages belong to the old
-           * edition and are no longer cached. */
+           * edition and are no longer cached. The pending prepend
+           * baseline belongs to the old list too — drop it. */
+          pendingPrependRef.current = null;
           if (isContinuous) {
             setTextRange({ start: target, end: target });
             setVisibleText(null);
@@ -593,7 +595,14 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const visiblePage = isContinuous && visibleText ? visibleText.page : page;
   /* Prepending a page above the viewport: the scrollHeight before
    * the new page's verses arrive, so the scroll position can be
-   * preserved once they render. */
+   * preserved once they render. Set by the upward extend, consumed
+   * ONLY by the compensation effect when the prepend actually lands
+   * (delta > 0), released on a fetch failure, and cleared whenever
+   * the list itself is reset (a jump or edition switch) — the
+   * baseline belongs to the old list, and a stale one would corrupt
+   * the next compensation. While it is set, extend() fires nothing:
+   * a second range change before the compensation runs would
+   * overwrite it (see extend). */
   const pendingPrependRef = useRef<number | null>(null);
   /* A range-extension fetch in flight (one page at a time — the
    * scroll check must not cascade-load pages while data is still
@@ -1969,6 +1978,9 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       setOffset(0);
       setAnimating(false);
       if (isContinuous) {
+        // The list restarts: any pending prepend baseline belongs to
+        // the old list — drop it (see pendingPrependRef).
+        pendingPrependRef.current = null;
         setTextRange({ start: page, end: page });
         setVisibleText(null);
         window.setTimeout(() => containerRef.current?.scrollTo({ top: 0 }), 0);
@@ -1984,6 +1996,9 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     // (or the gift's return to Page 1) while in a continuous mode:
     // restart the list at the new page.
     if (isContinuous) {
+      // The list restarts: any pending prepend baseline belongs to
+      // the old list — drop it (see pendingPrependRef).
+      pendingPrependRef.current = null;
       setTextRange({ start: page, end: page });
       setVisibleText(null);
       window.setTimeout(() => containerRef.current?.scrollTo({ top: 0 }), 0);
@@ -2005,6 +2020,20 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     let scheduled = false;
     const extend = (target: number) => {
       if (textExtendingRef.current) return;
+      /* One range change in flight at a time — and a prepend counts
+       * as in flight until its compensation has run, not just until
+       * its fetch resolves. A cached fetch resolves in a microtask,
+       * clearing textExtendingRef before the compensation effect
+       * has run, so without this guard the scroll check fires a
+       * second upward extend while scrollTop is still 0: the second
+       * extend overwrites pendingPrependRef with the post-prepend
+       * scrollHeight, the first prepend is never compensated for,
+       * and the viewport ends up two pages above the jump target
+       * (seen 2026-11-26: sheet jump to Juz 30 landed p584 instead
+       * of p586 in Quran Text mode). The same guard covers the
+       * downward branch: an append while a prepend is pending would
+       * inflate the compensation delta the same way. */
+      if (pendingPrependRef.current !== null) return;
       const range = textRangeRef.current;
       if (!range) return;
       if (target === range.end + 1 && target <= totalPages) {
@@ -2022,7 +2051,14 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         textRangeRef.current = { start: target, end: range.end };
         setTextRange(textRangeRef.current);
         fetchPage(target)
-          .catch(() => {})
+          .catch(() => {
+            /* The prepended page never arrived: release the
+             * compensation baseline, or the guard above would block
+             * every further extension for the rest of the session
+             * (the ref is otherwise only cleared when a prepend
+             * actually lands). */
+            pendingPrependRef.current = null;
+          })
           .finally(() => {
             textExtendingRef.current = false;
           });
