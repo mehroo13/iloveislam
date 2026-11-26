@@ -27,6 +27,10 @@ import {
 //   loadSessionAudio — app/hifz/lib/store.ts (IndexedDB session-audio store)
 import { listCoachSessions, type CoachSessionRecord } from '../lib/session-records';
 import { loadSessionAudio } from '../lib/store';
+import {
+  ShareAudioButtons, audioExtension, fileNameForStoredAudio, sharedRecordingFromStored,
+  type SharedRecording,
+} from './ShareAudio';
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { loadChallenges, saveChallenges } from '../lib/challenges';
 import { loadTestSessions, loadInProgressTest, type TestSessionRecord, type InProgressTest } from '../lib/mode';
@@ -121,6 +125,79 @@ function MistakeAudioButton({ sessionId }: { sessionId?: string }) {
   );
 }
 
+/** Session-history "Share audio" control (share-audio feature, 2026-11-26).
+ *  One control per coach history row. Tapping it loads that session's
+ *  persisted recording from the IndexedDB `session-audio` store and
+ *  offers the same share/download buttons as the coach feedback step
+ *  (ShareAudioButtons) — the system share sheet where the browser
+ *  supports sharing files, with download always available as fallback.
+ *  The blob is loaded only after the user taps, never eagerly for the
+ *  whole list. States are honest: no audioId = nothing was saved for
+ *  this session; audioId but no blob = the recording is gone (deleted
+ *  via Delete All Audio Data, or the save failed) — the row says so
+ *  instead of pretending a share exists. */
+function HistoryAudioShare({ audioId }: { audioId?: string }) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const [state, setState] = useState<'idle' | 'loading' | 'ready' | 'gone'>('idle');
+  const [recording, setRecording] = useState<SharedRecording | null>(null);
+  useEffect(() => {
+    if (!open || !audioId || state !== 'idle') return;
+    let cancelled = false;
+    setState('loading');
+    void (async () => {
+      try {
+        const entry = await loadSessionAudio(audioId);
+        if (cancelled) return;
+        if (!entry) {
+          setState('gone');
+          return;
+        }
+        setRecording(
+          sharedRecordingFromStored(
+            entry.blob,
+            fileNameForStoredAudio(entry.meta, audioExtension(entry.blob.type)),
+          ),
+        );
+        setState('ready');
+      } catch {
+        // loadSessionAudio itself never throws (null on error) — this
+        // is belt-and-braces; a failed load reads as "gone", never as
+        // a fake recording.
+        if (!cancelled) setState('gone');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, audioId, state]);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="font-semibold text-[#1FA36B] underline"
+      >
+        {t('share.historyShareAudio')}
+      </button>
+      {open && (
+        <div className="w-full">
+          {!audioId ? (
+            <ShareAudioButtons recording={null} noRecordingReason={t('share.historyNoAudio')} />
+          ) : state === 'loading' || state === 'idle' ? (
+            <span className="text-xs text-[#6B7280]">{t('common.loading')}</span>
+          ) : state === 'gone' ? (
+            <ShareAudioButtons recording={null} noRecordingReason={t('share.historyAudioGone')} />
+          ) : (
+            <ShareAudioButtons recording={recording} note={t('share.savedNote')} />
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
 /** Local translated labels for stored enum values (progress.ts keeps
  *  English labels for these; the client maps them to translated keys
  *  instead — progress.ts itself is never touched). */
@@ -163,12 +240,18 @@ function testSessionScopeLabel(scope: string, t: (key: string) => string): strin
 }
 
 /** BB: coach sessions (CoachSessionRecord) into history rows, using the
- *  REAL measured accuracy from each record — never a derived figure. */
-function coachSessionRows(sessions: CoachSessionRecord[], t: (key: string) => string): { at: string; label: string; detail: string }[] {
+ *  REAL measured accuracy from each record — never a derived figure.
+ *  `audioId` travels with the row so the history can offer share /
+ *  download of that session's persisted recording (HistoryAudioShare);
+ *  `isCoach` marks the row as a coach row (manual and test rows never
+ *  get an audio control). */
+function coachSessionRows(sessions: CoachSessionRecord[], t: (key: string) => string): { at: string; label: string; detail: string; audioId?: string; isCoach: boolean }[] {
   return sessions.map((s) => ({
     at: s.date.slice(0, 10),
     label: t('rb.dash.coachingLabel'),
     detail: `${t('rb.dash.pctCorrect').replace('{pct}', String(Math.round(s.accuracy)))} · ${s.mistakes === 1 ? t('rb.dash.oneMistake') : t('rb.dash.nMistakes').replace('{n}', String(s.mistakes))} · ${s.range}`,
+    audioId: s.audioId,
+    isCoach: true,
   }));
 }
 
@@ -660,7 +743,7 @@ export default function MyProgressClient() {
   // listCoachSessions() (lib/session-records.ts, real measured accuracy).
   // Computed once here so the compact card and the expanded list share
   // the same rows and count.
-  const historyRows: { at: string; label: string; detail: string; href?: string; badge?: string }[] = [
+  const historyRows: { at: string; label: string; detail: string; href?: string; badge?: string; audioId?: string; isCoach?: boolean }[] = [
     ...sessions.map((s) => {
       // Every row in `sessions` was logged by hand outside the app, so
       // it carries the Manual badge — including entries saved before the
@@ -1883,6 +1966,9 @@ export default function MyProgressClient() {
                             <span className="rounded-full bg-[#E4FFF2] px-2 py-0.5 text-xs font-bold text-[#1FA36B]">{r.badge}</span>
                           )}
                           <span className="text-[#6B7280]">{r.detail}</span>
+                          {r.isCoach && (
+                            <HistoryAudioShare audioId={r.audioId} />
+                          )}
                           {r.href && (
                             <Link href={r.href} className="ml-auto font-semibold text-[#1FA36B] underline">
                               {t('bm.open')}
