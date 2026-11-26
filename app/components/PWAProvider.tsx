@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, createContext, useContext } from 'react';
+import { useEffect, useState, useCallback, useRef, createContext, useContext } from 'react';
 import { loadProgress, ayahsPractisedOn, localDateString } from '../hifz/progress';
 
 // ==================== TYPES ====================
@@ -53,14 +53,65 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
   const [canInstall, setCanInstall] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showUpdateBanner, setShowUpdateBanner] = useState(false);
+  // Guard so a worker takeover reloads the page exactly once.
+  const reloadingRef = useRef(false);
+  const reloadOnce = useCallback(() => {
+    if (reloadingRef.current) return;
+    reloadingRef.current = true;
+    window.location.reload();
+  }, []);
+
+  // Refresh to the new build: tell a waiting worker to take over now
+  // (otherwise a plain reload can leave it waiting and the old build
+  // stays). The controllerchange listener reloads once it takes over;
+  // the timeout is a fallback if that event never fires.
+  const refreshToUpdate = useCallback(() => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+      window.location.reload();
+      return;
+    }
+    navigator.serviceWorker.getRegistration().then((registration) => {
+      if (registration?.waiting) {
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        setTimeout(() => reloadOnce(), 2000);
+      } else {
+        reloadOnce();
+      }
+    }).catch(() => reloadOnce());
+  }, [reloadOnce]);
 
   // Register service worker
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
 
+    // When a new worker takes control, reload once so the new build shows.
+    const onControllerChange = () => reloadOnce();
+    navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+
+    // A new worker can sit "waiting" (installed on an earlier visit but
+    // never activated) with no message ever fired — the old code only
+    // listened for SW_UPDATED (posted on activate), so a waiting worker
+    // never prompted and the phone stayed on the old build. Prompt now
+    // when one is already waiting, and when one finishes installing.
+    const watchForUpdate = (registration: ServiceWorkerRegistration) => {
+      if (registration.waiting) setShowUpdateBanner(true);
+      registration.addEventListener('updatefound', () => {
+        const worker = registration.installing;
+        if (!worker) return;
+        worker.addEventListener('statechange', () => {
+          // A new worker finished installing while an old one controls
+          // the page — prompt to refresh so the new build loads.
+          if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+            setShowUpdateBanner(true);
+          }
+        });
+      });
+    };
+
     // Register SW
     navigator.serviceWorker.register('/sw.js').then((registration) => {
       console.log('SW registered:', registration.scope);
+      watchForUpdate(registration);
 
       // Check for updates periodically
       setInterval(() => {
@@ -79,7 +130,11 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
         setShowUpdateBanner(true);
       }
     });
-  }, []);
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+    };
+  }, [reloadOnce]);
 
   // Local reminders — OPT-IN only, no push, no server.
   // The user turns a reminder on per goal in Settings (or on the Goals
@@ -279,7 +334,7 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
           </p>
           <button
             type="button"
-            onClick={() => window.location.reload()}
+            onClick={refreshToUpdate}
             className="shrink-0 rounded-full bg-[#57D798] px-3 py-1 text-xs font-bold text-[#102E26] hover:brightness-110"
           >
             Refresh

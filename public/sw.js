@@ -1,4 +1,4 @@
-// I Love Islam — Advanced Service Worker v3.0.2
+// I Love Islam — Advanced Service Worker v3.0.3
 // Offline-first PWA for the single-purpose Hifz app (rebrand 2026-11-21).
 //
 // Offline coach (§15.10): the coach model (Tilawa, hosted on tilawa.dev,
@@ -10,20 +10,24 @@
 // from cache. Voice Search still needs the network (browser speech
 // recognition); the page says so.
 //
-// v3.0.2 (2026-11-25 refinement pass): cache names bumped v3 → v4 so the
-// new worker installs, deletes EVERY old cache on activate (including
-// any stale precached `/` document and old JS chunks), and re-precaches
-// the current shell. This is the purge for phones that were still
-// rendering the old site header above the reader. RSC payloads
-// (`?_rsc=`) are network-first now: the old stale-while-revalidate
-// default could serve a days-old app tree to the client router.
+// v3.0.3 (2026-11-26): cache names bumped v4 → v5 so the new worker
+// installs on every phone that still has an older worker, deletes EVERY
+// old cache on activate (including any stale precached `/` document and
+// old JS chunks), and re-precaches the current shell. This is the purge
+// for phones still rendering the old green layout: the v3.0.2 bump did
+// not reach them (a worker can sit "waiting" without ever prompting),
+// so v3.0.3 pairs the bump with a waiting-worker prompt in PWAProvider
+// (banner on registration.waiting / updatefound, Refresh sends
+// SKIP_WAITING). RSC payloads (`?_rsc=`) are network-first: the old
+// stale-while-revalidate default could serve a days-old app tree to the
+// client router.
 
-const CACHE_VERSION = 'hifz-v3.0.2';
-const STATIC_CACHE = 'hifz-static-v4';
-const DYNAMIC_CACHE = 'hifz-dynamic-v4';
-const API_CACHE = 'hifz-api-v4';
-const IMAGE_CACHE = 'hifz-images-v4';
-const MODEL_CACHE = 'hifz-model-v4';
+const CACHE_VERSION = 'hifz-v3.0.3';
+const STATIC_CACHE = 'hifz-static-v5';
+const DYNAMIC_CACHE = 'hifz-dynamic-v5';
+const API_CACHE = 'hifz-api-v5';
+const IMAGE_CACHE = 'hifz-images-v5';
+const MODEL_CACHE = 'hifz-model-v5';
 const OFFLINE_URL = '/offline.html';
 
 // ==================== CACHE STRATEGIES FOR THE HIFZ APP ====================

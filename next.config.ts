@@ -55,6 +55,16 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // The service worker script itself must never be served from a
+        // stale HTTP cache: the browser only installs a new worker when
+        // /sw.js bytes change, so a cached copy would hide every update
+        // (and every cache purge) from phones. No-cache, always revalidate.
+        source: '/sw.js',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+        ],
+      },
+      {
         source: '/optimized/:all*',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
