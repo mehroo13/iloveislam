@@ -9,6 +9,9 @@ import type { HifzSurah } from '../surahs';
 import Link from 'next/link';
 import { ATTRIBUTION } from '../lib/fetch';
 import { BISMILLAH } from '../../quran/lib';
+import { reciterName } from '../../quran/lib';
+import { loadSettings } from '../progress';
+import { useEffect, useState } from 'react';
 import { useT } from '../lib/i18n';
 
 /** No breadcrumbs in the app (Tarteel has none). Kept as a no-op so
@@ -37,12 +40,26 @@ export function BackToReader() {
   );
 }
 
-export function Attribution({ reciterName }: { reciterName?: string }) {
+export function Attribution({ reciterName: reciterNameProp }: { reciterName?: string }) {
   const t = useT();
+  // X1 (2026-11-26): the footer used to hardcode "Mishary Alafasy"
+  // even when another reciter was picked. The selected reciter lives
+  // in settings (ili_hifz_settings_v1, reciterId) — read it on the
+  // client and show that name; the prop is only the fallback for
+  // pages rendered before settings load.
+  const [selectedName, setSelectedName] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      setSelectedName(reciterName(loadSettings().reciterId));
+    } catch {
+      /* keep the prop fallback */
+    }
+  }, []);
+  const name = selectedName ?? reciterNameProp;
   return (
     <p className="mt-8 text-center text-xs leading-relaxed text-[#5b6b62]">
       {ATTRIBUTION}
-      {reciterName ? ` ${t('shared.audio')} ${reciterName}.` : ''}
+      {name ? ` ${t('shared.audio')} ${name}.` : ''}
     </p>
   );
 }
