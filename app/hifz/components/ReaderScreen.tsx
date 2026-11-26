@@ -607,13 +607,17 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   /* The most recently lit word (mic correct event or Listen's
    * sounding word) — the follow-the-word scroll reads this. */
   const latestLitKeyRef = useRef<string | null>(null);
-  /* The loaded pages in a continuous mode, in order, with their verses. */
+  /* The loaded pages in a continuous mode, in order, with their verses
+   *  AND their tajweed data — the continuous modes colour from the
+   *  same per-page tajweed the Book reader uses (2026-11-26: the
+   *  memo used to drop tajweed here, so Quran Text / Translation
+   *  never had any colours to show). */
   const textPages = useMemo(() => {
     if (!textRange) return [];
-    const out: { page: number; verses: MushafVerse[]; meta: ReaderPageData['meta'] }[] = [];
+    const out: { page: number; verses: MushafVerse[]; meta: ReaderPageData['meta']; tajweed: ReaderPageData['tajweed'] }[] = [];
     for (let p = textRange.start; p <= textRange.end; p++) {
       const d = pages[p];
-      if (d) out.push({ page: p, verses: d.verses, meta: d.meta });
+      if (d) out.push({ page: p, verses: d.verses, meta: d.meta, tajweed: d.tajweed });
     }
     return out;
   }, [textRange, pages]);
@@ -2357,6 +2361,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                   revealed={revealed}
                   onReveal={reveal}
                   script={scriptForEdition(edition)}
+                  tajweedOn={tajweedOn}
                 />
               ) : (
                 <ReaderTranslationMode
@@ -2370,6 +2375,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                   translationId={translationId}
                   onRosetteClick={(verseKey) => setTafsirSheet(verseKey)}
                   script={scriptForEdition(edition)}
+                  tajweedOn={tajweedOn}
                 />
               )}
             </>
