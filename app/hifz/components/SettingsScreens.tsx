@@ -30,6 +30,14 @@ import { applyReaderTheme, READER_THEME_EVENT, getReaderTheme, type StoredTheme 
 import { loadSettings, saveSettings } from '../progress';
 import { RECITERS, TAFSIRS, TRANSLATIONS, groupByLanguage, reciterName, tafsirName, translationName } from '../../quran/lib';
 import { SOUND_EFFECTS, playSoundEffect, type SoundEffectId } from '../lib/sounds';
+import {
+  ayahsForLines,
+  loadTestSettings,
+  saveTestSettings,
+  TEST_LINE_PRESETS,
+  TEST_QUESTION_COUNTS,
+  TEST_TIME_LIMITS,
+} from '../lib/test-settings';
 import { deleteAllSessionAudio, listSessionAudios } from '../lib/store';
 import type { ReaderLayoutMode } from '../lib/layout-mode';
 import type { MushafVerse } from '../lib/fetch';
@@ -909,10 +917,123 @@ export function TestingModeScreen({ onBack }: { onBack: () => void }) {
     setPrefs((prev) => ({ ...prev, ...p }));
     saveSoundPrefs(p);
   };
+  // Test defaults (2026-11-26): the same three choices the test setup
+  // screen offers, read from / written to the shared store — a change
+  // here shows up in the next test, and vice versa.
+  const [testSettings, setTestSettings] = useState(loadTestSettings);
+  const patchTest = (p: Partial<typeof testSettings>) => {
+    setTestSettings(saveTestSettings(p));
+  };
   return (
     <SubScreen title="Testing Mode" onBack={onBack}>
       <div className="mt-2">
         <p className="px-1.5 text-[13px] font-bold" style={{ color: INK }}>
+          Questions
+        </p>
+        <div className="mt-2">
+          <Card>
+            {TEST_QUESTION_COUNTS.map((n, i) => (
+              <div key={n}>
+                {i > 0 && <Divider />}
+                <RadioRow
+                  label={`${n} questions`}
+                  sub={
+                    n === 5
+                      ? 'A quick check of what you know.'
+                      : n === 10
+                        ? 'A steady test of your range.'
+                        : 'A full test of your range.'
+                  }
+                  selected={testSettings.questionCount === n}
+                  onSelect={() => patchTest({ questionCount: n })}
+                  testId={`settings-test-questions-${n}`}
+                />
+              </div>
+            ))}
+          </Card>
+        </div>
+        <p className="mt-4 px-1.5 text-[13px] font-bold" style={{ color: INK }}>
+          Question length
+        </p>
+        <div className="mt-2">
+          <Card>
+            {(['short', 'medium', 'long'] as const).map((l, i) => (
+              <div key={l}>
+                {i > 0 && <Divider />}
+                <RadioRow
+                  label={`${l === 'short' ? 'Short' : l === 'medium' ? 'Medium' : 'Long'} — ${TEST_LINE_PRESETS[l]} lines`}
+                  sub={
+                    l === 'short'
+                      ? 'About 1 ayah per question.'
+                      : l === 'medium'
+                        ? 'About 3 ayahs per question.'
+                        : 'About 7 ayahs per question.'
+                  }
+                  selected={testSettings.questionLines === TEST_LINE_PRESETS[l]}
+                  onSelect={() => patchTest({ questionLines: TEST_LINE_PRESETS[l] })}
+                  testId={`settings-test-length-${l}`}
+                />
+              </div>
+            ))}
+            <Divider />
+            <div className="flex items-center gap-3 px-4 py-[14px]">
+              <span className="min-w-0 flex-1">
+                <span className="block text-[15px]" style={{ color: INK }}>
+                  Exact length
+                </span>
+                <span className="mt-0.5 block text-[12.5px] leading-snug" style={{ color: MUTED }}>
+                  {testSettings.questionLines}{' '}
+                  {testSettings.questionLines === 1 ? 'line' : 'lines'} — about{' '}
+                  {ayahsForLines(testSettings.questionLines)}{' '}
+                  {ayahsForLines(testSettings.questionLines) === 1 ? 'ayah' : 'ayahs'} per question.
+                </span>
+              </span>
+              <input
+                type="range"
+                min={1}
+                max={15}
+                value={testSettings.questionLines}
+                onChange={(e) =>
+                  patchTest({
+                    questionLines: Math.min(15, Math.max(1, Number(e.target.value) || 1)),
+                  })
+                }
+                aria-label="Question length in lines"
+                data-testid="settings-test-lines-slider"
+                className="w-28 shrink-0"
+                style={{ accentColor: '#16A34A' }}
+              />
+            </div>
+          </Card>
+        </div>
+        <p className="mt-4 px-1.5 text-[13px] font-bold" style={{ color: INK }}>
+          Time limit
+        </p>
+        <div className="mt-2">
+          <Card>
+            {TEST_TIME_LIMITS.map((m, i) => (
+              <div key={m}>
+                {i > 0 && <Divider />}
+                <RadioRow
+                  label={m === 0 ? 'No time limit' : `${m} minutes`}
+                  sub={
+                    m === 0
+                      ? 'The test runs until you finish all the questions.'
+                      : 'The test ends when the time runs out.'
+                  }
+                  selected={testSettings.timeLimitMinutes === m}
+                  onSelect={() => patchTest({ timeLimitMinutes: m })}
+                  testId={`settings-test-timelimit-${m}`}
+                />
+              </div>
+            ))}
+          </Card>
+        </div>
+        <Note>
+          These are remembered for your next test. Changing them here — or on the test page —
+          keeps both in step.
+        </Note>
+        <p className="mt-4 px-1.5 text-[13px] font-bold" style={{ color: INK }}>
           Sound
         </p>
         <div className="mt-2">
