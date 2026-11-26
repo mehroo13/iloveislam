@@ -301,6 +301,16 @@ export default function AyahClient({
     return () => audio.removeEventListener('ended', onEnded);
   }, []);
 
+  // B1 (2026-11-26): bookmarking showed no confirmation even though
+  // it saved. A brief toast now confirms save / removal.
+  const [bookmarkToast, setBookmarkToast] = useState<string | null>(null);
+  const bookmarkToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showBookmarkToast = (msg: string) => {
+    setBookmarkToast(msg);
+    if (bookmarkToastTimer.current) clearTimeout(bookmarkToastTimer.current);
+    bookmarkToastTimer.current = setTimeout(() => setBookmarkToast(null), 2500);
+  };
+
   const toggleBookmark = () => {
     try {
       const raw = localStorage.getItem('quran_bookmarks_v2');
@@ -310,6 +320,11 @@ export default function AyahClient({
         : [...list, { surahNumber: surah.id, verseNumber: ayah, surahName: surah.name, timestamp: Date.now() }];
       localStorage.setItem('quran_bookmarks_v2', JSON.stringify(next));
       setBookmarked(!bookmarked);
+      showBookmarkToast(
+        bookmarked
+          ? `Bookmark removed — ${surah.name} ${surah.id}:${ayah}.`
+          : `Bookmarked ✓ — ${surah.name} ${surah.id}:${ayah} saved to your bookmarks.`,
+      );
     } catch {
       /* ignore */
     }
@@ -349,6 +364,15 @@ export default function AyahClient({
   return (
     <div>
       <audio ref={audioRef} preload="none" className="hidden" />
+      {/* B1: bookmark confirmation toast (see toggleBookmark). */}
+      {bookmarkToast && (
+        <p
+          role="status"
+          className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-full bg-[#102E26] px-4 py-2.5 text-center text-sm font-semibold text-white shadow-lg"
+        >
+          {bookmarkToast}
+        </p>
+      )}
 
       {/* Arabic + translation */}
       <article className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">

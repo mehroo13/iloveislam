@@ -366,12 +366,27 @@ export default function SurahClient({
   const isBookmarked = (ayah: number) =>
     bookmarks.some((b) => b.surahNumber === surah.id && b.verseNumber === ayah);
 
+  // B1 (2026-11-26): bookmarking showed no confirmation even though
+  // it saved. A brief toast now confirms save / removal.
+  const [bookmarkToast, setBookmarkToast] = useState<string | null>(null);
+  const bookmarkToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showBookmarkToast = (msg: string) => {
+    setBookmarkToast(msg);
+    if (bookmarkToastTimer.current) clearTimeout(bookmarkToastTimer.current);
+    bookmarkToastTimer.current = setTimeout(() => setBookmarkToast(null), 2500);
+  };
+
   const toggleBookmark = (ayah: number) => {
+    const exists = isBookmarked(ayah);
     setBookmarks((prev) => {
-      const exists = prev.some((b) => b.surahNumber === surah.id && b.verseNumber === ayah);
       if (exists) return prev.filter((b) => !(b.surahNumber === surah.id && b.verseNumber === ayah));
       return [...prev, { surahNumber: surah.id, verseNumber: ayah }];
     });
+    showBookmarkToast(
+      exists
+        ? `Bookmark removed — ${surah.name} ${surah.id}:${ayah}.`
+        : `Bookmarked ✓ — ${surah.name} ${surah.id}:${ayah} saved to your bookmarks.`,
+    );
   };
 
   const ayahStatus = (ayah: number) => progress?.ayahs[`${surah.id}:${ayah}`]?.status ?? 'new';
@@ -910,6 +925,15 @@ export default function SurahClient({
     <div>
       <audio ref={audioRef} preload="none" className="hidden" />
       <audio ref={wordAudioRef} preload="none" className="hidden" />
+      {/* B1: bookmark confirmation toast (see toggleBookmark). */}
+      {bookmarkToast && (
+        <p
+          role="status"
+          className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-full bg-[#102E26] px-4 py-2.5 text-center text-sm font-semibold text-white shadow-lg"
+        >
+          {bookmarkToast}
+        </p>
+      )}
 
       {/* ---------- READER HEADER (variant A: hamburger · search · centred
            Chapter / Verse title + chevrons · bookmark · gear) ---------- */}
