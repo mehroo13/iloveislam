@@ -17,6 +17,7 @@ import {
   markManualPractice,
   TYPE_GOAL_OPTIONS,
   completedSurahs, completedJuz, activitySummary, strongestSurahThisWeek, difficultAyahs,
+  mistakesByWord,
   accuracyTrend, mistakesByTypeOverTime, weekOverWeek, ayahMistakeTrend,
   type GoalType, type HifzProgress, type MistakeEntry, type HifzSettings,
   type MistakeType, type ExternalSession, type MistakeTypeWeek,
@@ -590,6 +591,46 @@ function MemGoalRow({ label, goalLabel, type, goal, onTargetChange, onLog }: {
         </>
       )}
     </div>
+  );
+}
+
+/** Mistakes overview card — live counts from the real mistake log,
+ *  linking to the dedicated /hifz/mistakes screen. Used on the
+ *  Dashboard tab and the Activity tab. With no mistakes yet it says
+ *  so honestly instead of showing a zeroed chart. */
+function MistakesOverviewCard({ mistakes }: { mistakes: MistakeEntry[] }) {
+  const t = useT();
+  const uncorrected = mistakes.reduce((s, m) => s + (m.corrected ? 0 : m.attempts), 0);
+  const top = mistakesByWord(mistakes, { uncorrectedOnly: true, limit: 1 })[0] ?? null;
+  return (
+    <Link
+      href="/hifz/mistakes"
+      className="block rounded-2xl border border-[#E8EAED] bg-white p-5 shadow-sm hover:border-[#1FA36B] sm:p-6"
+    >
+      <span className="flex items-center justify-between gap-3">
+        <span className="text-xl font-bold text-[#111827]">{t('mistakes.title')}</span>
+        <span aria-hidden="true" className="font-bold text-[#1FA36B]">→</span>
+      </span>
+      <span className="mt-1 block text-sm text-[#6B7280]">
+        {mistakes.length === 0 ? (
+          t('mistakes.empty')
+        ) : (
+          <>
+            {t('mistakes.cardLine').replace('{n}', String(uncorrected))}
+            {top ? (
+              <>
+                {' · '}
+                <span dir="rtl" lang="ar" className="font-quran text-base">{top.word}</span>
+                {` ${top.surah}:${top.ayah}`}
+              </>
+            ) : (
+              ` · ${t('mistakes.allCorrected')}`
+            )}
+          </>
+        )}
+      </span>
+      <span className="mt-2 block text-sm font-semibold text-[#1FA36B]">{t('mistakes.viewOverview')}</span>
+    </Link>
   );
 }
 
@@ -1207,6 +1248,9 @@ export default function MyProgressClient() {
               </p>
             </Link>
           </section>
+
+          {/* Mistakes overview — live counts, links to /hifz/mistakes. */}
+          <MistakesOverviewCard mistakes={mistakes} />
 
           {/* Today's goals — the three per-type daily goals, with a way to start a new goal. */}
           <section aria-labelledby="today-goals-heading">
@@ -2006,6 +2050,9 @@ export default function MyProgressClient() {
               </div>
             )}
           </section>
+
+          {/* Mistakes overview — live counts, links to /hifz/mistakes. */}
+          <MistakesOverviewCard mistakes={mistakes} />
 
           {/* Achievements — free badges. Nothing earned yet shows the
               honest empty line, like the reference. */}
