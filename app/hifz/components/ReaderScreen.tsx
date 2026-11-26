@@ -34,6 +34,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   surahFirstPageForEdition,
   surahsOnMushafPageForEdition,
@@ -296,6 +297,7 @@ function IconPlaySpinner() {
 /* ---------------------------------------------------------------- */
 
 export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
+  const router = useRouter();
   const [page, setPage] = useState(initial.page);
   const [pages, setPages] = useState<Record<number, ReaderPageData>>({ [initial.page]: initial });
   const pagesRef = useRef(pages);
@@ -677,8 +679,8 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
   // Settings subtree (commit F): Hide Verses is a persisted setting
   // — restore the saved choice on mount. Test flows still flip it
-  // in-session only (TEST YOURSELF turns it on; leaving a take
-  // turns it off); only the Settings toggle writes the document.
+  // in-session only (leaving a take turns it off); only the Settings
+  // toggle writes the document.
   useEffect(() => {
     try {
       setHideVerses(loadSettings().hideVerses ?? false);
@@ -2684,7 +2686,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         onOpenGift={() => setOpenModal('gift')}
         onTestYourself={() => {
           setOpenModal(null);
-          setHideVerses(true);
+          router.push('/hifz/test');
         }}
       />
 
@@ -2711,9 +2713,9 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       />
 
       {/* Settings page (Step 5): full-screen overlay; the back
-          button returns to the reader. Phase 7: TEST YOURSELF opens
-          the reader in Testing Mode (Hide Verses on); the Mushaf
-          Layout row opens the layout sheet. */}
+          button returns to the reader. TEST YOURSELF navigates to the
+          dedicated test page (/hifz/test); the Mushaf Layout row opens
+          the layout sheet. */}
       <ReaderSettings
         open={openModal === 'settings'}
         onClose={() => {
@@ -2722,7 +2724,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         }}
         onTestYourself={() => {
           setOpenModal(null);
-          setHideVerses(true);
+          router.push('/hifz/test');
         }}
         initialScreen={settingsSeed}
         hideVerses={hideVerses}

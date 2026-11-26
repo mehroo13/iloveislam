@@ -15,8 +15,9 @@
 // screen — Settings → sub-screen → back → Settings. Nested jumps
 // push another screen on top, and back unwinds one step at a time.
 // The Mushaf Layout row opens the full Mushaf Layout screen (commit
-// E); TEST YOURSELF opens the reader in Testing Mode; Data Usage and
-// Delete All Audio Data are full screens too (commit E).
+// E); TEST YOURSELF navigates to the dedicated test page
+// (/hifz/test); Data Usage and Delete All Audio Data are full
+// screens too (commit E).
 //
 // The reader's book button opens Settings seeded at the Mushaf Layout
 // screen (initialScreen): back from that seeded screen returns to
@@ -394,7 +395,7 @@ export default function ReaderSettings({
 }: {
   open: boolean;
   onClose: () => void;
-  /** Phase 7: TEST YOURSELF opens the reader in Testing Mode. */
+  /** TEST YOURSELF navigates to the dedicated test page (/hifz/test). */
   onTestYourself?: () => void;
   /** The reader's book button opens Settings seeded at the Mushaf
    *  Layout screen: back from that seeded screen returns to the
