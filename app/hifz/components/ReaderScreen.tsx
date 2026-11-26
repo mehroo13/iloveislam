@@ -1995,6 +1995,21 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       showPlayError('No audio for this page yet.');
       return;
     }
+    // PLAY FROM HERE (2026-11-26): start at the ayah the user is
+    // actually looking at, not the top of the page. visibleText.ayah
+    // is the verse_key of the topmost visible ayah (scroll tracker,
+    // RESUME FIX) — in Book mode it is null and the whole page is
+    // in view, so the page's first ayah is already the right start.
+    // Fall back to the full queue when no ayah is known or it is not
+    // on this page (e.g. it has no audio clip).
+    const vt = visibleTextRef.current;
+    if (vt?.ayah) {
+      const [vs, va] = vt.ayah.split(':').map(Number);
+      if (vs === expected.surah) {
+        const startIdx = items.findIndex((it) => it.ayah >= va);
+        if (startIdx > 0) items = items.slice(startIdx);
+      }
+    }
     playQueueRef.current = items;
     playNextRef.current();
   }, [activeExpected, visiblePage, setPlay, showPlayError]);
