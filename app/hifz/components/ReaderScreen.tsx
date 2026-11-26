@@ -61,7 +61,9 @@ import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { migrateToIdb } from '../lib/store';
 import { readerWordKey } from '../lib/reader-words';
 import { MIN_READER_SESSION_MS, saveReaderSession, surahName } from '../lib/reader-sessions';
-import { useSyncUiPrefs } from '../lib/i18n';
+import { useSyncUiPrefs, useT } from '../lib/i18n';
+import { MODE_EVENT, lastReadSlug, requestMode, saveMode, type HifzMode } from '../lib/mode';
+import { PracticeModeList, ReaderSheet } from './MushafReader';
 import { DEFAULT_RECITER_ID, DEFAULT_TRANSLATION_ID, loadSettings, saveSettings } from '../progress';
 import { readListenSpeed, writeListenSpeed } from '../lib/listen-speed';
 import { type PeekInfo, type ReaderMistake, loadFrequentMistakeKeys } from '../lib/reader-mistakes';
@@ -352,6 +354,13 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   /* One modal open at a time (Phase 1): opening any modal closes
    * all others. */
   const [openModal, setOpenModal] = useState<ReaderModal | null>(null);
+  /* Practice-mode sheet (R2 fix, 2026-11-26): the "/" reader had no
+   * Practice mode button — the 5-mode switcher lived only in
+   * MushafBottomBar (/hifz/mushaf), so Quran Text (the default
+   * layout) and Translation could not reach Recite / Listen /
+   * Memorise / Test from the reader at all. */
+  const [modesOpen, setModesOpen] = useState(false);
+  const t = useT();
   /* Reading layout (Mushaf Layout sheet), persisted across visits.
    * Read after mount to avoid a server/client hydration mismatch.
    * Default is Quran Text (2026-11-26, Part 3): a fresh user lands
@@ -1762,6 +1771,67 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, stopPlayback]);
 
+  /* Practice-mode switcher (R2 fix, 2026-11-26): the "/" reader
+   * never listened for hifz:set-mode, so the 5-mode switcher could
+   * not apply anything in place here. Memorise / Reading / Listen
+   * are applied in place, exactly like MushafReader's listener
+   * (Stage 4): Memorise hides the verses (blur + tap-to-peek),
+   * Reading shows them again, Listen plays the reciter audio.
+   * Switching mode stops Listen first and ends a live mic take
+   * (Stage 3 contract: never abandon a live mic session or playing
+   * audio invisibly). Recite / Test are NOT handled here — the
+   * switcher navigates for them, exactly as it did before. */
+  const startPlaybackRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  startPlaybackRef.current = startPlayback;
+  const stopPlaybackRef = useRef(stopPlayback);
+  stopPlaybackRef.current = stopPlayback;
+  const stopMicRef = useRef<(why: 'user' | 'dead') => Promise<void>>(() => Promise.resolve());
+  stopMicRef.current = stopMic;
+  useEffect(() => {
+    const onMode = (e: Event) => {
+      const m = (e as CustomEvent<{ mode: HifzMode }>).detail?.mode;
+      if (m === 'memorise') {
+        e.preventDefault();
+        stopPlaybackRef.current();
+        if (micStateRef.current === 'recording') void stopMicRef.current('user');
+        setHideVerses(true);
+        setRevealed(new Set());
+        saveMode('memorise');
+      } else if (m === 'reading') {
+        e.preventDefault();
+        stopPlaybackRef.current();
+        if (micStateRef.current === 'recording') void stopMicRef.current('user');
+        setHideVerses(false);
+        setRevealed(new Set());
+        saveMode('reading');
+      } else if (m === 'listen') {
+        e.preventDefault();
+        void startPlaybackRef.current();
+      }
+    };
+    window.addEventListener(MODE_EVENT, onMode);
+    return () => window.removeEventListener(MODE_EVENT, onMode);
+  }, []);
+
+  /* Practice-mode selection from the bottom-bar button — the same
+   * behaviour as MushafReader's selectPracticeMode: in-place modes
+   * are handled by the listener above; Test navigates to /hifz/test;
+   * Reading is already reading; anything else (Recite) navigates to
+   * the last-read surah with ?mode=…, exactly as the switcher did. */
+  const selectPracticeMode = useCallback(
+    (m: HifzMode) => {
+      setModesOpen(false);
+      if (requestMode(m)) return;
+      if (m === 'test') {
+        router.push('/hifz/test');
+        return;
+      }
+      if (m === 'reading') return; // already reading, handled in place
+      router.push(`/hifz/${lastReadSlug()}?mode=${m}`);
+    },
+    [router],
+  );
+
   /* Per-column fit check (2026-11-25 third refinement): every track
    * column's zoom wrapper carries data-frame-page; one
    * ResizeObserver watches them (and the container, for resizes /
@@ -2590,6 +2660,26 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           >
             <IconEyeOff />
           </button>
+          {/* Practice mode (R2 fix, 2026-11-26): the 5-mode switcher
+              (Reading / Recite / Listen / Memorise / Test), reused
+              from MushafReader — same list, same selection behaviour.
+              Same round-button styling as the Mushaf Layout / Hide
+              buttons beside it. */}
+          <button
+            type="button"
+            aria-label={t('mode.practiceMode')}
+            onClick={() => setModesOpen(true)}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-[#D1D5DB] bg-white shadow-sm"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-5 w-5" aria-hidden="true">
+              <line x1="8" y1="6" x2="21" y2="6" />
+              <line x1="8" y1="12" x2="21" y2="12" />
+              <line x1="8" y1="18" x2="21" y2="18" />
+              <line x1="3" y1="6" x2="3.01" y2="6" />
+              <line x1="3" y1="12" x2="3.01" y2="12" />
+              <line x1="3" y1="18" x2="3.01" y2="18" />
+            </svg>
+          </button>
         </div>
         {/* Mic (Phase 2: Tilawa on-device engine). Idle = mint + mic
             icon; recording = red, gently pulsing, stop square;
@@ -2653,6 +2743,20 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           </button>
         </div>
       </footer>
+
+      {/* Practice-mode sheet (R2 fix): the 5-mode switcher, reused
+          from MushafReader — same list, same selection behaviour.
+          The footer above is shared by all three layouts (Quran
+          Text, Translation, Book), so the button reaches every
+          layout on "/". */}
+      <ReaderSheet open={modesOpen} onClose={() => setModesOpen(false)} side="right" title={t('mode.practiceMode')}>
+        <PracticeModeList
+          onSelect={(m) => {
+            setModesOpen(false);
+            selectPracticeMode(m);
+          }}
+        />
+      </ReaderSheet>
 
       {/* Red-word tooltip (Phase 5): a tap anywhere else closes it;
           it also closes on a new take, a page change, or when the
