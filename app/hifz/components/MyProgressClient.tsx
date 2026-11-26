@@ -139,12 +139,17 @@ function MistakeAudioButton({ sessionId }: { sessionId?: string }) {
 function HistoryAudioShare({ audioId }: { audioId?: string }) {
   const t = useT();
   const [open, setOpen] = useState(false);
-  const [state, setState] = useState<'idle' | 'loading' | 'ready' | 'gone'>('idle');
+  // NOTE: there is deliberately NO 'loading' state here. Setting state
+  // inside this effect (e.g. setState('loading') before the await)
+  // re-runs the effect, whose cleanup cancels the in-flight load — the
+  // panel then sticks on "Loading…" forever. 'idle' + open IS the
+  // loading UI: the load starts once and only the completion ('ready'
+  // / 'gone') changes state.
+  const [state, setState] = useState<'idle' | 'ready' | 'gone'>('idle');
   const [recording, setRecording] = useState<SharedRecording | null>(null);
   useEffect(() => {
     if (!open || !audioId || state !== 'idle') return;
     let cancelled = false;
-    setState('loading');
     void (async () => {
       try {
         const entry = await loadSessionAudio(audioId);
@@ -185,7 +190,7 @@ function HistoryAudioShare({ audioId }: { audioId?: string }) {
         <div className="w-full">
           {!audioId ? (
             <ShareAudioButtons recording={null} noRecordingReason={t('share.historyNoAudio')} />
-          ) : state === 'loading' || state === 'idle' ? (
+          ) : state === 'idle' ? (
             <span className="text-xs text-[#6B7280]">{t('common.loading')}</span>
           ) : state === 'gone' ? (
             <ShareAudioButtons recording={null} noRecordingReason={t('share.historyAudioGone')} />
