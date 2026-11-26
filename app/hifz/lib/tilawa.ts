@@ -88,7 +88,7 @@ import type {
 } from '@tilawa/core';
 import type { Microphone, PreparedMicrophone } from '@tilawa/core/web';
 import { splitWords } from './alignment';
-import { AnchorTracker } from './recitation-anchor';
+import { AnchorTracker, ANCHOR_MIN_CONFIDENCE } from './recitation-anchor';
 
 export type EngineTier = 'auto' | 'full' | 'lite';
 
@@ -149,12 +149,28 @@ export interface SessionResult {
   missedCount: number;
   /** True when the attempt was too unclear to trust per-word colours. */
   unclear: boolean;
+  /**
+   * Passage index of the start anchor (first word of the first run of
+   * >= 3 consecutive trustworthy locked observations, or the
+   * first-locked fallback at stop), or null when the take never
+   * locked — logged by the UI so a phone test can prove where the
+   * anchor landed. 0 on a from-the-top take only when the tracker
+   * locks onto the head itself; on clean audio the first lock lands
+   * 1–9 s in, so the anchor is usually a few words past the true
+   * start and the words before it are `not-reached`, never `missed`.
+   */
+  anchorIndex: number | null;
+  /** "surah:ayah:word" key of the anchor word, or null (see anchorIndex). */
+  anchorKey: string | null;
   /** True when the tracker observed no expected word at all. NOTE: this
    * does NOT by itself mean the microphone heard nothing — see
    * `micHeardAudio` / `audioHealth`. A take can have noSpeech=true while
    * the mic clearly heard the recitation (tracker never locked, take too
    * short, recitation too quiet for the model). The UI must never render
-   * "we didn't hear anything" from noSpeech alone. */
+   * "we didn't hear anything" from noSpeech alone. Since 2026-11-27
+   * (H2) only LOCKED observations count here: a take the tracker
+   * followed only in `ambiguous` has noSpeech=true and unclear=true.
+   */
   noSpeech: boolean;
   /**
    * True when the microphone demonstrably heard sound during the take:
@@ -282,6 +298,14 @@ export interface StartSessionOptions {
   toAyah: number;
   /** Expected text, one entry per ayah in the range. */
   expected: ExpectedAyah[];
+  /**
+   * The ayah the reciter is starting on (the reader's visible/topmost
+   * ayah; unset in the coach, where the passage head is the start).
+   * The adapter floors the start anchor at the first word of the ayah
+   * BEFORE this one (one ayah of slack), so a lock onto the passage
+   * head can never become the anchor (H1, 2026-11-27).
+   */
+  startAyah?: { surah: number; ayah: number };
   /** Live word events as the tracker follows the recitation. */
   onWord?: (e: WordEvent) => void;
   /** Live mic level in dBFS (about every 20 ms) for the level meter. */
@@ -399,6 +423,44 @@ export function autoTierLabel(): string {
 let webModule: typeof import('@tilawa/core/web') | null = null;
 
 /**
+ * Warm just the `@tilawa/core/web` JS module (no model download) so
+ * `prepareMicrophoneStandalone()` can run synchronously inside a tap
+ * later. Call on mount / first interaction; cheap (chunk only — the
+ * 25 MB model is NOT downloaded here). `loadEngine()` sets the same
+ * cache when it runs.
+ */
+export async function warmWebModule(): Promise<void> {
+  if (webModule) return;
+  try {
+    webModule = await import('@tilawa/core/web');
+  } catch {
+    // Module unavailable — loadEngine() will surface the failure.
+  }
+}
+
+/**
+ * Prepare the microphone synchronously inside the user's tap, WITHOUT
+ * waiting for the model: needs only the web module (warmed by
+ * `warmWebModule()` or by an earlier `loadEngine()`). Throws when the
+ * module is not warm yet — the caller falls back to awaiting the
+ * engine first (H5, 2026-11-27: the old path awaited `ensureEngine()`
+ * before preparing, so a cold first tap prepared outside the gesture
+ * and the AudioContext could stay suspended with zero frames).
+ */
+export function prepareMicrophoneStandalone(): PreparedMicCapture {
+  if (!webModule) {
+    throw new Error('Recitation engine module is not loaded yet.');
+  }
+  const handle = webModule.prepareMicrophone();
+  return {
+    handle,
+    stream: handle.stream,
+    context: handle.context,
+    release: () => handle.release(),
+  };
+}
+
+/**
  * Load the engine on demand. Dynamic import: `@tilawa/core/web` (and with
  * it `onnxruntime-web`) is fetched only when this function runs — never in
  * the first-paint bundle.
@@ -430,16 +492,7 @@ export async function loadEngine(opts: LoadEngineOptions = {}): Promise<Recitati
     modelId: tilawa.model.id,
     modelVersion: tilawa.model.version,
     prepareMicrophone(): PreparedMicCapture {
-      if (!webModule) {
-        throw new Error('Recitation engine module is not loaded yet.');
-      }
-      const handle = webModule.prepareMicrophone();
-      return {
-        handle,
-        stream: handle.stream,
-        context: handle.context,
-        release: () => handle.release(),
-      };
+      return prepareMicrophoneStandalone();
     },
     startSession(sessionOpts: StartSessionOptions): RecitationSession {
       return createSession(tilawa, sessionOpts);
@@ -485,15 +538,44 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
   }
 
   // Live state, updated from position + checker events.
+  // H2 (2026-11-27): ONLY locked observations count as "reached".
+  // `observed` is written ONLY in the locked branch of the position
+  // handler below — an `ambiguous` acquisition guess never enters
+  // it, so it can never advance `lastReached` and turn the starting
+  // line (or any unobserved word before a stray guess) into `missed`
+  // via the "went past" rule in buildResult(). Ambiguous observations
+  // feed nothing except the anchor tracker's ignore-list and the
+  // first-observed log value.
   const observed = new Map<string, { confidence: number; timeMs: number; state: string }>();
   const flagged = new Map<string, CheckerEvent>();
   const orderOfKey = new Map<string, number>();
   let order = 0;
   let trackerState = 'acquiring';
-  /** Passage index of the first expected word the tracker observed, or null. */
+  /** Passage index of the first expected word the tracker observed, or null.
+   * ANY state, logging only — since 2026-11-27 (H3) it NEVER feeds the
+   * stop-time anchor fallback: an `ambiguous` acquisition guess must
+   * not become the anchor. */
   let firstObservedIndex: number | null = null;
-  /** Passage index of the first expected word observed while LOCKED, or null. */
+  /** Passage index of the first expected word observed while LOCKED at
+   * or after the anchor floor, or null. The stop-time anchor fallback. */
   let firstLockedIndex: number | null = null;
+  /**
+   * ANCHOR FLOOR (H1, 2026-11-27): the anchor may not land before the
+   * first word of the ayah BEFORE the reciter's start ayah (one ayah
+   * of slack for a half-visible ayah above the recorded topmost one).
+   * 0 when no start ayah was given (coach) or the start ayah is the
+   * passage head. A lock onto the passage head can then never become
+   * the anchor — the failure mode that silently defeated the first
+   * anchor fix — while a genuine start one ayah early still can.
+   */
+  let anchorFloorIndex = 0;
+  if (opts.startAyah) {
+    const startAyahKey = `${opts.startAyah.surah}:${opts.startAyah.ayah}`;
+    const startPos = ayahKeys.indexOf(startAyahKey);
+    if (startPos > 0) {
+      anchorFloorIndex = orderedIndex.get(ayahFirstWord.get(ayahKeys[startPos - 1])!) ?? 0;
+    }
+  }
   /**
    * START ANCHOR (Mehran, 2026-11-26 — mid-page starts marked from the
    * top). The passage is always declared from its first ayah, so the
@@ -513,8 +595,17 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
    * are applied, flags before it are dropped. At stop() the anchor is
    * resolved with its fallback and any still-buffered events are
    * flushed silently (recorded for buildResult, not re-emitted live).
+   *
+   * HARDENED 2026-11-27 (H1/H3): the run ignores locks below the
+   * floor, locks the tracker is less than half-sure of, and locks in
+   * the first 500 ms (see lib/recitation-anchor.ts); the stop-time
+   * fallback is the first locked word at/after the floor, never an
+   * ambiguous guess — a take that never locks has NO anchor and
+   * reports `unclear`. The anchor index is logged when it lands (and
+   * returned in SessionResult), so the next phone test can prove
+   * where it landed.
    */
-  const anchorTracker = new AnchorTracker();
+  const anchorTracker = new AnchorTracker({ floorIndex: anchorFloorIndex });
   /** Passage index of the anchor once known live, else null. */
   let anchorIndex: number | null = null;
   /** Checker events received before the anchor was known. */
@@ -626,31 +717,55 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       // observation never starts or breaks the run (see
       // lib/recitation-anchor.ts). The moment the anchor is known,
       // release the buffered checker events (flags at/after it only).
-      if (idx !== undefined) anchorTracker.observe(idx, ev.state);
+      // The anchor index is logged: without it, no phone test can
+      // prove whether the anchor landed on his start word or on the
+      // passage head (H1 — the first anchor fix was unverifiable).
+      if (idx !== undefined) anchorTracker.observe(idx, ev.state, best.confidence, ev.timeMs);
       if (anchorIndex === null && anchorTracker.anchor !== null) {
         anchorIndex = anchorTracker.anchor;
+        console.log('[tilawa] anchor:', {
+          anchorIndex,
+          anchorKey: orderedKeys[anchorIndex],
+          floorIndex: anchorFloorIndex,
+          firstLockedIndex,
+          firstObservedIndex,
+        });
         flushPendingCheckerEvents();
       }
       if (ev.state === 'locked') {
         everLocked = true;
-        if (firstLockedIndex === null && idx !== undefined) firstLockedIndex = idx;
+        // H1/H3: the stop-time fallback anchor is the first lock at or
+        // after the floor — a lock onto the passage head never counts.
+        if (firstLockedIndex === null && idx !== undefined && idx >= anchorFloorIndex) {
+          firstLockedIndex = idx;
+        }
       }
       if (firstObservedIndex === null && idx !== undefined) firstObservedIndex = idx;
-      if (!observed.has(key)) {
+      // H2: only a LOCKED observation counts as reached. An `ambiguous`
+      // guess is recorded nowhere here — it cannot advance the reached
+      // frontier, inflate coverage, or turn an unobserved word into
+      // `missed` via the "went past" rule in buildResult().
+      if (ev.state === 'locked' && !observed.has(key)) {
         observed.set(key, { confidence: best.confidence, timeMs: ev.timeMs, state: ev.state });
         orderOfKey.set(key, order++);
       }
       // A word the tracker is locked on, with no checker flag, is correct
       // so far. Live highlight only; the final result is decided at stop().
       // Once the anchor is known, a locked word BEFORE it is never lit:
-      // the reciter never attempted it. (A locked observation before the
-      // anchor is known can still light — only a locked observation can
-      // emit 'correct', i.e. the tracker confidently heard that word, so
-      // it cannot be one of the un-recited head words; the final result
-      // still marks it not-reached via the anchor grace in buildResult.)
+      // the reciter never attempted it. H4 (2026-11-27): before the
+      // anchor is known, a lock alone is NOT enough to light a word —
+      // during acquisition the tracker emits wrong positions, and the
+      // old comment claiming a pre-anchor lock "cannot be one of the
+      // un-recited head words" did not follow. A word lights live only
+      // when the tracker is at least half-sure of it (confidence >=
+      // 0.5; measured genuine locks run 0.68–1.00 on clean audio) AND
+      // it sits at or after the start floor — a head word can never
+      // light, with or without an anchor yet.
       if (
         !flagged.has(key) &&
         ev.state === 'locked' &&
+        best.confidence >= ANCHOR_MIN_CONFIDENCE &&
+        (idx === undefined || idx >= anchorFloorIndex) &&
         (anchorIndex === null || idx === undefined || idx >= anchorIndex)
       ) {
         emitWord(best.word, 'correct', best.confidence);
@@ -670,11 +785,15 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
   });
 
   const buildResult = (): SessionResult => {
-    // Resolve the start anchor (3-run, else first-locked / first-observed
-    // fallback) and flush any checker events still buffered — silently:
-    // the take is over, the per-word result below is authoritative.
+    // Resolve the start anchor (3-run, else first-locked fallback —
+    // NEVER an ambiguous first-observed word, H3) and flush any
+    // checker events still buffered — silently: the take is over, the
+    // per-word result below is authoritative. When the take never
+    // locked, the anchor stays null: no buffered flag is ever applied
+    // and the take reports `unclear` (coverage 0) instead of being
+    // anchored on an acquisition guess.
     if (anchorIndex === null) {
-      anchorIndex = anchorTracker.resolveAtStop(firstLockedIndex, firstObservedIndex);
+      anchorIndex = anchorTracker.resolveAtStop(firstLockedIndex);
     }
     flushPendingCheckerEvents(false);
     // Words the reciter reached, in passage order — counting ONLY expected
@@ -708,14 +827,16 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
     //     on a mid-page start is NOT word 1. Words before the anchor
     //     were never listened to, not skipped. The boundary is the
     //     anchor when a 3-run was detected; the fallback is the first
-    //     LOCKED observation when the take locks at all (an `ambiguous`
-    //     observation of an early word does not prove the tracker was
-    //     following — it may be a wrong-passage guess, and using it as
-    //     the boundary exposed 1:2:2 in testing); on a single short
-    //     ayah the tracker may NEVER lock at all (it follows the words
-    //     in `ambiguous` at conf ~0.5 for the whole take), so there the
-    //     boundary falls back to the first OBSERVED word, or short takes
-    //     could never use the grace.
+    //     LOCKED observation at/after the start floor when the take
+    //     locks at all (an `ambiguous` observation of an early word
+    //     does not prove the tracker was following — it may be a
+    //     wrong-passage guess, and using it as the boundary exposed
+    //     1:2:2 in testing); on a single short ayah the tracker may
+    //     NEVER lock at all (it follows the words in `ambiguous` at
+    //     conf ~0.5 for the whole take — measured 2026-11-27: 1:1
+    //     alone, 6 ambiguous events, 0 locks), so there the anchor
+    //     is null and the whole take reports `unclear` rather than
+    //     being anchored on a guess (H3).
     // (B) AYAH-BOUNDARY JUMP: at an ayah boundary the tracker sometimes
     //     jumps from the previous ayah's penultimate word straight to the
     //     next ayah's first word, skipping the boundary word (e.g. 67:2:12
@@ -733,7 +854,7 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
     //     checker can still confirm one.
     const graced = new Set<string>();
     // (A) boundary is the resolved start anchor (3-run, else the
-    // first-locked / first-observed fallback) — see buildResult() head.
+    // first-locked fallback, else null — see buildResult() head).
     const lockBoundary = anchorIndex;
     if (lockBoundary !== null) {
       for (let i = 0; i < lockBoundary; i++) graced.add(orderedKeys[i]);
@@ -832,6 +953,8 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       reachedCount,
       missedCount,
       unclear,
+      anchorIndex,
+      anchorKey: anchorIndex !== null ? orderedKeys[anchorIndex] : null,
       noSpeech,
       micHeardAudio: audioHealth.everAudible,
       audioHealth,

@@ -74,6 +74,8 @@ import { TAFSIR_KEY } from './AyahClient';
 import {
   loadEngine,
   engineSupport,
+  prepareMicrophoneStandalone,
+  warmWebModule,
   type ExpectedAyah,
   type PreparedMicCapture,
   type RecitationEngine,
@@ -730,18 +732,38 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     return out;
   }, [textRange, pages]);
   /* The passage the mic / Listen should use: in a continuous mode
-   * the surah the user is actually looking at (from the loaded
-   * pages); otherwise the current page's first surah. */
+   * the surah the user is actually looking at, on the VISIBLE PAGE
+   * ONLY (2026-11-27: the passage used to span the whole loaded
+   * range, so the checker expected head words — whole ayahs above
+   * the viewport — the reciter never started on; narrowing it to the
+   * page shrinks that head to at most one page, and the anchor floor
+   * covers the rest). Otherwise the current page's first surah. */
   const activeExpected = useMemo(() => {
     if (isContinuous) {
       const surah =
         visibleText?.surah ??
         (textPages.length > 0 ? pageExpected(textPages[0].verses)?.surah : undefined);
       if (!surah) return null;
+      // Visible page only; before the first scroll check (no
+      // visibleText yet) the first loaded page. If that page has no
+      // verses of the visible surah (should not happen — the surah
+      // comes from that page), fall back to the whole loaded range
+      // rather than reporting nothing to recite.
+      const pages =
+        visibleText != null
+          ? textPages.filter((pg) => pg.page === visibleText.page)
+          : textPages.slice(0, 1);
       const verses: MushafVerse[] = [];
-      for (const pg of textPages) {
+      for (const pg of pages) {
         for (const v of pg.verses) {
           if (v.verse_key.startsWith(`${surah}:`)) verses.push(v);
+        }
+      }
+      if (verses.length === 0) {
+        for (const pg of textPages) {
+          for (const v of pg.verses) {
+            if (v.verse_key.startsWith(`${surah}:`)) verses.push(v);
+          }
         }
       }
       if (verses.length === 0) return null;
@@ -1390,8 +1412,14 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
    * usually ready when the mic is tapped, so prepareMicrophone() runs
    * synchronously inside that tap (the 2026-11-22 gesture fix). If the
    * user taps first, the tap shows the loading state and waits instead.
-   * The engine module is never in the first-paint bundle. */
+   * The engine module is never in the first-paint bundle.
+   * H5 (2026-11-27): warm just the `@tilawa/core/web` JS module at
+   * mount too (no model download — cheap) so the tap can prepare the
+   * mic synchronously BEFORE awaiting the model load; the old order
+   * (await engine, then prepare) prepared outside the gesture on a
+   * cold first tap. See startMic. */
   useEffect(() => {
+    void warmWebModule();
     let started = false;
     const kick = () => {
       if (started) return;
@@ -1462,6 +1490,9 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           reached: result.reachedCount,
           missed: result.missedCount,
           noSpeech: result.noSpeech,
+          unclear: result.unclear,
+          anchor: result.anchorIndex,
+          anchorWord: result.anchorKey,
           micHeardAudio: result.micHeardAudio,
           durationMs: result.durationMs,
         });
@@ -1593,10 +1624,20 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       // Session Start & Stop feedback: the same sound + vibration
       // when the take ends, if enabled.
       playSessionFeedback();
+      // Unclear take (2026-11-27): the mic heard audio but the tracker
+      // never followed it well enough to trust per-word colours — e.g.
+      // a very short take, or recitation too quiet for the model. The
+      // words stay unlit (never falsely green or red), and the toast
+      // says so plainly instead of leaving the user wondering why
+      // nothing happened. A dead capture returns before this point.
+      const showUnclear = result && result.unclear && result.micHeardAudio;
+      if (showUnclear) {
+        setMicToast("Couldn't follow that clearly — try reciting a little louder, or a longer passage.");
+      }
       micTimerRef.current = window.setTimeout(() => {
         setMic('idle');
         setMicToast(null);
-      }, 1200);
+      }, showUnclear ? 4000 : 1200);
     },
     [setMic],
   );
@@ -1608,12 +1649,32 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       micTimerRef.current = window.setTimeout(() => setMicToast(null), 4000);
       return;
     }
-    // The engine must be ready before prepareMicrophone() can run.
+    // MIC PREPARE — H5 (2026-11-27): prepare SYNCHRONOUSLY in this tap,
+    // BEFORE any await. `prepareMicrophoneStandalone()` needs only the
+    // web module (warmed at mount — no model download), so the
+    // AudioContext is created + resumed and getUserMedia starts while
+    // the gesture is fresh, even on a cold first tap when the 25 MB
+    // model still has to download. The old order awaited ensureEngine()
+    // first, so a cold tap prepared outside the gesture and the
+    // context could stay suspended with zero frames reaching the
+    // model. Only when the module itself is not warm yet do we fall
+    // back to engine-first (the retry tap then runs with the engine
+    // ready). A prepared capture whose engine then fails to load is
+    // released below.
+    let prepared: PreparedMicCapture | null = null;
+    try {
+      prepared = prepareMicrophoneStandalone();
+    } catch {
+      prepared = null;
+    }
+    // The engine must be ready before the session can start (not
+    // before the mic is prepared — see above).
     if (engineStateRef.current !== 'ready') {
       setMic('loading');
       setMicToast('Loading the recitation model… (about 25 MB, first time only)');
       const eng = await ensureEngine();
       if (!eng) {
+        prepared?.release();
         setMic('idle');
         if (engineStateRef.current === 'unsupported') {
           setMicToast("Recitation check isn't supported on this device or browser.");
@@ -1625,29 +1686,30 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     }
     const engine = engineRef.current;
     if (!engine) {
+      prepared?.release();
       setMic('idle');
       setMicToast("Couldn't load the recitation model — check your connection and try again.");
       return;
     }
-    // MIC PREPARE — MUST stay synchronous in this tap handler, before
-    // any await (2026-11-22 root-cause fix). The context is created +
-    // resumed while the gesture is fresh; listen() then takes
-    // ownership of the prepared capture.
-    let prepared: PreparedMicCapture;
-    try {
-      prepared = engine.prepareMicrophone();
-    } catch (err) {
-      const reason = (err as { reason?: string })?.reason;
-      setMic('idle');
-      if (reason === 'denied') {
-        const msg = 'Please allow microphone access to use this feature.';
-        setMicToast(msg);
-      } else if (reason === 'insecure-context') {
-        setMicToast('Microphone needs a secure (https) connection.');
-      } else {
-        setMicToast("Microphone isn't available on this device.");
+    if (!prepared) {
+      // Fallback path (web module was not warm at tap time): prepare
+      // after the engine load, as before. May land outside the
+      // gesture on a cold tap — the warm-up above makes this rare.
+      try {
+        prepared = engine.prepareMicrophone();
+      } catch (err) {
+        const reason = (err as { reason?: string })?.reason;
+        setMic('idle');
+        if (reason === 'denied') {
+          const msg = 'Please allow microphone access to use this feature.';
+          setMicToast(msg);
+        } else if (reason === 'insecure-context') {
+          setMicToast('Microphone needs a secure (https) connection.');
+        } else {
+          setMicToast("Microphone isn't available on this device.");
+        }
+        return;
       }
-      return;
     }
     setMic('loading');
     setMicToast('Waiting for microphone permission…');
@@ -1698,6 +1760,18 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       fromAyah: expected.fromAyah,
       toAyah: expected.toAyah,
       expected: expected.ayahs,
+      // The ayah he is actually on (visible/topmost ayah; Book mode:
+      // the page's first ayah, i.e. the passage head). The adapter
+      // floors the start anchor at the ayah BEFORE this one, so a lock
+      // onto the passage head can never become the anchor (H1).
+      startAyah: (() => {
+        const vt = visibleTextRef.current;
+        if (vt?.ayah) {
+          const [s, a] = vt.ayah.split(':').map(Number);
+          if (Number.isFinite(s) && Number.isFinite(a)) return { surah: s, ayah: a };
+        }
+        return { surah: expected.surah, ayah: expected.fromAyah };
+      })(),
       onWord: (e: WordEvent) => {
         const key = readerWordKey(e.surah, e.ayah, e.word);
         if (e.status === 'correct') {

@@ -9,7 +9,13 @@
  *      words are "not attempted" (pre-anchor flags suppressed, final
  *      status not-reached);
  *  (b) from-the-top start — anchor at passage index 0, nothing suppressed;
- *  (c) short take with no lock — the fallback anchor, no crash.
+ *  (c) short take with no lock — NO fallback anchor (2026-11-27, H3:
+ *      a never-locking take has no anchor and reports unclear, instead
+ *      of being silently anchored on an ambiguous guess);
+ *  (d) hardening — the floor, the confidence floor and the 500 ms
+ *      guard (2026-11-27, H1): a lock onto the passage head, a
+ *      low-confidence lock, or a lock in the first 500 ms never
+ *      starts the anchor run.
  *
  * The adapter wiring in lib/tilawa.ts (buffering checker events until the
  * anchor is known, flushing at/after it, the anchor-beats-flag rule in
@@ -55,14 +61,13 @@ check('mid-page start: anchor lands mid-page (10), not at the top', () => {
       { index: 0, state: 'ambiguous' },
       { index: 1, state: 'ambiguous' },
       { index: 3, state: 'ambiguous' },
-      { index: 10, state: 'locked' },
+      { index: 10, state: 'locked', confidence: 0.9, timeMs: 2000 },
       { index: 4, state: 'ambiguous' },
-      { index: 11, state: 'locked' },
-      { index: 12, state: 'locked' },
-      { index: 13, state: 'locked' },
+      { index: 11, state: 'locked', confidence: 0.9, timeMs: 2500 },
+      { index: 12, state: 'locked', confidence: 0.95, timeMs: 3000 },
+      { index: 13, state: 'locked', confidence: 0.95, timeMs: 3500 },
     ],
     10, // firstLockedIndex
-    0, // firstObservedIndex (an ambiguous guess at the top)
   );
   assert.equal(anchor, 10);
 });
@@ -104,12 +109,11 @@ check('mid-page start: anchor appears only on the 3rd consecutive locked word', 
 check('from-top start: anchor at 0, nothing suppressed', () => {
   const anchor = detectAnchor(
     [
-      { index: 0, state: 'locked' },
-      { index: 1, state: 'locked' },
-      { index: 2, state: 'locked' },
-      { index: 3, state: 'locked' },
+      { index: 0, state: 'locked', confidence: 0.9, timeMs: 1000 },
+      { index: 1, state: 'locked', confidence: 0.9, timeMs: 1500 },
+      { index: 2, state: 'locked', confidence: 0.9, timeMs: 2000 },
+      { index: 3, state: 'locked', confidence: 0.9, timeMs: 2500 },
     ],
-    0,
     0,
   );
   assert.equal(anchor, 0);
@@ -120,46 +124,43 @@ check('from-top start: ambiguous lead-in does not move the anchor', () => {
   const anchor = detectAnchor(
     [
       { index: 2, state: 'ambiguous' },
-      { index: 0, state: 'locked' },
-      { index: 1, state: 'locked' },
-      { index: 2, state: 'locked' },
+      { index: 0, state: 'locked', confidence: 0.9, timeMs: 1000 },
+      { index: 1, state: 'locked', confidence: 0.9, timeMs: 1500 },
+      { index: 2, state: 'locked', confidence: 0.9, timeMs: 2000 },
     ],
     0,
-    2,
   );
   assert.equal(anchor, 0);
 });
 
 // ── (c) Short take, no lock ─────────────────────────────────────────
-check('short take, never locks: fallback anchor = first observed word', () => {
+check('short take, never locks: NO fallback anchor (H3 — null, take is unclear)', () => {
   const anchor = detectAnchor(
     [
-      { index: 2, state: 'ambiguous' },
-      { index: 3, state: 'ambiguous' },
-      { index: 4, state: 'ambiguous' },
+      { index: 2, state: 'ambiguous', confidence: 0.5, timeMs: 1000 },
+      { index: 3, state: 'ambiguous', confidence: 0.5, timeMs: 2000 },
+      { index: 4, state: 'ambiguous', confidence: 0.5, timeMs: 3000 },
     ],
     null, // never locked
-    2, // firstObservedIndex
   );
-  assert.equal(anchor, 2);
+  assert.equal(anchor, null);
 });
 
 check('lock but no 3-run by stop: fallback anchor = first locked word', () => {
   const anchor = detectAnchor(
     [
-      { index: 5, state: 'locked' },
-      { index: 7, state: 'locked' }, // jump: restarts the run, no 3-run
+      { index: 5, state: 'locked', confidence: 0.9, timeMs: 1000 },
+      { index: 7, state: 'locked', confidence: 0.9, timeMs: 2000 }, // jump: restarts the run, no 3-run
     ],
-    5,
     5,
   );
   assert.equal(anchor, 5);
 });
 
 check('nothing observed at all: anchor null, no crash', () => {
-  assert.equal(detectAnchor([], null, null), null);
+  assert.equal(detectAnchor([], null), null);
   const t = new AnchorTracker();
-  assert.equal(t.resolveAtStop(null, null), null);
+  assert.equal(t.resolveAtStop(null), null);
   assert.equal(t.anchor, null);
 });
 
@@ -167,12 +168,11 @@ check('nothing observed at all: anchor null, no crash', () => {
 check('repeated locked word restarts the run at that word', () => {
   const anchor = detectAnchor(
     [
-      { index: 8, state: 'locked' },
-      { index: 8, state: 'locked' },
-      { index: 9, state: 'locked' },
-      { index: 10, state: 'locked' },
+      { index: 8, state: 'locked', confidence: 0.9, timeMs: 1000 },
+      { index: 8, state: 'locked', confidence: 0.9, timeMs: 1500 },
+      { index: 9, state: 'locked', confidence: 0.9, timeMs: 2000 },
+      { index: 10, state: 'locked', confidence: 0.9, timeMs: 2500 },
     ],
-    8,
     8,
   );
   assert.equal(anchor, 8);
@@ -181,14 +181,13 @@ check('repeated locked word restarts the run at that word', () => {
 check('step back restarts the run at the earlier word', () => {
   const anchor = detectAnchor(
     [
-      { index: 6, state: 'locked' },
-      { index: 7, state: 'locked' },
-      { index: 5, state: 'locked' },
-      { index: 6, state: 'locked' },
-      { index: 7, state: 'locked' },
-      { index: 8, state: 'locked' },
+      { index: 6, state: 'locked', confidence: 0.9, timeMs: 1000 },
+      { index: 7, state: 'locked', confidence: 0.9, timeMs: 1500 },
+      { index: 5, state: 'locked', confidence: 0.9, timeMs: 2000 },
+      { index: 6, state: 'locked', confidence: 0.9, timeMs: 2500 },
+      { index: 7, state: 'locked', confidence: 0.9, timeMs: 3000 },
+      { index: 8, state: 'locked', confidence: 0.9, timeMs: 3500 },
     ],
-    6,
     6,
   );
   assert.equal(anchor, 5);
@@ -197,16 +196,85 @@ check('step back restarts the run at the earlier word', () => {
 check('ambiguous observations never start or break a run', () => {
   const anchor = detectAnchor(
     [
-      { index: 4, state: 'locked' },
+      { index: 4, state: 'locked', confidence: 0.9, timeMs: 1000 },
       { index: 0, state: 'ambiguous' },
-      { index: 5, state: 'locked' },
+      { index: 5, state: 'locked', confidence: 0.9, timeMs: 1500 },
       { index: 9, state: 'ambiguous' },
-      { index: 6, state: 'locked' },
+      { index: 6, state: 'locked', confidence: 0.9, timeMs: 2000 },
     ],
-    4,
     4,
   );
   assert.equal(anchor, 4);
+});
+
+// ── (d) Hardening: floor, confidence, time (H1, 2026-11-27) ─────────
+check('floor: a 3-run onto the passage head never becomes the anchor', () => {
+  // Start ayah 1:4 (passage idx 10); floor = first word of 1:3 (idx 8).
+  // The tracker locks 0,1,2 first (head), then 10,11,12 (his start).
+  const anchor = detectAnchor(
+    [
+      { index: 0, state: 'locked', confidence: 0.9, timeMs: 1000 },
+      { index: 1, state: 'locked', confidence: 0.9, timeMs: 1500 },
+      { index: 2, state: 'locked', confidence: 0.9, timeMs: 2000 },
+      { index: 10, state: 'locked', confidence: 0.9, timeMs: 2500 },
+      { index: 11, state: 'locked', confidence: 0.9, timeMs: 3000 },
+      { index: 12, state: 'locked', confidence: 0.9, timeMs: 3500 },
+    ],
+    10,
+    { floorIndex: 8 },
+  );
+  assert.equal(anchor, 10);
+});
+
+check('floor: with no lock at/after the floor, the fallback is null', () => {
+  const t = new AnchorTracker({ floorIndex: 8 });
+  t.observe(0, 'locked', 0.9, 1000);
+  t.observe(1, 'locked', 0.9, 1500);
+  t.observe(2, 'locked', 0.9, 2000);
+  assert.equal(t.anchor, null);
+  // A first-locked below the floor must not become the stop fallback
+  // either (the adapter only feeds it locks at/after the floor).
+  assert.equal(t.resolveAtStop(null), null);
+});
+
+check('confidence: a low-confidence lock never joins the run', () => {
+  const anchor = detectAnchor(
+    [
+      { index: 10, state: 'locked', confidence: 0.2, timeMs: 1000 },
+      { index: 11, state: 'locked', confidence: 0.2, timeMs: 1500 },
+      { index: 12, state: 'locked', confidence: 0.2, timeMs: 2000 },
+      { index: 13, state: 'locked', confidence: 0.9, timeMs: 2500 },
+      { index: 14, state: 'locked', confidence: 0.9, timeMs: 3000 },
+      { index: 15, state: 'locked', confidence: 0.9, timeMs: 3500 },
+    ],
+    10,
+  );
+  assert.equal(anchor, 13);
+});
+
+check('time: a lock in the first 500 ms never joins the run', () => {
+  const anchor = detectAnchor(
+    [
+      { index: 10, state: 'locked', confidence: 0.9, timeMs: 200 },
+      { index: 11, state: 'locked', confidence: 0.9, timeMs: 600 },
+      { index: 12, state: 'locked', confidence: 0.9, timeMs: 900 },
+      { index: 13, state: 'locked', confidence: 0.9, timeMs: 1200 },
+    ],
+    10,
+  );
+  assert.equal(anchor, 11);
+});
+
+check('observations without confidence/time still anchor (replayed sequences)', () => {
+  const anchor = detectAnchor(
+    [
+      { index: 10, state: 'locked' },
+      { index: 11, state: 'locked' },
+      { index: 12, state: 'locked' },
+    ],
+    10,
+  );
+  assert.equal(anchor, 10);
 });
 
 console.log(`\n${passed} checks passed.`);

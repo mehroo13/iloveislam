@@ -127,9 +127,13 @@ async function scoreTake(tilawa, { surah, fromAyah, toAyah, expected, audioParts
   // Per-word summary, mirroring app/hifz/lib/tilawa.ts buildResult() —
   // INCLUDING its false-flag graces (A take-start, B ayah-boundary jump,
   // C short particle), so the measured rate is the shipped rate.
+  // H2 (2026-11-27): ONLY locked observations count as reached — an
+  // `ambiguous` guess never enters `observed`, so it can never advance
+  // the reached frontier or turn an unobserved word into `missed`.
   const observed = new Map();
   const order = [];
   for (const p of positions) {
+    if (p.state !== 'locked') continue;
     const k = `${p.word.surah}:${p.word.ayah}:${p.word.word}`;
     if (!observed.has(k)) { observed.set(k, p); order.push(k); }
   }
@@ -158,11 +162,12 @@ async function scoreTake(tilawa, { surah, fromAyah, toAyah, expected, audioParts
   // --- graces (mirror of tilawa.ts) ---
   const orderedIndex = new Map(orderedKeys.map((o, i) => [o.key, i]));
   const observedSet = new Set(reachedInPassage);
-  // First OBSERVED expected word (any tracker state) + first LOCKED one +
-  // whether the tracker ever locked — mirror of tilawa.ts (see its grace
-  // comments). Grace A boundary: first locked when the take locks, else
-  // first observed.
-  let firstObservedIndex = null;
+  // First LOCKED expected word + whether the tracker ever locked —
+  // mirror of tilawa.ts (see its grace comments). Grace A boundary:
+  // the first locked word when the take locks, else null — since
+  // 2026-11-27 (H3) an `ambiguous` first-observed word is NEVER the
+  // boundary: a take that never locks has no anchor and reports
+  // `unclear` (all words not-reached) instead.
   let firstLockedIndex = null;
   let everLocked = false;
   for (const p of positions) {
@@ -172,7 +177,6 @@ async function scoreTake(tilawa, { surah, fromAyah, toAyah, expected, audioParts
       everLocked = true;
       if (firstLockedIndex === null) firstLockedIndex = orderedIndex.get(k);
     }
-    if (firstObservedIndex === null) firstObservedIndex = orderedIndex.get(k);
   }
   const ayahNums = [...new Set(orderedKeys.map((o) => o.ayah))];
   const ayahFirst = new Map();
@@ -187,7 +191,7 @@ async function scoreTake(tilawa, { surah, fromAyah, toAyah, expected, audioParts
     .replace(/[ھہ]/g, 'ه').replace(/ے/g, 'ي').replace(/ک/g, 'ك').replace(/ی/g, 'ي')
     .replace(/[^\u0621-\u064A]/g, '').length;
   const graced = new Set();
-  const lockBoundary = firstLockedIndex ?? firstObservedIndex;
+  const lockBoundary = firstLockedIndex;
   if (lockBoundary !== null) {
     for (let i = 0; i < lockBoundary; i++) graced.add(orderedKeys[i].key);
   }
@@ -342,7 +346,7 @@ if (caseArg === 'all' || caseArg === 'single') {
   const verses = await fetchPassage(1, 1, 1);
   const plain = await mp3ToWav(verses[0].audioUrl, 'fatihah-1-1');
   const r = await scoreTake(tilawa, { surah: 1, fromAyah: 1, toAyah: 1, expected: verses, audioParts: [plain] });
-  printResult('F: 1:1 alone, no silence (expect 4/4 — single-ayah takes never reach "locked", so the graces must still hold)', r);
+  printResult('F: 1:1 alone, no silence (expect 0/4 + unclear — a single short ayah never locks, so since 2026-11-27/H3 the take is honestly unclear instead of falsely all-correct from ambiguous-only tracking)', r);
   results.single = r;
 }
 

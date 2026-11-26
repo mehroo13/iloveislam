@@ -29,13 +29,48 @@
  * so nothing is suppressed and behaviour is identical.
  *
  * Fallbacks, used only when no 3-run exists by stop: the first locked
- * word, else the first observed word (the old grace-(A) boundary — e.g.
- * a single short ayah the tracker follows in `ambiguous` the whole take
- * and never locks on).
+ * word (2026-11-27: NEVER an `ambiguous` first-observed word — a
+ * never-locking take has no anchor at all, so its words stay
+ * `not-reached` and the take reports `unclear` instead of being
+ * silently anchored on an acquisition guess).
+ *
+ * HARDENING (Mehran, 2026-11-27 — the starting line still came back
+ * missed after the first anchor landed, so the anchor itself was
+ * re-diagnosed from scratch and the holes below were found in the
+ * wild, then measured headless against the real engine on clean
+ * professional audio — tools/mic-calib, 2026-11-27):
+ *  - Floor: the anchor may not land before the floor — the first word
+ *    of the ayah BEFORE the ayah the reciter started on (one ayah of
+ *    slack for a half-visible ayah above the recorded topmost one).
+ *    A lock onto the passage head can then never become the anchor.
+ *    The floor can only turn would-be-correct words into
+ *    `not-reached`, never into `missed` (pre-anchor words are
+ *    protected, and a lock below the floor is ignored entirely).
+ *  - Confidence: a locked observation only joins the run when the
+ *    tracker is at least half-sure of it (confidence >= 0.5).
+ *    Measured: genuine locks on clean audio run 0.68–1.00, while the
+ *    tracker's own lock floor is 0.08 — a 0.1 lock is the tracker
+ *    guessing, not knowing. A take whose locks are all below the
+ *    floor still anchors at stop via the first-locked fallback.
+ *  - Time: a lock in the first 500 ms of the session never joins the
+ *    run (measured first genuine locks: 1.9 s mid-passage, 9.0 s
+ *    from the top — a sub-500 ms lock is acquisition noise). A
+ *    genuine fast lock only restarts its run one word later.
+ *  - Logging: the adapter logs the anchor index when it lands, so the
+ *    next phone test can prove where it landed instead of assuming.
  */
 
 /** Consecutive locked observations needed to declare the anchor. */
 export const ANCHOR_RUN_LENGTH = 3;
+
+/**
+ * Minimum tracker confidence for a locked observation to join the
+ * anchor run (see hardening note above). `PositionCandidate.confidence`
+ * is `fit * separation`, 0..1; Tilawa itself locks at 0.08.
+ */
+export const ANCHOR_MIN_CONFIDENCE = 0.5;
+/** Session-audio ms before which a lock never joins the anchor run. */
+export const ANCHOR_MIN_TIME_MS = 500;
 
 /** One tracker observation, reduced to what the anchor needs. */
 export interface AnchorObservation {
@@ -43,6 +78,24 @@ export interface AnchorObservation {
   index: number;
   /** Tracker state for this observation ('locked' / 'ambiguous' / …). */
   state: string;
+  /** Tracker confidence 0..1 (`PositionCandidate.confidence`), when known. */
+  confidence?: number;
+  /** Session-audio clock ms of the observation, when known. */
+  timeMs?: number;
+}
+
+/** Options for AnchorTracker (all optional; defaults = the hardening above). */
+export interface AnchorTrackerOptions {
+  /**
+   * Passage index the anchor may not land before — the first word of
+   * the ayah before the reciter's start ayah (0 = passage head, i.e.
+   * no floor, as the coach uses). Locks below the floor are ignored.
+   */
+  floorIndex?: number;
+  /** Minimum confidence for a locked observation to join the run. */
+  minConfidence?: number;
+  /** Session-audio ms before which a lock never joins the run. */
+  minTimeMs?: number;
 }
 
 /**
@@ -63,6 +116,15 @@ export class AnchorTracker {
   private runLength = 0;
   private prevIndex: number | null = null;
   private detected: number | null = null;
+  private readonly floorIndex: number;
+  private readonly minConfidence: number;
+  private readonly minTimeMs: number;
+
+  constructor(opts: AnchorTrackerOptions = {}) {
+    this.floorIndex = opts.floorIndex ?? 0;
+    this.minConfidence = opts.minConfidence ?? ANCHOR_MIN_CONFIDENCE;
+    this.minTimeMs = opts.minTimeMs ?? ANCHOR_MIN_TIME_MS;
+  }
 
   /** Passage index of the anchor once detected, else null. */
   get anchor(): number | null {
@@ -70,9 +132,18 @@ export class AnchorTracker {
   }
 
   /** Feed one position observation (arrival order). */
-  observe(index: number, state: string): void {
+  observe(index: number, state: string, confidence?: number, timeMs?: number): void {
     if (this.detected !== null) return;
     if (state !== 'locked') return;
+    // Hardening (2026-11-27): a lock below the start floor, a
+    // low-confidence lock, or a lock in the first 500 ms of the
+    // session never starts or extends the run — any of them may be
+    // acquisition noise, and none of them may become the anchor.
+    // (An observation without confidence/time — e.g. a replayed
+    // sequence — skips only the check it cannot run.)
+    if (index < this.floorIndex) return;
+    if (confidence !== undefined && confidence < this.minConfidence) return;
+    if (timeMs !== undefined && timeMs < this.minTimeMs) return;
     if (this.prevIndex !== null && index === this.prevIndex + 1) {
       this.runLength += 1;
     } else {
@@ -87,16 +158,15 @@ export class AnchorTracker {
 
   /**
    * Resolve the anchor at stop, when no 3-run was ever detected: the
-   * first locked word, else the first observed word (the old grace-(A)
-   * boundary). Returns null when nothing was ever observed. Memoised —
-   * the resolved anchor is the anchor from then on.
+   * first locked word at/after the floor, else null — NEVER the first
+   * observed word (2026-11-27, H3: an `ambiguous` acquisition guess
+   * must not become the anchor). A take with no trustworthy lock has
+   * no anchor: its words stay `not-reached` and the take reports
+   * `unclear`. Memoised — the resolved anchor is the anchor from then on.
    */
-  resolveAtStop(
-    firstLockedIndex: number | null,
-    firstObservedIndex: number | null,
-  ): number | null {
+  resolveAtStop(firstLockedIndex: number | null): number | null {
     if (this.detected !== null) return this.detected;
-    this.detected = firstLockedIndex ?? firstObservedIndex ?? null;
+    this.detected = firstLockedIndex ?? null;
     return this.detected;
   }
 }
@@ -110,9 +180,9 @@ export class AnchorTracker {
 export function detectAnchor(
   observations: AnchorObservation[],
   firstLockedIndex: number | null,
-  firstObservedIndex: number | null,
+  opts: AnchorTrackerOptions = {},
 ): number | null {
-  const tracker = new AnchorTracker();
-  for (const obs of observations) tracker.observe(obs.index, obs.state);
-  return tracker.resolveAtStop(firstLockedIndex, firstObservedIndex);
+  const tracker = new AnchorTracker(opts);
+  for (const obs of observations) tracker.observe(obs.index, obs.state, obs.confidence, obs.timeMs);
+  return tracker.resolveAtStop(firstLockedIndex);
 }

@@ -1323,6 +1323,8 @@ export default function RecitationCoach({
       reachedCount,
       missedCount: mistakes.length,
       unclear: false,
+      anchorIndex: null,
+      anchorKey: null,
       noSpeech: false,
       micHeardAudio: false,
       audioHealth: {
