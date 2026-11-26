@@ -19,6 +19,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { loadProgress } from '../progress';
+import { ALL_SURAHS } from '../surahs';
 
 const INK = 'var(--reader-ink)';
 const MUTED = 'var(--reader-muted)';
@@ -111,14 +113,11 @@ function PhoneMistake() {
   );
 }
 
-// Mini phone showing a memorization plan list — rows with progress.
-function PhonePlan() {
-  const rows = [
-    { label: 'Al-Fatihah', pct: 100 },
-    { label: 'Al-Baqarah', pct: 42 },
-    { label: "Ali 'Imran", pct: 18 },
-    { label: 'An-Nisa', pct: 0 },
-  ];
+// Mini phone showing a memorization plan list — rows with the user's
+// REAL progress (audit C5: the old hardcoded 100/42/18/0% rows showed
+// fabricated progress on a fresh profile with zero activity). The rows
+// are passed in by ReaderGift, which reads them from local progress.
+function PhonePlan({ rows }: { rows: { label: string; pct: number }[] }) {
   return (
     <div
       className="relative flex h-[120px] items-center justify-center overflow-hidden"
@@ -169,9 +168,42 @@ const FEATURES: { name: string; desc: string }[] = [
 /*  Overlay                                                            */
 /* ---------------------------------------------------------------- */
 
+// The four surahs the plan preview shows, with their real
+// memorisation progress: share of ayahs marked memorised. Fresh
+// profiles honestly show 0% everywhere — never sample numbers.
+const PLAN_PREVIEW_SURAHS = [1, 2, 3, 4];
+function realPlanRows(): { label: string; pct: number }[] {
+  try {
+    const progress = loadProgress();
+    return PLAN_PREVIEW_SURAHS.map((id) => {
+      const surah = ALL_SURAHS.find((s) => s.id === id);
+      if (!surah) return { label: '', pct: 0 };
+      let done = 0;
+      for (let ayah = 1; ayah <= surah.ayahCount; ayah++) {
+        if (progress.ayahs[`${id}:${ayah}`]?.status === 'memorised') done++;
+      }
+      return {
+        label: surah.name,
+        pct: surah.ayahCount > 0 ? Math.round((done / surah.ayahCount) * 100) : 0,
+      };
+    });
+  } catch {
+    return PLAN_PREVIEW_SURAHS.map((id) => ({
+      label: ALL_SURAHS.find((s) => s.id === id)?.name ?? '',
+      pct: 0,
+    }));
+  }
+}
+
 export default function ReaderGift({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [rendered, setRendered] = useState(open);
   const [shown, setShown] = useState(false);
+  const [planRows, setPlanRows] = useState<{ label: string; pct: number }[]>(() =>
+    PLAN_PREVIEW_SURAHS.map((id) => ({
+      label: ALL_SURAHS.find((s) => s.id === id)?.name ?? '',
+      pct: 0,
+    })),
+  );
   // Alive pass: "View full feature list" expands the real feature
   // list below (the app's actual features, in our own words).
   const [showFullList, setShowFullList] = useState(false);
@@ -180,6 +212,9 @@ export default function ReaderGift({ open, onClose }: { open: boolean; onClose: 
   // and unmount after the transition.
   useEffect(() => {
     if (open) {
+      // Read the user's real progress each time the overlay opens, so
+      // the plan preview never shows stale or invented numbers (C5).
+      setPlanRows(realPlanRows());
       setRendered(true);
       const raf = requestAnimationFrame(() => requestAnimationFrame(() => setShown(true)));
       return () => cancelAnimationFrame(raf);
@@ -263,7 +298,7 @@ export default function ReaderGift({ open, onClose }: { open: boolean; onClose: 
                 Tailor your memorization using our intuitive planning tools.
               </p>
               <div className="mt-3">
-                <PhonePlan />
+                <PhonePlan rows={planRows} />
               </div>
             </article>
           </div>

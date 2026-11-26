@@ -167,6 +167,16 @@ export default function MushafPageView({
 
   const [weakOnPage, setWeakOnPage] = useState(0);
   const [compactText, setCompactText] = useState(false);
+  // Audit m1: jump-to-page number (the chapter sheet jumps by surah /
+  // juz, not by page — 604 pages one at a time is the only other way).
+  const [jump, setJump] = useState('');
+  const goToPage = (e: React.FormEvent) => {
+    e.preventDefault();
+    const n = Number(jump);
+    if (Number.isInteger(n) && n >= 1 && n <= MUSHAF_TOTAL_PAGES) {
+      router.push(`/hifz/mushaf/${n}`);
+    }
+  };
 
   // --- Scaled-page rendering (mobile mushaf fix, 2026-11-22) ---
   // WHY: every mushaf line is one <p> at a fixed ~33px font. On a phone
@@ -622,25 +632,29 @@ export default function MushafPageView({
 
       {/* Page turning — the single-page view has no swipe and the chapter
           sheet no longer carries Prev/Next, so the turn controls live
-          under the page (and on ← / → keys, see below). */}
+          under the page (and on ← / → keys, see below). Audit m2: the
+          labels wrapped at 390px ("← Previous / page") — the buttons
+          are now no-wrap with tighter padding so each label stays on
+          one line, and the centre label shrinks instead of pushing
+          them to wrap. */}
       <div className="mt-4 flex items-center justify-between gap-2">
         {page > 1 ? (
           <Link
             href={`/hifz/mushaf/${page - 1}`}
-            className="inline-flex min-h-11 items-center rounded-full border border-[#E8EAED] bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-[#F3F4F6]"
+            className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border border-[#E8EAED] bg-white px-3 py-2 text-sm font-semibold text-[#111827] hover:bg-[#F3F4F6]"
           >
             {t('mushaf.prevPage')}
           </Link>
         ) : (
           <span />
         )}
-        <span className="text-sm font-semibold text-[#111827]">
+        <span className="min-w-0 shrink text-center text-sm font-semibold text-[#111827]">
           {t('mushaf.pageOf').replace('{page}', String(page)).replace('{total}', String(MUSHAF_TOTAL_PAGES))}
         </span>
         {page < MUSHAF_TOTAL_PAGES ? (
           <Link
             href={`/hifz/mushaf/${page + 1}`}
-            className="inline-flex min-h-11 items-center rounded-full border border-[#E8EAED] bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-[#F3F4F6]"
+            className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border border-[#E8EAED] bg-white px-3 py-2 text-sm font-semibold text-[#111827] hover:bg-[#F3F4F6]"
           >
             {t('mushaf.nextPage')}
           </Link>
@@ -648,6 +662,28 @@ export default function MushafPageView({
           <span />
         )}
       </div>
+      {/* Jump to a page number (audit m1). */}
+      <form onSubmit={goToPage} className="mt-3 flex items-center justify-center gap-2">
+        <label htmlFor="mushaf-page-jump" className="sr-only">
+          {t('mushaf.goToPage')}
+        </label>
+        <input
+          id="mushaf-page-jump"
+          type="number"
+          min={1}
+          max={MUSHAF_TOTAL_PAGES}
+          value={jump}
+          onChange={(e) => setJump(e.target.value)}
+          placeholder={t('mushaf.pagePlaceholder')}
+          className="w-24 min-h-11 rounded-full border border-[#E8EAED] bg-white px-3 py-2 text-sm outline-none focus:border-[#1FA36B]"
+        />
+        <button
+          type="submit"
+          className="min-h-11 rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+        >
+          {t('mushaf.go')}
+        </button>
+      </form>
 
       {/* Peek controls while words are hidden — floating above the
           bottom bar so they are always in reach. */}
