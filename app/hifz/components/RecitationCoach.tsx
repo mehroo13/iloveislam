@@ -72,6 +72,7 @@ import {
   type MistakeType,
 } from '../progress';
 import { getSurahById } from '../surahs';
+import { readListenSpeed } from '../lib/listen-speed';
 import { splitWords } from '../lib/alignment';
 import { useT } from '../lib/i18n';
 import { MistakeHistorySheet, SessionAnalyticsSheet, type HistoryRow } from './SharedSheets';
@@ -423,6 +424,9 @@ export default function RecitationCoach({
       if (!a || !src || !audio) return;
       stopAudio();
       audio.src = src;
+      // Reference audio plays at the Listen speed (Settings →
+      // Listening), like every other Listen path (audit M1).
+      audio.playbackRate = readListenSpeed();
       setPlayingKey(`${a.surah}:${a.ayah}`);
       audio.play().catch(() => setPlayingKey(null));
     },

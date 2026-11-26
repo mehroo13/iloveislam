@@ -62,6 +62,7 @@ import { migrateToIdb } from '../lib/store';
 import { readerWordKey } from '../lib/reader-words';
 import { MIN_READER_SESSION_MS, saveReaderSession, surahName } from '../lib/reader-sessions';
 import { DEFAULT_RECITER_ID, DEFAULT_TRANSLATION_ID, loadSettings, saveSettings } from '../progress';
+import { readListenSpeed, writeListenSpeed } from '../lib/listen-speed';
 import { type PeekInfo, type ReaderMistake, loadFrequentMistakeKeys } from '../lib/reader-mistakes';
 import { playDroppedFeedback, playMistakeFeedback, playSessionFeedback } from '../lib/sounds';
 import TafsirBlock from './TafsirBlock';
@@ -380,7 +381,17 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       setTajweedOn(s.tajweedColors ?? true);
       setSaveAudio(s.saveAudio ?? true);
       setTranslationId(s.translationId ?? DEFAULT_TRANSLATION_ID);
-      setTafsirId(s.tafsirId ?? TAFSIR_ID);
+      // Tafsir: the Settings picker writes `ili_hifz_tafsir_v1`
+      // (TAFSIR_KEY) — read it first, so the rosette sheet shows the
+      // picked tafsir (audit M9); settings.tafsirId is the fallback.
+      let tid = s.tafsirId ?? TAFSIR_ID;
+      try {
+        const stored = Number(window.localStorage.getItem(TAFSIR_KEY) ?? '');
+        if (Number.isFinite(stored) && stored > 0) tid = stored;
+      } catch {
+        /* stored tafsir unreadable — settings value stands */
+      }
+      setTafsirId(tid);
     } catch {
       /* defaults stand */
     }
@@ -527,7 +538,11 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       setHideMarkers(s.hideAyahMarkers === true);
       setMistakeMarkingOn(s.highlightMistakes !== false);
       setSimilarOn(s.colorSimilarPhrases === true);
-      const sp = typeof s.playSpeed === 'number' && s.playSpeed >= 0.5 && s.playSpeed <= 1.75 ? s.playSpeed : 1;
+      // Play speed: read through lib/listen-speed — the Settings →
+      // Listening choice (ili_hifz_listen_v1) wins, settings.playSpeed
+      // is the fallback (audit M1: the reader ignored the Settings
+      // speed because it read playSpeed only).
+      const sp = readListenSpeed();
       setPlaySpeed(sp);
       playSpeedRef.current = sp;
     } catch {
@@ -580,8 +595,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const changePlaySpeed = useCallback((v: number) => {
     setPlaySpeed(v);
     playSpeedRef.current = v;
+    // Write both speed stores (lib/listen-speed) so Settings →
+    // Listening and the reader agree (audit M1).
     try {
-      saveSettings({ ...loadSettings(), playSpeed: v });
+      writeListenSpeed(v);
     } catch {
       /* storage unavailable — the choice applies this session */
     }
@@ -2508,7 +2525,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
             type="button"
             aria-label={hideVerses ? 'Show verses' : 'Hide verses'}
             aria-pressed={hideVerses}
-            onClick={() => setHideVerses((v) => !v)}
+            onClick={toggleHideVerses}
             className="flex h-11 w-11 items-center justify-center rounded-full border shadow-sm"
             style={{
               borderColor: hideVerses ? '#16A34A' : '#D1D5DB',

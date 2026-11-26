@@ -57,6 +57,7 @@ import {
 import { getSurahById } from '../surahs';
 import { SCRIPT_LABELS, useScriptPref, type QuranScript } from '../lib/script';
 import { useT } from '../lib/i18n';
+import { readListenSpeed } from '../lib/listen-speed';
 import { loadMistakes, loadProgress, saveProgress, markAttempt, loadSettings, saveSettings } from '../progress';
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { normalizeArabic } from '../lib/alignment';
@@ -682,6 +683,17 @@ export default function MushafReader() {
       setPageBookmarked(false);
     }
   }, [currentPage]);
+  // Hide Verses is a persisted setting (audit M8): restore the saved
+  // choice on mount so the blur survives a reload, like the reader's
+  // own Hide button. Mode switches (memorise/reading below) still
+  // flip it in-session only.
+  useEffect(() => {
+    try {
+      setHideVerses(loadSettings().hideVerses ?? false);
+    } catch {
+      /* default stands */
+    }
+  }, []);
   const togglePageBookmark = useCallback(() => {
     try {
       const list = loadBookmarks();
@@ -1478,7 +1490,9 @@ export default function MushafReader() {
     );
     setActiveWordIfChanged(null);
     audio.src = `${AUDIO_BASE}${item.url}`;
-    audio.playbackRate = 1;
+    // Listen play speed (Settings → Listening): the picked speed,
+    // read fresh for every clip — never a hardcoded 1x (audit M1).
+    audio.playbackRate = readListenSpeed();
     audio.play().catch(() => {
       // Unplayable clip — skip to the next ayah rather than stalling.
       listenQueueRef.current.shift();
@@ -1963,7 +1977,17 @@ export default function MushafReader() {
           <button
             type="button"
             onClick={() => {
-              setHideVerses((h) => !h);
+              // Persist the choice (audit M8) — the old handler only
+              // flipped local state, so the blur vanished on reload.
+              setHideVerses((h) => {
+                const next = !h;
+                try {
+                  saveSettings({ ...loadSettings(), hideVerses: next });
+                } catch {
+                  /* storage unavailable — the choice applies this session */
+                }
+                return next;
+              });
               setRevealedMap({});
               setPeekCount(0);
             }}
