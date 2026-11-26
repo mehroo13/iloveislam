@@ -17,6 +17,19 @@
 // voice button is GONE, not dead: voice search needs the coach's
 // on-device engine, and the iOS voice-search decision is held —
 // a button that does nothing is worse than no button.
+//
+// Part 5 (2026-11-26): search by ANY WORD. Typing an Arabic word
+// (e.g. الرحمن) finds the ayahs containing it — via the new
+// /api/quran/word-search route (Quran.com v4 search, matched
+// diacritic-insensitively, exact-word matches first), each result
+// showing surah + ayah + the ayah's text and jumping the reader to
+// that ayah's page in the selected edition. The same route resolves
+// a "S:A" reference to the ayah's own page, so 1:4 now opens the
+// ayah instead of the surah's first page (the old comment above
+// about having no ayah-to-page map is now outdated). Word search is
+// debounced (350 ms) so it does not hammer the server per keystroke;
+// when it fails it says so honestly and the reference search keeps
+// working.
 
 'use client';
 
@@ -55,10 +68,38 @@ type SearchResult = {
   page: number;
 };
 
+/** One ayah from /api/quran/word-search (Part 5). */
+type WordSearchResult = {
+  verse_key: string;
+  surah: number;
+  surahName: string;
+  ayah: number;
+  page: number;
+  text: string;
+};
+
+/** A "S:A" reference, or null. Shared by the sync lookup and the
+ *  async ayah-page resolution. */
+function parseRef(query: string): { surah: number; ayah: number } | null {
+  const ref = query.trim().match(/^(\d{1,3})\s*:\s*(\d{1,3})$/);
+  if (!ref) return null;
+  return { surah: Number(ref[1]), ayah: Number(ref[2]) };
+}
+
+/** True when the query holds Arabic letters — the word-search trigger. */
+const HAS_ARABIC = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/;
+
 /** Real lookup over the local Quran data — no network, no guessing.
  *  Page numbers are in the SELECTED edition's layout (a surah's
- *  first page and a Juz's first page differ per edition). */
-function searchResults(raw: string, edition: MushafEditionId): SearchResult[] {
+ *  first page and a Juz's first page differ per edition).
+ *  `refPage` is the ayah's own page once /api/quran/word-search
+ *  has resolved a "S:A" reference (Part 5); until then the result
+ *  honestly opens the surah's first page. */
+function searchResults(
+  raw: string,
+  edition: MushafEditionId,
+  refPage?: number | null,
+): SearchResult[] {
   const query = raw.trim();
   if (!query) return [];
   const lower = query.toLowerCase();
@@ -66,18 +107,21 @@ function searchResults(raw: string, edition: MushafEditionId): SearchResult[] {
   const juzFirstPage = juzFirstPageForEdition(edition);
   const totalPages = totalPagesForEdition(edition);
 
-  // Reference "S:A" — opens the surah's first page (the reader has
-  // no ayah-to-page map; the result says so honestly).
-  const ref = query.match(/^(\d{1,3})\s*:\s*(\d{1,3})$/);
+  // Reference "S:A" — the ayah's own page once resolved (Part 5);
+  // until then, the surah's first page, and the result says so.
+  const ref = parseRef(query);
   if (ref) {
-    const s = getSurahById(Number(ref[1]));
+    const s = getSurahById(ref.surah);
     if (s) {
-      const page = surahFirstPage[s.id] ?? 1;
+      const page = refPage ?? surahFirstPage[s.id] ?? 1;
       return [
         {
-          key: `ref-${s.id}:${ref[2]}`,
-          label: `${s.name} ${ref[1]}:${ref[2]}`,
-          sub: `Opens at the start of ${s.name} · Page ${page}`,
+          key: `ref-${s.id}:${ref.ayah}`,
+          label: `${s.name} ${ref.surah}:${ref.ayah}`,
+          sub:
+            refPage != null
+              ? `Ayah ${ref.surah}:${ref.ayah} · Page ${page}`
+              : `Opens at the start of ${s.name} · Page ${page}`,
           page,
         },
       ];
@@ -144,6 +188,17 @@ function searchResults(raw: string, edition: MushafEditionId): SearchResult[] {
   }));
 }
 
+/** First ~80 characters of an ayah, cut at a word boundary. */
+function ayahSnippet(text: string): string {
+  const words = text.split(/\s+/).filter(Boolean);
+  let out = '';
+  for (const w of words) {
+    if (out.length > 0 && out.length + 1 + w.length > 80) break;
+    out += (out ? ' ' : '') + w;
+  }
+  return out.length < text.length ? `${out} …` : out;
+}
+
 export default function ReaderSearch({
   open,
   onClose,
@@ -161,6 +216,11 @@ export default function ReaderSearch({
   const [shown, setShown] = useState(false);
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement | null>(null);
+  /** Part 5 — word search (async, debounced) and "S:A" page resolution. */
+  const [wordResults, setWordResults] = useState<WordSearchResult[]>([]);
+  const [wordTotal, setWordTotal] = useState(0);
+  const [wordState, setWordState] = useState<'idle' | 'loading' | 'error' | 'done'>('idle');
+  const [refPage, setRefPage] = useState<number | null>(null);
 
   // Mount / fade lifecycle: mount, then fade in; on close, fade out
   // and unmount after the transition.
@@ -182,7 +242,71 @@ export default function ReaderSearch({
     if (shown) inputRef.current?.focus();
   }, [shown]);
 
-  const results = useMemo(() => searchResults(query, edition), [query, edition]);
+  // Part 5 — async lookups, debounced so typing does not hammer the
+  // server. Two independent lookups, each guarded so a stale response
+  // (from an older query or edition) never overwrites a newer one:
+  // (a) a "S:A" reference resolves to the ayah's own page;
+  // (b) a word search runs for Arabic queries, or — as a fallback —
+  // for any longer query the local reference search found nothing for
+  // (e.g. an English word like "mercy"), but never for pure
+  // reference queries (S:A, pg, juz, bare number).
+  useEffect(() => {
+    const trimmed = query.trim();
+    setRefPage(null);
+    setWordResults([]);
+    setWordTotal(0);
+    setWordState('idle');
+    if (!trimmed) return;
+    let cancelled = false;
+
+    const ref = parseRef(trimmed);
+    if (ref) {
+      const s = getSurahById(ref.surah);
+      if (s && ref.ayah >= 1 && ref.ayah <= s.ayahCount) {
+        fetch(
+          `/api/quran/word-search?verse=${ref.surah}:${ref.ayah}&edition=${edition}`,
+        )
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d: { verse?: { page?: number } } | null) => {
+            if (!cancelled && typeof d?.verse?.page === 'number') setRefPage(d.verse.page);
+          })
+          .catch(() => {
+            /* The surah-start result stays — no fake page. */
+          });
+      }
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const local = searchResults(trimmed, edition);
+    const isReference =
+      /^(?:pg|page)\s*\d{1,3}$/i.test(trimmed) ||
+      /^(?:juz|part)\s*\d{1,2}$/i.test(trimmed) ||
+      /^\d{1,3}$/.test(trimmed);
+    const wantsWordSearch = HAS_ARABIC.test(trimmed) || (local.length === 0 && trimmed.length >= 3 && !isReference);
+    if (!wantsWordSearch) return;
+    setWordState('loading');
+    const timer = window.setTimeout(() => {
+      fetch(`/api/quran/word-search?q=${encodeURIComponent(trimmed)}&edition=${edition}`)
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+        .then((d: { total?: number; results?: WordSearchResult[] }) => {
+          if (cancelled) return;
+          setWordResults(Array.isArray(d.results) ? d.results : []);
+          setWordTotal(typeof d.total === 'number' ? d.total : 0);
+          setWordState('done');
+        })
+        .catch(() => {
+          if (!cancelled) setWordState('error');
+        });
+    }, 350);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [query, edition]);
+
+  const results = useMemo(() => searchResults(query, edition, refPage), [query, edition, refPage]);
 
   if (!rendered) return null;
 
@@ -208,16 +332,26 @@ export default function ReaderSearch({
         </p>
       </header>
 
-      {/* Content area: the results, or an honest hint / empty state. */}
+      {/* Content area: the results, or an honest hint / empty state.
+          Reference results first, then Part 5 word-search ayahs. */}
       <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-24 pt-4">
         {query.trim() === '' ? (
           <p className="text-[14px] leading-relaxed" style={{ color: MUTED }}>
-            Try a surah name, a reference like 1:4, a page like pg 62, or a Juz like juz 5.
+            Try a word like الرحمن, a surah name, a reference like 1:4, a page like pg 62, or a Juz
+            like juz 5.
           </p>
-        ) : results.length === 0 ? (
-          <p className="text-[14px] leading-relaxed" style={{ color: MUTED }}>
-            No matches for “{query.trim()}”. Try a surah name, a reference like 1:4, or pg 62.
-          </p>
+        ) : results.length === 0 && wordResults.length === 0 && wordState !== 'loading' ? (
+          wordState === 'error' ? (
+            <p className="text-[14px] leading-relaxed" style={{ color: MUTED }}>
+              Word search is unavailable right now. Try a surah name, a reference like 1:4, or pg
+              62.
+            </p>
+          ) : (
+            <p className="text-[14px] leading-relaxed" style={{ color: MUTED }}>
+              No matches for “{query.trim()}”. Try a word like الرحمن, a surah name, a reference
+              like 1:4, or pg 62.
+            </p>
+          )
         ) : (
           <div className="flex flex-col gap-2">
             {results.map((r) => (
@@ -238,6 +372,50 @@ export default function ReaderSearch({
                 </span>
               </button>
             ))}
+            {wordState === 'loading' && (
+              <p className="px-1 pt-1 text-[13px]" style={{ color: MUTED }}>
+                Searching for “{query.trim()}”…
+              </p>
+            )}
+            {wordState === 'error' && results.length > 0 && (
+              <p className="px-1 pt-1 text-[13px]" style={{ color: MUTED }}>
+                Word search is unavailable right now — showing reference matches only.
+              </p>
+            )}
+            {wordResults.map((w) => (
+              <button
+                key={`word-${w.verse_key}`}
+                type="button"
+                onClick={() => onSelectPage(w.page)}
+                className="flex w-full items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-left shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
+              >
+                <IconSearchSmall />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[15px] font-semibold" style={{ color: INK }}>
+                    {w.surahName} {w.surah}:{w.ayah}
+                  </span>
+                  {w.text && (
+                    <span
+                      dir="rtl"
+                      lang="ar"
+                      className="block truncate text-right text-[14px] leading-relaxed"
+                      style={{ color: INK }}
+                    >
+                      {ayahSnippet(w.text)}
+                    </span>
+                  )}
+                  <span className="block text-[12px]" style={{ color: MUTED }}>
+                    Page {w.page}
+                  </span>
+                </span>
+              </button>
+            ))}
+            {wordState === 'done' && wordTotal > wordResults.length && wordResults.length > 0 && (
+              <p className="px-1 pt-1 text-[13px]" style={{ color: MUTED }}>
+                Showing {wordResults.length} of {wordTotal} ayahs — type a longer word to narrow it
+                down.
+              </p>
+            )}
           </div>
         )}
       </main>
@@ -255,7 +433,7 @@ export default function ReaderSearch({
               type="text"
               inputMode="search"
               aria-label="Search the Quran"
-              placeholder="e.g. Al-Fatihah, 1:4, pg 62, ..."
+              placeholder="e.g. الرحمن, Al-Fatihah, 1:4, pg 62"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="min-w-0 flex-1 bg-transparent text-sm text-[#111827] outline-none placeholder:text-[#9CA3AF]"
