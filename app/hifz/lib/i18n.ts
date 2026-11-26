@@ -283,6 +283,13 @@ const en: Dict = {
   'chal.myChallenges': 'My challenges',
   'chal.nameAhmed': 'e.g. Ahmed',
   'chal.namePlaceholder': 'e.g. Family Al-Mulk week',
+  // C1 (2026-11-26): a bare code can never be verified — challenges
+  // live on devices, and only a share link carries the challenge.
+  // An unknown code must fail, never invent a challenge.
+  'chal.noChallengeFound': 'No challenge found for that code.',
+  'chal.noChallengeFoundB': 'A code on its own can’t be verified — ask a member to share the challenge link, which joins automatically.',
+  // C4 (2026-11-26): days until Ramadan 1447 (starts 18 Feb 2027).
+  'chal.daysUntilRamadan': 'days until Ramadan (18 Feb 2027)',
   'chal.pagesTotal': 'pages total',
   'chal.progressWord': 'progress',
   'chal.reciteCoach': 'Recite with the coach →',

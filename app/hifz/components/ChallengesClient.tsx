@@ -29,6 +29,12 @@ type GlobalRow = {
 
 export default function ChallengesClient() {
   const t = useT();
+  // C4: days until Ramadan 1447, which begins 18 Feb 2027 — computed
+  // from the real date, never a hardcoded number.
+  const daysUntilRamadan = Math.max(
+    0,
+    Math.ceil((new Date('2027-02-18T00:00:00').getTime() - Date.now()) / 86400000),
+  );
   const [list, setList] = useState<GroupChallenge[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -42,10 +48,6 @@ export default function ChallengesClient() {
 
   // Join form (bare code — no payload)
   const [joinCode, setJoinCode] = useState('');
-  const [joinSurahSlug, setJoinSurahSlug] = useState('al-fatihah');
-  const [joinTarget, setJoinTarget] = useState<number>(10);
-  const [joinDays, setJoinDays] = useState<number>(7);
-  const [joinName, setJoinName] = useState('');
 
   // Global leaderboard: reads the public aggregate via the
   // `global_leaderboard` RPC (migration 0002, applied live
@@ -110,8 +112,16 @@ export default function ChallengesClient() {
         }
         window.history.replaceState({}, '', '/hifz/challenges');
       } else if (code) {
-        setJoinCode(code.toUpperCase());
-        setMsg(`${t('chal.joining')}${code.toUpperCase()}${t('chal.joiningPick')}`);
+        // C1: a bare code with no share-link payload can never be
+        // verified — there is no registry of codes. Say so, and join
+        // nothing. (A code already on this device is the exception.)
+        const upper = code.toUpperCase();
+        setJoinCode(upper);
+        setMsg(
+          current.some((c) => c.code === upper)
+            ? `${upper} ${t('chal.alreadyOnDevice')}`
+            : `${t('chal.noChallengeFound')} ${upper} — ${t('chal.noChallengeFoundB')}`,
+        );
       }
     } catch {
       /* ignore malformed URLs */
@@ -142,6 +152,14 @@ export default function ChallengesClient() {
     setName('');
   };
 
+  // C1 (2026-11-26): joining with a bare code used to silently
+  // "succeed" and invent a phantom challenge (any code, e.g.
+  // HIFZ-ZZZZ, created a shareable card for a group that does not
+  // exist). A code on its own cannot be verified — challenges live
+  // on members' devices and only a full share link carries one — so
+  // an unknown code FAILS with a clear message and creates nothing.
+  // The only joins that succeed are a share link (?join=CODE&c=…)
+  // or a code already on this device.
   const doJoinBareCode = () => {
     const code = joinCode.trim().toUpperCase();
     if (!code) return;
@@ -149,22 +167,7 @@ export default function ChallengesClient() {
       setMsg(`${code} ${t('chal.alreadyOnDevice')}`);
       return;
     }
-    const surah = ALL_SURAHS.find((s) => s.slug === joinSurahSlug) ?? ALL_SURAHS[0];
-    const now = new Date();
-    const c: GroupChallenge = {
-      id: `${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`,
-      code,
-      name: `${surah.name} challenge`,
-      surahId: surah.id,
-      surahName: surah.name,
-      targetAyahs: joinTarget,
-      days: joinDays,
-      createdAt: now.toISOString(),
-      endsAt: new Date(now.getTime() + joinDays * 86400000).toISOString(),
-      members: [{ name: joinName.trim() || 'Me', ayahs: 0, updatedAt: now.toISOString(), mine: true }],
-    };
-    persist([c, ...list]);
-    setMsg(`${t('chal.joined')} ${code}. ${t('chal.joinedBareB')}`);
+    setMsg(`${t('chal.noChallengeFound')} ${code} — ${t('chal.noChallengeFoundB')}`);
   };
 
   const doLog = (c: GroupChallenge, count: number) => {
@@ -208,9 +211,9 @@ export default function ChallengesClient() {
         <p className="mt-1 text-sm text-white/70">{t('chal.acceptNote')}</p>
         <ul className="mt-4 space-y-2">
           {[
-            { label: t('chal.khatm'), note: t('chal.khatmNote'), href: '/hifz/plans' },
-            { label: t('chal.dailyTime'), note: t('chal.dailyTimeNote'), href: '/hifz/goals' },
-            { label: t('chal.dailyPages'), note: t('chal.dailyPagesNote'), href: '/hifz/goals' },
+            { label: t('chal.khatm'), note: t('chal.khatmNote'), href: '/hifz/plans#khatm' },
+            { label: t('chal.dailyTime'), note: t('chal.dailyTimeNote'), href: '/hifz/goals?preset=daily-time' },
+            { label: t('chal.dailyPages'), note: t('chal.dailyPagesNote'), href: '/hifz/goals?preset=daily-pages' },
             { label: t('hub.kahf'), note: t('hub.kahfNote'), href: '/hifz/goals?preset=kahf' },
             { label: t('chal.custom'), note: t('chal.customNote'), href: '/hifz/goals' },
             { label: t('chal.habit'), note: t('chal.habitNote'), href: '/hifz/my-progress' },
@@ -230,7 +233,10 @@ export default function ChallengesClient() {
         </ul>
       </section>
 
-      {/* Read a Quran, Give a Quran — annual Ramadan 90% challenge */}
+      {/* Read a Quran, Give a Quran — annual Ramadan 90% challenge.
+          C4: the countdown used to say a flat "30 days remaining"
+          with no end date — wrong as a Ramadan countdown (Ramadan
+          1447 starts 18 Feb 2027). It is now computed from that date. */}
       <section aria-labelledby="rqgq-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <h2 id="rqgq-heading" className="text-xl font-bold text-[#102E26]">{t('chal.rqgq')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
@@ -239,7 +245,7 @@ export default function ChallengesClient() {
         <div className="mt-4">
           <div className="flex items-baseline justify-between gap-2 text-sm">
             <span className="font-bold text-[#102E26]">0% {t('chal.progressWord')}</span>
-            <span className="text-[#5b6b62]">30 {t('chal.daysLeft')} · 604 {t('chal.pagesTotal')}</span>
+            <span className="text-[#5b6b62]">{daysUntilRamadan} {t('chal.daysUntilRamadan')} · 604 {t('chal.pagesTotal')}</span>
           </div>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#E5E7EB]" role="progressbar" aria-valuenow={0} aria-valuemin={0} aria-valuemax={100} aria-label={t('chal.ramadanProgressLabel')}>
             <div className="h-full rounded-full bg-[#57D798]" style={{ width: '0%' }} />
@@ -261,15 +267,18 @@ export default function ChallengesClient() {
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           {[
-            { nameKey: 'chal.tplRamadanName', goalKey: 'chal.tplRamadanGoal', noteKey: 'chal.tplRamadanNote' },
-            { nameKey: 'chal.tplBaqarahName', goalKey: 'chal.tplBaqarahGoal', noteKey: 'chal.tplBaqarahNote' },
-            { nameKey: 'chal.tplImranName', goalKey: 'chal.tplImranGoal', noteKey: 'chal.tplImranNote' },
+            { nameKey: 'chal.tplRamadanName', goalKey: 'chal.tplRamadanGoal', noteKey: 'chal.tplRamadanNote', preset: 'league-ramadan' },
+            { nameKey: 'chal.tplBaqarahName', goalKey: 'chal.tplBaqarahGoal', noteKey: 'chal.tplBaqarahNote', preset: 'league-baqarah' },
+            { nameKey: 'chal.tplImranName', goalKey: 'chal.tplImranGoal', noteKey: 'chal.tplImranNote', preset: 'league-imran' },
           ].map((l) => (
             <article key={l.nameKey} className="rounded-xl border border-[#E5E7EB] p-4">
               <h3 className="font-bold text-[#102E26]">{t(l.nameKey)}</h3>
               <p className="mt-1 text-sm text-[#5b6b62]">{t(l.goalKey)}</p>
               <p className="text-xs text-[#5b6b62]">{t(l.noteKey)}</p>
-              <Link href="/hifz/goals" className="mt-3 inline-block rounded-full bg-[#57D798] px-4 py-2 text-sm font-bold text-[#102E26] hover:brightness-105">
+              {/* C3: the Join button prefills the league goal on the
+                  Goals page (preset, like ?preset=kahf) instead of
+                  landing on plain Goals with nothing created. */}
+              <Link href={`/hifz/goals?preset=${l.preset}`} className="mt-3 inline-block rounded-full bg-[#57D798] px-4 py-2 text-sm font-bold text-[#102E26] hover:brightness-105">
                 {t('chal.joinGoal')}
               </Link>
             </article>
@@ -449,12 +458,17 @@ export default function ChallengesClient() {
         </div>
       </section>
 
-      {/* Join with a bare code */}
+      {/* Join with a bare code — C1: a code on its own can never be
+          verified, so this only ever joins a code already on this
+          device. Any other code fails with "no challenge found" and
+          creates nothing. To join a real group, open the share link
+          a member sends — it joins automatically. */}
       <section id="community-join" aria-labelledby="join-heading" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
         <h2 id="join-heading" className="text-xl font-bold text-[#102E26]">{t('chal.joinCode')}</h2>
         <p className="mt-1 text-sm text-[#5b6b62]">
-          Got a code but no link? Enter it here with the surah, target and length your
-          group agreed. (A full share link joins automatically — no form needed.)
+          Got a code but no link? A code on its own can&apos;t be checked — challenges live on
+          members&apos; devices, not on a server. Ask a member to share the challenge link
+          instead: opening it joins automatically. (A full share link joins without this form.)
         </p>
         <div className="mt-4 space-y-4">
           <label className="block text-sm font-semibold">
@@ -467,54 +481,6 @@ export default function ChallengesClient() {
               className="mt-1 block w-full max-w-xs rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm uppercase"
             />
           </label>
-          <label className="block text-sm font-semibold">
-            {t('chal.yourName')}
-            <input
-              type="text"
-              value={joinName}
-              onChange={(e) => setJoinName(e.target.value)}
-              placeholder={t('chal.nameAhmed')}
-              className="mt-1 block w-full max-w-xs rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
-            />
-          </label>
-          <div className="flex flex-wrap gap-4">
-            <label className="block text-sm font-semibold">
-              {t('common.surah')}
-              <select
-                value={joinSurahSlug}
-                onChange={(e) => setJoinSurahSlug(e.target.value)}
-                className="mt-1 block rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
-              >
-                {ALL_SURAHS.map((s) => (
-                  <option key={s.slug} value={s.slug}>{s.name} ({s.ayahCount} {t('common.ayahs')})</option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-sm font-semibold">
-              {t('chal.ayahsEachLabel')}
-              <select
-                value={joinTarget}
-                onChange={(e) => setJoinTarget(Number(e.target.value))}
-                className="mt-1 block rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
-              >
-                {CHALLENGE_TARGET_OPTIONS.map((n) => (
-                  <option key={n} value={n}>{n} {t('chal.ayahsOpt')}</option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-sm font-semibold">
-              {t('chal.length')}
-              <select
-                value={joinDays}
-                onChange={(e) => setJoinDays(Number(e.target.value))}
-                className="mt-1 block rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2.5 text-sm"
-              >
-                {CHALLENGE_DAY_OPTIONS.map((n) => (
-                  <option key={n} value={n}>{n} {t('chal.daysOpt')}</option>
-                ))}
-              </select>
-            </label>
-          </div>
           <button
             type="button"
             onClick={doJoinBareCode}
