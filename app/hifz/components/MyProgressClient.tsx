@@ -12,7 +12,7 @@ import {
   currentStreakCount, localDateString,
   getStorageNotice,
   activityByDate, weekPracticeDays, surahStrength, revisionDue, daysSince,
-  peekedDue, markMistakesCorrected,
+  peekedDue, markMistakesCorrected, markWordMistakesCorrectedByWord,
   getTypeGoals, setTypeGoalTarget, recordTypeActivity, recordMinutes, previousLocalDate,
   markManualPractice,
   TYPE_GOAL_OPTIONS,
@@ -1074,15 +1074,12 @@ export default function MyProgressClient() {
     }
   };
 
-  /** Mark every mistake on one word (one ayah) corrected — used by the
-   *  weak-spots chart detail. History is kept, flagged corrected. */
-  const markWordCorrected = (surah: number, ayah: number, word: string) => {
-    const at = new Date().toISOString();
-    const next = mistakes.map((m) =>
-      m.surah === surah && m.ayah === ayah && m.word === word && !m.corrected
-        ? { ...m, corrected: true, correctedAt: at }
-        : m,
-    );
+  /** Mark every mistake on one WORD corrected — used by the weak-spots
+   *  chart detail. The chart ranks per word (M1), so correcting a row
+   *  corrects the whole word (every ayah it was missed in), not one
+   *  ayah of it. History is kept, flagged corrected. */
+  const markWordCorrected = (word: string) => {
+    const next = markWordMistakesCorrectedByWord(mistakes, word);
     saveMistakes(next);
     setMistakes(next);
   };
@@ -1654,23 +1651,14 @@ export default function MyProgressClient() {
                 Corrected mistakes are history, not weak spots: they are
                 excluded here (Stage 5, §11). */}
             {(() => {
-              const byWord = new Map<string, { word: string; surah: number; ayah: number; attempts: number; heard?: string }>();
-              for (const m of mistakes) {
-                if (m.corrected) continue;
-                // M2: the Weak-spots chart respects the active filter —
-                // it shows the filtered words, not always all of them.
-                if (!matchesMistakeFilter(m, mistakeFilter)) continue;
-                const k = `${m.surah}:${m.ayah}:${m.word}`;
-                const prev = byWord.get(k);
-                byWord.set(k, {
-                  word: m.word,
-                  surah: m.surah,
-                  ayah: m.ayah,
-                  attempts: (prev?.attempts ?? 0) + m.attempts,
-                  heard: m.heard ?? prev?.heard,
-                });
-              }
-              const ranked = [...byWord.values()].sort((a, b) => b.attempts - a.attempts).slice(0, 10);
+              // M1: weak spots rank per WORD — the same word-level
+              // grouping as the mistakes overview, so the true
+              // most-missed word tops this chart too. M2: the chart
+              // respects the active filter (filtered before ranking).
+              const ranked = mistakesByWord(
+                mistakes.filter((m) => matchesMistakeFilter(m, mistakeFilter)),
+                { uncorrectedOnly: true, limit: 10 },
+              );
               const wash = (n: number) => (n >= 6 ? 'wash-most' : n >= 3 ? 'wash-often' : n >= 2 ? 'wash-some' : 'wash-few');
               const maxAttempts = ranked.length > 0 ? ranked[0].attempts : 1;
               return ranked.length > 0 ? (
@@ -1710,6 +1698,7 @@ export default function MyProgressClient() {
                               {' '}
                               <span className="text-[#6B7280]">
                                 {surah ? surah.name : `Surah ${w.surah}`} {w.surah}:{w.ayah}
+                                {w.ayahs > 1 ? ` · ${w.ayahs} ${t('common.ayahs')}` : ''}
                               </span>
                             </span>
                             <span className="font-bold text-[#111827]">
@@ -1760,7 +1749,7 @@ export default function MyProgressClient() {
                           <button
                             type="button"
                             onClick={() => {
-                              markWordCorrected(w.surah, w.ayah, w.word);
+                              markWordCorrected(w.word);
                               setSelectedWeak(null);
                             }}
                             className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#1FA36B] px-4 py-2 text-sm font-semibold text-[#1FA36B] hover:bg-[#E4FFF2]"
