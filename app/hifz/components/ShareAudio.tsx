@@ -148,11 +148,16 @@ export function downloadRecording(recording: SharedRecording): void {
 export function ShareAudioButtons({
   recording,
   noRecordingReason,
+  note,
 }: {
   /** The recording to share, or null when this session has no audio. */
   recording: SharedRecording | null;
   /** Shown (with a disabled button) when there is no recording. */
   noRecordingReason?: string;
+  /** Overrides the default privacy note — history rows pass the
+   *  saved-on-device wording, because a persisted recording IS kept
+   *  past this browser session (unlike the just-finished take). */
+  note?: string;
 }) {
   const t = useT();
   const [status, setStatus] = useState<string | null>(null);
@@ -216,7 +221,7 @@ export function ShareAudioButtons({
         </p>
       )}
       <p className="mt-1 text-xs text-[#5b6b62]">
-        {t('share.note')}
+        {note ?? t('share.note')}
       </p>
       {status && (
         <p role="status" className="mt-1 text-sm font-semibold text-[#1FA36B]">{status}</p>
