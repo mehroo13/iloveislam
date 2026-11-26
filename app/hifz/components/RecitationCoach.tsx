@@ -88,6 +88,9 @@ import {
   type SessionResult,
   type WordEvent,
 } from '../lib/tilawa';
+// Type-only: a self-marked "Not quite" word is reported to the feedback
+// screen as a checker event (audit C-5) — erased at compile time.
+import type { CheckerEvent } from '@tilawa/core';
 import { AdaptiveVad } from '../lib/vad';
 import { loadSessionAudio, saveSessionAudio } from '../lib/store';
 import { listCoachSessions, recordCoachSession } from '../lib/session-records';
@@ -160,6 +163,13 @@ export interface RecitationCoachProps {
   initialAyahIndex?: number;
   /** Reciter id from RECITERS (default 7, Mishary Alafasy). */
   initialReciterId?: number;
+  /** Opening scope from the /hifz/recite picker (?from= / ?to=, audit
+   *  C-2): the coach starts on that range instead of a single ayah. */
+  initialScopeKind?: ScopeKind;
+  /** 0-based index of the range start (with initialScopeKind 'range'). */
+  initialRangeFrom?: number;
+  /** 0-based index of the range end (with initialScopeKind 'range'). */
+  initialRangeTo?: number;
   /** Called when the user moves to another ayah (so the page can update its URL/state). */
   onAyahChange?: (ayah: number) => void;
 }
@@ -218,16 +228,23 @@ export default function RecitationCoach({
   ayahs,
   initialAyahIndex = 0,
   initialReciterId = 7,
+  initialScopeKind,
+  initialRangeFrom,
+  initialRangeTo,
   onAyahChange,
 }: RecitationCoachProps) {
   const t = useT();
   const [step, setStep] = useState<Step>('pick');
-  const [scopeKind, setScopeKind] = useState<ScopeKind>('single');
+  const [scopeKind, setScopeKind] = useState<ScopeKind>(initialScopeKind ?? 'single');
   const [currentIndex, setCurrentIndex] = useState<number>(
     Math.max(0, Math.min(initialAyahIndex, Math.max(0, ayahs.length - 1))),
   );
-  const [rangeFrom, setRangeFrom] = useState<number>(currentIndex);
-  const [rangeTo, setRangeTo] = useState<number>(currentIndex);
+  const [rangeFrom, setRangeFrom] = useState<number>(
+    initialRangeFrom ?? currentIndex,
+  );
+  const [rangeTo, setRangeTo] = useState<number>(
+    initialRangeTo ?? currentIndex,
+  );
   const [reciterId, setReciterId] = useState<number>(initialReciterId);
   const [audioUrls, setAudioUrls] = useState<Record<string, string>>(() => {
     const map: Record<string, string> = {};
@@ -542,8 +559,11 @@ export default function RecitationCoach({
   }, []);
 
   // Entering the recite step starts the (user-initiated) model download.
+  // Audit C-3: the step is "Hide & recite", so the verse starts hidden —
+  // it used to show in full until a second tap on "Hide Arabic".
   const enterRecite = useCallback(() => {
     setStep('recite');
+    setArabicHidden(true);
     setResult(null);
     setFeedbackWords([]);
     setPeeked(false);
@@ -1273,6 +1293,9 @@ export default function RecitationCoach({
           correctCount++;
           words.push({ key, display: w.display, status: 'correct', confirmed: false });
         } else if (marked === false) {
+          // "Not quite": the user said the word differently — that is
+          // an Incorrect mistake, not a missed one (audit C-5: it used
+          // to land under NO mistake type at all).
           words.push({ key, display: w.display, status: 'missed', confirmed: false });
           mistakes.push({
             surah: a.surah,
@@ -1280,7 +1303,7 @@ export default function RecitationCoach({
             word: w.display,
             expected: w.display,
             wordIndex: w.index,
-            type: 'missed',
+            type: 'incorrect',
             source: 'self-mark',
           });
         } else {
@@ -1312,7 +1335,24 @@ export default function RecitationCoach({
         everLocked: false,
       },
       trackedElsewhere: false,
-      mistakes: [],
+      // Audit C-5: this used to be `mistakes: []`, so the feedback
+      // screen's "Mistakes by type" breakdown was all zeros even though
+      // the word was listed under "Words to retry". A self-marked
+      // "Not quite" word is a wrong_word (Incorrect) at its location.
+      mistakes: mistakes.map(
+        (m, i) =>
+          ({
+            type: 'checker',
+            v: 1,
+            id: `self-mark-${m.surah}-${m.ayah}-${m.wordIndex}-${i}`,
+            timeMs: 0,
+            state: 'confirmed',
+            errorClass: 'wrong_word',
+            location: { surah: m.surah, ayah: m.ayah, word: m.wordIndex + 1 },
+            expected: m.expected,
+            confidence: 1,
+          }) as CheckerEvent,
+      ),
       durationMs: 0,
     };
     setResult(selfResult);
@@ -1384,6 +1424,9 @@ export default function RecitationCoach({
       setRecording(null);
       setLiveWords({});
       setSelfMarks({});
+      // Same as enterRecite: retrying goes back to "Hide & recite" with
+      // the verse hidden (audit C-3).
+      setArabicHidden(true);
       setStep('recite');
       if (mode === 'mic' || mode === 'follow') void loadEngineNow();
     },
@@ -2060,12 +2103,19 @@ export default function RecitationCoach({
             const correct = feedbackWords.filter((w) => w.status === 'correct').length;
             const acc = reached.length > 0 ? Math.round((correct / reached.length) * 100) : 0;
             const byType = { Incorrect: 0, Missed: 0, Extra: 0, Skipped: 0 };
+            // Audit C-5: this used to read m.type — always "checker" for
+            // engine events — so the breakdown was all zeros even for
+            // mic sessions. The class lives in errorClass (with a
+            // MistakeType-style `type` accepted as a fallback).
             for (const m of result.mistakes) {
-              const t = (m as unknown as { type?: string }).type ?? '';
-              if (t === 'wrong_word') byType.Incorrect += 1;
-              else if (t === 'omitted_word') byType.Missed += 1;
-              else if (t === 'added_word') byType.Extra += 1;
-              else if (t === 'skipped_passage') byType.Skipped += 1;
+              const cls =
+                (m as unknown as { errorClass?: string; type?: string }).errorClass ??
+                (m as unknown as { type?: string }).type ??
+                '';
+              if (cls === 'wrong_word' || cls === 'incorrect') byType.Incorrect += 1;
+              else if (cls === 'omitted_word' || cls === 'missed') byType.Missed += 1;
+              else if (cls === 'added_word' || cls === 'extra') byType.Extra += 1;
+              else if (cls === 'skipped_passage' || cls === 'skipped') byType.Skipped += 1;
             }
             const secs = Math.round(result.durationMs / 1000);
             return (

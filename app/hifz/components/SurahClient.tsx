@@ -109,6 +109,9 @@ export default function SurahClient({
   const [coachAyahIndex, setCoachAyahIndex] = useState(
     Math.max(0, Math.min(initialAyah - 1, Math.max(0, initialVerses.length - 1))),
   );
+  // Audit C-2: ?from= / ?to= from the /hifz/recite picker — the coach
+  // opens on that range (0-based indices) instead of a single ayah.
+  const [coachScope, setCoachScope] = useState<{ kind: 'single' | 'range' | 'whole'; from: number; to: number } | null>(null);
 
   /* ?mode=recite / ?mode=listen / ?mode=memorise / ?ayah=N are read
    * client-side (the server page stays fully static — reading searchParams
@@ -126,6 +129,15 @@ export default function SurahClient({
       }
       const ayah = Number(q.get('ayah') ?? '');
       if (ayah >= 1 && ayah <= surah.ayahCount) setCoachAyahIndex(ayah - 1);
+      const from = Number(q.get('from') ?? '');
+      const to = Number(q.get('to') ?? '');
+      if (from >= 1 && to >= from && to <= surah.ayahCount) {
+        setCoachScope({
+          kind: from === 1 && to === surah.ayahCount ? 'whole' : 'range',
+          from: from - 1,
+          to: to - 1,
+        });
+      }
       const pos = loadListenPosition();
       if (pos && pos.surah === surah.id) setSavedListenPos(pos.ayah);
     } catch {
@@ -218,6 +230,19 @@ export default function SurahClient({
       }
       setProgress(loadProgress());
       const s = loadSettings();
+      // Audit C-1: ?reciter= from the /hifz/recite picker wins over the
+      // saved reciter — the pick used to be silently discarded and the
+      // coach always fell back to Alafasy. Persist it too, so the coach
+      // card and later visits keep it.
+      const urlReciter = Number(new URLSearchParams(window.location.search).get('reciter') ?? '');
+      if (RECITERS.some((r) => r.id === urlReciter)) {
+        s.reciterId = urlReciter;
+        try {
+          saveSettings(s);
+        } catch {
+          /* storage unavailable — the state below still applies */
+        }
+      }
       setReciterId(s.reciterId);
       setTranslationId(s.translationId);
       const storedTafsir = Number(localStorage.getItem(TAFSIR_KEY) ?? '');
@@ -1185,6 +1210,9 @@ export default function SurahClient({
               ayahs={coachAyahs}
               initialAyahIndex={coachAyahIndex}
               initialReciterId={reciterId}
+              initialScopeKind={coachScope?.kind}
+              initialRangeFrom={coachScope?.from}
+              initialRangeTo={coachScope?.to}
               onAyahChange={(ayah) => setCoachAyahIndex(Math.max(0, ayah - 1))}
             />
           </div>
