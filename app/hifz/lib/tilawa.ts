@@ -647,10 +647,12 @@ function startTapBuffer(handle: PreparedMicrophone, context: AudioContext): TapB
       const maxSamples = Math.floor((TAP_BUFFER_MAX_MS / 1000) * audio.sampleRate);
       const truncated = data.length > maxSamples;
       const samples = Float32Array.from(truncated ? data.subarray(0, maxSamples) : data);
+      const drainedMs = Math.round((samples.length / audio.sampleRate) * 1000);
+      console.log('[tilawa] tap-buffer-drained:', JSON.stringify({ ms: drainedMs, chunks: chunks.length, bytes: blob.size, ctxState: context.state }));
       return {
         samples,
         sampleRate: audio.sampleRate,
-        durationMs: Math.round((samples.length / audio.sampleRate) * 1000),
+        durationMs: drainedMs,
         truncated,
       };
     } catch (e) {
@@ -1746,7 +1748,10 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
               // Fire-and-forget: queued before any live chunk.
               void session.pushAudio(drained.samples, drained.sampleRate).catch(() => undefined);
             } else {
-              console.log('[tilawa] tap-buffer-drain-null:', JSON.stringify({ elapsedMs, drainMs: Date.now() - drainStart }));
+              // drain() returned null OR a buffer shorter than the
+              // minimum (the live stream already covers such a short
+              // opening); distinguish the two in the log.
+              console.log('[tilawa] tap-buffer-drain-null:', JSON.stringify({ elapsedMs, drainMs: Date.now() - drainStart, drainedMs: drained ? drained.durationMs : null }));
             }
           } else {
             console.log('[tilawa] tap-buffer-discarded:', JSON.stringify({ elapsedMs }));
