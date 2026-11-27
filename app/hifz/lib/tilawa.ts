@@ -155,13 +155,15 @@ export interface SessionResult {
    * committed match, so it is where the recitation began), else the
    * first word of the first run of >= 3 consecutive trustworthy
    * locked observations, else the first-locked fallback at stop — or
-   * null when the take never locked. Logged by the UI so a phone test
-   * can prove where the anchor landed. 0 on a from-the-top take when
-   * the basmala rule fires (1:1 recited) or the lock's span starts at
+   * null when the take never locked and the short-ayah fallback did
+   * not fire. Logged by the UI so a phone test can prove where the
+   * anchor landed. 0 on a from-the-top take when the head
+   * certification fires (1:1 recited) or the lock's span starts at
    * the head; on clean audio the first lock lands 1–9 s in, so
    * without a clean span the anchor is usually a few words past the
    * true start and the words before it are `not-reached`, never
-   * `missed`.
+   * `missed` (except a confirmed skip the tracker demonstrably
+   * passed over — see preAnchorFlagStands() in the adapter).
    */
   anchorIndex: number | null;
   /** "surah:ayah:word" key of the anchor word, or null (see anchorIndex). */
@@ -273,8 +275,35 @@ export const SILENT_CALLBACKS_MIN = 50;
  * is trusted, and the anchor falls back to the run as before.
  */
 export const FIRST_LOCK_SPAN_MAX_PER = 0.1;
-/** Same per ceiling for the pre-lock ambiguous basmala evidence. */
-export const BASMALA_AMBIGUOUS_MAX_PER = 0.05;
+/**
+ * Per ceiling for the pre-lock ambiguous evidence (the head
+ * certification + the short-ayah fallback, 2026-11-27): the basmala
+ * bar, measured per-0 on clean audio. Kept separate from
+ * FIRST_LOCK_SPAN_MAX_PER because ambiguous evidence is weaker than a
+ * locked span and must clear the stricter bar.
+ */
+export const HEAD_AMBIGUOUS_MAX_PER = 0.05;
+/** Same per ceiling for the pre-lock ambiguous basmala evidence (alias of HEAD_AMBIGUOUS_MAX_PER). */
+export const BASMALA_AMBIGUOUS_MAX_PER = HEAD_AMBIGUOUS_MAX_PER;
+/** Same cost ceiling as the basmala rule (measured cost 0 on clean audio). */
+export const HEAD_AMBIGUOUS_MAX_COST = 0.01;
+/**
+ * In-tap mic buffer (2026-11-27, mic perfection): longest opening
+ * audio kept from the tap, ms. A cold tap pays ~7 s engine load +
+ * ~7 s first-session construction before listen() starts, and the
+ * reciter's opening words play into nothing in that window — the
+ * buffer covers it. 15 s bounds the queued backlog (a longer gap
+ * means the user has not started reciting yet — the UI still shows
+ * "loading" — so only the opening 15 s can contain speech).
+ */
+export const TAP_BUFFER_MAX_MS = 15000;
+/**
+ * Shortest buffer worth draining, ms: a warm tap's buffer is ~100–
+ * 300 ms of audio, which the first lock's span already recovers — so
+ * a sub-500 ms buffer is discarded outright instead of paying the
+ * stop + decode round trip (which would cost live audio of its own).
+ */
+export const TAP_BUFFER_MIN_MS = 500;
 
 /**
  * A microphone prepared synchronously inside the user's tap, via Tilawa's
@@ -458,6 +487,164 @@ export async function warmWebModule(): Promise<void> {
 }
 
 /**
+ * IN-TAP MIC BUFFER (2026-11-27, mic perfection — gap 1).
+ *
+ * The problem: on a cold tap the engine load (~7 s, cached model) +
+ * the first session's construction (~7 s, synchronous, blocks the
+ * main thread) run between the tap's `prepareMicrophone()` and
+ * `listen()`, and nothing captures the reciter's opening words in
+ * that window — the fake-audio harness and a real phone agree: the
+ * cold-tap TOP take scored 14/29 with the anchor wrongly at 1:3:1.
+ * The background warmup fixes the warm tap, not the tap that lands
+ * before the warmup finishes.
+ *
+ * Why a MediaRecorder buffer is SAFE here (the earlier investigation
+ * stopped at "buffered audio must feed before the live stream or it
+ * corrupts tracker order, and draining a backlog at ~0.2x real-time
+ * would stall the live take" — both premises are now measured
+ * otherwise):
+ *  - ORDER: `TilawaSession.pushAudio` calls "run one at a time in
+ *    call order". The buffer is pushed (fire-and-forget, never
+ *    awaited) BEFORE `listen()` is called, so it is queued strictly
+ *    before the first live worklet chunk — in order, nothing lost,
+ *    nothing reordered. `listen()` only starts feeding live chunks
+ *    after its async worklet setup, which happens after our push.
+ *  - DRAIN: measured Node (onnxruntime-node, lite tier, take-top.wav)
+ *    drains at 11.8–13.1x real-time, and the warm browser harness
+ *    shows the first lock landing ~0.8 s behind the audio it
+ *    references — the model keeps up with live audio once warm. A
+ *    ≤ 15 s buffer is a bounded, shrinking lag, not a stall; and the
+ *    final result never depends on drain speed anyway, because
+ *    `stop()` drains the session (session.end()) before the result
+ *    is built. The live highlighting may trail the voice by the
+ *    buffer length on a cold tap — strictly better than losing the
+ *    opening words entirely. The `[tilawa] tracker-lag:` summary
+ *    logged at stop measures the real lag per take.
+ *  - CAPTURE: the recorder runs on the prepared stream — the same
+ *    stream the coach's own MediaRecorder already shares — starting
+ *    when the stream resolves (permission granted; before that the
+ *    user cannot be reciting). It records on the media thread, so it
+ *    keeps capturing through the synchronous session-construction
+ *    block on the main thread. Two recorders on one stream are
+ *    independent; a second getUserMedia is never opened.
+ *  - FAILURE: any failure (no MediaRecorder, no supported mimeType,
+ *    decode error, empty blob) yields null and the take proceeds
+ *    exactly as before — the buffer can never break a take.
+ */
+export interface TapBufferDrain {
+  samples: Float32Array;
+  sampleRate: number;
+  /** Decoded audio length, ms. */
+  durationMs: number;
+  /** True when the recording ran longer than TAP_BUFFER_MAX_MS and the tail was dropped. */
+  truncated: boolean;
+}
+
+interface TapBufferController {
+  /** Wall ms recorded so far (tap/grant → now). */
+  elapsedMs(): number;
+  /** Stop the recorder, decode the audio, return null when unusable. */
+  drain(): Promise<TapBufferDrain | null>;
+  /** Abandon the recording (take never started / capture released). */
+  discard(): void;
+}
+
+/** In-tap recorders, keyed by the capture they belong to. Module-level
+ * so `startMic()` can drain the buffer `prepareMicrophoneStandalone()`
+ * started, without changing the public PreparedMicCapture shape. */
+const tapBuffers = new WeakMap<PreparedMicCapture, TapBufferController>();
+
+function pickTapBufferMimeType(): string {
+  if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') return '';
+  for (const cand of ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']) {
+    try {
+      if (MediaRecorder.isTypeSupported(cand)) return cand;
+    } catch {
+      // Ignore and try the next candidate.
+    }
+  }
+  return '';
+}
+
+function startTapBuffer(handle: PreparedMicrophone, context: AudioContext): TapBufferController | null {
+  if (typeof MediaRecorder === 'undefined') return null;
+  const mimeType = pickTapBufferMimeType();
+  const chunks: Blob[] = [];
+  let recorder: MediaRecorder | null = null;
+  let stopped = false;
+  let startedAt: number | null = null;
+  handle.stream.then((stream) => {
+    if (stopped) return;
+    try {
+      recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+    } catch {
+      return;
+    }
+    recorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunks.push(e.data);
+    };
+    try {
+      recorder.start(250);
+      startedAt = Date.now();
+    } catch {
+      recorder = null;
+    }
+  }).catch(() => undefined);
+  const elapsedMs = (): number => (startedAt === null ? 0 : Date.now() - startedAt);
+  const drain = async (): Promise<TapBufferDrain | null> => {
+    stopped = true;
+    const rec = recorder;
+    recorder = null;
+    if (!rec || rec.state === 'inactive' || chunks.length === 0) {
+      if (rec && rec.state !== 'inactive') {
+        try { rec.stop(); } catch { /* ignore */ }
+      }
+      return null;
+    }
+    const blob = await new Promise<Blob | null>((resolve) => {
+      const to = window.setTimeout(() => resolve(null), 1500);
+      rec.onstop = () => {
+        window.clearTimeout(to);
+        resolve(new Blob(chunks, { type: mimeType || undefined }));
+      };
+      try {
+        rec.stop();
+      } catch {
+        window.clearTimeout(to);
+        resolve(null);
+      }
+    });
+    if (!blob || blob.size === 0) return null;
+    try {
+      const buf = await blob.arrayBuffer();
+      const audio = await context.decodeAudioData(buf);
+      if (!audio || audio.numberOfChannels < 1 || audio.length === 0) return null;
+      const data = audio.getChannelData(0);
+      const maxSamples = Math.floor((TAP_BUFFER_MAX_MS / 1000) * audio.sampleRate);
+      const truncated = data.length > maxSamples;
+      const samples = Float32Array.from(truncated ? data.subarray(0, maxSamples) : data);
+      return {
+        samples,
+        sampleRate: audio.sampleRate,
+        durationMs: Math.round((samples.length / audio.sampleRate) * 1000),
+        truncated,
+      };
+    } catch {
+      return null;
+    }
+  };
+  const discard = () => {
+    stopped = true;
+    const rec = recorder;
+    recorder = null;
+    if (rec && rec.state !== 'inactive') {
+      try { rec.stop(); } catch { /* ignore */ }
+    }
+  };
+  return { elapsedMs, drain, discard };
+}
+
+/**
  * Prepare the microphone synchronously inside the user's tap, WITHOUT
  * waiting for the model: needs only the web module (warmed by
  * `warmWebModule()` or by an earlier `loadEngine()`). Throws when the
@@ -465,18 +652,30 @@ export async function warmWebModule(): Promise<void> {
  * engine first (H5, 2026-11-27: the old path awaited `ensureEngine()`
  * before preparing, so a cold first tap prepared outside the gesture
  * and the AudioContext could stay suspended with zero frames).
+ *
+ * Also starts the in-tap buffer (see above): a MediaRecorder on the
+ * prepared stream, drained by `startMic()` before `listen()` — so a
+ * tap that lands before the background warmup finishes no longer
+ * loses its opening words. The recorder is stopped/discarded by
+ * `startMic()` or by `release()`; it never outlives the capture.
  */
 export function prepareMicrophoneStandalone(): PreparedMicCapture {
   if (!webModule) {
     throw new Error('Recitation engine module is not loaded yet.');
   }
   const handle = webModule.prepareMicrophone();
-  return {
+  const capture: PreparedMicCapture = {
     handle,
     stream: handle.stream,
     context: handle.context,
-    release: () => handle.release(),
+    release: () => {
+      tapBuffers.get(capture)?.discard();
+      handle.release();
+    },
   };
+  const buffer = startTapBuffer(handle, handle.context);
+  if (buffer) tapBuffers.set(capture, buffer);
+  return capture;
 }
 
 /**
@@ -658,29 +857,37 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
    * (clamped to the floor) and the span's words count as observed —
    * but ONLY when the span is clean (confidence >= 0.5, per <= 0.1):
    * a span covering a skipped word runs per 0.207 and is not trusted
-   * at all. The basmala is special: the tracker's phrase cutter drops
-   * a recited 1:1 before any lock, so it is certified instead by the
-   * pre-lock ambiguous run that followed it (>= 2 events, per <= 0.05,
-   * reaching 1:1:4) when the first lock lands on 1:2:1 — the controls
-   * show no 1:1 ambiguous event at all when 1:1 was skipped. A take
-   * that never locks still has no anchor and reports `unclear`.
+   * at all. Head words the phrase cutter drops before any lock (the
+   * 1:1 basmala) are certified instead by the pre-lock ambiguous run
+   * that followed them (>= 2 events, per <= 0.05, cost <= 0.01,
+   * covering the head contiguously from the floor — see
+   * ambiguousPrefixCover; the controls show no 1:1 ambiguous event
+   * at all when 1:1 was skipped). The same cover decides a take that
+   * never locks (short-ayah fallback, see buildResult). Words
+   * between a certified head and the lock's span start — an ayah
+   * skipped inside the acquisition window — are the acquisition gap:
+   * not-reached unless the checker confirms a skip for one of them.
+   * A take that never locks AND has no clean ambiguous cover still
+   * has no anchor and reports `unclear`.
    *
    * Until the anchor is known, checker events are BUFFERED (never
    * emitted, never recorded): a flag fired while the tracker is still
    * finding where he started may be about words he never attempted.
    * Once the anchor is known the buffer is flushed — flags at/after it
-   * are applied, flags before it are dropped. At stop() the anchor is
-   * resolved with its fallback and any still-buffered events are
-   * flushed silently (recorded for buildResult, not re-emitted live).
+   * are applied, flags before it are dropped — EXCEPT a confirmed
+   * skip the tracker demonstrably passed over (see
+   * preAnchorFlagStands()). At stop() the anchor is resolved with its
+   * fallback and any still-buffered events are flushed silently
+   * (recorded for buildResult, not re-emitted live).
    *
    * HARDENED 2026-11-27 (H1/H3): the run ignores locks below the
    * floor, locks the tracker is less than half-sure of, and locks in
    * the first 500 ms (see lib/recitation-anchor.ts); the stop-time
    * fallback is the first locked word at/after the floor, never an
    * ambiguous guess — a take that never locks has NO anchor and
-   * reports `unclear`. The anchor index is logged when it lands (and
-   * returned in SessionResult), so the next phone test can prove
-   * where it landed.
+   * reports `unclear` unless the short-ayah fallback fires. The
+   * anchor index is logged when it lands (and returned in
+   * SessionResult), so the next phone test can prove where it landed.
    */
   const anchorTracker = new AnchorTracker({ floorIndex: anchorFloorIndex });
   /** Passage index of the anchor once known live, else null. */
@@ -703,6 +910,20 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
   let firstLockLogged = false;
   let firstLevelLogged = false;
   /**
+   * Tracker-lag diagnostics (2026-11-27, mic perfection): wall ms of
+   * listen-start + audio ms already delivered before it (the tap
+   * buffer), so each position event's lag behind real time is
+   * (wall − listenStartWall + preListenAudioMs − timeMs). A lag that
+   * stays flat means the model drains at/above real time; a lag that
+   * grows through the take means it drains slower and the live
+   * highlighting trails the voice. Logged as a summary at stop.
+   */
+  let listenStartWallMs: number | null = null;
+  let preListenAudioMsRef = 0;
+  let firstLockLagMs: number | null = null;
+  let lastLagMs: number | null = null;
+  let maxLagMs = 0;
+  /**
    * First-lock span (mic first-word fix, 2026-11-27): the committed
    * match of the take's first lock, as passage indices — set only when
    * the span is clean (confidence >= 0.5, per <=
@@ -716,14 +937,51 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
    */
   let firstLockSpan: { startIndex: number; endIndex: number } | null = null;
   /**
-   * Pre-lock ambiguous observations whose span starts at the
-   * passage-head basmala (1:1:1) — the only witness that 1:1 was
-   * recited (see the basmala rule at the first lock). Judged only as
-   * a run; a single stray guess proves nothing.
+   * First-lock span start, whether the span is clean or dirty
+   * (2026-11-27, mic perfection): the span's start is where the
+   * tracker's committed match began even when the match itself is
+   * dirty. Used for the acquisition-gap grace (words between the
+   * certified head and the span start sat inside the acquisition
+   * window — unproven, never missed unless the checker confirms
+   * them). Raw passage index (not floor-clamped); only the FIRST
+   * lock ever sets it.
    */
-  const preLockBasmalaAmb: { spanEndIdx: number; per: number; cost: number }[] = [];
-  /** True once the basmala rule has fired for this take. */
-  let basmalaRecited = false;
+  let firstLockSpanStartIndex: number | null = null;
+  /**
+   * First-lock span when it FAILS the clean gate (2026-11-27): a
+   * dirty span is trusted for no word — but its dirt is itself
+   * evidence (a span covering a skipped word runs per ~0.2). Its
+   * words are graced (not-reached, never missed via the went-past
+   * rule) UNLESS the checker confirms a skip for one of them — see
+   * preAnchorFlagStands(). Null when the first lock's span is clean
+   * or absent.
+   */
+  let firstLockSpanDirty: { startIndex: number; endIndex: number } | null = null;
+  /**
+   * Pre-lock ambiguous observations of expected words (2026-11-27,
+   * mic perfection — generalises the old basmala-only list). Each
+   * entry is the observation's committed span as passage indices,
+   * with the tracker's own per/cost/confidence. Recorded only while
+   * the take has never locked: after the first lock the take is
+   * following, and later ambiguous events are re-acquisition, not
+   * head evidence. Judged only as a run (see
+   * ambiguousPrefixCover): a single stray guess proves nothing.
+   * Capped — a take's acquisition is seconds, not minutes.
+   */
+  const preLockAmbiguous: { spanStartIdx: number; spanEndIdx: number; confidence: number; per: number; cost: number }[] = [];
+  /** True once the head-certification rule has fired for this take. */
+  let headCertified = false;
+  /** Certified head range [start, end] (passage indices), or null. */
+  let headCertifiedRange: { startIndex: number; endIndex: number } | null = null;
+  /**
+   * Acquisition-gap grace range (2026-11-27): words between the
+   * certified head's end and the first lock's span start — inside
+   * the acquisition window, unproven either way. Not-reached unless
+   * the checker confirms a skip for one of them. Null when there is
+   * no gap (the span follows the head immediately, the normal TOP
+   * case) or the head was never certified.
+   */
+  let acquisitionGap: { startIndex: number; endIndex: number } | null = null;
   /** Mic-capture health, from Tilawa's onLevel callbacks (raw worklet
    * frames, before resampling/tracking). Silence reports about -120 dBFS. */
   let levelCallbacks = 0;
@@ -778,7 +1036,7 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
   /**
    * Mark every expected word in a passage range as observed (locked),
    * in passage order, and light it live — the shared half of the
-   * first-lock span and basmala rules. A checker flag still beats
+   * first-lock span and head-certification rules. A checker flag still beats
    * `seen` at stop (buildResult checks flags before `seen`); live, a
    * flagged word is never lit, and a flag arriving later un-lights it
    * via applyCheckerEvent. The UI dedupes repeat 'correct' events by
@@ -810,6 +1068,78 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
   };
 
   /**
+   * The ambiguous-prefix cover (2026-11-27, mic perfection): the
+   * longest passage range [start..end] the pre-lock ambiguous
+   * evidence covers contiguously from its earliest span start, using
+   * only trustworthy observations (confidence >= 0.5 — the anchor
+   * floor; per <= HEAD_AMBIGUOUS_MAX_PER, cost <=
+   * HEAD_AMBIGUOUS_MAX_COST — the basmala bar, measured per-0 on
+   * clean audio). Spans are the tracker's committed matches, so a
+   * span [s..e] covers every word in it, not just its observed
+   * end-word. Requires >= 2 qualifying events and >= 2 covered
+   * words: a single stray guess proves nothing. The start is
+   * clamped to the anchor floor — nothing below the floor is ever
+   * certified (H1). Null when no such cover exists. Pure: safe to
+   * call at the first lock (head certification) and at stop (the
+   * short-ayah fallback).
+   */
+  const ambiguousPrefixCover = (): { startIndex: number; endIndex: number } | null => {
+    const qualifying = preLockAmbiguous.filter(
+      (a) =>
+        a.confidence >= ANCHOR_MIN_CONFIDENCE &&
+        a.per <= HEAD_AMBIGUOUS_MAX_PER &&
+        a.cost <= HEAD_AMBIGUOUS_MAX_COST,
+    );
+    if (qualifying.length < 2) return null;
+    const start = Math.max(Math.min(...qualifying.map((a) => a.spanStartIdx)), anchorFloorIndex);
+    const covered = new Set<number>();
+    for (const a of qualifying) {
+      for (let i = Math.max(a.spanStartIdx, start); i <= a.spanEndIdx; i++) covered.add(i);
+    }
+    let end = start - 1;
+    while (covered.has(end + 1)) end++;
+    if (end - start + 1 < 2) return null;
+    return { startIndex: start, endIndex: end };
+  };
+
+  /**
+   * Whether a checker flag for word `idx` stands even though the word
+   * sits before the anchor (2026-11-27, mic perfection — gap 2). The
+   * anchor grace exists because the checker can flag words the
+   * reciter never attempted — but a CONFIRMED skip the tracker
+   * demonstrably passed over is a real skip, not an un-attempted head
+   * word. The MID control proves the distinction: on a clean
+   * mid-page start the checker confirms NOTHING for the head words
+   * (its suspected flags resolve); a confirmed omitted/skipped flag
+   * fires only when the tracker's committed path jumps over the word.
+   * Two shapes qualify:
+   *  (i) the word lies inside the first lock's DIRTY span — the
+   *      span's dirt IS the skip (a span covering a skipped word
+   *      runs per ~0.2), so the flag names the skipped word;
+   *  (ii) the word lies at/after the first word the tracker
+   *      demonstrably followed (first lock's span start, else first
+   *      locked word) — the take reached past it, so it was skipped,
+   *      not un-attempted.
+   * Only confirmed missed-class flags qualify: a wrong_word before
+   * the anchor stays dropped (the alignment there is too weak to say
+   * WHICH word was wrong).
+   */
+  const preAnchorFlagStands = (ev: CheckerEvent, idx: number): boolean => {
+    if (ev.state !== 'confirmed') return false;
+    if (ev.errorClass !== 'omitted_word' && ev.errorClass !== 'skipped_passage') return false;
+    if (
+      firstLockSpanDirty !== null &&
+      idx >= firstLockSpanDirty.startIndex &&
+      idx <= firstLockSpanDirty.endIndex
+    ) {
+      return true;
+    }
+    const firstFollowed = firstLockSpan !== null ? firstLockSpan.startIndex : firstLockedIndex;
+    if (firstFollowed !== null && idx >= firstFollowed) return true;
+    return false;
+  };
+
+  /**
    * Apply one checker event: a confirmed flag goes into `flagged` + a
    * live onWord event; resolved/uncertain clears a flag the reciter
    * fixed. A flag for a word BEFORE the anchor is dropped outright —
@@ -822,7 +1152,9 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
   const applyCheckerEvent = (ev: CheckerEvent, emitLive = true) => {
     const key = wordKey(ev.location);
     const idx = orderedIndex.get(key);
-    if (idx !== undefined && anchorIndex !== null && idx < anchorIndex) return;
+    // Pre-anchor flags are dropped — EXCEPT a confirmed skip the
+    // tracker demonstrably passed over (see preAnchorFlagStands()).
+    if (idx !== undefined && anchorIndex !== null && idx < anchorIndex && !preAnchorFlagStands(ev, idx)) return;
     if (ev.state === 'confirmed') {
       flagged.set(key, ev);
       if (emitLive) {
@@ -853,6 +1185,16 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
     if (event.type === 'position') {
       const ev = event as PositionEvent;
       positionEvents++;
+      // Tracker lag (mic perfection, 2026-11-27): how far behind real
+      // time the tracker is running. The session clock counts audio
+      // delivered, including any tap buffer fed before listen(), so
+      // the buffer's length is added back to the wall clock.
+      if (listenStartWallMs !== null) {
+        const lag = Math.round(performance.now() - listenStartWallMs + preListenAudioMsRef - ev.timeMs);
+        if (firstLockLagMs === null && ev.state === 'locked') firstLockLagMs = lag;
+        lastLagMs = lag;
+        if (lag > maxLagMs) maxLagMs = lag;
+      }
       if (!firstPositionLogged) {
         firstPositionLogged = true;
         console.log('[tilawa] first-position:', JSON.stringify({
@@ -867,20 +1209,21 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       if (!best) return;
       const key = wordKey(best.word);
       const idx = orderedIndex.get(key);
-      // BASMALA EVIDENCE (mic first-word fix, 2026-11-27): before the
-      // first lock, an `ambiguous` observation whose span starts at the
-      // passage-head basmala (1:1:1) is the only witness that 1:1 was
-      // recited — the tracker's phrase cutter drops a recited basmala
-      // from `observed` before any lock can commit, and the checker
-      // never flags a skipped 1:1. Recorded here, judged only as a run
-      // at the first lock (see below); a single stray guess proves
-      // nothing. H2 still stands everywhere else: ambiguous
-      // observations never enter `observed` directly.
-      if (!everLocked && ev.state === 'ambiguous' && orderedKeys[0] === '1:1:1') {
+      // AMBIGUOUS EVIDENCE (mic perfection, 2026-11-27 — generalises
+      // the old basmala-only list): before the first lock, an
+      // `ambiguous` observation's committed span is the only witness
+      // for words the tracker's phrase cutter drops before any lock
+      // can commit (the 1:1 basmala) and for words on a take that
+      // never locks at all (a single short ayah). Recorded here,
+      // judged only as a run at the first lock / at stop (see
+      // ambiguousPrefixCover); a single stray guess proves nothing.
+      // H2 still stands everywhere else: ambiguous observations
+      // never enter `observed` directly.
+      if (!everLocked && ev.state === 'ambiguous' && best.span) {
         const spanStartIdx = orderedIndex.get(wordKey(best.span.start));
         const spanEndIdx = orderedIndex.get(wordKey(best.span.end));
-        if (spanStartIdx === 0 && spanEndIdx !== undefined) {
-          preLockBasmalaAmb.push({ spanEndIdx, per: best.per, cost: best.cost });
+        if (spanStartIdx !== undefined && spanEndIdx !== undefined && preLockAmbiguous.length < 500) {
+          preLockAmbiguous.push({ spanStartIdx, spanEndIdx, confidence: best.confidence, per: best.per, cost: best.cost });
         }
       }
       // Feed the start anchor: locked observations only — an `ambiguous`
@@ -892,13 +1235,14 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       // passage head (H1 — the first anchor fix was unverifiable).
       if (idx !== undefined) anchorTracker.observe(idx, ev.state, best.confidence, ev.timeMs);
       if (anchorIndex === null && anchorTracker.anchor !== null) {
-        // The anchor is where the recitation began: the first lock's
-        // committed span start when that span is clean (the match's own
-        // start — always at/before the run's first end-word), the
-        // passage head when the basmala rule fired, else the run's
+        // The anchor is where the recitation began: the certified
+        // head's start when the pre-lock ambiguous run proves the
+        // take started there (the basmala case, generalised), the
+        // first lock's clean span start (the match's own start —
+        // always at/before the run's first end-word), else the run's
         // start as before.
-        anchorIndex = basmalaRecited
-          ? 0
+        anchorIndex = headCertified && headCertifiedRange !== null
+          ? headCertifiedRange.startIndex
           : firstLockSpan !== null
             ? Math.max(firstLockSpan.startIndex, anchorFloorIndex)
             : anchorTracker.anchor;
@@ -913,7 +1257,19 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
             firstLockSpan !== null
               ? `${orderedKeys[firstLockSpan.startIndex]}..${orderedKeys[firstLockSpan.endIndex]}`
               : null,
-          basmalaRecited,
+          firstLockSpanDirty:
+            firstLockSpanDirty !== null
+              ? `${orderedKeys[firstLockSpanDirty.startIndex]}..${orderedKeys[firstLockSpanDirty.endIndex]}`
+              : null,
+          headCertified,
+          headCertifiedRange:
+            headCertifiedRange !== null
+              ? `${orderedKeys[headCertifiedRange.startIndex]}..${orderedKeys[headCertifiedRange.endIndex]}`
+              : null,
+          acquisitionGap:
+            acquisitionGap !== null
+              ? `${orderedKeys[acquisitionGap.startIndex]}..${orderedKeys[acquisitionGap.endIndex]}`
+              : null,
         });
         flushPendingCheckerEvents();
       }
@@ -944,45 +1300,50 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
           // — a span covering a skipped word runs per 0.207, conf
           // 0.155), those words WERE recited: mark them observed and
           // remember the span start for the anchor. A dirty span is
-          // not trusted at all. Only the first lock ever does this.
+          // not trusted at all — but its start is still recorded
+          // (the acquisition gap) and its range is remembered (the
+          // checker may still name a skip inside it). Only the first
+          // lock ever does this.
           const spanStartIdx = orderedIndex.get(wordKey(best.span.start));
           const spanEndIdx = orderedIndex.get(wordKey(best.span.end));
           const spanClean =
             best.confidence >= ANCHOR_MIN_CONFIDENCE && best.per <= FIRST_LOCK_SPAN_MAX_PER;
-          if (spanStartIdx !== undefined && spanEndIdx !== undefined && spanClean) {
-            const start = Math.max(spanStartIdx, anchorFloorIndex);
-            if (start <= spanEndIdx) {
-              firstLockSpan = { startIndex: start, endIndex: spanEndIdx };
-              markRangeObserved(start, spanEndIdx, best.confidence, ev.timeMs);
+          if (spanStartIdx !== undefined && spanEndIdx !== undefined) {
+            firstLockSpanStartIndex = spanStartIdx;
+            if (spanClean) {
+              const start = Math.max(spanStartIdx, anchorFloorIndex);
+              if (start <= spanEndIdx) {
+                firstLockSpan = { startIndex: start, endIndex: spanEndIdx };
+                markRangeObserved(start, spanEndIdx, best.confidence, ev.timeMs);
+              }
+            } else {
+              firstLockSpanDirty = { startIndex: spanStartIdx, endIndex: spanEndIdx };
             }
           }
-          // BASMALA RULE: when the passage head is 1:1 and the first
-          // lock lands on 1:2:1 with a clean span, a recited basmala
-          // is certified by the pre-lock ambiguous run that followed
-          // it — spans growing 1:1:1..2, ..3, ..4 at per 0, cost 0
-          // (measured on the TOP take). The lock itself can never
-          // certify 1:1 (the phrase cutter removes it first) and the
-          // checker never flags a skipped 1:1, so the ambiguous run is
-          // the only witness — and it is required to be a RUN (>= 2
-          // events, per <= 0.05, reaching 1:1:4). The controls prove
-          // the discriminator: skipping 1:1 (recite 1:2-7, or start
-          // at 1:3) produces NO 1:1 ambiguous event at all.
-          if (
-            orderedKeys[0] === '1:1:1' &&
-            firstLockSpan !== null &&
-            orderedKeys[firstLockSpan.startIndex] === '1:2:1'
-          ) {
-            const basmalaEvents = preLockBasmalaAmb.filter(
-              (b) => b.per <= BASMALA_AMBIGUOUS_MAX_PER && b.cost <= 0.01,
-            );
-            const basmalaEnd = orderedIndex.get('1:1:4');
-            if (
-              basmalaEvents.length >= 2 &&
-              basmalaEnd !== undefined &&
-              Math.max(...basmalaEvents.map((b) => b.spanEndIdx)) === basmalaEnd
-            ) {
-              basmalaRecited = true;
-              markRangeObserved(0, basmalaEnd, best.confidence, ev.timeMs);
+          // HEAD CERTIFICATION (2026-11-27 — generalises the basmala
+          // rule to any passage head): the pre-lock ambiguous run is
+          // the only witness for head words the tracker's phrase
+          // cutter drops before any lock can commit (the 1:1 basmala:
+          // spans growing 1:1:1..2, ..3, ..4 at per 0, cost 0 on the
+          // TOP take). The lock itself can never certify those words
+          // and the checker never flags a skipped 1:1 — so the run is
+          // required to be a RUN (>= 2 events, per <= 0.05, cost <=
+          // 0.01) covering the head contiguously from the floor (see
+          // ambiguousPrefixCover). The controls prove the
+          // discriminator: skipping 1:1 (recite 1:2-7, or start at
+          // 1:3) produces NO 1:1 ambiguous event at all. Unlike the
+          // old rule, the lock's span need not start immediately
+          // after the head: when an ayah is skipped between the head
+          // and the lock (skip 1:2: the lock's span starts at 1:3:1),
+          // the words in between are the acquisition gap — graced,
+          // never missed unless the checker confirms them.
+          const cover = ambiguousPrefixCover();
+          if (cover !== null && cover.startIndex === anchorFloorIndex) {
+            headCertified = true;
+            headCertifiedRange = cover;
+            markRangeObserved(cover.startIndex, cover.endIndex, best.confidence, ev.timeMs);
+            if (firstLockSpanStartIndex !== null && firstLockSpanStartIndex > cover.endIndex + 1) {
+              acquisitionGap = { startIndex: cover.endIndex + 1, endIndex: firstLockSpanStartIndex - 1 };
             }
           }
         }
@@ -1041,21 +1402,48 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
     // NEVER an ambiguous first-observed word, H3) and flush any
     // checker events still buffered — silently: the take is over, the
     // per-word result below is authoritative. When the take never
-    // locked, the anchor stays null: no buffered flag is ever applied
-    // and the take reports `unclear` (coverage 0) instead of being
-    // anchored on an acquisition guess.
+    // locked, the anchor stays null unless the short-ayah fallback
+    // below fires: no buffered flag is ever applied and the take
+    // reports `unclear` (coverage 0) instead of being anchored on an
+    // acquisition guess.
     if (anchorIndex === null) {
       // No 3-run by stop: the anchor is the first lock's clean span
       // start when there is one (a committed match — the lock itself
-      // was the trust gate), the passage head when the basmala rule
-      // fired, else the first-locked fallback as before.
-      anchorIndex = basmalaRecited
-        ? 0
+      // was the trust gate), the certified head's start when the
+      // head rule fired, else the first-locked fallback as before.
+      anchorIndex = headCertified && headCertifiedRange !== null
+        ? headCertifiedRange.startIndex
         : firstLockSpan !== null
           ? Math.max(firstLockSpan.startIndex, anchorFloorIndex)
           : anchorTracker.resolveAtStop(firstLockedIndex);
     }
     flushPendingCheckerEvents(false);
+    // SHORT-AYAH FALLBACK (2026-11-27, mic perfection — gap 3): a
+    // take that NEVER locked has no anchor — but the model can follow
+    // a 4-word ayah cleanly in `ambiguous` (per 0, conf 0.5,
+    // sequential spans covering every word) without ever promoting
+    // to locked: locking needs more context than a short ayah
+    // provides (a hard model limit on LOCKING, not on following —
+    // measured Node: 1:1 alone, 4 ambiguous events, 0 locks). When
+    // the pre-lock ambiguous cover is clean for a prefix of the
+    // passage and no checker flag was confirmed, that prefix WAS
+    // recited: anchor at its start, its words count as observed, and
+    // the take is clear. A flagged take never takes this path.
+    let ambiguousFallback = false;
+    if (anchorIndex === null && !everLocked) {
+      const cover = ambiguousPrefixCover();
+      if (cover !== null && flagged.size === 0) {
+        ambiguousFallback = true;
+        anchorIndex = cover.startIndex;
+        for (let i = cover.startIndex; i <= cover.endIndex; i++) {
+          const k = orderedKeys[i];
+          if (!observed.has(k)) {
+            observed.set(k, { confidence: ANCHOR_MIN_CONFIDENCE, timeMs: 0, state: 'ambiguous' });
+            orderOfKey.set(k, order++);
+          }
+        }
+      }
+    }
     // Words the reciter reached, in passage order — counting ONLY expected
     // words. (FIX 2026-11-21: the tracker can follow words outside the
     // declared passage, e.g. a different ayah; those keys are not in
@@ -1077,8 +1465,11 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
     // The tracker has three systematic blind spots, and a word in one of
     // them is "not reached yet" (neutral, never in the mistake log), not
     // "missed". The ANCHOR grace (A) BEATS a checker flag — the word was
-    // never attempted (Mehran, 2026-11-26). Graces (B) and (C) are still
-    // beaten by a checker-CONFIRMED flag, as before.
+    // never attempted (Mehran, 2026-11-26) — with ONE exception: a
+    // confirmed skip the tracker demonstrably passed over stands even
+    // before the anchor (see preAnchorFlagStands(), gap 2, 2026-11-27).
+    // Graces (B) and (C) are still beaten by a checker-CONFIRMED flag,
+    // as before.
     // (A) TAKE-START / MID-PAGE START — the anchor (see
     //     lib/recitation-anchor.ts): the tracker spends the first ~1-3 s
     //     in `ambiguous` state, emitting positions for WRONG passages
@@ -1094,9 +1485,11 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
     //     1:2:2 in testing); on a single short ayah the tracker may
     //     NEVER lock at all (it follows the words in `ambiguous` at
     //     conf ~0.5 for the whole take — measured 2026-11-27: 1:1
-    //     alone, 6 ambiguous events, 0 locks), so there the anchor
-    //     is null and the whole take reports `unclear` rather than
-    //     being anchored on a guess (H3).
+    //     alone, 6 ambiguous events, 0 locks) — that take is now
+    //     decided by the short-ayah fallback (clean ambiguous cover,
+    //     no confirmed flags) instead of reporting `unclear`, and a
+    //     take with no clean cover still reports `unclear` rather
+    //     than being anchored on a guess (H3).
     // (B) AYAH-BOUNDARY JUMP: at an ayah boundary the tracker sometimes
     //     jumps from the previous ayah's penultimate word straight to the
     //     next ayah's first word, skipping the boundary word (e.g. 67:2:12
@@ -1118,6 +1511,20 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
     const lockBoundary = anchorIndex;
     if (lockBoundary !== null) {
       for (let i = 0; i < lockBoundary; i++) graced.add(orderedKeys[i]);
+    }
+    // (D) ACQUISITION WINDOW — the first lock's dirty span, and the gap
+    // between a certified head and the span start (2026-11-27, mic
+    // perfection, gap 2): words the tracker consumed as acquisition
+    // context without trusting them. Unproven either way — not-reached,
+    // never missed via the went-past rule — unless the checker confirms
+    // a skip for one of them (a flag still beats a grace, as in (B)/(C);
+    // the anchor-suppression exception in the status loop below is what
+    // lets such a flag through when the word also sits before the anchor).
+    if (firstLockSpanDirty !== null) {
+      for (let i = firstLockSpanDirty.startIndex; i <= firstLockSpanDirty.endIndex; i++) graced.add(orderedKeys[i]);
+    }
+    if (acquisitionGap !== null) {
+      for (let i = acquisitionGap.startIndex; i <= acquisitionGap.endIndex; i++) graced.add(orderedKeys[i]);
     }
     for (let ai = 0; ai < ayahKeys.length - 1; ai++) {
       const last = ayahLastWord.get(ayahKeys[ai])!;
@@ -1156,12 +1563,18 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       const [surah, ayah, word] = key.split(':').map(Number);
       const flag = flagged.get(key);
       const seen = observed.has(key);
+      const keyIdx = orderedIndex.get(key) ?? 0;
+      const beforeAnchor = anchorIndex !== null && keyIdx < anchorIndex;
+      // A confirmed skip the tracker demonstrably passed over stands
+      // even before the anchor (see preAnchorFlagStands()); every
+      // other pre-anchor flag is dropped with the word itself.
+      const flagApplies = flag !== undefined && (!beforeAnchor || preAnchorFlagStands(flag, keyIdx));
       let status: CoachWordStatus;
-      if (anchorIndex !== null && (orderedIndex.get(key) ?? 0) < anchorIndex) {
+      if (beforeAnchor && !flagApplies) {
         // Never attempted — the anchor grace BEATS a checker flag (and a
         // stray observation): the reciter started after this word.
         status = 'not-reached';
-      } else if (flag) {
+      } else if (flag && flagApplies) {
         status = flag.errorClass === 'wrong_word' ? 'wrong' : 'missed';
       } else if (seen) {
         status = 'correct';
@@ -1204,8 +1617,43 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
     // of reached words were correct.)
     const coverage = orderedKeys.length === 0 ? 0 : reachedKeys.length / orderedKeys.length;
     const quality = reachedCount === 0 ? 0 : correctCount / reachedCount;
-    const unclear = noSpeech || trackedElsewhere || coverage < 0.5 || quality < 0.4;
+    // The short-ayah fallback is clear by construction: its words were
+    // followed cleanly (per <= 0.05, conf >= 0.5, sequential, no flags)
+    // — the coverage gate below would otherwise call a clean 4-word
+    // recitation of a 29-word passage "unclear" for being short, which
+    // is the wrong question: the take is short, not unclear.
+    const unclear = ambiguousFallback
+      ? false
+      : noSpeech || trackedElsewhere || coverage < 0.5 || quality < 0.4;
     const audioHealth = getAudioHealth();
+
+    // Diagnostics (mic perfection, 2026-11-27): the ambiguous evidence
+    // behind the head/short-ayah decisions, and the tracker's lag
+    // behind real time through the take — console only, so a harness
+    // (or a phone console) can prove what the adapter decided and
+    // whether the model drained at real time. Logged once, at stop.
+    const cover = ambiguousPrefixCover();
+    console.log('[tilawa] ambiguous-summary:', JSON.stringify({
+      preLockAmbiguous: preLockAmbiguous.length,
+      cover: cover !== null
+        ? `${orderedKeys[cover.startIndex]}..${orderedKeys[cover.endIndex]}`
+        : null,
+      headCertified,
+      acquisitionGap: acquisitionGap !== null
+        ? `${orderedKeys[acquisitionGap.startIndex]}..${orderedKeys[acquisitionGap.endIndex]}`
+        : null,
+      firstLockSpanDirty: firstLockSpanDirty !== null
+        ? `${orderedKeys[firstLockSpanDirty.startIndex]}..${orderedKeys[firstLockSpanDirty.endIndex]}`
+        : null,
+      ambiguousFallback,
+    }));
+    console.log('[tilawa] tracker-lag:', JSON.stringify({
+      firstLockLagMs,
+      lastLagMs,
+      maxLagMs,
+      positionEvents,
+      preListenAudioMs: preListenAudioMsRef,
+    }));
 
     return {
       words,
@@ -1221,11 +1669,13 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       trackedElsewhere,
       // Pre-anchor confirmed mistakes were never attempted: drop them
       // from the log (the coach's by-type counts and confirmed flags
-      // read this array). Off-passage locations have no passage index
-      // and are kept — the anchor cannot judge them.
+      // read this array) — EXCEPT a confirmed skip the tracker
+      // demonstrably passed over (see preAnchorFlagStands()). Off-passage
+      // locations have no passage index and are kept — the anchor
+      // cannot judge them.
       mistakes: session.mistakes().filter((m) => {
         const idx = orderedIndex.get(wordKey(m.location));
-        return idx === undefined || anchorIndex === null || idx >= anchorIndex;
+        return idx === undefined || anchorIndex === null || idx >= anchorIndex || (idx !== undefined && preAnchorFlagStands(m, idx));
       }),
       durationMs: session.now(),
     };
@@ -1241,6 +1691,41 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       // detection for the UI lives in app/hifz/lib/vad.ts (AdaptiveVad) —
       // display-only, never a gate on the audio path.
       preparedContext = prepared?.context ?? null;
+      // TAP BUFFER (2026-11-27 — gap 1): feed the opening audio the
+      // tap captured while the engine/session was still starting. The
+      // push is fire-and-forget and happens BEFORE listen(), so the
+      // buffer is queued strictly before the first live chunk (call
+      // order — see the buffer note above); listen() then starts
+      // immediately, with no await on the drain. A short buffer
+      // (< TAP_BUFFER_MIN_MS, the warm-tap case) is discarded
+      // instead: the first lock's span already recovers those words.
+      // Any drain failure leaves the take exactly as it was.
+      let preListenAudioMs = 0;
+      if (prepared) {
+        const tapBuffer = tapBuffers.get(prepared);
+        if (tapBuffer) {
+          if (tapBuffer.elapsedMs() >= TAP_BUFFER_MIN_MS) {
+            const drained = await tapBuffer.drain().catch(() => null);
+            if (drained && drained.durationMs >= TAP_BUFFER_MIN_MS) {
+              preListenAudioMs = drained.durationMs;
+              console.log('[tilawa] tap-buffer:', JSON.stringify({
+                ms: drained.durationMs,
+                samples: drained.samples.length,
+                sampleRate: drained.sampleRate,
+                truncated: drained.truncated,
+              }));
+              // Fire-and-forget: queued before any live chunk.
+              void session.pushAudio(drained.samples, drained.sampleRate).catch(() => undefined);
+            } else if (drained) {
+              console.log('[tilawa] tap-buffer-skipped:', JSON.stringify({ ms: drained.durationMs }));
+            }
+          } else {
+            tapBuffer.discard();
+          }
+        }
+      }
+      listenStartWallMs = Math.round(performance.now());
+      preListenAudioMsRef = preListenAudioMs;
       console.log('[tilawa] listen-start:', JSON.stringify({ wallMs: Math.round(performance.now()) }));
       mic = await tilawa.listen(session, {
         vad: false,
