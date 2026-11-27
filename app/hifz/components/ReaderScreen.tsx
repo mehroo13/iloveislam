@@ -1673,7 +1673,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     // blocks, exactly as before — the mic and the player never run
     // together.
     if (playStateRef.current === 'paused') {
-      stopPlayback();
+      // stopPlaybackRef (assigned every render below): the direct
+      // `stopPlayback` binding is declared after startMic, so it
+      // cannot go in this callback's dep array (TDZ at render).
+      stopPlaybackRef.current();
     } else if (playStateRef.current !== 'idle') {
       setMicToast('Stop the audio playback first, then recite.');
       micTimerRef.current = window.setTimeout(() => setMicToast(null), 4000);
@@ -1915,7 +1918,8 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         void stopMic('dead');
       }
     }, 4000);
-  }, [ensureEngine, setMic, stopMic, stopPlayback, activeExpected]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ensureEngine, setMic, stopMic, activeExpected]);
 
   const toggleMic = useCallback(() => {
     if (micStateRef.current === 'recording') {
