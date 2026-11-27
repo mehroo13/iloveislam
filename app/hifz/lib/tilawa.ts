@@ -150,14 +150,18 @@ export interface SessionResult {
   /** True when the attempt was too unclear to trust per-word colours. */
   unclear: boolean;
   /**
-   * Passage index of the start anchor (first word of the first run of
-   * >= 3 consecutive trustworthy locked observations, or the
-   * first-locked fallback at stop), or null when the take never
-   * locked — logged by the UI so a phone test can prove where the
-   * anchor landed. 0 on a from-the-top take only when the tracker
-   * locks onto the head itself; on clean audio the first lock lands
-   * 1–9 s in, so the anchor is usually a few words past the true
-   * start and the words before it are `not-reached`, never `missed`.
+   * Passage index of the start anchor — the first lock's clean span
+   * start once the 3-run confirms the take (the span is the tracker's
+   * committed match, so it is where the recitation began), else the
+   * first word of the first run of >= 3 consecutive trustworthy
+   * locked observations, else the first-locked fallback at stop — or
+   * null when the take never locked. Logged by the UI so a phone test
+   * can prove where the anchor landed. 0 on a from-the-top take when
+   * the basmala rule fires (1:1 recited) or the lock's span starts at
+   * the head; on clean audio the first lock lands 1–9 s in, so
+   * without a clean span the anchor is usually a few words past the
+   * true start and the words before it are `not-reached`, never
+   * `missed`.
    */
   anchorIndex: number | null;
   /** "surah:ayah:word" key of the anchor word, or null (see anchorIndex). */
@@ -256,6 +260,21 @@ export const AUDIBLE_CALLBACKS_MIN = 3;
  */
 export const SILENT_DBFS = -110;
 export const SILENT_CALLBACKS_MIN = 50;
+
+/**
+ * Maximum `per` (unweighted phoneme error rate against the matched
+ * span) of a first lock's committed span for its words to be trusted
+ * as recited. Measured 2026-11-27 (tools/mic4-span-probe.mjs, lite
+ * tier, clean Alafasy audio): clean first-lock spans run per 0–0.03
+ * at confidence 0.90–1.00; a span covering a word skipped inside the
+ * acquisition window runs per 0.207 at confidence 0.155, with the lock
+ * 3.1 s later — and the checker confirms that skip. The gate rejects
+ * a dirty span wholesale: when the acquisition is dirty, no span word
+ * is trusted, and the anchor falls back to the run as before.
+ */
+export const FIRST_LOCK_SPAN_MAX_PER = 0.1;
+/** Same per ceiling for the pre-lock ambiguous basmala evidence. */
+export const BASMALA_AMBIGUOUS_MAX_PER = 0.05;
 
 /**
  * A microphone prepared synchronously inside the user's tap, via Tilawa's
@@ -518,6 +537,13 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
     { surah: opts.surah, fromAyah: opts.fromAyah, toAyah: opts.toAyah },
     { confirm: { after: 'next-word' } },
   );
+  // Diagnostic (mic-lag investigation): the gap between
+  // session-created and session-ready is the tracker/checker
+  // construction + JIT on the first session of the page; later
+  // sessions are ~10x faster. If this gap is seconds, the take's
+  // opening audio is lost before listen() starts (nothing buffers
+  // between the tap's prepare and listen()).
+  console.log('[tilawa] session-ready:', JSON.stringify({ wallMs: Math.round(performance.now()) }));
 
   // Expected words, indexed by "surah:ayah:word" (word 1-based in ayah).
   const expectedByKey = new Map<string, { ayah: ExpectedAyah; refWord: ReturnType<typeof splitWords>[number] }>();
@@ -594,6 +620,20 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
    * below, which a confirmed flag defeated). From-the-top start: the
    * anchor is passage index 0, so nothing is suppressed.
    *
+   * FIRST-WORD FIX (Mehran, 2026-11-27 — the mic could not capture the
+   * first words): the first lock's committed span covers the
+   * acquisition audio the tracker consumed as context, so once the
+   * 3-run confirms the take, the anchor moves to the span's start
+   * (clamped to the floor) and the span's words count as observed —
+   * but ONLY when the span is clean (confidence >= 0.5, per <= 0.1):
+   * a span covering a skipped word runs per 0.207 and is not trusted
+   * at all. The basmala is special: the tracker's phrase cutter drops
+   * a recited 1:1 before any lock, so it is certified instead by the
+   * pre-lock ambiguous run that followed it (>= 2 events, per <= 0.05,
+   * reaching 1:1:4) when the first lock lands on 1:2:1 — the controls
+   * show no 1:1 ambiguous event at all when 1:1 was skipped. A take
+   * that never locks still has no anchor and reports `unclear`.
+   *
    * Until the anchor is known, checker events are BUFFERED (never
    * emitted, never recorded): a flag fired while the tracker is still
    * finding where he started may be about words he never attempted.
@@ -631,6 +671,28 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
   let firstPositionLogged = false;
   let firstLockLogged = false;
   let firstLevelLogged = false;
+  /**
+   * First-lock span (mic first-word fix, 2026-11-27): the committed
+   * match of the take's first lock, as passage indices — set only when
+   * the span is clean (confidence >= 0.5, per <=
+   * FIRST_LOCK_SPAN_MAX_PER). Its words are the acquisition context
+   * the lock consumed; they were recited, so they count as observed
+   * and the anchor starts at the span start (clamped to the floor).
+   * Null when the first lock's span is dirty or absent: no span word
+   * is trusted and the anchor falls back to the run as before. Only
+   * the FIRST lock ever sets this — later (local) events' spans are
+   * whole local runs, which a mid-run skip would also span.
+   */
+  let firstLockSpan: { startIndex: number; endIndex: number } | null = null;
+  /**
+   * Pre-lock ambiguous observations whose span starts at the
+   * passage-head basmala (1:1:1) — the only witness that 1:1 was
+   * recited (see the basmala rule at the first lock). Judged only as
+   * a run; a single stray guess proves nothing.
+   */
+  const preLockBasmalaAmb: { spanEndIdx: number; per: number; cost: number }[] = [];
+  /** True once the basmala rule has fired for this take. */
+  let basmalaRecited = false;
   /** Mic-capture health, from Tilawa's onLevel callbacks (raw worklet
    * frames, before resampling/tracking). Silence reports about -120 dBFS. */
   let levelCallbacks = 0;
@@ -680,6 +742,40 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       confidence,
       display: entry.refWord.display,
     });
+  };
+
+  /**
+   * Mark every expected word in a passage range as observed (locked),
+   * in passage order, and light it live — the shared half of the
+   * first-lock span and basmala rules. A checker flag still beats
+   * `seen` at stop (buildResult checks flags before `seen`); live, a
+   * flagged word is never lit, and a flag arriving later un-lights it
+   * via applyCheckerEvent. The UI dedupes repeat 'correct' events by
+   * key, so the range's end word being re-emitted by the handler's own
+   * live-light below is a no-op.
+   */
+  const markRangeObserved = (startIdx: number, endIdx: number, confidence: number, timeMs: number) => {
+    for (let i = startIdx; i <= endIdx; i++) {
+      const k = orderedKeys[i];
+      if (observed.has(k)) continue;
+      observed.set(k, { confidence, timeMs, state: 'locked' });
+      orderOfKey.set(k, order++);
+      if (!flagged.has(k) && opts.onWord) {
+        const entry = expectedByKey.get(k);
+        if (entry) {
+          const [s, a, w] = k.split(':').map(Number);
+          opts.onWord({
+            wordIndex: entry.refWord.index,
+            surah: s,
+            ayah: a,
+            word: w,
+            status: 'correct',
+            confidence,
+            display: entry.refWord.display,
+          });
+        }
+      }
+    }
   };
 
   /**
@@ -740,6 +836,22 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       if (!best) return;
       const key = wordKey(best.word);
       const idx = orderedIndex.get(key);
+      // BASMALA EVIDENCE (mic first-word fix, 2026-11-27): before the
+      // first lock, an `ambiguous` observation whose span starts at the
+      // passage-head basmala (1:1:1) is the only witness that 1:1 was
+      // recited — the tracker's phrase cutter drops a recited basmala
+      // from `observed` before any lock can commit, and the checker
+      // never flags a skipped 1:1. Recorded here, judged only as a run
+      // at the first lock (see below); a single stray guess proves
+      // nothing. H2 still stands everywhere else: ambiguous
+      // observations never enter `observed` directly.
+      if (!everLocked && ev.state === 'ambiguous' && orderedKeys[0] === '1:1:1') {
+        const spanStartIdx = orderedIndex.get(wordKey(best.span.start));
+        const spanEndIdx = orderedIndex.get(wordKey(best.span.end));
+        if (spanStartIdx === 0 && spanEndIdx !== undefined) {
+          preLockBasmalaAmb.push({ spanEndIdx, per: best.per, cost: best.cost });
+        }
+      }
       // Feed the start anchor: locked observations only — an `ambiguous`
       // observation never starts or breaks the run (see
       // lib/recitation-anchor.ts). The moment the anchor is known,
@@ -749,7 +861,16 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       // passage head (H1 — the first anchor fix was unverifiable).
       if (idx !== undefined) anchorTracker.observe(idx, ev.state, best.confidence, ev.timeMs);
       if (anchorIndex === null && anchorTracker.anchor !== null) {
-        anchorIndex = anchorTracker.anchor;
+        // The anchor is where the recitation began: the first lock's
+        // committed span start when that span is clean (the match's own
+        // start — always at/before the run's first end-word), the
+        // passage head when the basmala rule fired, else the run's
+        // start as before.
+        anchorIndex = basmalaRecited
+          ? 0
+          : firstLockSpan !== null
+            ? Math.max(firstLockSpan.startIndex, anchorFloorIndex)
+            : anchorTracker.anchor;
         console.log('[tilawa] anchor:', {
           wallMs: Math.round(performance.now()),
           anchorIndex,
@@ -757,6 +878,11 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
           floorIndex: anchorFloorIndex,
           firstLockedIndex,
           firstObservedIndex,
+          firstLockSpan:
+            firstLockSpan !== null
+              ? `${orderedKeys[firstLockSpan.startIndex]}..${orderedKeys[firstLockSpan.endIndex]}`
+              : null,
+          basmalaRecited,
         });
         flushPendingCheckerEvents();
       }
@@ -780,6 +906,54 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
             per: best.per,
             cost: best.cost,
           }));
+          // FIRST-LOCK SPAN (mic first-word fix, 2026-11-27): the
+          // lock's committed match covers the acquisition audio — the
+          // words the tracker consumed as context before it could
+          // lock. When the alignment is clean (confidence + per gates
+          // — a span covering a skipped word runs per 0.207, conf
+          // 0.155), those words WERE recited: mark them observed and
+          // remember the span start for the anchor. A dirty span is
+          // not trusted at all. Only the first lock ever does this.
+          const spanStartIdx = orderedIndex.get(wordKey(best.span.start));
+          const spanEndIdx = orderedIndex.get(wordKey(best.span.end));
+          const spanClean =
+            best.confidence >= ANCHOR_MIN_CONFIDENCE && best.per <= FIRST_LOCK_SPAN_MAX_PER;
+          if (spanStartIdx !== undefined && spanEndIdx !== undefined && spanClean) {
+            const start = Math.max(spanStartIdx, anchorFloorIndex);
+            if (start <= spanEndIdx) {
+              firstLockSpan = { startIndex: start, endIndex: spanEndIdx };
+              markRangeObserved(start, spanEndIdx, best.confidence, ev.timeMs);
+            }
+          }
+          // BASMALA RULE: when the passage head is 1:1 and the first
+          // lock lands on 1:2:1 with a clean span, a recited basmala
+          // is certified by the pre-lock ambiguous run that followed
+          // it — spans growing 1:1:1..2, ..3, ..4 at per 0, cost 0
+          // (measured on the TOP take). The lock itself can never
+          // certify 1:1 (the phrase cutter removes it first) and the
+          // checker never flags a skipped 1:1, so the ambiguous run is
+          // the only witness — and it is required to be a RUN (>= 2
+          // events, per <= 0.05, reaching 1:1:4). The controls prove
+          // the discriminator: skipping 1:1 (recite 1:2-7, or start
+          // at 1:3) produces NO 1:1 ambiguous event at all.
+          if (
+            orderedKeys[0] === '1:1:1' &&
+            firstLockSpan !== null &&
+            orderedKeys[firstLockSpan.startIndex] === '1:2:1'
+          ) {
+            const basmalaEvents = preLockBasmalaAmb.filter(
+              (b) => b.per <= BASMALA_AMBIGUOUS_MAX_PER && b.cost <= 0.01,
+            );
+            const basmalaEnd = orderedIndex.get('1:1:4');
+            if (
+              basmalaEvents.length >= 2 &&
+              basmalaEnd !== undefined &&
+              Math.max(...basmalaEvents.map((b) => b.spanEndIdx)) === basmalaEnd
+            ) {
+              basmalaRecited = true;
+              markRangeObserved(0, basmalaEnd, best.confidence, ev.timeMs);
+            }
+          }
         }
         // H1/H3: the stop-time fallback anchor is the first lock at or
         // after the floor — a lock onto the passage head never counts.
@@ -840,7 +1014,15 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
     // and the take reports `unclear` (coverage 0) instead of being
     // anchored on an acquisition guess.
     if (anchorIndex === null) {
-      anchorIndex = anchorTracker.resolveAtStop(firstLockedIndex);
+      // No 3-run by stop: the anchor is the first lock's clean span
+      // start when there is one (a committed match — the lock itself
+      // was the trust gate), the passage head when the basmala rule
+      // fired, else the first-locked fallback as before.
+      anchorIndex = basmalaRecited
+        ? 0
+        : firstLockSpan !== null
+          ? Math.max(firstLockSpan.startIndex, anchorFloorIndex)
+          : anchorTracker.resolveAtStop(firstLockedIndex);
     }
     flushPendingCheckerEvents(false);
     // Words the reciter reached, in passage order — counting ONLY expected
