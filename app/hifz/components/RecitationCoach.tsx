@@ -81,6 +81,7 @@ import {
   autoTierLabel,
   engineSupport,
   loadEngine,
+  warmupSession,
   type EngineLoadProgress,
   type PreparedMicCapture,
   type RecitationEngine,
@@ -542,6 +543,13 @@ export default function RecitationCoach({
       });
       engineRef.current = engine;
       setEngineState('ready');
+      // Mic-lag (2026-11-27): warm a throwaway session in the
+      // background — the first startSession of the page takes ~6 s
+      // (tracker/checker construction + JIT), the second ~0.16 s, and
+      // nothing buffers between the tap's prepare and listen(), so the
+      // first tap's opening audio would otherwise be lost. Deferred a
+      // tick so the step transition paints first.
+      window.setTimeout(() => warmupSession(engine), 0);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         setEngineState('idle');

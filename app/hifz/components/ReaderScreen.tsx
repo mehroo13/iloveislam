@@ -76,6 +76,7 @@ import {
   engineSupport,
   prepareMicrophoneStandalone,
   warmWebModule,
+  warmupSession,
   type ExpectedAyah,
   type PreparedMicCapture,
   type RecitationEngine,
@@ -1436,14 +1437,23 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
    * mount too (no model download — cheap) so the tap can prepare the
    * mic synchronously BEFORE awaiting the model load; the old order
    * (await engine, then prepare) prepared outside the gesture on a
-   * cold first tap. See startMic. */
+   * cold first tap. See startMic.
+   * Mic-lag (2026-11-27): once the engine is ready, warm a throwaway
+   * session too — the first startSession of the page takes ~6 s
+   * (tracker/checker construction + JIT), the second ~0.16 s, and
+   * nothing buffers between the tap's prepare and listen(), so the
+   * first tap's opening audio would otherwise be lost. */
   useEffect(() => {
     void warmWebModule();
     let started = false;
     const kick = () => {
       if (started) return;
       started = true;
-      void ensureEngine();
+      void ensureEngine().then((eng) => {
+        // Defer a tick so the render paints before the synchronous
+        // session construction runs in the background.
+        if (eng) window.setTimeout(() => warmupSession(eng), 0);
+      });
     };
     window.addEventListener('pointerdown', kick, { once: true });
     let idleId: number | undefined;

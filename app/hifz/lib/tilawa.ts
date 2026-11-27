@@ -522,6 +522,37 @@ export async function loadEngine(opts: LoadEngineOptions = {}): Promise<Recitati
   };
 }
 
+/**
+ * Warm the first-session construction cost so the first real mic tap
+ * starts listening at once. Measured 2026-11-27 (live, same page):
+ * the first `startSession` of the page takes 6.4 s (tracker/checker
+ * construction + JIT in `startMemorization`), the second 0.16 s.
+ * Nothing buffers between the tap's `prepareMicrophone()` and
+ * `listen()`, so every second of that gap is opening audio that never
+ * reaches the model — the reciter's first words are lost before the
+ * tracker can even acquire. Call once, in the background, after the
+ * engine is ready (the reader's background engine warm, the coach's
+ * `loadEngineNow`); the passage is arbitrary — any valid passage
+ * warms the same construction — so a fixed 1:1 is used and no caller
+ * has to thread its passage in. Creates and immediately disposes a
+ * throwaway session: no mic, no audio, no subscribers, nothing
+ * observed. Best-effort: a failed warmup must never break the real
+ * tap, which creates its own session and surfaces errors.
+ */
+export function warmupSession(engine: RecitationEngine): void {
+  try {
+    const session = engine.startSession({
+      surah: 1,
+      fromAyah: 1,
+      toAyah: 1,
+      expected: [{ surah: 1, ayah: 1, text: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ' }],
+    });
+    session.dispose();
+  } catch {
+    // Best-effort warmup; the real tap creates its own session.
+  }
+}
+
 function wordKey(ref: WordRef): string {
   return `${ref.surah}:${ref.ayah}:${ref.word}`;
 }
