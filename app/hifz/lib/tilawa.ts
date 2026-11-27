@@ -577,7 +577,8 @@ function startTapBuffer(handle: PreparedMicrophone, context: AudioContext): TapB
     if (stopped) return;
     try {
       recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
-    } catch {
+    } catch (e) {
+      console.log('[tilawa] tap-buffer-recorder-failed:', JSON.stringify({ error: e instanceof Error ? e.message : String(e) }));
       return;
     }
     recorder.ondataavailable = (e) => {
@@ -586,10 +587,14 @@ function startTapBuffer(handle: PreparedMicrophone, context: AudioContext): TapB
     try {
       recorder.start(250);
       startedAt = Date.now();
-    } catch {
+      console.log('[tilawa] tap-buffer-started:', JSON.stringify({ wallMs: Math.round(performance.now()), mimeType: mimeType || '(default)' }));
+    } catch (e) {
+      console.log('[tilawa] tap-buffer-start-failed:', JSON.stringify({ error: e instanceof Error ? e.message : String(e) }));
       recorder = null;
     }
-  }).catch(() => undefined);
+  }).catch((e) => {
+    console.log('[tilawa] tap-buffer-stream-failed:', JSON.stringify({ error: e instanceof Error ? e.message : String(e) }));
+  });
   const elapsedMs = (): number => (startedAt === null ? 0 : Date.now() - startedAt);
   const drain = async (): Promise<TapBufferDrain | null> => {
     stopped = true;
@@ -1704,7 +1709,10 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       if (prepared) {
         const tapBuffer = tapBuffers.get(prepared);
         if (tapBuffer) {
-          if (tapBuffer.elapsedMs() >= TAP_BUFFER_MIN_MS) {
+          const elapsedMs = tapBuffer.elapsedMs();
+          console.log('[tilawa] tap-buffer-decision:', JSON.stringify({ elapsedMs }));
+          if (elapsedMs >= TAP_BUFFER_MIN_MS) {
+            const drainStart = Date.now();
             const drained = await tapBuffer.drain().catch(() => null);
             if (drained && drained.durationMs >= TAP_BUFFER_MIN_MS) {
               preListenAudioMs = drained.durationMs;
@@ -1713,15 +1721,19 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
                 samples: drained.samples.length,
                 sampleRate: drained.sampleRate,
                 truncated: drained.truncated,
+                drainMs: Date.now() - drainStart,
               }));
               // Fire-and-forget: queued before any live chunk.
               void session.pushAudio(drained.samples, drained.sampleRate).catch(() => undefined);
-            } else if (drained) {
-              console.log('[tilawa] tap-buffer-skipped:', JSON.stringify({ ms: drained.durationMs }));
+            } else {
+              console.log('[tilawa] tap-buffer-drain-null:', JSON.stringify({ elapsedMs, drainMs: Date.now() - drainStart }));
             }
           } else {
+            console.log('[tilawa] tap-buffer-discarded:', JSON.stringify({ elapsedMs }));
             tapBuffer.discard();
           }
+        } else {
+          console.log('[tilawa] tap-buffer-missing:', JSON.stringify({}));
         }
       }
       listenStartWallMs = Math.round(performance.now());
