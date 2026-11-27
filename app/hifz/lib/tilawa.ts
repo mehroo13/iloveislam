@@ -584,6 +584,9 @@ function startTapBuffer(handle: PreparedMicrophone, context: AudioContext): TapB
     recorder.ondataavailable = (e) => {
       if (e.data && e.data.size > 0) chunks.push(e.data);
     };
+    recorder.onerror = (e) => {
+      console.log('[tilawa] tap-buffer-error:', JSON.stringify({ error: String((e as ErrorEvent).error ?? e.type) }));
+    };
     try {
       recorder.start(250);
       startedAt = Date.now();
@@ -600,26 +603,36 @@ function startTapBuffer(handle: PreparedMicrophone, context: AudioContext): TapB
     stopped = true;
     const rec = recorder;
     recorder = null;
-    if (!rec || rec.state === 'inactive' || chunks.length === 0) {
-      if (rec && rec.state !== 'inactive') {
-        try { rec.stop(); } catch { /* ignore */ }
-      }
+    if (!rec) return null;
+    // Stop and await the final flush. The encoder MUST be drained via
+    // stop(): Chrome's webm muxer may emit nothing on the timeslice
+    // ticks and deliver the whole recording on stop — returning early
+    // on `chunks.length === 0` here threw away a good 3.7 s buffer in
+    // the cold-tap harness (measured 2026-11-27: recorder started,
+    // 3703 ms elapsed, drain returned in 1 ms with zero chunks).
+    // Only a recorder that is already inactive with nothing recorded
+    // yields null.
+    if (rec.state !== 'inactive') {
+      await new Promise<void>((resolve) => {
+        const to = window.setTimeout(() => resolve(), 1500);
+        rec.onstop = () => {
+          window.clearTimeout(to);
+          resolve();
+        };
+        try {
+          rec.stop();
+        } catch {
+          window.clearTimeout(to);
+          resolve();
+        }
+      });
+    }
+    if (chunks.length === 0) {
+      console.log('[tilawa] tap-buffer-empty:', JSON.stringify({ state: rec.state, chunks: 0 }));
       return null;
     }
-    const blob = await new Promise<Blob | null>((resolve) => {
-      const to = window.setTimeout(() => resolve(null), 1500);
-      rec.onstop = () => {
-        window.clearTimeout(to);
-        resolve(new Blob(chunks, { type: mimeType || undefined }));
-      };
-      try {
-        rec.stop();
-      } catch {
-        window.clearTimeout(to);
-        resolve(null);
-      }
-    });
-    if (!blob || blob.size === 0) return null;
+    const blob = new Blob(chunks, { type: mimeType || undefined });
+    if (blob.size === 0) return null;
     try {
       const buf = await blob.arrayBuffer();
       const audio = await context.decodeAudioData(buf);
