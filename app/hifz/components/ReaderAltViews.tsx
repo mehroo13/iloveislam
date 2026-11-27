@@ -268,6 +268,7 @@ export function ReaderContinuousText({
   onReveal,
   script = 'uthmani',
   tajweedOn = true,
+  onPlayFromVerse,
 }: {
   pages: { page: number; verses: MushafVerse[]; meta: ReaderPageData['meta']; tajweed?: Record<number, TajweedSurah> }[];
   textSize: number;
@@ -284,6 +285,10 @@ export function ReaderContinuousText({
   /** Show Tajweed Colors (the `tajweedColors` setting), from the
    *  parent — the continuous modes ignored it until 2026-11-26. */
   tajweedOn?: boolean;
+  /** TAP TO PLAY (2026-11-27): tap an ayah to hear the recitation
+   *  from there. The second arg is the mushaf page the ayah sits
+   *  on, so the queue is fetched for the right page. */
+  onPlayFromVerse?: (verseKey: string, page: number) => void;
 }) {
   const guard = useTapGuard();
   const seenSurahs = new Set<number>();
@@ -354,13 +359,26 @@ export function ReaderContinuousText({
                           data-juz={v.juz_number}
                           data-hizb={v.hizb_number ?? meta.hizb}
                           data-verse-key={v.verse_key}
-                          onPointerDown={hidden ? guard.down : undefined}
+                          // TAP TO PLAY (2026-11-27): a revealed
+                          // ayah plays from there on a real tap (the
+                          // guard keeps a swipe from firing it). A
+                          // hidden ayah still peeks, never plays.
+                          // Excluded, via the target: rosette buttons
+                          // and red mistake words — their own taps
+                          // (tafsir sheet / tooltip) bubble up here.
+                          onPointerDown={hidden ? guard.down : onPlayFromVerse ? guard.down : undefined}
                           onClick={
                             hidden
                               ? (e) => {
                                   if (guard.ok(e)) onReveal(key, versePeekInfo(v, script));
                                 }
-                              : undefined
+                              : onPlayFromVerse
+                                ? (e) => {
+                                    const t = e.target as HTMLElement;
+                                    if (t.closest('button') || t.closest('.mistake-word')) return;
+                                    if (guard.ok(e)) onPlayFromVerse(v.verse_key, page);
+                                  }
+                                : undefined
                           }
                           style={
                             hidden
@@ -442,6 +460,7 @@ function TranslationAyahBlock({
   script = 'uthmani',
   tajweed,
   tajweedOn = true,
+  onPlayFromVerse,
 }: {
   verse: MushafVerse;
   page: number;
@@ -473,6 +492,10 @@ function TranslationAyahBlock({
   tajweed?: ParsedTajweedAyah | null;
   /** Show Tajweed Colors (the `tajweedColors` setting). */
   tajweedOn?: boolean;
+  /** TAP TO PLAY (2026-11-27): tap the ayah (Arabic or its
+   *  translation) to hear the recitation from there. The second
+   *  arg is the mushaf page the ayah sits on. */
+  onPlayFromVerse?: (verseKey: string, page: number) => void;
 }) {
   const guard = useTapGuard();
   const key = `V${verse.verse_key}`;
@@ -488,6 +511,22 @@ function TranslationAyahBlock({
       data-hizb={verse.hizb_number ?? meta.hizb}
       data-verse-key={verse.verse_key}
       className="mb-5 border-b border-[#F0F0F0] pb-4"
+      // TAP TO PLAY (2026-11-27): a revealed ayah plays from there
+      // on a real tap (the guard keeps a scroll from firing it) —
+      // Arabic or translation, both are the same ayah. A hidden
+      // ayah still peeks, never plays. Excluded, via the target:
+      // the rosette button (tafsir sheet) and red mistake words
+      // (tooltip) — their own taps bubble up here.
+      onPointerDown={!hidden && onPlayFromVerse ? guard.down : undefined}
+      onClick={
+        !hidden && onPlayFromVerse
+          ? (e) => {
+              const t = e.target as HTMLElement;
+              if (t.closest('button') || t.closest('.mistake-word')) return;
+              if (guard.ok(e)) onPlayFromVerse(verse.verse_key, page);
+            }
+          : undefined
+      }
     >
       {/* Arabic — blurs in Hide Verses mode; tap reveals. */}
       <div
@@ -576,6 +615,7 @@ export function ReaderTranslationMode({
   onRosetteClick,
   script = 'uthmani',
   tajweedOn = true,
+  onPlayFromVerse,
 }: {
   /** The loaded page range, in order — the parent grows it as the
    *  user scrolls (same shape ReaderContinuousText takes). */
@@ -606,6 +646,9 @@ export function ReaderTranslationMode({
    *  parent — the Translation mode's Arabic ignored it until
    *  2026-11-26. */
   tajweedOn?: boolean;
+  /** TAP TO PLAY (2026-11-27): tap an ayah to hear the recitation
+   *  from there. Passed through to each TranslationAyahBlock. */
+  onPlayFromVerse?: (verseKey: string, page: number) => void;
 }) {
   // Keyed by `${surah}:${translationId}` so switching translations
   // never shows the previous translation's text.
@@ -701,6 +744,7 @@ export function ReaderTranslationMode({
                         script={script}
                         tajweed={tajweed?.[g.sid]?.ayahs[ayahNum] ?? null}
                         tajweedOn={tajweedOn}
+                        onPlayFromVerse={onPlayFromVerse}
                       />
                     );
                   })}

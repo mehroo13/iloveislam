@@ -2019,7 +2019,17 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   }, [stopPlayback, setPlay, showPlayError]);
   playNextRef.current = playNext;
 
-  const startPlayback = useCallback(async () => {
+  // TAP TO PLAY (2026-11-27, Design B): `fromVerseKey` / `fromPage`
+  // start the recitation at the ayah the user tapped, in any of the
+  // three layouts — no green button first. The tapped ayah's surah
+  // is the queue filter (a page can hold two surahs; the visible
+  // surah would be the wrong filter for the second one) and its
+  // page is the fetched page (in the continuous modes the tapped
+  // ayah can sit on a loaded page other than the topmost one).
+  // With no arguments the behaviour is exactly the old one: green
+  // Play / Practice Mode → Listen start at the topmost visible
+  // ayah of the visible page's first surah.
+  const startPlayback = useCallback(async (fromVerseKey?: string, fromPage?: number) => {
     if (micStateRef.current !== 'idle') {
       showPlayError('Stop reciting first, then play the audio.');
       return;
@@ -2033,28 +2043,33 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     playRunRef.current = run;
     // The passage the reader is on — the visible surah in
     // a continuous mode, else the page's ayahs, first surah only
-    // (same scope as a mic take).
+    // (same scope as a mic take). A tap overrides both: the tapped
+    // ayah's surah filters the queue, its page is the fetched page.
     const expected = activeExpected;
     if (!expected) {
       setPlay('idle');
       showPlayError('Nothing to play on this page.');
       return;
     }
+    const fromSurah = fromVerseKey ? Number(fromVerseKey.split(':')[0]) : undefined;
+    const fromAyah = fromVerseKey ? Number(fromVerseKey.split(':')[1]) : undefined;
+    const filterSurah = fromSurah ?? expected.surah;
+    const playPage = fromPage ?? visiblePage;
     let items: PlayItem[] = [];
     try {
       // The reciter is the one picked in Settings → Reciters
       // (settings doc `reciterId`, default 7 Alafasy).
       const reciterId = loadSettings().reciterId ?? DEFAULT_RECITER_ID;
       const res = await fetch(
-        `/api/quran/verses/by_page/${visiblePage}?words=true&word_fields=text_uthmani,text_indopak,line_number,page_number,position,char_type_name&fields=text_uthmani&audio=${reciterId}`,
+        `/api/quran/verses/by_page/${playPage}?words=true&word_fields=text_uthmani,text_indopak,line_number,page_number,position,char_type_name&fields=text_uthmani&audio=${reciterId}`,
       );
-      if (!res.ok) throw new Error(`by_page ${visiblePage}: ${res.status}`);
+      if (!res.ok) throw new Error(`by_page ${playPage}: ${res.status}`);
       const d = (await res.json()) as {
         verses?: { verse_key: string; audio?: { url?: string; segments?: AudioSegment[] } }[];
       };
       for (const v of d.verses ?? []) {
         const [s, a] = v.verse_key.split(':').map(Number);
-        if (s !== expected.surah || !v.audio?.url) continue;
+        if (s !== filterSurah || !v.audio?.url) continue;
         items.push({ key: v.verse_key, surah: s, ayah: a, url: v.audio.url, segments: v.audio.segments ?? [] });
       }
     } catch {
@@ -2074,14 +2089,20 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     // is the verse_key of the topmost visible ayah (scroll tracker,
     // RESUME FIX) — in Book mode it is null and the whole page is
     // in view, so the page's first ayah is already the right start.
+    // A tap (2026-11-27) slices at the tapped ayah instead.
     // Fall back to the full queue when no ayah is known or it is not
     // on this page (e.g. it has no audio clip).
-    const vt = visibleTextRef.current;
-    if (vt?.ayah) {
-      const [vs, va] = vt.ayah.split(':').map(Number);
-      if (vs === expected.surah) {
-        const startIdx = items.findIndex((it) => it.ayah >= va);
-        if (startIdx > 0) items = items.slice(startIdx);
+    if (fromAyah !== undefined) {
+      const startIdx = items.findIndex((it) => it.ayah >= fromAyah);
+      if (startIdx > 0) items = items.slice(startIdx);
+    } else {
+      const vt = visibleTextRef.current;
+      if (vt?.ayah) {
+        const [vs, va] = vt.ayah.split(':').map(Number);
+        if (vs === expected.surah) {
+          const startIdx = items.findIndex((it) => it.ayah >= va);
+          if (startIdx > 0) items = items.slice(startIdx);
+        }
       }
     }
     playQueueRef.current = items;
@@ -2112,6 +2133,23 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     if (st === 'loading') return;
     void startPlayback();
   }, [setPlay, showPlayError, startPlayback]);
+
+  /** TAP TO PLAY (2026-11-27, Design B): an ayah/word tap starts
+   *  the recitation at that ayah (startPlayback with the tapped
+   *  verse + page). A live mic take owns the audio, so a tap mid-
+   *  take is ignored — silently, not via startPlayback's error path
+   *  ("Stop reciting first…") as the normal flow. The take keeps
+   *  its recitation and score; the mic button stops it, and then a
+   *  tap plays. Tapping while audio is already playing or paused
+   *  restarts from the tapped ayah (startPlayback supersedes the
+   *  old run). */
+  const playFromVerse = useCallback(
+    (verseKey: string, pageNo: number) => {
+      if (micStateRef.current !== 'idle') return;
+      void startPlayback(verseKey, pageNo);
+    },
+    [startPlayback],
+  );
 
   /* One <audio> element drives Listen: timeupdate maps the sounding
    * position onto the current verse's segments (between words, the
@@ -2909,6 +2947,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
             mistakeMarkingOn={mistakeMarkingOn}
             similarOn={similarOn}
             onRosetteClick={(verseKey) => setTafsirSheet(verseKey)}
+            onPlayFromVerse={playFromVerse}
           />
         </div>
         <div className="mt-auto flex justify-end px-2 pt-1">
@@ -3052,6 +3091,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                   onReveal={reveal}
                   script={scriptForEdition(edition)}
                   tajweedOn={tajweedOn}
+                  onPlayFromVerse={playFromVerse}
                 />
               ) : (
                 <ReaderTranslationMode
@@ -3066,6 +3106,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                   onRosetteClick={(verseKey) => setTafsirSheet(verseKey)}
                   script={scriptForEdition(edition)}
                   tajweedOn={tajweedOn}
+                  onPlayFromVerse={playFromVerse}
                 />
               )}
             </>

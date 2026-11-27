@@ -144,9 +144,14 @@ interface ReaderPageProps {
   /** An ayah-end rosette was tapped (Settings → Tafsir): open that
    *  verse's tafsir sheet. Absent = rosettes are not tappable. */
   onRosetteClick?: (verseKey: string) => void;
+  /** TAP TO PLAY (2026-11-27): a word was tapped — hear the
+   *  recitation from that word's ayah. The second arg is this
+   *  page, so the queue is fetched for it. Absent = words are not
+   *  tappable for playback. */
+  onPlayFromVerse?: (verseKey: string, page: number) => void;
 }
 
-export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasure, zoom, hideVerses, revealedLines, onRevealLine, highlightedWords, mistakes, onMistakeWordClick, script = 'uthmani', tajweedOn = true, hideMarkers = false, frequentMistakes, mistakeMarkingOn = true, similarOn = false, onRosetteClick }: ReaderPageProps) {
+export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasure, zoom, hideVerses, revealedLines, onRevealLine, highlightedWords, mistakes, onMistakeWordClick, script = 'uthmani', tajweedOn = true, hideMarkers = false, frequentMistakes, mistakeMarkingOn = true, similarOn = false, onRosetteClick, onPlayFromVerse }: ReaderPageProps) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const measureRef = useRef<HTMLDivElement | null>(null);
   const onMeasureRef = useRef(onMeasure);
@@ -417,6 +422,23 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
                 },
               }
             : {};
+        // TAP TO PLAY (2026-11-27): a plain word plays from its
+        // ayah on a real tap (same guard). The ayah comes from the
+        // line's verseKey in scope — the word span's id encodes the
+        // same `word-S-A-N`. Red words keep their tooltip instead
+        // (mutually exclusive with wordTap above); hidden lines
+        // reveal instead, so no tap is attached while hidden.
+        // The rosette is a <button>, not a word span, so its tap
+        // never reaches here.
+        const playTap =
+          !mistake && !hidden && onPlayFromVerse
+            ? {
+                onPointerDown: tapGuard.down,
+                onClick: (e: React.MouseEvent) => {
+                  if (tapGuard.ok(e)) onPlayFromVerse(g.verseKey, page);
+                },
+              }
+            : {};
         // Show Tajweed Colors off: every word renders black, like a
         // word with no tajweed match. The toggle lives in the Mushaf
         // Type screen (and Settings); this reader ignored the setting
@@ -428,7 +450,7 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
         if (tajweedOn && tj && off >= 0) {
           const runs = colorizeWord(g.text, tj.plain, tj.segments, off);
           lineContent.push(
-            <span key={`${g.verseKey}-${wi}`} id={wordId} className={wordClass} {...wordTap}>
+            <span key={`${g.verseKey}-${wi}`} id={wordId} className={wordClass} {...wordTap} {...playTap}>
               {runs.map((r, ri) => (
                 <span key={ri} style={{ color: r.color }}>
                   {r.text}
@@ -438,7 +460,7 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
           );
         } else {
           lineContent.push(
-            <span key={`${g.verseKey}-${wi}`} id={wordId} className={wordClass} style={{ color: TAJWEED_BLACK }} {...wordTap}>
+            <span key={`${g.verseKey}-${wi}`} id={wordId} className={wordClass} style={{ color: TAJWEED_BLACK }} {...wordTap} {...playTap}>
               {g.text}
             </span>,
           );
