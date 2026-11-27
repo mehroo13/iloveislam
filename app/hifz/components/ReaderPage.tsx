@@ -41,7 +41,7 @@ import {
 import { normalizeArabic } from '../lib/alignment';
 import { loadSimilarWordSet } from '../lib/similar-phrases';
 import ReaderSurahHeader from './ReaderSurahHeader';
-import { useTapGuard } from './ReaderAltViews';
+import { consumeWordLongPress, useTapGuard, useWordLongPress } from './ReaderAltViews';
 
 const ARABIC_INDIC_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 function toArabicIndic(n: number): string {
@@ -149,14 +149,24 @@ interface ReaderPageProps {
    *  page, so the queue is fetched for it. Absent = words are not
    *  tappable for playback. */
   onPlayFromVerse?: (verseKey: string, page: number) => void;
+  /** WORD PLAY (2026-11-27): a word was pressed and held — hear
+   *  just that word. The keys are the display word's engine keys;
+   *  the parent resolves them onto the audio segment. */
+  onPlayWord?: (verseKey: string, page: number, keys: string[]) => void;
 }
 
-export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasure, zoom, hideVerses, revealedLines, onRevealLine, highlightedWords, mistakes, onMistakeWordClick, script = 'uthmani', tajweedOn = true, hideMarkers = false, frequentMistakes, mistakeMarkingOn = true, similarOn = false, onRosetteClick, onPlayFromVerse }: ReaderPageProps) {
+export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasure, zoom, hideVerses, revealedLines, onRevealLine, highlightedWords, mistakes, onMistakeWordClick, script = 'uthmani', tajweedOn = true, hideMarkers = false, frequentMistakes, mistakeMarkingOn = true, similarOn = false, onRosetteClick, onPlayFromVerse, onPlayWord }: ReaderPageProps) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const measureRef = useRef<HTMLDivElement | null>(null);
   const onMeasureRef = useRef(onMeasure);
   onMeasureRef.current = onMeasure;
   const tapGuard = useTapGuard();
+  // WORD PLAY (2026-11-27): a hold on a revealed word plays just
+  // that word. No hold is attached while the line is hidden — a
+  // hidden line peeks on tap, never plays.
+  const wordLongPress = useWordLongPress((verseKey, keys) => {
+    onPlayWord?.(verseKey, page, keys);
+  });
 
   const cleanWord = script === 'indopak' ? cleanMushafIndopak : cleanMushafUthmani;
   /* "Color similar phrases" (Settings → Marking): the normalised
@@ -410,12 +420,14 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
           similarOn && !mistake && !hidden && norm !== '' && (similarSets[g.verseKey]?.has(norm) ?? false);
         const wordClass = `reader-word${mistake ? ' highlight-red mistake-word' : highlighted ? ' highlight-green' : ''}${frequent ? ' live-word-wrong' : ''}${similar ? ' rounded bg-[#FFB800]/40' : ''}`;
         // A red word opens its tooltip on a real tap (the guard keeps
-        // a swipe from firing it); hidden lines reveal instead.
+        // a swipe from firing it); hidden lines reveal instead. A tap
+        // that follows a word long-press is suppressed — the hold
+        // already played the word, so the tooltip must not open too.
         const wordTap =
           mistake && !hidden
             ? {
-                onPointerDown: tapGuard.down,
                 onClick: (e: React.MouseEvent) => {
+                  if (consumeWordLongPress()) return;
                   if (tapGuard.ok(e)) {
                     onMistakeWordClick?.(mistake, (e.currentTarget as HTMLElement).getBoundingClientRect());
                   }
@@ -429,16 +441,39 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
         // (mutually exclusive with wordTap above); hidden lines
         // reveal instead, so no tap is attached while hidden.
         // The rosette is a <button>, not a word span, so its tap
-        // never reaches here.
+        // never reaches here. WORD PLAY: a tap that follows a word
+        // long-press is suppressed — the hold already played just
+        // that word.
         const playTap =
           !mistake && !hidden && onPlayFromVerse
             ? {
-                onPointerDown: tapGuard.down,
                 onClick: (e: React.MouseEvent) => {
+                  if (consumeWordLongPress()) return;
                   if (tapGuard.ok(e)) onPlayFromVerse(g.verseKey, page);
                 },
               }
             : {};
+        // WORD PLAY (2026-11-27): the hold binder for this word —
+        // only on a revealed line. A hold on a red mistake word
+        // plays the word instead of opening its tooltip (the click
+        // that follows the hold is suppressed above).
+        const lpBind = !hidden && onPlayWord ? wordLongPress.bind(g.verseKey, g.keys) : null;
+        // The pointerdown merges the tap guard's (every word records
+        // it, as wordTap/playTap did before) with the hold's; the
+        // other hold handlers are the word's own. Explicit props sit
+        // after the spreads so they win over any onPointerDown a
+        // spread carries.
+        const wordPointer = {
+          onPointerDown: (e: React.PointerEvent) => {
+            tapGuard.down(e);
+            lpBind?.onPointerDown(e);
+          },
+          onPointerMove: lpBind?.onPointerMove,
+          onPointerUp: lpBind?.onPointerUp,
+          onPointerCancel: lpBind?.onPointerCancel,
+          onPointerLeave: lpBind?.onPointerLeave,
+          onContextMenu: lpBind?.onContextMenu,
+        };
         // Show Tajweed Colors off: every word renders black, like a
         // word with no tajweed match. The toggle lives in the Mushaf
         // Type screen (and Settings); this reader ignored the setting
@@ -450,7 +485,7 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
         if (tajweedOn && tj && off >= 0) {
           const runs = colorizeWord(g.text, tj.plain, tj.segments, off);
           lineContent.push(
-            <span key={`${g.verseKey}-${wi}`} id={wordId} className={wordClass} {...wordTap} {...playTap}>
+            <span key={`${g.verseKey}-${wi}`} id={wordId} className={wordClass} {...wordTap} {...playTap} {...wordPointer}>
               {runs.map((r, ri) => (
                 <span key={ri} style={{ color: r.color }}>
                   {r.text}
@@ -460,7 +495,7 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
           );
         } else {
           lineContent.push(
-            <span key={`${g.verseKey}-${wi}`} id={wordId} className={wordClass} style={{ color: TAJWEED_BLACK }} {...wordTap} {...playTap}>
+            <span key={`${g.verseKey}-${wi}`} id={wordId} className={wordClass} style={{ color: TAJWEED_BLACK }} {...wordTap} {...playTap} {...wordPointer}>
               {g.text}
             </span>,
           );

@@ -59,6 +59,7 @@ function scriptFontClass(script: QuranScript): string {
  */
 function AyahWords({
   verse,
+  page,
   highlightedWords,
   mistakes,
   onMistakeWordClick,
@@ -66,8 +67,12 @@ function AyahWords({
   script = 'uthmani',
   tajweed,
   tajweedOn = true,
+  onPlayWord,
 }: {
   verse: MushafVerse;
+  /** The mushaf page this ayah sits on — the word-play queue is
+   *  fetched for that page, in the edition being read. */
+  page: number;
   highlightedWords?: ReadonlySet<string>;
   /** Words the checker flagged this take (Phase 5): engine key →
    *  mistake. Those words light up red and are tappable. */
@@ -93,8 +98,20 @@ function AyahWords({
    *  default Quran Text mode (and Translation) never showed any
    *  colours even with the toggle on. */
   tajweedOn?: boolean;
+  /** WORD PLAY (2026-11-27): press and hold a word to hear just
+   *  that word. The keys are the display word's engine keys — the
+   *  parent resolves them onto the audio segment (see playWord). */
+  onPlayWord?: (verseKey: string, page: number, keys: string[]) => void;
 }) {
   const guard = useTapGuard();
+  // WORD PLAY: a hold on a revealed word plays just that word. No
+  // hold is attached while the verse is hidden (clickable === false)
+  // — a hidden verse peeks on tap, never plays — and a hold on a red
+  // mistake word plays the word instead of opening its tooltip (the
+  // click that follows the hold is suppressed, see below).
+  const longPress = useWordLongPress((verseKey, keys) => {
+    if (clickable !== false) onPlayWord?.(verseKey, page, keys);
+  });
   const words = verseDisplayWords(verse, script);
   // Align this ayah's display words to the tajweed text once per
   // render (same alignWords the Book reader uses, same caveat: in
@@ -107,18 +124,25 @@ function AyahWords({
         const highlighted = w.keys.some((k) => highlightedWords?.has(k));
         const mistake = mistakes ? mistakeForKeys(w.keys, mistakes) : undefined;
         // A red word opens its tooltip on a real tap (the guard keeps
-        // a swipe from firing it); hidden verses reveal instead.
+        // a swipe from firing it); hidden verses reveal instead. A
+        // tap that follows a word long-press is suppressed — the hold
+        // already played the word, so the tooltip must not open too.
         const wordTap =
           mistake && clickable !== false
             ? {
-                onPointerDown: guard.down,
                 onClick: (e: React.MouseEvent) => {
+                  if (consumeWordLongPress()) return;
                   if (guard.ok(e)) {
                     onMistakeWordClick?.(mistake, (e.currentTarget as HTMLElement).getBoundingClientRect());
                   }
                 },
               }
             : {};
+        // WORD PLAY (2026-11-27): the hold binder for this word —
+        // only on a revealed verse. The pointerdown merges with the
+        // tap guard's (a red word records both); the other hold
+        // handlers are the word's own.
+        const lpBind = clickable !== false && onPlayWord ? longPress.bind(verse.verse_key, w.keys) : null;
         const off = offsets[i] ?? -1;
         // Tajweed colours (display only): coloured letter-runs inside
         // the word span, exactly like the Book reader — the green/red
@@ -141,6 +165,15 @@ function AyahWords({
               id={w.keys[0] ? `word-${w.keys[0].replace(/:/g, '-')}` : undefined}
               className={`reader-word${mistake ? ' highlight-red mistake-word' : highlighted ? ' highlight-green' : ''}`}
               style={tajweedOn ? undefined : { color: TAJWEED_BLACK }}
+              onPointerDown={(e) => {
+                if (mistake && clickable !== false) guard.down(e);
+                lpBind?.onPointerDown(e);
+              }}
+              onPointerMove={lpBind?.onPointerMove}
+              onPointerUp={lpBind?.onPointerUp}
+              onPointerCancel={lpBind?.onPointerCancel}
+              onPointerLeave={lpBind?.onPointerLeave}
+              onContextMenu={lpBind?.onContextMenu}
               {...wordTap}
             >
               {content}
@@ -182,6 +215,108 @@ export function useTapGuard() {
       if (!p) return true;
       return Math.hypot(e.clientX - p.x, e.clientY - p.y) < 12;
     },
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  WORD PLAY — LONG PRESS (2026-11-27).                               */
+/*                                                                     */
+/*  Gesture (chosen over double-tap and over a tap-to-show control):   */
+/*  press and hold a word for 500ms. Double-tap was ruled out — the    */
+/*  first tap already plays the ayah, so it would need a ~300ms delay  */
+/*  on every ayah tap to wait for a second tap, degrading the shipped  */
+/*  tap-to-play. A control that appears on tap was ruled out — a tap   */
+/*  on a word already means "play this ayah", so the tap would both    */
+/*  start the ayah and show a chip (or the chip would have to replace  */
+/*  the ayah tap). Long-press is the standard mobile word action       */
+/*  (dictionaries do this), costs no new UI, and conflicts with        */
+/*  nothing: a quick tap still plays the ayah, a drag still scrolls    */
+/*  (movement over 12px — the same threshold as the tap guard —        */
+/*  cancels the hold), a hidden verse still peeks (no long-press is    */
+/*  attached while hidden), rosettes are buttons, not word spans.      */
+/*                                                                     */
+/*  Suppression: the pointerup after a long-press still fires a        */
+/*  click, which would bubble to the ayah tap handler and start the    */
+/*  whole ayah as well. The fire marks a short suppression window      */
+/*  (2.5s — the click follows the release by milliseconds; a hold      */
+/*  longer than ~3s total is the only case that escapes it, and then   */
+/*  the ayah simply plays, which is the pre-existing tap behaviour).   */
+/*  Every ayah/word/tooltip click handler checks consume() first.      */
+/*  The window also bounds the failure the other way: a flag left set  */
+/*  by a long-press whose click never arrives (pointercancel,           */
+/*  unmount) can eat at most one tap in the next 2.5s, never a later    */
+/*  deliberate one.                                                    */
+/* ------------------------------------------------------------------ */
+
+/** Hold duration for a word long-press. */
+export const WORD_LONG_PRESS_MS = 500;
+/** Movement that cancels a hold — the tap guard's 12px. */
+const WORD_LONG_PRESS_MOVE_PX = 12;
+
+let wordLongPressSuppressUntil = 0;
+/** A word long-press just fired: the click that follows the release
+ *  must not ALSO fire the ayah tap / mistake tooltip. */
+export function markWordLongPress() {
+  wordLongPressSuppressUntil = Date.now() + 2500;
+}
+/** True once, for the click that follows a long-press (then clears). */
+export function consumeWordLongPress(): boolean {
+  if (Date.now() < wordLongPressSuppressUntil) {
+    wordLongPressSuppressUntil = 0;
+    return true;
+  }
+  return false;
+}
+
+/** Long-press binder for one word: hold ≥500ms without moving >12px
+ *  → onLongPress(verseKey, keys); release sooner → nothing (the
+ *  normal tap proceeds). Pointer events only, so no click delay is
+ *  introduced and the tap guard still vets the click itself. The
+ *  timer is per-AyahWords / per-page instance (one press at a time);
+ *  the pointer id guards against a second finger cancelling the
+ *  first hold. onContextMenu is swallowed so a hold never pops the
+ *  browser's callout / selection menu over the word. */
+export function useWordLongPress(onLongPress: (verseKey: string, keys: string[]) => void) {
+  const press = useRef<{ id: number; x: number; y: number; timer: number | null } | null>(null);
+  const cbRef = useRef(onLongPress);
+  cbRef.current = onLongPress;
+  useEffect(
+    () => () => {
+      if (press.current?.timer !== null && press.current?.timer !== undefined) window.clearTimeout(press.current.timer);
+      press.current = null;
+    },
+    [],
+  );
+  const cancel = (e: React.PointerEvent) => {
+    const p = press.current;
+    if (p && p.id === e.pointerId && p.timer !== null) {
+      window.clearTimeout(p.timer);
+      p.timer = null;
+    }
+  };
+  return {
+    bind: (verseKey: string, keys: string[]) => ({
+      onPointerDown: (e: React.PointerEvent) => {
+        if (press.current?.timer !== null && press.current?.timer !== undefined) window.clearTimeout(press.current.timer);
+        const timer = window.setTimeout(() => {
+          press.current = null;
+          markWordLongPress();
+          cbRef.current(verseKey, keys);
+        }, WORD_LONG_PRESS_MS);
+        press.current = { id: e.pointerId, x: e.clientX, y: e.clientY, timer };
+      },
+      onPointerMove: (e: React.PointerEvent) => {
+        const p = press.current;
+        if (p && p.id === e.pointerId && p.timer !== null && Math.hypot(e.clientX - p.x, e.clientY - p.y) >= WORD_LONG_PRESS_MOVE_PX) {
+          window.clearTimeout(p.timer);
+          p.timer = null;
+        }
+      },
+      onPointerUp: cancel,
+      onPointerCancel: cancel,
+      onPointerLeave: cancel,
+      onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+    }),
   };
 }
 
@@ -269,6 +404,7 @@ export function ReaderContinuousText({
   script = 'uthmani',
   tajweedOn = true,
   onPlayFromVerse,
+  onPlayWord,
 }: {
   pages: { page: number; verses: MushafVerse[]; meta: ReaderPageData['meta']; tajweed?: Record<number, TajweedSurah> }[];
   textSize: number;
@@ -289,6 +425,9 @@ export function ReaderContinuousText({
    *  from there. The second arg is the mushaf page the ayah sits
    *  on, so the queue is fetched for the right page. */
   onPlayFromVerse?: (verseKey: string, page: number) => void;
+  /** WORD PLAY (2026-11-27): press and hold a word to hear just
+   *  that word. Passed through to AyahWords with the page. */
+  onPlayWord?: (verseKey: string, page: number, keys: string[]) => void;
 }) {
   const guard = useTapGuard();
   const seenSurahs = new Set<number>();
@@ -366,6 +505,9 @@ export function ReaderContinuousText({
                           // Excluded, via the target: rosette buttons
                           // and red mistake words — their own taps
                           // (tafsir sheet / tooltip) bubble up here.
+                          // WORD PLAY: a tap that follows a word
+                          // long-press is suppressed — the hold
+                          // already played just that word.
                           onPointerDown={hidden ? guard.down : onPlayFromVerse ? guard.down : undefined}
                           onClick={
                             hidden
@@ -376,6 +518,7 @@ export function ReaderContinuousText({
                                 ? (e) => {
                                     const t = e.target as HTMLElement;
                                     if (t.closest('button') || t.closest('.mistake-word')) return;
+                                    if (consumeWordLongPress()) return;
                                     if (guard.ok(e)) onPlayFromVerse(v.verse_key, page);
                                   }
                                 : undefined
@@ -388,6 +531,7 @@ export function ReaderContinuousText({
                         >
                           <AyahWords
                             verse={v}
+                            page={page}
                             highlightedWords={highlightedWords}
                             mistakes={mistakes}
                             onMistakeWordClick={onMistakeWordClick}
@@ -395,6 +539,7 @@ export function ReaderContinuousText({
                             script={script}
                             tajweed={tajweed?.[g.sid]?.ayahs[ayahNum] ?? null}
                             tajweedOn={tajweedOn}
+                            onPlayWord={onPlayWord}
                           />{' '}
                           <ReaderRosette ayah={ayahNum} />
                         </span>
@@ -461,6 +606,7 @@ function TranslationAyahBlock({
   tajweed,
   tajweedOn = true,
   onPlayFromVerse,
+  onPlayWord,
 }: {
   verse: MushafVerse;
   page: number;
@@ -496,6 +642,9 @@ function TranslationAyahBlock({
    *  translation) to hear the recitation from there. The second
    *  arg is the mushaf page the ayah sits on. */
   onPlayFromVerse?: (verseKey: string, page: number) => void;
+  /** WORD PLAY (2026-11-27): press and hold a word to hear just
+   *  that word. Passed through to AyahWords with the page. */
+  onPlayWord?: (verseKey: string, page: number, keys: string[]) => void;
 }) {
   const guard = useTapGuard();
   const key = `V${verse.verse_key}`;
@@ -516,13 +665,16 @@ function TranslationAyahBlock({
       // Arabic or translation, both are the same ayah. A hidden
       // ayah still peeks, never plays. Excluded, via the target:
       // the rosette button (tafsir sheet) and red mistake words
-      // (tooltip) — their own taps bubble up here.
+      // (tooltip) — their own taps bubble up here. WORD PLAY: a
+      // tap that follows a word long-press is suppressed — the hold
+      // already played just that word.
       onPointerDown={!hidden && onPlayFromVerse ? guard.down : undefined}
       onClick={
         !hidden && onPlayFromVerse
           ? (e) => {
               const t = e.target as HTMLElement;
               if (t.closest('button') || t.closest('.mistake-word')) return;
+              if (consumeWordLongPress()) return;
               if (guard.ok(e)) onPlayFromVerse(verse.verse_key, page);
             }
           : undefined
@@ -553,6 +705,7 @@ function TranslationAyahBlock({
         >
           <AyahWords
             verse={verse}
+            page={page}
             highlightedWords={highlightedWords}
             mistakes={mistakes}
             onMistakeWordClick={onMistakeWordClick}
@@ -560,6 +713,7 @@ function TranslationAyahBlock({
             script={script}
             tajweed={tajweed}
             tajweedOn={tajweedOn}
+            onPlayWord={onPlayWord}
           />{' '}
           {onRosetteClick ? (
             <button
@@ -616,6 +770,7 @@ export function ReaderTranslationMode({
   script = 'uthmani',
   tajweedOn = true,
   onPlayFromVerse,
+  onPlayWord,
 }: {
   /** The loaded page range, in order — the parent grows it as the
    *  user scrolls (same shape ReaderContinuousText takes). */
@@ -649,6 +804,9 @@ export function ReaderTranslationMode({
   /** TAP TO PLAY (2026-11-27): tap an ayah to hear the recitation
    *  from there. Passed through to each TranslationAyahBlock. */
   onPlayFromVerse?: (verseKey: string, page: number) => void;
+  /** WORD PLAY (2026-11-27): press and hold a word to hear just
+   *  that word. Passed through to each TranslationAyahBlock. */
+  onPlayWord?: (verseKey: string, page: number, keys: string[]) => void;
 }) {
   // Keyed by `${surah}:${translationId}` so switching translations
   // never shows the previous translation's text.
@@ -745,6 +903,7 @@ export function ReaderTranslationMode({
                         tajweed={tajweed?.[g.sid]?.ayahs[ayahNum] ?? null}
                         tajweedOn={tajweedOn}
                         onPlayFromVerse={onPlayFromVerse}
+                        onPlayWord={onPlayWord}
                       />
                     );
                   })}

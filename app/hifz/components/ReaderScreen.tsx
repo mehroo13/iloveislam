@@ -796,6 +796,20 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       /* storage unavailable — defaults stand */
     }
   }, []);
+  /* WORD PLAY TIP (2026-11-27): first reader open since the word
+   *  feature shipped shows the tip once; the flag is written on
+   *  first show so it never reappears, even if the user never taps
+   *  Got it. */
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem('ili_reader_word_tip_seen_v1') !== '1') {
+        window.localStorage.setItem('ili_reader_word_tip_seen_v1', '1');
+        setShowWordTip(true);
+      }
+    } catch {
+      /* storage unavailable — the tip just never shows */
+    }
+  }, []);
   /* ------------------- resume position (2026-11-26) -------------------
    * Mehran: closing the tool must return to the same position.
    * Until now this reader never saved or restored position at all
@@ -1649,7 +1663,18 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
 
   const startMic = useCallback(async () => {
     // Listen and the mic exclude each other: stop the audio first.
-    if (playStateRef.current !== 'idle') {
+    // A PAUSED player is not sounding, so stop it and proceed: the
+    // Play button is the reader's only in-place way to silence
+    // Listen, and it pauses rather than stops — so after a pause
+    // playState sat at 'paused' forever and this guard then blocked
+    // the mic until a refresh (reported 2026-11-27; reproduced live:
+    // Play → pause → mic showed "Stop the audio playback first"
+    // with nothing sounding). A PLAYING or LOADING player still
+    // blocks, exactly as before — the mic and the player never run
+    // together.
+    if (playStateRef.current === 'paused') {
+      stopPlayback();
+    } else if (playStateRef.current !== 'idle') {
       setMicToast('Stop the audio playback first, then recite.');
       micTimerRef.current = window.setTimeout(() => setMicToast(null), 4000);
       return;
@@ -1890,7 +1915,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         void stopMic('dead');
       }
     }, 4000);
-  }, [ensureEngine, setMic, stopMic, activeExpected]);
+  }, [ensureEngine, setMic, stopMic, stopPlayback, activeExpected]);
 
   const toggleMic = useCallback(() => {
     if (micStateRef.current === 'recording') {
@@ -1924,11 +1949,25 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const [playState, setPlayState] = useState<PlayState>('idle');
   const [playingWordKey, setPlayingWordKey] = useState<string | null>(null);
   const [playError, setPlayError] = useState<string | null>(null);
+  /** WORD PLAY TIP (2026-11-27): one-time, dismissible — the only
+   *  affordance for the new word feature. It names ONLY the
+   *  press-and-hold word gesture; tap-to-play stays undiscoverable
+   *  by design (Mehran: "leave it hidden"). Shown once ever — the
+   *  flag is set on first show — and the Got it button dismisses it
+   *  for the session. */
+  const [showWordTip, setShowWordTip] = useState(false);
   const playStateRef = useRef<PlayState>('idle');
   const playingWordKeyRef = useRef<string | null>(null);
   const playAudioRef = useRef<HTMLAudioElement | null>(null);
   const playQueueRef = useRef<PlayItem[]>([]);
   const playCurrentRef = useRef<PlayItem | null>(null);
+  /** WORD PLAY (2026-11-27): while set, the sounding clip is a
+   *  single word — `endMs` is the word's segment end inside its
+   *  ayah MP3; the highlight loop stops playback there instead of
+   *  letting the clip (and the queue) run on into the rest of the
+   *  ayah. Cleared by any stop, any ayah playback, and any queue
+   *  advance, so it can never stop a later ayah's clip. */
+  const wordStopRef = useRef<{ endMs: number } | null>(null);
   /** Generation counter: a newer start/stop invalidates in-flight
    *  fetches and play() promises, so a stale one cannot restart
    *  audio after the user stopped it. */
@@ -1950,6 +1989,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     playRunRef.current += 1;
     playQueueRef.current = [];
     playCurrentRef.current = null;
+    wordStopRef.current = null;
     const a = playAudioRef.current;
     if (a) {
       a.pause();
@@ -1964,6 +2004,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const playNextRef = useRef<() => void>(() => {});
   const playNext = useCallback(() => {
     const run = playRunRef.current;
+    wordStopRef.current = null;
     const audio = playAudioRef.current;
     if (!audio) return;
     const item = playQueueRef.current.shift();
@@ -2024,6 +2065,82 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   }, [stopPlayback, setPlay, showPlayError]);
   playNextRef.current = playNext;
 
+  /** The Listen queue for one displayed page, in the edition being
+   *  read — extracted from startPlayback (2026-11-27) so word play
+   *  can load the same single ayah's clip from the same source; the
+   *  fetch is identical, only the caller differs. Throws on a
+   *  failed fetch; returns [] when the page holds no audio. */
+  const loadPlayItems = useCallback(async (filterSurah: number, playPage: number): Promise<PlayItem[]> => {
+    // QUEUE SCOPE — THE DISPLAYED PAGE, IN THE CURRENT EDITION
+    // (2026-11-27): the queue used to be fetched from
+    // `/verses/by_page/{playPage}`, which is ALWAYS the Madani-1405
+    // pagination — but playPage is the page number of the EDITION
+    // being read. On any other edition (1421, 1441, Indo-Pak) the
+    // fetched page holds different verses, so the tapped/first ayah
+    // was often not in the queue at all: findIndex(ayah >= fromAyah)
+    // then returned 0, no slice happened, and playback started at
+    // the fetched page's first ayah — the displayed page's SECOND
+    // ayah (measured against the real layouts: Indo-Pak wrong on 93
+    // pages, 66 of them exactly the second ayah, from p3 on; 1421 /
+    // 1441 wrong on 8 pages, 3 of them the second ayah). The fix:
+    // the queue is the DISPLAYED page's own verse list (pagesRef
+    // holds the edition's page data — the same verses on screen),
+    // and the audio for that surah comes from by_chapter (one
+    // request, per_page=all — the fetchSurahVerses pattern),
+    // filtered to those verse keys. The tapped ayah is then always
+    // in the queue, in every edition.
+    const pageVerses = (pagesRef.current[playPage]?.verses ?? []).filter((v) =>
+      v.verse_key.startsWith(`${filterSurah}:`),
+    );
+    const items: PlayItem[] = [];
+    // The reciter is the one picked in Settings → Reciters
+    // (settings doc `reciterId`, default 7 Alafasy).
+    const reciterId = loadSettings().reciterId ?? DEFAULT_RECITER_ID;
+    if (pageVerses.length > 0) {
+      const res = await fetch(
+        `/api/quran/verses/by_chapter/${filterSurah}?fields=text_uthmani&audio=${reciterId}&per_page=all`,
+      );
+      if (!res.ok) throw new Error(`by_chapter ${filterSurah}: ${res.status}`);
+      const d = (await res.json()) as {
+        verses?: { verse_key: string; audio?: { url?: string; segments?: AudioSegment[] } }[];
+      };
+      const audioByKey = new Map<string, { url: string; segments: AudioSegment[] }>();
+      for (const v of d.verses ?? []) {
+        if (v.audio?.url) audioByKey.set(v.verse_key, { url: v.audio.url, segments: v.audio.segments ?? [] });
+      }
+      for (const v of pageVerses) {
+        const [s, a] = v.verse_key.split(':').map(Number);
+        const au = audioByKey.get(v.verse_key);
+        if (!au) continue;
+        items.push({ key: v.verse_key, surah: s, ayah: a, url: au.url, segments: au.segments, segKeys: audioDisplayKeys(v) });
+      }
+    } else {
+      // The displayed page's data is not in the cache (a tap that
+      // landed during a jump / edition switch): best effort on the
+      // old Madani-page fetch, with the same segment→key mapping
+      // built from the fetched words. This can still misroute on
+      // a non-1405 edition — the page data is the only
+      // edition-correct source — but it beats playing nothing.
+      const res = await fetch(
+        `/api/quran/verses/by_page/${playPage}?words=true&word_fields=text_uthmani,text_indopak,line_number,page_number,position,char_type_name&fields=text_uthmani&audio=${reciterId}`,
+      );
+      if (!res.ok) throw new Error(`by_page ${playPage}: ${res.status}`);
+      const d = (await res.json()) as {
+        verses?: {
+          verse_key: string;
+          audio?: { url?: string; segments?: AudioSegment[] };
+          words?: { text_uthmani?: string; char_type_name?: string }[];
+        }[];
+      };
+      for (const v of d.verses ?? []) {
+        const [s, a] = v.verse_key.split(':').map(Number);
+        if (s !== filterSurah || !v.audio?.url) continue;
+        items.push({ key: v.verse_key, surah: s, ayah: a, url: v.audio.url, segments: v.audio.segments ?? [], segKeys: audioDisplayKeys(v) });
+      }
+    }
+    return items;
+  }, []);
+
   // TAP TO PLAY (2026-11-27, Design B): `fromVerseKey` / `fromPage`
   // start the recitation at the ayah the user tapped, in any of the
   // three layouts — no green button first. The tapped ayah's surah
@@ -2046,6 +2163,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     setPlayError(null);
     const run = playRunRef.current + 1;
     playRunRef.current = run;
+    wordStopRef.current = null;
     // The passage the reader is on — the visible surah in
     // a continuous mode, else the page's ayahs, first surah only
     // (same scope as a mic take). A tap overrides both: the tapped
@@ -2060,74 +2178,9 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     const fromAyah = fromVerseKey ? Number(fromVerseKey.split(':')[1]) : undefined;
     const filterSurah = fromSurah ?? expected.surah;
     const playPage = fromPage ?? visiblePage;
-    // QUEUE SCOPE — THE DISPLAYED PAGE, IN THE CURRENT EDITION
-    // (2026-11-27): the queue used to be fetched from
-    // `/verses/by_page/{playPage}`, which is ALWAYS the Madani-1405
-    // pagination — but playPage is the page number of the EDITION
-    // being read. On any other edition (1421, 1441, Indo-Pak) the
-    // fetched page holds different verses, so the tapped/first ayah
-    // was often not in the queue at all: findIndex(ayah >= fromAyah)
-    // then returned 0, no slice happened, and playback started at
-    // the fetched page's first ayah — the displayed page's SECOND
-    // ayah (measured against the real layouts: Indo-Pak wrong on 93
-    // pages, 66 of them exactly the second ayah, from p3 on; 1421 /
-    // 1441 wrong on 8 pages, 3 of them the second ayah). The fix:
-    // the queue is the DISPLAYED page's own verse list (pagesRef
-    // holds the edition's page data — the same verses on screen),
-    // and the audio for that surah comes from by_chapter (one
-    // request, per_page=all — the fetchSurahVerses pattern),
-    // filtered to those verse keys. The tapped ayah is then always
-    // in the queue, in every edition.
-    const pageVerses = (pagesRef.current[playPage]?.verses ?? []).filter((v) =>
-      v.verse_key.startsWith(`${filterSurah}:`),
-    );
     let items: PlayItem[] = [];
     try {
-      // The reciter is the one picked in Settings → Reciters
-      // (settings doc `reciterId`, default 7 Alafasy).
-      const reciterId = loadSettings().reciterId ?? DEFAULT_RECITER_ID;
-      if (pageVerses.length > 0) {
-        const res = await fetch(
-          `/api/quran/verses/by_chapter/${filterSurah}?fields=text_uthmani&audio=${reciterId}&per_page=all`,
-        );
-        if (!res.ok) throw new Error(`by_chapter ${filterSurah}: ${res.status}`);
-        const d = (await res.json()) as {
-          verses?: { verse_key: string; audio?: { url?: string; segments?: AudioSegment[] } }[];
-        };
-        const audioByKey = new Map<string, { url: string; segments: AudioSegment[] }>();
-        for (const v of d.verses ?? []) {
-          if (v.audio?.url) audioByKey.set(v.verse_key, { url: v.audio.url, segments: v.audio.segments ?? [] });
-        }
-        for (const v of pageVerses) {
-          const [s, a] = v.verse_key.split(':').map(Number);
-          const au = audioByKey.get(v.verse_key);
-          if (!au) continue;
-          items.push({ key: v.verse_key, surah: s, ayah: a, url: au.url, segments: au.segments, segKeys: audioDisplayKeys(v) });
-        }
-      } else {
-        // The displayed page's data is not in the cache (a tap that
-        // landed during a jump / edition switch): best effort on the
-        // old Madani-page fetch, with the same segment→key mapping
-        // built from the fetched words. This can still misroute on
-        // a non-1405 edition — the page data is the only
-        // edition-correct source — but it beats playing nothing.
-        const res = await fetch(
-          `/api/quran/verses/by_page/${playPage}?words=true&word_fields=text_uthmani,text_indopak,line_number,page_number,position,char_type_name&fields=text_uthmani&audio=${reciterId}`,
-        );
-        if (!res.ok) throw new Error(`by_page ${playPage}: ${res.status}`);
-        const d = (await res.json()) as {
-          verses?: {
-            verse_key: string;
-            audio?: { url?: string; segments?: AudioSegment[] };
-            words?: { text_uthmani?: string; char_type_name?: string }[];
-          }[];
-        };
-        for (const v of d.verses ?? []) {
-          const [s, a] = v.verse_key.split(':').map(Number);
-          if (s !== filterSurah || !v.audio?.url) continue;
-          items.push({ key: v.verse_key, surah: s, ayah: a, url: v.audio.url, segments: v.audio.segments ?? [], segKeys: audioDisplayKeys(v) });
-        }
-      }
+      items = await loadPlayItems(filterSurah, playPage);
     } catch {
       if (playRunRef.current !== run) return;
       setPlay('idle');
@@ -2163,7 +2216,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     }
     playQueueRef.current = items;
     playNextRef.current();
-  }, [activeExpected, visiblePage, setPlay, showPlayError]);
+  }, [activeExpected, visiblePage, setPlay, showPlayError, loadPlayItems]);
 
   const togglePlayback = useCallback(() => {
     const st = playStateRef.current;
@@ -2207,6 +2260,128 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     [startPlayback],
   );
 
+  /** WORD PLAY (2026-11-27): press and hold a word to hear JUST
+   *  that word — additional to tap-to-play, which plays the whole
+   *  ayah. The ayah's MP3 is loaded, seeked to the word's segment
+   *  start (audio.currentTime — the first seek in this reader; the
+   *  v1 tap-to-play deliberately had none), and stopped at its
+   *  segment end by the highlight loop (wordStopRef). The queue is
+   *  left empty, so nothing follows the word — no next word, no
+   *  next ayah — unless the user taps again.
+   *
+   *  SEGMENT LOOKUP: `keys` are the display word's engine keys
+   *  (usually one; two when a pause mark rides inside the word).
+   *  A segment's 1-based position is a RAW-word ordinal, not an
+   *  engine index — so the lookup goes through the item's segKeys
+   *  map (audioDisplayKeys, the 1b054b8 fix), taking the FIRST
+   *  segment whose key is one of the word's keys. For a merged
+   *  word that is the base word's segment, never the pause mark's.
+   *  A live mic take owns the audio, so a hold mid-take is ignored
+   *  silently, like an ayah tap mid-take. */
+  const playWord = useCallback(
+    async (verseKey: string, pageNo: number, keys: string[]) => {
+      if (micStateRef.current !== 'idle') return;
+      setPlay('loading');
+      setPlayError(null);
+      const run = playRunRef.current + 1;
+      playRunRef.current = run;
+      wordStopRef.current = null;
+      const [surah] = verseKey.split(':').map(Number);
+      let items: PlayItem[] = [];
+      try {
+        items = await loadPlayItems(surah, pageNo);
+      } catch {
+        if (playRunRef.current !== run) return;
+        setPlay('idle');
+        showPlayError("Couldn't load the audio — check your connection and try again.");
+        return;
+      }
+      if (playRunRef.current !== run) return;
+      const item = items.find((it) => it.key === verseKey);
+      if (!item) {
+        setPlay('idle');
+        showPlayError('No audio for this word yet.');
+        return;
+      }
+      // First segment sounding one of this display word's keys.
+      const segIdx = item.segments.findIndex((seg) => keys.includes(item.segKeys[seg[1] - 1] ?? ''));
+      if (segIdx === -1) {
+        setPlay('idle');
+        showPlayError("Couldn't play that word — try tapping the ayah instead.");
+        return;
+      }
+      const seg = item.segments[segIdx];
+      const startMs = seg[2];
+      // A degenerate zero-length segment still sounds a beat, so the
+      // hold is never a silent no-op.
+      const endMs = Math.max(seg[3], startMs + 200);
+      const audio = playAudioRef.current;
+      if (!audio) {
+        setPlay('idle');
+        return;
+      }
+      playQueueRef.current = [];
+      playCurrentRef.current = item;
+      playingWordKeyRef.current = null;
+      setPlayingWordKey(null);
+      wordStopRef.current = { endMs };
+      audio.src = `${AUDIO_BASE}${item.url}`;
+      try {
+        audio.playbackRate = playSpeedRef.current;
+      } catch {
+        /* playbackRate unsupported — the word still plays at 1x */
+      }
+      // One play attempt for this word, mirroring playNext: an
+      // AbortError is a superseding skip/pause, never a failure;
+      // NotAllowedError stops and asks for another hold; a
+      // NotSupportedError retries once; anything else stops (there
+      // is no next word to skip to).
+      const attemptPlay = (isRetry: boolean) => {
+        audio
+          .play()
+          .then(() => {
+            if (playRunRef.current === run) setPlay('playing');
+          })
+          .catch((err: unknown) => {
+            if (playRunRef.current !== run) return;
+            const name = (err as { name?: string })?.name;
+            if (name === 'AbortError') return;
+            if (name === 'NotAllowedError') {
+              stopPlayback();
+              showPlayError('Audio was blocked — please press and hold the word again.');
+              return;
+            }
+            if (name === 'NotSupportedError' && !isRetry) {
+              window.setTimeout(() => {
+                if (playRunRef.current === run && playStateRef.current !== 'paused') attemptPlay(true);
+              }, 700);
+              return;
+            }
+            if (isRetry) return; // the error event owns the stop from here
+            stopPlayback();
+          });
+      };
+      // Seek once the clip's metadata is in (the seek is the whole
+      // feature: without it the ayah would sound from its start).
+      // readyState is already ≥1 when the clip is cached, so check
+      // first instead of waiting for an event that already fired.
+      const seekAndPlay = () => {
+        if (playRunRef.current !== run) return;
+        try {
+          audio.currentTime = Math.max(0, startMs / 1000);
+        } catch {
+          /* a failed seek still plays the ayah from its start — the
+             word highlight follows the sounding word, so the user
+             hears the word in context rather than nothing */
+        }
+        attemptPlay(false);
+      };
+      if (audio.readyState >= 1) seekAndPlay();
+      else audio.addEventListener('loadedmetadata', seekAndPlay, { once: true });
+    },
+    [setPlay, showPlayError, stopPlayback, loadPlayItems],
+  );
+
   /* One <audio> element drives Listen: the sounding position maps
    * onto the current verse's segments (between words, the last
    * sounded word stays lit until the next starts — the same rule as
@@ -2229,6 +2404,15 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       const cur = playCurrentRef.current;
       if (!cur || cur.segments.length === 0) return;
       const ms = audio.currentTime * 1000;
+      // WORD PLAY (2026-11-27): a single word ends at its segment
+      // end — stop there instead of playing on into the rest of the
+      // ayah. The rAF loop drives this at ~60fps (timeupdate is the
+      // fallback), so the overshoot past the word is a frame or two.
+      const wordStop = wordStopRef.current;
+      if (wordStop && ms >= wordStop.endMs) {
+        stopPlayback();
+        return;
+      }
       let idx = -1;
       for (let i = 0; i < cur.segments.length; i++) {
         const seg = cur.segments[i];
@@ -3053,6 +3237,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
             similarOn={similarOn}
             onRosetteClick={(verseKey) => setTafsirSheet(verseKey)}
             onPlayFromVerse={playFromVerse}
+            onPlayWord={playWord}
           />
         </div>
         <div className="mt-auto flex justify-end px-2 pt-1">
@@ -3136,6 +3321,31 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         </div>
       </header>
 
+      {/* WORD PLAY TIP (2026-11-27): one-time, dismissible — the
+          only affordance for the new word feature. It names ONLY
+          the press-and-hold word gesture; tap-to-play stays
+          undiscoverable by design. */}
+      {showWordTip && (
+        <div
+          data-testid="word-tip"
+          className="flex shrink-0 items-center justify-between gap-3 border-b border-[#E8E8E4] px-3 py-2"
+          style={{ backgroundColor: PAGE_BG }}
+        >
+          <p className="text-[13px] leading-snug" style={{ color: MUTED }}>
+            Tip: press and hold any word to hear just that word.
+          </p>
+          <button
+            type="button"
+            aria-label="Dismiss tip"
+            onClick={() => setShowWordTip(false)}
+            className="shrink-0 text-[13px] font-semibold"
+            style={{ color: INK }}
+          >
+            Got it
+          </button>
+        </div>
+      )}
+
       {/* PLAY REACHABLE MID-PAGE (2026-11-27): in the continuous
           modes (Quran Text, Translation) this header row — with the
           Play button — used to live at the top of the scrollable
@@ -3165,7 +3375,19 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       {/* Mushaf page (swipe area) */}
       <main
         ref={containerRef}
-        className="relative min-h-0 flex-1 select-none overflow-y-auto [touch-action:pan-y]"
+        // [overflow-anchor:none] (2026-11-27): the reader compensates
+        // a prepended page itself — the compensation effect shifts
+        // scrollTop down by exactly the height the new page added,
+        // so the ayah in view stays put. The browser's native scroll
+        // anchoring (on by default) does the SAME shift again at
+        // layout time, so the viewport jumped a whole extra page
+        // height on every upward extension (measured live: scroll
+        // up 240px after a restore landed scrollTop +1993/+2458px,
+        // topmost 18:54 -> 18:61/18:65 — exactly one prepended page
+        // too far). Disabling anchoring here leaves the manual
+        // compensation as the single adjustment; appends below the
+        // viewport never needed anchoring.
+        className="relative min-h-0 flex-1 select-none overflow-y-auto [touch-action:pan-y] [overflow-anchor:none]"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -3197,6 +3419,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                   script={scriptForEdition(edition)}
                   tajweedOn={tajweedOn}
                   onPlayFromVerse={playFromVerse}
+                  onPlayWord={playWord}
                 />
               ) : (
                 <ReaderTranslationMode
@@ -3212,6 +3435,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                   script={scriptForEdition(edition)}
                   tajweedOn={tajweedOn}
                   onPlayFromVerse={playFromVerse}
+                  onPlayWord={playWord}
                 />
               )}
             </>
