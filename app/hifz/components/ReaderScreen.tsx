@@ -2379,6 +2379,13 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       // feature: without it the ayah would sound from its start).
       // readyState is already ≥1 when the clip is cached, so check
       // first instead of waiting for an event that already fired.
+      // The seek itself is ASYNC: currentTime stays at the old
+      // position until it completes, and a play() issued meanwhile
+      // sounds the ayah from its start — measured live 2026-11-27:
+      // the first word lit green and ~200ms of it sounded before
+      // the seek landed. So play only once the seek completes
+      // ('seeked'), with a timeout that plays anyway rather than
+      // leaving the user with silence on a stuck seek.
       const seekAndPlay = () => {
         if (playRunRef.current !== run) return;
         try {
@@ -2387,8 +2394,22 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           /* a failed seek still plays the ayah from its start — the
              word highlight follows the sounding word, so the user
              hears the word in context rather than nothing */
+          attemptPlay(false);
+          return;
         }
-        attemptPlay(false);
+        if (!audio.seeking) {
+          attemptPlay(false);
+          return;
+        }
+        let done = false;
+        const go = () => {
+          if (done || playRunRef.current !== run) return;
+          done = true;
+          window.clearTimeout(timer);
+          attemptPlay(false);
+        };
+        const timer = window.setTimeout(go, 1200);
+        audio.addEventListener('seeked', go, { once: true });
       };
       if (audio.readyState >= 1) seekAndPlay();
       else audio.addEventListener('loadedmetadata', seekAndPlay, { once: true });
