@@ -38,6 +38,47 @@ export function readerWordKey(surah: number, ayah: number, word: number): string
   return `${surah}:${ayah}:${word}`;
 }
 
+/** Display key to light for each Quran.com audio segment of one verse.
+ *  Returns one key per spoken word, in segment order: entry [i] is the
+ *  key for the verse's (i+1)-th raw word — i.e. for the audio segment
+ *  whose 1-based position is i+1.
+ *
+ *  WHY THIS EXISTS (2026-11-27): a Quran.com segment position counts
+ *  RAW words — the verse's `words` entries, pause mark included in its
+ *  word ('وَمُنذِرِينَ ۚ' is one word, position 6 of 18:56). The
+ *  engine/display index counts WHITESPACE TOKENS — the same raw word
+ *  is two tokens ('وَمُنذِرِينَ' + 'ۚ'), so every display key after
+ *  such a word sits one higher than the segment position (two higher
+ *  after a second one). The old audio highlight did
+ *  `readerWordKey(surah, ayah, segmentPosition)` — treating a segment
+ *  position as an engine index — so from the first pause-mark word on,
+ *  the green word was the PREVIOUS word (18:56: segment 7 sounds
+ *  'وَيُجَـٰدِلُ' while the span for 'وَمُنذِرِينَ' stayed green, and
+ *  every later word lit its predecessor). This walks the raw words
+ *  with the SAME cursor displayEntriesForLine uses (tokenCount per
+ *  raw word) and returns each raw word's FIRST engine index — the key
+ *  of the span that displays that word — so the segment and the span
+ *  agree. The mic is untouched: it drives highlights from engine
+ *  indices, which already match these keys by construction. */
+export function audioDisplayKeys(verse: {
+  verse_key: string;
+  words?: { text_uthmani?: string; char_type_name?: string }[];
+}): string[] {
+  const [sidStr, ayahStr] = verse.verse_key.split(':');
+  const sid = Number(sidStr);
+  const ayahNum = Number(ayahStr);
+  const keys: string[] = [];
+  let cursor = 0;
+  for (const w of verse.words ?? []) {
+    if (w.char_type_name === 'end') continue;
+    // First engine index of this raw word; the pause mark riding in
+    // its text (if any) is the following token(s) of the same word.
+    keys.push(readerWordKey(sid, ayahNum, cursor + 1));
+    cursor += splitWords(w.text_uthmani ?? '').length;
+  }
+  return keys;
+}
+
 /** One rendered word: its display text plus the engine word keys it
  *  covers (usually one; two when a pause mark rides inside the raw
  *  word, e.g. 'رَيْبَ ۛ'). Rosette entries (ayah-end ornaments) have
