@@ -6,9 +6,10 @@ import { MUSHAF_TOTAL_PAGES } from '../hifz/mushaf';
 // 2026-11-21). The old tool pages and blog redirect to /hifz and are NOT
 // listed. The legal pages, About and Contact ARE listed (2026-11-21 SEO /
 // AdSense fix — AdSense reviewers look for About, Contact, Privacy and
-// Terms). Interactive tool pages (/hifz/recite, /hifz/test, /hifz/voice-search)
-// are noindex by their own metadata, so they are not listed either.
-// /hifz/my-progress stays listed (low priority) as it was.
+// Terms). Interactive tool pages (/hifz/recite, /hifz/test, /hifz/voice-search,
+// /hifz/search, /hifz/memorize, /hifz/goals, /hifz/my-progress) are noindex
+// by their own metadata, so they are not listed either — a sitemap must
+// never list a noindex URL (2026-11-27 Search Console fix).
 export async function GET() {
   const base = 'https://www.iloveislam.life';
   const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
@@ -31,14 +32,8 @@ export async function GET() {
     { loc: '/hifz/juz-amma', lastmod: REFOCUS_DATE, changefreq: 'monthly', priority: '0.8' },
     { loc: '/hifz/juz/30', lastmod: REFOCUS_DATE, changefreq: 'monthly', priority: '0.8' },    { loc: '/hifz/plans', lastmod: REFOCUS_DATE, changefreq: 'monthly', priority: '0.7' },
     { loc: '/hifz/ayat-al-kursi', lastmod: REFOCUS_DATE, changefreq: 'monthly', priority: '0.8' },
-    // my-progress is a tool page, not content — low priority (spec §9.1).
-    { loc: '/hifz/my-progress', lastmod: REFOCUS_DATE, changefreq: 'monthly', priority: '0.3' },
-    // Group challenges (spec §15.9) — same low priority as my-progress.
+    // Group challenges (spec §15.9) — low priority.
     { loc: '/hifz/challenges', lastmod: '2026-11-21', changefreq: 'monthly', priority: '0.3' },
-    // New bottom-tab hubs from the 2026-11-21 rebuild (spec §22) — tools, low priority.
-    { loc: '/hifz/search', lastmod: '2026-11-21', changefreq: 'monthly', priority: '0.3' },
-    { loc: '/hifz/memorize', lastmod: '2026-11-21', changefreq: 'monthly', priority: '0.3' },
-    { loc: '/hifz/goals', lastmod: '2026-11-21', changefreq: 'monthly', priority: '0.3' },
     // Trust pages — About, Contact, Privacy, Terms (AdSense reviewers look
     // for these; all four are live pages).
     { loc: '/about', lastmod: '2026-11-21', changefreq: 'monthly', priority: '0.5' },
