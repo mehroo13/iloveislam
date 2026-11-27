@@ -83,6 +83,43 @@ export function splitWords(text: string): RefWord[] {
   }));
 }
 
+/**
+ * Invisible format / direction controls that ride on Quran.com word
+ * text (a trailing U+200F on a pause mark, U+200B at a word end).
+ * They carry no identity, but normalizeArabic() leaves them — a
+ * "ۙ" token arrives as U+06D9 + U+200F and would normalise to a
+ * 1-char string instead of empty.
+ */
+const FORMAT_CONTROLS_RE = /[\u200B-\u200F\uFEFF]/g;
+
+/**
+ * True when a display token carries no spoken word: it normalises to
+ * nothing — a standalone pause mark / Quranic mark (e.g. U+06D9 "ۙ",
+ * U+06DA "ۚ", both inside DIACRITIC_RE's U+06D6–U+06ED range) or pure
+ * punctuation. Tilawa's reference (ref-v2, the engine's own word list)
+ * has no such token — 1:7 is 9 words there, 2:2 is 7, 18:56 is 18 —
+ * so the engine never observes one. Keeping it in a word list shifts
+ * every later word by one in every mapping that counts words (display
+ * keys, result words, audio segments): 1:7 scored out of 10 with the
+ * chip naming the neighbour of the word actually missed.
+ */
+export function isNonSpokenToken(display: string): boolean {
+  return normalizeArabic(display).replace(FORMAT_CONTROLS_RE, '').length === 0;
+}
+
+/**
+ * Split display text into SPOKEN words only — the engine's numbering.
+ * Drops non-spoken tokens (see isNonSpokenToken) and renumbers the
+ * survivors 0-based in kept order, so `index` is the spoken rank and
+ * `index + 1` is the engine's 1-based word number. Display forms are
+ * the original tokens, untouched.
+ */
+export function splitSpokenWords(text: string): RefWord[] {
+  return splitWords(text)
+    .filter((w) => !isNonSpokenToken(w.display))
+    .map((w, index) => ({ ...w, index }));
+}
+
 /** Character-level Levenshtein distance (small strings; O(n·m) is fine). */
 export function charDistance(a: string, b: string): number {
   if (a === b) return 0;

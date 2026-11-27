@@ -13,7 +13,7 @@ import { API, KHATTAB_TRANSLATION_ID, cleanIndopak } from '../../quran/lib';
 import { ALL_SURAHS, getSurahById, type HifzSurah } from '../surahs';
 import { loadSettings } from '../progress';
 import { lastReadSlug } from '../lib/mode';
-import { audioDisplayKeys } from '../lib/reader-words';
+import { audioSpokenKeys } from '../lib/reader-words';
 import { ATTRIBUTION } from '../lib/fetch';
 import type { AudioSegment, CoachAyah } from './RecitationCoach';
 
@@ -123,7 +123,13 @@ export default function ReciteClient({
         translation: translation.replace(/<[^>]*>/g, '').trim() || undefined,
         audioUrl: verse.audio?.url,
         segments: verse.audio?.segments,
-        segKeys: audioDisplayKeys(verse),
+        // Spoken numbering (audioSpokenKeys), not the reader's
+        // token-numbered audioDisplayKeys: the coach's word list is
+        // the spoken list, so a segment's key must be the engine's
+        // word number — after a pause-mark word the two numberings
+        // diverge (18:56) and a token-numbered key would name the
+        // wrong segment.
+        segKeys: audioSpokenKeys(verse),
       });
     } catch {
       if (runRef.current !== run) return;

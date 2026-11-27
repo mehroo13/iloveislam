@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   API, AUDIO_BASE, TRANSLATIONS, RECITERS, TAFSIRS, TAFSIR_ID, KHATTAB_TRANSLATION_ID, groupByLanguage, cleanTranslationText, cleanIndopak, verseText,
   type Verse,
@@ -119,7 +120,22 @@ export default function SurahClient({
   useEffect(() => {
     try {
       const q = new URLSearchParams(window.location.search);
-      if (q.get('mode') === 'recite') setCoachOpen(true);
+      const ayah = Number(q.get('ayah') ?? '');
+      const from = Number(q.get('from') ?? '');
+      const to = Number(q.get('to') ?? '');
+      if (q.get('mode') === 'recite') {
+        // The coach lives on /hifz/recite: go there on the requested
+        // ayah (?ayah=, else ?from=, else 1) instead of opening the
+        // inline coach, which ignored the range and started on ayah 1.
+        const target =
+          ayah >= 1 && ayah <= surah.ayahCount
+            ? ayah
+            : from >= 1 && from <= surah.ayahCount
+              ? from
+              : 1;
+        goRecite(target);
+        return;
+      }
       if (q.get('mode') === 'listen') setAutoListen(true);
       if (q.get('mode') === 'memorise') {
         setMemoriseMode(true);
@@ -127,10 +143,7 @@ export default function SurahClient({
         setHideMode('ayah');
         setHiddenAyahs(new Set(initialVerses.map((v) => v.verse_number)));
       }
-      const ayah = Number(q.get('ayah') ?? '');
       if (ayah >= 1 && ayah <= surah.ayahCount) setCoachAyahIndex(ayah - 1);
-      const from = Number(q.get('from') ?? '');
-      const to = Number(q.get('to') ?? '');
       if (from >= 1 && to >= from && to <= surah.ayahCount) {
         setCoachScope({
           kind: from === 1 && to === surah.ayahCount ? 'whole' : 'range',
@@ -645,6 +658,25 @@ export default function SurahClient({
     setPlayingKey(null);
   }, [wbwStop]);
 
+  const router = useRouter();
+
+  /* ---------- recite: the coach lives on ONE screen (/hifz/recite) ----------
+     Every recite entry on this page navigates there instead of opening
+     the inline coach (2026-11-27): the inline coach ignored ?from/&to
+     (coachScope was passed but unused) and always started on ayah 1.
+     `ayah` is the 1-based ayah to open on. Memorise mode keeps the
+     inline coach — it is the memorise feature's own surface, not a
+     recite entry. */
+  const goRecite = useCallback(
+    (ayah: number) => {
+      const a = Math.max(1, Math.min(ayah, surah.ayahCount));
+      stopListen();
+      saveMode('recite');
+      router.push(`/hifz/recite?surah=${surah.slug}&ayah=${a}`);
+    },
+    [router, surah, stopListen],
+  );
+
   const playNextInQueue = useCallback(() => {
     const audio = audioRef.current;
     const item = listenQueueRef.current[0];
@@ -743,10 +775,8 @@ export default function SurahClient({
       setHiddenAyahs(new Set());
       saveMode('reading');
     } else if (mode === 'recite') {
-      stopListen();
       setMemoriseMode(false);
-      setCoachOpen(true);
-      saveMode('recite');
+      goRecite(coachAyahIndex + 1);
     } else if (mode === 'listen') {
       setCoachOpen(false);
       setListenMode(true);
@@ -1019,11 +1049,7 @@ export default function SurahClient({
               aria-pressed={active}
               onClick={() => {
                 if (m === 'recitation') {
-                  stopListen();
-                  setMemoriseMode(false);
-                  setCoachOpen(true);
-                  saveMode('recite');
-                  document.querySelector(`[aria-label="${t('surah.coachAria')}"]`)?.scrollIntoView({ behavior: 'smooth' });
+                  goRecite(coachAyahIndex + 1);
                 } else if (m === 'memorisation') {
                   stopListen();
                   setMemoriseMode(true);
@@ -1215,11 +1241,7 @@ export default function SurahClient({
           {!coachOpen && (
             <button
               type="button"
-              onClick={() => {
-                stopListen();
-                setCoachOpen(true);
-                saveMode('recite');
-              }}
+              onClick={() => goRecite(coachAyahIndex + 1)}
               className="shrink-0 rounded-full bg-[#FFB800] min-h-11 px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               {t('surah.reciteThis')}
@@ -1694,11 +1716,7 @@ export default function SurahClient({
                 </Link>
                 <button
                   type="button"
-                  onClick={() => {
-                    setCoachAyahIndex(v.verse_number - 1);
-                    setCoachOpen(true);
-                    document.querySelector(`[aria-label="${t('surah.coachAria')}"]`)?.scrollIntoView({ behavior: 'smooth' });
-                  }}
+                  onClick={() => goRecite(v.verse_number)}
                   className="rounded-full border border-[#E5E7EB] min-h-11 px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
                 >
                   {t('surah.reciteAyah')}

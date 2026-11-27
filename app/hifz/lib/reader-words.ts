@@ -21,7 +21,7 @@
 // Key scheme matches the coach's liveWords (`surah:ayah:word`,
 // 1-based) so the two surfaces agree.
 
-import { splitWords } from './alignment';
+import { splitSpokenWords, splitWords } from './alignment';
 import {
   cleanMushafIndopak,
   cleanMushafUthmani,
@@ -75,6 +75,37 @@ export function audioDisplayKeys(verse: {
     // its text (if any) is the following token(s) of the same word.
     keys.push(readerWordKey(sid, ayahNum, cursor + 1));
     cursor += splitWords(w.text_uthmani ?? '').length;
+  }
+  return keys;
+}
+
+/** Display key to light for each Quran.com audio segment of one verse,
+ *  in SPOKEN numbering: entry [i] is the key for the verse's (i+1)-th
+ *  spoken word — the engine's numbering, not the raw-token numbering
+ *  of audioDisplayKeys. Same walk, but the cursor advances only by
+ *  spoken tokens (splitSpokenWords), so a pause-mark-only token inside
+ *  a raw word ("وَمُنذِرِينَ ۚ", 18:56) does not shift every later
+ *  segment's key. The coach uses this for its segKeys: its word list
+ *  is the spoken list, and its chip playback looks a segment up by
+ *  engine key. The reader keeps audioDisplayKeys — its display
+ *  entries are token-numbered. A raw word with no spoken token at all
+ *  still pushes a key (its predecessor's) so the segment↔key positions
+ *  stay 1:1. */
+export function audioSpokenKeys(verse: {
+  verse_key: string;
+  words?: { text_uthmani?: string; char_type_name?: string }[];
+}): string[] {
+  const [sidStr, ayahStr] = verse.verse_key.split(':');
+  const sid = Number(sidStr);
+  const ayahNum = Number(ayahStr);
+  const keys: string[] = [];
+  let cursor = 0;
+  for (const w of verse.words ?? []) {
+    if (w.char_type_name === 'end') continue;
+    // First SPOKEN index of this raw word; a pause mark riding in its
+    // text (if any) consumes no spoken index.
+    keys.push(readerWordKey(sid, ayahNum, cursor + 1));
+    cursor += splitSpokenWords(w.text_uthmani ?? '').length;
   }
   return keys;
 }

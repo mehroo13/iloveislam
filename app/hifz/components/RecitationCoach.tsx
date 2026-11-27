@@ -52,7 +52,7 @@ import {
   type MistakeType,
 } from '../progress';
 import { readListenSpeed } from '../lib/listen-speed';
-import { splitWords } from '../lib/alignment';
+import { isNonSpokenToken, splitWords } from '../lib/alignment';
 import { AdaptiveVad } from '../lib/vad';
 import { saveSessionAudio } from '../lib/store';
 import { recordCoachSession } from '../lib/session-records';
@@ -90,8 +90,9 @@ export interface CoachAyah {
    *  hearing one missed word on its own. Absent when the caller did not
    *  fetch them; word playback is then unavailable. */
   segments?: AudioSegment[];
-  /** One display key per segment (audioDisplayKeys) — a segment's
-   *  1-based position is a raw-word ordinal, not an engine index. */
+  /** One display key per segment (audioSpokenKeys) — a segment's key
+   *  is the engine's word number for the spoken word it sounds, so
+   *  playWord can look a segment up by engine key. */
   segKeys?: string[];
 }
 
@@ -184,6 +185,22 @@ function micErrorFor(err: unknown): { state: 'denied' | 'unavailable'; message: 
   };
 }
 
+/** One word the coach shows, scores and plays — in the ENGINE's
+ *  numbering. `engineIndex` is the 0-based spoken rank; +1 is
+ *  Tilawa's 1-based word number (its ref-v2 list), which is what
+ *  live WordEvents, SessionResult.words (`word`) and confirmed
+ *  mistakes (`location.word`) all carry. A standalone pause mark
+ *  (e.g. U+06D9 "ۙ" in 1:7) is NOT a word: the engine never observes
+ *  it, so keeping it in the list shifted every later word by one —
+ *  1:7 scored out of 10 with a phantom "not heard" word, and the
+ *  chip for a missed الْمَغْضُوبِ named غَيْرِ. The mark's display
+ *  rides on the previous spoken word instead (the reader's merge
+ *  discipline), so it stays visible without ever being counted. */
+interface CoachWord {
+  engineIndex: number;
+  display: string;
+}
+
 export default function RecitationCoach({
   surah,
   surahName,
@@ -197,7 +214,21 @@ export default function RecitationCoach({
     Math.max(0, Math.min(initialAyahIndex, Math.max(0, ayahs.length - 1))),
   );
   const current = ayahs[currentIndex];
-  const words = useMemo(() => (current ? splitWords(current.text) : []), [current]);
+  // Spoken words only, in engine numbering (see CoachWord): a
+  // standalone pause mark is merged onto the previous word's display
+  // and never becomes an entry of its own.
+  const words = useMemo((): CoachWord[] => {
+    if (!current) return [];
+    const out: CoachWord[] = [];
+    for (const w of splitWords(current.text)) {
+      if (isNonSpokenToken(w.display)) {
+        if (out.length > 0) out[out.length - 1].display += w.display;
+        continue;
+      }
+      out.push({ engineIndex: out.length, display: w.display });
+    }
+    return out;
+  }, [current]);
 
   // Phase: ready (show the ayah, Listen / Hide / mic) or feedback
   // (the small result card). Recording is micState === 'recording'.
@@ -697,26 +728,32 @@ export default function RecitationCoach({
     const confirmedKeys = new Set(
       res.mistakes.map((m) => wordKey(m.location.surah, m.location.ayah, m.location.word)),
     );
-    const words: FeedbackWord[] = [];
-    for (const w of splitWords(current.text)) {
+    // Map the result onto the SPOKEN words by the engine's word number
+    // (`rw.word`, 1-based) — never by `rw.wordIndex`, the adapter's
+    // whitespace-token index, which counts the pause-mark token and
+    // would mislabel every word after it. A result entry past the
+    // last spoken word (the adapter's phantom token, never observed)
+    // has no spoken word and is dropped.
+    const feedback: FeedbackWord[] = [];
+    for (const w of words) {
       const found = res.words.find(
-        (rw) => rw.surah === current.surah && rw.ayah === current.ayah && rw.wordIndex === w.index,
+        (rw) => rw.surah === current.surah && rw.ayah === current.ayah && rw.word === w.engineIndex + 1,
       );
       const status: FeedbackWord['status'] = found ? found.status : 'not-reached';
-      words.push({
-        key: wordKey(current.surah, current.ayah, w.index + 1),
+      feedback.push({
+        key: wordKey(current.surah, current.ayah, w.engineIndex + 1),
         display: w.display,
         status,
-        confirmed: confirmedKeys.has(wordKey(current.surah, current.ayah, w.index + 1)),
+        confirmed: confirmedKeys.has(wordKey(current.surah, current.ayah, w.engineIndex + 1)),
       });
     }
-    setFeedbackWords(words);
+    setFeedbackWords(feedback);
     setPhase('feedback');
 
-    const missedWords = words.filter((w) => w.status === 'missed' || w.status === 'wrong');
+    const missedWords = feedback.filter((w) => w.status === 'missed' || w.status === 'wrong');
     const allCorrect =
       !peeked && !res.unclear && missedWords.length === 0 && res.reachedCount > 0 &&
-      words.every((w) => w.status === 'correct' || w.status === 'not-reached');
+      feedback.every((w) => w.status === 'correct' || w.status === 'not-reached');
     const minutes = Math.max(res.durationMs / 60000, 0.1);
     // Mistake detection, read fresh (Settings → Recitation): off means
     // the take is follow-along only, whatever the engine flagged.
@@ -749,9 +786,12 @@ export default function RecitationCoach({
       // as a mistake: only confirmed events and observed misses reach here.
       mistakes: missedWords.map((w) => {
         const [s, ay, wd] = w.key.split(':').map(Number);
-        const display = splitWords(current.text)[wd - 1]?.display ?? w.display;
+        // `wd` is the engine's 1-based word number; `wordIndex` is the
+        // 0-based SPOKEN rank — the same numbering the feedback list
+        // above uses, not the whitespace-token index.
+        const display = w.display;
         const heard = res.words.find(
-          (rw) => rw.surah === s && rw.ayah === ay && rw.wordIndex === wd - 1,
+          (rw) => rw.surah === s && rw.ayah === ay && rw.word === wd,
         )?.heard;
         const eventClass = res.mistakes.find(
           (m) => m.location.surah === s && m.location.ayah === ay && m.location.word === wd,
@@ -803,7 +843,7 @@ export default function RecitationCoach({
       mistakes: missedWords.length,
       ...(audioId ? { audioId } : {}),
     });
-  }, [current, surah, surahName, rangeLabel, peeked, persistAttempt, settings]);
+  }, [current, words, surah, surahName, rangeLabel, peeked, persistAttempt, settings]);
 
   /** The big round mic button: tap to recite, tap again to stop. */
   const onMicTap = useCallback(() => {
@@ -880,9 +920,9 @@ export default function RecitationCoach({
       const audio = audioRef.current;
       if (!current?.audioUrl || !audio) return;
       const key = wordKey(current.surah, current.ayah, wordIndex0 + 1);
-      // First segment sounding this word's key (segKeys maps a segment's
-      // raw-word position onto its display key). Fall back to the
-      // positional segment when the scripts' word breaks differ.
+      // First segment sounding this word's key (segKeys maps a segment
+      // onto its spoken word's engine key). Fall back to the positional
+      // segment when the scripts' word breaks differ.
       let seg: AudioSegment | undefined;
       if (current.segments && current.segKeys) {
         const idx = current.segments.findIndex((s) => current.segKeys?.[s[1] - 1] === key);
@@ -905,6 +945,13 @@ export default function RecitationCoach({
       } catch {
         /* playbackRate unsupported — the word still plays at 1x */
       }
+      // preload="none" never fetches on a bare src assignment, so the
+      // old code waited for `loadedmetadata` that never fired — the
+      // chip turned green, readyState stayed 0, no request went out
+      // and no sound played. Force the fetch with load(), then seek
+      // once metadata lands, with a timeout that plays anyway rather
+      // than leaving the chip green and silent forever.
+      audio.load();
       // The seek is async: play only once it lands ('seeked'), with a
       // timeout that plays anyway rather than leaving silence.
       const attemptPlay = () => {
@@ -941,7 +988,24 @@ export default function RecitationCoach({
         }, 1500);
       };
       if (audio.readyState >= 1) doSeek();
-      else audio.addEventListener('loadedmetadata', doSeek, { once: true });
+      else {
+        // Seek needs metadata; if it never arrives (hung fetch), play
+        // anyway after a bounded wait instead of hanging silent.
+        let metaDone = false;
+        const onMeta = () => {
+          if (metaDone) return;
+          metaDone = true;
+          window.clearTimeout(metaTimer);
+          doSeek();
+        };
+        const metaTimer = window.setTimeout(() => {
+          if (metaDone) return;
+          metaDone = true;
+          audio.removeEventListener('loadedmetadata', onMeta);
+          doSeek();
+        }, 4000);
+        audio.addEventListener('loadedmetadata', onMeta, { once: true });
+      }
     },
     [current, micState, stopAudio],
   );
@@ -1055,7 +1119,7 @@ export default function RecitationCoach({
       <div className="rounded-xl border border-[#E5E7EB] px-4 py-5">
         <p dir="rtl" lang="ar" translate="no" className="font-quran text-right text-3xl leading-loose text-[#1C2420]">
           {words.map((w) => {
-            const key = wordKey(current?.surah ?? surah, current?.ayah ?? 0, w.index + 1);
+            const key = wordKey(current?.surah ?? surah, current?.ayah ?? 0, w.engineIndex + 1);
             const live = liveWords[key];
             const shown =
               !arabicHidden ||
@@ -1063,7 +1127,7 @@ export default function RecitationCoach({
               live === 'correct' ||
               live === 'wrong' ||
               live === 'missed' ||
-              w.index < revealedCount;
+              w.engineIndex < revealedCount;
             if (!shown) {
               return (
                 <span
