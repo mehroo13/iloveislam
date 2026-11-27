@@ -508,6 +508,12 @@ function wordKey(ref: WordRef): string {
 }
 
 function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSession {
+  // Mic-lag diagnostics (2026-11-27): session-creation wall time on
+  // the same performance.now() clock as the first-event logs. The
+  // session is created in the mic tap (after the engine-ready await),
+  // so with the harness-side tap reading this brackets the tap →
+  // listen wait. One line per session; console only.
+  console.log('[tilawa] session-created:', JSON.stringify({ wallMs: Math.round(performance.now()) }));
   const session: TilawaSession = tilawa.startMemorization(
     { surah: opts.surah, fromAyah: opts.fromAyah, toAyah: opts.toAyah },
     { confirm: { after: 'next-word' } },
@@ -614,6 +620,17 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
   let everLocked = false;
   /** Position events received, any state (see AudioHealth). */
   let positionEvents = 0;
+  /**
+   * First-event timing diagnostics (mic-lag investigation, 2026-11-27):
+   * wall-clock (performance.now()) + session-audio ms of the first
+   * position event, first lock (with its committed span + basmala
+   * prefix), and first mic level callback — logged once per take so a
+   * harness (or a phone console) can split the lag into capture vs
+   * decode vs acquisition. Console only; no behaviour change.
+   */
+  let firstPositionLogged = false;
+  let firstLockLogged = false;
+  let firstLevelLogged = false;
   /** Mic-capture health, from Tilawa's onLevel callbacks (raw worklet
    * frames, before resampling/tracking). Silence reports about -120 dBFS. */
   let levelCallbacks = 0;
@@ -631,6 +648,10 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
   /** Record one onLevel sample, then forward it to the UI meter. */
   const recordLevel = (db: number) => {
     levelCallbacks++;
+    if (!firstLevelLogged) {
+      firstLevelLogged = true;
+      console.log('[tilawa] first-level:', JSON.stringify({ wallMs: Math.round(performance.now()) }));
+    }
     if (db > maxLevelDb) maxLevelDb = db;
     if (db > AUDIBLE_DBFS) audibleCallbacks++;
     opts.onLevel?.(db);
@@ -705,6 +726,12 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
     if (event.type === 'position') {
       const ev = event as PositionEvent;
       positionEvents++;
+      if (!firstPositionLogged) {
+        firstPositionLogged = true;
+        console.log('[tilawa] first-position:', JSON.stringify({
+          wallMs: Math.round(performance.now()), timeMs: ev.timeMs, state: ev.state,
+        }));
+      }
       if (ev.state !== trackerState) {
         trackerState = ev.state;
         opts.onTrackerState?.(ev.state);
@@ -724,6 +751,7 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       if (anchorIndex === null && anchorTracker.anchor !== null) {
         anchorIndex = anchorTracker.anchor;
         console.log('[tilawa] anchor:', {
+          wallMs: Math.round(performance.now()),
           anchorIndex,
           anchorKey: orderedKeys[anchorIndex],
           floorIndex: anchorFloorIndex,
@@ -734,6 +762,25 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       }
       if (ev.state === 'locked') {
         everLocked = true;
+        if (!firstLockLogged) {
+          firstLockLogged = true;
+          // `span` is the tracker's committed match ("words covered by
+          // the evidence so far") — the acquisition context the lock
+          // consumed; `prefix: 'basmala'` certifies a leading basmala
+          // was heard before the span. Logged so first-word capture
+          // can be measured, not assumed.
+          console.log('[tilawa] first-lock:', JSON.stringify({
+            wallMs: Math.round(performance.now()),
+            timeMs: ev.timeMs,
+            key,
+            spanStart: best.span ? wordKey(best.span.start) : null,
+            spanEnd: best.span ? wordKey(best.span.end) : null,
+            prefix: best.prefix ?? null,
+            confidence: best.confidence,
+            per: best.per,
+            cost: best.cost,
+          }));
+        }
         // H1/H3: the stop-time fallback anchor is the first lock at or
         // after the floor — a lock onto the passage head never counts.
         if (firstLockedIndex === null && idx !== undefined && idx >= anchorFloorIndex) {
@@ -981,6 +1028,7 @@ function createSession(tilawa: Tilawa, opts: StartSessionOptions): RecitationSes
       // detection for the UI lives in app/hifz/lib/vad.ts (AdaptiveVad) —
       // display-only, never a gate on the audio path.
       preparedContext = prepared?.context ?? null;
+      console.log('[tilawa] listen-start:', JSON.stringify({ wallMs: Math.round(performance.now()) }));
       mic = await tilawa.listen(session, {
         vad: false,
         onLevel: recordLevel,
