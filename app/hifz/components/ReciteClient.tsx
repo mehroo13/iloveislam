@@ -94,7 +94,7 @@ export default function ReciteClient({
     }
     try {
       const res = await fetch(
-        `${API}/verses/by_key/${s.id}:${a}?fields=text_indopak,text_uthmani&words=true&translations=${translationId === KHATTAB_TRANSLATION_ID ? 20 : translationId}&audio=${reciterId}`,
+        `${API}/verses/by_key/${s.id}:${a}?fields=text_indopak,text_uthmani&words=true&word_fields=text_uthmani&translations=${translationId === KHATTAB_TRANSLATION_ID ? 20 : translationId}&audio=${reciterId}`,
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as { verse?: VersePayload };

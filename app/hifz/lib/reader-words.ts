@@ -62,7 +62,7 @@ export function readerWordKey(surah: number, ayah: number, word: number): string
  *  indices, which already match these keys by construction. */
 export function audioDisplayKeys(verse: {
   verse_key: string;
-  words?: { text_uthmani?: string; char_type_name?: string }[];
+  words?: { text_uthmani?: string; text?: string; char_type_name?: string }[];
 }): string[] {
   const [sidStr, ayahStr] = verse.verse_key.split(':');
   const sid = Number(sidStr);
@@ -74,7 +74,13 @@ export function audioDisplayKeys(verse: {
     // First engine index of this raw word; the pause mark riding in
     // its text (if any) is the following token(s) of the same word.
     keys.push(readerWordKey(sid, ayahNum, cursor + 1));
-    cursor += splitWords(w.text_uthmani ?? '').length;
+    // Fall back to the code-font `text` glyph when a payload carries
+    // no per-word text_uthmani (a by_key/by_chapter call without
+    // word_fields): it is one glyph per word entry, so the cursor
+    // still advances one per word instead of collapsing every key
+    // onto the first word — the silent failure the coach's Listen
+    // lighting hit on 2026-11-27 (segKeys were ['1:7:1' × 9]).
+    cursor += splitWords(w.text_uthmani ?? w.text ?? '').length;
   }
   return keys;
 }
@@ -93,7 +99,7 @@ export function audioDisplayKeys(verse: {
  *  stay 1:1. */
 export function audioSpokenKeys(verse: {
   verse_key: string;
-  words?: { text_uthmani?: string; char_type_name?: string }[];
+  words?: { text_uthmani?: string; text?: string; char_type_name?: string }[];
 }): string[] {
   const [sidStr, ayahStr] = verse.verse_key.split(':');
   const sid = Number(sidStr);
@@ -105,7 +111,17 @@ export function audioSpokenKeys(verse: {
     // First SPOKEN index of this raw word; a pause mark riding in its
     // text (if any) consumes no spoken index.
     keys.push(readerWordKey(sid, ayahNum, cursor + 1));
-    cursor += splitSpokenWords(w.text_uthmani ?? '').length;
+    // Without per-word text_uthmani (a payload fetched without
+    // word_fields) the code-font `text` glyph must NOT go through
+    // splitSpokenWords: normalizeArabic strips presentation forms, so
+    // the glyph reads as non-spoken, the cursor never advances and
+    // every key collapses onto the first word — the silent failure
+    // the coach's Listen lighting hit on 2026-11-27 (segKeys were
+    // ['1:7:1' × 9]). A word entry with no text_uthmani is one spoken
+    // word: pause marks are never separate entries in this API's word
+    // list, they ride inside a word's text.
+    const uth = w.text_uthmani;
+    cursor += uth !== undefined ? splitSpokenWords(uth).length : w.text ? 1 : 0;
   }
   return keys;
 }
