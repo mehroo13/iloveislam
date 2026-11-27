@@ -632,11 +632,17 @@ function startTapBuffer(handle: PreparedMicrophone, context: AudioContext): TapB
       return null;
     }
     const blob = new Blob(chunks, { type: mimeType || undefined });
-    if (blob.size === 0) return null;
+    if (blob.size === 0) {
+      console.log('[tilawa] tap-buffer-decode-failed:', JSON.stringify({ error: 'empty-blob', bytes: 0, chunks: chunks.length, ctxState: context.state, ctxRate: context.sampleRate }));
+      return null;
+    }
     try {
       const buf = await blob.arrayBuffer();
       const audio = await context.decodeAudioData(buf);
-      if (!audio || audio.numberOfChannels < 1 || audio.length === 0) return null;
+      if (!audio || audio.numberOfChannels < 1 || audio.length === 0) {
+        console.log('[tilawa] tap-buffer-decode-failed:', JSON.stringify({ error: 'invalid-audio', bytes: blob.size, chunks: chunks.length, ctxState: context.state, ctxRate: context.sampleRate }));
+        return null;
+      }
       const data = audio.getChannelData(0);
       const maxSamples = Math.floor((TAP_BUFFER_MAX_MS / 1000) * audio.sampleRate);
       const truncated = data.length > maxSamples;
@@ -647,7 +653,8 @@ function startTapBuffer(handle: PreparedMicrophone, context: AudioContext): TapB
         durationMs: Math.round((samples.length / audio.sampleRate) * 1000),
         truncated,
       };
-    } catch {
+    } catch (e) {
+      console.log('[tilawa] tap-buffer-decode-failed:', JSON.stringify({ error: e instanceof Error ? e.message : String(e), bytes: blob.size, chunks: chunks.length, ctxState: context.state, ctxRate: context.sampleRate }));
       return null;
     }
   };
