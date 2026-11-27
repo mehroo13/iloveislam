@@ -35,7 +35,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { AUDIO_BASE } from '../../quran/lib';
+import { AUDIO_BASE, RECITERS, TRANSLATIONS, groupByLanguage, reciterName, translationName } from '../../quran/lib';
 import { playDroppedFeedback, playMistakeFeedback } from '../lib/sounds';
 import {
   addMistake,
@@ -48,6 +48,7 @@ import {
   recordTypeActivity,
   saveMistakes,
   saveProgress,
+  saveSettings,
   type HifzSettings,
   type MistakeType,
 } from '../progress';
@@ -121,6 +122,13 @@ export interface RecitationCoachProps {
   onNextAyah?: () => void;
   /** Whether a next ayah exists, when the parent owns navigation. */
   hasNextAyah?: boolean;
+  /** When the parent owns settings refetch (the /hifz/recite screen),
+   *  the coach shows a Translation & voice picker and calls this
+   *  after a pick is saved, so the ayah reloads with the new
+   *  translation / reciter. Absent on the surah/ayah pages, where
+   *  the picker stays hidden (their ayah data is fetched once by
+   *  the parent). */
+  onSettingsChange?: () => void;
 }
 
 type EngineState = 'idle' | 'loading' | 'ready' | 'failed' | 'unsupported';
@@ -209,6 +217,7 @@ export default function RecitationCoach({
   onAyahChange,
   onNextAyah,
   hasNextAyah,
+  onSettingsChange,
 }: RecitationCoachProps) {
   const [currentIndex, setCurrentIndex] = useState<number>(
     Math.max(0, Math.min(initialAyahIndex, Math.max(0, ayahs.length - 1))),
@@ -263,6 +272,11 @@ export default function RecitationCoach({
   // Word playback (tap a missed word to hear just that word).
   const [playingWordKey, setPlayingWordKey] = useState<string | null>(null);
   const [wordNote, setWordNote] = useState<string | null>(null);
+  // Word sounding now during whole-ayah Listen (follow-along lighting,
+  // like the reader): the engine key of the word in its segment, or
+  // null between segments. Set from the audio timeupdate listener.
+  const [listenWordKey, setListenWordKey] = useState<string | null>(null);
+  const listenWordKeyRef = useRef<string | null>(null);
   // Listen (whole ayah) playback.
   const [playing, setPlaying] = useState(false);
 
@@ -307,6 +321,23 @@ export default function RecitationCoach({
 
   /* ---------------- audio (Listen) ---------------- */
 
+  /** Segments/segKeys of the current ayah for the timeupdate listener
+   *  (attached once — it cannot close over `current`). */
+  const audioMetaRef = useRef<{
+    segments?: AudioSegment[];
+    segKeys?: string[];
+    surah: number;
+    ayah: number;
+  }>({ surah, ayah: 0 });
+  useEffect(() => {
+    audioMetaRef.current = {
+      segments: current?.segments,
+      segKeys: current?.segKeys,
+      surah: current?.surah ?? surah,
+      ayah: current?.ayah ?? 0,
+    };
+  }, [current, surah]);
+
   const stopAudio = useCallback(() => {
     const audio = audioRef.current;
     if (audio) {
@@ -317,6 +348,8 @@ export default function RecitationCoach({
     wordStopRef.current = null;
     setPlaying(false);
     setPlayingWordKey(null);
+    listenWordKeyRef.current = null;
+    setListenWordKey(null);
   }, []);
 
   const playAyahAudio = useCallback(() => {
@@ -337,6 +370,8 @@ export default function RecitationCoach({
       setPlaying(false);
       setPlayingWordKey(null);
       wordStopRef.current = null;
+      listenWordKeyRef.current = null;
+      setListenWordKey(null);
     };
     // Single-word playback: stop at the word's segment end.
     const onTimeUpdate = () => {
@@ -346,6 +381,25 @@ export default function RecitationCoach({
         audio.pause();
         setPlaying(false);
         setPlayingWordKey(null);
+      }
+      // Listen follow-along: light the word sounding now. Whole-ayah
+      // playback only — a single-word chip sets wordStopRef and lights
+      // through playingWordKey instead. The key comes from segKeys
+      // (spoken numbering), so it lands on the same corrected word
+      // list the mic colours — a pause-mark token never lights, and
+      // the word after it is the word actually sounding.
+      if (!wordStopRef.current && !audio.paused) {
+        const meta = audioMetaRef.current;
+        const tMs = audio.currentTime * 1000;
+        let key: string | null = null;
+        if (meta.segments && meta.segKeys) {
+          const seg = meta.segments.find((s) => tMs >= s[2] && tMs < s[3]);
+          if (seg) key = meta.segKeys[seg[1] - 1] ?? null;
+        }
+        if (listenWordKeyRef.current !== key) {
+          listenWordKeyRef.current = key;
+          setListenWordKey(key);
+        }
       }
     };
     audio.addEventListener('ended', onEnded);
@@ -1037,6 +1091,14 @@ export default function RecitationCoach({
   const canGoNext = onNextAyah ? (hasNextAyah ?? true) : internalHasNext;
   const nextBlockedByFix = pendingFix && feedbackWords.some((w) => w.status === 'missed' || w.status === 'wrong');
   const nextAyah = useCallback(() => {
+    // Leaving mid-take (the main-row Next ayah is always visible):
+    // end the live session first so no invisible mic session survives
+    // the move. The parent-owned path remounts the coach anyway; the
+    // internal path (surah-page memorise coach) needs this abort.
+    if (sessionRef.current) {
+      void abortLiveSession();
+      setMicState('idle');
+    }
     if (onNextAyah) {
       onNextAyah();
       return;
@@ -1049,7 +1111,7 @@ export default function RecitationCoach({
     setArabicHidden(false);
     setCurrentIndex(next);
     onAyahChange?.(ayahs[next]?.ayah ?? 0);
-  }, [onNextAyah, currentIndex, ayahs, resetAttempt, onAyahChange]);
+  }, [onNextAyah, currentIndex, ayahs, resetAttempt, onAyahChange, abortLiveSession]);
 
   const peekNext = useCallback(() => {
     setRevealedCount((c) => c + 1);
@@ -1062,6 +1124,56 @@ export default function RecitationCoach({
     setPeekCount((c) => c + 1);
     setPeeked(true);
   }, []);
+
+  /* ---------------- translation & voice picker ----------------
+     One small sheet with two picks — Translation (the real
+     105-translation catalogue, grouped by language) and Voice (the
+     real 12 reciters). Picks persist in the same settings store
+     Settings uses (reciterId / translationId), so they stick across
+     visits and stay in sync; the parent refetches the ayah with the
+     new translation/reciter (onSettingsChange). Only rendered when
+     the parent owns that refetch (the /hifz/recite screen). */
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerTranslationId, setPickerTranslationId] = useState<number | null>(null);
+  const [pickerReciterId, setPickerReciterId] = useState<number | null>(null);
+  const openPicker = useCallback(() => {
+    try {
+      const st = loadSettings();
+      setPickerTranslationId(st.translationId);
+      setPickerReciterId(st.reciterId);
+    } catch {
+      /* defaults shown until a pick is made */
+    }
+    setPickerOpen(true);
+  }, []);
+  const changeTranslation = useCallback(
+    (id: number) => {
+      setPickerTranslationId(id);
+      try {
+        const next = { ...loadSettings(), translationId: id };
+        saveSettings(next);
+        setSettings(next);
+      } catch {
+        /* the pick still shows; the refetch below still runs */
+      }
+      onSettingsChange?.();
+    },
+    [onSettingsChange],
+  );
+  const changeReciter = useCallback(
+    (id: number) => {
+      setPickerReciterId(id);
+      try {
+        const next = { ...loadSettings(), reciterId: id };
+        saveSettings(next);
+        setSettings(next);
+      } catch {
+        /* the pick still shows; the refetch below still runs */
+      }
+      onSettingsChange?.();
+    },
+    [onSettingsChange],
+  );
 
   /* ---------------- derived render state ---------------- */
 
@@ -1093,6 +1205,9 @@ export default function RecitationCoach({
    *  "sounding now", red means "mistake". */
   const wordClass = (key: string): string | undefined => {
     if (playingWordKey === key) return 'live-word-correct';
+    // Listen follow-along: the word sounding now lights green, like
+    // the reader — green means "sounding now", red means "mistake".
+    if (listenWordKey === key) return 'live-word-correct';
     if (phase === 'feedback') {
       const fw = feedbackWords.find((f) => f.key === key);
       if (fw?.status === 'correct') return 'live-word-correct';
@@ -1238,10 +1353,10 @@ export default function RecitationCoach({
         </p>
       )}
 
-      {/* Controls: Listen, Hide, and the big round mic. */}
+      {/* Controls: Listen, Hide, Next ayah, and the big round mic. */}
       {phase !== 'feedback' && (
         <div className="mt-5 flex flex-col items-center">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <button
               type="button"
               onClick={playing ? stopAudio : playAyahAudio}
@@ -1257,6 +1372,14 @@ export default function RecitationCoach({
               className="min-h-11 rounded-full border border-[#E5E7EB] bg-white px-5 py-2.5 text-sm font-semibold text-[#1C2420] hover:border-[#1C2420] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1C2420]"
             >
               {arabicHidden ? 'Show' : 'Hide'}
+            </button>
+            <button
+              type="button"
+              onClick={nextAyah}
+              disabled={!canGoNext || nextBlockedByFix || micState === 'requesting' || micState === 'checking'}
+              className="min-h-11 rounded-full border border-[#E5E7EB] bg-white px-5 py-2.5 text-sm font-semibold text-[#1C2420] hover:border-[#1C2420] disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1C2420]"
+            >
+              Next ayah
             </button>
           </div>
           <button
@@ -1281,6 +1404,19 @@ export default function RecitationCoach({
           <p className="mt-1 text-center text-xs text-[#5b6b62]">
             Word accuracy only — this does not judge tajweed.
           </p>
+          {onSettingsChange && (
+            <button
+              type="button"
+              onClick={openPicker}
+              aria-label="Change translation and voice"
+              className="mt-3 min-h-11 max-w-full rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#1C2420] hover:border-[#1C2420] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1C2420]"
+            >
+              <span className="block max-w-full truncate">
+                {settings ? translationName(settings.translationId).split(',')[0] : 'Translation'} ·{' '}
+                {settings ? reciterName(settings.reciterId) : 'Voice'} ⌄
+              </span>
+            </button>
+          )}
         </div>
       )}
 
@@ -1361,6 +1497,75 @@ export default function RecitationCoach({
               Your settings hold you on this ayah until it comes back clean — try again.
             </p>
           )}
+        </div>
+      )}
+
+      {/* Translation & voice sheet (only on the /hifz/recite screen). */}
+      {pickerOpen && onSettingsChange && (
+        <div
+          role="dialog"
+          aria-label="Translation and voice"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
+          onClick={() => setPickerOpen(false)}
+        >
+          <div
+            className="max-h-[80vh] w-full max-w-xl overflow-y-auto rounded-t-2xl border border-[#E5E7EB] bg-white p-4 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-base font-bold text-[#1C2420]">Translation &amp; voice</p>
+              <button
+                type="button"
+                onClick={() => setPickerOpen(false)}
+                aria-label="Close"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E5E7EB] text-[#1C2420] hover:border-[#1C2420] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1C2420]"
+              >
+                ✕
+              </button>
+            </div>
+            <label className="mt-4 block text-sm font-semibold text-[#1C2420]">
+              Translation
+              <select
+                value={pickerTranslationId ?? ''}
+                onChange={(e) => changeTranslation(Number(e.target.value))}
+                className="mt-1 min-h-11 w-full rounded-lg border border-[#E5E7EB] bg-white px-2 py-2 text-sm"
+              >
+                {groupByLanguage(TRANSLATIONS).map((g) => (
+                  <optgroup key={g.lang} label={g.lang}>
+                    {g.items.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+            <label className="mt-4 block text-sm font-semibold text-[#1C2420]">
+              Voice
+              <select
+                value={pickerReciterId ?? ''}
+                onChange={(e) => changeReciter(Number(e.target.value))}
+                className="mt-1 min-h-11 w-full rounded-lg border border-[#E5E7EB] bg-white px-2 py-2 text-sm"
+              >
+                {RECITERS.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="mt-3 text-xs leading-relaxed text-[#5b6b62]">
+              Saved at once — the ayah reloads with your new translation and voice, and Settings stays in sync.
+            </p>
+            <button
+              type="button"
+              onClick={() => setPickerOpen(false)}
+              className="mt-3 min-h-11 w-full rounded-full border border-[#1C2420] bg-white px-5 py-2.5 text-sm font-semibold text-[#1C2420] hover:bg-[#F4F5F7] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1C2420]"
+            >
+              Done
+            </button>
+          </div>
         </div>
       )}
     </section>

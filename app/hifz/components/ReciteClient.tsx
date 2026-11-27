@@ -227,6 +227,7 @@ export default function ReciteClient({
             initialAyahIndex={0}
             onNextAyah={goNext}
             hasNextAyah={hasNext}
+            onSettingsChange={() => void fetchAyah(surah, ayah)}
           />
         )}
       </div>
