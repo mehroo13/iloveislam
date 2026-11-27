@@ -498,7 +498,7 @@ export async function warmWebModule(): Promise<void> {
  * The background warmup fixes the warm tap, not the tap that lands
  * before the warmup finishes.
  *
- * Why a MediaRecorder buffer is SAFE here (the earlier investigation
+ * Why a worklet-tap buffer is SAFE here (the earlier investigation
  * stopped at "buffered audio must feed before the live stream or it
  * corrupts tracker order, and draining a backlog at ~0.2x real-time
  * would stall the live take" — both premises are now measured
@@ -520,153 +520,156 @@ export async function warmWebModule(): Promise<void> {
  *    buffer length on a cold tap — strictly better than losing the
  *    opening words entirely. The `[tilawa] tracker-lag:` summary
  *    logged at stop measures the real lag per take.
- *  - CAPTURE: the recorder runs on the prepared stream — the same
- *    stream the coach's own MediaRecorder already shares — starting
- *    when the stream resolves (permission granted; before that the
- *    user cannot be reciting). It records on the media thread, so it
- *    keeps capturing through the synchronous session-construction
- *    block on the main thread. Two recorders on one stream are
- *    independent; a second getUserMedia is never opened.
- *  - FAILURE: any failure (no MediaRecorder, no supported mimeType,
- *    decode error, empty blob) yields null and the take proceeds
- *    exactly as before — the buffer can never break a take.
+ *  - CAPTURE: a MediaRecorder was tried first (88d2f89) and MEASURED
+ *    BROKEN in exactly the window it must cover: with the main
+ *    thread saturated by the engine load + session construction,
+ *    the recorder emits zero dataavailable events in 4 s (live
+ *    harness 2026-11-27: tap-buffer-empty, 0 chunks; isolated
+ *    repro: a busy main thread for 3 s → 0 chunks, while the same
+ *    recorder idle records 11 chunks / 3.00 s). So the buffer taps
+ *    the prepared stream with its OWN AudioWorkletNode — the same
+ *    mechanism the live take uses (@tilawa's own `tilawa-tap`
+ *    worklet), running on the audio render thread, not the main
+ *    thread: its 128-frame blocks are posted to the main thread and
+ *    queue reliably while the main thread is busy, so no opening
+ *    audio is lost. No encoder, no decode, no mimeType: the blocks
+ *    are already PCM at the context's native rate and are pushed
+ *    as-is. Two taps on one stream are independent; a second
+ *    getUserMedia is never opened.
+ *  - FAILURE: any failure (no worklet support, addModule rejects,
+ *    no blocks collected) yields null and the take proceeds exactly
+ *    as before — the buffer can never break a take.
  */
 export interface TapBufferDrain {
   samples: Float32Array;
   sampleRate: number;
-  /** Decoded audio length, ms. */
+  /** Buffered audio length, ms. */
   durationMs: number;
-  /** True when the recording ran longer than TAP_BUFFER_MAX_MS and the tail was dropped. */
+  /** True when the tap ran longer than TAP_BUFFER_MAX_MS and the tail was dropped. */
   truncated: boolean;
 }
 
 interface TapBufferController {
-  /** Wall ms recorded so far (tap/grant → now). */
+  /** Wall ms tapped so far (tap/grant → now). */
   elapsedMs(): number;
-  /** Stop the recorder, decode the audio, return null when unusable. */
+  /** Stop tapping, return the buffered PCM, or null when unusable. */
   drain(): Promise<TapBufferDrain | null>;
-  /** Abandon the recording (take never started / capture released). */
+  /** Abandon the tap (take never started / capture released). */
   discard(): void;
 }
 
-/** In-tap recorders, keyed by the capture they belong to. Module-level
+/** In-tap buffers, keyed by the capture they belong to. Module-level
  * so `startMic()` can drain the buffer `prepareMicrophoneStandalone()`
  * started, without changing the public PreparedMicCapture shape. */
 const tapBuffers = new WeakMap<PreparedMicCapture, TapBufferController>();
 
-function pickTapBufferMimeType(): string {
-  if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') return '';
-  for (const cand of ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']) {
-    try {
-      if (MediaRecorder.isTypeSupported(cand)) return cand;
-    } catch {
-      // Ignore and try the next candidate.
-    }
-  }
-  return '';
-}
+/** The tap worklet: same shape as @tilawa/core's own `tilawa-tap` —
+ * copy each 128-frame input block to the main thread. Kept separate
+ * (own processor name) so the live take's worklet is untouched. */
+const TAP_WORKLET = `registerProcessor("tilawa-tap-buffer", class extends AudioWorkletProcessor {
+  process(inputs) { const c = inputs[0] && inputs[0][0]; if (c) this.port.postMessage(c.slice(0)); return true; }
+});`;
+
+/** One module load per context: addModule is async, and the tap must
+ * start as soon as the stream resolves — re-adding per tap would
+ * cost the opening ~50 ms every time. */
+const tapWorkletModules = new WeakMap<AudioContext, Promise<void>>();
 
 function startTapBuffer(handle: PreparedMicrophone, context: AudioContext): TapBufferController | null {
-  if (typeof MediaRecorder === 'undefined') return null;
-  const mimeType = pickTapBufferMimeType();
-  const chunks: Blob[] = [];
-  let recorder: MediaRecorder | null = null;
+  if (typeof AudioWorkletNode === 'undefined' || !context.audioWorklet) return null;
+  const blocks: Float32Array[] = [];
+  let totalSamples = 0;
+  let truncated = false;
   let stopped = false;
   let startedAt: number | null = null;
+  let node: AudioWorkletNode | null = null;
+  let source: MediaStreamAudioSourceNode | null = null;
+  const maxSamples = Math.floor((TAP_BUFFER_MAX_MS / 1000) * context.sampleRate);
+  const disconnect = () => {
+    if (node) {
+      try { node.port.onmessage = null; } catch { /* ignore */ }
+      try { node.disconnect(); } catch { /* ignore */ }
+    }
+    try { source?.disconnect(); } catch { /* ignore */ }
+    node = null;
+    source = null;
+  };
   handle.stream.then((stream) => {
     if (stopped) return;
-    try {
-      recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
-    } catch (e) {
-      console.log('[tilawa] tap-buffer-recorder-failed:', JSON.stringify({ error: e instanceof Error ? e.message : String(e) }));
-      return;
+    let module = tapWorkletModules.get(context);
+    if (!module) {
+      const url = URL.createObjectURL(new Blob([TAP_WORKLET], { type: 'application/javascript' }));
+      module = context.audioWorklet.addModule(url).then(() => {
+        URL.revokeObjectURL(url);
+      }).catch((e) => {
+        URL.revokeObjectURL(url);
+        throw e;
+      });
+      tapWorkletModules.set(context, module);
     }
-    recorder.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) chunks.push(e.data);
-    };
-    recorder.onerror = (e) => {
-      console.log('[tilawa] tap-buffer-error:', JSON.stringify({ error: String((e as ErrorEvent).error ?? e.type) }));
-    };
-    try {
-      recorder.start(250);
-      startedAt = Date.now();
-      console.log('[tilawa] tap-buffer-started:', JSON.stringify({ wallMs: Math.round(performance.now()), mimeType: mimeType || '(default)' }));
-    } catch (e) {
+    module.then(() => {
+      if (stopped) return;
+      try {
+        source = context.createMediaStreamSource(stream);
+        node = new AudioWorkletNode(context, 'tilawa-tap-buffer');
+        node.port.onmessage = (ev: MessageEvent) => {
+          if (stopped) return;
+          const data = ev.data as Float32Array;
+          if (!data || data.length === 0) return;
+          if (totalSamples >= maxSamples) {
+            truncated = true;
+            return;
+          }
+          const room = maxSamples - totalSamples;
+          const take = data.length > room ? data.subarray(0, room) : data;
+          blocks.push(Float32Array.from(take));
+          totalSamples += take.length;
+          if (take.length < data.length) truncated = true;
+        };
+        // Some browsers only pull a worklet that reaches the
+        // destination; a muted gain keeps it silent.
+        const mute = context.createGain();
+        mute.gain.value = 0;
+        source.connect(node);
+        node.connect(mute);
+        mute.connect(context.destination);
+        startedAt = Date.now();
+        console.log('[tilawa] tap-buffer-started:', JSON.stringify({ wallMs: Math.round(performance.now()), sampleRate: context.sampleRate }));
+      } catch (e) {
+        console.log('[tilawa] tap-buffer-start-failed:', JSON.stringify({ error: e instanceof Error ? e.message : String(e) }));
+        disconnect();
+      }
+    }).catch((e) => {
       console.log('[tilawa] tap-buffer-start-failed:', JSON.stringify({ error: e instanceof Error ? e.message : String(e) }));
-      recorder = null;
-    }
+    });
   }).catch((e) => {
     console.log('[tilawa] tap-buffer-stream-failed:', JSON.stringify({ error: e instanceof Error ? e.message : String(e) }));
   });
   const elapsedMs = (): number => (startedAt === null ? 0 : Date.now() - startedAt);
   const drain = async (): Promise<TapBufferDrain | null> => {
     stopped = true;
-    const rec = recorder;
-    recorder = null;
-    if (!rec) return null;
-    // Stop and await the final flush. The encoder MUST be drained via
-    // stop(): Chrome's webm muxer may emit nothing on the timeslice
-    // ticks and deliver the whole recording on stop — returning early
-    // on `chunks.length === 0` here threw away a good 3.7 s buffer in
-    // the cold-tap harness (measured 2026-11-27: recorder started,
-    // 3703 ms elapsed, drain returned in 1 ms with zero chunks).
-    // Only a recorder that is already inactive with nothing recorded
-    // yields null.
-    if (rec.state !== 'inactive') {
-      await new Promise<void>((resolve) => {
-        const to = window.setTimeout(() => resolve(), 1500);
-        rec.onstop = () => {
-          window.clearTimeout(to);
-          resolve();
-        };
-        try {
-          rec.stop();
-        } catch {
-          window.clearTimeout(to);
-          resolve();
-        }
-      });
-    }
-    if (chunks.length === 0) {
-      console.log('[tilawa] tap-buffer-empty:', JSON.stringify({ state: rec.state, chunks: 0 }));
+    disconnect();
+    if (totalSamples === 0) {
+      console.log('[tilawa] tap-buffer-empty:', JSON.stringify({ blocks: 0 }));
       return null;
     }
-    const blob = new Blob(chunks, { type: mimeType || undefined });
-    if (blob.size === 0) {
-      console.log('[tilawa] tap-buffer-decode-failed:', JSON.stringify({ error: 'empty-blob', bytes: 0, chunks: chunks.length, ctxState: context.state, ctxRate: context.sampleRate }));
-      return null;
+    const samples = new Float32Array(totalSamples);
+    let offset = 0;
+    for (const b of blocks) {
+      samples.set(b, offset);
+      offset += b.length;
     }
-    try {
-      const buf = await blob.arrayBuffer();
-      const audio = await context.decodeAudioData(buf);
-      if (!audio || audio.numberOfChannels < 1 || audio.length === 0) {
-        console.log('[tilawa] tap-buffer-decode-failed:', JSON.stringify({ error: 'invalid-audio', bytes: blob.size, chunks: chunks.length, ctxState: context.state, ctxRate: context.sampleRate }));
-        return null;
-      }
-      const data = audio.getChannelData(0);
-      const maxSamples = Math.floor((TAP_BUFFER_MAX_MS / 1000) * audio.sampleRate);
-      const truncated = data.length > maxSamples;
-      const samples = Float32Array.from(truncated ? data.subarray(0, maxSamples) : data);
-      const drainedMs = Math.round((samples.length / audio.sampleRate) * 1000);
-      console.log('[tilawa] tap-buffer-drained:', JSON.stringify({ ms: drainedMs, chunks: chunks.length, bytes: blob.size, ctxState: context.state }));
-      return {
-        samples,
-        sampleRate: audio.sampleRate,
-        durationMs: drainedMs,
-        truncated,
-      };
-    } catch (e) {
-      console.log('[tilawa] tap-buffer-decode-failed:', JSON.stringify({ error: e instanceof Error ? e.message : String(e), bytes: blob.size, chunks: chunks.length, ctxState: context.state, ctxRate: context.sampleRate }));
-      return null;
-    }
+    const blockCount = blocks.length;
+    blocks.length = 0;
+    const durationMs = Math.round((samples.length / context.sampleRate) * 1000);
+    console.log('[tilawa] tap-buffer-drained:', JSON.stringify({ ms: durationMs, blocks: blockCount, sampleRate: context.sampleRate, truncated }));
+    return { samples, sampleRate: context.sampleRate, durationMs, truncated };
   };
   const discard = () => {
     stopped = true;
-    const rec = recorder;
-    recorder = null;
-    if (rec && rec.state !== 'inactive') {
-      try { rec.stop(); } catch { /* ignore */ }
-    }
+    disconnect();
+    blocks.length = 0;
+    totalSamples = 0;
   };
   return { elapsedMs, drain, discard };
 }
@@ -680,10 +683,10 @@ function startTapBuffer(handle: PreparedMicrophone, context: AudioContext): TapB
  * before preparing, so a cold first tap prepared outside the gesture
  * and the AudioContext could stay suspended with zero frames).
  *
- * Also starts the in-tap buffer (see above): a MediaRecorder on the
- * prepared stream, drained by `startMic()` before `listen()` — so a
+ * Also starts the in-tap buffer (see above): an AudioWorklet tap on
+ * the prepared stream, drained by `startMic()` before `listen()` — so a
  * tap that lands before the background warmup finishes no longer
- * loses its opening words. The recorder is stopped/discarded by
+ * loses its opening words. The tap is stopped/discarded by
  * `startMic()` or by `release()`; it never outlives the capture.
  */
 export function prepareMicrophoneStandalone(): PreparedMicCapture {
