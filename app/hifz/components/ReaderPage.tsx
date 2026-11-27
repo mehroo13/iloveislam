@@ -418,7 +418,11 @@ export default function ReaderPage({ page, verses, tajweed, designWidth, onMeasu
           mistakeMarkingOn && !mistake && !hidden && norm !== '' && (frequentMistakes?.has(`${sid}:${ayahNum}:${norm}`) ?? false);
         const similar =
           similarOn && !mistake && !hidden && norm !== '' && (similarSets[g.verseKey]?.has(norm) ?? false);
-        const wordClass = `reader-word${mistake ? ' highlight-red mistake-word' : highlighted ? ' highlight-green' : ''}${frequent ? ' live-word-wrong' : ''}${similar ? ' rounded bg-[#FFB800]/40' : ''}`;
+        // WORD PLAY (2026-11-27): the sounding word lights green even
+        // when it is a red mistake word (green = "sounding now", red =
+        // "mistake"; the red wash returns when playback stops, and
+        // `mistake-word` stays on so the tooltip/cursor never go away).
+        const wordClass = `reader-word${highlighted ? ' highlight-green' : mistake ? ' highlight-red' : ''}${mistake ? ' mistake-word' : ''}${frequent ? ' live-word-wrong' : ''}${similar ? ' rounded bg-[#FFB800]/40' : ''}`;
         // A red word opens its tooltip on a real tap (the guard keeps
         // a swipe from firing it); hidden lines reveal instead. A tap
         // that follows a word long-press is suppressed — the hold

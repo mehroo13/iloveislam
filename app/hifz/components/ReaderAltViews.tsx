@@ -163,7 +163,16 @@ function AyahWords({
           <span key={i}>
             <span
               id={w.keys[0] ? `word-${w.keys[0].replace(/:/g, '-')}` : undefined}
-              className={`reader-word${mistake ? ' highlight-red mistake-word' : highlighted ? ' highlight-green' : ''}`}
+              // WORD PLAY (2026-11-27): the sounding word lights green
+              // even when it is a red mistake word — green means
+              // "sounding now", red means "mistake". The mistake wash
+              // returns the moment playback stops (the word leaves
+              // highlightedWords), and `mistake-word` stays on throughout
+              // so the tooltip/cursor never go away. A take never puts
+              // a word in both buckets (correct → highlighted, missed
+              // → mistake), so the flip cannot green a mistake word
+              // outside playback.
+              className={`reader-word${highlighted ? ' highlight-green' : mistake ? ' highlight-red' : ''}${mistake ? ' mistake-word' : ''}`}
               style={tajweedOn ? undefined : { color: TAJWEED_BLACK }}
               onPointerDown={(e) => {
                 if (mistake && clickable !== false) guard.down(e);
