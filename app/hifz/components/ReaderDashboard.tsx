@@ -580,23 +580,10 @@ function DashboardTab({
   /** Closes the Dashboard overlay (the Mushaf Reader row). */
   onClose: () => void;
 }) {
-  /* Recite with Coach goes DIRECTLY to the recite screen (2026-11-26,
-   * Mehran: too many taps — the picker + "Start reciting" round trip
-   * is gone). The surah is the last one the user opened
-   * (`ili_last_read_v1`, written by the surah page), or Al-Fatihah
-   * for a fresh user; the coach opens at ayah 1. The mic still needs
-   * its own tap ("Recite now") — a tap gesture is required to start
-   * the microphone — so this is 2 taps to reciting, the minimum. */
-  const [reciteHref] = useState(() => {
-    try {
-      const raw = localStorage.getItem('ili_last_read_v1');
-      const slug = raw ? (JSON.parse(raw) as { slug?: string }).slug : '';
-      const ok = slug && ALL_SURAHS.some((s) => s.slug === slug);
-      return ok ? `/hifz/${slug}?mode=recite&ayah=1` : '/hifz/al-fatihah?mode=recite&ayah=1';
-    } catch {
-      return '/hifz/al-fatihah?mode=recite&ayah=1';
-    }
-  });
+  /* Recite with Coach goes DIRECTLY to /hifz/recite (2026-11-27):
+   * the recite screen IS the coach now — one white screen, one ayah
+   * at a time, opening on the last-read surah or Al-Fatihah ayah 1.
+   * No picker in between. */
   return (
     <>
       {/* Greeting — dynamic name, never hardcoded. */}
@@ -634,7 +621,7 @@ function DashboardTab({
             {DASHBOARD_FEATURES.map((f) => (
               <Link
                 key={f.href}
-                href={f.href === '/hifz/recite' ? reciteHref : f.href}
+                href={f.href}
                 className="flex items-center justify-between gap-3 border-b border-[#F3F4F6] px-4 py-3 last:border-b-0"
               >
                 <span className="flex items-center gap-3">

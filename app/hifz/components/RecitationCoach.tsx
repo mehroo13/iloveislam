@@ -1,66 +1,47 @@
 'use client';
 
 /**
- * app/hifz/components/RecitationCoach.tsx — the Hifz recitation coach.
+ * app/hifz/components/RecitationCoach.tsx — the Hifz recitation coach,
+ * rebuilt 2026-11-27 as ONE simple white screen, one ayah at a time.
  *
- * Spec §3 (coach flow), §3.2 (states), §8 (feedback). Everything is free —
- * Research: hifz-recitation-feedback-20261121, §5 (alignment), §6 (risks/UI copy).
+ * One job: Listen first, hide the words, recite with the mic, see which
+ * words were right. No scope pickers, no reciter picker, no history
+ * list, no teacher note, no green buttons — the only green left is a
+ * word turning green when you say it right (red when you miss it).
  *
- * LOAD RULES (spec §6 performance budget): this component is a client island
- * meant to be loaded via `next/dynamic(..., { ssr: false })` ONLY when the
- * user opens it (`?mode=recite` or taps "Recite") — do NOT import it from any
- * page statically. The engine itself loads even later: `loadEngine()` runs
- * only after the user enters the "Hide & recite" step, so the ~25 MB model
- * download is always user-initiated and never in the first-paint bundle.
+ * ENGINE: Tilawa (`@tilawa/core`, MIT, on-device) via
+ * app/hifz/lib/tilawa.ts — reused exactly as-is. Audio is processed
+ * on-device and never uploaded. The model download is user-initiated:
+ * `loadEngine()` runs only after the mic is tapped.
  *
- * ENGINE: Tilawa (`@tilawa/core`, MIT, on-device) via app/hifz/lib/tilawa.ts.
- * Audio is processed on-device and never uploaded by the app. A recording
- * of your recitation is kept as an in-memory blob for this browser
- * session — and, when "Save session audio on this device" is on, it is
- * ALSO persisted in the IndexedDB `session-audio` store (see
- * lib/store.ts) so a past session can still be played back and shared
- * from history. It leaves the device only if you choose to share or
- * download it (see ShareAudio.tsx — explicit, per-recitation,
- * user-initiated; no auto-share, no default-on toggle). The mistake log
- * keeps word references (surah:ayah:word) only (spec §8.2). The Web
- * Speech API is NOT used (research §3 forbids it as the core engine).
+ * FEEDBACK HONESTY: word accuracy only, never tajweed, never a
+ * percentage grade — the result is a count ("17 of 19 words right").
+ * A word the tracker never observed is "not heard", never a confident
+ * "wrong". Only a checker-CONFIRMED wrong word is labelled wrong.
  *
- * FEEDBACK HONESTY (measured 2026-11-21, tools/test-tilawa.mjs, lite tier):
- *  - The checker confirms almost no wrong words on clean recitation (0
- *    confirmed mistakes on Al-Fatihah + Al-Mulk), and the tracker blind
- *    spots that used to false-flag correct words (6.9% Fatihah, 9.4%
- *    Mulk) are now graced to "Not heard" instead of "missed" (see
- *    app/hifz/lib/tilawa.ts graces A/B/C): measured false-flag rate on
- *    clean professional recitation is now 0.0% on all six harness cases
- *    (Fatihah 0/29, Mulk 0/64, warm-up 0/4, single ayah 0/4), with
- *    wrong-ayah and silence detection intact. The full 68 MB model scores
- *    identically to the 25 MB lite model on every case, so the coach
- *    loads lite (see loadEngineNow). A word the tracker never observed is
- *    shown as "Not heard" (amber), never as a confident "wrong". Only a
- *    checker-CONFIRMED wrong word is labelled "Check this word" (red
- *    tint). Per-word colours are never shown when the attempt is unclear
- *    — the UI says so and offers a retry (research §5.7).
- *  - Never a percentage grade, never tajweed (spec §8).
+ * PERSISTENCE (kept): every finished take still calls recordCoachSession
+ * and still saves its mistakes (the mistakes overview and My Progress
+ * depend on them). Only the history LIST UI is gone. A peek still
+ * counts as a mistake in scoring (markAttempt 'peek', allCorrect false)
+ * — that rule is unchanged.
  *
- * EVERYTHING IS FREE: no daily limits, no surah cap, no paid tier. The coach,
- * plans, mistake log and progress are free for everyone, always. No billing,
- * no paywall on text / translation / tafsir / audio — those are free, always.
+ * Props keep the old shape so the surah page (SurahClient) keeps
+ * compiling: it passes the whole surah's ayahs and the coach works
+ * one ayah at a time from initialAyahIndex. Scope (range / whole
+ * surah) no longer applies — a range is just tapping Next ayah.
+ * The /hifz/recite screen passes a single-ayah array and drives Next
+ * itself via onNextAyah.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { AUDIO_BASE, API, RECITERS } from '../../quran/lib';
+import { AUDIO_BASE } from '../../quran/lib';
 import { playDroppedFeedback, playMistakeFeedback } from '../lib/sounds';
 import {
   addMistake,
-  ayahsPractisedOn,
-  currentStreakCount,
-  getStorageNotice,
-  isDailyGoalMet,
   loadMistakes,
   loadProgress,
   loadSettings,
-  localDateString,
   markAttempt,
   markMistakesCorrected,
   recordMinutes,
@@ -68,17 +49,15 @@ import {
   saveMistakes,
   saveProgress,
   type HifzSettings,
-  type MistakeEntry,
   type MistakeType,
 } from '../progress';
-import { getSurahById } from '../surahs';
 import { readListenSpeed } from '../lib/listen-speed';
 import { splitWords } from '../lib/alignment';
-import { useT } from '../lib/i18n';
-import { MistakeHistorySheet, SessionAnalyticsSheet, type HistoryRow } from './SharedSheets';
-import { ShareAudioButtons, audioExtension, recordingFileName, type SharedRecording } from './ShareAudio';
+import { AdaptiveVad } from '../lib/vad';
+import { saveSessionAudio } from '../lib/store';
+import { recordCoachSession } from '../lib/session-records';
+import { audioExtension, recordingFileName, type SharedRecording } from './ShareAudio';
 import {
-  autoTierLabel,
   engineSupport,
   loadEngine,
   warmupSession,
@@ -89,68 +68,31 @@ import {
   type SessionResult,
   type WordEvent,
 } from '../lib/tilawa';
-// Type-only: a self-marked "Not quite" word is reported to the feedback
-// screen as a checker event (audit C-5) — erased at compile time.
-import type { CheckerEvent } from '@tilawa/core';
-import { AdaptiveVad } from '../lib/vad';
-import { loadSessionAudio, saveSessionAudio } from '../lib/store';
-import { listCoachSessions, recordCoachSession } from '../lib/session-records';
-
-/* ------------------------------------------------------------------ */
-/*  Copy — research §6, verbatim where the research says verbatim.     */
-/* ------------------------------------------------------------------ */
-
-/** Teacher disclaimer — research §6, verbatim except the last sentence,
- * updated 2026-11-22 for the teacher-share feature so it stays truthful:
- * sharing a recording is an explicit choice the user makes after a
- * session; nothing is sent automatically. Above the mic button AND on the
- * feedback screen. */
-export const TEACHER_DISCLAIMER =
-  'This checks which words you said — it does not judge tajweed. It can miss words, especially in noise, and it can flag a word you said correctly. Use it to practise between lessons. A teacher is still needed for tajweed. Your voice never leaves this device unless you choose to share a recording with your teacher.';
 
 /** Low-confidence attempt — research §6, verbatim. */
 export const UNCLEAR_COPY =
   "I couldn't hear this clearly. Check your microphone, move somewhere quieter, and try again.";
 
-/**
- * Map a Tilawa MicrophoneError (or a prepareMicrophone() failure, same
- * `.reason` shape) to the coach's mic state + user-facing message.
- * Shared by the prepare step and the listen step so both report alike.
- */
-function micErrorFor(err: unknown, tr: (key: string) => string): { state: 'denied' | 'unavailable'; message: string } {
-  const reason = (err as { reason?: string })?.reason;
-  if (reason === 'denied') {
-    return {
-      state: 'denied',
-      message: tr('coach.micBlocked'),
-    };
-  }
-  if (reason === 'insecure-context') {
-    return {
-      state: 'unavailable',
-      message: tr('coach.micHttps'),
-    };
-  }
-  return {
-    state: 'unavailable',
-    message: tr('coach.micNone'),
-  };
-}
-
-/* ------------------------------------------------------------------ */
-/*  Props                                                               */
-/* ------------------------------------------------------------------ */
+/** One Quran.com audio segment: [wordIndex0, wordPosition1, startMs, endMs]. */
+export type AudioSegment = [number, number, number, number];
 
 /** One ayah the coach can work with. Text comes from the Quran.com API via the page — never pasted into the repo. */
 export interface CoachAyah {
   surah: number;
   ayah: number;
-  /** Display text (Uthmani or Indo-Pak — both normalise the same way). */
+  /** Display text (Indo-Pak — the coach's word alignment is built on it). */
   text: string;
-  /** English translation shown as a prompt while the Arabic is hidden. */
+  /** English translation shown under the Arabic. */
   translation?: string;
   /** Relative audio path from the Quran.com API, e.g. "Alafasy/mp3/001001.mp3". */
   audioUrl?: string;
+  /** Per-word timings inside the ayah's MP3 (Quran.com segments) — for
+   *  hearing one missed word on its own. Absent when the caller did not
+   *  fetch them; word playback is then unavailable. */
+  segments?: AudioSegment[];
+  /** One display key per segment (audioDisplayKeys) — a segment's
+   *  1-based position is a raw-word ordinal, not an engine index. */
+  segKeys?: string[];
 }
 
 export interface RecitationCoachProps {
@@ -164,31 +106,30 @@ export interface RecitationCoachProps {
   initialAyahIndex?: number;
   /** Reciter id from RECITERS (default 7, Mishary Alafasy). */
   initialReciterId?: number;
-  /** Opening scope from the /hifz/recite picker (?from= / ?to=, audit
-   *  C-2): the coach starts on that range instead of a single ayah. */
-  initialScopeKind?: ScopeKind;
-  /** 0-based index of the range start (with initialScopeKind 'range'). */
+  /** Opening scope from the /hifz/recite picker — accepted for
+   *  compatibility, no longer used: the coach is always one ayah. */
+  initialScopeKind?: 'single' | 'range' | 'whole';
+  /** 0-based index of the range start — accepted, no longer used. */
   initialRangeFrom?: number;
-  /** 0-based index of the range end (with initialScopeKind 'range'). */
+  /** 0-based index of the range end — accepted, no longer used. */
   initialRangeTo?: number;
   /** Called when the user moves to another ayah (so the page can update its URL/state). */
   onAyahChange?: (ayah: number) => void;
+  /** When the parent owns ayah navigation (the /hifz/recite screen),
+   *  Next ayah calls this instead of advancing internally. */
+  onNextAyah?: () => void;
+  /** Whether a next ayah exists, when the parent owns navigation. */
+  hasNextAyah?: boolean;
 }
 
-type Step = 'pick' | 'listen' | 'recite' | 'feedback';
-type ScopeKind = 'single' | 'range' | 'whole';
 type EngineState = 'idle' | 'loading' | 'ready' | 'failed' | 'unsupported';
 /**
- * Mic states, in the order the user sees them (Stage 3):
- *  idle → requesting (permission prompt is up) → recording (mic
- *  connected; "Listening" until the VAD confirms a voice, then "Voice
- *  detected") → checking (processing the recitation) → idle (result) /
- *  denied / unavailable. `requesting` is its own state so the user is
- *  never left staring at an unchanged screen while the browser's
- *  permission prompt is open.
+ * Mic states: idle → requesting (permission prompt is up) → recording
+ * (mic connected; "Listening" until the VAD confirms a voice, then
+ * "Voice detected") → checking (processing the recitation) → idle
+ * (result) / denied / unavailable.
  */
 type MicState = 'idle' | 'requesting' | 'recording' | 'checking' | 'denied' | 'unavailable';
-type CoachMode = 'mic' | 'self-mark' | 'follow';
 
 interface FeedbackWord {
   key: string;
@@ -207,7 +148,7 @@ function clamp01(n: number): number {
 }
 
 /** Id for a coach session — also the key of its stored audio, when the
- * recording is persisted (see lib/store.ts saveSessionAudio). */
+ *  recording is persisted (see lib/store.ts saveSessionAudio). */
 function newSessionId(): string {
   try {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -219,209 +160,121 @@ function newSessionId(): string {
   return `session-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Component                                                           */
-/* ------------------------------------------------------------------ */
+/**
+ * Map a Tilawa MicrophoneError (or a prepareMicrophone() failure, same
+ * `.reason` shape) to the coach's mic state + user-facing message.
+ */
+function micErrorFor(err: unknown): { state: 'denied' | 'unavailable'; message: string } {
+  const reason = (err as { reason?: string })?.reason;
+  if (reason === 'denied') {
+    return {
+      state: 'denied',
+      message: 'Microphone access is blocked. Allow the microphone in your browser settings and try again.',
+    };
+  }
+  if (reason === 'insecure-context') {
+    return {
+      state: 'unavailable',
+      message: 'The microphone needs a secure (https) connection.',
+    };
+  }
+  return {
+    state: 'unavailable',
+    message: 'No microphone was found on this device.',
+  };
+}
 
 export default function RecitationCoach({
   surah,
   surahName,
   ayahs,
   initialAyahIndex = 0,
-  initialReciterId = 7,
-  initialScopeKind,
-  initialRangeFrom,
-  initialRangeTo,
   onAyahChange,
+  onNextAyah,
+  hasNextAyah,
 }: RecitationCoachProps) {
-  const t = useT();
-  const [step, setStep] = useState<Step>('pick');
-  const [scopeKind, setScopeKind] = useState<ScopeKind>(initialScopeKind ?? 'single');
   const [currentIndex, setCurrentIndex] = useState<number>(
     Math.max(0, Math.min(initialAyahIndex, Math.max(0, ayahs.length - 1))),
   );
-  const [rangeFrom, setRangeFrom] = useState<number>(
-    initialRangeFrom ?? currentIndex,
-  );
-  const [rangeTo, setRangeTo] = useState<number>(
-    initialRangeTo ?? currentIndex,
-  );
-  const [reciterId, setReciterId] = useState<number>(initialReciterId);
-  const [audioUrls, setAudioUrls] = useState<Record<string, string>>(() => {
-    const map: Record<string, string> = {};
-    for (const a of ayahs) if (a.audioUrl) map[`${a.surah}:${a.ayah}`] = a.audioUrl;
-    return map;
-  });
+  const current = ayahs[currentIndex];
+  const words = useMemo(() => (current ? splitWords(current.text) : []), [current]);
 
-  // Arabic visibility + translation prompt (spec §3.1 step 3).
+  // Phase: ready (show the ayah, Listen / Hide / mic) or feedback
+  // (the small result card). Recording is micState === 'recording'.
+  const [phase, setPhase] = useState<'ready' | 'feedback'>('ready');
+
+  // Arabic visibility + peek tracking. A peek counts as a mistake in
+  // scoring (persistAttempt marks 'peek') — that rule is unchanged.
   const [arabicHidden, setArabicHidden] = useState(false);
-  const [showTranslation, setShowTranslation] = useState(true);
   const [peeked, setPeeked] = useState(false);
+  const [revealedCount, setRevealedCount] = useState(0);
+  const [peekCount, setPeekCount] = useState(0);
 
-  useEffect(() => {
-    try {
-      setSettings(loadSettings());
-      setHighlightOn(loadSettings().highlightMistakes ?? true);
-    } catch {
-      /* defaults */
-    }
-  }, []);
-
-  // Engine + mic state (spec §3.2).
+  // Engine + mic state.
   const [engineState, setEngineState] = useState<EngineState>('idle');
   const [engineLoadProgress, setEngineLoadProgress] = useState<EngineLoadProgress | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [micState, setMicState] = useState<MicState>('idle');
   const [micError, setMicError] = useState<string | null>(null);
-  const [level, setLevel] = useState(0); // 0..1, from onLevel dBFS
-  // Voice-detection state (spec: Ready → Requesting permission →
-  // Listening → Voice detected → Processing → Result / Error). Driven by
-  // the adaptive VAD (app/hifz/lib/vad.ts), NOT by a fixed threshold:
-  // `voiceDetected` latches once the VAD confirms sustained speech above
-  // the room's noise floor (so quiet recitation counts), `vadSpeaking`
-  // is live speech incl. hangover (so pauses between words do not flick
-  // the status), and the meter below is real levels only.
   const [voiceDetected, setVoiceDetected] = useState(false);
   const [vadSpeaking, setVadSpeaking] = useState(false);
-  // `framesSeen` counts onLevel callbacks received this take (about one
-  // per 20 ms): 0 means the worklet delivers no frames at all, which —
-  // together with `audioStalled` / `silentInput` — separates "mic
-  // connected" from "capture dead" from "capture running but silent".
   const [framesSeen, setFramesSeen] = useState(0);
-  // True when the take has run ~2.5 s with ZERO level callbacks: the
-  // AudioContext/worklet is delivering no frames at all (capture dead),
-  // even though permission was granted. Shown as a live warning, not a
-  // result — the take can still be stopped and retried.
   const [audioStalled, setAudioStalled] = useState(false);
-  // True when frames ARE flowing but the level never rises above digital
-  // silence (see AudioHealth.silentInput): the mic is connected yet
-  // sends no sound (muted track, wrong input, mic covered at OS level).
-  // Cleared the moment any real level arrives.
   const [silentInput, setSilentInput] = useState(false);
   const [recordingSecs, setRecordingSecs] = useState(0);
-  const [trackerState, setTrackerState] = useState<string>('');
   const [online, setOnline] = useState<boolean>(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
 
-  // Mode + feedback.
-  const [mode, setMode] = useState<CoachMode>('mic');
+  // Feedback.
   const [liveWords, setLiveWords] = useState<Record<string, 'correct' | 'wrong' | 'missed'>>({});
-  /** Words the mistake sound already played for this take (the
-   *  checker can re-emit a word — one sound per newly flagged word). */
-  const mistakeSoundKeysRef = useRef(new Set<string>());
-  /* Dropped Connection feedback (Settings → Dropped Connection):
-   * when the network goes away mid-take, a sound + vibration, if
-   * enabled. A live session (sessionRef non-null) is a live take. */
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const onOffline = () => {
-      if (sessionRef.current) playDroppedFeedback();
-    };
-    window.addEventListener('offline', onOffline);
-    return () => window.removeEventListener('offline', onOffline);
-  }, []);
   const [result, setResult] = useState<SessionResult | null>(null);
   const [feedbackWords, setFeedbackWords] = useState<FeedbackWord[]>([]);
-  const [selfMarks, setSelfMarks] = useState<Record<string, boolean | null>>({});
-  const [selfMarkedMistakes, setSelfMarkedMistakes] = useState<MistakeEntry[]>([]);
-  const [persistedMistakes, setPersistedMistakes] = useState<MistakeEntry[]>(() =>
-    typeof window === 'undefined' ? [] : loadMistakes(),
-  );
-  const [storageNotice, setStorageNotice] = useState<string | null>(null);
-  // Screenshot-spec rebuild (§22): settings, peek tracking, live correction.
-  const [settings, setSettings] = useState<HifzSettings | null>(null);
-  const [revealedCount, setRevealedCount] = useState(0);
-  const [peekCount, setPeekCount] = useState(0);
-  const [selectedMistake, setSelectedMistake] = useState<string | null>(null);
-  const [removedMistakes, setRemovedMistakes] = useState<Set<string>>(new Set());
-  const [showMistakeHistory, setShowMistakeHistory] = useState(false);
-  const [showAnalytics, setShowAnalytics] = useState(false);
-  const [highlightOn, setHighlightOn] = useState(true);
-  const [highlightToast, setHighlightToast] = useState<string | null>(null);
-  const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
-  // The recording blob behind recordingUrl — kept in memory for the
-  // current browser session, so it can be shared with a teacher or
-  // downloaded (see ShareAudio.tsx). When the `saveAudio` setting is on
-  // it is ALSO persisted in the IndexedDB `session-audio` store at the
-  // end of the session, and the listen-back below then plays the
-  // persisted blob. Never uploaded.
-  const [recording, setRecording] = useState<SharedRecording | null>(null);
-  // True while the user has paused a live take (Pause/Resume button).
-  const [paused, setPaused] = useState(false);
   const [pendingFix, setPendingFix] = useState(false);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const recordChunksRef = useRef<Blob[]>([]);
-  const recordStreamRef = useRef<MediaStream | null>(null);
-  const [dailyGoalMet, setDailyGoalMet] = useState(false);
-  const [streakCount, setStreakCount] = useState(0);
-  const [ayahsToday, setAyahsToday] = useState(0);
-  const [playingKey, setPlayingKey] = useState<string | null>(null);
-  const [audioNote, setAudioNote] = useState<string | null>(null);
+  // Word playback (tap a missed word to hear just that word).
+  const [playingWordKey, setPlayingWordKey] = useState<string | null>(null);
+  const [wordNote, setWordNote] = useState<string | null>(null);
+  // Listen (whole ayah) playback.
+  const [playing, setPlaying] = useState(false);
+
+  const [settings, setSettings] = useState<HifzSettings | null>(null);
+  useEffect(() => {
+    try {
+      setSettings(loadSettings());
+    } catch {
+      /* defaults */
+    }
+  }, []);
 
   const engineRef = useRef<RecitationEngine | null>(null);
   const sessionRef = useRef<RecitationSession | null>(null);
   const loadAbortRef = useRef<AbortController | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const playQueueRef = useRef<number[]>([]);
+  /** A mic tap that arrived while the engine was still loading: start
+   *  the take as soon as the engine is ready. */
+  const pendingStartRef = useRef(false);
   const recordingStartRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Pause bookkeeping: wall-clock ms spent paused this take, and when
-  // the current pause started (0 = not paused). The recording timer
-  // subtracts both, so the displayed time excludes paused time — the
-  // same way the engine's session clock does (no audio delivered while
-  // the AudioContext is suspended).
-  const pausedTotalRef = useRef<number>(0);
-  const pauseStartRef = useRef<number>(0);
-  // Id of the current coach session (new id per take, set in
-  // startRecording). Keys the stored audio and the session record.
   const sessionIdRef = useRef<string | null>(null);
-  // Guards for the recording lifecycle (2026-11-22 mic fix): a tap must
-  // never start two sessions, and a new session must never start before
-  // the previous one fully ended.
   const startInFlightRef = useRef(false);
   const stallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Live waveform (real levels only, never fake): recent normalised
-  // levels, drawn on a canvas while recording.
-  const waveformRef = useRef<HTMLCanvasElement | null>(null);
-  const levelsRef = useRef<number[]>([]);
+  const mistakeSoundKeysRef = useRef(new Set<string>());
   const voiceDetectedRef = useRef(false);
   const vadSpeakingRef = useRef(false);
   const vadRef = useRef<AdaptiveVad | null>(null);
-  // onLevel callbacks received this take (mirrored to `framesSeen`
-  // state by the 500 ms timer so the UI can tell "mic connected" from
-  // "no frames at all" without re-rendering 50 times a second).
   const levelCountRef = useRef(0);
-  // An abort already in flight (Back-to-listening / mode switch /
-  // stale-take cleanup): startRecording awaits it so a new take never
-  // starts before the previous capture fully stopped.
   const abortRef = useRef<Promise<void> | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const recordChunksRef = useRef<Blob[]>([]);
+  const recordStreamRef = useRef<MediaStream | null>(null);
+  /** While set, the sounding clip is a single word — `endMs` is the
+   *  word's segment end inside its ayah MP3; the timeupdate listener
+   *  stops playback there instead of letting the clip run on into the
+   *  rest of the ayah. */
+  const wordStopRef = useRef<{ endMs: number } | null>(null);
 
-  /* ---------------- scope ---------------- */
-
-  const scopeAyahs = useCallback((): CoachAyah[] => {
-    if (scopeKind === 'single') return ayahs[currentIndex] ? [ayahs[currentIndex]] : [];
-    if (scopeKind === 'range') {
-      const from = Math.min(rangeFrom, rangeTo);
-      const to = Math.max(rangeFrom, rangeTo);
-      return ayahs.slice(from, to + 1);
-    }
-    return ayahs; // whole surah
-  }, [ayahs, scopeKind, currentIndex, rangeFrom, rangeTo]);
-
-  const scopeLabel = scopeAyahs().length === 1
-    ? `${surah}:${scopeAyahs()[0]?.ayah}`
-    : scopeAyahs().length > 1
-      ? `${surah}:${scopeAyahs()[0]?.ayah}–${scopeAyahs()[scopeAyahs().length - 1]?.ayah}`
-      : '';
+  const ayahLabel = current ? `${surah}:${current.ayah}` : '';
+  const rangeLabel = ayahLabel;
 
   /* ---------------- audio (Listen) ---------------- */
-
-  const audioSrcFor = useCallback(
-    (a: CoachAyah): string | null => {
-      const rel = audioUrls[`${a.surah}:${a.ayah}`] ?? a.audioUrl;
-      return rel ? `${AUDIO_BASE}${rel}` : null;
-    },
-    [audioUrls],
-  );
 
   const stopAudio = useCallback(() => {
     const audio = audioRef.current;
@@ -430,77 +283,47 @@ export default function RecitationCoach({
       audio.removeAttribute('src');
       audio.load();
     }
-    playQueueRef.current = [];
-    setPlayingKey(null);
+    wordStopRef.current = null;
+    setPlaying(false);
+    setPlayingWordKey(null);
   }, []);
 
-  const playAyahAudio = useCallback(
-    (index: number) => {
-      const a = ayahs[index];
-      const src = a ? audioSrcFor(a) : null;
-      const audio = audioRef.current;
-      if (!a || !src || !audio) return;
-      stopAudio();
-      audio.src = src;
-      // Reference audio plays at the Listen speed (Settings →
-      // Listening), like every other Listen path (audit M1).
-      audio.playbackRate = readListenSpeed();
-      setPlayingKey(`${a.surah}:${a.ayah}`);
-      audio.play().catch(() => setPlayingKey(null));
-    },
-    [ayahs, audioSrcFor, stopAudio],
-  );
-
-  const playScopeAudio = useCallback(() => {
-    const idxs = scopeAyahs()
-      .map((a) => ayahs.findIndex((x) => x.surah === a.surah && x.ayah === a.ayah))
-      .filter((i) => i >= 0);
-    if (idxs.length === 0) return;
-    playQueueRef.current = idxs.slice(1);
-    playAyahAudio(idxs[0]);
-  }, [ayahs, scopeAyahs, playAyahAudio]);
+  const playAyahAudio = useCallback(() => {
+    const audio = audioRef.current;
+    if (!current?.audioUrl || !audio) return;
+    stopAudio();
+    audio.src = `${AUDIO_BASE}${current.audioUrl}`;
+    // Reference audio plays at the Listen speed (Settings → Listening).
+    audio.playbackRate = readListenSpeed();
+    setPlaying(true);
+    audio.play().catch(() => setPlaying(false));
+  }, [current, stopAudio]);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
     const onEnded = () => {
-      const next = playQueueRef.current.shift();
-      if (next !== undefined) playAyahAudio(next);
-      else setPlayingKey(null);
+      setPlaying(false);
+      setPlayingWordKey(null);
+      wordStopRef.current = null;
+    };
+    // Single-word playback: stop at the word's segment end.
+    const onTimeUpdate = () => {
+      const stop = wordStopRef.current;
+      if (stop && audio.currentTime * 1000 >= stop.endMs) {
+        wordStopRef.current = null;
+        audio.pause();
+        setPlaying(false);
+        setPlayingWordKey(null);
+      }
     };
     audio.addEventListener('ended', onEnded);
-    return () => audio.removeEventListener('ended', onEnded);
-  }, [playAyahAudio]);
-
-  // Reciter change: refetch audio URLs for this surah through the existing
-  // same-origin /api/quran proxy (same pattern as app/quran/QuranClient).
-  // If the fetch fails, keep the previous reciter's audio and say so.
-  const changeReciter = useCallback(
-    async (id: number) => {
-      setReciterId(id);
-      setAudioNote(null);
-      try {
-        // Coach audio is fetched in Indo-Pak only, by design: the coach's
-      // word alignment is built on the Indo-Pak text (see lib/script.ts).
-      // The reader may show Madani, but the coach always checks Indo-Pak.
-      const res = await fetch(
-          `${API}/verses/by_chapter/${surah}?fields=text_indopak&audio=${id}&per_page=all`,
-        );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data: { verses?: { verse_number: number; audio?: { url?: string } }[] } =
-          await res.json();
-        const map: Record<string, string> = {};
-        for (const v of data.verses ?? []) {
-          if (v.audio?.url) map[`${surah}:${v.verse_number}`] = v.audio.url;
-        }
-        if (Object.keys(map).length > 0) setAudioUrls(map);
-        else setAudioNote(t('coach.audioReciterFail'));
-      } catch {
-        setAudioNote(t('coach.audioReciterFail'));
-      }
-    },
-    [surah, t],
-  );
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    return () => {
+      audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('timeupdate', onTimeUpdate);
+    };
+  }, []);
 
   /* ---------------- offline ---------------- */
 
@@ -513,6 +336,17 @@ export default function RecitationCoach({
       window.removeEventListener('online', on);
       window.removeEventListener('offline', off);
     };
+  }, []);
+
+  // Dropped Connection feedback (Settings → Dropped Connection): when
+  // the network goes away mid-take, a sound + vibration, if enabled.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onOffline = () => {
+      if (sessionRef.current) playDroppedFeedback();
+    };
+    window.addEventListener('offline', onOffline);
+    return () => window.removeEventListener('offline', onOffline);
   }, []);
 
   /* ---------------- engine loading ---------------- */
@@ -531,12 +365,9 @@ export default function RecitationCoach({
     setEngineLoadProgress(null);
     try {
       const engine = await loadEngine({
-        // Lite, not auto/full: measured 2026-11-21 (tools/test-tilawa.mjs),
-        // the 68 MB full model scores IDENTICALLY to the 25 MB lite model
-        // on clean recitation (Fatihah 6.9%, Mulk 9.4% false flags, both
-        // tiers, same words) and is slower to download and run. Lite is
-        // the better default for every device; the adapter still supports
-        // 'auto'/'full' if a future measurement ever justifies them.
+        // Lite, not auto/full: measured 2026-11-21, the 68 MB full model
+        // scores IDENTICALLY to the 25 MB lite model on clean recitation
+        // and is slower to download and run.
         tier: 'lite',
         signal: abort.signal,
         onProgress: (p) => setEngineLoadProgress(p),
@@ -544,11 +375,8 @@ export default function RecitationCoach({
       engineRef.current = engine;
       setEngineState('ready');
       // Mic-lag (2026-11-27): warm a throwaway session in the
-      // background — the first startSession of the page takes ~6 s
-      // (tracker/checker construction + JIT), the second ~0.16 s, and
-      // nothing buffers between the tap's prepare and listen(), so the
-      // first tap's opening audio would otherwise be lost. Deferred a
-      // tick so the step transition paints first.
+      // background — the first startSession of the page takes ~6 s,
+      // the second ~0.16 s. Deferred a tick so the tap paints first.
       window.setTimeout(() => warmupSession(engine), 0);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
@@ -556,44 +384,20 @@ export default function RecitationCoach({
         setEngineLoadProgress(null);
         return;
       }
-      // Model failed: the page stays usable — listen + self-mark still work (§3.2).
       setEngineState('failed');
-      setLoadError(t('coach.checkerFailed'));
+      setLoadError('The checker could not be loaded. Listen still works — check your connection and try the mic again.');
     }
-  }, [engineState, t]);
+  }, [engineState]);
 
   const cancelLoad = useCallback(() => {
     loadAbortRef.current?.abort();
+    pendingStartRef.current = false;
   }, []);
-
-  // Entering the recite step starts the (user-initiated) model download.
-  // Audit C-3: the step is "Hide & recite", so the verse starts hidden —
-  // it used to show in full until a second tap on "Hide Arabic".
-  const enterRecite = useCallback(() => {
-    setStep('recite');
-    setArabicHidden(true);
-    setResult(null);
-    setFeedbackWords([]);
-    setPeeked(false);
-    setRevealedCount(0);
-    setPeekCount(0);
-    setSelectedMistake(null);
-    setRecordingUrl(null);
-    setRecording(null);
-    setPaused(false);
-    pausedTotalRef.current = 0;
-    pauseStartRef.current = 0;
-    setLiveWords({});
-    mistakeSoundKeysRef.current.clear();
-    setSelfMarks({});
-    if (mode === 'mic' || mode === 'follow') void loadEngineNow();
-  }, [loadEngineNow, mode]);
 
   /* ---------------- progress writes (spec §5.1) ---------------- */
 
   const persistAttempt = useCallback(
     (opts: {
-      scope: CoachAyah[];
       allCorrect: boolean;
       peeked: boolean;
       minutes: number;
@@ -605,21 +409,20 @@ export default function RecitationCoach({
         heard?: string;
         wordIndex?: number;
         type?: MistakeType;
-        source?: 'engine' | 'self-mark';
+        source?: 'engine';
       }[];
     }) => {
+      if (!current) return;
       let progress = loadProgress();
-      for (const a of opts.scope) {
-        progress = markAttempt(
-          progress,
-          a.surah,
-          a.ayah,
-          opts.peeked ? 'peek' : opts.allCorrect ? 'correct' : 'miss',
-        );
-      }
+      progress = markAttempt(
+        progress,
+        current.surah,
+        current.ayah,
+        opts.peeked ? 'peek' : opts.allCorrect ? 'correct' : 'miss',
+      );
       progress = recordMinutes(progress, opts.minutes);
       // Per-type goal (§15.8): a coach attempt is memorisation practice.
-      progress = recordTypeActivity(progress, 'memorisation', opts.scope.length);
+      progress = recordTypeActivity(progress, 'memorisation', 1);
       saveProgress(progress);
       if (opts.mistakes.length > 0) {
         let log = loadMistakes();
@@ -627,52 +430,29 @@ export default function RecitationCoach({
           log = addMistake(log, { ...m, date: new Date().toISOString() });
         }
         saveMistakes(log);
-        setPersistedMistakes(log);
       }
       // Stage 5 (§11): a clean recitation marks this ayah's earlier
       // mistakes corrected (history kept, flagged fixed, no longer a
       // weak spot) — including the case where there are no new mistakes.
       if (opts.allCorrect) {
-        let log = loadMistakes();
-        let changed = false;
-        for (const a of opts.scope) {
-          const next = markMistakesCorrected(log, a.surah, a.ayah);
-          if (next !== log) {
-            log = next;
-            changed = true;
-          }
-        }
-        if (changed) {
-          saveMistakes(log);
-          setPersistedMistakes(log);
-        }
+        const log = markMistakesCorrected(loadMistakes(), current.surah, current.ayah);
+        saveMistakes(log);
       }
-      const today = localDateString();
-      setDailyGoalMet(isDailyGoalMet(progress, today));
-      setStreakCount(currentStreakCount(progress.streak, today));
-      setAyahsToday(ayahsPractisedOn(progress, today));
-      setStorageNotice(getStorageNotice());
     },
-    [],
+    [current],
   );
 
   /* ---------------- mic recording ---------------- */
 
   /**
    * End any live take WITHOUT producing a result — the user left
-   * mid-take ("Back to listening", mode switch) or a new take is about
-   * to start. Stops the own-recording capture, awaits the session abort
-   * (the old AudioContext is fully closed before the caller starts a
-   * new take), and resets the mic UI. Safe to call when nothing is live.
-   * Does NOT touch micState: callers set it (idle / requesting /
-   * recording) for the state they are moving to.
+   * mid-take or a new take is about to start. Safe to call when
+   * nothing is live. Does NOT touch micState: callers set it.
    */
   const abortLiveSession = useCallback(async () => {
     if (abortRef.current) return abortRef.current;
     const session = sessionRef.current;
     sessionRef.current = null;
-    // Stop the own-recording capture first: it shares the session's
-    // stream, and stopping the recorder never stops the stream's tracks.
     try {
       if (recorderRef.current && recorderRef.current.state !== 'inactive') {
         recorderRef.current.stop();
@@ -690,10 +470,6 @@ export default function RecitationCoach({
       clearTimeout(stallTimerRef.current);
       stallTimerRef.current = null;
     }
-    setPaused(false);
-    pausedTotalRef.current = 0;
-    pauseStartRef.current = 0;
-    setLevel(0);
     setVoiceDetected(false);
     voiceDetectedRef.current = false;
     setVadSpeaking(false);
@@ -703,7 +479,6 @@ export default function RecitationCoach({
     setSilentInput(false);
     setFramesSeen(0);
     levelCountRef.current = 0;
-    levelsRef.current = [];
     if (!session) return;
     const p = session.abort();
     abortRef.current = p;
@@ -716,14 +491,11 @@ export default function RecitationCoach({
 
   const startRecording = useCallback(async () => {
     const engine = engineRef.current;
-    if (!engine) return;
+    if (!engine || !current) return;
     // Never start a second session while one is starting.
     if (startInFlightRef.current) return;
-    // PLAYBACK INTERACTION (Stage 3 root cause): never start the mic
-    // while ayah audio is playing through the speaker — the reciter
-    // audio feeds straight back into the mic, the tracker follows the
-    // playback instead of the user, and the recording blob contains the
-    // playback. Stop it synchronously in this tap, before anything else.
+    // Never start the mic while ayah audio is playing through the
+    // speaker — the reciter audio feeds straight back into the mic.
     stopAudio();
     setMicError(null);
     setAudioStalled(false);
@@ -735,30 +507,15 @@ export default function RecitationCoach({
     setFramesSeen(0);
     levelCountRef.current = 0;
     vadRef.current = new AdaptiveVad();
-    levelsRef.current = [];
-    // "Requesting microphone permission" — shown while the browser's
-    // permission prompt is up, so the user is never left guessing.
     setMicState('requesting');
-    const scope = scopeAyahs();
-    if (scope.length === 0) {
-      setMicState('idle');
-      return;
-    }
     // MIC PREPARE — MUST stay synchronous in this tap handler, before
     // any await (2026-11-22 root-cause fix). Tilawa documents that iOS
-    // Safari only starts audio created/resumed during a user gesture; the
-    // old code called listen() after awaits, and listen() awaits the
-    // permission prompt BEFORE creating its AudioContext, so on mobile the
-    // context could be created outside the gesture, stay suspended, and
-    // deliver zero frames to the model — "We didn't hear anything" with a
-    // working mic. prepareMicrophone() creates + resumes the context and
-    // asks for the mic while the gesture is still fresh; listen() then
-    // takes ownership of the prepared capture.
+    // Safari only starts audio created/resumed during a user gesture.
     let prepared: PreparedMicCapture | null = null;
     try {
       prepared = engine.prepareMicrophone();
     } catch (err) {
-      const mapped = micErrorFor(err, t);
+      const mapped = micErrorFor(err);
       setMicState(mapped.state);
       setMicError(mapped.message);
       return;
@@ -767,29 +524,20 @@ export default function RecitationCoach({
     // RESTART LIFECYCLE: if a previous take never reached stop(), its
     // capture is still live. The AudioContext for THIS take is already
     // created in the gesture above, so awaiting the old take's abort
-    // here is safe — and the new session only starts listening once the
-    // old one is fully stopped, so two live AudioContexts / mic streams
-    // never overlap. (The old code disposed the stale session
-    // fire-and-forget, leaving its context closing while the new one
-    // started.)
+    // here is safe.
     await abortLiveSession();
-    // New take, new session id — keys the stored audio and the session
-    // record written when this take ends.
     sessionIdRef.current = newSessionId();
-    setPaused(false);
-    pausedTotalRef.current = 0;
-    pauseStartRef.current = 0;
-    const expected = scope.map((a) => ({ surah: a.surah, ayah: a.ayah, text: a.text }));
+    const expected = [{ surah: current.surah, ayah: current.ayah, text: current.text }];
     const session = engine.startSession({
       surah,
-      fromAyah: scope[0].ayah,
-      toAyah: scope[scope.length - 1].ayah,
+      fromAyah: current.ayah,
+      toAyah: current.ayah,
       expected,
       onWord: (e: WordEvent) => {
         if (e.status === 'not-reached') return; // live events are only correct/wrong/missed
         // Detection off (Settings → Recitation): follow-along only —
-        // the live red/orange flags never appear; only confirmed
-        // correct words light up green.
+        // the live red flags never appear; only confirmed correct
+        // words light up green.
         if (e.status !== 'correct') {
           try {
             if (loadSettings().detectMistakes === false) return;
@@ -811,20 +559,12 @@ export default function RecitationCoach({
         }
       },
       onLevel: (db: number) => {
-        // Meter scale: -60 dBFS (room noise) → 0, -10 dBFS (loud, close
-        // speech) → 1. The old -60..0 scale left normal speech at ~17%
-        // of the bar, so quiet recitation was invisible.
-        const v = clamp01((db + 60) / 50);
-        setLevel(v);
-        levelsRef.current.push(v);
-        if (levelsRef.current.length > 60) levelsRef.current.shift();
         levelCountRef.current++;
         // Any real level clears the silent-input warning.
         if (db > -110) setSilentInput((prev) => (prev ? false : prev));
         // Adaptive VAD (lib/vad.ts): sustained speech above the room's
         // noise floor — quiet recitation counts, a single loud transient
         // does not, and pauses between words do not flick it off.
-        // onLevel fires about every 20 ms, so dtMs is 20.
         const reading = vadRef.current?.push(db, 20);
         if (reading) {
           if (reading.voiceDetected && !voiceDetectedRef.current) {
@@ -837,7 +577,6 @@ export default function RecitationCoach({
           }
         }
       },
-      onTrackerState: (s: string) => setTrackerState(s),
     });
     sessionRef.current = session;
     try {
@@ -848,7 +587,7 @@ export default function RecitationCoach({
       startInFlightRef.current = false;
       sessionRef.current = null;
       session.dispose();
-      const mapped = micErrorFor(err, t);
+      const mapped = micErrorFor(err);
       setMicState(mapped.state);
       setMicError(mapped.message);
       return;
@@ -857,14 +596,8 @@ export default function RecitationCoach({
     setMicState('recording');
     setLiveWords({});
     // Own-recording playback (device only): reuse the SAME mic stream
-    // Tilawa is listening to. The old code opened a SECOND getUserMedia
-    // here — a second concurrent mobile capture competing with the first
-    // (and, on iOS Safari, able to interrupt it) — while the coach's only
-    // audio path depended on the first stream staying live. Sharing the
-    // prepared stream removes that failure mode entirely. Best effort —
-    // if MediaRecorder refuses the shared stream, reciting still works.
-    // The stream's tracks belong to the Tilawa session: this code never
-    // stops them; session.stop() does.
+    // Tilawa is listening to. Best effort — if MediaRecorder refuses
+    // the shared stream, reciting still works.
     if (settings?.saveAudio !== false) {
       try {
         const stream = await prepared.stream;
@@ -885,25 +618,13 @@ export default function RecitationCoach({
     recordingStartRef.current = Date.now();
     setRecordingSecs(0);
     timerRef.current = setInterval(() => {
-      // Paused time is excluded: while paused the timer shows the time
-      // actually spent reciting, matching the engine's session clock.
-      const pausedMs =
-        pausedTotalRef.current +
-        (pauseStartRef.current > 0 ? Date.now() - pauseStartRef.current : 0);
-      setRecordingSecs(
-        Math.max(0, Math.floor((Date.now() - recordingStartRef.current - pausedMs) / 1000)),
-      );
-      // Mirror the callback count into state (throttled to 2×/s) so the
-      // UI can tell "mic connected" from "no frames at all".
+      setRecordingSecs(Math.max(0, Math.floor((Date.now() - recordingStartRef.current) / 1000)));
       setFramesSeen((prev) => (prev === levelCountRef.current ? prev : levelCountRef.current));
     }, 500);
     // Stall watch: if NO level callback arrives within 2.5 s, the
     // worklet is delivering no frames — capture is dead even though the
     // mic was granted. If frames ARE flowing but the level never rises
-    // above digital silence, the input itself is silent (muted track,
-    // wrong input, mic covered). Tell the user live, while they can
-    // still fix it, instead of waiting for a false "didn't hear
-    // anything" at the end.
+    // above digital silence, the input itself is silent.
     if (stallTimerRef.current) clearTimeout(stallTimerRef.current);
     stallTimerRef.current = setTimeout(() => {
       const health = sessionRef.current?.getAudioHealth();
@@ -914,75 +635,11 @@ export default function RecitationCoach({
         setSilentInput(true);
       }
     }, 2500);
-  }, [scopeAyahs, surah, settings, t, stopAudio, abortLiveSession]);
-
-  /**
-   * Pause a live take: suspend the engine session (its AudioContext, so
-   * no audio reaches the tracker and its session clock stops), pause the
-   * own-recording MediaRecorder, stop the stall watch, and freeze the
-   * wall-clock timer. The mic stream stays open — nothing is torn down,
-   * so Resume picks the same take back up.
-   */
-  const pauseRecording = useCallback(async () => {
-    const session = sessionRef.current;
-    if (!session || micState !== 'recording' || paused) return;
-    pauseStartRef.current = Date.now();
-    setPaused(true);
-    if (stallTimerRef.current) {
-      clearTimeout(stallTimerRef.current);
-      stallTimerRef.current = null;
-    }
-    try {
-      await session.pause();
-    } catch {
-      /* pause is best-effort — the take stays live */
-    }
-    try {
-      if (recorderRef.current && recorderRef.current.state === 'recording') {
-        recorderRef.current.pause();
-      }
-    } catch {
-      /* recording unavailable — reciting still counts */
-    }
-  }, [micState, paused]);
-
-  /** Resume a paused take: resume the engine session + recorder, bank
-   * the paused wall-clock time, and re-arm the stall watch. */
-  const resumeRecording = useCallback(async () => {
-    const session = sessionRef.current;
-    if (!session || micState !== 'recording' || !paused) return;
-    if (pauseStartRef.current > 0) {
-      pausedTotalRef.current += Date.now() - pauseStartRef.current;
-      pauseStartRef.current = 0;
-    }
-    setPaused(false);
-    try {
-      await session.resume();
-    } catch {
-      /* resume is best-effort */
-    }
-    try {
-      if (recorderRef.current && recorderRef.current.state === 'paused') {
-        recorderRef.current.resume();
-      }
-    } catch {
-      /* recording unavailable — reciting still counts */
-    }
-    if (stallTimerRef.current) clearTimeout(stallTimerRef.current);
-    stallTimerRef.current = setTimeout(() => {
-      const health = sessionRef.current?.getAudioHealth();
-      if (!sessionRef.current || !health) return;
-      if (health.levelCallbacks === 0) {
-        setAudioStalled(true);
-      } else if (health.silentInput) {
-        setSilentInput(true);
-      }
-    }, 2500);
-  }, [micState, paused]);
+  }, [current, surah, settings, stopAudio, abortLiveSession]);
 
   const stopRecording = useCallback(async () => {
     const session = sessionRef.current;
-    if (!session) return;
+    if (!session || !current) return;
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -991,26 +648,7 @@ export default function RecitationCoach({
       clearTimeout(stallTimerRef.current);
       stallTimerRef.current = null;
     }
-    // A paused take resumes its recorder first, so the capture can be
-    // stopped cleanly (the adapter resumes the AudioContext inside
-    // stop() itself). Bank the paused time so the timer stays honest.
-    if (paused) {
-      if (pauseStartRef.current > 0) {
-        pausedTotalRef.current += Date.now() - pauseStartRef.current;
-        pauseStartRef.current = 0;
-      }
-      setPaused(false);
-      try {
-        if (recorderRef.current && recorderRef.current.state === 'paused') {
-          recorderRef.current.resume();
-        }
-      } catch {
-        /* recording unavailable — reciting still counts */
-      }
-    }
-    // Stop the own-recording capture and keep it as a blob URL (device only).
-    // `pendingRecording` carries the blob past session.stop() so it can
-    // be persisted below, once the result (and its mistake count) is known.
+    // Stop the own-recording capture and keep it as a blob (device only).
     let pendingRecording: SharedRecording | null = null;
     try {
       if (recorderRef.current && recorderRef.current.state !== 'inactive') {
@@ -1018,32 +656,26 @@ export default function RecitationCoach({
           const rec = recorderRef.current;
           if (!rec) return resolve();
           rec.onstop = () => resolve();
-          try { rec.stop(); } catch { resolve(); }
+          try {
+            rec.stop();
+          } catch {
+            resolve();
+          }
         });
         const mimeType = recorderRef.current?.mimeType || 'audio/webm';
         const blob = new Blob(recordChunksRef.current, { type: mimeType });
         if (blob.size > 0) {
-          setRecordingUrl(URL.createObjectURL(blob));
-          const scope = scopeAyahs();
           pendingRecording = {
             blob,
-            fileName: recordingFileName(
-              surah,
-              scope[0]?.ayah ?? 0,
-              scope[scope.length - 1]?.ayah ?? 0,
-              audioExtension(mimeType),
-            ),
+            fileName: recordingFileName(surah, current.ayah, current.ayah, audioExtension(mimeType)),
           };
-          setRecording(pendingRecording);
         }
       }
     } catch {
       /* recording unavailable — reciting still counts */
     } finally {
-      // The recorder shares Tilawa's stream (see startRecording): never
-      // stop its tracks here — session.stop() below owns them, and
-      // stopping them first would cut the audio path before the session
-      // has drained. Just drop the references.
+      // The recorder shares Tilawa's stream: never stop its tracks here
+      // — session.stop() below owns them.
       recordStreamRef.current = null;
       recorderRef.current = null;
     }
@@ -1051,7 +683,6 @@ export default function RecitationCoach({
     const res = await session.stop();
     sessionRef.current = null;
     setMicState('idle');
-    setLevel(0);
     setVoiceDetected(false);
     voiceDetectedRef.current = false;
     setVadSpeaking(false);
@@ -1061,41 +692,26 @@ export default function RecitationCoach({
     setSilentInput(false);
     setFramesSeen(0);
     levelCountRef.current = 0;
-    levelsRef.current = [];
     setResult(res);
 
-    const scope = scopeAyahs();
     const confirmedKeys = new Set(
       res.mistakes.map((m) => wordKey(m.location.surah, m.location.ayah, m.location.word)),
     );
-    // Harakat (tashkeel) — DEAD CODE REMOVED (BA, 2026-11-23): the old
-    // branch re-graded a "wrong" word as correct when "strict harakat"
-    // was off and the heard word differed only in vowel marks. It could
-    // never fire: Tilawa tracks positions, it does not transcribe words,
-    // so `found.heard` is never populated, and both shipped model
-    // manifests list ONLY the four memorization classes as supported —
-    // `short_vowel`, the class a pure vowel-only error would need, is in
-    // `capabilities.unsupported` for this model version (see lib/tilawa.ts).
-    // The setting therefore cannot do what its copy promises. The toggle
-    // and its copy live in SettingsClient / i18n (not this file) and
-    // still need removing or rewording there — see the handoff.
     const words: FeedbackWord[] = [];
-    for (const a of scope) {
-      for (const w of splitWords(a.text)) {
-        const found = res.words.find(
-          (rw) => rw.surah === a.surah && rw.ayah === a.ayah && rw.wordIndex === w.index,
-        );
-        const status: FeedbackWord['status'] = found ? found.status : 'not-reached';
-        words.push({
-          key: wordKey(a.surah, a.ayah, w.index + 1),
-          display: w.display,
-          status,
-          confirmed: confirmedKeys.has(wordKey(a.surah, a.ayah, w.index + 1)),
-        });
-      }
+    for (const w of splitWords(current.text)) {
+      const found = res.words.find(
+        (rw) => rw.surah === current.surah && rw.ayah === current.ayah && rw.wordIndex === w.index,
+      );
+      const status: FeedbackWord['status'] = found ? found.status : 'not-reached';
+      words.push({
+        key: wordKey(current.surah, current.ayah, w.index + 1),
+        display: w.display,
+        status,
+        confirmed: confirmedKeys.has(wordKey(current.surah, current.ayah, w.index + 1)),
+      });
     }
     setFeedbackWords(words);
-    setStep('feedback');
+    setPhase('feedback');
 
     const missedWords = words.filter((w) => w.status === 'missed' || w.status === 'wrong');
     const allCorrect =
@@ -1110,11 +726,9 @@ export default function RecitationCoach({
     } catch {
       /* settings unreadable — judge as usual */
     }
-    if (mode === 'follow' || !detectMistakes) {
-      // Follow-along: highlight only, no judgement — count the minutes, never
-      // log a mistake or touch the streak. A mic take with mistake
-      // detection off (Settings → Recitation) is the same: the words
-      // were followed, not judged.
+    if (!detectMistakes) {
+      // Follow-along: highlight only, no judgement — count the minutes,
+      // never log a mistake or touch the streak.
       let p = loadProgress();
       p = recordMinutes(p, minutes);
       saveProgress(p);
@@ -1122,28 +736,20 @@ export default function RecitationCoach({
       return;
     }
     if (settings?.dontProgress) {
-      // "Don't progress until mistake is fixed": hold on this ayah until a
-      // later attempt comes back clean.
-      setPendingFix(missedWords.length > 0 ? true : false);
+      // "Don't progress until mistake is fixed": hold on this ayah until
+      // a later attempt comes back clean.
+      setPendingFix(missedWords.length > 0);
     }
     persistAttempt({
-      scope,
       allCorrect,
       peeked,
       minutes,
-      // Stage 5 (§10/§11): each mistake carries its word position and the
-      // checker's own class, so the review screen can say what kind of
-      // issue it was. The class comes from the confirmed checker event at
-      // that location — wrong_word → incorrect, omitted_word → missed,
-      // added_word → extra (an extra word was heard at this anchor; the
-      // engine does not transcribe, so the extra word itself has no text),
-      // skipped_passage → skipped. No event at the location (tracker-only
-      // miss) reads as 'missed'. Recognition uncertainty is never logged
+      // Stage 5 (§10/§11): each mistake carries its word position and
+      // the checker's own class. Recognition uncertainty is never logged
       // as a mistake: only confirmed events and observed misses reach here.
       mistakes: missedWords.map((w) => {
         const [s, ay, wd] = w.key.split(':').map(Number);
-        const ayahText = scope.find((a) => a.ayah === ay)?.text ?? '';
-        const display = splitWords(ayahText)[wd - 1]?.display ?? w.display;
+        const display = splitWords(current.text)[wd - 1]?.display ?? w.display;
         const heard = res.words.find(
           (rw) => rw.surah === s && rw.ayah === ay && rw.wordIndex === wd - 1,
         )?.heard;
@@ -1171,70 +777,79 @@ export default function RecitationCoach({
       }),
     });
 
-    // Session record + persisted audio (BA, 2026-11-23). Follow-along
-    // returns early above, so it never gets a record — nothing was
-    // judged there. Accuracy is the REAL measured accuracy from this
-    // session's result (correct / reached words), never a formula
-    // derived from the mistake log.
+    // Session record + persisted audio. Accuracy is the REAL measured
+    // accuracy from this session's result (correct / reached words),
+    // never a formula derived from the mistake log.
     const sessionId = sessionIdRef.current ?? newSessionId();
     let audioId: string | undefined;
     if (pendingRecording && settings?.saveAudio === true) {
       const saved = await saveSessionAudio(sessionId, pendingRecording.blob, {
         date: new Date().toISOString(),
-        rangeLabel: scopeLabel,
+        rangeLabel,
         durationSec: Math.round(res.durationMs / 1000),
         mistakes: missedWords.length,
       });
       if (saved) {
         audioId = sessionId;
-        // Listen-back plays the PERSISTED blob, not just the in-memory
-        // one — the audio you hear is the audio that is stored.
-        const stored = await loadSessionAudio(sessionId);
-        if (stored) {
-          setRecordingUrl((prev) => {
-            if (prev) URL.revokeObjectURL(prev);
-            return URL.createObjectURL(stored.blob);
-          });
-          setRecording({ blob: stored.blob, fileName: pendingRecording.fileName });
-        }
       }
     }
     recordCoachSession({
       id: sessionId,
       date: new Date().toISOString(),
-      range: scopeLabel,
+      range: rangeLabel,
+      surah: surahName,
       durationSec: Math.round(res.durationMs / 1000),
       accuracy: res.reachedCount > 0 ? (res.correctCount / res.reachedCount) * 100 : 0,
       mistakes: missedWords.length,
       ...(audioId ? { audioId } : {}),
     });
-  }, [persistAttempt, peeked, scopeAyahs, scopeLabel, mode, paused, settings, t]);
+  }, [current, surah, surahName, rangeLabel, peeked, persistAttempt, settings]);
 
-  /**
-   * Switching practice mode mid-take (or leaving for the Listen step)
-   * must stop the live capture first — the old code just changed state
-   * and left the session, mic stream and AudioContext running invisibly
-   * behind the new screen, so the next take started on top of it.
-   */
-  const switchMode = useCallback(
-    (m: CoachMode) => {
-      if (sessionRef.current) {
-        void abortLiveSession();
-        setMicState('idle');
-      }
-      setMode(m);
-    },
-    [abortLiveSession],
-  );
-
-  const backToListening = useCallback(() => {
-    stopAudio();
-    if (sessionRef.current) {
-      void abortLiveSession();
-      setMicState('idle');
+  /** The big round mic button: tap to recite, tap again to stop. */
+  const onMicTap = useCallback(() => {
+    if (micState === 'recording') {
+      void stopRecording();
+      return;
     }
-    setStep('listen');
-  }, [abortLiveSession, stopAudio]);
+    if (micState === 'requesting' || micState === 'checking') return;
+    // A new take starts with the words hidden (the point is reciting
+    // from memory). The peek state belongs to this attempt — it is
+    // cleared by Try again / Next ayah, not here.
+    setArabicHidden(true);
+    setResult(null);
+    setFeedbackWords([]);
+    setLiveWords({});
+    mistakeSoundKeysRef.current.clear();
+    setMicError(null);
+    setPhase('ready');
+    if (engineRef.current) {
+      void startRecording();
+      return;
+    }
+    if (engineState === 'unsupported') {
+      setMicError('This device cannot run the on-device checker. Listen still works.');
+      return;
+    }
+    if (engineState === 'failed') {
+      // Retry the download — one tap, not two.
+      pendingStartRef.current = true;
+      void loadEngineNow();
+      return;
+    }
+    // Engine still loading (or idle): start the download and begin the
+    // take the moment it is ready — one tap, not two.
+    pendingStartRef.current = true;
+    void loadEngineNow();
+  }, [micState, engineState, loadError, startRecording, loadEngineNow]);
+
+  // A mic tap that arrived while the engine was loading starts the take
+  // as soon as the engine is ready.
+  useEffect(() => {
+    if (pendingStartRef.current && engineState === 'ready') {
+      pendingStartRef.current = false;
+      void startRecording();
+    }
+  }, [engineState, startRecording]);
 
   // Cleanup on unmount: stop any live session; the engine stays cached.
   useEffect(() => {
@@ -1242,1277 +857,448 @@ export default function RecitationCoach({
       if (timerRef.current) clearInterval(timerRef.current);
       if (stallTimerRef.current) clearTimeout(stallTimerRef.current);
       startInFlightRef.current = false;
+      pendingStartRef.current = false;
       sessionRef.current?.dispose();
       sessionRef.current = null;
       stopAudio();
     };
   }, [stopAudio]);
 
-  // Live waveform: redraw the recent real mic levels while recording.
-  // The canvas shows only levels the mic actually produced — if capture
-  // is dead the strip stays flat, which is itself the diagnosis.
-  useEffect(() => {
-    if (micState !== 'recording') return;
-    const draw = () => {
-      const canvas = waveformRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      const w = canvas.width;
-      const h = canvas.height;
-      ctx.clearRect(0, 0, w, h);
-      const levels = levelsRef.current;
-      const n = 60;
-      const barW = w / n;
-      for (let i = 0; i < n; i++) {
-        const v = levels[levels.length - n + i] ?? 0;
-        const barH = Math.max(2, v * (h - 4));
-        ctx.fillStyle = v > 0.25 ? '#1FA36B' : '#9DB8A6';
-        ctx.fillRect(i * barW + 1, (h - barH) / 2, Math.max(1, barW - 2), barH);
+  /* ---------------- word playback (tap a missed word) ---------------- */
+
+  /**
+   * Hear JUST one word: the ayah's MP3, seeked to the word's segment
+   * start (Quran.com timings) and stopped at its segment end. The
+   * queue is left empty, so nothing follows the word. A hold during a
+   * mic take is ignored silently. The sounding word lights green while
+   * it sounds, even when it is a red mistake word — green means
+   * "sounding now", red means "mistake".
+   */
+  const playWord = useCallback(
+    (wordIndex0: number) => {
+      if (micState !== 'idle') return;
+      const audio = audioRef.current;
+      if (!current?.audioUrl || !audio) return;
+      const key = wordKey(current.surah, current.ayah, wordIndex0 + 1);
+      // First segment sounding this word's key (segKeys maps a segment's
+      // raw-word position onto its display key). Fall back to the
+      // positional segment when the scripts' word breaks differ.
+      let seg: AudioSegment | undefined;
+      if (current.segments && current.segKeys) {
+        const idx = current.segments.findIndex((s) => current.segKeys?.[s[1] - 1] === key);
+        if (idx >= 0) seg = current.segments[idx];
       }
-    };
-    draw();
-    const id = setInterval(draw, 100);
-    return () => clearInterval(id);
-  }, [micState]);
-
-  /* ---------------- self-mark fallback (no mic) ---------------- */
-
-  const submitSelfMark = useCallback(() => {
-    const scope = scopeAyahs();
-    const words: FeedbackWord[] = [];
-    const mistakes: {
-      surah: number;
-      ayah: number;
-      word: string;
-      expected: string;
-      wordIndex: number;
-      type: MistakeType;
-      source: 'self-mark';
-    }[] = [];
-    let correctCount = 0;
-    let reachedCount = 0;
-    for (const a of scope) {
-      for (const w of splitWords(a.text)) {
-        const key = wordKey(a.surah, a.ayah, w.index + 1);
-        const marked = selfMarks[key];
-        reachedCount++;
-        if (marked === true) {
-          correctCount++;
-          words.push({ key, display: w.display, status: 'correct', confirmed: false });
-        } else if (marked === false) {
-          // "Not quite": the user said the word differently — that is
-          // an Incorrect mistake, not a missed one (audit C-5: it used
-          // to land under NO mistake type at all).
-          words.push({ key, display: w.display, status: 'missed', confirmed: false });
-          mistakes.push({
-            surah: a.surah,
-            ayah: a.ayah,
-            word: w.display,
-            expected: w.display,
-            wordIndex: w.index,
-            type: 'incorrect',
-            source: 'self-mark',
-          });
-        } else {
-          words.push({ key, display: w.display, status: 'not-reached', confirmed: false });
+      if (!seg && current.segments?.[wordIndex0]) seg = current.segments[wordIndex0];
+      if (!seg) {
+        setWordNote('No audio for that word yet.');
+        return;
+      }
+      const startMs = seg[2];
+      const endMs = Math.max(seg[3], startMs + 200);
+      setWordNote(null);
+      stopAudio();
+      wordStopRef.current = { endMs };
+      setPlayingWordKey(key);
+      audio.src = `${AUDIO_BASE}${current.audioUrl}`;
+      try {
+        audio.playbackRate = readListenSpeed();
+      } catch {
+        /* playbackRate unsupported — the word still plays at 1x */
+      }
+      // The seek is async: play only once it lands ('seeked'), with a
+      // timeout that plays anyway rather than leaving silence.
+      const attemptPlay = () => {
+        audio.play().catch(() => {
+          setPlayingWordKey(null);
+          wordStopRef.current = null;
+        });
+      };
+      const doSeek = () => {
+        try {
+          audio.currentTime = Math.max(0, startMs / 1000);
+        } catch {
+          attemptPlay();
+          return;
         }
-      }
-    }
-    const selfResult: SessionResult = {
-      words: words.map((w) => {
-        const [s, ay, wd] = w.key.split(':').map(Number);
-        return {
-          wordIndex: wd - 1, surah: s, ayah: ay, word: wd,
-          status: w.status, display: w.display,
+        if (!audio.seeking) {
+          attemptPlay();
+          return;
+        }
+        let done = false;
+        const onSeeked = () => {
+          if (done) return;
+          done = true;
+          audio.removeEventListener('seeked', onSeeked);
+          attemptPlay();
         };
-      }),
-      correctCount,
-      reachedCount,
-      missedCount: mistakes.length,
-      unclear: false,
-      anchorIndex: null,
-      anchorKey: null,
-      noSpeech: false,
-      micHeardAudio: false,
-      audioHealth: {
-        levelCallbacks: 0,
-        maxLevelDb: -120,
-        audibleCallbacks: 0,
-        everAudible: false,
-        silentInput: false,
-        positionEvents: 0,
-        everLocked: false,
-      },
-      trackedElsewhere: false,
-      // Audit C-5: this used to be `mistakes: []`, so the feedback
-      // screen's "Mistakes by type" breakdown was all zeros even though
-      // the word was listed under "Words to retry". A self-marked
-      // "Not quite" word is a wrong_word (Incorrect) at its location.
-      mistakes: mistakes.map(
-        (m, i) =>
-          ({
-            type: 'checker',
-            v: 1,
-            id: `self-mark-${m.surah}-${m.ayah}-${m.wordIndex}-${i}`,
-            timeMs: 0,
-            state: 'confirmed',
-            errorClass: 'wrong_word',
-            location: { surah: m.surah, ayah: m.ayah, word: m.wordIndex + 1 },
-            expected: m.expected,
-            confidence: 1,
-          }) as CheckerEvent,
-      ),
-      durationMs: 0,
-    };
-    setResult(selfResult);
-    setFeedbackWords(words);
-    setStep('feedback');
-    const allCorrect = !peeked && mistakes.length === 0 && reachedCount > 0;
-    persistAttempt({ scope, allCorrect, peeked, minutes: 0.5, mistakes });
-    // Self-marked practice is still a coach session: record it with its
-    // REAL measured accuracy (self-marked correct / reached). No audio
-    // exists for a self-marked session, so there is no audioId.
-    recordCoachSession({
-      id: newSessionId(),
-      date: new Date().toISOString(),
-      range: scopeLabel,
-      durationSec: 0,
-      accuracy: reachedCount > 0 ? (correctCount / reachedCount) * 100 : 0,
-      mistakes: mistakes.length,
-    });
-    // Self-marked mistakes show as self-marked in the session's log view
-    // (source 'self-mark' is persisted with the entry, Stage 5 §11).
-    setSelfMarkedMistakes(
-      mistakes.map((m) => ({ ...m, date: new Date().toISOString(), attempts: 1 })),
-    );
-  }, [persistAttempt, peeked, scopeAyahs, scopeLabel, selfMarks]);
+        audio.addEventListener('seeked', onSeeked);
+        window.setTimeout(() => {
+          if (!done) {
+            done = true;
+            audio.removeEventListener('seeked', onSeeked);
+            if (audio.paused) attemptPlay();
+          }
+        }, 1500);
+      };
+      if (audio.readyState >= 1) doSeek();
+      else audio.addEventListener('loadedmetadata', doSeek, { once: true });
+    },
+    [current, micState, stopAudio],
+  );
 
   /* ---------------- navigation ---------------- */
 
-  const goToAyahIndex = useCallback(
-    (index: number) => {
-      const clamped = Math.max(0, Math.min(index, ayahs.length - 1));
-      setCurrentIndex(clamped);
-      setRangeFrom(clamped);
-      setRangeTo(clamped);
-      setScopeKind('single');
-      setResult(null);
-      setFeedbackWords([]);
-      setPeeked(false);
-      setRevealedCount(0);
-      setPeekCount(0);
-      setSelectedMistake(null);
-      setRecordingUrl(null);
-      setRecording(null);
-      setStep('listen');
-      onAyahChange?.(ayahs[clamped]?.ayah ?? 0);
-    },
-    [ayahs, onAyahChange],
-  );
+  const resetAttempt = useCallback(() => {
+    stopAudio();
+    setResult(null);
+    setFeedbackWords([]);
+    setLiveWords({});
+    setPeeked(false);
+    setRevealedCount(0);
+    setPeekCount(0);
+    setPendingFix(false);
+    setPlayingWordKey(null);
+    setWordNote(null);
+    setMicError(null);
+    mistakeSoundKeysRef.current.clear();
+    setPhase('ready');
+  }, [stopAudio]);
 
-  const retryScope = useCallback(
-    (onlyMissed: boolean) => {
-      if (onlyMissed && result) {
-        // Retry just the ayahs that contain missed/wrong words.
-        const badAyahs = new Set(result.words.filter((w) => w.status === 'missed' || w.status === 'wrong').map((w) => w.ayah));
-        const idxs = ayahs.map((a, i) => ({ a, i })).filter(({ a }) => badAyahs.has(a.ayah)).map(({ i }) => i);
-        if (idxs.length > 0) {
-          setCurrentIndex(idxs[0]);
-          setRangeFrom(Math.min(...idxs));
-          setRangeTo(Math.max(...idxs));
-          setScopeKind(idxs.length > 1 ? 'range' : 'single');
-        }
-      }
-      setResult(null);
-      setFeedbackWords([]);
-      setPeeked(false);
-      setRevealedCount(0);
-      setPeekCount(0);
-      setSelectedMistake(null);
-      setRecordingUrl(null);
-      setRecording(null);
-      setLiveWords({});
-      setSelfMarks({});
-      // Same as enterRecite: retrying goes back to "Hide & recite" with
-      // the verse hidden (audit C-3).
-      setArabicHidden(true);
-      setStep('recite');
-      if (mode === 'mic' || mode === 'follow') void loadEngineNow();
-    },
-    [ayahs, loadEngineNow, mode, result],
-  );
+  const tryAgain = useCallback(() => {
+    resetAttempt();
+    setArabicHidden(true);
+  }, [resetAttempt]);
 
-  const feedbackSummary = result
-    ? result.reachedCount === 0
-      ? t('coach.noWordsHeard')
-      : `${t('coach.youSaid')} ${result.correctCount} ${t('common.of')} ${result.reachedCount} ${t('common.words')}${
-          result.missedCount > 0
-            ? ` — ${result.missedCount} ${result.missedCount === 1 ? t('coach.wordWasNotHeard') : t('coach.wordsWereNotHeard')}`
-            : ''
-        }.`
-    : '';
+  const internalHasNext = currentIndex < ayahs.length - 1;
+  const canGoNext = onNextAyah ? (hasNextAyah ?? true) : internalHasNext;
+  const nextBlockedByFix = pendingFix && feedbackWords.some((w) => w.status === 'missed' || w.status === 'wrong');
+  const nextAyah = useCallback(() => {
+    if (onNextAyah) {
+      onNextAyah();
+      return;
+    }
+    if (currentIndex >= ayahs.length - 1) return;
+    const next = currentIndex + 1;
+    resetAttempt();
+    // The next ayah starts shown, like a fresh visit — the hide
+    // belongs to the take that just ended, not the new ayah.
+    setArabicHidden(false);
+    setCurrentIndex(next);
+    onAyahChange?.(ayahs[next]?.ayah ?? 0);
+  }, [onNextAyah, currentIndex, ayahs, resetAttempt, onAyahChange]);
 
-  const tooShort =
-    !!result && !result.noSpeech && !result.unclear && result.durationMs > 0 &&
-    result.durationMs < 2000 && result.reachedCount <= 1;
+  const peekNext = useCallback(() => {
+    setRevealedCount((c) => c + 1);
+    setPeekCount((c) => c + 1);
+    setPeeked(true);
+  }, []);
 
-  const retryMistakes = persistedMistakes.filter((m) => m.surah === surah);
+  const peekRest = useCallback(() => {
+    setRevealedCount(10000);
+    setPeekCount((c) => c + 1);
+    setPeeked(true);
+  }, []);
 
-  /* ---------------- render ---------------- */
+  /* ---------------- derived render state ---------------- */
+
+  const recording = micState === 'recording';
+  const correctCount = Object.values(liveWords).filter((v) => v === 'correct').length;
+  const progress = words.length > 0 ? correctCount / words.length : 0;
+  const missedWords = feedbackWords.filter((w) => w.status === 'missed' || w.status === 'wrong');
+  const notHeardCount = feedbackWords.filter((w) => w.status === 'not-reached').length;
+  const rightCount = feedbackWords.filter((w) => w.status === 'correct').length;
+  const unclear = !!result && (result.unclear || result.noSpeech || result.reachedCount === 0);
+  const timer = `${Math.floor(recordingSecs / 60)}:${String(recordingSecs % 60).padStart(2, '0')}`;
+  const statusText = recording
+    ? vadSpeaking
+      ? `Voice detected · ${timer}`
+      : voiceDetected
+        ? `Paused — keep reciting · ${timer}`
+        : framesSeen === 0
+          ? `Mic connected · ${timer}`
+          : `Listening — recite the ayah · ${timer}`
+    : micState === 'requesting'
+      ? 'Asking for the microphone…'
+      : micState === 'checking'
+        ? 'Checking what you said…'
+        : null;
+
+  /** Class for one word in the ayah line: live colours while reciting,
+   *  feedback colours after, plain otherwise. While a missed word is
+   *  sounding (tap to hear it), it lights green — green means
+   *  "sounding now", red means "mistake". */
+  const wordClass = (key: string): string | undefined => {
+    if (playingWordKey === key) return 'live-word-correct';
+    if (phase === 'feedback') {
+      const fw = feedbackWords.find((f) => f.key === key);
+      if (fw?.status === 'correct') return 'live-word-correct';
+      if (fw?.status === 'missed' || fw?.status === 'wrong') return 'live-word-wrong';
+      return undefined;
+    }
+    const live = liveWords[key];
+    if (live === 'correct') return 'live-word-correct';
+    if (live === 'wrong' || live === 'missed') return 'live-word-wrong';
+    return undefined;
+  };
 
   return (
-    <section aria-label={`${t('common.recite')} ${t('common.surah')} ${surahName}`} className="rounded-2xl bg-white border border-[#E5E7EB] p-4 sm:p-6 shadow-sm">
+    <section aria-label={`Recite ${surahName}`} className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
       <audio ref={audioRef} preload="none" className="hidden" />
-      <h2 className="text-xl font-bold text-[#102E26]">{t('common.recite')} {surahName}</h2>
-      <p className="mt-1 text-sm text-[#5b6b62]">
-        {t('coach.introRecite')}
-      </p>
 
       {!online && (
-        <p role="status" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">
-          {t('coach.offlineNote')}
+        <p role="status" className="mb-3 text-sm text-[#5b6b62]">
+          You are offline. Listen needs a connection; the mic still works on-device.
         </p>
       )}
-      {storageNotice && (
-        <p role="status" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">{storageNotice}</p>
-      )}
 
-      {/* Steps */}
-      <ol className="mt-4 flex flex-wrap gap-2 text-xs font-semibold" aria-label={t('coach.stepsLabel')}>
-        {(['pick', 'listen', 'recite', 'feedback'] as Step[]).map((s, i) => (
-          <li
-            key={s}
-            aria-current={step === s ? 'step' : undefined}
-            className={`rounded-full px-3 py-1 ${step === s ? 'bg-[#102E26] text-white' : 'bg-[#FFFBF2] text-[#5b6b62]'}`}
+      {/* The ayah — big Arabic, translation small underneath in grey. */}
+      <div className="rounded-xl border border-[#E5E7EB] px-4 py-5">
+        <p dir="rtl" lang="ar" translate="no" className="font-quran text-right text-3xl leading-loose text-[#1C2420]">
+          {words.map((w) => {
+            const key = wordKey(current?.surah ?? surah, current?.ayah ?? 0, w.index + 1);
+            const live = liveWords[key];
+            const shown =
+              !arabicHidden ||
+              phase === 'feedback' ||
+              live === 'correct' ||
+              live === 'wrong' ||
+              live === 'missed' ||
+              w.index < revealedCount;
+            if (!shown) {
+              return (
+                <span
+                  key={key}
+                  className="hidden-word-rule"
+                  style={{ width: `${Math.max(1.2, w.display.length * 0.45)}em` }}
+                />
+              );
+            }
+            return (
+              <span key={key} className={wordClass(key)}>
+                {w.display}{' '}
+              </span>
+            );
+          })}
+          <span className="hidden-ayah-rosette" aria-hidden="true"> ◯</span>
+        </p>
+        {current?.translation && (
+          <p className="mt-3 text-sm leading-relaxed text-[#5b6b62]">{current.translation}</p>
+        )}
+      </div>
+
+      {/* Peek — only while the words are hidden and before the result. */}
+      {arabicHidden && phase !== 'feedback' && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={peekNext}
+            className="min-h-11 rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#1C2420] hover:border-[#1C2420] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1C2420]"
           >
-            {i + 1}. {s === 'pick' ? t('coach.pick') : s === 'listen' ? t('coach.listen') : s === 'recite' ? t('coach.hideRecite') : t('coach.feedback')}
-          </li>
-        ))}
-      </ol>
-
-      {/* ---------- STEP 1: PICK ---------- */}
-      {step === 'pick' && (
-        <div className="mt-5">
-          <fieldset>
-            <legend className="text-sm font-semibold">{t('coach.whatRecite')}</legend>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <label className="flex min-h-11 items-center gap-2 rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm">
-                <input type="radio" name="scope" checked={scopeKind === 'single'} onChange={() => setScopeKind('single')} />
-                {t('coach.oneAyah')}
-              </label>
-              <label className="flex min-h-11 items-center gap-2 rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm">
-                <input type="radio" name="scope" checked={scopeKind === 'range'} onChange={() => setScopeKind('range')} />
-                {t('coach.ayahRange')}
-              </label>
-              <label className="flex min-h-11 items-center gap-2 rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm">
-                <input type="radio" name="scope" checked={scopeKind === 'whole'} onChange={() => setScopeKind('whole')} />
-                {t('coach.wholeSurah')}
-              </label>
-            </div>
-          </fieldset>
-
-          {scopeKind === 'single' && (
-            <label className="mt-4 block text-sm font-semibold">
-              {t('common.ayah')}
-              <select
-                value={currentIndex}
-                onChange={(e) => setCurrentIndex(Number(e.target.value))}
-                className="mt-1 block w-full max-w-xs min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2 text-sm"
-              >
-                {ayahs.map((a, i) => (
-                  <option key={`${a.surah}:${a.ayah}`} value={i}>
-                    {a.surah}:{a.ayah}
-                  </option>
-                ))}
-              </select>
-            </label>
+            Peek at the next word
+          </button>
+          <button
+            type="button"
+            onClick={peekRest}
+            className="min-h-11 rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#1C2420] hover:border-[#1C2420] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1C2420]"
+          >
+            Show all words
+          </button>
+          {peeked && (
+            <p role="status" className="text-xs text-[#5b6b62]">
+              You peeked{peekCount > 1 ? ` ${peekCount} times` : ''} — this try won&apos;t count as fully correct.
+            </p>
           )}
-          {scopeKind === 'range' && (
-            <div className="mt-4 flex flex-wrap gap-4">
-              <label className="text-sm font-semibold">
-                {t('coach.fromAyah')}
-                <select value={rangeFrom} onChange={(e) => setRangeFrom(Number(e.target.value))} className="mt-1 block min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2 text-sm">
-                  {ayahs.map((a, i) => (<option key={`f-${a.ayah}`} value={i}>{a.surah}:{a.ayah}</option>))}
-                </select>
-              </label>
-              <label className="text-sm font-semibold">
-                {t('coach.toAyah')}
-                <select value={rangeTo} onChange={(e) => setRangeTo(Number(e.target.value))} className="mt-1 block min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2 text-sm">
-                  {ayahs.map((a, i) => (<option key={`t-${a.ayah}`} value={i}>{a.surah}:{a.ayah}</option>))}
-                </select>
-              </label>
-            </div>
-          )}
-          <label className="mt-4 block text-sm font-semibold">
-            {t('common.reciter')}
-            <select
-              value={reciterId}
-              onChange={(e) => void changeReciter(Number(e.target.value))}
-              className="mt-1 block w-full max-w-xs min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-3 py-2 text-sm"
-            >
-              {RECITERS.map((r) => (
-                <option key={r.id} value={r.id}>{r.name}</option>
-              ))}
-            </select>
-          </label>
-          {audioNote && <p role="status" className="mt-2 text-sm text-[#5b6b62]">{audioNote}</p>}
-
-          <div className="mt-5 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => { setStep('listen'); }}
-              disabled={scopeAyahs().length === 0}
-              className="rounded-full bg-[#102E26] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
-            >
-              {t('coach.listenFirst')}
-            </button>
-            <button
-              type="button"
-              onClick={enterRecite}
-              disabled={scopeAyahs().length === 0}
-              className="rounded-full border border-[#102E26] min-h-11 px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
-            >
-              {t('coach.reciteNow')}
-            </button>
-          </div>
         </div>
       )}
 
-      {/* ---------- STEP 2: LISTEN ---------- */}
-      {step === 'listen' && (
-        <div className="mt-5">
-          <p className="text-sm font-semibold">{t('coach.listen')} — {scopeLabel}</p>
-          <p className="mt-1 text-sm text-[#5b6b62]">
-            {t('common.reciter')}: {RECITERS.find((r) => r.id === reciterId)?.name ?? 'Mishary Alafasy'}. {t('coach.wordsHighlight')}
+      {/* Thin progress line while reciting: how far through the ayah. */}
+      {recording && (
+        <div className="mt-4">
+          <div className="h-1 overflow-hidden rounded-full bg-[#E5E7EB]" aria-hidden="true">
+            <div className="h-full bg-[#1C2420] transition-[width] duration-300" style={{ width: `${Math.round(progress * 100)}%` }} />
+          </div>
+          {statusText && (
+            <p role="status" className="mt-2 text-center text-sm font-semibold text-[#1C2420]">
+              {statusText}
+            </p>
+          )}
+          {audioStalled && (
+            <p role="alert" className="mx-auto mt-2 max-w-md rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm">
+              The mic isn&apos;t sending any sound. Stop and try again, or run a{' '}
+              <Link href="/hifz/diagnostics" className="font-semibold text-[#1C2420] underline">
+                mic check
+              </Link>
+              .
+            </p>
+          )}
+          {silentInput && !audioStalled && (
+            <p role="alert" className="mx-auto mt-2 max-w-md rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm">
+              The mic is connected but silent — check it isn&apos;t muted or covered. Stop and try again.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Engine loading — the model downloads on the first mic tap. */}
+      {engineState === 'loading' && engineLoadProgress && !recording && (
+        <div className="mt-4">
+          <p role="status" className="text-sm font-semibold text-[#1C2420]">
+            Loading the checker… {Math.round(engineLoadProgress.fraction * 100)}%
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={playScopeAudio}
-              className="rounded-full bg-[#1FA36B] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#102E26] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
-            >
-              {playingKey ? t('coach.playingStop') : t('common.play')}
-            </button>
-            {playingKey && (
-              <button type="button" onClick={stopAudio} className="rounded-full border border-[#E5E7EB] px-4 py-2.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]">
-                {t('coach.stopAudio')}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={enterRecite}
-              className="rounded-full bg-[#102E26] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
-            >
-              {t('coach.hideRecite')}
-            </button>
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-[#E5E7EB]" aria-hidden="true">
+            <div className="h-full bg-[#1C2420]" style={{ width: `${Math.round(engineLoadProgress.fraction * 100)}%` }} />
           </div>
-          <div className="mt-4 space-y-3">
-            {scopeAyahs().map((a) => {
-              const key = `${a.surah}:${a.ayah}`;
-              return (
-                <div key={key} className={`rounded-xl border p-3 ${playingKey === key ? 'border-[#FFB800] bg-[#FFFBF2]' : 'border-[#E5E7EB]'}`}>
-                  <p dir="rtl" lang="ar" translate="no" className="font-quran text-2xl sm:text-3xl leading-loose text-right">{a.text}</p>
-                  {a.translation && <p className="mt-1 text-sm text-[#5b6b62]">{a.translation}</p>}
-                  <button
-                    type="button"
-                    onClick={() => playAyahAudio(ayahs.findIndex((x) => x.surah === a.surah && x.ayah === a.ayah))}
-                    disabled={!audioSrcFor(a)}
-                    className="mt-2 rounded-full border border-[#E5E7EB] px-3 py-1.5 text-xs font-semibold hover:border-[#1FA36B] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
-                  >
-                    {playingKey === key ? t('common.stop') : `${t('common.play')} ${a.surah}:${a.ayah}`}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-          <button type="button" onClick={() => setStep('pick')} className="mt-4 text-sm font-semibold text-[#1FA36B] underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]">
-            {t('coach.changeAyah')}
+          <button
+            type="button"
+            onClick={cancelLoad}
+            className="mt-2 text-sm font-semibold text-[#1C2420] underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1C2420]"
+          >
+            Cancel
           </button>
         </div>
       )}
+      {micState === 'requesting' && statusText && !recording && (
+        <p role="status" className="mt-4 text-center text-sm font-semibold text-[#1C2420]">{statusText}</p>
+      )}
+      {micState === 'checking' && statusText && (
+        <p role="status" className="mt-4 text-center text-sm font-semibold text-[#1C2420]">{statusText}</p>
+      )}
+      {micError && (
+        <p role="alert" className="mt-4 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-[#1C2420]">
+          {micError}
+        </p>
+      )}
+      {engineState === 'failed' && loadError && !micError && (
+        <p role="alert" className="mt-4 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-[#1C2420]">
+          {loadError}
+        </p>
+      )}
 
-      {/* ---------- STEP 3: HIDE & RECITE ---------- */}
-      {step === 'recite' && (
-        <div className="mt-5">
-          <p className="text-sm font-semibold">{t('common.recite')} — {scopeLabel}</p>
-
-          {/* Teacher disclaimer, verbatim, above the mic button (research §6). */}
-          <p className="mt-3 rounded-lg bg-[#E4FFF2] border border-[#1FA36B]/20 px-3 py-2 text-sm">{TEACHER_DISCLAIMER}</p>
-
-          {/* Mode switch: mistake detection / follow-along / self-mark */}
-          <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label={t('coach.practiceMode')}>
-            {(
-              [
-                ['mic', t('coach.modeMic')],
-                ['follow', t('coach.modeFollow')],
-                ['self-mark', t('coach.practiceWithoutMic')],
-              ] as const
-            ).map(([m, label]) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => switchMode(m)}
-                aria-pressed={mode === m}
-                className={`rounded-full min-h-11 px-4 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${mode === m ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB]'}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          {mode === 'follow' && (
-            <p className="mt-2 text-sm text-[#5b6b62]">
-              {t('coach.followAlongNote')}
-            </p>
-          )}
-
-          {/* Hide / prompt controls */}
-          <div className="mt-4 flex flex-wrap gap-2">
+      {/* Controls: Listen, Hide, and the big round mic. */}
+      {phase !== 'feedback' && (
+        <div className="mt-5 flex flex-col items-center">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={playing ? stopAudio : playAyahAudio}
+              disabled={!current?.audioUrl}
+              className="min-h-11 rounded-full border border-[#E5E7EB] bg-white px-5 py-2.5 text-sm font-semibold text-[#1C2420] hover:border-[#1C2420] disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1C2420]"
+            >
+              {playing ? 'Stop' : 'Listen'}
+            </button>
             <button
               type="button"
               onClick={() => setArabicHidden((h) => !h)}
               aria-pressed={arabicHidden}
-              className="rounded-full border border-[#E5E7EB] min-h-11 px-4 py-2 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+              className="min-h-11 rounded-full border border-[#E5E7EB] bg-white px-5 py-2.5 text-sm font-semibold text-[#1C2420] hover:border-[#1C2420] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1C2420]"
             >
-              {arabicHidden ? t('coach.showArabic') : t('coach.hideArabic')}
+              {arabicHidden ? 'Show' : 'Hide'}
             </button>
-            <button
-              type="button"
-              onClick={() => setShowTranslation((s) => !s)}
-              aria-pressed={showTranslation}
-              className="rounded-full border border-[#E5E7EB] min-h-11 px-4 py-2 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
-            >
-              {showTranslation ? t('coach.hideTransPrompt') : t('coach.showTransPrompt')}
-            </button>
-            {arabicHidden && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRevealedCount((c) => c + 1);
-                    setPeekCount((c) => c + 1);
-                    setPeeked(true);
-                  }}
-                  aria-label={t('coach.revealNext')}
-                  title={t('coach.peekNextTitle')}
-                  className="rounded-full border border-[#FFB800] min-h-11 px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
-                >
-                  {t('coach.peekNext')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRevealedCount(10000);
-                    setPeekCount((c) => c + 1);
-                    setPeeked(true);
-                  }}
-                  aria-label={t('coach.revealRest')}
-                  title={t('coach.peekRestTitle')}
-                  className="rounded-full border border-[#FFB800] min-h-11 px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#FFFBF2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
-                >
-                  {t('coach.peekRest')}
-                </button>
-              </>
+          </div>
+          <button
+            type="button"
+            onClick={onMicTap}
+            disabled={micState === 'requesting' || micState === 'checking' || engineState === 'loading'}
+            aria-label={recording ? 'Stop reciting' : 'Recite with the microphone'}
+            className="mt-4 flex h-20 w-20 items-center justify-center rounded-full border-2 border-[#1C2420] bg-white text-[#1C2420] hover:bg-[#F4F5F7] disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1C2420] focus-visible:ring-offset-2"
+          >
+            {recording ? (
+              <span aria-hidden="true" className="block h-6 w-6 rounded-[4px] bg-[#1C2420]" />
+            ) : (
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-8 w-8">
+                <rect x="9" y="2" width="6" height="12" rx="3" />
+                <path d="M5 10a7 7 0 0 0 14 0M12 19v3" />
+              </svg>
             )}
-          </div>
-          {peeked && (
-            <p role="status" className="mt-2 text-sm text-[#5b6b62]">
-              {t('coach.peekedTimes').replace('{n}', String(peekCount)).replace('{times}', peekCount === 1 ? t('ins.timeOne') : t('ins.timeMany'))}
-            </p>
-          )}
+          </button>
+          <p className="mt-2 text-sm font-semibold text-[#1C2420]">
+            {recording ? 'Tap to stop' : engineState === 'loading' ? 'Loading…' : 'Tap the mic to recite'}
+          </p>
+          <p className="mt-1 text-center text-xs text-[#5b6b62]">
+            Word accuracy only — this does not judge tajweed.
+          </p>
+        </div>
+      )}
 
-          {/* The verse: hidden as thin grey rules (screenshot 4), revealed
-              word-by-word as recited or peeked; live colours green = correct,
-              red + dotted underline = mistake, orange = skipped/not heard. */}
-          <div className="mt-4 rounded-xl border border-[#E5E7EB] p-4">
-            {scopeAyahs().map((a, ai) => {
-              const words = splitWords(a.text);
-              const before = scopeAyahs()
-                .slice(0, ai)
-                .reduce((n, x) => n + splitWords(x.text).length, 0);
-              return (
-              <div key={`${a.surah}:${a.ayah}`} className="mt-2 first:mt-0">
-                <p dir="rtl" lang="ar" translate="no" className="font-quran text-2xl sm:text-3xl leading-loose text-right">
-                  {words.map((w) => {
-                    const key = wordKey(a.surah, a.ayah, w.index + 1);
-                    const live = liveWords[key];
-                    const globalIdx = before + w.index;
-                    const liveCls =
-                      live === 'correct'
-                        ? 'live-word-correct'
-                        : live === 'wrong'
-                          ? 'live-word-wrong'
-                          : live === 'missed'
-                            ? 'live-word-skipped'
-                            : undefined;
-                    if (!arabicHidden) {
-                      return (
-                        <span key={key} className={liveCls}>
-                          {w.display}{' '}
-                        </span>
-                      );
-                    }
-                    // Hidden: revealed by reciting correctly or by peeking;
-                    // the rest stay as thin grey rules with a faint rosette.
-                    if (live === 'correct' || globalIdx < revealedCount) {
-                      return (
-                        <span key={key} className={liveCls}>
-                          {w.display}{' '}
-                        </span>
-                      );
-                    }
-                    if (live === 'wrong' || live === 'missed') {
-                      return (
-                        <span key={key} className={liveCls}>
-                          {w.display}{' '}
-                        </span>
-                      );
-                    }
-                    return (
-                      <span
-                        key={key}
-                        className="hidden-word-rule"
-                        style={{ width: `${Math.max(1.2, w.display.length * 0.45)}em` }}
-                      />
-                    );
-                  })}
-                  <span className="hidden-ayah-rosette" aria-hidden="true"> ◯</span>
-                </p>
-                {showTranslation && a.translation && (
-                  <p className="mt-1 text-sm text-[#5b6b62]">{a.translation}</p>
-                )}
-              </div>
-              );
-            })}
-          </div>
-
-          {mode !== 'self-mark' ? (
-            <div className="mt-5 text-center">
-              {engineState === 'loading' && engineLoadProgress && (
-                <div className="mx-auto max-w-md text-left">
-                  <p role="status" className="text-sm font-semibold">
-                    {t('coach.loadingChecker')} {engineLoadProgress.stage} {Math.round(engineLoadProgress.fraction * 100)}%
-                  </p>
-                  <p className="mt-1 text-xs text-[#5b6b62]">
-                    {engineLoadProgress.tierLabel}
-                    {engineLoadProgress.fromCache ? t('coach.loadedFromDevice') : t('coach.downloadedOnce')}
-                  </p>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#E5E7EB]" aria-hidden="true">
-                    <div className="h-full bg-[#1FA36B]" style={{ width: `${Math.round(engineLoadProgress.fraction * 100)}%` }} />
-                  </div>
-                  <button type="button" onClick={cancelLoad} className="mt-2 text-sm font-semibold text-[#1FA36B] underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]">
-                    {t('coach.cancelDownload')}
-                  </button>
-                </div>
+      {/* ---------- RESULT ---------- */}
+      {phase === 'feedback' && result && (
+        <div className="mt-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+          {unclear ? (
+            <>
+              <p role="status" className="text-sm leading-relaxed text-[#1C2420]">{UNCLEAR_COPY}</p>
+              {(result.noSpeech || result.reachedCount === 0) && (
+                <p className="mt-2 text-sm text-[#5b6b62]">No words were heard in this try.</p>
               )}
-              {engineState === 'failed' && (
-                <div className="mx-auto max-w-md rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm text-left">
-                  <p role="alert">{loadError ?? t('coach.checkerFailed')}</p>
-                  <div className="mt-2 flex gap-3">
-                    <button type="button" onClick={() => void loadEngineNow()} className="font-semibold text-[#1FA36B] underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]">
-                      {t('coach.retryLoad')}
-                    </button>
-                    <button type="button" onClick={() => setMode('self-mark')} className="font-semibold text-[#1FA36B] underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]">
-                      {t('coach.practiceWithoutMic')}
-                    </button>
-                  </div>
-                </div>
-              )}
-              {engineState === 'unsupported' && (
-                <p role="alert" className="mx-auto max-w-md rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm text-left">
-                  {t('coach.checkerUnsupported')}
-                </p>
-              )}
-              {engineState === 'idle' && (
-                <button
-                  type="button"
-                  onClick={() => void loadEngineNow()}
-                  className="rounded-full bg-[#102E26] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
-                >
-                  {t('coach.loadChecker')} ({autoTierLabel()})
-                </button>
-              )}
-
-              {engineState === 'ready' && micState !== 'recording' && micState !== 'checking' && (
+            </>
+          ) : (
+            <>
+              <p className="text-base font-bold text-[#1C2420]">
+                {rightCount} of {feedbackWords.length} words right
+              </p>
+              {missedWords.length > 0 && (
                 <>
-                  <p className="text-sm text-[#5b6b62]">{t('coach.micExplain')}</p>
-                  <p className="mt-1 text-sm text-[#5b6b62]">{t('coach.takeBreath')}</p>
-                  {/* Bottom bar: live stat pills + 4 round buttons + big gradient mic */}
-                  <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-                    <span className="rounded-full border border-[#E5E7EB] px-3 py-1 text-xs font-bold">
-                      {Object.values(liveWords).filter((v) => v === 'wrong' || v === 'missed').length} {t('coach.mistakesWord')}
-                    </span>
-                    <span className="rounded-full border border-[#E5E7EB] px-3 py-1 text-xs font-bold">
-                      {Object.values(liveWords).length > 0
-                        ? `${Math.round((Object.values(liveWords).filter((v) => v === 'correct').length / Object.values(liveWords).length) * 100)}% ${t('coach.soFar')}`
-                        : `0% ${t('coach.soFar')}`}
-                    </span>
-                    <span className="rounded-full border border-[#E5E7EB] px-3 py-1 text-xs font-bold">
-                      {recordingSecs > 0 ? `${Math.floor(recordingSecs / 60)}:${String(recordingSecs % 60).padStart(2, '0')}` : '0:00'}
-                    </span>
+                  <p className="mt-3 text-sm font-semibold text-[#1C2420]">Words to check — tap one to hear it:</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {missedWords.map((w) => {
+                      const idx = Number(w.key.split(':')[2]) - 1;
+                      const sounding = playingWordKey === w.key;
+                      return (
+                        <button
+                          key={w.key}
+                          type="button"
+                          onClick={() => playWord(idx)}
+                          aria-label={`Hear the word ${w.display}`}
+                          className={`min-h-11 rounded-full border px-3 py-2 font-quran text-xl leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1C2420] ${
+                            sounding ? 'live-word-correct border-[#E5E7EB] bg-white' : 'live-word-wrong border-[#E5E7EB] bg-white'
+                          }`}
+                        >
+                          {w.display}
+                        </button>
+                      );
+                    })}
                   </div>
-                  <div className="mt-3 flex items-center justify-center gap-2" role="group" aria-label={t('coach.readerTools')}>
-                    <button
-                      type="button"
-                      onClick={() => setShowTranslation((v) => !v)}
-                      aria-label={t('coach.transPromptTitle')}
-                      title={t('coach.transPromptTitle')}
-                      className="flex h-11 w-11 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-base hover:border-[#1FA36B]"
-                    >
-                      ▤
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setArabicHidden((h) => !h)}
-                      aria-label={t('coach.hideShowArabic')}
-                      title={t('coach.hideShowArabic')}
-                      className="flex h-11 w-11 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-base hover:border-[#1FA36B]"
-                    >
-                      ◐
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const next = !highlightOn;
-                        setHighlightOn(next);
-                        setHighlightToast(next ? t('coach.highlightEnabled') : t('coach.highlightDisabled'));
-                        setTimeout(() => setHighlightToast(null), 2500);
-                      }}
-                      aria-label={t('coach.highlightTitle')}
-                      title={t('coach.highlightTitle')}
-                      className={`flex h-11 w-11 items-center justify-center rounded-full border bg-white text-base hover:border-[#1FA36B] ${highlightOn ? 'border-[#57D798] ring-2 ring-[#57D798]' : 'border-[#E5E7EB]'}`}
-                    >
-                      ✎
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        try {
-                          void navigator.clipboard.writeText(window.location.href);
-                          setHighlightToast(t('coach.linkCopied'));
-                          setTimeout(() => setHighlightToast(null), 2500);
-                        } catch {
-                          /* clipboard unavailable */
-                        }
-                      }}
-                      aria-label={t('coach.shareTitle')}
-                      title={t('coach.shareTitle')}
-                      className="flex h-11 w-11 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-base hover:border-[#1FA36B]"
-                    >
-                      ⤴
-                    </button>
-                  </div>
-                  {highlightToast && (
-                    <p role="status" className="mt-2 text-sm font-semibold text-[#1FA36B]">{highlightToast}</p>
+                  {wordNote && (
+                    <p role="status" className="mt-2 text-sm text-[#5b6b62]">{wordNote}</p>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => void startRecording()}
-                    aria-label={t('coach.startRecording')}
-                    className="mic-btn mx-auto mt-3 flex h-16 w-16 items-center justify-center rounded-full text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFB800]"
-                  >
-                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7">
-                      <rect x="9" y="2" width="6" height="12" rx="3" />
-                      <path d="M5 10a7 7 0 0 0 14 0M12 19v3" />
-                    </svg>
-                  </button>
-                  <p className="mt-2 text-sm font-semibold">{t('coach.tapToRecite')}</p>
                 </>
               )}
-              {micState === 'requesting' && (
-                <p role="status" className="mt-3 text-sm font-semibold">{t('coach.requestingMic')}</p>
+              {missedWords.length === 0 && !peeked && (
+                <p className="mt-2 text-sm text-[#5b6b62]">Every word heard was right — well done.</p>
               )}
-              {micState === 'recording' && (
-                <div>
-                  <p role="status" className="text-sm font-semibold text-[#B42318]">
-                    {vadSpeaking
-                      ? `${t('coach.voiceDetected')} ${Math.floor(recordingSecs / 60)}:${String(recordingSecs % 60).padStart(2, '0')}`
-                      : voiceDetected
-                        ? `${t('coach.voicePaused')} ${Math.floor(recordingSecs / 60)}:${String(recordingSecs % 60).padStart(2, '0')}`
-                        : framesSeen === 0
-                          ? `${t('coach.micConnected')} ${Math.floor(recordingSecs / 60)}:${String(recordingSecs % 60).padStart(2, '0')}`
-                          : `${t('coach.listeningRecite')} ${Math.floor(recordingSecs / 60)}:${String(recordingSecs % 60).padStart(2, '0')}`}
-                  </p>
-                  {trackerState && <p className="mt-1 text-xs text-[#5b6b62]">{t('coach.checker')}: {trackerState}</p>}
-                  <div className="mx-auto mt-3 h-3 w-full max-w-md overflow-hidden rounded-full bg-[#E5E7EB]" role="meter" aria-label={t('coach.micLevel')} aria-valuenow={Math.round(level * 100)} aria-valuemin={0} aria-valuemax={100}>
-                    <div className="h-full bg-[#1FA36B] transition-[width] duration-100" style={{ width: `${Math.round(level * 100)}%` }} />
-                  </div>
-                  {/* Live waveform — real mic levels only. If the strip
-                      stays flat while you speak, the mic is not reaching
-                      the app: stop and try again, or run the mic check. */}
-                  <canvas
-                    ref={waveformRef}
-                    width={300}
-                    height={36}
-                    aria-label={t('coach.waveform')}
-                    className="mx-auto mt-2 h-9 w-full max-w-md rounded-lg bg-[#FFFBF2] border border-[#E5E7EB]"
-                  />
-                  {!voiceDetected && !audioStalled && !silentInput && (
-                    <p className="mt-2 text-xs text-[#5b6b62]">{t('coach.micFlat')}</p>
-                  )}
-                  {audioStalled && (
-                    <p role="alert" className="mx-auto mt-2 max-w-md rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm text-left">
-                      {t('coach.micNoSoundA').replace('{stop}', t('coach.stopCheck'))}
-                      <Link href="/hifz/diagnostics" className="font-semibold text-[#1FA36B] underline">{t('coach.micCheckLink')}</Link>{t('coach.micNoSoundB')}
-                    </p>
-                  )}
-                  {silentInput && !audioStalled && (
-                    <p role="alert" className="mx-auto mt-2 max-w-md rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm text-left">
-                      {t('coach.micSilenceA').replace('{stop}', t('coach.stopCheck'))}
-                      <Link href="/hifz/diagnostics" className="font-semibold text-[#1FA36B] underline">{t('coach.micCheckLink')}</Link>{t('coach.micSilenceB')}
-                    </p>
-                  )}
-                  {paused && (
-                    <p role="status" className="mt-2 text-sm font-semibold text-[#102E26]">
-                      {t('coach.pausedNote').replace('{resume}', t('test.resume'))}
-                    </p>
-                  )}
-                  <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                    {paused ? (
-                      <button
-                        type="button"
-                        onClick={() => void resumeRecording()}
-                        className="rounded-full bg-[#1FA36B] px-6 py-3 text-sm font-semibold text-white hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
-                      >
-                        {t('test.resume')}
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => void pauseRecording()}
-                        className="rounded-full border border-[#102E26] px-6 py-3 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
-                      >
-                        {t('test.pause')}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => void stopRecording()}
-                      className="rounded-full bg-[#B42318] px-6 py-3 text-sm font-semibold text-white hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B42318]"
-                    >
-                      {t('coach.stopCheck')}
-                    </button>
-                  </div>
-                </div>
+              {peeked && (
+                <p className="mt-2 text-sm text-[#5b6b62]">You peeked during this try, so it doesn&apos;t count as fully correct.</p>
               )}
-              {micState === 'checking' && (
-                <p role="status" className="mt-3 text-sm font-semibold">{t('coach.checking')}</p>
+              {notHeardCount > 0 && (
+                <p className="mt-2 text-sm text-[#5b6b62]">
+                  {notHeardCount} {notHeardCount === 1 ? 'word' : 'words'} {notHeardCount === 1 ? 'wasn’t' : 'weren’t'} heard clearly — say the ayah again to check {notHeardCount === 1 ? 'it' : 'them'}.
+                </p>
               )}
-              {(micState === 'denied' || micState === 'unavailable') && micError && (
-                <div className="mx-auto mt-3 max-w-md rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm text-left">
-                  <p role="alert">{micError}</p>
-                  <button type="button" onClick={() => setMode('self-mark')} className="mt-2 font-semibold text-[#1FA36B] underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]">
-                    {t('coach.practiceWithoutMic')}
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="mt-5">
-              <p className="text-sm text-[#5b6b62]">
-                {t('coach.selfMarkIntro')}
-              </p>
-              <div className="mt-3 space-y-3">
-                {scopeAyahs().map((a) => (
-                  <div key={`sm-${a.surah}:${a.ayah}`} className="rounded-xl border border-[#E5E7EB] p-3">
-                    <p className="text-xs font-semibold text-[#5b6b62]">{a.surah}:{a.ayah}</p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {splitWords(a.text).map((w) => {
-                        const key = wordKey(a.surah, a.ayah, w.index + 1);
-                        const marked = selfMarks[key];
-                        return (
-                          <span key={key} className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] px-2 py-1">
-                            <span dir="rtl" lang="ar" translate="no" className="font-quran text-lg leading-none">{w.display}</span>
-                            <button
-                              type="button"
-                              aria-pressed={marked === true}
-                              aria-label={`${t('coach.mark')} ${w.display} ${t('common.correct')}`}
-                              onClick={() => setSelfMarks((p) => ({ ...p, [key]: true }))}
-                              className={`rounded-full px-2 py-0.5 text-xs font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${marked === true ? 'bg-[#1FA36B] text-white' : 'bg-[#E4FFF2]'}`}
-                            >
-                              {t('coach.correct')}
-                            </button>
-                            <button
-                              type="button"
-                              aria-pressed={marked === false}
-                              aria-label={`${t('coach.mark')} ${w.display} ${t('common.notQuite')}`}
-                              onClick={() => setSelfMarks((p) => ({ ...p, [key]: false }))}
-                              className={`rounded-full px-2 py-0.5 text-xs font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B] ${marked === false ? 'bg-[#FFB800] text-[#102E26]' : 'bg-[#FFFBF2]'}`}
-                            >
-                              {t('common.notQuite')}
-                            </button>
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={submitSelfMark}
-                className="mt-4 rounded-full bg-[#102E26] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
-              >
-                {t('coach.saveSelfMark')}
-              </button>
-            </div>
+            </>
           )}
-
-          <button type="button" onClick={backToListening} className="mt-5 text-sm font-semibold text-[#1FA36B] underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]">
-            {t('coach.backToListening')}
-          </button>
-        </div>
-      )}
-
-      {/* ---------- STEP 4: FEEDBACK ---------- */}
-      {step === 'feedback' && result && (
-        <div className="mt-5">
-          <p className="text-sm font-semibold">{t('coach.feedback')} — {scopeLabel}</p>
-          <p className="mt-1 rounded-lg bg-[#E4FFF2] border border-[#1FA36B]/20 px-3 py-2 text-sm">{TEACHER_DISCLAIMER}</p>
-
-          {result.noSpeech ? (
-            result.micHeardAudio ? (
-              // The mic DID hear the recitation (levels moved) but the
-              // tracker followed no word. Never say "we didn't hear
-              // anything" here — the user was speaking and the app heard
-              // sound; it is the checker that could not follow the words
-              // (too short / too quiet / never locked on).
-              <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">
-                {t('coach.couldNotFollow')}
-              </p>
-            ) : (
-              // The mic delivered no sound at all in this take (level
-              // meter stayed flat): only here is "didn't hear anything"
-              // accurate. Point at the mic check so a dead capture can be
-              // diagnosed instead of retried blindly.
-              <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">
-                {t('coach.heardNothingA')}
-                <Link href="/hifz/diagnostics" className="font-semibold text-[#1FA36B] underline">{t('coach.micCheckLink')}</Link>{t('coach.heardNothingB')}
-              </p>
-            )
-          ) : result.trackedElsewhere ? (
-            <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">
-              {t('coach.wrongAyah')}
-            </p>
-          ) : result.unclear ? (
-            <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">{t('coach.unclear')}</p>
-          ) : tooShort ? (
-            <p role="alert" className="mt-3 rounded-lg bg-[#FFFBF2] border border-[#E5E7EB] px-3 py-2 text-sm">
-              {t('coach.tooShort')}
-            </p>
-          ) : (
-            <p role="status" className="mt-3 text-base font-semibold">{feedbackSummary}</p>
-          )}
-          {peeked && (
-            <p className="mt-2 text-sm text-[#5b6b62]">{t('coach.peekStreakNote')}</p>
-          )}
-
-          {/* Session summary: accuracy %, mistakes by type, time, peeks. */}
-          {(() => {
-            const reached = feedbackWords.filter((w) => w.status !== 'not-reached');
-            const correct = feedbackWords.filter((w) => w.status === 'correct').length;
-            const acc = reached.length > 0 ? Math.round((correct / reached.length) * 100) : 0;
-            const byType = { Incorrect: 0, Missed: 0, Extra: 0, Skipped: 0 };
-            // Audit C-5: this used to read m.type — always "checker" for
-            // engine events — so the breakdown was all zeros even for
-            // mic sessions. The class lives in errorClass (with a
-            // MistakeType-style `type` accepted as a fallback).
-            for (const m of result.mistakes) {
-              const cls =
-                (m as unknown as { errorClass?: string; type?: string }).errorClass ??
-                (m as unknown as { type?: string }).type ??
-                '';
-              if (cls === 'wrong_word' || cls === 'incorrect') byType.Incorrect += 1;
-              else if (cls === 'omitted_word' || cls === 'missed') byType.Missed += 1;
-              else if (cls === 'added_word' || cls === 'extra') byType.Extra += 1;
-              else if (cls === 'skipped_passage' || cls === 'skipped') byType.Skipped += 1;
-            }
-            const secs = Math.round(result.durationMs / 1000);
-            return (
-              <div className="mt-4 rounded-xl border border-[#E5E7EB] bg-[#FFFBF2] p-4">
-                <p className="text-sm font-bold text-[#102E26]">{t('coach.sessionSummary')}</p>
-                <p className="mt-1 text-sm text-[#5b6b62]">
-                  {t('coach.accuracy')} {acc}% · {correct} {t('common.of')} {reached.length} {t('coach.wordsCorrect')} ·{' '}
-                  {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, '0')} · {peekCount} {peekCount === 1 ? t('coach.peek') : t('coach.peeks')}
-                </p>
-                <p className="mt-1 text-sm text-[#5b6b62]">
-                  {t('coach.mistakesByType')} — {t('coach.incorrect')} {byType.Incorrect} · {t('coach.missed')} {byType.Missed} · {t('coach.extra')} {byType.Extra} · {t('coach.skipped')} {byType.Skipped}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowMistakeHistory(true)}
-                    className="rounded-full border border-[#102E26] min-h-11 px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
-                  >
-                    {t('coach.mistakeHistory')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowAnalytics(true)}
-                    className="rounded-full border border-[#102E26] min-h-11 px-4 py-2 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2]"
-                  >
-                    {t('coach.sessionAnalytics')}
-                  </button>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Extra words & skipped passages (Stage 5, §10) — the two
-              checker classes the per-word colours cannot show. An added
-              word is reported AT the expected word it was heard next to:
-              the checker follows sounds, it does not transcribe, so the
-              extra word itself has no text to show and none is invented.
-              A skipped passage is a jump the reciter demonstrably made
-              (later words were observed) — never a tracker blind spot,
-              which is graced to "not reached" instead. */}
-          {(() => {
-            const extras = result.mistakes.filter((m) => m.errorClass === 'added_word' || m.errorClass === 'skipped_passage');
-            if (extras.length === 0) return null;
-            return (
-              <div className="mt-4 rounded-xl border border-[#E5E7EB] p-4">
-                <p className="text-sm font-bold text-[#102E26]">{t('coach.extraSkippedTitle')}</p>
-                <ul className="mt-2 space-y-1.5 text-sm">
-                  {extras.map((m, i) => {
-                    const ayahText = scopeAyahs().find((x) => x.surah === m.location.surah && x.ayah === m.location.ayah)?.text ?? '';
-                    const anchor = splitWords(ayahText)[m.location.word - 1]?.display ?? '';
-                    return (
-                      <li key={`${m.errorClass}:${m.location.surah}:${m.location.ayah}:${m.location.word}:${i}`}>
-                        {m.errorClass === 'added_word' ? (
-                          <>
-                            {t('coach.extraWordNearA')}
-                            <span dir="rtl" lang="ar" translate="no" className="font-quran text-base">{anchor}</span>{t('coach.extraWordNearB').replace('{ref}', `${m.location.surah}:${m.location.ayah}`)}
-                          </>
-                        ) : (
-                          <>
-                            {t('coach.jumpedAheadA')}
-                            <span dir="rtl" lang="ar" translate="no" className="font-quran text-base">{anchor}</span>{t('coach.jumpedAheadB').replace('{ref}', `${m.location.surah}:${m.location.ayah}`)}
-                          </>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            );
-          })()}
-
-          {/* Listen back to your own recording (kept on this device only)
-              and, if you choose, share it with your teacher. Self-marked
-              practice has no recording to share. */}
-          {mode !== 'self-mark' && (
-            <div className="mt-4 rounded-xl border border-[#E5E7EB] p-4">
-              <p className="text-sm font-bold text-[#102E26]">{t('coach.listenBack')}</p>
-              <p className="mt-1 text-xs text-[#5b6b62]">
-                {settings?.saveAudio === true
-                  ? t('coach.listenBackSaved')
-                  : t('coach.listenBackNotSaved').replace('{setting}', t('set.saveAudio')).replace('{settings}', t('set.title'))}
-              </p>
-              {recordingUrl && <audio controls src={recordingUrl} className="mt-2 w-full" />}
-              <div className="mt-3">
-                <ShareAudioButtons
-                  recording={recording}
-                  noRecordingReason={
-                    settings?.saveAudio === false
-                      ? t('coach.noRecordingOff')
-                      : t('coach.noRecordingCaptured')
-                  }
-                />
-              </div>
-            </div>
-          )}
-          {mode === 'self-mark' && (
-            <p className="mt-2 text-sm text-[#5b6b62]">{t('coach.selfMarkedNote')}</p>
-          )}
-
-          {/* Per-word marking: green = correct, red + dotted underline =
-              mistake, orange = skipped / not heard. Tap a mistake to see what
-              you said vs the correct ayah (live correction). */}
-          <div className="mt-4 space-y-3">
-            {scopeAyahs().map((a) => (
-              <div key={`fb-${a.surah}:${a.ayah}`} className="rounded-xl border border-[#E5E7EB] p-3">
-                {!(settings?.hideAyahMarkers) && (
-                  <p className="text-xs font-semibold text-[#5b6b62]">{a.surah}:{a.ayah}</p>
-                )}
-                <p dir="rtl" lang="ar" translate="no" className="font-quran mt-1 text-2xl sm:text-3xl leading-loose text-right">
-                  {splitWords(a.text).map((w) => {
-                    const key = wordKey(a.surah, a.ayah, w.index + 1);
-                    const fw = feedbackWords.find((f) => f.key === key);
-                    const status = fw?.status ?? 'not-reached';
-                    // Detection off: flagged words show no colour (plain
-                    // text) — the take was follow-along only, so no
-                    // red/orange judgement is shown for them.
-                    const showColour =
-                      !result.unclear && !result.noSpeech && !result.trackedElsewhere && !tooShort &&
-                      (settings?.detectMistakes !== false || status === 'correct' || status === 'not-reached');
-                    const removed = removedMistakes.has(key);
-                    const cls = !showColour || removed
-                      ? 'text-[#1C2420]'
-                      : status === 'correct'
-                        ? 'live-word-correct font-bold'
-                        : status === 'wrong'
-                          ? 'live-word-wrong font-bold'
-                          : status === 'missed'
-                            ? 'live-word-skipped font-bold'
-                            : 'text-[#5b6b62]';
-                    const label = !showColour
-                      ? t('coach.wordNotChecked')
-                      : removed
-                        ? t('coach.wordRemoved')
-                        : status === 'correct'
-                          ? t('coach.legendCorrect')
-                          : status === 'wrong'
-                            ? t('coach.wordCheck')
-                            : status === 'missed'
-                              ? t('coach.wordNotHeard')
-                              : t('coach.wordNotReached');
-                    if (showColour && (status === 'wrong' || status === 'missed') && !removed) {
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => setSelectedMistake(selectedMistake === key ? null : key)}
-                          aria-expanded={selectedMistake === key}
-                          className={`${cls} rounded px-0.5 underline-offset-4 hover:bg-[#FFFBF2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]`}
-                          title={label}
-                        >
-                          {w.display}{' '}
-                          <span className="sr-only">({label})</span>
-                        </button>
-                      );
-                    }
-                    return (
-                      <span key={key} className={cls} title={label}>
-                        {w.display}{' '}
-                        <span className="sr-only">({label})</span>
-                      </span>
-                    );
-                  })}
-                </p>
-                <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#5b6b62]">
-                  <span><span className="inline-block h-3 w-3 rounded-sm bg-[#16A34A] align-middle" /> {t('coach.legendCorrect')}</span>
-                  <span><span className="inline-block h-3 w-3 rounded-sm bg-[#EA580C] align-middle" /> {t('coach.legendSkipped')}</span>
-                  <span><span className="inline-block h-3 w-3 rounded-sm bg-[#DC2626] align-middle" /> {t('coach.legendCheck')}</span>
-                  <span><span className="inline-block h-3 w-3 rounded-sm bg-[#E5E7EB] align-middle" /> {t('coach.legendNotReached')}</span>
-                </p>
-                {/* Tap-a-mistake correction panel */}
-                {selectedMistake && scopeAyahs().some((x) => x.surah === a.surah && x.ayah === a.ayah) && (() => {
-                  const [ss, ay, wd] = selectedMistake.split(':').map(Number);
-                  if (ss !== a.surah || ay !== a.ayah) return null;
-                  const ayahText = scopeAyahs().find((x) => x.surah === ss && x.ayah === ay)?.text ?? '';
-                  const display = splitWords(ayahText)[wd - 1]?.display ?? '';
-                  const wordTotal = splitWords(ayahText).length;
-                  const heard = result.words.find(
-                    (rw) => rw.surah === ss && rw.ayah === ay && rw.wordIndex === wd - 1,
-                  )?.heard;
-                  const fw = feedbackWords.find((f) => f.key === selectedMistake);
-                  // Stage 5 (§10): the checker class behind this word, so
-                  // the panel can name the issue type — and its position.
-                  const eventClass = result.mistakes.find(
-                    (m) => m.location.surah === ss && m.location.ayah === ay && m.location.word === wd,
-                  )?.errorClass;
-                  const typeLabel =
-                    eventClass === 'wrong_word'
-                      ? t('coach.saidDifferently')
-                      : eventClass === 'added_word'
-                        ? t('coach.extraWordHere')
-                        : eventClass === 'skipped_passage'
-                          ? t('coach.passageSkippedHere')
-                          : t('coach.missed');
-                  const similarSlug = getSurahById(ss)?.slug;
-                  return (
-                    <div className="mt-3 rounded-xl border border-[#E5E7EB] p-3">
-                      <p className="text-sm font-bold text-[#102E26]">
-                        {fw?.status === 'missed' ? t('coach.missedWord') : t('coach.incorrectWord')} — {ss}:{ay}
-                      </p>
-                      <p className="mt-1 text-xs text-[#5b6b62]">
-                        {t('coach.wordOfInAyah').replace('{n}', String(wd)).replace('{total}', String(wordTotal))} · {typeLabel}
-                        {fw?.confirmed ? t('coach.confirmedByChecker') : t('coach.notConfirmedByChecker')}
-                      </p>
-                      <div className="mt-2 rounded-lg border border-[#E5E7EB] p-3">
-                        <p className="flex items-baseline justify-between gap-3">
-                          <span className="text-xs font-semibold text-[#5b6b62]">{t('common.expected')}</span>
-                          <span dir="rtl" lang="ar" translate="no" className="font-quran text-xl text-right">
-                            {splitWords(ayahText).map((w, i) => (
-                              <span key={i} className={i === wd - 1 ? 'font-bold text-[#16A34A]' : undefined}>
-                                {w.display}{' '}
-                              </span>
-                            ))}
-                          </span>
-                        </p>
-                        <p className="mt-2 flex items-baseline justify-between gap-3 border-t border-[#E5E7EB] pt-2">
-                          <span className="text-xs font-semibold text-[#5b6b62]">{t('common.recited')}</span>
-                          <span dir="rtl" lang="ar" translate="no" className="font-quran text-xl text-right">
-                            {heard ? (
-                              <span className="font-bold text-[#DC2626]">{heard}</span>
-                            ) : (
-                              <span className="text-[#5b6b62]">{t('common.notHeard')}</span>
-                            )}
-                          </span>
-                        </p>
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {similarSlug ? (
-                          <Link
-                            href={`/hifz/${similarSlug}/${ss}-${ay}#similar-verses`}
-                            className="rounded-full bg-[#102E26] min-h-11 px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
-                          >
-                            {t('common.seeSimilar')}
-                          </Link>
-                        ) : (
-                          <Link
-                            href={`/hifz/search?q=${encodeURIComponent(display)}`}
-                            className="rounded-full bg-[#102E26] min-h-11 px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B]"
-                          >
-                            {t('common.seeSimilar')}
-                          </Link>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const next = loadMistakes().filter(
-                              (m) => !(m.surah === ss && m.ayah === ay && m.word === display),
-                            );
-                            saveMistakes(next);
-                            setPersistedMistakes(next);
-                            setRemovedMistakes((prev) => new Set(prev).add(selectedMistake));
-                            setSelectedMistake(null);
-                          }}
-                          className="rounded-full border border-[#E5E7EB] min-h-11 px-4 py-2 text-sm font-semibold hover:border-[#B42318] hover:text-[#B42318]"
-                        >
-                          {t('coach.removeCorrect')}
-                        </button>
-                      </div>
-                      <p className="mt-2 text-xs text-[#5b6b62]">
-                        {t('coach.removeWrongFlagNote')}
-                      </p>
-                    </div>
-                  );
-                })()}
-              </div>
-            ))}
-          </div>
-
-          {/* Words to retry (mistake log, this surah). */}
-          {retryMistakes.length > 0 && (
-            <div className="mt-4 rounded-xl border border-[#E5E7EB] p-3">
-              <p className="text-sm font-semibold">{t('coach.wordsToRetry')}</p>
-              <ul className="mt-2 space-y-1 text-sm">
-                {retryMistakes.slice(-10).map((m, i) => (
-                  <li key={`${m.surah}:${m.ayah}:${m.word}:${i}`}>
-                    <span dir="rtl" lang="ar" translate="no" className="font-quran text-lg">{m.word}</span>
-                    {' '}— {m.surah}:{m.ayah} · {t('common.practised')} {m.attempts} {m.attempts === 1 ? t('common.time') : t('common.times')}
-                    {selfMarkedMistakes.some((s) => s.surah === m.surah && s.ayah === m.ayah && s.word === m.word) && (
-                      <span className="ml-2 rounded-full bg-[#FFFBF2] px-2 py-0.5 text-xs font-semibold">{t('coach.selfMarked')}</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {dailyGoalMet && (
-            <p role="status" className="mt-4 rounded-lg bg-[#E4FFF2] border border-[#1FA36B]/20 px-3 py-2 text-sm font-semibold">
-              {t('coach.dailyGoalMet')} {ayahsToday} {ayahsToday === 1 ? t('common.ayah') : t('common.ayahs')} {t('common.today')}. {t('coach.streak')}: {streakCount} {streakCount === 1 ? t('common.day') : t('common.days')}.
-            </p>
-          )}
-
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => retryScope(true)}
-              className="rounded-full bg-[#102E26] min-h-11 px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+              onClick={tryAgain}
+              className="min-h-11 rounded-full border border-[#E5E7EB] bg-white px-5 py-2.5 text-sm font-semibold text-[#1C2420] hover:border-[#1C2420] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1C2420]"
             >
-              {t('coach.retryWords')}
+              Try again
             </button>
             <button
               type="button"
-              onClick={() => retryScope(false)}
-              className="rounded-full border border-[#102E26] min-h-11 px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+              onClick={nextAyah}
+              disabled={!canGoNext || nextBlockedByFix}
+              className="min-h-11 rounded-full border border-[#E5E7EB] bg-white px-5 py-2.5 text-sm font-semibold text-[#1C2420] hover:border-[#1C2420] disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1C2420]"
             >
-              {t('coach.retryFull')}
-            </button>
-            {pendingFix ? (
-              <p className="rounded-full border border-[#FFB800] bg-[#FFFBF2] min-h-11 px-5 py-2.5 text-sm font-semibold text-[#102E26]">
-                {t('coach.fixFirstNote').replace('{dontProgress}', t('set.dontProgress')).replace('{settings}', t('set.title')).replace('{retry}', t('coach.retryWords'))}
-              </p>
-            ) : currentIndex < ayahs.length - 1 ? (
-              <button
-                type="button"
-                onClick={() => goToAyahIndex(currentIndex + 1)}
-                className="rounded-full border border-[#E5E7EB] min-h-11 px-5 py-2.5 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
-              >
-                {t('coach.nextAyah')}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => { setStep('listen'); }}
-              className="rounded-full border border-[#E5E7EB] min-h-11 px-5 py-2.5 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
-            >
-              {t('coach.listenAgain')}
+              Next ayah
             </button>
           </div>
+          {nextBlockedByFix && (
+            <p className="mt-2 text-sm text-[#5b6b62]">
+              Your settings hold you on this ayah until it comes back clean — try again.
+            </p>
+          )}
         </div>
-      )}
-
-      <p className="mt-6 border-t border-[#E5E7EB] pt-3 text-xs text-[#5b6b62]">
-        {t('coach.attributionNote')}
-      </p>
-
-      {showMistakeHistory && (
-        <MistakeHistorySheet
-          mistakes={persistedMistakes}
-          onRemove={(idx) => {
-            const next = persistedMistakes.filter((_, i) => i !== idx);
-            saveMistakes(next);
-            setPersistedMistakes(next);
-          }}
-          onClose={() => setShowMistakeHistory(false)}
-        />
-      )}
-      {showAnalytics && result && (
-        <SessionAnalyticsSheet
-          latestSessionAudio={
-            recording
-              ? { ...recording, range: scopeLabel, date: localDateString() }
-              : null
-          }
-          accuracy={(() => {
-            const reached = feedbackWords.filter((w) => w.status !== 'not-reached');
-            const correct = feedbackWords.filter((w) => w.status === 'correct').length;
-            return reached.length > 0 ? (correct / reached.length) * 100 : 0;
-          })()}
-          mistakesPerPage={(() => {
-            const missed = feedbackWords.filter((w) => w.status === 'missed' || w.status === 'wrong').length;
-            return scopeAyahs().length > 0 ? missed / Math.max(1, scopeAyahs().length / 15) : 0;
-          })()}
-          words={feedbackWords.filter((w) => w.status !== 'not-reached').length}
-          history={(() => {
-            // Real session records (BA, 2026-11-23): one row per finished
-            // coach session, with the accuracy actually measured in that
-            // session. The old code derived rows from the mistake log
-            // with a synthetic `Math.max(90, 100 - total)` accuracy —
-            // a session with few logged mistakes is not automatically
-            // 90%+, and a session with no mistakes logged is not
-            // automatically 100%. Sessions recorded before this change
-            // have no record and simply do not appear here.
-            const rows: HistoryRow[] = [];
-            for (const s of listCoachSessions().slice(-6)) {
-              rows.push({
-                date: s.date.slice(0, 10),
-                range: s.range,
-                accuracy: s.accuracy,
-                mistakesPerPage: s.mistakes,
-              });
-            }
-            return rows;
-          })()}
-          onClose={() => setShowAnalytics(false)}
-        />
       )}
     </section>
   );
 }
-
-export type { SessionResult };

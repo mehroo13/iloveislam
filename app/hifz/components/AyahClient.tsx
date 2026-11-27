@@ -411,13 +411,12 @@ export default function AyahClient({
           >
             {memorised ? t('ayah.memorisedUnmark') : t('ayah.markMemorised')}
           </button>
-          <button
-            type="button"
-            onClick={() => setCoachOpen(true)}
-            className="min-h-11 rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
+          <Link
+            href={`/hifz/recite?surah=${surah.slug}&ayah=${ayah}`}
+            className="inline-flex min-h-11 items-center rounded-full bg-[#102E26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
           >
             {t('ayah.reciteAyah')}
-          </button>
+          </Link>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -577,13 +576,12 @@ export default function AyahClient({
         </div>
       )}
       {!coachOpen && (
-        <button
-          type="button"
-          onClick={() => setCoachOpen(true)}
-          className="min-h-11 mt-6 flex items-center gap-2 rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
+        <Link
+          href={`/hifz/recite?surah=${surah.slug}&ayah=${ayah}`}
+          className="min-h-11 mt-6 inline-flex items-center gap-2 rounded-full bg-[#102E26] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1FA36B]"
         >
           <ToolIcon name="mic" className="h-4 w-4" /> {t('ayah.reciteWithCoach')}
-        </button>
+        </Link>
       )}
 
       {/* Prev / next ayah */}
