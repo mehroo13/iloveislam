@@ -2792,7 +2792,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
 
   /* Page header row (whole-page reference): surah name left, Play +
    * Juz / Hizb right. Shared by the track columns (each column shows
-   * its own page's meta) and by the continuous modes (pillMeta).
+   * its own page's meta) and by the continuous modes (pillMeta) —
+   * in the continuous modes it renders in the fixed strip above
+   * <main> (see the return JSX), so the Play button stays reachable
+   * mid-page instead of scrolling away with the list.
    * Only the current column carries the fit-check ref and the Play
    * button's testid — the side columns are inert. */
   const renderHeaderRow = (
@@ -2989,6 +2992,32 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         </div>
       </header>
 
+      {/* PLAY REACHABLE MID-PAGE (2026-11-27): in the continuous
+          modes (Quran Text, Translation) this header row — with the
+          Play button — used to live at the top of the scrollable
+          list inside <main>, so mid-page it scrolled off-screen and
+          Play could only be reached by scrolling back up (the only
+          mid-page path was bottom-bar Practice Mode → Listen). It
+          now sits in this fixed strip above <main>, so the SAME Play
+          button (same togglePlayback, same startPlayback that slices
+          the queue from the topmost visible ayah) stays visible and
+          tappable at any scroll position. Book needs none of this:
+          the whole page fits the viewport, so its per-column header
+          Play is always in view. The playError moves up here too,
+          so a failed Play is seen mid-page instead of scrolling away
+          with the list. No new button, no new player, no colour or
+          copy change. */}
+      {isContinuous && (
+        <div className="shrink-0 border-b border-[#E8E8E4] pt-2" style={{ backgroundColor: PAGE_BG }}>
+          {renderHeaderRow(pillMeta, true)}
+          {playError && (
+            <p role="alert" data-testid="play-error" className="px-2 pb-1 text-center text-[13px] leading-snug" style={{ color: '#DC2626' }}>
+              {playError}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Mushaf page (swipe area) */}
       <main
         ref={containerRef}
@@ -2998,7 +3027,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
       >
-        <div className="mx-auto flex min-h-full w-full max-w-[520px] flex-col justify-start overflow-x-clip pb-2 pt-2">
+        <div className={`mx-auto flex min-h-full w-full max-w-[520px] flex-col justify-start overflow-x-clip pb-2 ${isContinuous ? 'pt-0' : 'pt-2'}`}>
           {/* Book: a three-column track [page+1, page, page-1] in a
               content-width window. The track is translated by
               -contentWidth + offset, so the current page is centred
@@ -3010,12 +3039,6 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
               natively, one flow over the loaded page range. */}
           {isContinuous ? (
             <>
-              {renderHeaderRow(pillMeta, true)}
-              {playError && (
-                <p role="alert" data-testid="play-error" className="px-2 pb-1 text-center text-[13px] leading-snug" style={{ color: '#DC2626' }}>
-                  {playError}
-                </p>
-              )}
               {layoutMode === 'text' ? (
                 <ReaderContinuousText
                   pages={textPages}
