@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default async function RecitePage({
   searchParams,
 }: {
-  searchParams?: Promise<{ surah?: string; ayah?: string }>;
+  searchParams?: Promise<{ surah?: string; ayah?: string; from?: string }>;
 }) {
   const sp = await searchParams;
   const ayah = sp?.ayah ? Number(sp.ayah) : undefined;
@@ -25,6 +25,7 @@ export default async function RecitePage({
       <ReciteClient
         initialSurah={sp?.surah}
         initialAyah={Number.isFinite(ayah) ? ayah : undefined}
+        initialFrom={sp?.from}
       />
     </main>
   );

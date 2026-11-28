@@ -2618,8 +2618,12 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   /* Practice-mode selection from the bottom-bar button — the same
    * behaviour as MushafReader's selectPracticeMode: in-place modes
    * are handled by the listener above; Test navigates to /hifz/test;
-   * Reading is already reading; anything else (Recite) navigates to
-   * the last-read surah with ?mode=…, exactly as the switcher did. */
+   * Reading is already reading; Recite goes DIRECTLY to the coach
+   * (2026-11-28, Issue 3): the old hop via the surah page
+   * (?mode=recite → mount-effect redirect) stranded users on a
+   * "reload the page" error — the coach loads its own ayah, so the
+   * hop is skipped entirely. from=home so the coach's back arrow
+   * returns here (Issue 2), not the Dashboard. */
   const selectPracticeMode = useCallback(
     (m: HifzMode) => {
       setModesOpen(false);
@@ -2629,6 +2633,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         return;
       }
       if (m === 'reading') return; // already reading, handled in place
+      if (m === 'recite') {
+        router.push(`/hifz/recite?surah=${lastReadSlug()}&ayah=1&from=home`);
+        return;
+      }
       router.push(`/hifz/${lastReadSlug()}?mode=${m}`);
     },
     [router],

@@ -1803,7 +1803,10 @@ export default function MushafReader() {
   // Practice-mode selection from the mic button — the reader's
   // replacement for the hidden global ModeSwitcher pill. Ask
   // the mounted page to apply it in place first (Memorise / Reading
-  // are handled above); otherwise navigate exactly as the switcher did.
+  // are handled above); Test navigates to /hifz/test; Recite goes
+  // DIRECTLY to the coach (2026-11-28, Issue 3 — the surah-page hop
+  // stranded users on a "reload the page" error), with from=home so
+  // its back arrow returns here, not the Dashboard (Issue 2).
   const selectPracticeMode = useCallback(
     (m: HifzMode) => {
       setNavOpen(false);
@@ -1813,6 +1816,10 @@ export default function MushafReader() {
         return;
       }
       if (m === 'reading') return; // already reading, handled in place
+      if (m === 'recite') {
+        router.push(`/hifz/recite?surah=${lastReadSlug()}&ayah=1&from=home`);
+        return;
+      }
       router.push(`/hifz/${lastReadSlug()}?mode=${m}`);
     },
     [router],

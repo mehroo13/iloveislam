@@ -46,11 +46,17 @@ function resolveSurah(param: string | undefined): HifzSurah {
 export default function ReciteClient({
   initialSurah,
   initialAyah,
+  initialFrom,
 }: {
   /** ?surah= slug or id, from the page's search params. */
   initialSurah?: string;
   /** ?ayah= number, from the page's search params. */
   initialAyah?: number;
+  /** ?from= back destination, from the page's search params:
+   *  'home' (Practice Mode on the reader) → back goes to /;
+   *  'surah:<slug>' (a surah page) → back goes to that surah page;
+   *  anything else / absent → back goes to the Features menu. */
+  initialFrom?: string;
 }) {
   const router = useRouter();
   const [surah, setSurah] = useState<HifzSurah>(() => resolveSurah(initialSurah));
@@ -59,6 +65,7 @@ export default function ReciteClient({
     const a = initialAyah ?? 1;
     return Math.max(1, Math.min(a, s.ayahCount));
   });
+  const [from, setFrom] = useState<string | undefined>(initialFrom);
   const [coachAyah, setCoachAyah] = useState<CoachAyah | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -75,8 +82,24 @@ export default function ReciteClient({
     const nextAyah = Math.max(1, Math.min(initialAyah ?? 1, next.ayahCount));
     setSurah((prev) => (prev.id === next.id ? prev : next));
     setAyah((prev) => (prev === nextAyah ? prev : nextAyah));
+    setFrom((prev) => (prev === initialFrom ? prev : initialFrom));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialSurah, initialAyah]);
+  }, [initialSurah, initialAyah, initialFrom]);
+
+  // Back destination (2026-11-28, Issue 2): the coach returns to where
+  // the user came from — Home (/) from Practice Mode, the surah page
+  // from a surah-page entry, the Features menu otherwise. The `from`
+  // value comes from the URL, so only these exact shapes are honoured;
+  // anything else falls back to the Features menu.
+  const backHref = (() => {
+    if (from === 'home') return '/';
+    if (from?.startsWith('surah:')) {
+      const slug = from.slice('surah:'.length);
+      if (/^[a-z0-9-]+$/.test(slug) && ALL_SURAHS.some((s) => s.slug === slug)) return `/hifz/${slug}`;
+    }
+    return '/?dashboard=1';
+  })();
+  const backLabel = backHref === '/' ? 'Back to Home' : backHref.startsWith('/hifz/') ? 'Back to surah' : 'Back to Features';
 
   const fetchAyah = useCallback(async (s: HifzSurah, a: number) => {
     const run = runRef.current + 1;
@@ -157,9 +180,11 @@ export default function ReciteClient({
       } catch {
         /* storage unavailable */
       }
-      router.push(`/hifz/recite?surah=${s.slug}&ayah=${clamped}`);
+      // Keep ?from= so the back destination survives navigation inside
+      // the coach (Next ayah, sheet Go).
+      router.push(`/hifz/recite?surah=${s.slug}&ayah=${clamped}${from ? `&from=${encodeURIComponent(from)}` : ''}`);
     },
-    [router],
+    [router, from],
   );
 
   const nextSurah = ALL_SURAHS.find((s) => s.id === surah.id + 1) ?? null;
@@ -177,11 +202,13 @@ export default function ReciteClient({
 
   return (
     <div className="mx-auto w-full max-w-xl px-4 pb-16 pt-4">
-      {/* Header: back to the Features menu, and the surah/ayah picker. */}
+      {/* Header: back to where the user came from (Home, a surah page,
+          or the Features menu — see backHref above), and the surah/ayah
+          picker. */}
       <div className="flex items-center gap-2">
         <Link
-          href="/?dashboard=1"
-          aria-label="Back to Features"
+          href={backHref}
+          aria-label={backLabel}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-xl text-[#1C2420] hover:border-[#1C2420] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1C2420]"
         >
           ←

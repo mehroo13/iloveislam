@@ -118,6 +118,7 @@ export default function SurahClient({
    * client-side (the server page stays fully static — reading searchParams
    * server-side would force dynamic rendering of all 6,236 ayah pages). */
   useEffect(() => {
+    let fallback: number | undefined;
     try {
       const q = new URLSearchParams(window.location.search);
       const ayah = Number(q.get('ayah') ?? '');
@@ -133,8 +134,28 @@ export default function SurahClient({
             : from >= 1 && from <= surah.ayahCount
               ? from
               : 1;
-        goRecite(target);
-        return;
+        const backFrom = q.get('from') ?? undefined;
+        goRecite(target, backFrom);
+        // Safety net (2026-11-28, Issue 3): the SPA push above must
+        // never strand the user on this page — if we are still here on
+        // ?mode=recite a moment later, hard-navigate to the coach
+        // instead of leaving a "reload the page" error behind. The
+        // check re-reads the live URL, so a push that did land is a
+        // no-op, and the timeout is cleared if this unmounts first.
+        fallback = window.setTimeout(() => {
+          try {
+            if (new URLSearchParams(window.location.search).get('mode') === 'recite') {
+              window.location.assign(
+                `/hifz/recite?surah=${surah.slug}&ayah=${target}${backFrom ? `&from=${encodeURIComponent(backFrom)}` : ''}`,
+              );
+            }
+          } catch {
+            /* ignore */
+          }
+        }, 2500);
+        return () => {
+          if (fallback !== undefined) window.clearTimeout(fallback);
+        };
       }
       if (q.get('mode') === 'listen') setAutoListen(true);
       if (q.get('mode') === 'memorise') {
@@ -664,15 +685,20 @@ export default function SurahClient({
      Every recite entry on this page navigates there instead of opening
      the inline coach (2026-11-27): the inline coach ignored ?from/&to
      (coachScope was passed but unused) and always started on ayah 1.
-     `ayah` is the 1-based ayah to open on. Memorise mode keeps the
-     inline coach — it is the memorise feature's own surface, not a
-     recite entry. */
+     `ayah` is the 1-based ayah to open on. `from` is the coach's back
+     destination (2026-11-28, Issue 2): an explicit argument wins,
+     otherwise ?from= from this page's own URL is forwarded, so a
+     Practice-Mode hop (?mode=recite&from=home) keeps its destination.
+     Memorise mode keeps the inline coach — it is the memorise
+     feature's own surface, not a recite entry. */
   const goRecite = useCallback(
-    (ayah: number) => {
+    (ayah: number, from?: string) => {
       const a = Math.max(1, Math.min(ayah, surah.ayahCount));
+      const backFrom =
+        from ?? new URLSearchParams(window.location.search).get('from') ?? undefined;
       stopListen();
       saveMode('recite');
-      router.push(`/hifz/recite?surah=${surah.slug}&ayah=${a}`);
+      router.push(`/hifz/recite?surah=${surah.slug}&ayah=${a}${backFrom ? `&from=${encodeURIComponent(backFrom)}` : ''}`);
     },
     [router, surah, stopListen],
   );
@@ -776,7 +802,8 @@ export default function SurahClient({
       saveMode('reading');
     } else if (mode === 'recite') {
       setMemoriseMode(false);
-      goRecite(coachAyahIndex + 1);
+      // Back returns to this surah page (2026-11-28, Issue 2).
+      goRecite(coachAyahIndex + 1, `surah:${surah.slug}`);
     } else if (mode === 'listen') {
       setCoachOpen(false);
       setListenMode(true);
@@ -1049,7 +1076,8 @@ export default function SurahClient({
               aria-pressed={active}
               onClick={() => {
                 if (m === 'recitation') {
-                  goRecite(coachAyahIndex + 1);
+                  // Back returns to this surah page (2026-11-28, Issue 2).
+                  goRecite(coachAyahIndex + 1, `surah:${surah.slug}`);
                 } else if (m === 'memorisation') {
                   stopListen();
                   setMemoriseMode(true);
@@ -1241,7 +1269,7 @@ export default function SurahClient({
           {!coachOpen && (
             <button
               type="button"
-              onClick={() => goRecite(coachAyahIndex + 1)}
+              onClick={() => goRecite(coachAyahIndex + 1, `surah:${surah.slug}`)}
               className="shrink-0 rounded-full bg-[#FFB800] min-h-11 px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               {t('surah.reciteThis')}
@@ -1723,7 +1751,7 @@ export default function SurahClient({
                 </Link>
                 <button
                   type="button"
-                  onClick={() => goRecite(v.verse_number)}
+                  onClick={() => goRecite(v.verse_number, `surah:${surah.slug}`)}
                   className="rounded-full border border-[#E5E7EB] min-h-11 px-3.5 py-1.5 text-sm font-semibold hover:border-[#1FA36B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1FA36B]"
                 >
                   {t('surah.reciteAyah')}
