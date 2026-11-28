@@ -29,18 +29,29 @@ interface VersePayload {
   words?: { text_uthmani?: string; char_type_name?: string }[];
 }
 
-function resolveSurah(param: string | undefined): HifzSurah {
-  if (param) {
-    const bySlug = ALL_SURAHS.find((s) => s.slug === param);
-    if (bySlug) return bySlug;
-    const id = Number(param);
-    if (Number.isFinite(id)) {
-      const byId = getSurahById(id);
-      if (byId) return byId;
-    }
+// Param-only resolution (no localStorage): the useState initializers
+// below must use this — the server has no localStorage and always
+// renders Al-Fatihah, so a first client render of e.g. Al-Baqarah
+// (from the saved last-read surah) is a hydration mismatch
+// (React error #418). The saved last-read surah is applied after
+// mount by the URL-follow effect (resolveSurah), which runs after
+// hydration. Returns null when the param names no surah.
+function resolveSurahFromParam(param: string | undefined): HifzSurah | null {
+  if (!param) return null;
+  const bySlug = ALL_SURAHS.find((s) => s.slug === param);
+  if (bySlug) return bySlug;
+  const id = Number(param);
+  if (Number.isFinite(id)) {
+    const byId = getSurahById(id);
+    if (byId) return byId;
   }
-  const last = ALL_SURAHS.find((s) => s.slug === lastReadSlug());
-  return last ?? ALL_SURAHS[0];
+  return null;
+}
+
+/** Param first, then the saved last-read surah (localStorage). Only
+ *  call from effects / event handlers — never during render. */
+function resolveSurah(param: string | undefined): HifzSurah {
+  return resolveSurahFromParam(param) ?? ALL_SURAHS.find((s) => s.slug === lastReadSlug()) ?? ALL_SURAHS[0];
 }
 
 export default function ReciteClient({
@@ -59,9 +70,12 @@ export default function ReciteClient({
   initialFrom?: string;
 }) {
   const router = useRouter();
-  const [surah, setSurah] = useState<HifzSurah>(() => resolveSurah(initialSurah));
+  // Initial state is param-only (resolveSurahFromParam): it must match
+  // the server render (Al-Fatihah when no ?surah=). The saved
+  // last-read surah is applied after mount by the URL-follow effect.
+  const [surah, setSurah] = useState<HifzSurah>(() => resolveSurahFromParam(initialSurah) ?? ALL_SURAHS[0]);
   const [ayah, setAyah] = useState<number>(() => {
-    const s = resolveSurah(initialSurah);
+    const s = resolveSurahFromParam(initialSurah) ?? ALL_SURAHS[0];
     const a = initialAyah ?? 1;
     return Math.max(1, Math.min(a, s.ayahCount));
   });
