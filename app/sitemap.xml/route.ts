@@ -40,6 +40,12 @@ export async function GET() {
     { loc: '/contact', lastmod: '2026-11-21', changefreq: 'monthly', priority: '0.5' },
     { loc: '/privacy', lastmod: '2026-11-21', changefreq: 'monthly', priority: '0.3' },
     { loc: '/terms', lastmod: '2026-11-21', changefreq: 'monthly', priority: '0.3' },
+    // SEO guide pages (2026-11-28) — original articles, all indexable.
+    { loc: '/guides', lastmod: '2026-11-28', changefreq: 'monthly', priority: '0.7' },
+    { loc: '/guides/how-to-memorize-the-quran', lastmod: '2026-11-28', changefreq: 'monthly', priority: '0.7' },
+    { loc: '/guides/memorize-quran-online-free', lastmod: '2026-11-28', changefreq: 'monthly', priority: '0.7' },
+    { loc: '/guides/quran-recitation-checker', lastmod: '2026-11-28', changefreq: 'monthly', priority: '0.7' },
+    { loc: '/guides/learn-quran-online', lastmod: '2026-11-28', changefreq: 'monthly', priority: '0.7' },
   ];
 
   // Hifz hub URLs, generated from the full-Quran slug table so the sitemap
