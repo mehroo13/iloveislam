@@ -75,8 +75,10 @@ export default function ChapterSheet({
   onClose: () => void;
   currentSurahId: number;
   onSelectSurah: (surahId: number) => void;
-  /** A bookmark tap jumps the reader to this mushaf page. */
-  onSelectPage: (page: number) => void;
+  /** A bookmark tap jumps the reader to this mushaf page; a Juz tap
+   *  also passes its Juz number so the reader can anchor on the
+   *  Juz's first ayah instead of the top of its first page. */
+  onSelectPage: (page: number, juz?: number) => void;
   /** The print edition: Juz/surah first pages differ per edition. */
   edition: MushafEditionId;
 }) {
@@ -269,7 +271,7 @@ export default function ChapterSheet({
                     <li key={j} style={{ backgroundColor: 'var(--reader-card)' }}>
                       <button
                         type="button"
-                        onClick={() => onSelectPage(page)}
+                        onClick={() => onSelectPage(page, j)}
                         className="flex w-full items-center gap-3 px-5 py-2 text-left"
                       >
                         <span className="w-8 shrink-0 self-start pt-[3px] text-center text-sm font-semibold" style={{ color: INK }}>

@@ -19,6 +19,7 @@ import { loadProgress, saveProgress, markAttempt, loadSettings, saveSettings } f
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { loadFrequentMistakeKeys } from '../lib/reader-mistakes';
 import { loadSimilarWordSet } from '../lib/similar-phrases';
+import { writeReaderSavedPos } from '../lib/reader-position';
 import { MODE_EVENT, ayahKeyForRevealedWord, lastReadSlug, requestMode, saveMode, type HifzMode } from '../lib/mode';
 import MushafPageFrame, { MUSHAF_PAGE_WIDTH } from './MushafPageFrame';
 import { MushafTopBar, MushafBottomBar, ReaderSheet } from './MushafReader';
@@ -43,6 +44,18 @@ export default function MushafPageView({
   const t = useT();
   const router = useRouter();
   const [script, setScript] = useScriptPref();
+  /* Record the displayed page under the shared reader-position key
+   * (2026-11-29): this view never touched
+   * ili_mushaf_reader_pos_v1, so opening /hifz/mushaf/582 directly
+   * left a stale stored spot (e.g. 581/77:23) in place, closing
+   * left it there, and the home reader then restored to 581. The
+   * shape mirrors MushafReader's save exactly — {page, mode, zoom,
+   * frac} with mode 'page' — so the home reader restores to the top
+   * of this page (no ayah: a single-page view has no within-page
+   * anchor). */
+  useEffect(() => {
+    writeReaderSavedPos({ page, mode: 'page', zoom: 1, frac: 0 });
+  }, [page]);
   // Tarteel-clean chrome: chapter sheet + reader settings sheet.
   const [navOpen, setNavOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);

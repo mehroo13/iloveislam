@@ -1,4 +1,4 @@
-// I Love Islam — Advanced Service Worker v3.0.5
+// I Love Islam — Advanced Service Worker v3.0.6
 // Offline-first PWA for the single-purpose Hifz app (rebrand 2026-11-21).
 //
 // Offline coach (§15.10): the coach model (Tilawa, hosted on tilawa.dev,
@@ -18,12 +18,16 @@
 // the "Update available" banner never fire. This bump is the delivery
 // vehicle for that fix: same behaviour as v3.0.4, only the version and
 // cache names change.
-const CACHE_VERSION = 'hifz-v3.0.5';
-const STATIC_CACHE = 'hifz-static-v7';
-const DYNAMIC_CACHE = 'hifz-dynamic-v7';
-const API_CACHE = 'hifz-api-v7';
-const IMAGE_CACHE = 'hifz-images-v7';
-const MODEL_CACHE = 'hifz-model-v7';
+//
+// v3.0.6 (2026-11-29): cache names bumped v7 → v8, same reason — the
+// sheet-jump fix (tapping a Surah/Juz in the home reader sheet landed
+// on the previous row's tail) must reach resumed PWA sessions too.
+const CACHE_VERSION = 'hifz-v3.0.6';
+const STATIC_CACHE = 'hifz-static-v8';
+const DYNAMIC_CACHE = 'hifz-dynamic-v8';
+const API_CACHE = 'hifz-api-v8';
+const IMAGE_CACHE = 'hifz-images-v8';
+const MODEL_CACHE = 'hifz-model-v8';
 const OFFLINE_URL = '/offline.html';
 
 // ==================== CACHE STRATEGIES FOR THE HIFZ APP ====================

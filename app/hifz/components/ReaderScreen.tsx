@@ -39,6 +39,7 @@ import {
   surahFirstPageForEdition,
   surahsOnMushafPageForEdition,
 } from '../lib/mushaf-surah-pages';
+import { JUZ_PAGES } from '../juz';
 import type { ReaderPageData } from '../lib/reader-page';
 import ReaderPage from './ReaderPage';
 import ChapterSheet from './ChapterSheet';
@@ -899,6 +900,13 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   /** Whether the document.fonts.ready re-verification hook has been
    *  attached for the current restore (one hook per restore). */
   const fontsHookedRef = useRef(false);
+  /** Whether the armed pending restore is a SHEET JUMP (2026-11-29):
+   *  a ChapterSheet tap arms the same landing machinery as the mount
+   *  restore, but with the tapped row's first ayah as the anchor —
+   *  and when it lands, that anchor (not the tracker's topmost) is
+   *  written to the stored position (see doScroll). Cleared by
+   *  cancelRestore and by the landing write itself. */
+  const jumpLandingRef = useRef(false);
   /** Bump to re-run the restore-landing effect when the
    *  verification re-arms a restore (a ref change alone would not
    *  re-render). */
@@ -926,6 +934,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const cancelRestore = useCallback(() => {
     pendingRestoreRef.current = null;
     lastRestoreRef.current = null;
+    jumpLandingRef.current = false;
     if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
     restoreTimerRef.current = null;
     restoringRef.current = false;
@@ -933,6 +942,31 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     restoreSettleUntilRef.current = 0;
     fontsHookedRef.current = false;
     setRestoreHiding(false);
+  }, []);
+  /** Arm the restore-landing machinery for a sheet jump (2026-11-29):
+   *  the tapped row's first ayah becomes the landing anchor, exactly
+   *  as the mount restore's saved ayah is. The list-restart effect
+   *  skips its scrollTo(0) while a restore is pending, and the
+   *  landing effect scrolls the anchor to the top once the target
+   *  page renders (growing the range first when the anchor sits too
+   *  low on the page — the same path the mount restore takes, so a
+   *  mid-page start lands on its own ayah instead of the previous
+   *  row's tail). Saves are held until the landing settles (see
+   *  restoreSettleUntilRef): without this, the debounced save fired
+   *  off the page-top transient — while the target page is still
+   *  arriving — would store the previous row's tail before the
+   *  landing scroll ever runs. The restoreAttempt bump re-runs the
+   *  landing effect even when the target page is already in view
+   *  (same-page tap: no textPages change would trigger it). */
+  const armJumpLanding = useCallback((targetPage: number, ayahKey: string) => {
+    pendingRestoreRef.current = { page: targetPage, ayah: ayahKey, since: Date.now() };
+    lastRestoreRef.current = { page: targetPage, ayah: ayahKey };
+    restoreLandingsRef.current = 0;
+    restoreLandedAtRef.current = 0;
+    fontsHookedRef.current = false;
+    jumpLandingRef.current = true;
+    restoreSettleUntilRef.current = Date.now() + 8000;
+    setRestoreAttempt((a) => a + 1);
   }, []);
   /** Write the current visible position now. Book: the anchor page
    * (the whole page is in view). Continuous: the visible page +
@@ -1336,6 +1370,34 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         restoreLandingScrollTopRef.current = mainEl.scrollTop;
         restoreLandedAtRef.current = Date.now();
         restoreLandingsRef.current += 1;
+        /* Sheet-jump landing (2026-11-29): the anchor ayah is the
+         * position the jump was asked for — write it directly. The
+         * scroll tracker would otherwise save whatever the
+         * TOPMOST_PX line cuts once the list settles (the previous
+         * row's tail on a mid-page start, or the clamped neighbour
+         * on a short last page — e.g. tapping An-Nas must store
+         * 114:1, not the 112:1/113:1 the line cuts), and the
+         * debounced save is blocked by the settle window anyway, so
+         * without this the jump's position would never be stored at
+         * all. The anchor is known-correct here, not a
+         * tracker-derived transient, so the settle guard does not
+         * apply to this write — but a ?mode= session still owns no
+         * position (see savePosition) and never writes. */
+        if (jumpLandingRef.current) {
+          jumpLandingRef.current = false;
+          if (!restoreSkippedRef.current) {
+            const raw = writeReaderSavedPos({
+              page: pending.page,
+              mode: 'continuous',
+              zoom: 1,
+              frac: 0,
+              layout: layoutModeRef.current,
+              edition: editionRef.current,
+              ayah: pending.ayah,
+            });
+            if (raw) lastSavedRef.current = raw;
+          }
+        }
       }
       pendingRestoreRef.current = null;
       // The tracker only re-derives the visible ayah on a scroll
@@ -3036,7 +3098,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   );
 
   const jumpToPage = useCallback(
-    (target: number, surahId?: number) => {
+    (target: number, surahId?: number, ayah?: string | null) => {
       // A deliberate jump wins over a pending restore scroll.
       cancelRestore();
       /* A surah-targeted jump (ChapterSheet surah tap, surah search
@@ -3050,9 +3112,29 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       } else if (jumpSurahRef.current && jumpSurahRef.current.page !== target) {
         setJumpSurah(null);
       }
-      if (target < 1 || target > totalPages || target === page) return;
+      if (target < 1 || target > totalPages) return;
+      /* SAME-PAGE TAP (2026-11-29): the old early return swallowed
+       * the jump entirely — tapping a surah while already on its
+       * first page did nothing visible (113 then 114 both sit on
+       * p604, so the topmost stayed 112:1 for both and reopening
+       * after tapping An-Nas landed on Al-Ikhlas). An anchored jump
+       * still scrolls to its ayah on the page already in view. */
+      if (target === page) {
+        if (ayah && isContinuous && !busyRef.current) armJumpLanding(target, ayah);
+        return;
+      }
       if (busyRef.current) return;
       busyRef.current = true;
+      /* An anchored jump (ChapterSheet surah / Juz tap) lands its
+       * first ayah at the top — the old code only committed the
+       * page, so a row starting mid-page landed on the previous
+       * row's tail (e.g. tapping Hud left 10:107 topmost) and the
+       * wrong spot was then saved and self-reinforced. The arm runs
+       * BEFORE the page commit, so the list restart skips its
+       * scrollTo(0) and the landing effect owns the scroll. An
+       * unanchored jump (search result, gift, bookmark) keeps the
+       * old page-top behaviour. */
+      if (ayah && isContinuous) armJumpLanding(target, ayah);
       fetchPage(target)
         .then(() => {
           setAnimating(false);
@@ -3064,7 +3146,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           busyRef.current = false;
         });
     },
-    [page, fetchPage, setJumpSurah, cancelRestore],
+    [page, fetchPage, setJumpSurah, cancelRestore, isContinuous, armJumpLanding],
   );
 
   /* Swipe: pointer events (touch + mouse). Vertical gestures are
@@ -4181,11 +4263,24 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         currentSurahId={surahsOnMushafPageForEdition(visiblePage, edition)[0] ?? 1}
         onSelectSurah={(id) => {
           setOpenModal(null);
-          jumpToPage(surahFirstPageForEdition(edition)[id] ?? 1, id);
+          // Anchor the jump on the surah's first ayah: the surah
+          // starts mid-page (e.g. Hud opens below 10:107 on p221),
+          // and a page-only jump lands on the previous surah's tail.
+          jumpToPage(surahFirstPageForEdition(edition)[id] ?? 1, id, `${id}:1`);
         }}
-        onSelectPage={(p) => {
+        onSelectPage={(p, juz) => {
           setOpenModal(null);
-          jumpToPage(p);
+          if (juz != null) {
+            // A Juz tap anchors on the Juz's first ayah
+            // (segments[0] — e.g. Juz 4 opens at 3:93): the Juz
+            // starts mid-page, so a page-only jump lands on the
+            // previous Juz's tail. A bookmark tap passes no Juz and
+            // keeps the old page-top jump.
+            const seg = JUZ_PAGES[juz - 1]?.segments[0];
+            jumpToPage(p, undefined, seg ? `${seg.surahId}:${seg.fromAyah}` : null);
+          } else {
+            jumpToPage(p);
+          }
         }}
         edition={edition}
       />

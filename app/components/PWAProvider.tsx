@@ -85,7 +85,13 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
 
     // When a new worker takes control, reload once so the new build shows.
-    const onControllerChange = () => reloadOnce();
+    // The banner is vestigial at that point — the new worker is already
+    // active (skipWaiting + clients.claim) and the reload follows — so
+    // hide it rather than letting it linger on the upgraded page.
+    const onControllerChange = () => {
+      setShowUpdateBanner(false);
+      reloadOnce();
+    };
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
 
     // A new worker can sit "waiting" (installed on an earlier visit but
@@ -124,10 +130,17 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
     // Listen for SW messages
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data?.type === 'SW_UPDATED') {
-        // Stays up until the user refreshes or dismisses it — the old
-        // 5-second auto-hide meant users on an installed old version
-        // never saw the prompt at all.
-        setShowUpdateBanner(true);
+        // The worker posts this on activate — it has ALREADY taken
+        // over (skipWaiting + clients.claim), and the controllerchange
+        // reload follows, so a banner here only lingers on the
+        // upgraded page. Show it only if a worker is still waiting
+        // to take over (the one case the banner is actually for).
+        navigator.serviceWorker
+          .getRegistration()
+          .then((registration) => {
+            if (registration?.waiting) setShowUpdateBanner(true);
+          })
+          .catch(() => {});
       }
     });
 
