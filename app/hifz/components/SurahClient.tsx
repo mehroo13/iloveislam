@@ -28,6 +28,7 @@ import {
   type HifzMode,
 } from '../lib/mode';
 import ToolIcon from '../../components/ToolIcon';
+import ResumeWriter from './ResumeWriter';
 import TafsirBlock from './TafsirBlock';
 import SearchablePicker from './SearchablePicker';
 import WordByWord from './WordByWord';
@@ -980,6 +981,10 @@ export default function SurahClient({
 
   return (
     <div>
+      {/* Reader resume (2026-11-28): opening this surah is where the
+          user left off — record its first page + first ayah, or
+          reopening returns to the old reader spot, not this surah. */}
+      <ResumeWriter surahId={surah.id} ayah={`${surah.id}:1`} />
       <audio ref={audioRef} preload="none" className="hidden" />
       <audio ref={wordAudioRef} preload="none" className="hidden" />
       {/* B1: bookmark confirmation toast (see toggleBookmark). */}

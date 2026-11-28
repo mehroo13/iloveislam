@@ -8,6 +8,7 @@ import { JUZ_AMMA_90_DAY } from '../plans';
 import PlanCard from '../components/PlanCard';
 import { SurahProgressBar } from '../components/ProgressWidget';
 import { Breadcrumb, Attribution, BackToReader} from '../components/HifzShared';
+import ResumeWriter from '../components/ResumeWriter';
 import { SITE_URL } from '../lib/fetch';
 
 export const metadata: Metadata = {
@@ -29,6 +30,10 @@ export default function JuzAmmaPage() {
   const totalAyahs = JUZ_AMMA_SURAHS.reduce((sum, s) => sum + s.ayahCount, 0);
   return (
     <main className="mx-auto max-w-6xl px-4 pb-16 pt-6 sm:pt-8">
+      {/* Reader resume (2026-11-28): opening Juz 30 is where the user
+          left off — record its first page (An-Naba 78:1), or reopening
+          returns to the old reader spot, not Juz 30. */}
+      <ResumeWriter juz={30} ayah="78:1" />
       <Breadcrumb
         items={[
           { label: 'Home', href: '/' },

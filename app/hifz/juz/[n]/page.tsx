@@ -9,6 +9,7 @@ import { getJuz, JUZ_PAGES } from '../../juz';
 import { JUZ_FIRST_PAGE } from '../../mushaf';
 import { getSurahById } from '../../surahs';
 import { Breadcrumb, Attribution} from '../../components/HifzShared';
+import ResumeWriter from '../../components/ResumeWriter';
 import { SITE_URL } from '../../lib/fetch';
 
 export async function generateStaticParams() {
@@ -63,6 +64,10 @@ export default async function JuzPage({ params }: { params: Promise<{ n: string 
 
   return (
     <main className="mx-auto max-w-3xl px-4 pb-16 pt-6 sm:pt-8">
+      {/* Reader resume (2026-11-28): opening this Juz is where the user
+          left off — record its first page + first ayah, or reopening
+          returns to the old reader spot, not this Juz. */}
+      <ResumeWriter juz={juz.n} ayah={`${first.surahId}:${first.fromAyah}`} />
       <Breadcrumb
         items={[
           { label: 'Home', href: '/' },

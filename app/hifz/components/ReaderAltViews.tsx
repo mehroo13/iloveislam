@@ -445,7 +445,14 @@ export function ReaderContinuousText({
         return (
           <div key={page}>
             {groups.map((g) => {
-              const first = !seenSurahs.has(g.sid);
+              // The intro (surah header + Bismillah) belongs ONLY where
+              // the surah actually starts: the group's first verse must
+              // be ayah 1. A range that opens mid-surah (e.g. a restore
+              // to page 49, inside Al-Baqarah) must not show the header
+              // + Bismillah before 2:283 — that reads as a Bismillah in
+              // the middle of the surah (seen live 2026-11-28).
+              const startsHere = Number(g.verses[0]?.verse_key.split(':')[1]) === 1;
+              const first = startsHere && !seenSurahs.has(g.sid);
               if (first) seenSurahs.add(g.sid);
               return (
                 <div key={`${page}-${g.sid}`}>
@@ -866,7 +873,11 @@ export function ReaderTranslationMode({
         return (
           <div key={page}>
             {groups.map((g) => {
-              const first = !seenSurahs.has(g.sid);
+              // Same as ReaderContinuousText: the intro belongs only
+              // where the surah actually starts (first verse is ayah 1),
+              // never at the top of a range that opens mid-surah.
+              const startsHere = Number(g.verses[0]?.verse_key.split(':')[1]) === 1;
+              const first = startsHere && !seenSurahs.has(g.sid);
               if (first) seenSurahs.add(g.sid);
               return (
                 <div key={`${page}-${g.sid}`}>

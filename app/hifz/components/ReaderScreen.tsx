@@ -1016,6 +1016,11 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     return () => {
       window.removeEventListener('pagehide', onHide);
       document.removeEventListener('visibilitychange', onVisibility);
+      // A pending debounced save must not fire after unmount: the
+      // navigation target (a surah/Juz page) owns the position from
+      // here on, and a stale reader save would overwrite its write
+      // (2026-11-28 resume fix).
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
   }, [savePosition]);
   /* Persist deliberate navigation: a page jump, a Book swipe
