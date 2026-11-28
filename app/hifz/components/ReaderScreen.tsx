@@ -33,7 +33,7 @@
 
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   surahFirstPageForEdition,
@@ -158,6 +158,39 @@ interface PlayItem {
 /** Listen (audio playback) state: idle → loading (fetching the
  *  page's audio) → playing ⇄ paused → idle. */
 type PlayState = 'idle' | 'loading' | 'playing' | 'paused';
+
+/** Topmost-ayah line (restore-landing fix, 2026-11-28): the scroll
+ *  tracker names the first ayah whose bottom passes this many px
+ *  below the scroll container's top. It was 90 — and an ayah ending
+ *  within the first 90px of its page could then NEVER be topmost:
+ *  page 522's 51:31 ends 49px into the page, so even at scrollTop 0
+ *  its bottom sat above the line, the restore's nudge loop walked
+ *  down past it to 51:36, and the close saved 51:36 (self-reinforcing
+ *  — the same shape as the Juz 30 clobber, but within the page).
+ *  24px keeps the line inside every ayah: even a one-line ayah at
+ *  the smallest text size is ~34px tall, so a page-top ayah still
+ *  crosses it, while the line stays below the container edge. The
+ *  restore lands the saved ayah RESTORE_TOP_PX below the container
+ *  top, i.e. 10px above the line, so the line cuts the saved ayah
+ *  and it becomes the topmost. The two numbers are a matched pair —
+ *  change one and the other must follow (line − 10). */
+const TOPMOST_PX = 24;
+const RESTORE_TOP_PX = 14;
+
+/** The topmost visible ayah in a continuous-mode list: the first
+ *  [data-text-ayah] / [data-translation-ayah] element whose bottom
+ *  passes the TOPMOST_PX line. Shared by the scroll tracker, the
+ *  restore landing and the restore verification, so all three agree
+ *  on what "topmost" means. */
+function topmostAyahIn(mainEl: HTMLElement): HTMLElement | null {
+  const top = mainEl.getBoundingClientRect().top;
+  const els = mainEl.querySelectorAll('[data-text-ayah], [data-translation-ayah]');
+  for (const e of els) {
+    const r = (e as HTMLElement).getBoundingClientRect();
+    if (r.bottom > top + TOPMOST_PX) return e as HTMLElement;
+  }
+  return null;
+}
 
 function IconStop() {
   return (
@@ -830,9 +863,13 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
    * Covers all three layouts: Book restores the page; Quran Text
    * and Translation restore the page AND scroll the saved ayah to
    * the top of the viewport. The server still renders page 1 for
-   * first paint (it cannot read localStorage); the client jump
-   * happens after hydration, so a brief flash of page 1 is
-   * unavoidable and accepted.
+   * first paint (it cannot read localStorage). The client jump runs
+   * in a LAYOUT effect, so it lands before the browser paints the
+   * hydrated page — and while the restore is pending the reader
+   * chrome + list stay visibility:hidden (see restoreHiding), so
+   * neither page 1 nor the target page's top is ever painted
+   * (Class A flash, 2026-11-28: the old passive-effect restore let
+   * both paint before its 100ms-timeout scroll).
    * Precedence: an explicit position in the URL beats the stored
    * spot (`?page=` deep link; `?mode=` — e.g. a recite landing —
    * skips the restore entirely). `?dashboard=1` is NOT a position:
@@ -846,6 +883,35 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const restoreSkippedRef = useRef(false);
   const restoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRestoreRef = useRef<{ page: number; ayah: string | null; since: number } | null>(null);
+  /** The restore this session is landing (page + saved ayah), kept
+   *  after pendingRestoreRef clears so the post-landing verification
+   *  can re-check — and re-land — it. */
+  const lastRestoreRef = useRef<{ page: number; ayah: string | null } | null>(null);
+  /** How many times the current restore has landed (initial landing
+   *  + verification re-landings). Capped — a restore that cannot
+   *  land must never retry forever. */
+  const restoreLandingsRef = useRef(0);
+  /** When (epoch ms) the current restore last landed. The
+   *  verification only re-scrolls if the scroll position is still
+   *  the landing one — a user who has scrolled away must never be
+   *  yanked back. */
+  const restoreLandedAtRef = useRef(0);
+  /** Whether the document.fonts.ready re-verification hook has been
+   *  attached for the current restore (one hook per restore). */
+  const fontsHookedRef = useRef(false);
+  /** Bump to re-run the restore-landing effect when the
+   *  verification re-arms a restore (a ref change alone would not
+   *  re-render). */
+  const [restoreAttempt, setRestoreAttempt] = useState(0);
+  /** While a restore is pending, the reader chrome (top bar, word
+   *  tip, header row) and the scroll list render visibility:hidden:
+   *  the page-top state the restore scrolls away from (the previous
+   *  surah's tail, or page 1 before the target page arrives) must
+   *  never be painted (Class A flash, 2026-11-28). Layout is
+   *  preserved, so the restore scroll still measures correctly.
+   *  Cleared the moment the restore lands, or when it is cancelled
+   *  / gives up. */
+  const [restoreHiding, setRestoreHiding] = useState(false);
   /** Where the restore scroll landed (scrollTop). The upward-extend
    *  branch must not fire off this position (see check()). */
   const restoreLandingScrollTopRef = useRef<number | null>(null);
@@ -859,11 +925,14 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   /** Cancel a pending restore scroll (a deliberate jump wins). */
   const cancelRestore = useCallback(() => {
     pendingRestoreRef.current = null;
+    lastRestoreRef.current = null;
     if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
     restoreTimerRef.current = null;
     restoringRef.current = false;
     restoreLandingScrollTopRef.current = null;
     restoreSettleUntilRef.current = 0;
+    fontsHookedRef.current = false;
+    setRestoreHiding(false);
   }, []);
   /** Write the current visible position now. Book: the anchor page
    * (the whole page is in view). Continuous: the visible page +
@@ -907,10 +976,13 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(savePosition, 800);
   }, [savePosition]);
-  /* Restore on mount. Declared after the settings/layout mount
-   * effects above, so its state writes win over the stored layout
-   * and edition when a saved position exists. Runs once. */
-  useEffect(() => {
+  /* Restore on mount. A LAYOUT effect (not a passive one): the
+   * state writes below must flush before the browser paints the
+   * hydrated page, or page 1 paints first and the restore flashes
+   * it. Declared after the settings/layout mount effects above;
+   * its storage writes (layout + edition) still win, because those
+   * effects read storage fresh when they run after it. Runs once. */
+  useLayoutEffect(() => {
     try {
       storedAtMountRef.current = window.localStorage.getItem(READER_POS_KEY);
     } catch {
@@ -977,6 +1049,16 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     restoringRef.current = layout !== 'book';
     pendingRestoreRef.current =
       layout === 'book' ? null : { page: target, ayah, since: Date.now() };
+    if (layout !== 'book') {
+      // Arm the restore: hide the reader until the landing scroll
+      // has put the saved ayah in place (see restoreHiding), and
+      // reset the landing/verification bookkeeping.
+      lastRestoreRef.current = { page: target, ayah };
+      restoreLandingsRef.current = 0;
+      restoreLandedAtRef.current = 0;
+      fontsHookedRef.current = false;
+      setRestoreHiding(true);
+    }
     // Apply the edition (persisted, so the settings effect's value
     // does not win back on the next mount) and the layout (persisted
     // the same way — the layout-load effect above already ran this
@@ -1068,15 +1150,19 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   }, [page, edition, layoutMode, scheduleSave]);
   /* Land the pending restore scroll in a continuous mode: once the
    * restored page's verses have rendered, scroll the saved ayah to
-   * the top of the viewport (the same +90px threshold the scroll
-   * tracker uses, so the ayah becomes the topmost visible one). If
-   * the ayah is not on the page (edition drift, or a spot saved by
-   * /hifz/mushaf with no ayah), the list already starts at the
-   * page top — just clear. Gives up after 8s so a failed fetch can
-   * never wedge saving for the session. The scroll runs on a short
-   * timeout so the layout-mode effect's own scrollTo(0) (same
-   * commit) lands first. */
-  useEffect(() => {
+   * the top of the viewport (RESTORE_TOP_PX below it, so the
+   * TOPMOST_PX line cuts the ayah and the tracker names it the
+   * topmost). If the ayah is not on the page (edition drift, or a
+   * spot saved by /hifz/mushaf with no ayah), the list already
+   * starts at the page top — just clear. Gives up after 8s so a
+   * failed fetch can never wedge saving for the session.
+   * A LAYOUT effect, no timeout: the scroll lands synchronously in
+   * the commit that renders the target page, before the browser
+   * paints it — the old 100ms timeout is what let the page top
+   * paint first (Class A flash). The layout-mode effect's own
+   * scrollTo(0) is skipped while a restore is pending (see there),
+   * so nothing zeroes the scroll after this lands. */
+  useLayoutEffect(() => {
     const pending = pendingRestoreRef.current;
     if (!pending || !isContinuous) return;
     const hasPage = textPages.some((p) => p.page === pending.page);
@@ -1086,6 +1172,58 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     }
     const mainEl = containerRef.current;
     if (!mainEl) return;
+    /* Finish the restore window: the landing has been verified (or
+     * the retry budget is spent) — saving may resume after the
+     * settle, and the range re-evaluates now. The synthetic scroll
+     * runs with the window over, so check() loads the next page
+     * and the list becomes scrollable: the scroll above ran while
+     * restoringRef was still true, so check() could not extend; if
+     * the restored list is a single short page (Al-Fatihah fills
+     * the viewport exactly), no real scroll event can ever fire to
+     * trigger the extend, and the reader would be wedged on that
+     * page forever (seen 2026-11-28: saved position 1:1,
+     * scrollHeight == clientHeight, swipes did nothing). */
+    const finishRestore = () => {
+      restoringRef.current = false;
+      // The restore is landing; give the range a moment to settle
+      // before any save may overwrite the restored spot (see
+      // savePosition).
+      restoreSettleUntilRef.current = Date.now() + 3000;
+      mainEl.dispatchEvent(new Event('scroll'));
+    };
+    /* Verify the landing ayah is actually the topmost one (stuck
+     * restore, 2026-11-28: under load the layout can shift after
+     * the scroll — late fonts, slow fetch — so the scroll that was
+     * exact when it ran no longer is, and the wrong topmost would
+     * then be saved and self-reinforce). Re-land, bounded, and
+     * only while the scroll position is still the landing one — a
+     * user who has scrolled away must never be yanked back. */
+    const verifyLanding = () => {
+      const saved = lastRestoreRef.current;
+      if (!saved) return; // restore was cancelled (a jump wins)
+      if (!saved.ayah) {
+        finishRestore();
+        return;
+      }
+      const topmost = topmostAyahIn(mainEl);
+      if (topmost && topmost.dataset.verseKey === saved.ayah) {
+        finishRestore();
+        return;
+      }
+      // No re-landing can help if the saved ayah is not rendered.
+      if (!mainEl.querySelector(`[data-verse-key="${saved.ayah}"]`)) {
+        finishRestore();
+        return;
+      }
+      const landing = restoreLandingScrollTopRef.current;
+      const stillThere = landing !== null && Math.abs(mainEl.scrollTop - landing) <= 4;
+      if (stillThere && restoreLandingsRef.current < 3) {
+        pendingRestoreRef.current = { page: saved.page, ayah: saved.ayah, since: Date.now() };
+        setRestoreAttempt((a) => a + 1);
+        return;
+      }
+      finishRestore();
+    };
     const doScroll = () => {
       const el = pending.ayah
         ? mainEl.querySelector(`[data-verse-key="${pending.ayah}"]`)
@@ -1095,7 +1233,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           (el as HTMLElement).getBoundingClientRect().top -
           mainEl.getBoundingClientRect().top +
           mainEl.scrollTop;
-        const desired = Math.max(0, top - 80);
+        const desired = Math.max(0, top - RESTORE_TOP_PX);
         // The list is still a single page at restore time, so the
         // scroll clamps at scrollHeight - clientHeight — an ayah in
         // the lower half of the page can never become topmost (its
@@ -1130,71 +1268,94 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           }, 8000);
           return;
         }
-        // Land the saved ayah just ABOVE the scroll tracker's +90px
-        // line (not on it): the tracker names the first ayah whose
-        // bottom passes that line, so an ayah parked exactly on it
-        // leaves its predecessor — whose bottom sits on the line —
-        // as the topmost, and the reopen lands one ayah up.
+        // Land the saved ayah RESTORE_TOP_PX below the container
+        // top: the TOPMOST_PX line then cuts the ayah 10px in, so
+        // the tracker names it the topmost (see TOPMOST_PX). An
+        // ayah parked exactly on the line leaves its predecessor —
+        // whose bottom sits on the line — as the topmost, and the
+        // reopen lands one ayah up.
         mainEl.scrollTop = desired;
-        // Self-correct with the tracker's own rule: in flowing
-        // text two ayahs can share one line, and then no fixed
-        // offset separates them — the predecessor's bottom is the
-        // shared line's bottom, below the line whatever the offset.
-        // If the topmost ayah is still one before the saved ayah,
-        // nudge down just past its bottom and re-check (bounded —
-        // each nudge moves the saved ayah up by at most a line,
-        // and it stays in view).
+        // Self-correct with the tracker's own rule — but only when
+        // scrolling down can help. In flowing text two ayahs can
+        // share one line, and then no fixed offset separates them:
+        // the predecessor's bottom is the shared line's bottom. If
+        // the saved ayah itself is already ABOVE the line (it ends
+        // within the first TOPMOST_PX of its page, so even scrollTop
+        // 0 leaves it above the line), scrolling down only pushes
+        // it further up — the old loop walked Juz 27 from 51:31 to
+        // 51:36 this way. Likewise a nudge that would push the
+        // saved ayah's bottom above the line (shared last line)
+        // is refused.
         for (let i = 0; i < 3; i++) {
-          const cTop = mainEl.getBoundingClientRect().top;
-          const els = mainEl.querySelectorAll('[data-text-ayah], [data-translation-ayah]');
-          let topmost: HTMLElement | null = null;
-          for (const e of els) {
-            const r = (e as HTMLElement).getBoundingClientRect();
-            if (r.bottom > cTop + 90) {
-              topmost = e as HTMLElement;
-              break;
-            }
-          }
+          const topmost = topmostAyahIn(mainEl);
           if (!topmost || topmost.dataset.verseKey === pending.ayah) break;
-          const r = topmost.getBoundingClientRect();
-          mainEl.scrollTop += r.bottom - cTop - 90 + 2;
+          const savedEl = mainEl.querySelector(
+            `[data-verse-key="${pending.ayah}"]`,
+          ) as HTMLElement | null;
+          if (!savedEl) break;
+          const line = mainEl.getBoundingClientRect().top + TOPMOST_PX;
+          const savedBottom = savedEl.getBoundingClientRect().bottom;
+          if (savedBottom <= line) break;
+          const nudge = topmost.getBoundingClientRect().bottom - line + 2;
+          if (nudge >= savedBottom - line) break;
+          mainEl.scrollTop += nudge;
         }
         // Record where the restore landed: the upward-extend branch
         // must not fire off this scroll position (see check()).
         restoreLandingScrollTopRef.current = mainEl.scrollTop;
+        restoreLandedAtRef.current = Date.now();
+        restoreLandingsRef.current += 1;
       }
       pendingRestoreRef.current = null;
       // The tracker only re-derives the visible ayah on a scroll
       // event or a range change — a page-top restore scrolls
       // nowhere, so neither fires and the pill would keep naming
-      // the old page. Nudge it: a synthetic scroll event makes
-      // check() run once against the landed position (the save
-      // itself stays guarded by restoringRef until the window
-      // below ends).
+      // the old page. Derive it now from the landed position, and
+      // reveal the reader (hidden since mount — see restoreHiding).
+      const landed = topmostAyahIn(mainEl);
+      if (landed) {
+        const ds = landed.dataset;
+        const cur = {
+          surah: Number(ds.surah),
+          page: Number(ds.page),
+          juz: Number(ds.juz),
+          hizb: Number(ds.hizb ?? 1),
+          ayah: typeof ds.verseKey === 'string' && ds.verseKey ? ds.verseKey : null,
+        };
+        visibleTextRef.current = cur;
+        setVisibleText(cur);
+      }
+      setRestoreHiding(false);
+      // Nudge the tracker: a synthetic scroll event makes check()
+      // run once against the landed position (the save itself stays
+      // guarded by restoringRef until the window below ends).
       mainEl.dispatchEvent(new Event('scroll'));
       if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
       restoreTimerRef.current = setTimeout(() => {
-        restoringRef.current = false;
-        // The restore is landing; give the range a moment to settle
-        // before any save may overwrite the restored spot (see
-        // savePosition).
-        restoreSettleUntilRef.current = Date.now() + 3000;
-        // The restore window is over — re-evaluate the range now.
-        // The synthetic scroll above ran while restoringRef was
-        // still true, so check() could not extend; if the restored
-        // list is a single short page (Al-Fatihah fills the
-        // viewport exactly), no real scroll event can ever fire to
-        // trigger the extend, and the reader would be wedged on
-        // that page forever (seen 2026-11-28: saved position
-        // 1:1, scrollHeight == clientHeight, swipes did nothing).
-        // This second nudge runs with the window over, so check()
-        // loads the next page and the list becomes scrollable.
-        mainEl.dispatchEvent(new Event('scroll'));
+        verifyLanding();
       }, 1200);
+      // Late layout shifts (webfont swaps) can move the landed ayah
+      // after the window above has run: re-verify once the
+      // document's fonts have settled, within the same retry
+      // budget and only if the user has not scrolled away (see
+      // verifyLanding).
+      if (
+        !fontsHookedRef.current &&
+        typeof document !== 'undefined' &&
+        document.fonts?.ready
+      ) {
+        fontsHookedRef.current = true;
+        void document.fonts.ready.then(() => {
+          // Only a restore that landed recently can still be
+          // re-scrolled: after that the position belongs to the user.
+          if (restoreLandedAtRef.current && Date.now() - restoreLandedAtRef.current < 10000) {
+            verifyLanding();
+          }
+        });
+      }
     };
-    const t = window.setTimeout(doScroll, 100);
-    return () => window.clearTimeout(t);
-  }, [textPages, isContinuous, cancelRestore, fetchPage, totalPages]);
+    doScroll();
+  }, [textPages, isContinuous, cancelRestore, fetchPage, totalPages, restoreAttempt]);
   /* Hide Verses mode + per-line/verse reveals. Reveal keys:
    * `L{page}:{line}` for the Madani page, `V{verse_key}` for the
    * text/translation views. */
@@ -3013,7 +3174,14 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         pendingPrependRef.current = null;
         setTextRange({ start: page, end: page });
         setVisibleText(null);
-        window.setTimeout(() => containerRef.current?.scrollTo({ top: 0 }), 0);
+        // No scrollTo(0) while a restore is pending: the restore
+        // landing effect positions the scroll itself, in a layout
+        // effect before paint — zeroing it first (even via a 0ms
+        // timeout) would paint the page top before the restore
+        // lands (Class A flash, 2026-11-28).
+        if (!pendingRestoreRef.current) {
+          window.setTimeout(() => containerRef.current?.scrollTo({ top: 0 }), 0);
+        }
       } else if (prev === 'text' || prev === 'translation') {
         const vt = visibleTextRef.current;
         if (vt && vt.page !== page && micStateRef.current === 'idle' && playStateRef.current === 'idle') {
@@ -3031,7 +3199,11 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       pendingPrependRef.current = null;
       setTextRange({ start: page, end: page });
       setVisibleText(null);
-      window.setTimeout(() => containerRef.current?.scrollTo({ top: 0 }), 0);
+      // As above: no scrollTo(0) while a restore is pending — the
+      // restore landing effect owns the scroll position.
+      if (!pendingRestoreRef.current) {
+        window.setTimeout(() => containerRef.current?.scrollTo({ top: 0 }), 0);
+      }
     }
   }, [layoutMode, page, jumpToPage]);
 
@@ -3098,32 +3270,27 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       scheduled = false;
       const range = textRangeRef.current;
       if (!range) return;
-      const top = mainEl.getBoundingClientRect().top;
-      const els = mainEl.querySelectorAll('[data-text-ayah], [data-translation-ayah]');
-      for (const el of els) {
-        const r = (el as HTMLElement).getBoundingClientRect();
-        if (r.bottom > top + 90) {
-          const ds = (el as HTMLElement).dataset;
-          const cur = {
-            surah: Number(ds.surah),
-            page: Number(ds.page),
-            juz: Number(ds.juz),
-            hizb: Number(ds.hizb ?? 1),
-            ayah: typeof ds.verseKey === 'string' && ds.verseKey ? ds.verseKey : null,
-          };
-          if (
-            visibleTextRef.current?.surah !== cur.surah ||
-            visibleTextRef.current?.page !== cur.page ||
-            visibleTextRef.current?.ayah !== cur.ayah
-          ) {
-            visibleTextRef.current = cur;
-            setVisibleText(cur);
-          }
-          // The visible position moved — persist it (debounced;
-          // skipped while a restore scroll is landing, below).
-          if (!restoringRef.current) scheduleSave();
-          break;
+      const topmost = topmostAyahIn(mainEl);
+      if (topmost) {
+        const ds = topmost.dataset;
+        const cur = {
+          surah: Number(ds.surah),
+          page: Number(ds.page),
+          juz: Number(ds.juz),
+          hizb: Number(ds.hizb ?? 1),
+          ayah: typeof ds.verseKey === 'string' && ds.verseKey ? ds.verseKey : null,
+        };
+        if (
+          visibleTextRef.current?.surah !== cur.surah ||
+          visibleTextRef.current?.page !== cur.page ||
+          visibleTextRef.current?.ayah !== cur.ayah
+        ) {
+          visibleTextRef.current = cur;
+          setVisibleText(cur);
         }
+        // The visible position moved — persist it (debounced;
+        // skipped while a restore scroll is landing, below).
+        if (!restoringRef.current) scheduleSave();
       }
       /* No range extension during a restore (see the restore
        * effect): the list is still a single page, and a check()
@@ -3143,11 +3310,11 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
          * preload simply waits for the first real scroll, when the
          * list has settled and the compensation is exact. */
         /* ... and not from the restore's own landing position: the
-         * restore scrolls the saved ayah to just above the +90px
-         * line, so a page-top ayah lands at a small scrollTop (e.g.
-         * 24 for 78:1 on p582) and the synthetic scroll after the
-         * restore window would prepend the previous page — briefly
-         * showing its tail (seen 2026-11-28: a Juz 30 restore showed
+         * restore scrolls the saved ayah to RESTORE_TOP_PX below
+         * the container top, so a page-top ayah lands at a small
+         * scrollTop and the synthetic scroll after the restore
+         * window would prepend the previous page — briefly showing
+         * its tail (seen 2026-11-28: a Juz 30 restore showed
          * p581/77:23 for ~3s, and closing then saved the wrong page).
          * The preload can wait for a real scroll; once the user
          * scrolls, the guard lifts. */
@@ -3391,7 +3558,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           while the sheet is open, so the top bar stays undimmed. */}
       <header
         className={`relative flex shrink-0 items-center gap-2 border-b border-[#E8E8E4] px-3 py-2.5 ${openModal === 'sheet' ? 'z-50' : ''}`}
-        style={{ backgroundColor: PAGE_BG }}
+        style={{ backgroundColor: PAGE_BG, ...(restoreHiding ? { visibility: 'hidden' as const } : null) }}
       >
         <button
           type="button"
@@ -3465,7 +3632,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         <div
           data-testid="word-tip"
           className="flex shrink-0 items-center justify-between gap-3 border-b border-[#E8E8E4] px-3 py-2"
-          style={{ backgroundColor: PAGE_BG }}
+          style={{ backgroundColor: PAGE_BG, ...(restoreHiding ? { visibility: 'hidden' as const } : null) }}
         >
           <p className="text-[13px] leading-snug" style={{ color: MUTED }}>
             Tip: press and hold any word to hear just that word.
@@ -3498,7 +3665,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           with the list. No new button, no new player, no colour or
           copy change. */}
       {isContinuous && (
-        <div className="shrink-0 border-b border-[#E8E8E4] pt-2" style={{ backgroundColor: PAGE_BG }}>
+        <div
+          className="shrink-0 border-b border-[#E8E8E4] pt-2"
+          style={{ backgroundColor: PAGE_BG, ...(restoreHiding ? { visibility: 'hidden' as const } : null) }}
+        >
           {renderHeaderRow(pillMeta, true, layoutMode === 'text')}
           {playError && (
             <p role="alert" data-testid="play-error" className="px-2 pb-1 text-center text-[13px] leading-snug" style={{ color: '#DC2626' }}>
@@ -3511,6 +3681,8 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       {/* Mushaf page (swipe area) */}
       <main
         ref={containerRef}
+        data-restore-hidden={restoreHiding || undefined}
+        style={restoreHiding ? { visibility: 'hidden' } : undefined}
         // [overflow-anchor:none] (2026-11-27): the reader compensates
         // a prepended page itself — the compensation effect shifts
         // scrollTop down by exactly the height the new page added,
