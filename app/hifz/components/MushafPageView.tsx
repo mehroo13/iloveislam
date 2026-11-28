@@ -464,15 +464,15 @@ export default function MushafPageView({
         </div>
       </div>
 
-      {/* Chapter / Juz sheet (hamburger + centre pill). Lists only, in
+      {/* Juz / Surah sheet (hamburger + centre pill). Lists only, in
           Tarteel's order: Recently Read (real history only, hidden when
-          empty), "Chapter and Juz Lists" label, Chapters / Parts /
-          Bookmarks pills, sort + shown-progress labels, Juz headers +
-          surah rows, and the 1–30 Juz quick-jump rail. No Practice Mode
+          empty), "Juz and Surah Lists" label, Juz / Surah /
+          Bookmarks pills, sort + shown-progress labels, the 30 Juz
+          and the 114 surahs in plain order. No Practice Mode
           rows (mode switching lives in the reader bottom bar), no
           prev/next row, no "Continuous reader" pill — the lists start
           at the top of the sheet. */}
-      <ReaderSheet open={navOpen} onClose={() => setNavOpen(false)} side="left" title={t('rb.list.chaptersJuz')} dragHandle>
+      <ReaderSheet open={navOpen} onClose={() => setNavOpen(false)} side="left" title={t('rb.list.juzSurahLists')} dragHandle>
         <SurahList variant="drawer" />
       </ReaderSheet>
 

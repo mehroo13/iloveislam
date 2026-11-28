@@ -1,13 +1,13 @@
 // app/hifz/components/SurahList.tsx — the one surah list, used by the
-// homepage, the Hifz hub, and the reader's chapter / juz drawer.
-// Tarteel-style "Chapter and Juz Lists" (2026-11-23): Recently Read card,
-// Chapters / Parts / Bookmarks tabs, ascending/descending sort, per-surah
-// memorisation markers, Juz header rows grouping the surahs, and a
-// right-edge 1–30 Juz quick-jump rail.
+// homepage, the Hifz hub, and the reader's juz / surah drawer.
+// "Juz and Surah Lists" (2026-11-28, matching ChapterSheet): Recently
+// Read card, Juz / Surah / Bookmarks tabs, ascending/descending sort,
+// per-surah memorisation markers. The Surah tab is a flat list of all
+// 114 surahs in plain order — no Juz group headings, no quick-jump rail.
 // The `drawer` variant is the reader-sheet version: no search box, no
 // All / Started / Memorised filter chips, no big heading — Recently Read
 // (when there is real history) sits at the very top, then the small grey
-// "Chapter and Juz Lists" label, the tabs, and a small Juz Amma link
+// "Juz and Surah Lists" label, the tabs, and a small Juz Amma link
 // below the tabs; the footer is a nav link row (Home, My Progress,
 // Bookmarks, Goals, Challenges, Settings) so every destination stays
 // reachable without the bottom tabs. The `full` variant (homepage / hub)
@@ -17,7 +17,7 @@
 // Recently Read card hides entirely when there is no history.
 'use client';
 
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ALL_SURAHS, getSurahById, type HifzSurah } from '../surahs';
 import { JUZ_PAGES } from '../juz';
@@ -37,7 +37,7 @@ function normArabic(s: string): string {
     .replace(/ى/g, 'ي');
 }
 
-type Tab = 'chapters' | 'parts' | 'bookmarks';
+type Tab = 'juz' | 'surah' | 'bookmarks';
 type SortDir = 'asc' | 'desc';
 type ProgressFilter = 'all' | 'started' | 'memorised';
 
@@ -45,7 +45,7 @@ export default function SurahList({ variant = 'full' }: { variant?: 'full' | 'dr
   const t = useT();
   const drawer = variant === 'drawer';
   const [q, setQ] = useState('');
-  const [tab, setTab] = useState<Tab>('chapters');
+  const [tab, setTab] = useState<Tab>('juz');
   const [filter, setFilter] = useState<ProgressFilter>('all');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [showProgress, setShowProgress] = useState(true);
@@ -100,8 +100,8 @@ export default function SurahList({ variant = 'full' }: { variant?: 'full' | 'dr
   }, [lastRead, recentIds]);
 
   const searching = q.trim() !== '';
-  // While searching, always show the flat Chapters list.
-  const activeTab: Tab = searching ? 'chapters' : tab;
+  // While searching, always show the flat Surah list.
+  const activeTab: Tab = searching ? 'surah' : tab;
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -140,12 +140,6 @@ export default function SurahList({ variant = 'full' }: { variant?: 'full' | 'dr
     [bookmarks],
   );
 
-  const jumpToJuz = (n: number) => {
-    document.getElementById(`juz-head-${n}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const showRail = activeTab === 'chapters' && !searching;
-
   return (
     <section aria-labelledby="surahs-heading">
       {/* Search — English name, meaning, number, or Arabic name.
@@ -165,7 +159,7 @@ export default function SurahList({ variant = 'full' }: { variant?: 'full' | 'dr
       )}
 
       {/* Progress filter — All / Started / Memorised. Full variant only. */}
-      {!drawer && activeTab === 'chapters' && (
+      {!drawer && activeTab === 'surah' && (
         <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={t('rb.list.filterProgress')}>
           {(
             [
@@ -220,22 +214,22 @@ export default function SurahList({ variant = 'full' }: { variant?: 'full' | 'dr
       {/* Drawer: small grey label, like Tarteel's — Recently Read above
           it, tabs below it. Full: big heading + Juz Amma link. */}
       {drawer ? (
-        <p id="surahs-heading" className="mt-4 text-[15px] text-[#6B7280]">{t('rb.list.chapterJuzLists')}</p>
+        <p id="surahs-heading" className="mt-4 text-[15px] text-[#6B7280]">{t('rb.list.juzSurahLists')}</p>
       ) : (
         <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="surahs-heading" className="text-xl font-bold text-[#111827] sm:text-2xl">{t('rb.list.chapterJuzLists')}</h2>
+          <h2 id="surahs-heading" className="text-xl font-bold text-[#111827] sm:text-2xl">{t('rb.list.juzSurahLists')}</h2>
           <Link href="/hifz/juz-amma" className="text-sm font-semibold text-[#1FA36B] hover:underline">
             {t('list.juzAmmaPath')}
           </Link>
         </div>
       )}
 
-      {/* Tabs: Chapters / Parts / Bookmarks */}
-      <div className="mt-3 flex gap-2" role="tablist" aria-label={t('rb.list.chapterJuzLists')}>
+      {/* Tabs: Juz / Surah / Bookmarks */}
+      <div className="mt-3 flex gap-2" role="tablist" aria-label={t('rb.list.juzSurahLists')}>
         {(
           [
-            ['chapters', t('rb.list.tabChapters')],
-            ['parts', t('rb.list.tabParts')],
+            ['juz', t('rb.list.tabJuz')],
+            ['surah', t('rb.list.tabSurah')],
             ['bookmarks', t('rb.list.tabBookmarks')],
           ] as [Tab, string][]
         ).map(([value, label]) => (
@@ -298,59 +292,27 @@ export default function SurahList({ variant = 'full' }: { variant?: 'full' | 'dr
         </button>
       </div>
 
-      {/* Chapters tab — surah rows grouped under Juz headers */}
-      {activeTab === 'chapters' && (
-        <div className="mt-3 flex gap-1.5">
-          <div className="min-w-0 flex-1">
-            {filtered.length === 0 ? (
-              <p className="mt-4 text-sm text-[#6B7280]">
-                {q.trim() ? `${t('list.noMatch')} “${q}”.` : `${t('list.noMatch')}.`}
-              </p>
-            ) : (
-              <ul className="overflow-hidden rounded-2xl border border-[#E8EAED] bg-white shadow-sm">
-                {searching
-                  ? filtered.map((s) => <SurahRow key={s.slug} s={s} counts={surahCounts.get(s.id)} showProgress={showProgress} />)
-                  : juzOrder.map((j) => {
-                      // A progress filter can empty a whole Juz — skip its
-                      // header rather than showing a header with no rows.
-                      const rows = filtered.filter((s) => s.juz === j);
-                      if (rows.length === 0) return null;
-                      return (
-                        <Fragment key={j}>
-                          <li id={`juz-head-${j}`} className="scroll-mt-24 bg-[#F3F4F6] px-4 py-2 text-sm font-semibold text-[#111827]">
-                            Juz {j}
-                          </li>
-                          {rows.map((s) => (
-                            <SurahRow key={s.slug} s={s} counts={surahCounts.get(s.id)} showProgress={showProgress} />
-                          ))}
-                        </Fragment>
-                      );
-                    })}
-              </ul>
-            )}
-          </div>
-
-          {/* Right-edge Juz quick-jump rail */}
-          {showRail && (
-            <nav aria-label={t('rb.list.jumpToJuz')} className="sticky top-24 flex shrink-0 flex-col self-start">
-              {Array.from({ length: 30 }, (_, i) => i + 1).map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => jumpToJuz(n)}
-                  aria-label={t('rb.list.jumpToJuzN').replace('{n}', String(n))}
-                  className="flex h-[19px] w-5 items-center justify-center rounded-full text-[10px] font-semibold leading-none text-[#6B7280] hover:bg-[#E4FFF2] hover:text-[#1FA36B]"
-                >
-                  {n}
-                </button>
+      {/* Surah tab — the 114 surahs, in plain order. Tapping one
+          opens that surah. No Juz group headings, no quick-jump rail
+          (matching ChapterSheet). */}
+      {activeTab === 'surah' && (
+        <div className="mt-3">
+          {filtered.length === 0 ? (
+            <p className="mt-4 text-sm text-[#6B7280]">
+              {q.trim() ? `${t('list.noMatch')} “${q}”.` : `${t('list.noMatch')}.`}
+            </p>
+          ) : (
+            <ul className="overflow-hidden rounded-2xl border border-[#E8EAED] bg-white shadow-sm">
+              {filtered.map((s) => (
+                <SurahRow key={s.slug} s={s} counts={surahCounts.get(s.id)} showProgress={showProgress} />
               ))}
-            </nav>
+            </ul>
           )}
         </div>
       )}
 
-      {/* Parts tab — the 30 juz */}
-      {activeTab === 'parts' && (
+      {/* Juz tab — the 30 juz */}
+      {activeTab === 'juz' && (
         <ul className="mt-3 divide-y divide-[#E8EAED] overflow-hidden rounded-2xl border border-[#E8EAED] bg-white shadow-sm">
           {juzOrder.map((n) => {
             const j = JUZ_PAGES[n - 1];

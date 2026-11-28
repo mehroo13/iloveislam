@@ -252,7 +252,7 @@ export function MushafTopBar({
       <button
         type="button"
         onClick={onOpenNav}
-        aria-label={t('rb.reader.openChapters')}
+        aria-label={t('rb.list.juzSurahLists')}
         className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[#111827] hover:bg-[#F3F4F6]"
       >
         <IconMenu className="h-6 w-6" />
@@ -260,7 +260,7 @@ export function MushafTopBar({
       <button
         type="button"
         onClick={onOpenNav}
-        aria-label={t('rb.reader.openChapters')}
+        aria-label={t('rb.list.juzSurahLists')}
         className="min-w-0 flex-1 rounded-xl bg-[#F3F4F6] px-3 py-1.5 text-center hover:bg-[#EDEEF0]"
       >
         <span className="block truncate text-sm font-bold leading-tight text-[#111827]">{title}</span>
@@ -381,7 +381,7 @@ export function MushafBottomBar({
 /** Slide-over sheet (left = chapter list, right = reader settings).
  *  `dragHandle` replaces the big title bar with a small centred
  *  drag-handle pill + close button, like Tarteel's bottom sheet — used
- *  by the chapter / juz lists drawer, whose first content is Recently
+ *  by the juz / surah lists drawer, whose first content is Recently
  *  Read, not a title. */
 export function ReaderSheet({
   open,
@@ -1881,15 +1881,15 @@ export default function MushafReader() {
         </div>
       </div>
 
-      {/* Chapter / Juz sheet (hamburger + centre pill). Lists only, in
+      {/* Juz / Surah sheet (hamburger + centre pill). Lists only, in
           Tarteel's order: Recently Read (real history only, hidden when
-          empty), "Chapter and Juz Lists" label, Chapters / Parts /
-          Bookmarks pills, sort + shown-progress labels, Juz headers +
-          surah rows, and the 1–30 Juz quick-jump rail. No Practice Mode
+          empty), "Juz and Surah Lists" label, Juz / Surah /
+          Bookmarks pills, sort + shown-progress labels, the 30 Juz
+          and the 114 surahs in plain order. No Practice Mode
           rows (mode switching lives in the reader bottom bar), no
           prev/next, no jump-to forms, no "on this page" block — the
           lists start at the top of the sheet. */}
-      <ReaderSheet open={navOpen} onClose={() => setNavOpen(false)} side="left" title={t('rb.list.chaptersJuz')} dragHandle>
+      <ReaderSheet open={navOpen} onClose={() => setNavOpen(false)} side="left" title={t('rb.list.juzSurahLists')} dragHandle>
         <SurahList variant="drawer" />
       </ReaderSheet>
 
