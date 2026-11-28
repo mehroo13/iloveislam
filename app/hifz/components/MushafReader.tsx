@@ -1223,7 +1223,17 @@ export default function MushafReader() {
         // the replace lands ~400ms after the restore scroll and yanks
         // it back to page 1). history.replaceState only rewrites the
         // address bar, so the scroll position is untouched.
-        window.history.replaceState(null, '', url);
+        // But a pending scroll-sync must NEVER rewrite the URL after
+        // the user has navigated away: a drawer link's router.push
+        // lands first, and this timer firing 400ms later would
+        // replaceState the URL back to /hifz/mushaf — the App Router
+        // then abandons the in-flight navigation (measured live
+        // 2026-11-28: a Juz 29 tap's pushState was reverted 423ms
+        // later and the drawer closed without navigating). Only
+        // rewrite the URL while we are still on this page.
+        if (window.location.pathname === '/hifz/mushaf') {
+          window.history.replaceState(null, '', url);
+        }
       }
     }, 400);
   }, [router]);
