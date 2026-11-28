@@ -403,7 +403,6 @@ export const TEXT_SIZE_STEP = 0.2;
 export function ReaderContinuousText({
   pages,
   textSize,
-  onTextSizeChange,
   highlightedWords,
   mistakes,
   onMistakeWordClick,
@@ -417,7 +416,6 @@ export function ReaderContinuousText({
 }: {
   pages: { page: number; verses: MushafVerse[]; meta: ReaderPageData['meta']; tajweed?: Record<number, TajweedSurah> }[];
   textSize: number;
-  onTextSizeChange: (n: number) => void;
   highlightedWords?: ReadonlySet<string>;
   mistakes?: ReadonlyMap<string, ReaderMistake>;
   onMistakeWordClick?: (mistake: ReaderMistake, rect: DOMRect) => void;
@@ -442,35 +440,6 @@ export function ReaderContinuousText({
   const seenSurahs = new Set<number>();
   return (
     <div className="w-full px-1 pb-10">
-      {/* Text size control — same as the paginated text view. It
-          sits at the top of the flow and scrolls away as you read. */}
-      <div className="mb-3 flex items-center justify-between border-b border-[#EDEDEA] pb-3">
-        <span className="text-[13px] font-semibold" style={{ color: MUTED }}>
-          Text size
-        </span>
-        <span className="flex items-center gap-2">
-          <button
-            type="button"
-            aria-label="Smaller text"
-            onClick={() => onTextSizeChange(Math.max(TEXT_SIZE_MIN, +(textSize - TEXT_SIZE_STEP).toFixed(1)))}
-            disabled={textSize <= TEXT_SIZE_MIN}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#D1D5DB] bg-white text-[16px] font-bold disabled:opacity-40"
-            style={{ color: INK }}
-          >
-            A−
-          </button>
-          <button
-            type="button"
-            aria-label="Larger text"
-            onClick={() => onTextSizeChange(Math.min(TEXT_SIZE_MAX, +(textSize + TEXT_SIZE_STEP).toFixed(1)))}
-            disabled={textSize >= TEXT_SIZE_MAX}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#D1D5DB] bg-white text-[19px] font-bold disabled:opacity-40"
-            style={{ color: INK }}
-          >
-            A+
-          </button>
-        </span>
-      </div>
       {pages.map(({ page, verses, meta, tajweed }, pageIdx) => {
         const groups = groupBySurah(verses);
         return (

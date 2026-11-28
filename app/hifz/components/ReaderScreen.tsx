@@ -56,7 +56,7 @@ import {
 } from '../lib/mushaf-edition';
 import { getScriptPref, setScriptPref } from '../lib/script';
 import ReaderMistakes from './ReaderMistakes';
-import { ReaderTranslationMode, ReaderContinuousText } from './ReaderAltViews';
+import { ReaderTranslationMode, ReaderContinuousText, TEXT_SIZE_MIN, TEXT_SIZE_MAX, TEXT_SIZE_STEP } from './ReaderAltViews';
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { migrateToIdb } from '../lib/store';
 import { audioDisplayKeys, readerWordKey } from '../lib/reader-words';
@@ -3171,6 +3171,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const renderHeaderRow = (
     hm: { surahName: string; juz: number; hizb: number },
     isCurrent: boolean,
+    showTextSize = false,
   ) => (
     <div className="flex items-center justify-between px-2 pb-1">
       <span className="text-[15px] font-medium" style={{ color: INK }}>
@@ -3211,6 +3212,36 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
             <IconPlaySmall />
           )}
         </button>
+        {/* Text size (A− / A+) — moved here from the top of the
+            scrollable text flow (2026-11-28): it sits in the fixed
+            strip beside Play, so it stays visible while scrolling.
+            Only in the Quran Text layout — Translation has no text
+            size, and the Book columns share this row. No label:
+            everyone knows what A− / A+ means. */}
+        {showTextSize && (
+          <>
+            <button
+              type="button"
+              aria-label="Smaller text"
+              onClick={() => changeTextSize(Math.max(TEXT_SIZE_MIN, +(textSize - TEXT_SIZE_STEP).toFixed(1)))}
+              disabled={textSize <= TEXT_SIZE_MIN}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D1D5DB] bg-white text-[15px] font-bold shadow-sm disabled:opacity-40"
+              style={{ color: INK }}
+            >
+              A−
+            </button>
+            <button
+              type="button"
+              aria-label="Larger text"
+              onClick={() => changeTextSize(Math.min(TEXT_SIZE_MAX, +(textSize + TEXT_SIZE_STEP).toFixed(1)))}
+              disabled={textSize >= TEXT_SIZE_MAX}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D1D5DB] bg-white text-[17px] font-bold shadow-sm disabled:opacity-40"
+              style={{ color: INK }}
+            >
+              A+
+            </button>
+          </>
+        )}
         <span className="flex items-center gap-2 text-[15px]" style={{ color: INK }}>
           <span>Juz {hm.juz}</span>
           <svg viewBox="0 0 12 12" className="h-3 w-3" aria-hidden="true">
@@ -3311,7 +3342,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         <div className="flex min-w-0 flex-1 items-center rounded-[12px] border border-[#D1D5DB] bg-white px-3.5 py-1.5">
           <button
             type="button"
-            aria-label="Chapters and Juz lists"
+            aria-label={t('rb.list.juzSurahLists')}
             onClick={() => setOpenModal('sheet')}
             className="min-w-0 flex-1 text-left"
           >
@@ -3406,7 +3437,7 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           copy change. */}
       {isContinuous && (
         <div className="shrink-0 border-b border-[#E8E8E4] pt-2" style={{ backgroundColor: PAGE_BG }}>
-          {renderHeaderRow(pillMeta, true)}
+          {renderHeaderRow(pillMeta, true, layoutMode === 'text')}
           {playError && (
             <p role="alert" data-testid="play-error" className="px-2 pb-1 text-center text-[13px] leading-snug" style={{ color: '#DC2626' }}>
               {playError}
@@ -3452,7 +3483,6 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
                 <ReaderContinuousText
                   pages={textPages}
                   textSize={textSize}
-                  onTextSizeChange={changeTextSize}
                   highlightedWords={displayHighlightedWords}
                   mistakes={mistakeMap}
                   onMistakeWordClick={openMistakeTooltip}
@@ -3561,26 +3591,6 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
             }}
           >
             <IconEyeOff />
-          </button>
-          {/* Practice mode (R2 fix, 2026-11-26): the 5-mode switcher
-              (Reading / Recite / Listen / Memorise / Test), reused
-              from MushafReader — same list, same selection behaviour.
-              Same round-button styling as the Mushaf Layout / Hide
-              buttons beside it. */}
-          <button
-            type="button"
-            aria-label={t('mode.practiceMode')}
-            onClick={() => setModesOpen(true)}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-[#D1D5DB] bg-white shadow-sm"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-5 w-5" aria-hidden="true">
-              <line x1="8" y1="6" x2="21" y2="6" />
-              <line x1="8" y1="12" x2="21" y2="12" />
-              <line x1="8" y1="18" x2="21" y2="18" />
-              <line x1="3" y1="6" x2="3.01" y2="6" />
-              <line x1="3" y1="12" x2="3.01" y2="12" />
-              <line x1="3" y1="18" x2="3.01" y2="18" />
-            </svg>
           </button>
         </div>
         {/* Mic (Phase 2: Tilawa on-device engine). Idle = mint + mic
@@ -3860,7 +3870,6 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         open={openModal === 'sheet'}
         onClose={() => setOpenModal(null)}
         currentSurahId={surahsOnMushafPageForEdition(visiblePage, edition)[0] ?? 1}
-        currentJuz={pillMeta.juz}
         onSelectSurah={(id) => {
           setOpenModal(null);
           jumpToPage(surahFirstPageForEdition(edition)[id] ?? 1, id);

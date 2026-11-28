@@ -14,7 +14,7 @@
 
 'use client';
 
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ALL_SURAHS, getSurahById, type HifzSurah } from '../surahs';
 import {
   juzFirstPageForEdition,
@@ -25,7 +25,7 @@ import type { MushafEditionId } from '../lib/mushaf-edition';
 import { loadBookmarks, type BookmarkEntry } from '../lib/bookmarks';
 import { useT } from '../lib/i18n';
 
-type Tab = 'chapters' | 'parts' | 'bookmarks';
+type Tab = 'juz' | 'surah' | 'bookmarks';
 type SortDir = 'asc' | 'desc';
 
 const INK = 'var(--reader-ink)';
@@ -67,7 +67,6 @@ export default function ChapterSheet({
   open,
   onClose,
   currentSurahId,
-  currentJuz,
   onSelectSurah,
   onSelectPage,
   edition,
@@ -75,7 +74,6 @@ export default function ChapterSheet({
   open: boolean;
   onClose: () => void;
   currentSurahId: number;
-  currentJuz: number;
   onSelectSurah: (surahId: number) => void;
   /** A bookmark tap jumps the reader to this mushaf page. */
   onSelectPage: (page: number) => void;
@@ -85,12 +83,11 @@ export default function ChapterSheet({
   const t = useT();
   const [rendered, setRendered] = useState(open);
   const [shown, setShown] = useState(false);
-  const [tab, setTab] = useState<Tab>('chapters');
+  const [tab, setTab] = useState<Tab>('juz');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [lastRead, setLastRead] = useState<HifzSurah | null>(null);
   // Alive pass: the real bookmarks, read when the sheet opens.
   const [bookmarks, setBookmarks] = useState<BookmarkEntry[]>([]);
-  const listRef = useRef<HTMLDivElement | null>(null);
 
   // Mount / slide-up lifecycle: mount, then animate in; on close,
   // animate out and unmount after the transition.
@@ -134,10 +131,6 @@ export default function ChapterSheet({
     [sortDir],
   );
 
-  const jumpToJuz = (n: number) => {
-    listRef.current?.querySelector(`#juz-head-${n}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
   if (!rendered) return null;
 
   return (
@@ -147,7 +140,7 @@ export default function ChapterSheet({
           stays undimmed. Clicking it closes the sheet. */}
       <button
         type="button"
-        aria-label="Close chapter list"
+        aria-label="Close list"
         onClick={onClose}
         className="absolute inset-0 bg-black/25 transition-opacity duration-300"
         style={{ opacity: shown ? 1 : 0 }}
@@ -155,7 +148,7 @@ export default function ChapterSheet({
       {/* Sheet: starts just below the top bar, slides up from the bottom. */}
       <div
         role="dialog"
-        aria-label="Chapter and Juz Lists"
+        aria-label={t('rb.list.juzSurahLists')}
         className="absolute inset-x-0 bottom-0 flex flex-col rounded-t-[24px] bg-white shadow-2xl transition-transform duration-300 ease-out"
         style={{ top: 76, transform: shown ? 'translateY(0)' : 'translateY(100%)' }}
       >
@@ -196,18 +189,18 @@ export default function ChapterSheet({
 
         {/* Title */}
         <p className="shrink-0 px-5 pt-4 text-base font-bold" style={{ color: INK }}>
-          {t('rb.list.chapterJuzLists')}
+          {t('rb.list.juzSurahLists')}
         </p>
 
-        {/* Tabs: Chapters / Parts / Bookmarks — each shows its own
-            real list. Chapters: the 114 surahs grouped by Juz.
-            Parts: the 30 Juz, each jumping to its first page.
+        {/* Tabs: Juz / Surah / Bookmarks — each shows its own
+            real list. Juz: the 30 Juz, each jumping to its first
+            page. Surah: the 114 surahs, in order.
             Bookmarks: the reader's saved bookmarks. */}
-        <div className="mt-3 flex shrink-0 gap-2 px-5" role="tablist" aria-label={t('rb.list.chapterJuzLists')}>
+        <div className="mt-3 flex shrink-0 gap-2 px-5" role="tablist" aria-label={t('rb.list.juzSurahLists')}>
           {(
             [
-              ['chapters', t('rb.list.tabChapters')],
-              ['parts', t('rb.list.tabParts')],
+              ['juz', t('rb.list.tabJuz')],
+              ['surah', t('rb.list.tabSurah')],
               ['bookmarks', t('rb.list.tabBookmarks')],
             ] as [Tab, string][]
           ).map(([value, label]) => (
@@ -231,7 +224,7 @@ export default function ChapterSheet({
 
         {/* Sort + shown-progress row — hidden on the Bookmarks tab,
             where sorting does not apply. The sort also reverses the
-            Parts list. */}
+            Juz and Surah lists. */}
         {tab !== 'bookmarks' && (
         <div className="mt-4 flex shrink-0 items-start gap-8 px-5">
           <button
@@ -260,12 +253,12 @@ export default function ChapterSheet({
         </div>
         )}
 
-        {/* List + sticky right rail (the rail only applies to the
-            Chapters list, which is grouped by Juz). */}
+        {/* List: Juz (30 rows), Surah (114 rows, plain order) or
+            Bookmarks. */}
         <div className="relative mt-3 min-h-0 flex-1">
-          <div ref={listRef} className="h-full overflow-y-auto overscroll-contain">
-            {tab === 'parts' ? (
-              /* Parts: the 30 Juz. Tapping one jumps to its first
+          <div className="h-full overflow-y-auto overscroll-contain">
+            {tab === 'juz' ? (
+              /* Juz: the 30 Juz. Tapping one jumps to its first
                  page (juzFirstPageForEdition) — a Juz is tappable even when
                  no surah starts in it (Juz 2 is Al-Baqarah alone). */
               <ul>
@@ -346,77 +339,41 @@ export default function ChapterSheet({
                 </ul>
               )
             ) : (
-            <ul>
-              {juzOrder.map((j) => {
-                const rows = ALL_SURAHS.filter((s) => s.juz === j);
-                const ordered = sortDir === 'asc' ? rows : [...rows].reverse();
-                return (
-                  <Fragment key={j}>
-                    <li
-                      id={`juz-head-${j}`}
-                      className="scroll-mt-2 bg-[#F0F0F0] px-5 py-[3px] text-[13px] font-bold leading-tight"
-                      style={{ color: INK }}
+              /* Surah: the 114 surahs, in plain order. Tapping one
+                 opens that surah. */
+              <ul>
+                {(sortDir === 'asc' ? ALL_SURAHS : [...ALL_SURAHS].reverse()).map((s) => (
+                  <li
+                    key={s.id}
+                    style={{ backgroundColor: s.id === currentSurahId ? 'var(--reader-chip)' : 'var(--reader-card)' }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => onSelectSurah(s.id)}
+                      className="flex w-full items-center gap-3 px-5 py-[3px] text-left"
                     >
-                      Juz {j}
-                    </li>
-                    {ordered.map((s) => (
-                      <li
-                        key={s.id}
-                        style={{ backgroundColor: s.id === currentSurahId ? 'var(--reader-chip)' : 'var(--reader-card)' }}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => onSelectSurah(s.id)}
-                          className="flex w-full items-center gap-3 px-5 py-[3px] pr-8 text-left"
-                        >
-                          <span className="w-8 shrink-0 self-start pt-[3px] text-center text-sm font-semibold" style={{ color: INK }}>
-                            {s.id}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[14px] font-bold leading-tight" style={{ color: INK }}>
-                              {s.name}
-                            </span>
-                            <span className="block text-[11px] leading-[1.2]" style={{ color: MUTED }}>
-                              {s.ayahCount} {t('rb.list.verses')}
-                              <span className="block">{s.revelation === 'Makki' ? 'Meccan' : 'Medinan'}</span>
-                            </span>
-                          </span>
-                          <span dir="rtl" lang="ar" className="font-quran shrink-0 self-center text-[20px] leading-none" style={{ color: INK }}>
-                            {s.arabic}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </Fragment>
-                );
-              })}
-            </ul>
+                      <span className="w-8 shrink-0 self-start pt-[3px] text-center text-sm font-semibold" style={{ color: INK }}>
+                        {s.id}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[14px] font-bold leading-tight" style={{ color: INK }}>
+                          {s.name}
+                        </span>
+                        <span className="block text-[11px] leading-[1.2]" style={{ color: MUTED }}>
+                          {s.ayahCount} {t('rb.list.verses')}
+                          <span className="block">{s.revelation === 'Makki' ? 'Meccan' : 'Medinan'}</span>
+                        </span>
+                      </span>
+                      <span dir="rtl" lang="ar" className="font-quran shrink-0 self-center text-[20px] leading-none" style={{ color: INK }}>
+                        {s.arabic}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
 
-          {/* Right-edge Juz rail: 1–30, fixed while the list scrolls.
-              The current Juz is bold/dark, the rest light grey.
-              Only on the Chapters list. */}
-          {tab === 'chapters' && (
-          <nav
-            aria-label="Jump to Juz"
-            className="absolute bottom-0 right-1 top-0 z-10 flex w-5 flex-col"
-          >
-            {Array.from({ length: 30 }, (_, i) => i + 1).map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => jumpToJuz(n)}
-                aria-label={`Jump to Juz ${n}`}
-                className={`flex flex-1 items-center justify-center text-[11px] leading-none ${
-                  n === currentJuz ? 'font-bold text-[#111827]' : 'text-[#9CA3AF]'
-                }`}
-              >
-                {n}
-              </button>
-            ))}
-          </nav>
-          )}
         </div>
       </div>
     </div>
