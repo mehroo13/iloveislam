@@ -1139,6 +1139,17 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
       restoreTimerRef.current = setTimeout(() => {
         restoringRef.current = false;
+        // The restore window is over — re-evaluate the range now.
+        // The synthetic scroll above ran while restoringRef was
+        // still true, so check() could not extend; if the restored
+        // list is a single short page (Al-Fatihah fills the
+        // viewport exactly), no real scroll event can ever fire to
+        // trigger the extend, and the reader would be wedged on
+        // that page forever (seen 2026-11-28: saved position
+        // 1:1, scrollHeight == clientHeight, swipes did nothing).
+        // This second nudge runs with the window over, so check()
+        // loads the next page and the list becomes scrollable.
+        mainEl.dispatchEvent(new Event('scroll'));
       }, 1200);
     };
     const t = window.setTimeout(doScroll, 100);
