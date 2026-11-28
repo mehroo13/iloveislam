@@ -83,6 +83,8 @@ export default function TestClient() {
   );
   const [extendToEnd, setExtendToEnd] = useState(() => loadTestSettings().extendToEnd);
   const [temporary, setTemporary] = useState(false);
+  /** "More settings" row on the simplified setup screen — closed by default. */
+  const [moreOpen, setMoreOpen] = useState(false);
   const [ranges, setRanges] = useState<RangeSelection[]>([]);
   const [phase, setPhase] = useState<Phase>('setup');
   const [questions, setQuestions] = useState<TestQuestion[]>([]);
@@ -1083,43 +1085,33 @@ export default function TestClient() {
         </section>
       )}
 
-      {/* Setup */}
+      {/* Setup — simplified (2026-11-28): three steps on the surface
+          (what to test, how many questions, start), everything else
+          tucked into one closed-by-default "More settings" row. Nothing
+          removed: every control below still writes the same state and
+          the same ili_test_settings_v1 store, so saved settings are
+          honoured exactly as before. */}
       <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-xl font-bold text-[#102E26]">{t('test.setup')}</h2>
-          <button
-            type="button"
-            onClick={() => {
-              setTemporary((t) => !t);
-              setNotice(temporary ? null : t('test.temporaryOnNote'));
-            }}
-            aria-pressed={temporary}
-            title={t('test.temporaryTitle')}
-            className={`min-h-11 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${temporary ? 'bg-[#FFB800] text-[#102E26]' : 'border border-[#E5E7EB]'}`}
-          >
-            {t('test.temporaryBtn')}{temporary ? ' ✓' : ''}
-          </button>
-        </div>
-        <p className="mt-2 text-sm leading-relaxed text-[#5b6b62]">
-          {t('test.setupIntro').replace('{a}', String(counts.memorised)).replace('{ayahs}', counts.memorised === 1 ? t('common.ayah') : t('common.ayahs')).replace('{b}', String(counts.learning))}
+        <h2 className="text-xl font-bold text-[#102E26]">{t('test.setupTitle')}</h2>
+        <p className="mt-1 text-sm leading-relaxed text-[#5b6b62]">
+          {t('test.setupTagline')}
         </p>
-        {temporary && (
-          <p className="mt-2 rounded-lg bg-[#FFFBF2] px-3 py-2 text-sm font-semibold text-[#102E26]">
-            {t('test.temporaryNote')}
-          </p>
-        )}
 
+        {/* Step 1 — what do you want to test? The same 6 test types,
+            as big plain rows you tap once. Order: Random first, the
+            default. Picking Difficult still sets the scope to Weakest,
+            as before. */}
         <div className="mt-5">
-          <p className="text-sm font-semibold">{t('test.type')}</p>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2" role="group" aria-label={t('test.type')}>
+          <p className="text-sm font-semibold">{t('test.step1Title')}</p>
+          <div className="mt-2 space-y-2" role="group" aria-label={t('test.step1Title')}>
             {(
               [
-                ['sequential', t('test.typeSequential'), t('test.typeSequentialDesc')],
                 ['random', t('test.typeRandom'), t('test.typeRandomDesc')],
+                ['sequential', t('test.step1Sequential'), t('test.typeSequentialDesc')],
                 ['middle', t('test.typeMiddle'), t('test.typeMiddleDesc')],
                 ['completion', t('test.typeCompletion'), t('test.typeCompletionDesc')],
                 ['revision', t('test.typeRevision'), t('test.typeRevisionDesc')],
-                ['difficult', t('test.typeDifficult'), t('test.typeDifficultDesc')],
+                ['difficult', t('test.step1Difficult'), t('test.typeDifficultDesc')],
               ] as [TestType, string, string][]
             ).map(([v, label, desc]) => (
               <button
@@ -1130,202 +1122,241 @@ export default function TestClient() {
                   setTestType(v);
                   if (v === 'difficult') setScope('weakest');
                 }}
-                className={`min-h-11 rounded-xl border px-4 py-2.5 text-left ${testType === v ? 'border-[#1FA36B] bg-[#E4FFF2]' : 'border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+                className={`min-h-14 w-full rounded-xl border px-4 py-3 text-left ${testType === v ? 'border-[#1FA36B] bg-[#E4FFF2]' : 'border-[#E5E7EB] hover:border-[#1FA36B]'}`}
               >
-                <span className="block text-sm font-bold text-[#102E26]">{label}</span>
-                <span className="block text-xs leading-snug text-[#5b6b62]">{desc}</span>
+                <span className="block text-sm font-bold text-[#102E26]">{testType === v ? `✓ ${label}` : label}</span>
+                <span className="mt-0.5 block text-xs leading-snug text-[#5b6b62]">{desc}</span>
               </button>
             ))}
           </div>
         </div>
 
-        {(testType === 'sequential' || testType === 'middle' || testType === 'completion') && (
-          <div className="mt-5">
-            <p className="text-sm font-semibold">{t('test.startSurah')}</p>
-            <div className="mt-2 flex flex-wrap items-end gap-2">
-              <label className="text-xs font-semibold text-[#5b6b62]">
-                {t('test.startSurah')}
-                <select
-                  value={startSurah}
-                  onChange={(e) => {
-                    const s = Number(e.target.value);
-                    setStartSurah(s);
-                    setStartAyah(1);
-                  }}
-                  className="mt-1 block min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
-                >
-                  {ALL_SURAHS.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.id}. {s.name}
-                    </option>
+        {/* Step 2 — how many questions? Just three plain buttons. */}
+        <div className="mt-5">
+          <p className="text-sm font-semibold">{t('test.step2Title')}</p>
+          <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t('test.step2Title')}>
+            {([5, 10, 20] as Duration[]).map((n) => (
+              <button
+                key={n}
+                type="button"
+                aria-pressed={duration === n}
+                onClick={() => setDuration(n)}
+                className={`min-h-12 rounded-full px-6 py-2.5 text-base font-bold ${duration === n ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* More settings — ONE row, closed by default. Everything that
+            used to crowd the setup screen lives here, all still working
+            and all still persisted the same way. */}
+        <div className="mt-5 rounded-xl border border-[#E5E7EB]">
+          <button
+            type="button"
+            aria-expanded={moreOpen}
+            onClick={() => setMoreOpen((v) => !v)}
+            className="flex min-h-12 w-full items-center justify-between px-4 py-3 text-left"
+          >
+            <span className="text-sm font-bold text-[#102E26]">{t('test.moreSettings')}</span>
+            <span aria-hidden="true" className="text-sm font-bold text-[#5b6b62]">{moreOpen ? '▴' : '▾'}</span>
+          </button>
+          {moreOpen && (
+            <div className="border-t border-[#E5E7EB] px-4 py-4">
+              {(testType === 'sequential' || testType === 'middle' || testType === 'completion') && (
+                <div>
+                  <p className="text-sm font-semibold">{t('test.startSurah')}</p>
+                  <div className="mt-2 flex flex-wrap items-end gap-2">
+                    <label className="text-xs font-semibold text-[#5b6b62]">
+                      {t('test.startSurah')}
+                      <select
+                        value={startSurah}
+                        onChange={(e) => {
+                          const s = Number(e.target.value);
+                          setStartSurah(s);
+                          setStartAyah(1);
+                        }}
+                        className="mt-1 block min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+                      >
+                        {ALL_SURAHS.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.id}. {s.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="text-xs font-semibold text-[#5b6b62]">
+                      {t('test.startAyah')}
+                      <input
+                        type="number"
+                        min={1}
+                        max={getSurahById(startSurah)?.ayahCount ?? 1}
+                        value={startAyah}
+                        onChange={(e) =>
+                          setStartAyah(
+                            Math.min(
+                              getSurahById(startSurah)?.ayahCount ?? 1,
+                              Math.max(1, Number(e.target.value) || 1),
+                            ),
+                          )
+                        }
+                        className="mt-1 block w-20 min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const s = getSurahById(startSurah);
+                        if (s) setStartAyah(1 + Math.floor(Math.random() * s.ayahCount));
+                      }}
+                      className="min-h-11 rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
+                    >
+                      {t('test.randomStart')}
+                    </button>
+                  </div>
+                  <p className="mt-1 text-xs text-[#5b6b62]">
+                    {testType === 'middle'
+                      ? t('test.runsMiddleNote')
+                      : testType === 'completion'
+                        ? t('test.runsToEnd')
+                        : t('test.runsInOrder')}
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-5">
+                <p className="text-sm font-semibold">{t('test.timeLimit')}</p>
+                <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t('test.timeLimitLabel')}>
+                  {([0, 5, 10, 15, 30] as TimeLimitMinutes[]).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      aria-pressed={timeLimitMinutes === m}
+                      onClick={() => setTimeLimitMinutes(m)}
+                      className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${timeLimitMinutes === m ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+                    >
+                      {m === 0 ? t('test.noTimeLimit') : t('test.minShort').replace('{n}', String(m))}
+                    </button>
                   ))}
-                </select>
-              </label>
-              <label className="text-xs font-semibold text-[#5b6b62]">
-                {t('test.startAyah')}
+                </div>
+                <p className="mt-1 text-xs text-[#5b6b62]">
+                  {timeLimitMinutes === 0
+                    ? t('test.noLimitNote')
+                    : t('test.limitEndsNote').replace('{n}', String(timeLimitMinutes))}
+                </p>
+              </div>
+
+              <div className="mt-5">
+                <p className="text-sm font-semibold">{t('test.howLongQ')}</p>
+                <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t('test.howLongQ')}>
+                  {(['short', 'medium', 'long'] as const).map((l) => (
+                    <button
+                      key={l}
+                      type="button"
+                      aria-pressed={qLines === LINE_PRESETS[l]}
+                      onClick={() => setQLines(LINE_PRESETS[l])}
+                      className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold capitalize ${qLines === LINE_PRESETS[l] ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+                    >
+                      {l === 'short' ? t('test.lengthShort') : l === 'medium' ? t('test.lengthMedium') : t('test.lengthLong')} ({LINE_PRESETS[l]} lines)
+                    </button>
+                  ))}
+                </div>
+                <label className="mt-2 flex items-center gap-2 text-xs font-semibold text-[#5b6b62]">
+                  {t('test.linesPerQuestion')}
+                  <input
+                    type="range"
+                    min={1}
+                    max={15}
+                    value={qLines}
+                    onChange={(e) => setQLines(Math.min(15, Math.max(1, Number(e.target.value) || 1)))}
+                    aria-label={t('test.linesSliderLabel')}
+                    className="w-28"
+                  />
+                  {qLines} {qLines === 1 ? t('common.line') : t('common.lines')}
+                </label>
+                <p className="mt-1 text-xs text-[#5b6b62]">
+                  {t('test.aboutAyahsPerQ').replace('{n}', String(Math.max(1, Math.round(qLines * LINES_PER_AYAH)))).replace('{ayahs}', Math.max(1, Math.round(qLines * LINES_PER_AYAH)) === 1 ? t('common.ayah') : t('common.ayahs'))}
+                </p>
+              </div>
+
+              <div className="mt-5">
+                <p className="text-sm font-semibold">{t('test.whichAyahs')}</p>
+                <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t('test.whichAyahs')}>
+                  {(
+                    [
+                      ['memorised', t('test.scopeMemorised')],
+                      ['practised', t('test.scopePractised')],
+                      ['weakest', weakestCount === 1 ? t('test.scopeWeakestOne') : t('test.scopeWeakest').replace('{n}', String(weakestCount))],
+                      ['any', t('test.scopeAny')],
+                    ] as [Scope, string][]
+                  ).map(([v, label]) => (
+                    <button
+                      key={v}
+                      type="button"
+                      aria-pressed={scope === v}
+                      onClick={() => setScope(v)}
+                      className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${scope === v ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-[#5b6b62]">
+                  {t('test.scopeNote').replace('{mem}', t('test.scopeMemorised')).replace('{weak}', t('test.weakestLinkShort'))}
+                </p>
+              </div>
+
+              <div className="mt-5">
+                <p className="text-sm font-semibold">{t('test.customRange')}</p>
+                <p className="text-xs text-[#5b6b62]">
+                  {t('test.customRangeNote').replace('{ranges}', t('sheet.yourRanges'))}
+                </p>
+                <div className="mt-2">
+                  <RangeWheel selected={ranges} onChange={setRanges} />
+                </div>
+                {ranges.some((r) => r.kind === 'hizb' || r.kind === 'rub') && (
+                  <p className="mt-2 text-xs text-[#5b6b62]">{t('test.hizbRubNote')}</p>
+                )}
+              </div>
+
+              <label className="mt-5 flex items-center gap-2 text-sm font-semibold">
                 <input
-                  type="number"
-                  min={1}
-                  max={getSurahById(startSurah)?.ayahCount ?? 1}
-                  value={startAyah}
-                  onChange={(e) =>
-                    setStartAyah(
-                      Math.min(
-                        getSurahById(startSurah)?.ayahCount ?? 1,
-                        Math.max(1, Number(e.target.value) || 1),
-                      ),
-                    )
-                  }
-                  className="mt-1 block w-20 min-h-11 rounded-lg border border-[#E5E7EB] bg-[#FFFBF2] px-2 py-1.5 text-sm"
+                  type="checkbox"
+                  checked={extendToEnd}
+                  onChange={(e) => setExtendToEnd(e.target.checked)}
                 />
+                {t('test.extend')}
               </label>
+              <p className="mt-1 text-xs text-[#5b6b62]">
+                {t('test.extendHint')}
+              </p>
+
               <button
                 type="button"
                 onClick={() => {
-                  const s = getSurahById(startSurah);
-                  if (s) setStartAyah(1 + Math.floor(Math.random() * s.ayahCount));
+                  setTemporary((t) => !t);
+                  setNotice(temporary ? null : t('test.temporaryOnNote'));
                 }}
-                className="min-h-11 rounded-full border border-[#E5E7EB] px-4 py-2 text-sm font-semibold hover:border-[#1FA36B]"
+                aria-pressed={temporary}
+                title={t('test.temporaryTitle')}
+                className={`mt-5 flex min-h-11 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${temporary ? 'bg-[#FFB800] text-[#102E26]' : 'border border-[#E5E7EB]'}`}
               >
-                {t('test.randomStart')}
+                {t('test.dontSave')}{temporary ? ' ✓' : ''}
               </button>
+              {temporary && (
+                <p className="mt-2 rounded-lg bg-[#FFFBF2] px-3 py-2 text-sm font-semibold text-[#102E26]">
+                  {t('test.temporaryNote')}
+                </p>
+              )}
             </div>
-            <p className="mt-1 text-xs text-[#5b6b62]">
-              {testType === 'middle'
-                ? t('test.runsMiddleNote')
-                : testType === 'completion'
-                  ? t('test.runsToEnd')
-                  : t('test.runsInOrder')}
-            </p>
-          </div>
-        )}
-
-        <div className="mt-5">
-          <p className="text-sm font-semibold">{t('test.whatToTest')}</p>
-          <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t('test.whatToTest')}>
-            {(
-              [
-                ['memorised', t('test.scopeMemorised')],
-                ['practised', t('test.scopePractised')],
-                ['weakest', weakestCount === 1 ? t('test.scopeWeakestOne') : t('test.scopeWeakest').replace('{n}', String(weakestCount))],
-                ['any', t('test.scopeAny')],
-              ] as [Scope, string][]
-            ).map(([v, label]) => (
-              <button
-                key={v}
-                type="button"
-                aria-pressed={scope === v}
-                onClick={() => setScope(v)}
-                className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${scope === v ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <p className="mt-2 text-xs text-[#5b6b62]">
-            {t('test.scopeNote').replace('{mem}', t('test.scopeMemorised')).replace('{weak}', t('test.weakestLinkShort'))}
-          </p>
-        </div>
-
-        <div className="mt-5">
-          <p className="text-sm font-semibold">{t('test.customRange')}</p>
-          <p className="text-xs text-[#5b6b62]">
-            {t('test.customRangeNote').replace('{ranges}', t('sheet.yourRanges'))}
-          </p>
-          <div className="mt-2">
-            <RangeWheel selected={ranges} onChange={setRanges} />
-          </div>
-          {ranges.some((r) => r.kind === 'hizb' || r.kind === 'rub') && (
-            <p className="mt-2 text-xs text-[#5b6b62]">{t('test.hizbRubNote')}</p>
           )}
         </div>
-
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <div>
-            <p className="text-sm font-semibold">{t('test.duration')}</p>
-            <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t('test.duration')}>
-              {([5, 10, 20] as Duration[]).map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  aria-pressed={duration === n}
-                  onClick={() => setDuration(n)}
-                  className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${duration === n ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
-                >
-                  {t('test.questions').replace('{n}', String(n))}
-                </button>
-              ))}
-            </div>
-            <p className="mt-3 text-sm font-semibold">{t('test.timeLimit')}</p>
-            <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t('test.timeLimitLabel')}>
-              {([0, 5, 10, 15, 30] as TimeLimitMinutes[]).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  aria-pressed={timeLimitMinutes === m}
-                  onClick={() => setTimeLimitMinutes(m)}
-                  className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${timeLimitMinutes === m ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
-                >
-                  {m === 0 ? t('test.noTimeLimit') : t('test.minShort').replace('{n}', String(m))}
-                </button>
-              ))}
-            </div>
-            <p className="mt-1 text-xs text-[#5b6b62]">
-              {timeLimitMinutes === 0
-                ? t('test.noLimitNote')
-                : t('test.limitEndsNote').replace('{n}', String(timeLimitMinutes))}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm font-semibold">{t('test.qLength')}</p>
-            <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t('test.qLength')}>
-              {(['short', 'medium', 'long'] as const).map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  aria-pressed={qLines === LINE_PRESETS[l]}
-                  onClick={() => setQLines(LINE_PRESETS[l])}
-                  className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold capitalize ${qLines === LINE_PRESETS[l] ? 'bg-[#102E26] text-white' : 'border border-[#E5E7EB] hover:border-[#1FA36B]'}`}
-                >
-                  {l === 'short' ? t('test.lengthShort') : l === 'medium' ? t('test.lengthMedium') : t('test.lengthLong')} ({LINE_PRESETS[l]} lines)
-                </button>
-              ))}
-            </div>
-            <label className="mt-2 flex items-center gap-2 text-xs font-semibold text-[#5b6b62]">
-              {t('test.linesPerQuestion')}
-              <input
-                type="range"
-                min={1}
-                max={15}
-                value={qLines}
-                onChange={(e) => setQLines(Math.min(15, Math.max(1, Number(e.target.value) || 1)))}
-                aria-label={t('test.linesSliderLabel')}
-                className="w-28"
-              />
-              {qLines} {qLines === 1 ? t('common.line') : t('common.lines')}
-            </label>
-            <p className="mt-1 text-xs text-[#5b6b62]">
-              {t('test.aboutAyahsPerQ').replace('{n}', String(Math.max(1, Math.round(qLines * LINES_PER_AYAH)))).replace('{ayahs}', Math.max(1, Math.round(qLines * LINES_PER_AYAH)) === 1 ? t('common.ayah') : t('common.ayahs'))}
-            </p>
-          </div>
-        </div>
-
-        <label className="mt-4 flex items-center gap-2 text-sm font-semibold">
-          <input
-            type="checkbox"
-            checked={extendToEnd}
-            onChange={(e) => setExtendToEnd(e.target.checked)}
-          />
-          {t('test.extend')}
-        </label>
-        <p className="mt-1 text-xs text-[#5b6b62]">
-          {t('test.extendHint')}
-        </p>
 
         <button
           type="button"
           onClick={startTest}
-          className="mt-6 rounded-full bg-[#57D798] px-6 py-3 text-sm font-bold text-[#102E26] hover:brightness-105"
+          className="mt-6 w-full rounded-full bg-[#57D798] px-6 py-3.5 text-base font-bold text-[#102E26] hover:brightness-105"
         >
           {t('test.startTest')}
         </button>
