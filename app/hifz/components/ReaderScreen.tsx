@@ -1219,10 +1219,12 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       // Re-land unless the user has scrolled away since the landing:
       // scrollTop alone cannot tell that — a font swap can move it
       // by clamping (layout shrink), and a prepend compensation
-      // moves it too. lastUserScrollRef only moves on a trusted
-      // (user) scroll event (see onScroll), so it is the reliable
-      // signal. Bounded — a restore that cannot land must never
-      // retry forever.
+      // moves it too. lastUserScrollRef only moves on a real user
+      // gesture (wheel / touch / pointer / scroll key — see the
+      // scroll-listener effect), never on a scroll event: the
+      // browser fires trusted scroll events for layout shifts too,
+      // so a scroll event is not the user. Bounded — a restore that
+      // cannot land must never retry forever.
       const userScrolled = lastUserScrollRef.current > restoreLandedAtRef.current;
       if (!userScrolled && restoreLandingsRef.current < 3) {
         pendingRestoreRef.current = { page: saved.page, ayah: saved.ayah, since: Date.now() };
@@ -3360,29 +3362,57 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         if (!restoringRef.current && !atLanding) extend(range.start - 1);
       }
     };
-    const onScroll = (e: Event) => {
+    const onScroll = () => {
       if (programmaticScrollRef.current) {
         programmaticScrollRef.current = false;
         return;
       }
-      // Only a real user gesture counts as the user scrolling: a
-      // script-set scrollTop (restore landing, jump, prepend
-      // compensation) fires an untrusted scroll event, and a font
-      // swap can even move scrollTop by clamping it — neither is the
-      // user scrolling away, so neither may block the restore
-      // verification from re-landing (see verifyLanding) or unblock
-      // the upward preload off the restore landing (see check()).
-      // (The follow-the-word 2s gate below reads the same ref: a
-      // programmatic scroll no longer suppresses it either.)
-      if (e.isTrusted) lastUserScrollRef.current = Date.now();
       if (scheduled) return;
       scheduled = true;
       rafId = requestAnimationFrame(check);
     };
+    // "The user scrolled" means a real gesture, tracked here — NOT
+    // a scroll event. A scroll event cannot tell the user from a
+    // layout shift: the browser fires a TRUSTED scroll event ~70ms
+    // after every programmatic restore landing (measured live
+    // 2026-11-28: trusted scroll, scrollTop unchanged, zero
+    // gestures), and a font swap that clamps scrollTop fires one
+    // too — so the old isTrusted signal told verifyLanding the user
+    // had scrolled away exactly when the layout had shifted, and
+    // the re-land was refused (29:1 stuck at 444/28:88, 20:3,
+    // 78:40, 9:94 — all stuck restores on aa48300). Only wheel /
+    // touch / pointer / scroll-key gestures move lastUserScrollRef,
+    // so a layout shift can no longer block the verification from
+    // re-landing (see verifyLanding) or unblock the upward preload
+    // off the restore landing (see check()). (The follow-the-word
+    // 2s gate below reads the same ref: a layout shift no longer
+    // suppresses it either.)
+    const markUserScroll = () => {
+      lastUserScrollRef.current = Date.now();
+    };
+    const onKeyScroll = (e: KeyboardEvent) => {
+      if (
+        !['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key)
+      )
+        return;
+      const t = e.target as Node | null;
+      if (t && (t === mainEl || mainEl.contains(t) || t === document.body || t === document.documentElement))
+        markUserScroll();
+    };
     mainEl.addEventListener('scroll', onScroll, { passive: true });
+    mainEl.addEventListener('wheel', markUserScroll, { passive: true });
+    mainEl.addEventListener('touchstart', markUserScroll, { passive: true });
+    mainEl.addEventListener('touchmove', markUserScroll, { passive: true });
+    mainEl.addEventListener('pointerdown', markUserScroll);
+    document.addEventListener('keydown', onKeyScroll);
     check();
     return () => {
       mainEl.removeEventListener('scroll', onScroll);
+      mainEl.removeEventListener('wheel', markUserScroll);
+      mainEl.removeEventListener('touchstart', markUserScroll);
+      mainEl.removeEventListener('touchmove', markUserScroll);
+      mainEl.removeEventListener('pointerdown', markUserScroll);
+      document.removeEventListener('keydown', onKeyScroll);
       cancelAnimationFrame(rafId);
     };
   }, [layoutMode, textRange, fetchPage, scheduleSave]);
