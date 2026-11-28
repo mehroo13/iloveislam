@@ -1392,17 +1392,6 @@ export function RemindersScreen({ onBack }: { onBack: () => void }) {
 /*  Mushaf Layout (full screen — replaces the Phase 1 sheet)        */
 /* ---------------------------------------------------------------- */
 
-function IconBookFilled() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-7 w-7 shrink-0" aria-hidden="true">
-      <path
-        d="M12 6.8C10.6 5.2 8.2 4.6 5.6 5.2 4.2 5.5 3.2 6 3.2 6.8v10.4c0 .8 1 1.3 2.4 1 2.6-.6 5-.6 6.4.7 1.4-1.3 3.8-1.3 6.4-.7 1.4.3 2.4-.2 2.4-1V6.8c0-.8-1-1.3-2.4-1.6-2.6-.6-5 0-6.4 1.6Z"
-        style={{ fill: INK }}
-      />
-      <path d="M12 6.8v11.1" stroke="#FFFFFF" strokeWidth="1.1" />
-    </svg>
-  );
-}
 function IconDocLines() {
   return (
     <svg viewBox="0 0 24 24" className="h-7 w-7 shrink-0" aria-hidden="true">
@@ -1438,7 +1427,6 @@ export function MushafLayoutScreen({
   onBack,
   layoutMode,
   onSelectLayout,
-  editionLabel,
   onOpenMushafType,
   page,
   pageVerses,
@@ -1448,8 +1436,6 @@ export function MushafLayoutScreen({
   onBack: () => void;
   layoutMode: ReaderLayoutMode;
   onSelectLayout: (m: ReaderLayoutMode) => void;
-  /** Current Mushaf Type name, shown under the Book card. */
-  editionLabel: string;
   /** Opens the Mushaf Type screen (fourth refinement) on top of this
    *  screen — back returns here, then to Settings. */
   onOpenMushafType: () => void;
@@ -1466,7 +1452,6 @@ export function MushafLayoutScreen({
     icon: () => React.ReactNode;
   }[] = [
     { id: 'text', title: 'Quran Text', sub: 'Resizable Quran Text', icon: IconDocLines },
-    { id: 'book', title: 'Book', sub: editionLabel, icon: IconBookFilled },
     {
       id: 'translation',
       title: 'Translation / Transliteration',
@@ -1482,8 +1467,8 @@ export function MushafLayoutScreen({
           Switch Reading Layout
         </p>
         <p className="mt-1 text-[13px] leading-snug" style={{ color: MUTED }}>
-          Read the Quran as flowing text you can resize, as a printed mushaf page, or with the
-          translation under each verse. The choice applies to the reader at once.
+          Read the Quran as flowing text you can resize, or with the translation under each verse.
+          The choice applies to the reader at once.
         </p>
       </div>
 

@@ -16,16 +16,21 @@
 // layout falls back to the stored layout pref, the edition to the
 // settings doc, the ayah to the top of the page.
 //   page    — mushaf page number (1..604 Madani, 1..610 Indo-Pak)
-//   mode    — MushafReader's mode: 'page' = Book, 'continuous' =
-//             Quran Text or Translation (kept so a spot saved here
-//             still restores there, and vice versa)
+//   mode    — MushafReader's mode: 'page' = its own page-by-page
+//             view, 'continuous' = Quran Text or Translation (kept
+//             so a spot saved here still restores there, and vice
+//             versa). The landing reader has no Book layout any more
+//             (removed 2026-11-28), so a saved 'page' mode now
+//             restores into Quran Text.
 //   zoom    — MushafReader's zoom; the landing reader has none, so
 //             it writes 1
 //   frac    — scroll fraction within the page on /hifz/mushaf; the
 //             landing reader writes 0 — the ayah below is its
 //             within-page position instead
-//   layout  — the landing reader's layout ('book' | 'text' |
-//             'translation'); wins over `mode` when present
+//   layout  — the landing reader's layout ('text' |
+//             'translation'); wins over `mode` when present. A stored
+//             'book' is dropped (Book layout removed 2026-11-28) and
+//             falls back to Quran Text.
 //   edition — the print edition the page number belongs to
 //             ('madani-1405' | 'madani-1421' | 'madani-1441' |
 //             'indopak'); a page number means different content per
@@ -55,7 +60,7 @@ export interface ReaderSavedPos {
 }
 
 const EDITIONS: readonly string[] = ['madani-1405', 'madani-1421', 'madani-1441', 'indopak'];
-const LAYOUTS: readonly string[] = ['book', 'text', 'translation'];
+const LAYOUTS: readonly string[] = ['text', 'translation'];
 const AYAH_RE = /^\d+:\d+$/;
 
 function clampPage(n: number, totalPages: number): number {

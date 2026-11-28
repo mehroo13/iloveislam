@@ -341,9 +341,29 @@ function groupBySurah(verses: MushafVerse[]): { sid: number; verses: MushafVerse
   return groups;
 }
 
-function SurahIntro({ sid, arabicSize, script = 'uthmani' }: { sid: number; arabicSize?: number; script?: QuranScript }) {
+function SurahIntro({
+  sid,
+  arabicSize,
+  script = 'uthmani',
+  hideVerses,
+  revealed,
+  onReveal,
+}: {
+  sid: number;
+  arabicSize?: number;
+  script?: QuranScript;
+  hideVerses?: boolean;
+  revealed?: ReadonlySet<string>;
+  onReveal?: (key: string, info?: PeekInfo) => void;
+}) {
   const surah = getSurahById(sid);
   const name = surah ? `سُورَةُ ${surah.arabic}` : '';
+  // Hide Verses must blur the standalone Basmala too: it is Quran
+  // text, and leaving it sharp while every ayah is blurred defeats
+  // Hide mode for that line at every surah (seen live 2026-11-28).
+  // Tap-to-peek reveals it, like an ayah.
+  const bKey = `B${sid}`;
+  const bHidden = !!hideVerses && !(revealed?.has(bKey) ?? false);
   return (
     <div className="mb-3">
       <ReaderSurahHeader name={name} />
@@ -353,7 +373,13 @@ function SurahIntro({ sid, arabicSize, script = 'uthmani' }: { sid: number; arab
           lang="ar"
           translate="no"
           className={`${scriptFontClass(script)} mt-3 text-center leading-snug text-[#111827]`}
-          style={{ fontSize: `${arabicSize ?? 1.6}rem` }}
+          style={{
+            fontSize: `${arabicSize ?? 1.6}rem`,
+            ...(bHidden
+              ? { filter: 'blur(7px)', cursor: 'pointer', userSelect: 'none' }
+              : undefined),
+          }}
+          onClick={bHidden && onReveal ? () => onReveal(bKey) : undefined}
         >
           {BISMILLAH}
         </p>
@@ -456,7 +482,16 @@ export function ReaderContinuousText({
               if (first) seenSurahs.add(g.sid);
               return (
                 <div key={`${page}-${g.sid}`}>
-                  {first && <SurahIntro sid={g.sid} arabicSize={textSize} script={script} />}
+                  {first && (
+                    <SurahIntro
+                      sid={g.sid}
+                      arabicSize={textSize}
+                      script={script}
+                      hideVerses={hideVerses}
+                      revealed={revealed}
+                      onReveal={onReveal}
+                    />
+                  )}
                   {/* One flowing paragraph per surah: the ayahs run
                       together and wrap naturally — several ayahs on
                       the same visual line, rosette inline at each
@@ -883,7 +918,16 @@ export function ReaderTranslationMode({
                 <div key={`${page}-${g.sid}`}>
                   {/* Bismillah at the ayah text size (1.5rem) so the intro
                       matches the verses below it. */}
-                  {first && <SurahIntro sid={g.sid} arabicSize={1.5} script={script} />}
+                  {first && (
+                    <SurahIntro
+                      sid={g.sid}
+                      arabicSize={1.5}
+                      script={script}
+                      hideVerses={hideVerses}
+                      revealed={revealed}
+                      onReveal={onReveal}
+                    />
+                  )}
                   {g.verses.map((v) => {
                     const ayahNum = Number(v.verse_key.split(':')[1]);
                     return (

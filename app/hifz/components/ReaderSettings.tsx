@@ -384,7 +384,6 @@ export default function ReaderSettings({
   onSelectTafsir,
   layoutMode,
   onSelectLayout,
-  editionLabel,
   edition,
   onSelectEdition,
   page,
@@ -432,8 +431,6 @@ export default function ReaderSettings({
    *  reader's display layout. */
   layoutMode?: ReaderLayoutMode;
   onSelectLayout?: (m: ReaderLayoutMode) => void;
-  /** Current Mushaf Type name, shown under the Book card. */
-  editionLabel?: string;
   /** Fourth refinement: Mushaf Type screen — the reader's edition. */
   edition?: MushafEditionId;
   onSelectEdition?: (id: MushafEditionId) => void;
@@ -674,7 +671,6 @@ export default function ReaderSettings({
           onBack={backFromCurrent}
           layoutMode={layoutMode ?? 'text'}
           onSelectLayout={(m) => onSelectLayout?.(m)}
-          editionLabel={editionLabel ?? 'Madani Mushaf (1405)'}
           onOpenMushafType={() => push('mushafType')}
           page={page ?? 1}
           pageVerses={pageVerses ?? null}

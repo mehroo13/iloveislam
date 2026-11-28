@@ -49,7 +49,6 @@ import ReaderDashboard from './ReaderDashboard';
 import type { ReaderLayoutMode } from '../lib/layout-mode';
 import {
   editionFromSettings,
-  mushafEditionById,
   scriptForEdition,
   totalPagesForEdition,
   type MushafEditionId,
@@ -790,7 +789,16 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   useEffect(() => {
     try {
       const v = window.localStorage.getItem('ili_reader_layout_v1');
-      if (v === 'book' || v === 'text' || v === 'translation') setLayoutMode(v);
+      // Book layout removed (2026-11-28): only Quran Text and
+      // Translation remain. A stored 'book' falls back to Quran Text.
+      if (v === 'text' || v === 'translation') setLayoutMode(v);
+      else if (v === 'book') {
+        try {
+          window.localStorage.setItem('ili_reader_layout_v1', 'text');
+        } catch {
+          /* storage unavailable — the 'text' default stands */
+        }
+      }
       const s = Number(window.localStorage.getItem('ili_reader_text_size_v1'));
       if (Number.isFinite(s) && s >= 1.2 && s <= 2.2) setTextSize(s);
     } catch {
@@ -838,6 +846,13 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
   const restoreSkippedRef = useRef(false);
   const restoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRestoreRef = useRef<{ page: number; ayah: string | null; since: number } | null>(null);
+  /** Where the restore scroll landed (scrollTop). The upward-extend
+   *  branch must not fire off this position (see check()). */
+  const restoreLandingScrollTopRef = useRef<number | null>(null);
+  /** Until when (epoch ms) a restore is still settling. Saves are
+   *  skipped until then, so a transient position shown while the
+   *  range settles can never overwrite the restored spot. */
+  const restoreSettleUntilRef = useRef(0);
   const storedAtMountRef = useRef<string | null>(null);
   const lastSavedRef = useRef<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -847,6 +862,8 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
     restoreTimerRef.current = null;
     restoringRef.current = false;
+    restoreLandingScrollTopRef.current = null;
+    restoreSettleUntilRef.current = 0;
   }, []);
   /** Write the current visible position now. Book: the anchor page
    * (the whole page is in view). Continuous: the visible page +
@@ -857,6 +874,14 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     // A session that skipped the restore (explicit ?mode= landing)
     // owns no position — never let it overwrite the stored spot.
     if (restoreSkippedRef.current) return;
+    // Never save while a restore is landing or settling: the restore
+    // scroll + the range extension that follows it can briefly show
+    // the previous page's tail (seen 2026-11-28: a Juz 30 restore
+    // showed p581/77:23 for ~3s), and saving then would overwrite
+    // the good restored spot with the transient one — self-reinforcing,
+    // because every reopen then restores to the wrong page.
+    if (restoringRef.current) return;
+    if (Date.now() < restoreSettleUntilRef.current) return;
     try {
       const layout = layoutModeRef.current;
       const continuous = layout === 'text' || layout === 'translation';
@@ -923,11 +948,14 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
     const total = totalPagesForEdition(ed);
     const target = Math.min(total, Math.max(1, explicitPage ?? saved!.page));
     const layout: ReaderLayoutMode =
-      saved?.layout ?? (saved?.mode === 'page' ? 'book' : null) ??
+      // Book layout removed (2026-11-28): a spot saved by an old Book
+      // session (layout 'book') or by MushafReader (mode 'page') now
+      // lands in Quran Text, not in a dead layout.
+      saved?.layout ?? (saved?.mode === 'page' ? 'text' : null) ??
       (() => {
         try {
           const v = window.localStorage.getItem('ili_reader_layout_v1');
-          if (v === 'book' || v === 'text' || v === 'translation') return v;
+          if (v === 'text' || v === 'translation') return v;
         } catch {
           /* default stands */
         }
@@ -1131,6 +1159,9 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
           const r = topmost.getBoundingClientRect();
           mainEl.scrollTop += r.bottom - cTop - 90 + 2;
         }
+        // Record where the restore landed: the upward-extend branch
+        // must not fire off this scroll position (see check()).
+        restoreLandingScrollTopRef.current = mainEl.scrollTop;
       }
       pendingRestoreRef.current = null;
       // The tracker only re-derives the visible ayah on a scroll
@@ -1144,6 +1175,10 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
       if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
       restoreTimerRef.current = setTimeout(() => {
         restoringRef.current = false;
+        // The restore is landing; give the range a moment to settle
+        // before any save may overwrite the restored spot (see
+        // savePosition).
+        restoreSettleUntilRef.current = Date.now() + 3000;
         // The restore window is over — re-evaluate the range now.
         // The synthetic scroll above ran while restoringRef was
         // still true, so check() could not extend; if the restored
@@ -3107,7 +3142,18 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
          * 1982). At 0 there is nowhere further up to go, so the
          * preload simply waits for the first real scroll, when the
          * list has settled and the compensation is exact. */
-        if (!restoringRef.current) extend(range.start - 1);
+        /* ... and not from the restore's own landing position: the
+         * restore scrolls the saved ayah to just above the +90px
+         * line, so a page-top ayah lands at a small scrollTop (e.g.
+         * 24 for 78:1 on p582) and the synthetic scroll after the
+         * restore window would prepend the previous page — briefly
+         * showing its tail (seen 2026-11-28: a Juz 30 restore showed
+         * p581/77:23 for ~3s, and closing then saved the wrong page).
+         * The preload can wait for a real scroll; once the user
+         * scrolls, the guard lifts. */
+        const landing = restoreLandingScrollTopRef.current;
+        const atLanding = landing !== null && Math.abs(mainEl.scrollTop - landing) <= 4;
+        if (!restoringRef.current && !atLanding) extend(range.start - 1);
       }
     };
     const onScroll = () => {
@@ -3871,7 +3917,6 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         onSelectTafsir={selectTafsir}
         layoutMode={layoutMode}
         onSelectLayout={selectLayoutMode}
-        editionLabel={mushafEditionById(edition).name}
         edition={edition}
         onSelectEdition={selectEdition}
         page={visiblePage}

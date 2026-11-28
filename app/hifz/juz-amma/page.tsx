@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { JUZ_AMMA_SURAHS } from '../surahs';
 import { JUZ_AMMA_90_DAY } from '../plans';
+import { JUZ_FIRST_PAGE } from '../mushaf';
 import PlanCard from '../components/PlanCard';
 import { SurahProgressBar } from '../components/ProgressWidget';
 import { Breadcrumb, Attribution, BackToReader} from '../components/HifzShared';
@@ -62,6 +63,12 @@ export default function JuzAmmaPage() {
             className="rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10"
           >
             See the 90-day plan
+          </Link>
+          <Link
+            href={`/hifz/mushaf/${JUZ_FIRST_PAGE[30]}`}
+            className="rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10"
+          >
+            Read as Mushaf →
           </Link>
         </div>
         <p className="mt-4 text-sm text-white/70">Free · No sign-up · Your audio stays on your device unless you share it</p>
