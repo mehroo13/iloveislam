@@ -37,6 +37,22 @@ export async function generateMetadata({
       url: `${SITE_URL}/hifz/${surah.slug}`,
       siteName: 'I Love Islam',
       type: 'article',
+      images: [
+        {
+          url: '/optimized/og-image.webp',
+          width: 1200,
+          height: 630,
+          alt: `Surah ${surah.name} — I Love Islam`,
+        },
+      ],
+    },
+    // Page-specific Twitter card (the layout only carries the generic site
+    // title/description). Hidden, head-only — no visible change.
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: ['/optimized/og-image.webp'],
     },
   };
 }
