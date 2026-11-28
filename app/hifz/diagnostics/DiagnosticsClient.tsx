@@ -42,6 +42,7 @@ import {
   type SessionResult,
 } from '../lib/tilawa';
 import { AdaptiveVad } from '../lib/vad';
+import { READER_POS_KEY } from '../lib/reader-position';
 import { useT } from '../lib/i18n';
 
 /* ------------------------------------------------------------------ */
@@ -138,12 +139,33 @@ export default function DiagnosticsClient() {
     hasAudioContext: false,
     hasEnumerateDevices: false,
   });
+  /* ---- stored reader position (read-only) ---- */
+  const [readerPosRaw, setReaderPosRaw] = useState<string | null>(null);
+  const readerPosParsed = (() => {
+    if (readerPosRaw === null) return null;
+    try {
+      const p = JSON.parse(readerPosRaw) as { page?: unknown; ayah?: unknown };
+      return {
+        page: typeof p.page === 'number' ? p.page : null,
+        ayah: typeof p.ayah === 'string' ? p.ayah : null,
+      };
+    } catch {
+      return { page: null, ayah: null };
+    }
+  })();
+
   useEffect(() => {
     // Intentional post-mount sync: reading browser capabilities during
     // render would differ between server and client (hydration error
     // #418). The effect runs once after hydration, when it is safe.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCaps(readCapabilities());
+    // Stored reader position (read-only, same SSR reason as caps):
+    // the value the home reader restores from on reopen, so a phone
+    // stuck on the wrong Juz can be diagnosed from the stored value
+    // itself instead of inferred from behaviour. Never written here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setReaderPosRaw(window.localStorage.getItem(READER_POS_KEY));
   }, []);
 
   /* ---- microphone capture test ---- */
@@ -643,6 +665,20 @@ export default function DiagnosticsClient() {
             {t('diag.micOpenNoVoice')}
           </p>
         )}
+      </section>
+
+      {/* ---------- stored reader position (read-only) ---------- */}
+      <section data-testid="reader-position" aria-label="Stored reader position" className="rounded-2xl bg-white border border-[#E5E7EB] p-4 sm:p-6 shadow-sm">
+        <h2 className="text-lg font-bold text-[#102E26]">Stored reader position</h2>
+        <p className="mt-1 text-sm text-[#5b6b62]">
+          The position the home reader restores from when the app reopens (read-only — this page never changes it).
+        </p>
+        <dl className="mt-3 space-y-1 text-sm">
+          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Key</dt><dd className="font-mono break-all">{READER_POS_KEY}</dd></div>
+          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Stored value</dt><dd data-testid="reader-position-raw" className="font-mono break-all">{readerPosRaw === null ? '— (none stored)' : readerPosRaw}</dd></div>
+          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Page</dt><dd data-testid="reader-position-page" className="font-mono font-bold">{readerPosParsed?.page ?? '—'}</dd></div>
+          <div className="flex flex-wrap justify-between gap-2"><dt className="font-semibold">Ayah</dt><dd data-testid="reader-position-ayah" className="font-mono font-bold">{readerPosParsed?.ayah ?? '—'}</dd></div>
+        </dl>
       </section>
 
       {/* ---------- browser capabilities ---------- */}
