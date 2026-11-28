@@ -1216,8 +1216,15 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         return;
       }
       const landing = restoreLandingScrollTopRef.current;
-      const stillThere = landing !== null && Math.abs(mainEl.scrollTop - landing) <= 4;
-      if (stillThere && restoreLandingsRef.current < 3) {
+      // Re-land unless the user has scrolled away since the landing:
+      // scrollTop alone cannot tell that — a font swap can move it
+      // by clamping (layout shrink), and a prepend compensation
+      // moves it too. lastUserScrollRef only moves on a trusted
+      // (user) scroll event (see onScroll), so it is the reliable
+      // signal. Bounded — a restore that cannot land must never
+      // retry forever.
+      const userScrolled = lastUserScrollRef.current > restoreLandedAtRef.current;
+      if (!userScrolled && restoreLandingsRef.current < 3) {
         pendingRestoreRef.current = { page: saved.page, ayah: saved.ayah, since: Date.now() };
         setRestoreAttempt((a) => a + 1);
         return;
@@ -1244,28 +1251,50 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
         // this effect re-runs on the new textPages.
         const maxScroll = mainEl.scrollHeight - mainEl.clientHeight;
         const range = textRangeRef.current;
-        if (
-          desired > maxScroll &&
-          pending.page < totalPages &&
-          range &&
-          range.end < totalPages &&
-          !textExtendingRef.current
-        ) {
-          textExtendingRef.current = true;
-          textRangeRef.current = { start: range.start, end: range.end + 1 };
-          setTextRange(textRangeRef.current);
-          fetchPage(range.end + 1)
-            .catch(() => {})
-            .finally(() => {
-              textExtendingRef.current = false;
-            });
+        // The list is still a single page at restore time, so the
+        // scroll clamps at scrollHeight - clientHeight — an ayah in
+        // the lower half of the page can never become topmost (its
+        // target scroll exceeds the clamp; seen 2026-11-26: 18:58
+        // needs 720, max is 574 on page 300). Grow the range one
+        // page down first — check() would load it a moment later
+        // anyway — and retry when it lands; pending stays set so
+        // this effect re-runs on the new textPages.
+        //
+        // NEVER land short when growth can still satisfy the
+        // desired scroll (stuck restores, 2026-11-28): this effect
+        // re-runs on every textPages identity change, including the
+        // setTextRange from the grow branch itself — so a second
+        // run lands while the growth fetch is still in flight, the
+        // `!textExtendingRef` condition below blocks the branch,
+        // and the code used to fall through to a clamped landing
+        // that revealed the previous surah's last ayah as topmost
+        // (29:1 clamped to 444 = maxScroll, topmost 28:88, and the
+        // close then saved 28:88). Instead, wait for the growth:
+        // return early without landing or revealing, and the effect
+        // re-runs when the page lands. Only land short when growth
+        // is impossible (range already at the last page) — then the
+        // clamp is genuine and the topmost is whatever is actually
+        // visible (An-Nas behaviour).
+        if (desired > maxScroll && pending.page < totalPages && range && range.end < totalPages) {
+          if (!textExtendingRef.current) {
+            textExtendingRef.current = true;
+            textRangeRef.current = { start: range.start, end: range.end + 1 };
+            setTextRange(textRangeRef.current);
+            fetchPage(range.end + 1)
+              .catch(() => {})
+              .finally(() => {
+                textExtendingRef.current = false;
+              });
+          }
           // If that fetch never lands, this effect never re-runs —
           // give up on the restore rather than wedging saving for
-          // the session.
-          if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
-          restoreTimerRef.current = setTimeout(() => {
-            if (pendingRestoreRef.current === pending) cancelRestore();
-          }, 8000);
+          // the session (armed once — re-runs while waiting must
+          // not keep resetting the clock).
+          if (!restoreTimerRef.current) {
+            restoreTimerRef.current = setTimeout(() => {
+              if (pendingRestoreRef.current === pending) cancelRestore();
+            }, 8000);
+          }
           return;
         }
         // Land the saved ayah RESTORE_TOP_PX below the container
@@ -3317,18 +3346,35 @@ export default function ReaderScreen({ initial }: { initial: ReaderPageData }) {
          * its tail (seen 2026-11-28: a Juz 30 restore showed
          * p581/77:23 for ~3s, and closing then saved the wrong page).
          * The preload can wait for a real scroll; once the user
-         * scrolls, the guard lifts. */
+         * scrolls, the guard lifts. "At the landing" means the user
+         * has not scrolled since it — scrollTop alone cannot tell
+         * that, because a font swap can move it by clamping (seen
+         * 2026-11-28: a restore landed, the layout shrank, scrollTop
+         * was clamped away from the landing value, and the prepend
+         * fired off the drifted position). */
         const landing = restoreLandingScrollTopRef.current;
-        const atLanding = landing !== null && Math.abs(mainEl.scrollTop - landing) <= 4;
+        const atLanding =
+          landing !== null &&
+          (Math.abs(mainEl.scrollTop - landing) <= 4 ||
+            lastUserScrollRef.current <= restoreLandedAtRef.current);
         if (!restoringRef.current && !atLanding) extend(range.start - 1);
       }
     };
-    const onScroll = () => {
+    const onScroll = (e: Event) => {
       if (programmaticScrollRef.current) {
         programmaticScrollRef.current = false;
         return;
       }
-      lastUserScrollRef.current = Date.now();
+      // Only a real user gesture counts as the user scrolling: a
+      // script-set scrollTop (restore landing, jump, prepend
+      // compensation) fires an untrusted scroll event, and a font
+      // swap can even move scrollTop by clamping it — neither is the
+      // user scrolling away, so neither may block the restore
+      // verification from re-landing (see verifyLanding) or unblock
+      // the upward preload off the restore landing (see check()).
+      // (The follow-the-word 2s gate below reads the same ref: a
+      // programmatic scroll no longer suppresses it either.)
+      if (e.isTrusted) lastUserScrollRef.current = Date.now();
       if (scheduled) return;
       scheduled = true;
       rafId = requestAnimationFrame(check);
