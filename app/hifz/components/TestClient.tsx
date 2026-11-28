@@ -113,8 +113,9 @@ export default function TestClient() {
   const [unfinished, setUnfinished] = useState<InProgressTest | null>(() => loadInProgressTest());
   const t = useT();
 
-  // Question card state
-  const [prompt, setPrompt] = useState<string>('');
+  // Question card state. The visible prompt is derived from
+  // promptWords + revealedWords (see visiblePrompt below) — it is NOT
+  // a separate string, so a reveal actually shows the word.
   const [promptWords, setPromptWords] = useState<string[]>([]);
   const [revealedWords, setRevealedWords] = useState(0);
   const [revealedRest, setRevealedRest] = useState(false);
@@ -376,7 +377,6 @@ export default function TestClient() {
 
   const loadQuestion = useCallback(async (q: TestQuestion) => {
     setLoadingQ(true);
-    setPrompt('');
     setPromptWords([]);
     setRevealedWords(0);
     setRevealedRest(false);
@@ -406,8 +406,9 @@ export default function TestClient() {
       // of the final ayah.
       const words = extendToEnd ? allWords : allWords.slice(0, Math.max(3, qLines * WORDS_PER_LINE));
       setPromptWords(words);
-      // The prompt is the first few words; the rest stays hidden.
-      setPrompt(words.slice(0, 3).join(' '));
+      // The prompt is the first few words; the rest stays hidden. The
+      // visible text is derived from these words + revealedWords in the
+      // render (visiblePrompt), so a reveal actually shows the word.
       setRevealedWords(3);
     } catch {
       setNotice('The question text could not be loaded — check your connection and try again.');
@@ -843,6 +844,14 @@ export default function TestClient() {
     const rss = remainingSecs === null ? ss : String(remainingSecs % 60).padStart(2, '0');
     const lowTime = remainingSecs !== null && remainingSecs <= 60;
     const hiddenCount = Math.max(0, promptWords.length - revealedWords);
+    /* Defect 1 fix: the visible prompt is the first `revealedWords`
+       words, derived live — it grows by one word on every "Reveal a
+       word" tap, so the revealed word actually appears on screen. The
+       old code rendered a fixed 3-word `prompt` string set once at
+       load, so a reveal only moved the mistakes pill and the word
+       itself never showed. At load revealedWords is 3, so the first
+       paint is identical to before. */
+    const visiblePrompt = promptWords.slice(0, revealedWords).join(' ');
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
@@ -917,7 +926,7 @@ export default function TestClient() {
             ) : (
               <>
                 <p dir="rtl" lang="ar" translate="no" className="font-quran text-right text-3xl leading-loose text-white sm:text-4xl">
-                  {prompt}
+                  {visiblePrompt}
                 </p>
                 <div className="mt-4 space-y-2" aria-hidden="true">
                   {Array.from({ length: Math.min(4, Math.max(1, Math.ceil(hiddenCount / 6))) }).map((_, i) => (
@@ -998,7 +1007,11 @@ export default function TestClient() {
           <button
             type="button"
             onClick={revealNext}
-            disabled={markFlash !== null}
+            /* Defect 2 fix: disabled while the verse is still loading —
+               a reveal tapped mid-load was charged as a mistake and then
+               wiped when the fetch completed (revealedWords reset to 3)
+               while the mistake stayed counted. */
+            disabled={markFlash !== null || loadingQ}
             className="min-h-11 rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2] disabled:opacity-50"
             title={t('test.revealWordTitle')}
           >
@@ -1007,7 +1020,9 @@ export default function TestClient() {
           <button
             type="button"
             onClick={revealRest}
-            disabled={markFlash !== null}
+            /* Same Defect 2 guard as Reveal a word: no reveal while the
+               verse is still loading. */
+            disabled={markFlash !== null || loadingQ}
             className="min-h-11 rounded-full border border-[#102E26] px-5 py-2.5 text-sm font-semibold text-[#102E26] hover:bg-[#E4FFF2] disabled:opacity-50"
             title={t('test.revealRestTitle')}
           >
