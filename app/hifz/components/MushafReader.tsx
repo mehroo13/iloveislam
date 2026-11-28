@@ -62,7 +62,7 @@ import { loadMistakes, loadProgress, saveProgress, markAttempt, loadSettings, sa
 import { loadBookmarks, saveBookmarks } from '../lib/bookmarks';
 import { normalizeArabic } from '../lib/alignment';
 import { MODE_EVENT, ayahKeyForRevealedWord, lastReadSlug, loadMode, requestMode, saveListenPosition, saveMode, type HifzMode } from '../lib/mode';
-import { AUDIO_BASE, RECITERS, TRANSLATIONS, stripHtml } from '../../quran/lib';
+import { AUDIO_BASE, RECITERS, TRANSLATIONS, stripHtml, translationLangDir, translationLangTag } from '../../quran/lib';
 import SurahList from './SurahList';
 import type { MushafVerse } from '../lib/fetch';
 
@@ -2269,10 +2269,17 @@ export default function MushafReader() {
                       ) : (
                         <>
                           {entry.translation && (
-                            <p className="mt-1 text-sm leading-relaxed text-[#1C2420]">{entry.translation}</p>
+                            <p
+                              lang={translationLangTag(mushafTranslationId)}
+                              dir={translationLangDir(mushafTranslationId)}
+                              translate="no"
+                              className="mt-1 text-sm leading-relaxed text-[#1C2420]"
+                            >
+                              {entry.translation}
+                            </p>
                           )}
                           {showTranslit && entry.transliteration && (
-                            <p className="mt-1 text-sm italic leading-relaxed text-[#5b6b62]">
+                            <p lang="ar-Latn" translate="no" className="mt-1 text-sm italic leading-relaxed text-[#5b6b62]">
                               {entry.transliteration}
                             </p>
                           )}

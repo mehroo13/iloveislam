@@ -9,7 +9,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { API, TAFSIR_ID, TAFSIRS, TAFSIR_NAME, stripHtml } from '../../quran/lib';
+import { API, TAFSIR_ID, TAFSIRS, TAFSIR_NAME, stripHtml, tafsirLangDir, tafsirLangTag } from '../../quran/lib';
 import { useT } from '../lib/i18n';
 
 export default function TafsirBlock({ verseKey, tafsirId = TAFSIR_ID }: { verseKey: string; tafsirId?: number }) {
@@ -72,7 +72,16 @@ export default function TafsirBlock({ verseKey, tafsirId = TAFSIR_ID }: { verseK
           {state.error}
         </p>
       )}
-      {state.text && <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#1C2420]/85">{state.text}</p>}
+      {state.text && (
+        <p
+          lang={tafsirLangTag(tafsirId)}
+          dir={tafsirLangDir(tafsirId)}
+          translate="no"
+          className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#1C2420]/85"
+        >
+          {state.text}
+        </p>
+      )}
     </div>
   );
 }

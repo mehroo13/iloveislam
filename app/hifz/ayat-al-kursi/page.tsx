@@ -118,7 +118,7 @@ export default async function AyatAlKursiPage() {
       </section>
 
       {verse?.translations?.[0] && (
-        <p className="mt-6 text-sm leading-relaxed text-[#5b6b62]">
+        <p lang="en" translate="no" className="mt-6 text-sm leading-relaxed text-[#5b6b62]">
           “{cleanTranslationText(verse.translations[0].text)}” — Saheeh International, 2:255.
         </p>
       )}

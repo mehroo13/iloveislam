@@ -171,7 +171,7 @@ export default async function AyahPage({
           </li>
         </ul>
         {verse.translations?.[0] && (
-          <p className="mt-4 text-sm leading-relaxed text-[#5b6b62]">
+          <p lang="en" translate="no" className="mt-4 text-sm leading-relaxed text-[#5b6b62]">
             “{cleanTranslationText(verse.translations[0].text)}” — Saheeh International, {key}.
           </p>
         )}

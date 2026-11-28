@@ -914,7 +914,7 @@ export default function TestClient() {
               <p className="py-10 text-center text-white/70">{t('test.loadingQuestion')}</p>
             ) : (
               <>
-                <p dir="rtl" lang="ar" className="font-quran text-right text-3xl leading-loose text-white sm:text-4xl">
+                <p dir="rtl" lang="ar" translate="no" className="font-quran text-right text-3xl leading-loose text-white sm:text-4xl">
                   {prompt}
                 </p>
                 <div className="mt-4 space-y-2" aria-hidden="true">
@@ -923,7 +923,7 @@ export default function TestClient() {
                   ))}
                 </div>
                 {revealedRest && promptWords.length > 0 && (
-                  <p dir="rtl" lang="ar" className="font-quran mt-4 text-right text-2xl leading-loose text-white/90">
+                  <p dir="rtl" lang="ar" translate="no" className="font-quran mt-4 text-right text-2xl leading-loose text-white/90">
                     {promptWords.join(' ')}
                   </p>
                 )}

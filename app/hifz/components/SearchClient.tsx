@@ -365,11 +365,11 @@ export default function SearchClient({ initialQuery }: { initialQuery?: string }
                           <span className="rounded-md border border-[#E8EAED] px-2 py-0.5 text-xs font-bold">{r.verse_key}</span>
                           <span className="font-bold">{surah ? surah.name : `Surah ${s}`}</span>
                         </p>
-                        <p dir="rtl" lang="ar" className="font-quran mt-3 text-right text-2xl leading-loose sm:text-3xl">
+                        <p dir="rtl" lang="ar" translate="no" className="font-quran mt-3 text-right text-2xl leading-loose sm:text-3xl">
                           {r.text}
                         </p>
                         {translation && (
-                          <p className="mt-2 text-sm leading-relaxed text-[#111827]/85">{translation}</p>
+                          <p lang="en" translate="no" className="mt-2 text-sm leading-relaxed text-[#111827]/85">{translation}</p>
                         )}
                         <div className="mt-3 flex flex-wrap items-center gap-2">
                           <button

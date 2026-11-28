@@ -75,8 +75,16 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geist.variable} h-full antialiased`}>
+    <html lang="en" translate="no" className={`${geist.variable} h-full antialiased`}>
       <head>
+        {/* Never let the browser machine-translate this app: it manages
+            its own languages (8 UI locales + its own Quran translation
+            picker), and Chrome was turning a picked Urdu translation
+            back into English. translate="no" on <html> + this meta is
+            the mechanism Chrome honours. The inline script below only
+            sets lang/dir from the saved UI language — it never touches
+            translate, so this attribute stays put. */}
+        <meta name="google" content="notranslate" />
         <link rel="preload" href="/optimized/og-image.webp" as="image" />
 
         {/* Runs before first paint: apply the saved theme + language straight

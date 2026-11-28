@@ -90,9 +90,9 @@ export default function WordByWord({
               {w.arabic}
             </span>
             {w.transliteration && (
-              <span className="block text-[11px] italic text-[#5b6b62]">{w.transliteration}</span>
+              <span lang="ar-Latn" translate="no" className="block text-[11px] italic text-[#5b6b62]">{w.transliteration}</span>
             )}
-            {w.translation && <span className="block text-[11px] text-[#1C2420]/75">{w.translation}</span>}
+            {w.translation && <span lang="en" translate="no" className="block text-[11px] text-[#1C2420]/75">{w.translation}</span>}
             {w.audioUrl && (
               <button
                 type="button"

@@ -12,7 +12,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  API, AUDIO_BASE, TRANSLATIONS, RECITERS, TAFSIRS, TAFSIR_ID, KHATTAB_TRANSLATION_ID, groupByLanguage, cleanTranslationText, cleanIndopak, verseText,
+  API, AUDIO_BASE, TRANSLATIONS, RECITERS, TAFSIRS, TAFSIR_ID, KHATTAB_TRANSLATION_ID, groupByLanguage, cleanTranslationText, cleanIndopak, verseText, translationLangDir, translationLangTag,
   type Verse,
 } from '../../quran/lib';
 import { ALL_SURAHS, type HifzSurah } from '../surahs';
@@ -1661,7 +1661,14 @@ export default function SurahClient({
                 </p>
               )}
               {viewMode !== 'arabic' && translation && (
-                <p className="mt-4 text-[15px] leading-relaxed text-[#1C2420]/85">{translation}</p>
+                <p
+                  lang={translationLangTag(translationId)}
+                  dir={translationLangDir(translationId)}
+                  translate="no"
+                  className="mt-4 text-[15px] leading-relaxed text-[#1C2420]/85"
+                >
+                  {translation}
+                </p>
               )}
               {viewMode !== 'arabic' && (
                 <p className="mt-2 text-xs text-[#1C2420]/50">{t('surah.translationLabel').replace('{name}', translationName)}</p>

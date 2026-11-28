@@ -251,6 +251,59 @@ export function translationName(id: number): string {
 export function tafsirName(id: number): string {
   return TAFSIRS.find((t) => t.id === id)?.name ?? TAFSIR_NAME;
 }
+
+/* BCP 47 tags for the TRANSLATIONS / TAFSIRS catalogue `lang` names,
+ * so rendered translation / tafsir text carries the correct lang +
+ * translate="no" (Chrome must never machine-translate the app's own
+ * picked translation back into the page language — the page declares
+ * lang="en" while the text is e.g. Urdu, which is exactly the mismatch
+ * Chrome's language detection uses to offer translation; see
+ * app/layout.tsx). 'Transliteration' is romanised Arabic: ar-Latn.
+ * Unknown names fall back to 'en' (the site default) rather than a
+ * guessed tag. `dir` is rtl only for the unambiguous Arabic-script
+ * languages — Kurdish stays ltr (Sorani is RTL but Kurmanji is Latin,
+ * and the bidi algorithm still orders either correctly inline). */
+export const CATALOGUE_LANG_TAGS: Record<string, string> = {
+  Albanian: 'sq', Amazigh: 'ber', Amharic: 'am', Arabic: 'ar', Assamese: 'as',
+  Azeri: 'az', Bambara: 'bm', Bengali: 'bn', Bosnian: 'bs', Bulgarian: 'bg',
+  Chechen: 'ce', Chinese: 'zh', Czech: 'cs', Dari: 'fa', Divehi: 'dv',
+  Dutch: 'nl', English: 'en', Finnish: 'fi', French: 'fr', Ganda: 'lg',
+  German: 'de', Gujarati: 'gu', Hausa: 'ha', Hebrew: 'he', Hindi: 'hi',
+  Indonesian: 'id', Italian: 'it', Japanese: 'ja', Kannada: 'kn', Kazakh: 'kk',
+  Khmer: 'km', Kinyarwanda: 'rw', Korean: 'ko', Kurdish: 'ku', Malay: 'ms',
+  Malayalam: 'ml', Maranao: 'mrw', Marathi: 'mr', Nepali: 'ne', Norwegian: 'no',
+  Oromo: 'om', Pashto: 'ps', Persian: 'fa', Polish: 'pl', Portuguese: 'pt',
+  Romanian: 'ro', Russian: 'ru', Sindhi: 'sd', Sinhala: 'si', Somali: 'so',
+  Spanish: 'es', Swahili: 'sw', Swedish: 'sv', Tagalog: 'tl', Tamil: 'ta',
+  Tajik: 'tg', Tatar: 'tt', Telugu: 'te', Thai: 'th', Transliteration: 'ar-Latn',
+  Turkish: 'tr', Uighur: 'ug', Ukrainian: 'uk', Urdu: 'ur', Uzbek: 'uz',
+  Vietnamese: 'vi', Yoruba: 'yo',
+};
+const RTL_LANG_TAGS = new Set(['ar', 'ur', 'fa', 'ps', 'sd', 'ug', 'dv']);
+/** BCP 47 tag for a catalogue `lang` name. */
+export function langTagForName(name: string): string {
+  return CATALOGUE_LANG_TAGS[name] ?? 'en';
+}
+/** Text direction for a BCP 47 tag. */
+export function langDirForTag(tag: string): 'rtl' | 'ltr' {
+  return RTL_LANG_TAGS.has(tag) ? 'rtl' : 'ltr';
+}
+/** BCP 47 tag of the selected translation (Settings → Translations). */
+export function translationLangTag(id: number): string {
+  return langTagForName(TRANSLATIONS.find((t) => t.id === id)?.lang ?? 'English');
+}
+/** Text direction of the selected translation. */
+export function translationLangDir(id: number): 'rtl' | 'ltr' {
+  return langDirForTag(translationLangTag(id));
+}
+/** BCP 47 tag of the selected tafsir. */
+export function tafsirLangTag(id: number): string {
+  return langTagForName(TAFSIRS.find((t) => t.id === id)?.lang ?? 'English');
+}
+/** Text direction of the selected tafsir. */
+export function tafsirLangDir(id: number): 'rtl' | 'ltr' {
+  return langDirForTag(tafsirLangTag(id));
+}
 export function reciterName(id: number): string {
   return RECITERS.find((r) => r.id === id)?.name ?? 'Mishary Alafasy';
 }

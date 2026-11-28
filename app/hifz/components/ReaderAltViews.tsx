@@ -20,7 +20,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { getSurahById } from '../surahs';
-import { API, BISMILLAH, KHATTAB_TRANSLATION_ID, cleanTranslationText, translationName, type QuranScript } from '../../quran/lib';
+import { API, BISMILLAH, KHATTAB_TRANSLATION_ID, cleanTranslationText, translationLangDir, translationLangTag, translationName, type QuranScript } from '../../quran/lib';
 import { type MushafVerse } from '../lib/fetch';
 import { type ReaderPageData } from '../lib/reader-page';
 import { verseDisplayWords } from '../lib/reader-words';
@@ -604,6 +604,7 @@ function TranslationAyahBlock({
   meta,
   translation,
   translationFailed,
+  translationId = KHATTAB_TRANSLATION_ID,
   hideVerses,
   revealed,
   onReveal,
@@ -624,6 +625,10 @@ function TranslationAyahBlock({
    *  it is still loading). */
   translation?: string;
   translationFailed: boolean;
+  /** The selected translation (Settings → Translations) — drives
+   *  the lang/dir of the rendered translation text below, so the
+   *  browser never machine-translates it (see app/layout.tsx). */
+  translationId?: number;
   hideVerses: boolean;
   revealed: ReadonlySet<string>;
   /** Tap handler for a hidden verse (tap-to-peek). The second arg
@@ -741,7 +746,10 @@ function TranslationAyahBlock({
           )}
         </p>
       </div>
-      {/* English translation — stays visible as the prompt. The v4
+      {/* Translation in the selected language — stays visible as the
+          prompt. lang + translate="no" so the browser never
+          machine-translates the app's own picked translation (an
+          Urdu pick was being turned back into English). The v4
           text carries footnote markers as HTML
           (`<sup foot_note=…>1</sup>`, rendered literally before
           the Part 1 fix); cleanTranslationText strips the whole
@@ -751,7 +759,12 @@ function TranslationAyahBlock({
           Could not load the translation for this surah.
         </p>
       ) : translation ? (
-        <p dir="ltr" className="pt-2 text-[15px] leading-relaxed text-[#374151]">
+        <p
+          lang={translationLangTag(translationId)}
+          dir={translationLangDir(translationId)}
+          translate="no"
+          className="pt-2 text-[15px] leading-relaxed text-[#374151]"
+        >
           {cleanTranslationText(translation)}
         </p>
       ) : (
@@ -901,6 +914,7 @@ export function ReaderTranslationMode({
                         meta={meta}
                         translation={translations[`${g.sid}:${translationId}`]?.[ayahNum]}
                         translationFailed={failed[g.sid] === true}
+                        translationId={translationId}
                         hideVerses={hideVerses}
                         revealed={revealed}
                         onReveal={onReveal}

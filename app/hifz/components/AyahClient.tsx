@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {
-  API, AUDIO_BASE, TRANSLATIONS, RECITERS, TAFSIRS, TAFSIR_ID, KHATTAB_TRANSLATION_ID, groupByLanguage, cleanTranslationText, cleanIndopak, verseText,
+  API, AUDIO_BASE, TRANSLATIONS, RECITERS, TAFSIRS, TAFSIR_ID, KHATTAB_TRANSLATION_ID, groupByLanguage, cleanTranslationText, cleanIndopak, verseText, translationLangDir, translationLangTag,
   type Verse,
 } from '../../quran/lib';
 import type { HifzSurah } from '../surahs';
@@ -380,7 +380,14 @@ export default function AyahClient({
           {verseText(verse, script)}
         </p>
         {viewMode !== 'arabic' && translation && (
-          <p className="mt-5 text-base leading-relaxed text-[#1C2420]/85 sm:text-lg">{translation}</p>
+          <p
+            lang={translationLangTag(translationId)}
+            dir={translationLangDir(translationId)}
+            translate="no"
+            className="mt-5 text-base leading-relaxed text-[#1C2420]/85 sm:text-lg"
+          >
+            {translation}
+          </p>
         )}
         {viewMode !== 'arabic' && (
           <p className="mt-2 text-xs text-[#1C2420]/50">{t('common.translation')}: {translationName}</p>
@@ -535,8 +542,8 @@ export default function AyahClient({
             {words.map((w, i) => (
               <li key={i} className={`rounded-lg border px-2.5 py-1.5 text-center ${playingWord === i ? 'border-[#FFB800] bg-[#FFB800]/15 ring-1 ring-[#FFB800]' : 'border-[#E5E7EB] bg-[#FFFBF2]'}`}>
                 <span dir="rtl" lang="ar" translate="no" className="font-quran block text-xl leading-snug text-[#102E26]">{w.arabic}</span>
-                {w.transliteration && <span className="block text-[11px] italic text-[#5b6b62]">{w.transliteration}</span>}
-                {w.translation && <span className="block text-[11px] text-[#1C2420]/75">{w.translation}</span>}
+                {w.transliteration && <span lang="ar-Latn" translate="no" className="block text-[11px] italic text-[#5b6b62]">{w.transliteration}</span>}
+                {w.translation && <span lang="en" translate="no" className="block text-[11px] text-[#1C2420]/75">{w.translation}</span>}
                 {w.audioUrl && (
                   <button
                     type="button"

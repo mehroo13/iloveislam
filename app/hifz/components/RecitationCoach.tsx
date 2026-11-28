@@ -35,7 +35,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { AUDIO_BASE, RECITERS, TRANSLATIONS, groupByLanguage, reciterName, translationName } from '../../quran/lib';
+import { AUDIO_BASE, RECITERS, TRANSLATIONS, groupByLanguage, reciterName, translationLangDir, translationLangTag, translationName } from '../../quran/lib';
 import { playDroppedFeedback, playMistakeFeedback } from '../lib/sounds';
 import {
   addMistake,
@@ -1261,7 +1261,14 @@ export default function RecitationCoach({
           <span className="hidden-ayah-rosette" aria-hidden="true"> ◯</span>
         </p>
         {current?.translation && (
-          <p className="mt-3 text-sm leading-relaxed text-[#5b6b62]">{current.translation}</p>
+          <p
+            lang={translationLangTag(settings?.translationId ?? 20)}
+            dir={translationLangDir(settings?.translationId ?? 20)}
+            translate="no"
+            className="mt-3 text-sm leading-relaxed text-[#5b6b62]"
+          >
+            {current.translation}
+          </p>
         )}
       </div>
 

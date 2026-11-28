@@ -336,12 +336,12 @@ export default function VoiceSearchClient() {
                     {surah ? `${t('common.surah')} ${surah.name}` : `${t('common.surah')} ${r.surah}`} · {r.verseKey}
                   </p>
                   {r.text && (
-                    <p dir="rtl" lang="ar" className="font-quran mt-3 text-right text-2xl leading-loose text-[#102E26]">
+                    <p dir="rtl" lang="ar" translate="no" className="font-quran mt-3 text-right text-2xl leading-loose text-[#102E26]">
                       {r.text}
                     </p>
                   )}
                   {r.translation && (
-                    <p className="mt-2 text-sm leading-relaxed text-[#1C2420]/80">“{r.translation}”</p>
+                    <p lang="en" translate="no" className="mt-2 text-sm leading-relaxed text-[#1C2420]/80">“{r.translation}”</p>
                   )}
                   <div className="mt-4">
                     <Link
